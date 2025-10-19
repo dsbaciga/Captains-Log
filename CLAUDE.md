@@ -5,6 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Important References:**
 - [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - Current project status, completed features, and remaining work. **Update this file whenever significant features are completed or new issues are discovered.**
 - [FEATURE_IDEAS.md](FEATURE_IDEAS.md) - Future enhancement ideas and feature requests.
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
+- [QUICK_START_PRODUCTION.md](QUICK_START_PRODUCTION.md) - Quick production setup (< 10 min)
+- [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) - Release preparation and deployment checklist
 
 ## Project Overview
 
@@ -34,12 +37,25 @@ Captain's Log is a full-stack travel documentation application built with a Reac
 - `npm run preview` - Preview production build
 
 ### Docker Commands (run from project root)
+
+**Development:**
 - `docker-compose up -d` - Start all services (db, backend, frontend, nominatim)
 - `docker-compose down` - Stop all services
 - `docker ps` - Check running containers
 - `docker logs captains-log-backend` - View backend logs
 - `docker logs captains-log-frontend` - View frontend logs
 - `docker exec -it captains-log-backend npx prisma migrate dev` - Run migrations in container
+
+**Production:**
+
+- `./build.sh v1.0.0` (Linux/Mac) or `.\build.ps1 -Version v1.0.0` (Windows) - Build production images
+- `docker-compose -f docker-compose.prod.yml --env-file .env.production up -d` - Start production services
+- `docker exec captains-log-backend npx prisma migrate deploy` - Run production migrations
+
+**Release Management:**
+
+- `./release.sh patch|minor|major` - Automated version bump, tagging, and build
+- See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for full release process
 
 ## Architecture
 

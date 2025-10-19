@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: captains-log-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-captains_log_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-captains_log_password}
+      POSTGRES_DB: ${DB_NAME:-captains_log}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-captains_log_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API (Production)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+      args:
+        NODE_ENV: production
+    container_name: captains-log-backend
+    environment:
+      NODE_ENV: production
+      PORT: ${BACKEND_PORT:-5000}
+      DATABASE_URL: postgresql://${DB_USER:-captains_log_user}:${DB_PASSWORD:-captains_log_password}@db:5432/${DB_NAME:-captains_log}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      NOMINATIM_URL: ${NOMINATIM_URL:-http://nominatim:8080}
+      IMMICH_API_URL: ${IMMICH_API_URL:-}
+      IMMICH_API_KEY: ${IMMICH_API_KEY:-}
+      OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY:-}
+      AVIATIONSTACK_API_KEY: ${AVIATIONSTACK_API_KEY:-}
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (Production)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api}
+        VITE_UPLOAD_URL: ${VITE_UPLOAD_URL:-http://localhost:5000/uploads}
+    container_name: captains-log-frontend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Self-hosted Nominatim for geocoding
+  nominatim:
+    image: mediagis/nominatim:4.4
+    container_name: captains-log-nominatim
+    environment:
+      PBF_URL: ${NOMINATIM_PBF_URL:-https://download.geofabrik.de/north-america/us-latest.osm.pbf}
+      REPLICATION_URL: ${NOMINATIM_REPLICATION_URL:-https://download.geofabrik.de/north-america/us-updates/}
+      IMPORT_WIKIPEDIA: "false"
+      IMPORT_US_POSTCODES: "false"
+      IMPORT_GB_POSTCODES: "false"
+    ports:
+      - "${NOMINATIM_PORT:-8080}:8080"
+    volumes:
+      - nominatim_data:/var/lib/postgresql/14/main
+    shm_size: 1gb
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  nominatim_data:
+  uploads:
