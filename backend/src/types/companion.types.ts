@@ -1,0 +1,24 @@
+import { z } from 'zod';
+
+export const createCompanionSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email().optional(),
+  phone: z.string().max(20).optional(),
+  notes: z.string().max(1000).optional(),
+});
+
+export const updateCompanionSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().max(20).optional().nullable(),
+  notes: z.string().max(1000).optional().nullable(),
+});
+
+export const linkCompanionToTripSchema = z.object({
+  tripId: z.number(),
+  companionId: z.number(),
+});
+
+export type CreateCompanionInput = z.infer<typeof createCompanionSchema>;
+export type UpdateCompanionInput = z.infer<typeof updateCompanionSchema>;
+export type LinkCompanionToTripInput = z.infer<typeof linkCompanionToTripSchema>;

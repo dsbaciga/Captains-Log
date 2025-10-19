@@ -1,0 +1,418 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+model User {
+  id                 Int      @id @default(autoincrement())
+  username           String   @unique @db.VarChar(255)
+  email              String   @unique @db.VarChar(255)
+  passwordHash       String   @map("password_hash") @db.VarChar(255)
+  avatarUrl          String?  @map("avatar_url") @db.VarChar(500)
+  timezone           String?  @default("UTC") @db.VarChar(100)
+  activityCategories Json     @default("[{\"name\":\"Sightseeing\",\"emoji\":\"\ud83c\udfdb\ufe0f\"},{\"name\":\"Dining\",\"emoji\":\"\ud83c\udf7d\ufe0f\"},{\"name\":\"Adventure\",\"emoji\":\"\ud83e\uddd7\"},{\"name\":\"Entertainment\",\"emoji\":\"\ud83c\udfad\"},{\"name\":\"Shopping\",\"emoji\":\"\ud83d\udecd\ufe0f\"},{\"name\":\"Recreation\",\"emoji\":\"\u26bd\"},{\"name\":\"Cultural\",\"emoji\":\"\ud83c\udfdb\ufe0f\"},{\"name\":\"Sports\",\"emoji\":\"\ud83c\udfc5\"},{\"name\":\"Wellness\",\"emoji\":\"\ud83e\uddd8\"},{\"name\":\"Tour\",\"emoji\":\"\ud83d\udc65\"},{\"name\":\"Other\",\"emoji\":\"\ud83d\udccc\"}]") @map("activity_categories")
+  immichApiUrl       String?  @map("immich_api_url") @db.VarChar(500)
+  immichApiKey       String?  @map("immich_api_key") @db.VarChar(500)
+  weatherApiKey      String?  @map("weather_api_key") @db.VarChar(500)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  trips              Trip[]
+  tags               TripTag[]
+  companions         TravelCompanion[]
+  locationCategories LocationCategory[]
+  tripCollaborators  TripCollaborator[]
+
+  @@map("users")
+}
+
+model Trip {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @map("user_id")
+  title               String   @db.VarChar(500)
+  description         String?  @db.Text
+  startDate           DateTime? @map("start_date") @db.Date
+  endDate             DateTime? @map("end_date") @db.Date
+  timezone            String?  @db.VarChar(100)
+  status              String   @db.VarChar(50) // Dream, Planning, Planned, In Progress, Completed, Cancelled
+  privacyLevel        String   @map("privacy_level") @db.VarChar(50) // Private, Shared, Public
+  coverPhotoId        Int?     @map("cover_photo_id")
+  bannerPhotoId       Int?     @map("banner_photo_id")
+  addToPlacesVisited  Boolean  @default(false) @map("add_to_places_visited")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverPhoto         Photo?                 @relation("TripCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
+  bannerPhoto        Photo?                 @relation("TripBannerPhoto", fields: [bannerPhotoId], references: [id], onDelete: SetNull)
+  locations          Location[]
+  photos             Photo[]                @relation("TripPhotos")
+  activities         Activity[]
+  transportation     Transportation[]
+  lodging            Lodging[]
+  journalEntries     JournalEntry[]
+  photoAlbums        PhotoAlbum[]
+  weatherData        WeatherData[]
+  tagAssignments     TripTagAssignment[]
+  companionAssignments TripCompanion[]
+  collaborators      TripCollaborator[]
+
+  @@map("trips")
+}
+
+model TripTag {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String   @db.VarChar(255)
+  color     String?  @db.VarChar(7) // Hex color code (background)
+  textColor String?  @map("text_color") @db.VarChar(7) // Hex color code (text)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments TripTagAssignment[]
+
+  @@unique([userId, name])
+  @@map("trip_tags")
+}
+
+model TripTagAssignment {
+  id        Int      @id @default(autoincrement())
+  tripId    Int      @map("trip_id")
+  tagId     Int      @map("tag_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  trip Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tag  TripTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, tagId])
+  @@map("trip_tag_assignments")
+}
+
+model TravelCompanion {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  name         String   @db.VarChar(255)
+  email        String?  @db.VarChar(255)
+  phone        String?  @db.VarChar(20)
+  notes        String?  @db.Text
+  relationship String?  @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripAssignments  TripCompanion[]
+
+  @@map("travel_companions")
+}
+
+model TripCompanion {
+  id          Int      @id @default(autoincrement())
+  tripId      Int      @map("trip_id")
+  companionId Int      @map("companion_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  trip      Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  companion TravelCompanion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, companionId])
+  @@map("trip_companions")
+}
+
+model TripCollaborator {
+  id              Int      @id @default(autoincrement())
+  tripId          Int      @map("trip_id")
+  userId          Int      @map("user_id")
+  permissionLevel String   @map("permission_level") @db.VarChar(50) // view, edit, admin
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+  @@map("trip_collaborators")
+}
+
+model Location {
+  id                   Int       @id @default(autoincrement())
+  tripId               Int       @map("trip_id")
+  name                 String    @db.VarChar(500)
+  address              String?   @db.Text
+  latitude             Decimal?  @db.Decimal(10, 8)
+  longitude            Decimal?  @db.Decimal(11, 8)
+  categoryId           Int?      @map("category_id")
+  visitDatetime        DateTime? @map("visit_datetime")
+  visitDurationMinutes Int?      @map("visit_duration_minutes")
+  notes                String?   @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  trip                     Trip                  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  category                 LocationCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  photos                   Photo[]
+  activities               Activity[]
+  lodging                  Lodging[]
+  transportationStarts     Transportation[]      @relation("StartLocation")
+  transportationEnds       Transportation[]      @relation("EndLocation")
+  journalLocationAssignments JournalLocation[]
+  weatherData              WeatherData[]
+  photoAlbums              PhotoAlbum[]
+
+  @@map("locations")
+}
+
+model LocationCategory {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id") // NULL for system default categories
+  name      String   @db.VarChar(255)
+  icon      String?  @db.VarChar(100)
+  color     String?  @db.VarChar(7) // Hex color code
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations Location[]
+
+  @@map("location_categories")
+}
+
+model Photo {
+  id             Int       @id @default(autoincrement())
+  tripId         Int       @map("trip_id")
+  locationId     Int?      @map("location_id")
+  source         String    @default("local") @db.VarChar(50) // 'local' or 'immich'
+  immichAssetId  String?   @map("immich_asset_id") @db.VarChar(255)
+  localPath      String?   @map("local_path") @db.VarChar(500)
+  thumbnailPath  String?   @map("thumbnail_path") @db.VarChar(500)
+  caption        String?   @db.Text
+  latitude       Decimal?  @db.Decimal(10, 8)
+  longitude      Decimal?  @db.Decimal(11, 8)
+  takenAt        DateTime? @map("taken_at")
+  uploadedAt     DateTime  @default(now()) @map("uploaded_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  trip                   Trip                    @relation("TripPhotos", fields: [tripId], references: [id], onDelete: Cascade)
+  location               Location?               @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  tripCoverPhoto         Trip[]                  @relation("TripCoverPhoto")
+  tripBannerPhoto        Trip[]                  @relation("TripBannerPhoto")
+  albumAssignments       PhotoAlbumAssignment[]
+  journalPhotoAssignments JournalPhoto[]
+
+  @@map("photos")
+}
+
+model PhotoAlbum {
+  id          Int      @id @default(autoincrement())
+  tripId      Int      @map("trip_id")
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  locationId  Int?     @map("location_id")
+  activityId  Int?     @map("activity_id")
+  lodgingId   Int?     @map("lodging_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  trip         Trip                   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  location     Location?              @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  activity     Activity?              @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  lodging      Lodging?               @relation(fields: [lodgingId], references: [id], onDelete: SetNull)
+  photoAssignments PhotoAlbumAssignment[]
+
+  @@map("photo_albums")
+}
+
+model PhotoAlbumAssignment {
+  id        Int      @id @default(autoincrement())
+  albumId   Int      @map("album_id")
+  photoId   Int      @map("photo_id")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  album PhotoAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  photo Photo      @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([albumId, photoId])
+  @@map("photo_album_assignments")
+}
+
+model Activity {
+  id          Int       @id @default(autoincrement())
+  tripId      Int       @map("trip_id")
+  locationId  Int?      @map("location_id")
+  parentId    Int?      @map("parent_id")
+  name        String    @db.VarChar(500)
+  description String?   @db.Text
+  category    String?   @db.VarChar(100) // sightseeing, dining, adventure, entertainment, etc.
+  allDay      Boolean   @default(false) @map("all_day")
+  startTime   DateTime? @map("start_time")
+  endTime     DateTime? @map("end_time")
+  timezone    String?   @db.VarChar(100)
+  cost        Decimal?  @db.Decimal(10, 2)
+  currency    String?   @db.VarChar(3)
+  bookingUrl  String?   @map("booking_url") @db.VarChar(500)
+  bookingReference String? @map("booking_reference") @db.VarChar(255)
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  parent   Activity? @relation("ActivityChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children Activity[] @relation("ActivityChildren")
+  photoAlbums PhotoAlbum[]
+
+  @@map("activities")
+}
+
+model Transportation {
+  id                 Int       @id @default(autoincrement())
+  tripId             Int       @map("trip_id")
+  type               String    @db.VarChar(50) // Flight, Train, Bus, Ferry, etc.
+  startLocationId    Int?      @map("start_location_id")
+  startLocationText  String?   @map("start_location_text") @db.VarChar(500)
+  endLocationId      Int?      @map("end_location_id")
+  endLocationText    String?   @map("end_location_text") @db.VarChar(500)
+  scheduledStart     DateTime? @map("scheduled_start")
+  scheduledEnd       DateTime? @map("scheduled_end")
+  startTimezone      String?   @map("start_timezone") @db.VarChar(100)
+  endTimezone        String?   @map("end_timezone") @db.VarChar(100)
+  actualStart        DateTime? @map("actual_start")
+  actualEnd          DateTime? @map("actual_end")
+  company            String?   @db.VarChar(255)
+  referenceNumber    String?   @map("reference_number") @db.VarChar(255)
+  seatNumber         String?   @map("seat_number") @db.VarChar(50)
+  bookingReference   String?   @map("booking_reference") @db.VarChar(255)
+  bookingUrl         String?   @map("booking_url") @db.VarChar(500)
+  cost               Decimal?  @db.Decimal(10, 2)
+  currency           String?   @db.VarChar(3)
+  status             String    @default("on_time") @db.VarChar(50) // on_time, delayed, cancelled
+  delayMinutes       Int?      @map("delay_minutes")
+  notes              String?   @db.Text
+  connectionGroupId  String?   @map("connection_group_id") @db.VarChar(100)
+  isAutoGenerated    Boolean   @default(false) @map("is_auto_generated")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  trip           Trip             @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  startLocation  Location?        @relation("StartLocation", fields: [startLocationId], references: [id], onDelete: SetNull)
+  endLocation    Location?        @relation("EndLocation", fields: [endLocationId], references: [id], onDelete: SetNull)
+  flightTracking FlightTracking?
+
+  @@map("transportation")
+}
+
+model Lodging {
+  id                  Int       @id @default(autoincrement())
+  tripId              Int       @map("trip_id")
+  locationId          Int?      @map("location_id")
+  type                String    @db.VarChar(50)
+  name                String    @db.VarChar(500)
+  address             String?   @db.VarChar(1000)
+  checkInDate         DateTime  @map("check_in_date")
+  checkOutDate        DateTime  @map("check_out_date")
+  timezone            String?   @db.VarChar(100)
+  confirmationNumber  String?   @map("confirmation_number") @db.VarChar(255)
+  bookingUrl          String?   @map("booking_url") @db.VarChar(500)
+  cost                Decimal?  @db.Decimal(10, 2)
+  currency            String?   @db.VarChar(3)
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  photoAlbums PhotoAlbum[]
+
+  @@map("lodging")
+}
+
+model JournalEntry {
+  id           Int       @id @default(autoincrement())
+  tripId       Int       @map("trip_id")
+  date         DateTime? @db.Date // NULL for trip-level journals
+  title        String?   @db.VarChar(500)
+  content      String    @db.Text
+  entryType    String    @map("entry_type") @db.VarChar(50) // trip, daily
+  mood         String?   @db.VarChar(50)
+  weatherNotes String?   @map("weather_notes") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  trip                      Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  photoAssignments          JournalPhoto[]
+  locationAssignments       JournalLocation[]
+
+  @@map("journal_entries")
+}
+
+model JournalPhoto {
+  id        Int      @id @default(autoincrement())
+  journalId Int      @map("journal_id")
+  photoId   Int      @map("photo_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  journal JournalEntry @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  photo   Photo        @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([journalId, photoId])
+  @@map("journal_photos")
+}
+
+model JournalLocation {
+  id         Int      @id @default(autoincrement())
+  journalId  Int      @map("journal_id")
+  locationId Int      @map("location_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  journal  JournalEntry @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  location Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([journalId, locationId])
+  @@map("journal_locations")
+}
+
+model WeatherData {
+  id              Int       @id @default(autoincrement())
+  tripId          Int       @map("trip_id")
+  locationId      Int?      @map("location_id")
+  date            DateTime  @db.Date
+  temperatureHigh Decimal?  @map("temperature_high") @db.Decimal(5, 2)
+  temperatureLow  Decimal?  @map("temperature_low") @db.Decimal(5, 2)
+  conditions      String?   @db.VarChar(255)
+  precipitation   Decimal?  @db.Decimal(5, 2)
+  humidity        Int?
+  windSpeed       Decimal?  @map("wind_speed") @db.Decimal(5, 2)
+  fetchedAt       DateTime  @default(now()) @map("fetched_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@map("weather_data")
+}
+
+model FlightTracking {
+  id              Int       @id @default(autoincrement())
+  transportationId Int      @unique @map("transportation_id")
+  flightNumber    String?   @map("flight_number") @db.VarChar(50)
+  airlineCode     String?   @map("airline_code") @db.VarChar(10)
+  status          String?   @db.VarChar(50) // scheduled, active, landed, cancelled, diverted
+  gate            String?   @db.VarChar(20)
+  terminal        String?   @db.VarChar(20)
+  baggageClaim    String?   @map("baggage_claim") @db.VarChar(20)
+  lastUpdatedAt   DateTime  @default(now()) @map("last_updated_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  transportation Transportation @relation(fields: [transportationId], references: [id], onDelete: Cascade)
+
+  @@map("flight_tracking")
+}

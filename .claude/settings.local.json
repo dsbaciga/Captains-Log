@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm init:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install)",
+      "Bash(npx prisma generate:*)",
+      "Bash(docker:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(dir activity.ts)",
+      "Bash(del \"C:\\Users\\dsbac\\Captain''s Log\\frontend\\src\\types\\activity.ts\")",
+      "Bash(npm install:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose down:*)",
+      "Read(//c/Users/dsbac/**)",
+      "Bash(cat:*)",
+      "Bash(dir:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

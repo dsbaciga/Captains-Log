@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: captains-log-db
+    environment:
+      POSTGRES_USER: captains_log_user
+      POSTGRES_PASSWORD: captains_log_password
+      POSTGRES_DB: captains_log
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U captains_log_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: captains-log-backend
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DATABASE_URL: postgresql://captains_log_user:captains_log_password@db:5432/captains_log?schema=public
+      JWT_SECRET: your-super-secret-jwt-key-change-this
+      JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-this
+      NOMINATIM_URL: http://nominatim:8080
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run dev
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: captains-log-frontend
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+      VITE_UPLOAD_URL: http://localhost:5000/uploads
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+
+  # Self-hosted Nominatim for geocoding
+  nominatim:
+    image: mediagis/nominatim:4.4
+    container_name: captains-log-nominatim
+    environment:
+      PBF_URL: https://download.geofabrik.de/north-america/us-latest.osm.pbf
+      REPLICATION_URL: https://download.geofabrik.de/north-america/us-updates/
+      IMPORT_WIKIPEDIA: "false"
+      IMPORT_US_POSTCODES: "false"
+      IMPORT_GB_POSTCODES: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - nominatim_data:/var/lib/postgresql/14/main
+    shm_size: 1gb
+
+volumes:
+  postgres_data:
+  nominatim_data:
+  uploads:
