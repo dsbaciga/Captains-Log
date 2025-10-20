@@ -25,11 +25,11 @@ cd captains-log
 cp .env.truenas.example .env
 nano .env  # Edit: TRUENAS_DATASET_PATH, DB_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET
 
-# 5. Deploy
+# 5. Deploy (migrations run automatically on startup)
 docker-compose -f docker-compose.truenas.yml up -d
 
-# 6. Initialize database
-docker exec -it captains-log-backend npx prisma migrate deploy
+# 6. Verify deployment
+docker logs -f captains-log-backend
 ```
 
 ## Common Commands
@@ -57,7 +57,7 @@ docker-compose -f docker-compose.truenas.yml ps
 docker-compose -f docker-compose.truenas.yml pull
 docker-compose -f docker-compose.truenas.yml up -d
 
-# Run database migrations
+# Manually run database migrations (rarely needed - runs automatically on startup)
 docker exec -it captains-log-backend npx prisma migrate deploy
 
 # Access database directly

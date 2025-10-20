@@ -43,11 +43,11 @@ cd captains-log
 cp .env.truenas.example .env
 nano .env  # Edit with your settings
 
-# 4. Deploy
+# 4. Deploy (migrations run automatically on startup)
 docker-compose -f docker-compose.truenas.yml up -d
 
-# 5. Run database migrations
-docker exec -it captains-log-backend npx prisma migrate deploy
+# 5. Verify deployment
+docker logs -f captains-log-backend
 
 # 6. Access application
 # Frontend: http://your-truenas-ip:3000
@@ -211,16 +211,26 @@ docker-compose -f docker-compose.truenas.yml logs -f
 3. **Frontend** starts once backend is healthy (5-10 seconds)
 4. **Nominatim** begins importing map data (1-2 hours for US, 5-15 minutes for states)
 
-### Step 6: Run Database Migrations
+### Step 6: Verify Database Migrations
 
-Once the backend is running, initialize the database:
+The backend automatically runs database migrations on startup via an entrypoint script. You can verify this by checking the logs:
 
 ```bash
-# Run Prisma migrations
-docker exec -it captains-log-backend npx prisma migrate deploy
+# Check backend logs to see migration output
+docker logs captains-log-backend
 
-# Verify database is ready
-docker exec -it captains-log-backend npx prisma db push
+# You should see output like:
+# "Starting Captain's Log Backend..."
+# "Waiting for database to be ready..."
+# "Database is ready!"
+# "Running Prisma migrations..."
+# "Starting application..."
+```
+
+If you need to manually run migrations (rare):
+
+```bash
+docker exec -it captains-log-backend npx prisma migrate deploy
 ```
 
 ### Step 7: Verify Deployment
@@ -383,11 +393,11 @@ nano .env
 # Change: BACKEND_IMAGE=captains-log-backend:v1.1.0
 # Change: FRONTEND_IMAGE=captains-log-frontend:v1.1.0
 
-# Recreate containers with new images
+# Recreate containers with new images (migrations run automatically)
 docker-compose -f docker-compose.truenas.yml up -d
 
-# Run any new migrations
-docker exec -it captains-log-backend npx prisma migrate deploy
+# Watch logs to verify migration completed
+docker logs -f captains-log-backend
 ```
 
 ### Rollback to Previous Version
@@ -429,6 +439,9 @@ zfs rollback pool/captains-log@backup-20250120
 # Or restore from SQL dump
 docker exec -i captains-log-db psql -U captains_log_user captains_log < backup.sql
 
+# Restart backend to run migrations on restored database
+docker-compose -f docker-compose.truenas.yml restart backend
+
 # Restore uploads
 tar -xzf uploads-backup.tar.gz -C /
 ```
@@ -461,8 +474,8 @@ docker exec captains-log-backend env | grep DATABASE_URL
 # Reset database (WARNING: deletes all data)
 docker-compose -f docker-compose.truenas.yml down
 rm -rf /mnt/pool/captains-log/postgres/*
+# Migrations run automatically on startup
 docker-compose -f docker-compose.truenas.yml up -d
-docker exec -it captains-log-backend npx prisma migrate deploy
 ```
 
 ### Nominatim import stuck or slow
