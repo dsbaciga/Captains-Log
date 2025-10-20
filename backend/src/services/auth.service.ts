@@ -33,8 +33,8 @@ export class AuthService {
     });
 
     // Generate tokens
-    const accessToken = generateAccessToken({ userId: user.id, email: user.email });
-    const refreshToken = generateRefreshToken({ userId: user.id, email: user.email });
+    const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
+    const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email });
 
     return {
       user: {
@@ -66,8 +66,8 @@ export class AuthService {
     }
 
     // Generate tokens
-    const accessToken = generateAccessToken({ userId: user.id, email: user.email });
-    const refreshToken = generateRefreshToken({ userId: user.id, email: user.email });
+    const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
+    const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email });
 
     return {
       user: {
@@ -96,8 +96,8 @@ export class AuthService {
       }
 
       // Generate new tokens
-      const accessToken = generateAccessToken({ userId: user.id, email: user.email });
-      const refreshToken = generateRefreshToken({ userId: user.id, email: user.email });
+      const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
+      const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email });
 
       return { accessToken, refreshToken };
     } catch (error) {

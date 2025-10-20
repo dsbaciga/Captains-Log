@@ -33,6 +33,7 @@ export interface AuthResponse {
 }
 
 export interface JwtPayload {
-  userId: number;
+  id: number;  // User ID (aliased for convenience)
+  userId: number;  // Same as id (for compatibility)
   email: string;
 }

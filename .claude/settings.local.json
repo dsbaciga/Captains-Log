@@ -22,7 +22,8 @@
       "Bash(docker-compose down:*)",
       "Read(//c/Users/dsbac/**)",
       "Bash(cat:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(npm run build)"
     ],
     "deny": [],
     "ask": []
