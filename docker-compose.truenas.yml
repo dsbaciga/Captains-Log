@@ -95,14 +95,13 @@ services:
 
   # Frontend
   frontend:
-    # Use pre-built image from GitHub Container Registry
-    # Or build locally if you prefer
-    image: ghcr.io/dsbaciga/captains-log-frontend:latest
+    # Build locally with TrueNAS-specific nginx proxy configuration
+    # This allows the frontend to use relative URLs (/api, /uploads)
+    # which are proxied to the backend container
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.truenas
     container_name: captains-log-frontend
-    environment:
-      # These are baked into the build, but can be overridden via nginx config
-      VITE_API_URL: http://localhost:5000/api
-      VITE_UPLOAD_URL: http://localhost:5000/uploads
     ports:
       - "30600:80"
     depends_on:

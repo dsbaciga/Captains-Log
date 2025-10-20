@@ -125,32 +125,43 @@ cd captains-log
 
 You have two options for getting the Docker images:
 
-#### Option A: Pull from GitHub Container Registry (Recommended)
+#### Option A: Use Docker Compose Build (Recommended for TrueNAS)
 
-Once the images are published to GHCR:
+The docker-compose.truenas.yml file is configured to build images automatically with the correct configuration:
 
 ```bash
-docker pull ghcr.io/dsbaciga/captains-log-backend:v1.0.0
-docker pull ghcr.io/dsbaciga/captains-log-frontend:v1.0.0
+cd /mnt/pool/apps/captains-log
 
-# Tag them for local use
-docker tag ghcr.io/dsbaciga/captains-log-backend:v1.0.0 captains-log-backend:v1.0.0
-docker tag ghcr.io/dsbaciga/captains-log-frontend:v1.0.0 captains-log-frontend:v1.0.0
+# Docker Compose will build images on first run
+docker-compose -f docker-compose.truenas.yml up -d
+
+# Or explicitly build first
+docker-compose -f docker-compose.truenas.yml build
 ```
 
-#### Option B: Build Locally on TrueNAS
+**Note:** The frontend uses a TrueNAS-specific configuration that proxies API requests through nginx, eliminating the need to hardcode your TrueNAS IP address.
+
+#### Option B: Pull from GitHub Container Registry
+
+If you prefer to use pre-built images:
+
+```bash
+docker pull ghcr.io/dsbaciga/captains-log-backend:latest
+
+# Note: For frontend, use local build with TrueNAS proxy configuration
+# The GHCR frontend image has hardcoded localhost URLs
+```
+
+#### Option C: Build Manually
 
 ```bash
 cd /mnt/pool/apps/captains-log
 
 # Build backend
-docker build -f backend/Dockerfile.prod -t captains-log-backend:v1.0.0 ./backend
+docker build -f backend/Dockerfile.prod -t captains-log-backend:latest ./backend
 
-# Build frontend
-docker build -f frontend/Dockerfile.prod \
-  --build-arg VITE_API_URL=http://YOUR-TRUENAS-IP:5000/api \
-  --build-arg VITE_UPLOAD_URL=http://YOUR-TRUENAS-IP:5000/uploads \
-  -t captains-log-frontend:v1.0.0 ./frontend
+# Build frontend with TrueNAS proxy config
+docker build -f frontend/Dockerfile.truenas -t captains-log-frontend:latest ./frontend
 ```
 
 ### Step 4: Configure Environment Variables
