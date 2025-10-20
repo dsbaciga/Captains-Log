@@ -1,0 +1,57 @@
+# Multi-stage build for TrueNAS production deployment
+# This version uses nginx proxy to route /api and /uploads to the backend container
+# No need for VITE_API_URL or VITE_UPLOAD_URL env vars - uses relative URLs
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build with empty/relative URLs since nginx will proxy
+ENV VITE_API_URL=/api
+ENV VITE_UPLOAD_URL=/uploads
+
+# Build application
+RUN npm run build
+
+# Production stage with nginx
+FROM nginx:alpine
+
+# Install envsubst (part of gettext package) for environment variable substitution
+RUN apk add --no-cache gettext
+
+# Copy TrueNAS-specific nginx config template
+COPY nginx.truenas.conf /etc/nginx/templates/default.conf.template
+
+# Copy built application from builder
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Set default environment variables
+ENV BACKEND_HOST=backend
+ENV BACKEND_PORT=5000
+
+# Create entrypoint script to substitute env vars in nginx config
+RUN echo '#!/bin/sh' > /docker-entrypoint.d/40-envsubst-on-templates.sh && \
+    echo 'set -e' >> /docker-entrypoint.d/40-envsubst-on-templates.sh && \
+    echo 'echo "Configuring nginx with BACKEND_HOST=$BACKEND_HOST and BACKEND_PORT=$BACKEND_PORT"' >> /docker-entrypoint.d/40-envsubst-on-templates.sh && \
+    echo 'envsubst "\$BACKEND_HOST \$BACKEND_PORT" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.d/40-envsubst-on-templates.sh && \
+    echo 'echo "Nginx configuration complete"' >> /docker-entrypoint.d/40-envsubst-on-templates.sh && \
+    chmod +x /docker-entrypoint.d/40-envsubst-on-templates.sh
+
+# Expose port 80
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
+
+# Start nginx (entrypoint scripts run automatically)
+CMD ["nginx", "-g", "daemon off;"]

@@ -23,7 +23,8 @@
       "Read(//c/Users/dsbac/**)",
       "Bash(cat:*)",
       "Bash(dir:*)",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(touch \"c:\\Users\\dsbac\\Captains-Log\\TRUENAS_QUICKSTART.md\")"
     ],
     "deny": [],
     "ask": []
