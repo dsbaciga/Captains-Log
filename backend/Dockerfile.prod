@@ -45,8 +45,8 @@ RUN npx prisma generate
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Create uploads directory
-RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
+# Create uploads and logs directories
+RUN mkdir -p /app/uploads /app/logs && chown -R node:node /app/uploads /app/logs
 
 # Use non-root user
 USER node
