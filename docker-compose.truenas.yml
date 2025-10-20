@@ -95,12 +95,10 @@ services:
 
   # Frontend
   frontend:
-    # Build locally with TrueNAS-specific nginx proxy configuration
+    # Use pre-built image with TrueNAS-specific nginx proxy configuration
     # This allows the frontend to use relative URLs (/api, /uploads)
     # which are proxied to the backend container
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.truenas
+    image: ghcr.io/dsbaciga/captains-log-frontend:latest
     container_name: captains-log-frontend
     ports:
       - "30600:80"
