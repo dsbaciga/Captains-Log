@@ -30,15 +30,19 @@
     @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400;
   }
 
-  /* Fix date and time input calendar icons for dark mode */
+  /* Make date and time input calendar icons white for both light and dark mode */
   input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(0);
+    filter: invert(1) brightness(100);
+    cursor: pointer;
   }
 
   .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
   .dark input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
+    filter: invert(1) brightness(100);
+    cursor: pointer;
   }
 
   .label {
