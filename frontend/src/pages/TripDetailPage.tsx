@@ -61,6 +61,7 @@ export default function TripDetailPage() {
   const [editingAlbum, setEditingAlbum] = useState<PhotoAlbum | null>(null);
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   const [unsortedPhotosCount, setUnsortedPhotosCount] = useState(0);
+  const [totalPhotosCount, setTotalPhotosCount] = useState(0);
   const [showLocationForm, setShowLocationForm] = useState(false);
   const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [locationName, setLocationName] = useState('');
@@ -252,6 +253,7 @@ export default function TripDetailPage() {
       setCompanionsCount(companionsData.length);
       setAlbums(albumsData.albums);
       setUnsortedPhotosCount(albumsData.unsortedCount);
+      setTotalPhotosCount(albumsData.totalCount || 0);
     } catch (error) {
       toast.error('Failed to load trip');
       navigate('/trips');
@@ -646,7 +648,7 @@ export default function TripDetailPage() {
                 }`}
               >
                 <span>Photos</span>
-                <span className="text-xs mt-1">({photosPagination.total})</span>
+                <span className="text-xs mt-1">({totalPhotosCount})</span>
               </button>
               <button
                 onClick={() => setActiveTab('activities')}
@@ -892,7 +894,7 @@ export default function TripDetailPage() {
               <AlbumsSidebar
                 albums={albums}
                 selectedAlbumId={selectedAlbumId}
-                totalPhotos={photosPagination.total}
+                totalPhotos={totalPhotosCount}
                 unsortedPhotosCount={unsortedPhotosCount}
                 onSelectAlbum={handleSelectAlbum}
                 onCreateAlbum={handleCreateAlbum}
@@ -906,10 +908,10 @@ export default function TripDetailPage() {
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
                       {selectedAlbumId === null
-                        ? `All Photos (${photosPagination.total})`
+                        ? `All Photos (${totalPhotosCount})`
                         : selectedAlbumId === -1
-                        ? `Unsorted (${unsortedPagination.total})`
-                        : `${albums.find(a => a.id === selectedAlbumId)?.name || 'Album'} (${albumPhotosPagination.total})`
+                        ? `Unsorted (${unsortedPhotosCount})`
+                        : `${albums.find(a => a.id === selectedAlbumId)?.name || 'Album'} (${albums.find(a => a.id === selectedAlbumId)?._count?.photoAssignments || 0})`
                       }
                     </h2>
                     {selectedAlbumId !== null && selectedAlbumId !== -1 && albums.find(a => a.id === selectedAlbumId)?.description && (
@@ -984,7 +986,7 @@ export default function TripDetailPage() {
                       disabled={photosPagination.loadingMore}
                       className="btn btn-primary"
                     >
-                      {photosPagination.loadingMore ? 'Loading...' : `Load More Photos (${photosPagination.items.length}/${photosPagination.total})`}
+                      {photosPagination.loadingMore ? 'Loading...' : `Load More Photos (${photosPagination.items.length}/${totalPhotosCount})`}
                     </button>
                   </div>
                 )}
@@ -995,7 +997,7 @@ export default function TripDetailPage() {
                       disabled={unsortedPagination.loadingMore}
                       className="btn btn-primary"
                     >
-                      {unsortedPagination.loadingMore ? 'Loading...' : `Load More Photos (${unsortedPagination.items.length}/${unsortedPagination.total})`}
+                      {unsortedPagination.loadingMore ? 'Loading...' : `Load More Photos (${unsortedPagination.items.length}/${unsortedPhotosCount})`}
                     </button>
                   </div>
                 )}
@@ -1006,7 +1008,7 @@ export default function TripDetailPage() {
                       disabled={albumPhotosPagination.loadingMore}
                       className="btn btn-primary"
                     >
-                      {albumPhotosPagination.loadingMore ? 'Loading...' : `Load More Photos (${albumPhotosPagination.items.length}/${albumPhotosPagination.total})`}
+                      {albumPhotosPagination.loadingMore ? 'Loading...' : `Load More Photos (${albumPhotosPagination.items.length}/${albums.find(a => a.id === selectedAlbumId)?._count?.photoAssignments || 0})`}
                     </button>
                   </div>
                 )}
