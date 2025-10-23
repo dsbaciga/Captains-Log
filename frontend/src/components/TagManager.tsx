@@ -2,6 +2,7 @@ import { useState, useEffect, useId } from "react";
 import tagService from "../services/tag.service";
 import type { Tag } from "../types/tag";
 import toast from "react-hot-toast";
+import { useManagerCRUD } from "../hooks/useManagerCRUD";
 
 interface TagManagerProps {
   tripId: number;
@@ -19,10 +20,20 @@ const DEFAULT_COLORS = [
 ];
 
 export default function TagManager({ tripId }: TagManagerProps) {
+  // Service adapter for trip tags (tags linked to this trip)
+  const tripTagServiceAdapter = {
+    getByTrip: tagService.getTagsByTrip,
+    create: async () => { throw new Error("Use handleCreateTag instead"); },
+    update: async () => { throw new Error("Use handleUpdateTag instead"); },
+    delete: async () => { throw new Error("Use handleDeleteTag instead"); },
+  };
+
+  // Initialize CRUD hook for trip tags
+  const manager = useManagerCRUD<Tag>(tripTagServiceAdapter, tripId, {
+    itemName: "tag",
+  });
+
   const [tags, setTags] = useState<Tag[]>([]);
-  const [tripTags, setTripTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState(DEFAULT_COLORS[0]);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
@@ -30,22 +41,15 @@ export default function TagManager({ tripId }: TagManagerProps) {
   const tagColorId = useId();
 
   useEffect(() => {
-    loadTags();
+    loadAllTags();
   }, [tripId]);
 
-  const loadTags = async () => {
+  const loadAllTags = async () => {
     try {
-      setLoading(true);
-      const [allTags, linkedTags] = await Promise.all([
-        tagService.getTagsByUser(),
-        tagService.getTagsByTrip(tripId),
-      ]);
+      const allTags = await tagService.getTagsByUser();
       setTags(allTags);
-      setTripTags(linkedTags);
     } catch (error) {
       toast.error("Failed to load tags");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -59,8 +63,8 @@ export default function TagManager({ tripId }: TagManagerProps) {
       toast.success("Tag created");
       setTagName("");
       setTagColor(DEFAULT_COLORS[0]);
-      setShowForm(false);
-      await loadTags();
+      manager.closeForm();
+      await loadAllTags();
       // Automatically link the new tag to this trip
       await handleLinkTag(newTag.id);
     } catch (error) {
@@ -81,7 +85,8 @@ export default function TagManager({ tripId }: TagManagerProps) {
       setEditingTag(null);
       setTagName("");
       setTagColor(DEFAULT_COLORS[0]);
-      loadTags();
+      loadAllTags();
+      manager.loadItems();
     } catch (error) {
       toast.error("Failed to update tag");
     }
@@ -93,7 +98,8 @@ export default function TagManager({ tripId }: TagManagerProps) {
     try {
       await tagService.deleteTag(tagId);
       toast.success("Tag deleted");
-      loadTags();
+      loadAllTags();
+      manager.loadItems();
     } catch (error) {
       toast.error("Failed to delete tag");
     }
@@ -103,7 +109,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     try {
       await tagService.linkTagToTrip(tripId, tagId);
       toast.success("Tag added to trip");
-      loadTags();
+      manager.loadItems();
     } catch (error: any) {
       if (error.response?.data?.message?.includes("already linked")) {
         toast.error("Tag already added to this trip");
@@ -117,7 +123,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     try {
       await tagService.unlinkTagFromTrip(tripId, tagId);
       toast.success("Tag removed from trip");
-      loadTags();
+      manager.loadItems();
     } catch (error) {
       toast.error("Failed to remove tag");
     }
@@ -127,22 +133,22 @@ export default function TagManager({ tripId }: TagManagerProps) {
     setEditingTag(tag);
     setTagName(tag.name);
     setTagColor(tag.color || DEFAULT_COLORS[0]);
-    setShowForm(true);
+    manager.openCreateForm();
   };
 
   const cancelForm = () => {
-    setShowForm(false);
+    manager.closeForm();
     setEditingTag(null);
     setTagName("");
     setTagColor(DEFAULT_COLORS[0]);
   };
 
-  if (loading) {
+  if (manager.loading) {
     return <div className="text-center py-4">Loading tags...</div>;
   }
 
   const availableTags = tags.filter(
-    (tag) => !tripTags.find((tt) => tt.id === tag.id)
+    (tag) => !manager.items.find((tt) => tt.id === tag.id)
   );
 
   return (
@@ -152,15 +158,15 @@ export default function TagManager({ tripId }: TagManagerProps) {
           Tags
         </h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => manager.toggleForm()}
           className="btn btn-primary"
         >
-          {showForm ? "Cancel" : "+ Create Tag"}
+          {manager.showForm ? "Cancel" : "+ Create Tag"}
         </button>
       </div>
 
       {/* Create/Edit Tag Form */}
-      {showForm && (
+      {manager.showForm && (
         <form
           onSubmit={editingTag ? handleUpdateTag : handleCreateTag}
           className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
@@ -228,13 +234,13 @@ export default function TagManager({ tripId }: TagManagerProps) {
       {/* Trip Tags */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Tags on this trip</h3>
-        {tripTags.length === 0 ? (
+        {manager.items.length === 0 ? (
           <p className="text-gray-600 dark:text-gray-400 text-sm">
             No tags added yet
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {tripTags.map((tag) => (
+            {manager.items.map((tag) => (
               <div
                 key={tag.id}
                 className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-medium"

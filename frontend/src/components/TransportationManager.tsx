@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import type {
   Transportation,
   TransportationType,
@@ -9,6 +8,7 @@ import toast from "react-hot-toast";
 import JournalEntriesButton from "./JournalEntriesButton";
 import { formatDateTimeInTimezone } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
+import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -63,33 +63,29 @@ export default function TransportationManager({
   tripTimezone,
   onUpdate,
 }: TransportationManagerProps) {
-  const [transportations, setTransportations] = useState<Transportation[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  // Service adapter for useManagerCRUD hook
+  const transportationServiceAdapter = {
+    getByTrip: transportationService.getTransportationByTrip,
+    create: transportationService.createTransportation,
+    update: transportationService.updateTransportation,
+    delete: transportationService.deleteTransportation,
+  };
+
+  // Initialize CRUD hook
+  const manager = useManagerCRUD<Transportation>(transportationServiceAdapter, tripId, {
+    itemName: "transportation",
+    onUpdate,
+  });
 
   const { values, handleChange, reset } =
     useFormFields<TransportationFormFields>(initialFormState);
 
-  useEffect(() => {
-    loadTransportations();
-  }, [tripId]);
-
-  const loadTransportations = async () => {
-    try {
-      const data = await transportationService.getTransportationByTrip(tripId);
-      setTransportations(data);
-    } catch (error) {
-      toast.error("Failed to load transportation");
-    }
-  };
-
   const resetForm = () => {
     reset();
-    setEditingId(null);
+    manager.setEditingId(null);
   };
 
   const handleEdit = (transportation: Transportation) => {
-    setEditingId(transportation.id);
     handleChange("type", transportation.type);
     handleChange("fromLocationId", transportation.fromLocationId || undefined);
     handleChange("toLocationId", transportation.toLocationId || undefined);
@@ -115,79 +111,70 @@ export default function TransportationManager({
     handleChange("cost", transportation.cost?.toString() || "");
     handleChange("currency", transportation.currency || "USD");
     handleChange("notes", transportation.notes || "");
-    setShowForm(true);
+    manager.openEditForm(transportation.id);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      if (editingId) {
-        // For updates, send null to clear empty fields
-        const updateData = {
-          tripId,
-          type: values.type,
-          fromLocationId: values.fromLocationId,
-          toLocationId: values.toLocationId,
-          fromLocationName: values.fromLocationName || null,
-          toLocationName: values.toLocationName || null,
-          departureTime: values.departureTime || null,
-          arrivalTime: values.arrivalTime || null,
-          startTimezone: values.startTimezone || null,
-          endTimezone: values.endTimezone || null,
-          carrier: values.carrier || null,
-          vehicleNumber: values.vehicleNumber || null,
-          confirmationNumber: values.confirmationNumber || null,
-          cost: values.cost ? parseFloat(values.cost) : null,
-          currency: values.currency || null,
-          notes: values.notes || null,
-        };
-        await transportationService.updateTransportation(editingId, updateData);
+    if (manager.editingId) {
+      // For updates, send null to clear empty fields
+      const updateData = {
+        tripId,
+        type: values.type,
+        fromLocationId: values.fromLocationId,
+        toLocationId: values.toLocationId,
+        fromLocationName: values.fromLocationName || null,
+        toLocationName: values.toLocationName || null,
+        departureTime: values.departureTime || null,
+        arrivalTime: values.arrivalTime || null,
+        startTimezone: values.startTimezone || null,
+        endTimezone: values.endTimezone || null,
+        carrier: values.carrier || null,
+        vehicleNumber: values.vehicleNumber || null,
+        confirmationNumber: values.confirmationNumber || null,
+        cost: values.cost ? parseFloat(values.cost) : null,
+        currency: values.currency || null,
+        notes: values.notes || null,
+      };
+      const success = await manager.handleUpdate(manager.editingId, updateData);
+      if (success) {
         toast.success("Transportation updated");
-      } else {
-        // For creates, use undefined to omit optional fields
-        const createData = {
-          tripId,
-          type: values.type,
-          fromLocationId: values.fromLocationId,
-          toLocationId: values.toLocationId,
-          fromLocationName: values.fromLocationName || undefined,
-          toLocationName: values.toLocationName || undefined,
-          departureTime: values.departureTime || undefined,
-          arrivalTime: values.arrivalTime || undefined,
-          startTimezone: values.startTimezone || undefined,
-          endTimezone: values.endTimezone || undefined,
-          carrier: values.carrier || undefined,
-          vehicleNumber: values.vehicleNumber || undefined,
-          confirmationNumber: values.confirmationNumber || undefined,
-          cost: values.cost ? parseFloat(values.cost) : undefined,
-          currency: values.currency || undefined,
-          notes: values.notes || undefined,
-        };
-        await transportationService.createTransportation(createData);
-        toast.success("Transportation added");
+        resetForm();
+        manager.closeForm();
       }
-
-      resetForm();
-      setShowForm(false);
-      loadTransportations();
-      onUpdate?.(); // Notify parent to refresh counts
-    } catch (error) {
-      toast.error("Failed to save transportation");
+    } else {
+      // For creates, use undefined to omit optional fields
+      const createData = {
+        tripId,
+        type: values.type,
+        fromLocationId: values.fromLocationId,
+        toLocationId: values.toLocationId,
+        fromLocationName: values.fromLocationName || undefined,
+        toLocationName: values.toLocationName || undefined,
+        departureTime: values.departureTime || undefined,
+        arrivalTime: values.arrivalTime || undefined,
+        startTimezone: values.startTimezone || undefined,
+        endTimezone: values.endTimezone || undefined,
+        carrier: values.carrier || undefined,
+        vehicleNumber: values.vehicleNumber || undefined,
+        confirmationNumber: values.confirmationNumber || undefined,
+        cost: values.cost ? parseFloat(values.cost) : undefined,
+        currency: values.currency || undefined,
+        notes: values.notes || undefined,
+      };
+      const success = await manager.handleCreate(createData);
+      if (success) {
+        toast.success("Transportation added");
+        resetForm();
+        manager.closeForm();
+      }
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this transportation?")) return;
-
-    try {
-      await transportationService.deleteTransportation(id);
-      toast.success("Transportation deleted");
-      loadTransportations();
-      onUpdate?.(); // Notify parent to refresh counts
-    } catch (error) {
-      toast.error("Failed to delete transportation");
-    }
+    await manager.handleDelete(id);
   };
 
   const getTypeIcon = (type: TransportationType) => {
@@ -230,18 +217,18 @@ export default function TransportationManager({
         <button
           onClick={() => {
             resetForm();
-            setShowForm(!showForm);
+            manager.toggleForm();
           }}
           className="btn btn-primary"
         >
-          {showForm ? "Cancel" : "+ Add Transportation"}
+          {manager.showForm ? "Cancel" : "+ Add Transportation"}
         </button>
       </div>
 
-      {showForm && (
+      {manager.showForm && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">
-            {editingId ? "Edit Transportation" : "Add Transportation"}
+            {manager.editingId ? "Edit Transportation" : "Add Transportation"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -504,14 +491,14 @@ export default function TransportationManager({
                 type="button"
                 onClick={() => {
                   resetForm();
-                  setShowForm(false);
+                  manager.closeForm();
                 }}
                 className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                {editingId ? "Update" : "Add"} Transportation
+                {manager.editingId ? "Update" : "Add"} Transportation
               </button>
             </div>
           </form>
@@ -520,14 +507,14 @@ export default function TransportationManager({
 
       {/* Transportation List */}
       <div className="space-y-4">
-        {transportations.length === 0 ? (
+        {manager.items.length === 0 ? (
           <EmptyState
             icon="🚗"
             message="No transportation added yet"
             subMessage="Add your flights, trains, buses, and other transportation"
           />
         ) : (
-          transportations.map((transportation) => (
+          manager.items.map((transportation) => (
             <div
               key={transportation.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"

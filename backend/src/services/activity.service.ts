@@ -1,27 +1,16 @@
 import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
+import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
 
 class ActivityService {
   async createActivity(userId: number, data: CreateActivityInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify location belongs to trip if provided
     if (data.locationId) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: data.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.locationId, data.tripId);
     }
 
     // Verify parent activity exists and belongs to same trip if provided
@@ -73,13 +62,7 @@ class ActivityService {
 
   async getActivitiesByTrip(userId: number, tripId: number) {
     // Verify user has access to trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const activities = await prisma.activity.findMany({
       where: { tripId },
@@ -192,13 +175,7 @@ class ActivityService {
       },
     });
 
-    if (!activity) {
-      throw new AppError('Activity not found', 404);
-    }
-
-    if (activity.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    await verifyEntityAccess(activity, userId, 'Activity');
 
     return activity;
   }
@@ -213,29 +190,17 @@ class ActivityService {
       include: { trip: true },
     });
 
-    if (!activity) {
-      throw new AppError('Activity not found', 404);
-    }
-
-    if (activity.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    await verifyEntityAccess(activity, userId, 'Activity');
 
     // Verify location belongs to trip if provided
     if (data.locationId) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: activity.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.locationId, activity!.tripId);
     }
 
     // Verify parent activity exists and belongs to same trip if provided
     if (data.parentId) {
       const parentActivity = await prisma.activity.findFirst({
-        where: { id: data.parentId, tripId: activity.tripId },
+        where: { id: data.parentId, tripId: activity!.tripId },
       });
 
       if (!parentActivity) {
@@ -303,13 +268,7 @@ class ActivityService {
       include: { trip: true },
     });
 
-    if (!activity) {
-      throw new AppError('Activity not found', 404);
-    }
-
-    if (activity.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    await verifyEntityAccess(activity, userId, 'Activity');
 
     await prisma.activity.delete({
       where: { id: activityId },

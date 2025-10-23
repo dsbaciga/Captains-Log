@@ -13,6 +13,7 @@ import {
   formatDateInTimezone,
 } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
+import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -69,12 +70,23 @@ export default function ActivityManager({
   tripTimezone,
   onUpdate,
 }: ActivityManagerProps) {
-  const [activities, setActivities] = useState<Activity[]>([]);
+  // Service adapter for useManagerCRUD hook
+  const activityServiceAdapter = {
+    getByTrip: activityService.getActivitiesByTrip,
+    create: activityService.createActivity,
+    update: activityService.updateActivity,
+    delete: activityService.deleteActivity,
+  };
+
+  // Initialize CRUD hook
+  const manager = useManagerCRUD<Activity>(activityServiceAdapter, tripId, {
+    itemName: "activity",
+    onUpdate,
+  });
+
   const [activityCategories, setActivityCategories] = useState<
     ActivityCategory[]
   >([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
@@ -82,7 +94,6 @@ export default function ActivityManager({
     useFormFields<ActivityFormFields>(initialFormState);
 
   useEffect(() => {
-    loadActivities();
     loadUserCategories();
   }, [tripId]);
 
@@ -97,15 +108,6 @@ export default function ActivityManager({
       setActivityCategories(user.activityCategories || []);
     } catch (_error) {
       console.error("Failed to load activity categories");
-    }
-  };
-
-  const loadActivities = async () => {
-    try {
-      const data = await activityService.getActivitiesByTrip(tripId);
-      setActivities(data);
-    } catch (_error) {
-      toast.error("Failed to load activities");
     }
   };
 
@@ -132,11 +134,10 @@ export default function ActivityManager({
 
   const resetForm = () => {
     reset();
-    setEditingId(null);
+    manager.setEditingId(null);
   };
 
   const handleEdit = (activity: Activity) => {
-    setEditingId(activity.id);
     handleChange("name", activity.name);
     handleChange("description", activity.description || "");
     handleChange("category", activity.category || "");
@@ -182,7 +183,7 @@ export default function ActivityManager({
       handleChange("endTime", endDateTime.slice(11));
     }
 
-    setShowForm(true);
+    manager.openEditForm(activity.id);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,101 +194,93 @@ export default function ActivityManager({
       return;
     }
 
-    try {
-      // Combine date and time fields into ISO strings
-      let startTimeISO: string | null = null;
-      let endTimeISO: string | null = null;
+    // Combine date and time fields into ISO strings
+    let startTimeISO: string | null = null;
+    let endTimeISO: string | null = null;
 
-      if (values.allDay) {
-        // For all-day events, use just the date (set time to 00:00)
-        if (values.startDate) {
-          startTimeISO = `${values.startDate}T00:00:00`;
-        }
-        if (values.endDate) {
-          endTimeISO = `${values.endDate}T23:59:59`;
-        }
-      } else {
-        // For timed events, combine date and time
-        if (values.startDate && values.startTime) {
-          startTimeISO = `${values.startDate}T${values.startTime}:00`;
-        }
-        if (values.endDate && values.endTime) {
-          endTimeISO = `${values.endDate}T${values.endTime}:00`;
-        }
+    if (values.allDay) {
+      // For all-day events, use just the date (set time to 00:00)
+      if (values.startDate) {
+        startTimeISO = `${values.startDate}T00:00:00`;
       }
-
-      if (editingId) {
-        // For updates, send null to clear empty fields
-        const updateData = {
-          tripId,
-          name: values.name,
-          description: values.description || null,
-          category: values.category || null,
-          locationId: values.locationId,
-          parentId: values.parentId,
-          allDay: values.allDay,
-          startTime: startTimeISO,
-          endTime: endTimeISO,
-          timezone: values.timezone || null,
-          cost: values.cost ? parseFloat(values.cost) : null,
-          currency: values.currency || null,
-          bookingUrl: values.bookingUrl || null,
-          bookingReference: values.bookingReference || null,
-          notes: values.notes || null,
-        };
-        await activityService.updateActivity(editingId, updateData);
-        toast.success("Activity updated");
-      } else {
-        // For creates, use undefined to omit optional fields
-        const createData = {
-          tripId,
-          name: values.name,
-          description: values.description || undefined,
-          category: values.category || undefined,
-          locationId: values.locationId,
-          parentId: values.parentId,
-          allDay: values.allDay,
-          startTime: startTimeISO || undefined,
-          endTime: endTimeISO || undefined,
-          timezone: values.timezone || undefined,
-          cost: values.cost ? parseFloat(values.cost) : undefined,
-          currency: values.currency || undefined,
-          bookingUrl: values.bookingUrl || undefined,
-          bookingReference: values.bookingReference || undefined,
-          notes: values.notes || undefined,
-        };
-        await activityService.createActivity(createData);
-        toast.success("Activity added");
+      if (values.endDate) {
+        endTimeISO = `${values.endDate}T23:59:59`;
       }
-
-      resetForm();
-      setShowForm(false);
-      loadActivities();
-      onUpdate?.(); // Notify parent to refresh counts
-    } catch (_error) {
-      toast.error("Failed to save activity");
+    } else {
+      // For timed events, combine date and time
+      if (values.startDate && values.startTime) {
+        startTimeISO = `${values.startDate}T${values.startTime}:00`;
+      }
+      if (values.endDate && values.endTime) {
+        endTimeISO = `${values.endDate}T${values.endTime}:00`;
+      }
     }
-  };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this activity and all its sub-activities?")) return;
-
-    try {
-      await activityService.deleteActivity(id);
-      toast.success("Activity deleted");
-      loadActivities();
-      onUpdate?.(); // Notify parent to refresh counts
-    } catch (_error) {
-      toast.error("Failed to delete activity");
+    if (manager.editingId) {
+      // For updates, send null to clear empty fields
+      const updateData = {
+        tripId,
+        name: values.name,
+        description: values.description || null,
+        category: values.category || null,
+        locationId: values.locationId,
+        parentId: values.parentId,
+        allDay: values.allDay,
+        startTime: startTimeISO,
+        endTime: endTimeISO,
+        timezone: values.timezone || null,
+        cost: values.cost ? parseFloat(values.cost) : null,
+        currency: values.currency || null,
+        bookingUrl: values.bookingUrl || null,
+        bookingReference: values.bookingReference || null,
+        notes: values.notes || null,
+      };
+      const success = await manager.handleUpdate(manager.editingId, updateData);
+      if (success) {
+        toast.success("Activity updated");
+        resetForm();
+        manager.closeForm();
+      }
+    } else {
+      // For creates, use undefined to omit optional fields
+      const createData = {
+        tripId,
+        name: values.name,
+        description: values.description || undefined,
+        category: values.category || undefined,
+        locationId: values.locationId,
+        parentId: values.parentId,
+        allDay: values.allDay,
+        startTime: startTimeISO || undefined,
+        endTime: endTimeISO || undefined,
+        timezone: values.timezone || undefined,
+        cost: values.cost ? parseFloat(values.cost) : undefined,
+        currency: values.currency || undefined,
+        bookingUrl: values.bookingUrl || undefined,
+        bookingReference: values.bookingReference || undefined,
+        notes: values.notes || undefined,
+      };
+      const success = await manager.handleCreate(createData);
+      if (success) {
+        toast.success("Activity added");
+        resetForm();
+        manager.closeForm();
+      }
     }
   };
 
   // Filter top-level activities (no parent)
-  const topLevelActivities = activities.filter((a) => !a.parentId);
+  const topLevelActivities = manager.items.filter((a) => !a.parentId);
 
   // Get children for a parent activity
   const getChildren = (parentId: number) => {
-    return activities.filter((a) => a.parentId === parentId);
+    return manager.items.filter((a) => a.parentId === parentId);
+  };
+
+  // Custom delete handler with special confirmation message
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this activity and all its sub-activities?")) return;
+    await manager.handleDelete(id);
   };
 
   const formatDateTime = (
@@ -463,18 +456,18 @@ export default function ActivityManager({
         <button
           onClick={() => {
             resetForm();
-            setShowForm(!showForm);
+            manager.toggleForm();
           }}
           className="btn btn-primary"
         >
-          {showForm ? "Cancel" : "+ Add Activity"}
+          {manager.showForm ? "Cancel" : "+ Add Activity"}
         </button>
       </div>
 
-      {showForm && (
+      {manager.showForm && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">
-            {editingId ? "Edit Activity" : "Add Activity"}
+            {manager.editingId ? "Edit Activity" : "Add Activity"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name and Category */}
@@ -604,7 +597,7 @@ export default function ActivityManager({
               >
                 <option value="">-- No Parent (Top Level) --</option>
                 {topLevelActivities
-                  .filter((a) => a.id !== editingId)
+                  .filter((a) => a.id !== manager.editingId)
                   .map((activity) => (
                     <option key={activity.id} value={activity.id}>
                       {activity.name}
@@ -776,14 +769,14 @@ export default function ActivityManager({
                 type="button"
                 onClick={() => {
                   resetForm();
-                  setShowForm(false);
+                  manager.closeForm();
                 }}
                 className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                {editingId ? "Update" : "Add"} Activity
+                {manager.editingId ? "Update" : "Add"} Activity
               </button>
             </div>
           </form>

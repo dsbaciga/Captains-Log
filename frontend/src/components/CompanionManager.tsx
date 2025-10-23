@@ -2,16 +2,27 @@ import { useState, useEffect } from 'react';
 import companionService from '../services/companion.service';
 import type { Companion } from '../types/companion';
 import toast from 'react-hot-toast';
+import { useManagerCRUD } from '../hooks/useManagerCRUD';
 
 interface CompanionManagerProps {
   tripId: number;
 }
 
 export default function CompanionManager({ tripId }: CompanionManagerProps) {
+  // Service adapter for trip companions (companions linked to this trip)
+  const tripCompanionServiceAdapter = {
+    getByTrip: companionService.getCompanionsByTrip,
+    create: async () => { throw new Error("Use handleCreateCompanion instead"); },
+    update: async () => { throw new Error("Use handleUpdateCompanion instead"); },
+    delete: async () => { throw new Error("Use handleDeleteCompanion instead"); },
+  };
+
+  // Initialize CRUD hook for trip companions
+  const manager = useManagerCRUD<Companion>(tripCompanionServiceAdapter, tripId, {
+    itemName: "companion",
+  });
+
   const [companions, setCompanions] = useState<Companion[]>([]);
-  const [tripCompanions, setTripCompanions] = useState<Companion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -21,22 +32,15 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    loadCompanions();
+    loadAllCompanions();
   }, [tripId]);
 
-  const loadCompanions = async () => {
+  const loadAllCompanions = async () => {
     try {
-      setLoading(true);
-      const [allCompanions, linkedCompanions] = await Promise.all([
-        companionService.getCompanionsByUser(),
-        companionService.getCompanionsByTrip(tripId),
-      ]);
+      const allCompanions = await companionService.getCompanionsByUser();
       setCompanions(allCompanions);
-      setTripCompanions(linkedCompanions);
     } catch (error) {
       toast.error('Failed to load companions');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -51,7 +55,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       });
       toast.success('Companion created');
       resetForm();
-      await loadCompanions();
+      await loadAllCompanions();
       // Automatically link the new companion to this trip
       await handleLinkCompanion(newCompanion.id);
     } catch (error) {
@@ -72,7 +76,8 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       });
       toast.success('Companion updated');
       resetForm();
-      loadCompanions();
+      loadAllCompanions();
+      manager.loadItems();
     } catch (error) {
       toast.error('Failed to update companion');
     }
@@ -84,7 +89,8 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     try {
       await companionService.deleteCompanion(companionId);
       toast.success('Companion deleted');
-      loadCompanions();
+      loadAllCompanions();
+      manager.loadItems();
     } catch (error) {
       toast.error('Failed to delete companion');
     }
@@ -94,7 +100,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     try {
       await companionService.linkCompanionToTrip(tripId, companionId);
       toast.success('Companion added to trip');
-      loadCompanions();
+      manager.loadItems();
     } catch (error: any) {
       if (error.response?.data?.message?.includes('already linked')) {
         toast.error('Companion already added to this trip');
@@ -108,7 +114,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     try {
       await companionService.unlinkCompanionFromTrip(tripId, companionId);
       toast.success('Companion removed from trip');
-      loadCompanions();
+      manager.loadItems();
     } catch (error) {
       toast.error('Failed to remove companion');
     }
@@ -120,11 +126,11 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     setEmail(companion.email || '');
     setPhone(companion.phone || '');
     setNotes(companion.notes || '');
-    setShowForm(true);
+    manager.openCreateForm();
   };
 
   const resetForm = () => {
-    setShowForm(false);
+    manager.closeForm();
     setEditingCompanion(null);
     setName('');
     setEmail('');
@@ -132,12 +138,12 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     setNotes('');
   };
 
-  if (loading) {
+  if (manager.loading) {
     return <div className="text-center py-4">Loading companions...</div>;
   }
 
   const availableCompanions = companions.filter(
-    (companion) => !tripCompanions.find((tc) => tc.id === companion.id)
+    (companion) => !manager.items.find((tc) => tc.id === companion.id)
   );
 
   // Filter available companions based on search query
@@ -150,15 +156,15 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Travel Companions</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => manager.toggleForm()}
           className="btn btn-primary"
         >
-          {showForm ? 'Cancel' : '+ Add New Companion'}
+          {manager.showForm ? 'Cancel' : '+ Add New Companion'}
         </button>
       </div>
 
       {/* Create/Edit Companion Form */}
-      {showForm && (
+      {manager.showForm && (
         <form
           onSubmit={editingCompanion ? handleUpdateCompanion : handleCreateCompanion}
           className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
@@ -229,14 +235,14 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       {/* Trip Companions */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Companions on this trip</h3>
-        {tripCompanions.length === 0 ? (
+        {manager.items.length === 0 ? (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
             <div className="text-4xl mb-2">👥</div>
             <p>No companions added yet</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {tripCompanions.map((companion) => {
+            {manager.items.map((companion) => {
               const isExpanded = expandedId === companion.id;
               return (
                 <div key={companion.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">

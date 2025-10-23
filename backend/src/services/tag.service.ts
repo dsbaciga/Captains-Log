@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import type { CreateTagInput, UpdateTagInput, LinkTagToTripInput } from '../types/tag.types';
+import { verifyTripAccess } from '../utils/serviceHelpers';
 
 const prisma = new PrismaClient();
 
@@ -90,13 +91,7 @@ export const tagService = {
   // Link a tag to a trip
   async linkTagToTrip(userId: number, data: LinkTagToTripInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify user owns the tag
     const tag = await prisma.tripTag.findFirst({
@@ -130,13 +125,7 @@ export const tagService = {
   // Unlink a tag from a trip
   async unlinkTagFromTrip(userId: number, tripId: number, tagId: number) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const link = await prisma.tripTagAssignment.findFirst({
       where: {
@@ -162,13 +151,7 @@ export const tagService = {
   // Get all tags for a specific trip
   async getTagsByTrip(userId: number, tripId: number) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const tripTags = await prisma.tripTagAssignment.findMany({
       where: { tripId },

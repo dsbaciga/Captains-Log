@@ -35,6 +35,7 @@ import AlbumModal from '../components/AlbumModal';
 import AssociatedAlbums from '../components/AssociatedAlbums';
 import JournalEntriesButton from '../components/JournalEntriesButton';
 import type { PhotoAlbum } from '../types/photo';
+import { usePagination } from '../hooks/usePagination';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -43,13 +44,6 @@ export default function TripDetailPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [lodgings, setLodgings] = useState<any[]>([]);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [photosTotal, setPhotosTotal] = useState(0);
-  const [hasMorePhotos, setHasMorePhotos] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [unsortedPhotos, setUnsortedPhotos] = useState<Photo[]>([]);
-  const [unsortedTotal, setUnsortedTotal] = useState(0);
-  const [hasMoreUnsorted, setHasMoreUnsorted] = useState(false);
   const [userTimezone, setUserTimezone] = useState<string>('');
   const [activitiesCount, setActivitiesCount] = useState(0);
   const [unscheduledCount, setUnscheduledCount] = useState(0);
@@ -78,6 +72,47 @@ export default function TripDetailPage() {
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
 
+  // Pagination hooks
+  const photosPagination = usePagination<Photo>(
+    async (skip, take) => {
+      if (!trip) return { items: [], total: 0, hasMore: false };
+      const result = await photoService.getPhotosByTrip(trip.id, { skip, take });
+      return {
+        items: result.photos,
+        total: result.total || 0,
+        hasMore: result.hasMore,
+      };
+    },
+    { pageSize: 40, enabled: false }
+  );
+
+  const unsortedPagination = usePagination<Photo>(
+    async (skip, take) => {
+      if (!trip) return { items: [], total: 0, hasMore: false };
+      const result = await photoService.getUnsortedPhotosByTrip(trip.id, { skip, take });
+      return {
+        items: result.photos,
+        total: result.total || 0,
+        hasMore: result.hasMore,
+      };
+    },
+    { pageSize: 40, enabled: false }
+  );
+
+  const albumPhotosPagination = usePagination<Photo>(
+    async (skip, take) => {
+      if (!selectedAlbumId || selectedAlbumId <= 0) return { items: [], total: 0, hasMore: false };
+      const result = await photoService.getAlbumById(selectedAlbumId, { skip, take });
+      const albumPhotos = result.photos.map(p => p.photo);
+      return {
+        items: albumPhotos,
+        total: result.total || 0,
+        hasMore: result.hasMore || false,
+      };
+    },
+    { pageSize: 40, enabled: false }
+  );
+
   useEffect(() => {
     if (id) {
       loadTripData(parseInt(id));
@@ -85,12 +120,28 @@ export default function TripDetailPage() {
     loadUserTimezone();
   }, [id]);
 
-  // Initialize filtered photos when photos change and no album is selected
+  // Load photos when trip is set
+  useEffect(() => {
+    if (trip) {
+      photosPagination.loadInitial();
+    }
+  }, [trip?.id]);
+
+  // Update filtered photos based on selected album
   useEffect(() => {
     if (selectedAlbumId === null) {
-      setFilteredPhotos(photos);
+      setFilteredPhotos(photosPagination.items);
+    } else if (selectedAlbumId === -1) {
+      setFilteredPhotos(unsortedPagination.items);
+    } else {
+      setFilteredPhotos(albumPhotosPagination.items);
     }
-  }, [photos, selectedAlbumId]);
+  }, [
+    selectedAlbumId,
+    photosPagination.items,
+    unsortedPagination.items,
+    albumPhotosPagination.items
+  ]);
 
   // Load cover photo with authentication if needed
   useEffect(() => {
@@ -160,7 +211,6 @@ export default function TripDetailPage() {
       const [
         tripData,
         locationsData,
-        photosData,
         activitiesData,
         transportationData,
         lodgingData,
@@ -171,7 +221,6 @@ export default function TripDetailPage() {
       ] = await Promise.all([
         tripService.getTripById(tripId),
         locationService.getLocationsByTrip(tripId),
-        photoService.getPhotosByTrip(tripId),
         activityService.getActivitiesByTrip(tripId),
         transportationService.getTransportationByTrip(tripId),
         lodgingService.getLodgingByTrip(tripId),
@@ -184,9 +233,6 @@ export default function TripDetailPage() {
       console.log('Cover photo:', tripData.coverPhoto);
       setTrip(tripData);
       setLocations(locationsData);
-      setPhotos(photosData.photos);
-      setPhotosTotal(photosData.total);
-      setHasMorePhotos(photosData.hasMore);
 
       // Store activities and lodgings for album modal
       setActivities(activitiesData);
@@ -228,31 +274,14 @@ export default function TripDetailPage() {
     setSelectedAlbumId(albumId);
 
     if (albumId === null) {
-      // Show all photos
-      setFilteredPhotos(photos);
+      // Show all photos - filteredPhotos will update via useEffect
     } else if (albumId === -1) {
       // Load unsorted photos from backend
       if (!trip) return;
-      try {
-        const result = await photoService.getUnsortedPhotosByTrip(trip.id);
-        setUnsortedPhotos(result.photos);
-        setUnsortedTotal(result.total);
-        setHasMoreUnsorted(result.hasMore);
-        setFilteredPhotos(result.photos);
-      } catch (error) {
-        console.error('Error loading unsorted photos:', error);
-        toast.error('Failed to load unsorted photos');
-      }
+      unsortedPagination.loadInitial();
     } else {
       // Load photos for selected album
-      try {
-        const albumWithPhotos = await photoService.getAlbumById(albumId);
-        const albumPhotos = albumWithPhotos.photos.map(p => p.photo);
-        setFilteredPhotos(albumPhotos);
-      } catch (error) {
-        console.error('Error loading album:', error);
-        toast.error('Failed to load album photos');
-      }
+      albumPhotosPagination.loadInitial();
     }
   };
 
@@ -312,7 +341,6 @@ export default function TripDetailPage() {
       // If we were viewing this album, switch to "All Photos"
       if (selectedAlbumId === albumId) {
         setSelectedAlbumId(null);
-        setFilteredPhotos(photos);
       }
 
       // Reload albums
@@ -321,44 +349,6 @@ export default function TripDetailPage() {
       }
     } catch (error) {
       toast.error('Failed to delete album');
-    }
-  };
-
-  const loadMorePhotos = async () => {
-    if (!trip || loadingMore || !hasMorePhotos) return;
-
-    try {
-      setLoadingMore(true);
-      const result = await photoService.getPhotosByTrip(trip.id, {
-        skip: photos.length,
-        take: 40,
-      });
-      setPhotos([...photos, ...result.photos]);
-      setHasMorePhotos(result.hasMore);
-    } catch (error) {
-      toast.error('Failed to load more photos');
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
-  const loadMoreUnsortedPhotos = async () => {
-    if (!trip || loadingMore || !hasMoreUnsorted) return;
-
-    try {
-      setLoadingMore(true);
-      const result = await photoService.getUnsortedPhotosByTrip(trip.id, {
-        skip: unsortedPhotos.length,
-        take: 40,
-      });
-      const newUnsorted = [...unsortedPhotos, ...result.photos];
-      setUnsortedPhotos(newUnsorted);
-      setHasMoreUnsorted(result.hasMore);
-      setFilteredPhotos(newUnsorted);
-    } catch (error) {
-      toast.error('Failed to load more photos');
-    } finally {
-      setLoadingMore(false);
     }
   };
 
@@ -656,7 +646,7 @@ export default function TripDetailPage() {
                 }`}
               >
                 <span>Photos</span>
-                <span className="text-xs mt-1">({photosTotal})</span>
+                <span className="text-xs mt-1">({photosPagination.total})</span>
               </button>
               <button
                 onClick={() => setActiveTab('activities')}
@@ -902,7 +892,7 @@ export default function TripDetailPage() {
               <AlbumsSidebar
                 albums={albums}
                 selectedAlbumId={selectedAlbumId}
-                totalPhotos={photosTotal}
+                totalPhotos={photosPagination.total}
                 unsortedPhotosCount={unsortedPhotosCount}
                 onSelectAlbum={handleSelectAlbum}
                 onCreateAlbum={handleCreateAlbum}
@@ -916,10 +906,10 @@ export default function TripDetailPage() {
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
                       {selectedAlbumId === null
-                        ? `All Photos (${photosTotal})`
+                        ? `All Photos (${photosPagination.total})`
                         : selectedAlbumId === -1
-                        ? `Unsorted (${unsortedTotal})`
-                        : `${albums.find(a => a.id === selectedAlbumId)?.name || 'Album'} (${filteredPhotos.length})`
+                        ? `Unsorted (${unsortedPagination.total})`
+                        : `${albums.find(a => a.id === selectedAlbumId)?.name || 'Album'} (${albumPhotosPagination.total})`
                       }
                     </h2>
                     {selectedAlbumId !== null && selectedAlbumId !== -1 && albums.find(a => a.id === selectedAlbumId)?.description && (
@@ -987,25 +977,36 @@ export default function TripDetailPage() {
                   coverPhotoId={trip.coverPhotoId}
                 />
 
-                {hasMorePhotos && selectedAlbumId === null && (
+                {photosPagination.hasMore && selectedAlbumId === null && (
                   <div className="text-center mt-6">
                     <button
-                      onClick={loadMorePhotos}
-                      disabled={loadingMore}
+                      onClick={photosPagination.loadMore}
+                      disabled={photosPagination.loadingMore}
                       className="btn btn-primary"
                     >
-                      {loadingMore ? 'Loading...' : `Load More Photos (${photos.length}/${photosTotal})`}
+                      {photosPagination.loadingMore ? 'Loading...' : `Load More Photos (${photosPagination.items.length}/${photosPagination.total})`}
                     </button>
                   </div>
                 )}
-                {hasMoreUnsorted && selectedAlbumId === -1 && (
+                {unsortedPagination.hasMore && selectedAlbumId === -1 && (
                   <div className="text-center mt-6">
                     <button
-                      onClick={loadMoreUnsortedPhotos}
-                      disabled={loadingMore}
+                      onClick={unsortedPagination.loadMore}
+                      disabled={unsortedPagination.loadingMore}
                       className="btn btn-primary"
                     >
-                      {loadingMore ? 'Loading...' : `Load More Photos (${unsortedPhotos.length}/${unsortedTotal})`}
+                      {unsortedPagination.loadingMore ? 'Loading...' : `Load More Photos (${unsortedPagination.items.length}/${unsortedPagination.total})`}
+                    </button>
+                  </div>
+                )}
+                {albumPhotosPagination.hasMore && selectedAlbumId && selectedAlbumId > 0 && (
+                  <div className="text-center mt-6">
+                    <button
+                      onClick={albumPhotosPagination.loadMore}
+                      disabled={albumPhotosPagination.loadingMore}
+                      className="btn btn-primary"
+                    >
+                      {albumPhotosPagination.loadingMore ? 'Loading...' : `Load More Photos (${albumPhotosPagination.items.length}/${albumPhotosPagination.total})`}
                     </button>
                   </div>
                 )}

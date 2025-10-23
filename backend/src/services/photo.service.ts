@@ -10,6 +10,7 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
+import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
 const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
@@ -27,23 +28,11 @@ class PhotoService {
     data: UploadPhotoInput
   ) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify location belongs to trip if provided
     if (data.locationId) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: data.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.locationId, data.tripId);
     }
 
     await ensureUploadDirs();
@@ -102,23 +91,11 @@ class PhotoService {
 
   async linkImmichPhoto(userId: number, data: LinkImmichPhotoInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify location belongs to trip if provided
     if (data.locationId) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: data.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.locationId, data.tripId);
     }
 
     // Get user's Immich settings
@@ -185,16 +162,7 @@ class PhotoService {
     options?: { skip?: number; take?: number }
   ) {
     // Verify user has access to trip
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId,
-      },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const skip = options?.skip || 0;
     const take = options?.take || 40; // Default to 40 photos per page
@@ -240,16 +208,7 @@ class PhotoService {
     options?: { skip?: number; take?: number }
   ) {
     // Verify user has access to trip
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId,
-      },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const skip = options?.skip || 0;
     const take = options?.take || 40; // Default to 40 photos per page
@@ -391,23 +350,12 @@ class PhotoService {
       include: { trip: true },
     });
 
-    if (!photo) {
-      throw new AppError('Photo not found', 404);
-    }
-
-    if (photo.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    const verifiedPhoto = await verifyEntityAccess(photo, userId, 'Photo');
 
     // Verify location belongs to trip if provided
     if (data.locationId !== undefined && data.locationId !== null) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: photo.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.locationId, verifiedPhoto.tripId);
     }
 
     const updatedPhoto = await prisma.photo.update({
@@ -435,26 +383,21 @@ class PhotoService {
       include: { trip: true },
     });
 
-    if (!photo) {
-      throw new AppError('Photo not found', 404);
-    }
-
-    if (photo.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    const verifiedPhoto = await verifyEntityAccess(photo, userId, 'Photo');
 
     // Delete local files if they exist
-    if (photo.source === PhotoSource.LOCAL && photo.localPath) {
+    if (verifiedPhoto.source === PhotoSource.LOCAL && verifiedPhoto.localPath) {
       try {
-        const filepath = path.join(process.cwd(), photo.localPath);
+        const filepath = path.join(process.cwd(), verifiedPhoto.localPath);
         await fs.unlink(filepath);
       } catch (error) {
         // Continue even if file deletion fails
       }
 
-      if (photo.thumbnailPath) {
+      if (verifiedPhoto.thumbnailPath) {
         try {
-          const thumbnailPath = path.join(process.cwd(), photo.thumbnailPath);
+          const thumbnailPath = path.join(process.cwd(), verifiedPhoto.thumbnailPath);
           await fs.unlink(thumbnailPath);
         } catch (error) {
           // Continue even if file deletion fails

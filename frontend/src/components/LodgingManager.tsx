@@ -8,6 +8,7 @@ import JournalEntriesButton from "./JournalEntriesButton";
 import LocationQuickAdd from "./LocationQuickAdd";
 import { formatDateTimeInTimezone } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
+import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -56,32 +57,30 @@ export default function LodgingManager({
   tripTimezone,
   onUpdate,
 }: LodgingManagerProps) {
-  const [lodgings, setLodgings] = useState<Lodging[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  // Service adapter for useManagerCRUD hook
+  const lodgingServiceAdapter = {
+    getByTrip: lodgingService.getLodgingByTrip,
+    create: lodgingService.createLodging,
+    update: lodgingService.updateLodging,
+    delete: lodgingService.deleteLodging,
+  };
+
+  // Initialize CRUD hook
+  const manager = useManagerCRUD<Lodging>(lodgingServiceAdapter, tripId, {
+    itemName: "lodging",
+    onUpdate,
+  });
+
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
   const { values, handleChange, reset } =
     useFormFields<LodgingFormFields>(initialFormState);
 
-  useEffect(() => {
-    loadLodgings();
-  }, [tripId]);
-
   // Sync localLocations with locations prop
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
-
-  const loadLodgings = async () => {
-    try {
-      const data = await lodgingService.getLodgingByTrip(tripId);
-      setLodgings(data);
-    } catch (_error) {
-      toast.error("Failed to load lodging");
-    }
-  };
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
@@ -106,11 +105,10 @@ export default function LodgingManager({
 
   const resetForm = () => {
     reset();
-    setEditingId(null);
+    manager.setEditingId(null);
   };
 
   const handleEdit = (lodging: Lodging) => {
-    setEditingId(lodging.id);
     handleChange("type", lodging.type);
     handleChange("name", lodging.name);
     handleChange("locationId", lodging.locationId || undefined);
@@ -133,7 +131,7 @@ export default function LodgingManager({
     handleChange("cost", lodging.cost?.toString() || "");
     handleChange("currency", lodging.currency || "USD");
     handleChange("notes", lodging.notes || "");
-    setShowForm(true);
+    manager.openEditForm(lodging.id);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,67 +150,58 @@ export default function LodgingManager({
       return;
     }
 
-    try {
-      if (editingId) {
-        // For updates, send null to clear empty fields
-        const updateData = {
-          tripId,
-          type: values.type,
-          name: values.name,
-          locationId: values.locationId,
-          address: values.address || null,
-          checkInDate: values.checkInDate,
-          checkOutDate: values.checkOutDate,
-          timezone: values.timezone || null,
-          confirmationNumber: values.confirmationNumber || null,
-          bookingUrl: values.bookingUrl || null,
-          cost: values.cost ? parseFloat(values.cost) : null,
-          currency: values.currency || null,
-          notes: values.notes || null,
-        };
-        await lodgingService.updateLodging(editingId, updateData);
+    if (manager.editingId) {
+      // For updates, send null to clear empty fields
+      const updateData = {
+        tripId,
+        type: values.type,
+        name: values.name,
+        locationId: values.locationId,
+        address: values.address || null,
+        checkInDate: values.checkInDate,
+        checkOutDate: values.checkOutDate,
+        timezone: values.timezone || null,
+        confirmationNumber: values.confirmationNumber || null,
+        bookingUrl: values.bookingUrl || null,
+        cost: values.cost ? parseFloat(values.cost) : null,
+        currency: values.currency || null,
+        notes: values.notes || null,
+      };
+      const success = await manager.handleUpdate(manager.editingId, updateData);
+      if (success) {
         toast.success("Lodging updated");
-      } else {
-        // For creates, use undefined to omit optional fields
-        const createData = {
-          tripId,
-          type: values.type,
-          name: values.name,
-          locationId: values.locationId,
-          address: values.address || undefined,
-          checkInDate: values.checkInDate,
-          checkOutDate: values.checkOutDate,
-          timezone: values.timezone || undefined,
-          confirmationNumber: values.confirmationNumber || undefined,
-          bookingUrl: values.bookingUrl || undefined,
-          cost: values.cost ? parseFloat(values.cost) : undefined,
-          currency: values.currency || undefined,
-          notes: values.notes || undefined,
-        };
-        await lodgingService.createLodging(createData);
-        toast.success("Lodging added");
+        resetForm();
+        manager.closeForm();
       }
-
-      resetForm();
-      setShowForm(false);
-      loadLodgings();
-      onUpdate?.(); // Notify parent to refresh counts
-    } catch (_error) {
-      toast.error("Failed to save lodging");
+    } else {
+      // For creates, use undefined to omit optional fields
+      const createData = {
+        tripId,
+        type: values.type,
+        name: values.name,
+        locationId: values.locationId,
+        address: values.address || undefined,
+        checkInDate: values.checkInDate,
+        checkOutDate: values.checkOutDate,
+        timezone: values.timezone || undefined,
+        confirmationNumber: values.confirmationNumber || undefined,
+        bookingUrl: values.bookingUrl || undefined,
+        cost: values.cost ? parseFloat(values.cost) : undefined,
+        currency: values.currency || undefined,
+        notes: values.notes || undefined,
+      };
+      const success = await manager.handleCreate(createData);
+      if (success) {
+        toast.success("Lodging added");
+        resetForm();
+        manager.closeForm();
+      }
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this lodging?")) return;
-
-    try {
-      await lodgingService.deleteLodging(id);
-      toast.success("Lodging deleted");
-      loadLodgings();
-      onUpdate?.(); // Notify parent to refresh counts
-    } catch (_error) {
-      toast.error("Failed to delete lodging");
-    }
+    await manager.handleDelete(id);
   };
 
   const getTypeIcon = (type: LodgingType) => {
@@ -251,18 +240,18 @@ export default function LodgingManager({
         <button
           onClick={() => {
             resetForm();
-            setShowForm(!showForm);
+            manager.toggleForm();
           }}
           className="btn btn-primary"
         >
-          {showForm ? "Cancel" : "+ Add Lodging"}
+          {manager.showForm ? "Cancel" : "+ Add Lodging"}
         </button>
       </div>
 
-      {showForm && (
+      {manager.showForm && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">
-            {editingId ? "Edit Lodging" : "Add Lodging"}
+            {manager.editingId ? "Edit Lodging" : "Add Lodging"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -462,14 +451,14 @@ export default function LodgingManager({
                 type="button"
                 onClick={() => {
                   resetForm();
-                  setShowForm(false);
+                  manager.closeForm();
                 }}
                 className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                {editingId ? "Update" : "Add"} Lodging
+                {manager.editingId ? "Update" : "Add"} Lodging
               </button>
             </div>
           </form>
@@ -478,14 +467,14 @@ export default function LodgingManager({
 
       {/* Lodging List */}
       <div className="space-y-4">
-        {lodgings.length === 0 ? (
+        {manager.items.length === 0 ? (
           <EmptyState
             icon="🏨"
             message="No lodging added yet"
             subMessage="Add your hotels, hostels, vacation rentals, and other accommodations"
           />
         ) : (
-          lodgings.map((lodging) => (
+          manager.items.map((lodging) => (
             <div
               key={lodging.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"

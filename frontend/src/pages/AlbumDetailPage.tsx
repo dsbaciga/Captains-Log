@@ -9,14 +9,12 @@ import locationService from "../services/location.service";
 import activityService from "../services/activity.service";
 import lodgingService from "../services/lodging.service";
 import PhotoGallery from "../components/PhotoGallery";
+import { usePagination } from "../hooks/usePagination";
 
 export default function AlbumDetailPage() {
   const { tripId, albumId } = useParams<{ tripId: string; albumId: string }>();
   const [album, setAlbum] = useState<AlbumWithPhotos | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [albumName, setAlbumName] = useState("");
   const [albumDescription, setAlbumDescription] = useState("");
@@ -31,6 +29,32 @@ export default function AlbumDetailPage() {
   const locationSelectId = useId();
   const activitySelectId = useId();
   const lodgingSelectId = useId();
+
+  // Pagination hook for album photos
+  const photosPagination = usePagination<Photo>(
+    async (skip, take) => {
+      if (!albumId) return { items: [], total: 0, hasMore: false };
+
+      const data = await photoService.getAlbumById(parseInt(albumId), {
+        skip,
+        take,
+      });
+
+      console.log('[AlbumDetailPage] Loaded album data:', {
+        skip,
+        photosCount: data.photos?.length || 0,
+        hasMore: data.hasMore,
+        total: data.total,
+      });
+
+      return {
+        items: data.photos.map(p => p.photo),
+        total: data.total || 0,
+        hasMore: data.hasMore || false,
+      };
+    },
+    { pageSize: 40, enabled: false }
+  );
 
   useEffect(() => {
     loadAlbum();
@@ -55,55 +79,31 @@ export default function AlbumDetailPage() {
     }
   };
 
-  const loadAlbum = async (skip = 0) => {
+  const loadAlbum = async () => {
     if (!albumId) return;
 
-    const loadingMore = skip > 0;
-    if (loadingMore) {
-      setIsLoadingMore(true);
-    } else {
-      setIsLoading(true);
-    }
+    setIsLoading(true);
 
     try {
       const data = await photoService.getAlbumById(parseInt(albumId), {
-        skip,
+        skip: 0,
         take: 40,
       });
 
-      console.log('[AlbumDetailPage] Loaded album data:', {
-        skip,
-        photosCount: data.photos?.length || 0,
-        hasMore: data.hasMore,
-        total: data.total,
-      });
+      setAlbum(data);
+      setAlbumName(data.name);
+      setAlbumDescription(data.description || "");
+      setLocationId(data.locationId || null);
+      setActivityId(data.activityId || null);
+      setLodgingId(data.lodgingId || null);
 
-      if (loadingMore) {
-        setPhotos(prev => [...prev, ...data.photos.map(p => p.photo)]);
-        // Update album to preserve hasMore and total
-        setAlbum(prev => prev ? { ...prev, hasMore: data.hasMore, total: data.total } : data);
-      } else {
-        setAlbum(data);
-        setPhotos(data.photos.map(p => p.photo));
-        setAlbumName(data.name);
-        setAlbumDescription(data.description || "");
-        setLocationId(data.locationId || null);
-        setActivityId(data.activityId || null);
-        setLodgingId(data.lodgingId || null);
-      }
-
-      setHasMore(data.hasMore || false);
-      console.log('[AlbumDetailPage] Set hasMore to:', data.hasMore || false);
+      // Load photos via pagination hook
+      photosPagination.loadInitial();
     } catch (error) {
       console.error("Failed to load album:", error);
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
     }
-  };
-
-  const handleLoadMore = () => {
-    loadAlbum(photos.length);
   };
 
   const handleUpdateAlbum = async (e: React.FormEvent) => {
@@ -309,8 +309,8 @@ export default function AlbumDetailPage() {
                   </p>
                 )}
                 <p className="text-gray-500 dark:text-gray-400">
-                  {album.total || photos.length} photo
-                  {(album.total || photos.length) !== 1 ? "s" : ""}
+                  {photosPagination.total} photo
+                  {photosPagination.total !== 1 ? "s" : ""}
                 </p>
 
                 {/* Display associations */}
@@ -344,7 +344,7 @@ export default function AlbumDetailPage() {
           </div>
         )}
 
-        {photos.length === 0 ? (
+        {photosPagination.items.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
             <p className="text-gray-500 dark:text-gray-400">
               No photos in this album yet. Add photos from your trip gallery!
@@ -359,26 +359,26 @@ export default function AlbumDetailPage() {
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <PhotoGallery
-              photos={photos}
+              photos={photosPagination.items}
               onPhotoDeleted={() => loadAlbum()}
               onPhotoUpdated={() => loadAlbum()}
             />
 
-            {hasMore && (
+            {photosPagination.hasMore && (
               <div className="mt-6 text-center">
                 <button
-                  onClick={handleLoadMore}
-                  disabled={isLoadingMore}
+                  onClick={photosPagination.loadMore}
+                  disabled={photosPagination.loadingMore}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
                 >
-                  {isLoadingMore ? "Loading..." : "Load More Photos"}
+                  {photosPagination.loadingMore ? "Loading..." : "Load More Photos"}
                 </button>
               </div>
             )}
 
             {/* Debug info */}
             <div className="mt-4 text-xs text-gray-400 text-center">
-              Frontend v1.1.5 | Photos: {photos.length}/{album?.total || 0} | hasMore: {String(hasMore)}
+              Frontend v1.1.5 | Photos: {photosPagination.items.length}/{photosPagination.total} | hasMore: {String(photosPagination.hasMore)}
             </div>
           </div>
         )}

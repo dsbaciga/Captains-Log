@@ -4,17 +4,12 @@ import {
   CreateJournalEntryInput,
   UpdateJournalEntryInput,
 } from '../types/journalEntry.types';
+import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
 
 class JournalEntryService {
   async createJournalEntry(userId: number, data: CreateJournalEntryInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify locations belong to trip if provided
     if (data.locationIds && data.locationIds.length > 0) {
@@ -172,16 +167,7 @@ class JournalEntryService {
 
   async getJournalEntriesByTrip(userId: number, tripId: number) {
     // Verify user has access to trip
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId,
-      },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const entries = await prisma.journalEntry.findMany({
       where: { tripId },
@@ -295,14 +281,8 @@ class JournalEntryService {
       },
     });
 
-    if (!entry) {
-      throw new AppError('Journal entry not found', 404);
-    }
-
-    // Check trip access
-    if (entry.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    await verifyEntityAccess(entry, userId, 'Journal entry');
 
     return entry;
   }
@@ -317,18 +297,13 @@ class JournalEntryService {
       include: { trip: true },
     });
 
-    if (!entry) {
-      throw new AppError('Journal entry not found', 404);
-    }
-
-    if (entry.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    const verifiedEntry = await verifyEntityAccess(entry, userId, 'Journal entry');
 
     // Verify locations belong to trip if provided
     if (data.locationIds && data.locationIds.length > 0) {
       const locations = await prisma.location.findMany({
-        where: { id: { in: data.locationIds }, tripId: entry.tripId },
+        where: { id: { in: data.locationIds }, tripId: verifiedEntry.tripId },
       });
 
       if (locations.length !== data.locationIds.length) {
@@ -339,7 +314,7 @@ class JournalEntryService {
     // Verify activities belong to trip if provided
     if (data.activityIds && data.activityIds.length > 0) {
       const activities = await prisma.activity.findMany({
-        where: { id: { in: data.activityIds }, tripId: entry.tripId },
+        where: { id: { in: data.activityIds }, tripId: verifiedEntry.tripId },
       });
 
       if (activities.length !== data.activityIds.length) {
@@ -350,7 +325,7 @@ class JournalEntryService {
     // Verify lodging belongs to trip if provided
     if (data.lodgingIds && data.lodgingIds.length > 0) {
       const lodgings = await prisma.lodging.findMany({
-        where: { id: { in: data.lodgingIds }, tripId: entry.tripId },
+        where: { id: { in: data.lodgingIds }, tripId: verifiedEntry.tripId },
       });
 
       if (lodgings.length !== data.lodgingIds.length) {
@@ -361,7 +336,7 @@ class JournalEntryService {
     // Verify transportation belongs to trip if provided
     if (data.transportationIds && data.transportationIds.length > 0) {
       const transportations = await prisma.transportation.findMany({
-        where: { id: { in: data.transportationIds }, tripId: entry.tripId },
+        where: { id: { in: data.transportationIds }, tripId: verifiedEntry.tripId },
       });
 
       if (transportations.length !== data.transportationIds.length) {
@@ -517,13 +492,8 @@ class JournalEntryService {
       include: { trip: true },
     });
 
-    if (!entry) {
-      throw new AppError('Journal entry not found', 404);
-    }
-
-    if (entry.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    await verifyEntityAccess(entry, userId, 'Journal entry');
 
     await prisma.journalEntry.delete({
       where: { id: entryId },

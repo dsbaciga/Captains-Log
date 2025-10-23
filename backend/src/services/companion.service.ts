@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import type { CreateCompanionInput, UpdateCompanionInput, LinkCompanionToTripInput } from '../types/companion.types';
+import { verifyTripAccess } from '../utils/serviceHelpers';
 
 const prisma = new PrismaClient();
 
@@ -90,13 +91,7 @@ export const companionService = {
   // Link a companion to a trip
   async linkCompanionToTrip(userId: number, data: LinkCompanionToTripInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify user owns the companion
     const companion = await prisma.travelCompanion.findFirst({
@@ -130,13 +125,7 @@ export const companionService = {
   // Unlink a companion from a trip
   async unlinkCompanionFromTrip(userId: number, tripId: number, companionId: number) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const link = await prisma.tripCompanion.findFirst({
       where: {
@@ -162,13 +151,7 @@ export const companionService = {
   // Get all companions for a specific trip
   async getCompanionsByTrip(userId: number, tripId: number) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const tripCompanions = await prisma.tripCompanion.findMany({
       where: { tripId },

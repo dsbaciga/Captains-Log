@@ -1,40 +1,22 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
 import {
   CreateTransportationInput,
   UpdateTransportationInput,
 } from '../types/transportation.types';
+import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
 
 class TransportationService {
   async createTransportation(userId: number, data: CreateTransportationInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify locations belong to trip if provided
     if (data.fromLocationId) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.fromLocationId, tripId: data.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('From location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.fromLocationId, data.tripId);
     }
 
     if (data.toLocationId) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.toLocationId, tripId: data.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('To location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.toLocationId, data.tripId);
     }
 
     const transportation = await prisma.transportation.create({
@@ -75,16 +57,7 @@ class TransportationService {
 
   async getTransportationByTrip(userId: number, tripId: number) {
     // Verify user has access to trip
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId,
-      },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const transportations = await prisma.transportation.findMany({
       where: { tripId },
@@ -146,14 +119,8 @@ class TransportationService {
       },
     });
 
-    if (!transportation) {
-      throw new AppError('Transportation not found', 404);
-    }
-
-    // Check trip access
-    if (transportation.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    await verifyEntityAccess(transportation, userId, 'Transportation');
 
     return transportation;
   }
@@ -168,33 +135,16 @@ class TransportationService {
       include: { trip: true },
     });
 
-    if (!transportation) {
-      throw new AppError('Transportation not found', 404);
-    }
-
-    if (transportation.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    const verifiedTransportation = await verifyEntityAccess(transportation, userId, 'Transportation');
 
     // Verify locations belong to trip if provided
     if (data.fromLocationId !== undefined && data.fromLocationId !== null) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.fromLocationId, tripId: transportation.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('From location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.fromLocationId, verifiedTransportation.tripId);
     }
 
     if (data.toLocationId !== undefined && data.toLocationId !== null) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.toLocationId, tripId: transportation.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('To location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.toLocationId, verifiedTransportation.tripId);
     }
 
     const updatedTransportation = await prisma.transportation.update({
@@ -249,13 +199,8 @@ class TransportationService {
       include: { trip: true },
     });
 
-    if (!transportation) {
-      throw new AppError('Transportation not found', 404);
-    }
-
-    if (transportation.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    await verifyEntityAccess(transportation, userId, 'Transportation');
 
     await prisma.transportation.delete({
       where: { id: transportationId },

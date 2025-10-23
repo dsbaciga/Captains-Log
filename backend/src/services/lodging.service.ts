@@ -1,30 +1,18 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
 import {
   CreateLodgingInput,
   UpdateLodgingInput,
 } from '../types/lodging.types';
+import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
 
 class LodgingService {
   async createLodging(userId: number, data: CreateLodgingInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify location belongs to trip if provided
     if (data.locationId) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: data.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.locationId, data.tripId);
     }
 
     const lodging = await prisma.lodging.create({
@@ -58,16 +46,7 @@ class LodgingService {
 
   async getLodgingByTrip(userId: number, tripId: number) {
     // Verify user has access to trip
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId,
-      },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const lodgings = await prisma.lodging.findMany({
       where: { tripId },
@@ -142,14 +121,7 @@ class LodgingService {
       },
     });
 
-    if (!lodging) {
-      throw new AppError('Lodging not found', 404);
-    }
-
-    // Check trip access
-    if (lodging.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    await verifyEntityAccess(lodging, userId, 'Lodging');
 
     return lodging;
   }
@@ -164,23 +136,11 @@ class LodgingService {
       include: { trip: true },
     });
 
-    if (!lodging) {
-      throw new AppError('Lodging not found', 404);
-    }
-
-    if (lodging.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    await verifyEntityAccess(lodging, userId, 'Lodging');
 
     // Verify location belongs to trip if provided
     if (data.locationId !== undefined && data.locationId !== null) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: lodging.tripId },
-      });
-
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
+      await verifyLocationInTrip(data.locationId, lodging!.tripId);
     }
 
     const updatedLodging = await prisma.lodging.update({
@@ -228,13 +188,7 @@ class LodgingService {
       include: { trip: true },
     });
 
-    if (!lodging) {
-      throw new AppError('Lodging not found', 404);
-    }
-
-    if (lodging.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    await verifyEntityAccess(lodging, userId, 'Lodging');
 
     await prisma.lodging.delete({
       where: { id: lodgingId },

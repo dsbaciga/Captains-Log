@@ -1,17 +1,12 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput } from '../types/location.types';
+import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
 
 export class LocationService {
   async createLocation(userId: number, data: CreateLocationInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or you do not have permission', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     const location = await prisma.location.create({
       data: {
@@ -195,13 +190,8 @@ export class LocationService {
       },
     });
 
-    if (!location) {
-      throw new AppError('Location not found', 404);
-    }
-
-    if (location.trip.userId !== userId) {
-      throw new AppError('You do not have permission to edit this location', 403);
-    }
+    // Verify access
+    await verifyEntityAccess(location, userId, 'Location');
 
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
@@ -237,13 +227,8 @@ export class LocationService {
       },
     });
 
-    if (!location) {
-      throw new AppError('Location not found', 404);
-    }
-
-    if (location.trip.userId !== userId) {
-      throw new AppError('You do not have permission to delete this location', 403);
-    }
+    // Verify access
+    await verifyEntityAccess(location, userId, 'Location');
 
     await prisma.location.delete({
       where: { id: locationId },

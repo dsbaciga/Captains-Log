@@ -3,6 +3,7 @@ import { AppError } from '../utils/errors';
 import { WeatherDataInput } from '../types/weather.types';
 import config from '../config';
 import axios from 'axios';
+import { verifyTripAccess } from '../utils/serviceHelpers';
 
 interface OpenWeatherResponse {
   daily: {
@@ -42,9 +43,12 @@ class WeatherService {
    * Get weather data for a trip's date range
    */
   async getWeatherForTrip(tripId: number, userId: number) {
-    // Verify user owns the trip and get user's API key
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, userId },
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Get user's API key
+    const trip = await prisma.trip.findUnique({
+      where: { id: tripId },
       include: {
         user: {
           select: {
@@ -55,7 +59,7 @@ class WeatherService {
     });
 
     if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
+      throw new AppError('Trip not found', 404);
     }
 
     // Check if trip has dates
@@ -484,9 +488,12 @@ class WeatherService {
     userId: number,
     dateString: string
   ) {
-    // Verify user owns the trip and get user's API key
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, userId },
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Get user's API key
+    const trip = await prisma.trip.findUnique({
+      where: { id: tripId },
       include: {
         user: {
           select: {
@@ -497,7 +504,7 @@ class WeatherService {
     });
 
     if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
+      throw new AppError('Trip not found', 404);
     }
 
     // Get API key (user's key or system key)

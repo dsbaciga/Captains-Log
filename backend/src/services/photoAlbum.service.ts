@@ -5,17 +5,12 @@ import {
   UpdateAlbumInput,
   AddPhotosToAlbumInput,
 } from '../types/photo.types';
+import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
 
 class PhotoAlbumService {
   async createAlbum(userId: number, data: CreateAlbumInput) {
     // Verify user owns the trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: data.tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, data.tripId);
 
     // Verify location, activity, and lodging belong to the trip if provided
     if (data.locationId) {
@@ -84,13 +79,7 @@ class PhotoAlbumService {
 
   async getAlbumsByTrip(userId: number, tripId: number) {
     // Verify user has access to trip
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, userId },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or access denied', 404);
-    }
+    await verifyTripAccess(userId, tripId);
 
     const albums = await prisma.photoAlbum.findMany({
       where: { tripId },
@@ -201,30 +190,24 @@ class PhotoAlbumService {
       },
     });
 
-    if (!album) {
-      throw new AppError('Album not found', 404);
-    }
+    // Verify access
+    const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
 
-    // Check trip access
-    if (album.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
-
-    const loadedCount = skip + album.photoAssignments.length;
-    const totalCount = album._count.photoAssignments;
+    const loadedCount = skip + verifiedAlbum.photoAssignments.length;
+    const totalCount = verifiedAlbum._count.photoAssignments;
 
     console.log('[PhotoAlbumService] getAlbumById pagination:', {
       albumId,
       skip,
       take,
-      returnedPhotos: album.photoAssignments.length,
+      returnedPhotos: verifiedAlbum.photoAssignments.length,
       loadedCount,
       totalCount,
       hasMore: loadedCount < totalCount,
     });
 
     return {
-      ...album,
+      ...verifiedAlbum,
       hasMore: loadedCount < totalCount,
       total: totalCount,
     };
@@ -236,18 +219,13 @@ class PhotoAlbumService {
       include: { trip: true },
     });
 
-    if (!album) {
-      throw new AppError('Album not found', 404);
-    }
-
-    if (album.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
 
     // Verify location, activity, and lodging belong to the trip if provided
     if (data.locationId !== undefined && data.locationId !== null) {
       const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: album.tripId },
+        where: { id: data.locationId, tripId: verifiedAlbum.tripId },
       });
       if (!location) {
         throw new AppError('Location not found or does not belong to trip', 404);
@@ -256,7 +234,7 @@ class PhotoAlbumService {
 
     if (data.activityId !== undefined && data.activityId !== null) {
       const activity = await prisma.activity.findFirst({
-        where: { id: data.activityId, tripId: album.tripId },
+        where: { id: data.activityId, tripId: verifiedAlbum.tripId },
       });
       if (!activity) {
         throw new AppError('Activity not found or does not belong to trip', 404);
@@ -265,7 +243,7 @@ class PhotoAlbumService {
 
     if (data.lodgingId !== undefined && data.lodgingId !== null) {
       const lodging = await prisma.lodging.findFirst({
-        where: { id: data.lodgingId, tripId: album.tripId },
+        where: { id: data.lodgingId, tripId: verifiedAlbum.tripId },
       });
       if (!lodging) {
         throw new AppError('Lodging not found or does not belong to trip', 404);
@@ -315,13 +293,8 @@ class PhotoAlbumService {
       include: { trip: true },
     });
 
-    if (!album) {
-      throw new AppError('Album not found', 404);
-    }
-
-    if (album.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    await verifyEntityAccess(album, userId, 'Album');
 
     await prisma.photoAlbum.delete({
       where: { id: albumId },
@@ -340,19 +313,14 @@ class PhotoAlbumService {
       include: { trip: true },
     });
 
-    if (!album) {
-      throw new AppError('Album not found', 404);
-    }
-
-    if (album.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
 
     // Verify all photos belong to the same trip
     const photos = await prisma.photo.findMany({
       where: {
         id: { in: data.photoIds },
-        tripId: album.tripId,
+        tripId: verifiedAlbum.tripId,
       },
     });
 
@@ -385,13 +353,8 @@ class PhotoAlbumService {
       include: { trip: true },
     });
 
-    if (!album) {
-      throw new AppError('Album not found', 404);
-    }
-
-    if (album.trip.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    // Verify access
+    await verifyEntityAccess(album, userId, 'Album');
 
     await prisma.photoAlbumAssignment.delete({
       where: {

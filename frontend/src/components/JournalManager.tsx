@@ -11,6 +11,7 @@ import transportationService from "../services/transportation.service";
 import toast from "react-hot-toast";
 import EmptyState from "./EmptyState";
 import { useFormFields } from "../hooks/useFormFields";
+import { useManagerCRUD } from "../hooks/useManagerCRUD";
 
 interface JournalManagerProps {
   tripId: number;
@@ -23,12 +24,23 @@ export default function JournalManager({
   locations,
   onUpdate,
 }: JournalManagerProps) {
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  // Service adapter for useManagerCRUD hook
+  const journalServiceAdapter = {
+    getByTrip: journalEntryService.getJournalEntriesByTrip,
+    create: journalEntryService.createJournalEntry,
+    update: journalEntryService.updateJournalEntry,
+    delete: journalEntryService.deleteJournalEntry,
+  };
+
+  // Initialize CRUD hook
+  const manager = useManagerCRUD<JournalEntry>(journalServiceAdapter, tripId, {
+    itemName: "journal entry",
+    onUpdate,
+  });
+
   const [activities, setActivities] = useState<Activity[]>([]);
   const [lodgings, setLodgings] = useState<Lodging[]>([]);
   const [transportations, setTransportations] = useState<Transportation[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   // Use the new useFormFields hook to manage all form state
@@ -52,18 +64,8 @@ export default function JournalManager({
   const transportationsFieldId = useId();
 
   useEffect(() => {
-    loadEntries();
     loadTripEntities();
   }, [tripId]);
-
-  const loadEntries = async () => {
-    try {
-      const data = await journalEntryService.getJournalEntriesByTrip(tripId);
-      setEntries(data);
-    } catch (error) {
-      toast.error("Failed to load journal entries");
-    }
-  };
 
   const loadTripEntities = async () => {
     try {
@@ -82,11 +84,10 @@ export default function JournalManager({
 
   const resetForm = () => {
     resetFields();
-    setEditingId(null);
+    manager.setEditingId(null);
   };
 
   const handleEdit = (entry: JournalEntry) => {
-    setEditingId(entry.id);
     setAllFields({
       title: entry.title || "",
       content: entry.content,
@@ -98,7 +99,7 @@ export default function JournalManager({
         ? new Date(entry.date).toISOString().slice(0, 16)
         : "",
     });
-    setShowForm(true);
+    manager.openEditForm(entry.id);
     setExpandedId(null);
   };
 
@@ -110,56 +111,47 @@ export default function JournalManager({
       return;
     }
 
-    try {
-      if (editingId) {
-        // For updates
-        const updateData = {
-          title: formValues.title,
-          content: formValues.content,
-          locationIds: formValues.locationIds,
-          activityIds: formValues.activityIds,
-          lodgingIds: formValues.lodgingIds,
-          transportationIds: formValues.transportationIds,
-          entryDate: formValues.entryDate || null,
-        };
-        await journalEntryService.updateJournalEntry(editingId, updateData);
+    if (manager.editingId) {
+      // For updates
+      const updateData = {
+        title: formValues.title,
+        content: formValues.content,
+        locationIds: formValues.locationIds,
+        activityIds: formValues.activityIds,
+        lodgingIds: formValues.lodgingIds,
+        transportationIds: formValues.transportationIds,
+        entryDate: formValues.entryDate || null,
+      };
+      const success = await manager.handleUpdate(manager.editingId, updateData);
+      if (success) {
         toast.success("Journal entry updated");
-      } else {
-        // For creates
-        const createData = {
-          tripId,
-          title: formValues.title,
-          content: formValues.content,
-          locationIds: formValues.locationIds.length > 0 ? formValues.locationIds : undefined,
-          activityIds: formValues.activityIds.length > 0 ? formValues.activityIds : undefined,
-          lodgingIds: formValues.lodgingIds.length > 0 ? formValues.lodgingIds : undefined,
-          transportationIds: formValues.transportationIds.length > 0 ? formValues.transportationIds : undefined,
-          entryDate: formValues.entryDate || undefined,
-        };
-        await journalEntryService.createJournalEntry(createData);
-        toast.success("Journal entry added");
+        resetForm();
+        manager.closeForm();
       }
-
-      resetForm();
-      setShowForm(false);
-      loadEntries();
-      onUpdate?.();
-    } catch (error) {
-      toast.error("Failed to save journal entry");
+    } else {
+      // For creates
+      const createData = {
+        tripId,
+        title: formValues.title,
+        content: formValues.content,
+        locationIds: formValues.locationIds.length > 0 ? formValues.locationIds : undefined,
+        activityIds: formValues.activityIds.length > 0 ? formValues.activityIds : undefined,
+        lodgingIds: formValues.lodgingIds.length > 0 ? formValues.lodgingIds : undefined,
+        transportationIds: formValues.transportationIds.length > 0 ? formValues.transportationIds : undefined,
+        entryDate: formValues.entryDate || undefined,
+      };
+      const success = await manager.handleCreate(createData);
+      if (success) {
+        toast.success("Journal entry added");
+        resetForm();
+        manager.closeForm();
+      }
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this journal entry?")) return;
-
-    try {
-      await journalEntryService.deleteJournalEntry(id);
-      toast.success("Journal entry deleted");
-      loadEntries();
-      onUpdate?.();
-    } catch (error) {
-      toast.error("Failed to delete journal entry");
-    }
+    await manager.handleDelete(id);
   };
 
   const formatDate = (date: string) => {
@@ -194,18 +186,18 @@ export default function JournalManager({
         <button
           onClick={() => {
             resetForm();
-            setShowForm(!showForm);
+            manager.toggleForm();
           }}
           className="btn btn-primary"
         >
-          {showForm ? "Cancel" : "+ New Entry"}
+          {manager.showForm ? "Cancel" : "+ New Entry"}
         </button>
       </div>
 
-      {showForm && (
+      {manager.showForm && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">
-            {editingId ? "Edit Entry" : "New Journal Entry"}
+            {manager.editingId ? "Edit Entry" : "New Journal Entry"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -389,13 +381,13 @@ Tell your story!"
             </div>
 
             <button type="submit" className="btn btn-primary">
-              {editingId ? "Update" : "Create"} Entry
+              {manager.editingId ? "Update" : "Create"} Entry
             </button>
           </form>
         </div>
       )}
 
-      {entries.length === 0 ? (
+      {manager.items.length === 0 ? (
         <EmptyState
           icon="📔"
           message="No journal entries yet"
@@ -403,7 +395,7 @@ Tell your story!"
         />
       ) : (
         <div className="space-y-4">
-          {entries.map((entry) => {
+          {manager.items.map((entry) => {
             const isExpanded = expandedId === entry.id;
             const hasLinkedItems =
               (entry.locationAssignments?.length || 0) > 0 ||
