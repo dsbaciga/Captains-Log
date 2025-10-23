@@ -36,6 +36,16 @@ export type Transportation = {
     id: number;
     name: string;
   };
+  journalAssignments?: {
+    id: number;
+    journal: {
+      id: number;
+      title: string | null;
+      content: string;
+      date: string | null;
+      entryType: string;
+    };
+  }[];
 };
 
 export type CreateTransportationInput = {

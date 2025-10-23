@@ -3,26 +3,34 @@ import type { JournalEntry } from "../types/journalEntry";
 import type { Location } from "../types/location";
 import journalEntryService from "../services/journalEntry.service";
 import toast from "react-hot-toast";
+import EmptyState from "./EmptyState";
+import { useFormFields } from "../hooks/useFormFields";
 
 interface JournalManagerProps {
   tripId: number;
   locations: Location[];
+  onUpdate?: () => void;
 }
 
 export default function JournalManager({
   tripId,
   locations,
+  onUpdate,
 }: JournalManagerProps) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  // Form state
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [locationId, setLocationId] = useState<number | undefined>();
-  const [entryDate, setEntryDate] = useState("");
+  // Use the new useFormFields hook to manage all form state
+  const { values: formValues, setField, resetFields, setAllFields } = useFormFields({
+    title: "",
+    content: "",
+    locationId: undefined as number | undefined,
+    entryDate: "",
+  });
+
+  // Generate IDs for accessibility
   const titleFieldId = useId();
   const locationFieldId = useId();
   const entryDateFieldId = useId();
@@ -42,23 +50,20 @@ export default function JournalManager({
   };
 
   const resetForm = () => {
-    setTitle("");
-    setContent("");
-    setLocationId(undefined);
-    setEntryDate("");
+    resetFields();
     setEditingId(null);
   };
 
   const handleEdit = (entry: JournalEntry) => {
     setEditingId(entry.id);
-    setTitle(entry.title);
-    setContent(entry.content);
-    setLocationId(entry.locationId || undefined);
-    setEntryDate(
-      entry.entryDate
+    setAllFields({
+      title: entry.title,
+      content: entry.content,
+      locationId: entry.locationId || undefined,
+      entryDate: entry.entryDate
         ? new Date(entry.entryDate).toISOString().slice(0, 16)
-        : ""
-    );
+        : "",
+    });
     setShowForm(true);
     setExpandedId(null);
   };
@@ -66,31 +71,40 @@ export default function JournalManager({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !content.trim()) {
+    if (!formValues.title.trim() || !formValues.content.trim()) {
       toast.error("Title and content are required");
       return;
     }
 
     try {
-      const data = {
-        tripId,
-        title,
-        content,
-        locationId,
-        entryDate: entryDate || undefined,
-      };
-
       if (editingId) {
-        await journalEntryService.updateJournalEntry(editingId, data);
+        // For updates, send null to clear empty fields
+        const updateData = {
+          tripId,
+          title: formValues.title,
+          content: formValues.content,
+          locationId: formValues.locationId,
+          entryDate: formValues.entryDate || null,
+        };
+        await journalEntryService.updateJournalEntry(editingId, updateData);
         toast.success("Journal entry updated");
       } else {
-        await journalEntryService.createJournalEntry(data);
+        // For creates, use undefined to omit optional fields
+        const createData = {
+          tripId,
+          title: formValues.title,
+          content: formValues.content,
+          locationId: formValues.locationId,
+          entryDate: formValues.entryDate || undefined,
+        };
+        await journalEntryService.createJournalEntry(createData);
         toast.success("Journal entry added");
       }
 
       resetForm();
       setShowForm(false);
       loadEntries();
+      onUpdate?.();
     } catch (error) {
       toast.error("Failed to save journal entry");
     }
@@ -103,6 +117,7 @@ export default function JournalManager({
       await journalEntryService.deleteJournalEntry(id);
       toast.success("Journal entry deleted");
       loadEntries();
+      onUpdate?.();
     } catch (error) {
       toast.error("Failed to delete journal entry");
     }
@@ -155,8 +170,8 @@ export default function JournalManager({
               <input
                 type="text"
                 id={titleFieldId}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={formValues.title}
+                onChange={(e) => setField('title', e.target.value)}
                 className="input"
                 placeholder="Day 1 in Paris"
                 required
@@ -173,11 +188,9 @@ export default function JournalManager({
                 </label>
                 <select
                   id={locationFieldId}
-                  value={locationId || ""}
+                  value={formValues.locationId || ""}
                   onChange={(e) =>
-                    setLocationId(
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
+                    setField('locationId', e.target.value ? parseInt(e.target.value) : undefined)
                   }
                   className="input"
                 >
@@ -200,8 +213,8 @@ export default function JournalManager({
                 <input
                   type="datetime-local"
                   id={entryDateFieldId}
-                  value={entryDate}
-                  onChange={(e) => setEntryDate(e.target.value)}
+                  value={formValues.entryDate}
+                  onChange={(e) => setField('entryDate', e.target.value)}
                   className="input"
                 />
               </div>
@@ -216,8 +229,8 @@ export default function JournalManager({
               </label>
               <textarea
                 id={contentFieldId}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
+                value={formValues.content}
+                onChange={(e) => setField('content', e.target.value)}
                 rows={12}
                 className="input font-mono text-sm"
                 placeholder="Write your journal entry here...
@@ -231,7 +244,7 @@ Tell your story!"
                 required
               />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {content.length} characters
+                {formValues.content.length} characters
               </p>
             </div>
 
@@ -243,15 +256,11 @@ Tell your story!"
       )}
 
       {entries.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="text-6xl mb-4">📔</div>
-          <p className="text-gray-500 dark:text-gray-400 mb-2">
-            No journal entries yet
-          </p>
-          <p className="text-sm text-gray-400">
-            Start documenting your adventure by creating your first entry!
-          </p>
-        </div>
+        <EmptyState
+          icon="📔"
+          message="No journal entries yet"
+          subMessage="Start documenting your adventure by creating your first entry!"
+        />
       ) : (
         <div className="space-y-4">
           {entries.map((entry) => {
@@ -277,13 +286,13 @@ Tell your story!"
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEdit(entry)}
-                        className="btn-secondary text-sm"
+                        className="btn btn-secondary text-sm"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(entry.id)}
-                        className="btn-danger text-sm"
+                        className="btn btn-danger text-sm"
                       >
                         Delete
                       </button>

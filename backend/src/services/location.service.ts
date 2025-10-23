@@ -73,6 +73,20 @@ export class LocationService {
             },
           },
         },
+        journalLocationAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -132,6 +146,20 @@ export class LocationService {
             description: true,
             _count: {
               select: { photoAssignments: true },
+            },
+          },
+        },
+        journalLocationAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
             },
           },
         },

@@ -56,6 +56,7 @@ class ActivityService {
           select: {
             id: true,
             name: true,
+            address: true,
           },
         },
         parent: {
@@ -87,6 +88,7 @@ class ActivityService {
           select: {
             id: true,
             name: true,
+            address: true,
           },
         },
         parent: {
@@ -112,6 +114,20 @@ class ActivityService {
             description: true,
             _count: {
               select: { photoAssignments: true },
+            },
+          },
+        },
+        journalAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
             },
           },
         },
@@ -156,6 +172,20 @@ class ActivityService {
             description: true,
             _count: {
               select: { photoAssignments: true },
+            },
+          },
+        },
+        journalAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
             },
           },
         },
@@ -226,6 +256,7 @@ class ActivityService {
         name: data.name,
         description: data.description !== undefined ? data.description : undefined,
         category: data.category !== undefined ? data.category : undefined,
+        allDay: data.allDay !== undefined ? data.allDay : undefined,
         startTime:
           data.startTime !== undefined
             ? data.startTime
@@ -238,6 +269,7 @@ class ActivityService {
               ? new Date(data.endTime)
               : null
             : undefined,
+        timezone: data.timezone !== undefined ? data.timezone : undefined,
         cost: data.cost !== undefined ? data.cost : undefined,
         currency: data.currency !== undefined ? data.currency : undefined,
         bookingUrl: data.bookingUrl !== undefined ? data.bookingUrl : undefined,
@@ -250,6 +282,7 @@ class ActivityService {
           select: {
             id: true,
             name: true,
+            address: true,
           },
         },
         parent: {

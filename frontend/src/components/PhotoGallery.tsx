@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Photo, PhotoAlbum } from '../types/photo';
 import photoService from '../services/photo.service';
+import { getAssetBaseUrl } from '../lib/config';
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -40,6 +41,8 @@ export default function PhotoGallery({
       const token = localStorage.getItem('accessToken');
       if (!token) return;
 
+      const baseUrl = getAssetBaseUrl();
+
       for (const photo of photos) {
         // Skip if already cached or not an Immich photo
         if (thumbnailCache[photo.id] || photo.source !== 'immich' || !photo.thumbnailPath) {
@@ -47,7 +50,7 @@ export default function PhotoGallery({
         }
 
         try {
-          const response = await fetch(`http://localhost:5000${photo.thumbnailPath}`, {
+          const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -146,8 +149,9 @@ export default function PhotoGallery({
   };
 
   const getPhotoUrl = (photo: Photo): string | null => {
+    const baseUrl = getAssetBaseUrl();
     if (photo.source === 'local' && photo.localPath && photo.localPath !== '') {
-      return `http://localhost:5000${photo.localPath}`;
+      return `${baseUrl}${photo.localPath}`;
     }
     // For Immich photos, use blob URL from cache
     if (photo.source === 'immich') {
@@ -157,8 +161,9 @@ export default function PhotoGallery({
   };
 
   const getThumbnailUrl = (photo: Photo): string | null => {
+    const baseUrl = getAssetBaseUrl();
     if (photo.source === 'local' && photo.thumbnailPath && photo.thumbnailPath !== '') {
-      return `http://localhost:5000${photo.thumbnailPath}`;
+      return `${baseUrl}${photo.thumbnailPath}`;
     }
     // For Immich photos, use blob URL from cache
     if (photo.source === 'immich') {
@@ -333,14 +338,14 @@ export default function PhotoGallery({
                     <button
                       type="button"
                       onClick={handleUpdateCaption}
-                      className="btn-primary"
+                      className="btn btn-primary"
                     >
                       Save
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsEditMode(false)}
-                      className="btn-secondary"
+                      className="btn btn-secondary"
                     >
                       Cancel
                     </button>

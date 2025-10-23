@@ -1,0 +1,157 @@
+# Docker Compose for TrueNAS Scale - Optimized for Lower Resource Usage
+#
+# This configuration reduces idle resource usage by:
+# 1. Using external Nominatim (public geocoding service)
+# 2. Lowering memory limits for backend
+# 3. Optimizing PostgreSQL settings
+#
+# For self-hosted Nominatim option, see docker-compose.truenas.yml
+
+version: "3.8"
+
+services:
+  # PostgreSQL with PostGIS
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: captains-log-db
+    environment:
+      POSTGRES_USER: captains_log_user
+      POSTGRES_PASSWORD: pgBasco1988!
+      POSTGRES_DB: captains_log
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # PostgreSQL tuning for lower resource usage
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=512MB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "work_mem=4MB"
+      - "-c"
+      - "wal_buffers=8MB"
+    ports:
+      - "30603:5432"
+    volumes:
+      - /mnt/main_pool/captains-log/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U captains_log_user -d captains_log"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1.5G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  # Backend API
+  backend:
+    image: ghcr.io/dsbaciga/captains-log-backend:latest
+    container_name: captains-log-backend
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://captains_log_user:pgBasco1988!@db:5432/captains_log?schema=public
+      JWT_SECRET: happyhorseteacups
+      JWT_REFRESH_SECRET: touchymoosesister
+
+      # Use public Nominatim service instead of self-hosted
+      # This dramatically reduces resource usage (no Nominatim container needed)
+      NOMINATIM_URL: https://nominatim.openstreetmap.org
+
+      # Alternative geocoding services (uncomment to use):
+      # NOMINATIM_URL: https://photon.komoot.io  # Photon geocoder (faster, fewer features)
+
+      # Optional Integrations
+      IMMICH_API_URL: http://10.0.0.10:30041
+      IMMICH_API_KEY: YErFLN6C6OFqZvOLuCT0ITBvcukZVs9IczErMV5E
+      OPENWEATHERMAP_API_KEY: 2e96a9284968ea5aff9850c03d2e9de4
+      AVIATIONSTACK_API_KEY: _
+    ports:
+      - "30601:5000"
+    volumes:
+      - /mnt/main_pool/captains-log/uploads:/app/uploads
+      - /mnt/main_pool/captains-log/logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:5000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"     # Reduced from 1.0
+          memory: 512M    # Reduced from 1G
+        reservations:
+          cpus: "0.1"     # Reduced from 0.25
+          memory: 128M    # Reduced from 256M
+
+  # Frontend
+  frontend:
+    image: ghcr.io/dsbaciga/captains-log-frontend:latest
+    container_name: captains-log-frontend
+    environment:
+      BACKEND_HOST: backend
+      BACKEND_PORT: 5000
+    ports:
+      - "30600:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"    # Reduced from 0.5
+          memory: 128M    # Reduced from 256M
+        reservations:
+          cpus: "0.05"    # Reduced from 0.1
+          memory: 32M     # Reduced from 64M
+
+# NOTE: Nominatim service is NOT included in this optimized configuration
+#
+# Expected idle resource usage with this configuration:
+# - Backend: ~50-100MB RAM, <1% CPU
+# - Frontend: ~10-20MB RAM, <1% CPU
+# - Database: ~200-400MB RAM, <1% CPU
+# - Total: ~300-500MB RAM, <3% CPU
+#
+# Tradeoffs:
+# 1. Geocoding depends on external service (rate limited to 1 req/sec)
+# 2. Requires internet connectivity for geocoding features
+# 3. Privacy: Geocoding queries sent to external servers
+#
+# To use self-hosted Nominatim, see docker-compose.truenas.yml
+# For optimization tips, see PERFORMANCE_OPTIMIZATION.md

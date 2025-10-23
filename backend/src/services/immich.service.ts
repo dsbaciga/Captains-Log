@@ -78,18 +78,34 @@ class ImmichService {
   async testConnection(apiUrl: string, apiKey: string): Promise<boolean> {
     try {
       const client = this.createClient(apiUrl, apiKey);
+      console.log('[Immich Service] Testing connection to:', apiUrl);
+      console.log('[Immich Service] Full URL:', `${apiUrl}/api/server/ping`);
       const response = await client.get('/api/server/ping');
+      console.log('[Immich Service] Connection test successful, status:', response.status);
       return response.status === 200;
     } catch (error: any) {
-      console.error('Immich connection error:', error.message);
+      console.error('[Immich Service] Connection error details:');
+      console.error('  - Error message:', error.message);
+      console.error('  - Error code:', error.code);
+      console.error('  - URL attempted:', apiUrl);
+      console.error('  - Response status:', error.response?.status);
+      console.error('  - Response data:', error.response?.data);
+      console.error('  - Full error:', error);
+
       if (error.code === 'ECONNREFUSED') {
-        throw new AppError(`Cannot connect to Immich at ${apiUrl}. Please check the URL.`, 400);
-      } else if (error.response?.status === 401 || error.response?.status === 403) {
-        throw new AppError('Invalid Immich API key', 401);
+        throw new AppError(`Cannot connect to Immich at ${apiUrl}. Server refused connection. Check if Immich is running and accessible from this container.`, 400);
+      } else if (error.code === 'ENOTFOUND') {
+        throw new AppError(`Cannot resolve hostname: ${apiUrl}. DNS resolution failed. Check network configuration.`, 400);
       } else if (error.code === 'ETIMEDOUT') {
-        throw new AppError('Connection to Immich timed out', 408);
+        throw new AppError(`Connection to Immich timed out after 30 seconds. Check network firewall rules.`, 408);
+      } else if (error.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || error.code === 'CERT_HAS_EXPIRED' || error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+        throw new AppError(`SSL certificate error: ${error.code}. The SSL certificate for ${apiUrl} is invalid or self-signed.`, 400);
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new AppError('Invalid Immich API key. Check your API key in user settings.', 401);
+      } else if (error.response?.status === 404) {
+        throw new AppError(`Immich API endpoint not found. Check that the URL is correct and points to your Immich server (not just a web page). URL: ${apiUrl}`, 404);
       }
-      throw new AppError(`Failed to connect to Immich: ${error.message}`, 400);
+      throw new AppError(`Failed to connect to Immich: ${error.message} (Code: ${error.code || 'Unknown'})`, 400);
     }
   }
 
@@ -131,8 +147,11 @@ class ImmichService {
         total: assets.length,
       };
     } catch (error: any) {
-      console.error('Error fetching Immich assets:', error.message);
-      throw new AppError('Failed to fetch assets from Immich', 500);
+      console.error('[Immich Service] Error fetching assets:', error.message);
+      console.error('[Immich Service] Error code:', error.code);
+      console.error('[Immich Service] Response status:', error.response?.status);
+      console.error('[Immich Service] Response data:', error.response?.data);
+      throw new AppError(`Failed to fetch assets from Immich: ${error.message}`, 500);
     }
   }
 

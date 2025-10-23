@@ -47,6 +47,7 @@ class LodgingService {
           select: {
             id: true,
             name: true,
+            address: true,
           },
         },
       },
@@ -87,6 +88,20 @@ class LodgingService {
             },
           },
         },
+        journalAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
+            },
+          },
+        },
       },
       orderBy: [{ checkInDate: 'asc' }, { createdAt: 'asc' }],
     });
@@ -107,6 +122,20 @@ class LodgingService {
             description: true,
             _count: {
               select: { photoAssignments: true },
+            },
+          },
+        },
+        journalAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
             },
           },
         },
@@ -184,6 +213,7 @@ class LodgingService {
           select: {
             id: true,
             name: true,
+            address: true,
           },
         },
       },

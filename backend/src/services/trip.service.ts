@@ -64,6 +64,11 @@ export class TripService {
         orderBy: { createdAt: 'desc' },
         include: {
           coverPhoto: true,
+          tagAssignments: {
+            include: {
+              tag: true,
+            },
+          },
         },
       }),
       prisma.trip.count({ where }),

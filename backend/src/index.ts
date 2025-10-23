@@ -2,6 +2,8 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { config } from './config';
 import logger from './config/logger';
 import { errorHandler } from './middleware/errorHandler';
@@ -19,6 +21,11 @@ import tagRoutes from './routes/tag.routes';
 import companionRoutes from './routes/companion.routes';
 import immichRoutes from './routes/immich.routes';
 import weatherRoutes from './routes/weather.routes';
+
+// Read version from package.json
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, '../package.json'), 'utf-8')
+);
 
 const app: Application = express();
 
@@ -60,8 +67,16 @@ app.get('/health', (req, res) => {
 app.get('/api', (req, res) => {
   res.json({
     message: "Captain's Log API",
-    version: '1.0.0',
+    version: packageJson.version,
     status: 'running',
+  });
+});
+
+// Version endpoint
+app.get('/api/version', (req, res) => {
+  res.json({
+    version: packageJson.version,
+    name: packageJson.name,
   });
 });
 

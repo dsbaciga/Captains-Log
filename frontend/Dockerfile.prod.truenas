@@ -26,7 +26,8 @@ RUN npm run build
 FROM nginx:alpine
 
 # Install envsubst (part of gettext package) for environment variable substitution
-RUN apk add --no-cache gettext
+# Install wget for healthcheck
+RUN apk add --no-cache gettext wget
 
 # Copy TrueNAS-specific nginx config template
 COPY nginx.truenas.conf /etc/nginx/templates/default.conf.template
@@ -48,10 +49,6 @@ RUN echo '#!/bin/sh' > /docker-entrypoint.d/40-envsubst-on-templates.sh && \
 
 # Expose port 80
 EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
 
 # Start nginx (entrypoint scripts run automatically)
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import immichService from '../services/immich.service';
 import type { ImmichAsset, ImmichAlbum } from '../types/immich';
+import { getAssetBaseUrl } from '../lib/config';
 
 interface ImmichBrowserProps {
   onSelect: (assets: ImmichAsset[]) => void;
@@ -65,6 +66,8 @@ export default function ImmichBrowser({
         return;
       }
 
+      const baseUrl = getAssetBaseUrl();
+
       for (const asset of assets) {
         // Skip if already cached
         if (thumbnailCache[asset.id]) {
@@ -72,7 +75,7 @@ export default function ImmichBrowser({
         }
 
         try {
-          const response = await fetch(`http://localhost:5000${asset.thumbnailUrl}`, {
+          const response = await fetch(`${baseUrl}${asset.thumbnailUrl}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },

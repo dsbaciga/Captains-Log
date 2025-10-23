@@ -5,6 +5,7 @@ import type { Trip } from '../types/trip';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
+import { getAssetBaseUrl } from '../lib/config';
 
 export default function TripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -26,6 +27,8 @@ export default function TripsPage() {
 
       const urls: { [key: number]: string } = {};
 
+      const baseUrl = getAssetBaseUrl();
+
       for (const trip of trips) {
         if (!trip.coverPhoto) continue;
 
@@ -33,12 +36,12 @@ export default function TripsPage() {
 
         // Local photo - use direct URL
         if (photo.source === 'local' && photo.thumbnailPath) {
-          urls[trip.id] = `http://localhost:5000${photo.thumbnailPath}`;
+          urls[trip.id] = `${baseUrl}${photo.thumbnailPath}`;
         }
         // Immich photo - fetch with auth
         else if (photo.source === 'immich' && photo.thumbnailPath) {
           try {
-            const response = await fetch(`http://localhost:5000${photo.thumbnailPath}`, {
+            const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
               headers: { 'Authorization': `Bearer ${token}` },
             });
 
@@ -227,6 +230,24 @@ export default function TripsPage() {
                       <p className={`mb-4 line-clamp-2 ${coverPhotoUrl ? 'text-white/90 drop-shadow-md' : 'text-gray-600 dark:text-gray-300'}`}>
                         {trip.description}
                       </p>
+                    )}
+
+                    {/* Tags */}
+                    {trip.tagAssignments && trip.tagAssignments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {trip.tagAssignments.map(({ tag }) => (
+                          <span
+                            key={tag.id}
+                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: tag.color,
+                              color: tag.textColor,
+                            }}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
                     )}
 
                     {/* Spacer to push dates and buttons to bottom */}

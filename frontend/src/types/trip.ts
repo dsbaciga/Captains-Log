@@ -38,6 +38,15 @@ export type Trip = {
     source: string;
     immichAssetId: string | null;
   } | null;
+  tagAssignments?: {
+    id: number;
+    tag: {
+      id: number;
+      name: string;
+      color: string;
+      textColor: string;
+    };
+  }[];
 };
 
 export type CreateTripInput = {

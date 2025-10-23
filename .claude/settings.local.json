@@ -24,7 +24,14 @@
       "Bash(cat:*)",
       "Bash(dir:*)",
       "Bash(npm run build)",
-      "Bash(touch \"c:\\Users\\dsbac\\Captains-Log\\TRUENAS_QUICKSTART.md\")"
+      "Bash(touch \"c:\\Users\\dsbac\\Captains-Log\\TRUENAS_QUICKSTART.md\")",
+      "Bash(powershell -File build.truenas.ps1 -Version v1.1.6 -Registry ghcr.io/dsbaciga)",
+      "Bash(git tag --sort=-v:refname)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(powershell -Command \"(Get-Content FRONTEND_ARCHITECTURE.md -Encoding UTF8 | Select-Object -Skip 31 -First 40) -join [Environment]::NewLine\")",
+      "Bash(python fix_markdown.py)",
+      "Bash(python fix_backend.py)",
+      "Bash(del fix_markdown.py fix_backend.py)"
     ],
     "deny": [],
     "ask": []

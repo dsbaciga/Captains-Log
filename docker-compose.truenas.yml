@@ -6,10 +6,17 @@
 #    - /mnt/pool/captains-log/nominatim
 #    - /mnt/pool/captains-log/uploads
 #
-# 2. Create .env file in the same directory with required variables
-#
-# 3. Deploy using TrueNAS Scale UI or CLI:
+# 2. Deploy using TrueNAS Scale UI or CLI:
 #    docker-compose -f docker-compose.truenas.yml up -d
+#
+# 3. Run database migrations:
+#    docker exec captains-log-backend npx prisma migrate deploy
+#
+# Configuration:
+# - Frontend proxies /api and /uploads to backend via nginx
+# - Backend URL can be customized via BACKEND_HOST and BACKEND_PORT env vars
+# - Default: backend:5000 (Docker internal networking)
+# - See DEPLOYMENT_TRUENAS.md for full documentation
 
 version: "3.8"
 
@@ -58,7 +65,7 @@ services:
       JWT_REFRESH_SECRET: touchymoosesister
       NOMINATIM_URL: http://nominatim:8080
       # Optional Integrations
-      IMMICH_API_URL: https://immich.bacigalupo.us
+      IMMICH_API_URL: http://10.0.0.10:30041
       IMMICH_API_KEY: YErFLN6C6OFqZvOLuCT0ITBvcukZVs9IczErMV5E
       OPENWEATHERMAP_API_KEY: 2e96a9284968ea5aff9850c03d2e9de4
       AVIATIONSTACK_API_KEY: _
@@ -100,6 +107,11 @@ services:
     # which are proxied to the backend container
     image: ghcr.io/dsbaciga/captains-log-frontend:latest
     container_name: captains-log-frontend
+    environment:
+      # Backend URL for nginx proxy (default: backend:5000 for Docker internal networking)
+      # Use Docker internal networking for best performance
+      BACKEND_HOST: backend
+      BACKEND_PORT: 5000
     ports:
       - "30600:80"
     depends_on:
@@ -118,6 +130,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
     deploy:
       resources:
         limits:

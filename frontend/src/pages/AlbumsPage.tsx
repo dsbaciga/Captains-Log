@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { PhotoAlbum } from '../types/photo';
 import photoService from '../services/photo.service';
+import { getAssetBaseUrl } from '../lib/config';
 
 export default function AlbumsPage() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -16,7 +17,8 @@ export default function AlbumsPage() {
     if (!album.coverPhoto) return null;
     const path = album.coverPhoto.thumbnailPath || album.coverPhoto.localPath;
     if (!path || path === '') return null;
-    return `http://localhost:5000${path}`;
+    const baseUrl = getAssetBaseUrl();
+    return `${baseUrl}${path}`;
   };
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export default function AlbumsPage() {
 
     try {
       const data = await photoService.getAlbumsByTrip(parseInt(tripId));
-      setAlbums(data);
+      setAlbums(data.albums);
     } catch (error) {
       console.error('Failed to load albums:', error);
     } finally {
@@ -125,7 +127,7 @@ export default function AlbumsPage() {
               />
             </div>
 
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn btn-primary">
               Create Album
             </button>
           </form>
@@ -187,19 +189,19 @@ export default function AlbumsPage() {
                   </p>
                 )}
                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-                  {album._count?.photos || 0} photos
+                  {album._count?.photoAssignments || 0} photos
                 </p>
 
                 <div className="flex gap-2">
                   <button
                     onClick={() => navigate(`/trips/${tripId}/albums/${album.id}`)}
-                    className="btn-secondary flex-1"
+                    className="btn btn-secondary flex-1"
                   >
                     View
                   </button>
                   <button
                     onClick={() => handleDeleteAlbum(album.id)}
-                    className="btn-danger"
+                    className="btn btn-danger"
                   >
                     Delete
                   </button>

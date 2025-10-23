@@ -1,6 +1,37 @@
 # Captain's Log - TrueNAS Quick Start
 
-**Problem solved**: Frontend couldn't talk to backend due to missing nginx proxy configuration.
+**Problems solved**:
+- Frontend couldn't talk to backend due to missing nginx proxy configuration
+- Failed migrations are now automatically resolved on container startup
+
+## Latest Version
+
+**Backend:** v1.1.10 ⭐ **DEBUG**
+**Frontend:** v1.1.5 ⭐ **DEBUG**
+
+**What's New in v1.1.9 (Backend):**
+
+- ✅ **Enhanced** Immich integration error handling and diagnostics
+- ✅ **Added** detailed logging for Immich connection errors (DNS, SSL, timeouts, etc.)
+- ✅ **Improved** error messages with specific troubleshooting guidance
+- ✅ Better network error detection (ENOTFOUND, ECONNREFUSED, ETIMEDOUT)
+- ✅ SSL certificate error handling (self-signed, expired, invalid)
+
+**What's New in v1.1.3 (Frontend):**
+
+- ✅ **CRITICAL FIX** - Removed all hardcoded `localhost:5000` URLs
+- ✅ **Fixed** Immich photo thumbnails not loading on TrueNAS
+- ✅ **Fixed** Local photo uploads not displaying on TrueNAS
+- ✅ **Fixed** Cover photos not showing on trips list
+- ✅ Created centralized config utility for asset URLs
+- ✅ Now properly uses relative URLs that work with nginx proxy
+
+**Previous Versions:**
+
+- v1.1.2 (Frontend): Fixed page title
+- v1.1.8 (Backend): Fixed initial deployment, enhanced Prisma error logging
+- v1.1.7 (Backend): Fixed migration error detection, BusyBox grep compatibility
+- v1.1.1 (Frontend): Fixed healthcheck, added wget, improved backend URL configuration
 
 ## Fastest Way to Deploy (5 minutes)
 

@@ -28,10 +28,12 @@ import TagManager from '../components/TagManager';
 import CompanionManager from '../components/CompanionManager';
 import LocationSearchMap from '../components/LocationSearchMap';
 import TripLocationsMap from '../components/TripLocationsMap';
+import { getAssetBaseUrl } from '../lib/config';
 import TagsModal from '../components/TagsModal';
 import AlbumsSidebar from '../components/AlbumsSidebar';
 import AlbumModal from '../components/AlbumModal';
 import AssociatedAlbums from '../components/AssociatedAlbums';
+import JournalEntriesButton from '../components/JournalEntriesButton';
 import type { PhotoAlbum } from '../types/photo';
 
 export default function TripDetailPage() {
@@ -66,6 +68,7 @@ export default function TripDetailPage() {
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   const [unsortedPhotosCount, setUnsortedPhotosCount] = useState(0);
   const [showLocationForm, setShowLocationForm] = useState(false);
+  const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [locationName, setLocationName] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
   const [locationNotes, setLocationNotes] = useState('');
@@ -98,10 +101,11 @@ export default function TripDetailPage() {
       }
 
       const photo = trip.coverPhoto;
+      const baseUrl = getAssetBaseUrl();
 
       // If it's a local photo, use direct URL
       if (photo.source === 'local' && photo.localPath) {
-        setCoverPhotoUrl(`http://localhost:5000${photo.localPath}`);
+        setCoverPhotoUrl(`${baseUrl}${photo.localPath}`);
         return;
       }
 
@@ -111,7 +115,7 @@ export default function TripDetailPage() {
           const token = localStorage.getItem('accessToken');
           if (!token) return;
 
-          const response = await fetch(`http://localhost:5000${photo.thumbnailPath}`, {
+          const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -358,30 +362,58 @@ export default function TripDetailPage() {
     }
   };
 
+  const resetLocationForm = () => {
+    setLocationName('');
+    setLocationAddress('');
+    setLocationNotes('');
+    setLocationLatitude(undefined);
+    setLocationLongitude(undefined);
+    setEditingLocationId(null);
+    setShowLocationForm(false);
+  };
+
   const handleAddLocation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trip) return;
 
     try {
-      await locationService.createLocation({
-        tripId: trip.id,
-        name: locationName,
-        address: locationAddress || undefined,
-        latitude: locationLatitude,
-        longitude: locationLongitude,
-        notes: locationNotes || undefined,
-      });
-      toast.success('Location added');
-      setLocationName('');
-      setLocationAddress('');
-      setLocationNotes('');
-      setLocationLatitude(undefined);
-      setLocationLongitude(undefined);
-      setShowLocationForm(false);
+      if (editingLocationId) {
+        // Update existing location
+        await locationService.updateLocation(editingLocationId, {
+          name: locationName,
+          address: locationAddress || null,
+          latitude: locationLatitude,
+          longitude: locationLongitude,
+          notes: locationNotes || null,
+        });
+        toast.success('Location updated');
+      } else {
+        // Create new location
+        await locationService.createLocation({
+          tripId: trip.id,
+          name: locationName,
+          address: locationAddress || undefined,
+          latitude: locationLatitude,
+          longitude: locationLongitude,
+          notes: locationNotes || undefined,
+        });
+        toast.success('Location added');
+      }
+      resetLocationForm();
       loadTripData(trip.id);
     } catch (error) {
-      toast.error('Failed to add location');
+      toast.error(editingLocationId ? 'Failed to update location' : 'Failed to add location');
     }
+  };
+
+  const handleEditLocation = (location: Location) => {
+    setEditingLocationId(location.id);
+    setLocationName(location.name);
+    setLocationAddress(location.address || '');
+    setLocationNotes(location.notes || '');
+    setLocationLatitude(location.latitude || undefined);
+    setLocationLongitude(location.longitude || undefined);
+    setShowLocationForm(true);
   };
 
   const handleLocationSelect = (data: {
@@ -714,16 +746,25 @@ export default function TripDetailPage() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Locations</h2>
               <button
-                onClick={() => setShowLocationForm(!showLocationForm)}
+                onClick={() => {
+                  if (showLocationForm) {
+                    resetLocationForm();
+                  } else {
+                    setShowLocationForm(true);
+                  }
+                }}
                 className="btn btn-primary"
               >
                 {showLocationForm ? 'Cancel' : '+ Add Location'}
               </button>
             </div>
 
-          {/* Add Location Form */}
+          {/* Add/Edit Location Form */}
           {showLocationForm && (
             <form onSubmit={handleAddLocation} className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                {editingLocationId ? 'Edit Location' : 'Add Location'}
+              </h3>
               <div className="space-y-4">
                 <div>
                   <label className="label">Search & Select Location</label>
@@ -769,7 +810,7 @@ export default function TripDetailPage() {
                   />
                 </div>
                 <button type="submit" className="btn btn-primary">
-                  Add Location
+                  {editingLocationId ? 'Update Location' : 'Add Location'}
                 </button>
               </div>
             </form>
@@ -804,12 +845,24 @@ export default function TripDetailPage() {
                         tripId={trip.id}
                       />
                     </div>
-                    <button
-                      onClick={() => handleDeleteLocation(location.id)}
-                      className="ml-4 px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-2 items-center">
+                      <JournalEntriesButton
+                        journalEntries={location.journalLocationAssignments}
+                        tripId={trip.id}
+                      />
+                      <button
+                        onClick={() => handleEditLocation(location)}
+                        className="ml-4 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLocation(location.id)}
+                        className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -984,7 +1037,12 @@ export default function TripDetailPage() {
         {/* Activities Tab */}
         {activeTab === 'activities' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <ActivityManager tripId={trip.id} locations={locations} />
+            <ActivityManager
+              tripId={trip.id}
+              locations={locations}
+              tripTimezone={trip.timezone}
+              onUpdate={() => loadTripData(trip.id)}
+            />
           </div>
         )}
 
@@ -995,28 +1053,47 @@ export default function TripDetailPage() {
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
               Activities with dates but no specific times. These won't appear in the timeline until times are added.
             </p>
-            <UnscheduledActivities tripId={trip.id} locations={locations} />
+            <UnscheduledActivities
+              tripId={trip.id}
+              locations={locations}
+              tripTimezone={trip.timezone}
+              onActivityUpdated={() => loadTripData(trip.id)}
+            />
           </div>
         )}
 
         {/* Transportation Tab */}
         {activeTab === 'transportation' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <TransportationManager tripId={trip.id} locations={locations} />
+            <TransportationManager
+              tripId={trip.id}
+              locations={locations}
+              tripTimezone={trip.timezone}
+              onUpdate={() => loadTripData(trip.id)}
+            />
           </div>
         )}
 
         {/* Lodging Tab */}
         {activeTab === 'lodging' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <LodgingManager tripId={trip.id} locations={locations} />
+            <LodgingManager
+              tripId={trip.id}
+              locations={locations}
+              tripTimezone={trip.timezone}
+              onUpdate={() => loadTripData(trip.id)}
+            />
           </div>
         )}
 
         {/* Journal Tab */}
         {activeTab === 'journal' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <JournalManager tripId={trip.id} locations={locations} />
+            <JournalManager
+              tripId={trip.id}
+              locations={locations}
+              onUpdate={() => loadTripData(trip.id)}
+            />
           </div>
         )}
 

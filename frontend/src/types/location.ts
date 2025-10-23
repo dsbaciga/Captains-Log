@@ -20,6 +20,16 @@ export type Location = {
       photoAssignments: number;
     };
   }[];
+  journalLocationAssignments?: {
+    id: number;
+    journal: {
+      id: number;
+      title: string | null;
+      content: string;
+      date: string | null;
+      entryType: string;
+    };
+  }[];
 };
 
 export type LocationCategory = {

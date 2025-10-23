@@ -20,6 +20,7 @@ export type Activity = {
   location?: {
     id: number;
     name: string;
+    address: string | null;
   };
   parent?: {
     id: number;
@@ -30,6 +31,7 @@ export type Activity = {
     name: string;
     startTime: string | null;
     endTime: string | null;
+    timezone: string | null;
     category: string | null;
   }[];
   photoAlbums?: {
@@ -38,6 +40,16 @@ export type Activity = {
     description: string | null;
     _count?: {
       photoAssignments: number;
+    };
+  }[];
+  journalAssignments?: {
+    id: number;
+    journal: {
+      id: number;
+      title: string | null;
+      content: string;
+      date: string | null;
+      entryType: string;
     };
   }[];
 };

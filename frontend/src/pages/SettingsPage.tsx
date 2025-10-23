@@ -2,6 +2,7 @@ import { useEffect, useState, useId } from "react";
 import { Link } from "react-router-dom";
 import userService from "../services/user.service";
 import tagService from "../services/tag.service";
+import apiService from "../services/api.service";
 import { useAuthStore } from "../store/authStore";
 import type { ActivityCategory } from "../types/user";
 import type { TripTag } from "../types/tag";
@@ -29,11 +30,13 @@ export default function SettingsPage() {
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editingTagColor, setEditingTagColor] = useState("#3B82F6");
   const [editingTagTextColor, setEditingTagTextColor] = useState("#FFFFFF");
+  const [backendVersion, setBackendVersion] = useState<string>("");
   const timezoneSelectId = useId();
 
   useEffect(() => {
     loadSettings();
     loadTags();
+    loadBackendVersion();
   }, []);
 
   const loadSettings = async () => {
@@ -56,6 +59,15 @@ export default function SettingsPage() {
       setTags(allTags);
     } catch (error) {
       toast.error("Failed to load tags");
+    }
+  };
+
+  const loadBackendVersion = async () => {
+    try {
+      const versionInfo = await apiService.getVersion();
+      setBackendVersion(versionInfo.version);
+    } catch (error) {
+      console.error("Failed to load backend version:", error);
     }
   };
 
@@ -213,9 +225,15 @@ export default function SettingsPage() {
           ← Back to Dashboard
         </Link>
 
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
-          Settings
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Settings
+          </h1>
+          <div className="text-sm text-gray-500 dark:text-gray-400 text-right">
+            <div>Frontend: <span className="font-mono">{__APP_VERSION__}</span></div>
+            <div>Backend: <span className="font-mono">{backendVersion || 'Loading...'}</span></div>
+          </div>
+        </div>
 
         <div className="space-y-6">
           {/* Username */}

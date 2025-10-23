@@ -1,0 +1,571 @@
+import { useState, useEffect, useId } from 'react';
+import type { Activity } from '../types/activity';
+import type { Location } from '../types/location';
+import type { ActivityCategory } from '../types/user';
+import activityService from '../services/activity.service';
+import userService from '../services/user.service';
+import toast from 'react-hot-toast';
+import AssociatedAlbums from './AssociatedAlbums';
+import { formatDateTimeInTimezone } from '../utils/timezone';
+
+interface UnscheduledActivitiesProps {
+  tripId: number;
+  locations: Location[];
+  tripTimezone?: string | null;
+  onActivityUpdated?: () => void;
+}
+
+export default function UnscheduledActivities({ tripId, locations, tripTimezone, onActivityUpdated }: UnscheduledActivitiesProps) {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Form state
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [locationId, setLocationId] = useState<number | undefined>();
+  const [parentId, setParentId] = useState<number | undefined>();
+  const [allDay, setAllDay] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [timezone, setTimezone] = useState("");
+  const [cost, setCost] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [bookingUrl, setBookingUrl] = useState("");
+  const [bookingReference, setBookingReference] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const nameFieldId = useId();
+  const categoryFieldId = useId();
+  const locationFieldId = useId();
+  const parentFieldId = useId();
+  const allDayFieldId = useId();
+  const startDateFieldId = useId();
+  const startTimeFieldId = useId();
+  const endDateFieldId = useId();
+  const endTimeFieldId = useId();
+  const timezoneFieldId = useId();
+  const descriptionFieldId = useId();
+  const costFieldId = useId();
+  const currencyFieldId = useId();
+  const bookingUrlFieldId = useId();
+  const bookingReferenceFieldId = useId();
+  const notesFieldId = useId();
+
+  useEffect(() => {
+    loadActivities();
+    loadUserCategories();
+  }, [tripId]);
+
+  const loadUserCategories = async () => {
+    try {
+      const user = await userService.getMe();
+      setActivityCategories(user.activityCategories || []);
+    } catch (error) {
+      console.error('Failed to load activity categories');
+    }
+  };
+
+  const loadActivities = async () => {
+    try {
+      const data = await activityService.getActivitiesByTrip(tripId);
+      // Filter for unscheduled activities (no start time and not all day)
+      const unscheduled = data.filter(a => !a.startTime && !a.allDay);
+      setActivities(unscheduled);
+    } catch (error) {
+      toast.error('Failed to load activities');
+    }
+  };
+
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setCategory("");
+    setLocationId(undefined);
+    setParentId(undefined);
+    setAllDay(false);
+    setStartDate("");
+    setStartTime("");
+    setEndDate("");
+    setEndTime("");
+    setTimezone("");
+    setCost("");
+    setCurrency("USD");
+    setBookingUrl("");
+    setBookingReference("");
+    setNotes("");
+    setEditingId(null);
+  };
+
+  const handleEdit = (activity: Activity) => {
+    setEditingId(activity.id);
+    setName(activity.name);
+    setDescription(activity.description || "");
+    setCategory(activity.category || "");
+    setLocationId(activity.locationId || undefined);
+    setParentId(activity.parentId || undefined);
+    setAllDay(activity.allDay);
+
+    // Parse start date and time
+    if (activity.startTime) {
+      const startDateTime = new Date(activity.startTime);
+      setStartDate(startDateTime.toISOString().slice(0, 10)); // YYYY-MM-DD
+      setStartTime(startDateTime.toISOString().slice(11, 16)); // HH:mm
+    } else {
+      setStartDate("");
+      setStartTime("");
+    }
+
+    // Parse end date and time
+    if (activity.endTime) {
+      const endDateTime = new Date(activity.endTime);
+      setEndDate(endDateTime.toISOString().slice(0, 10)); // YYYY-MM-DD
+      setEndTime(endDateTime.toISOString().slice(11, 16)); // HH:mm
+    } else {
+      setEndDate("");
+      setEndTime("");
+    }
+
+    setTimezone(activity.timezone || "");
+    setCost(activity.cost?.toString() || "");
+    setCurrency(activity.currency || "USD");
+    setBookingUrl(activity.bookingUrl || "");
+    setBookingReference(activity.bookingReference || "");
+    setNotes(activity.notes || "");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      // Combine date and time into ISO string for backend
+      let startTimeISO: string | undefined;
+      let endTimeISO: string | undefined;
+
+      if (!allDay) {
+        // Only include time if user provided it
+        if (startDate && startTime) {
+          startTimeISO = `${startDate}T${startTime}:00`;
+        }
+
+        if (endDate && endTime) {
+          endTimeISO = `${endDate}T${endTime}:00`;
+        }
+      } else {
+        // For all day activities, set to midnight if date is provided
+        if (startDate) {
+          startTimeISO = `${startDate}T00:00:00`;
+        }
+        if (endDate) {
+          endTimeISO = `${endDate}T23:59:59`;
+        }
+      }
+
+      if (editingId) {
+        // For updates, send null to clear empty fields
+        const updateData = {
+          tripId,
+          name,
+          description: description || null,
+          category: category || null,
+          locationId,
+          parentId: parentId || null,
+          allDay,
+          startTime: startTimeISO,
+          endTime: endTimeISO,
+          timezone: timezone || null,
+          cost: cost ? parseFloat(cost) : null,
+          currency: currency || null,
+          bookingUrl: bookingUrl || null,
+          bookingReference: bookingReference || null,
+          notes: notes || null,
+        };
+        await activityService.updateActivity(editingId, updateData);
+        toast.success("Activity updated");
+      }
+
+      resetForm();
+      loadActivities();
+      onActivityUpdated?.();
+    } catch (error) {
+      toast.error("Failed to save activity");
+    }
+  };
+
+  const handleDelete = async (activityId: number) => {
+    if (!confirm('Delete this activity?')) return;
+
+    try {
+      await activityService.deleteActivity(activityId);
+      toast.success('Activity deleted');
+      loadActivities();
+      onActivityUpdated?.();
+    } catch (error) {
+      toast.error('Failed to delete activity');
+    }
+  };
+
+  const formatDate = (
+    dateTime: string | null,
+    timezone?: string | null
+  ) => {
+    if (!dateTime) return '';
+    return formatDateTimeInTimezone(
+      dateTime,
+      timezone,
+      tripTimezone,
+      { includeTimezone: false, format: 'short' }
+    );
+  };
+
+  if (activities.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+        No unscheduled activities. Unscheduled activities are those without dates or times set.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {activities.map((activity) => (
+        <div
+          key={activity.id}
+          className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow border-l-4 border-gray-300 dark:border-gray-600"
+        >
+          {editingId === activity.id ? (
+            // Edit Form
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Edit Activity
+              </h3>
+
+              <div>
+                <label htmlFor={nameFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Activity Name *
+                </label>
+                <input
+                  type="text"
+                  id={nameFieldId}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor={categoryFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category
+                  </label>
+                  <select
+                    id={categoryFieldId}
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="input"
+                  >
+                    <option value="">Select category</option>
+                    {activityCategories.map((cat) => (
+                      <option key={cat.name} value={cat.name.toLowerCase()}>
+                        {cat.emoji} {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor={locationFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Location
+                  </label>
+                  <select
+                    id={locationFieldId}
+                    value={locationId || ""}
+                    onChange={(e) =>
+                      setLocationId(e.target.value ? parseInt(e.target.value) : undefined)
+                    }
+                    className="input"
+                  >
+                    <option value="">Select location</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Date and Time */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Start Date & Time
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="date"
+                      id={startDateFieldId}
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="input"
+                    />
+                    {!allDay && (
+                      <input
+                        type="time"
+                        id={startTimeFieldId}
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="input"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    End Date & Time
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="date"
+                      id={endDateFieldId}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="input"
+                    />
+                    {!allDay && (
+                      <input
+                        type="time"
+                        id={endTimeFieldId}
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        className="input"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={allDayFieldId}
+                    checked={allDay}
+                    onChange={(e) => setAllDay(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor={allDayFieldId} className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                    All Day Activity
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor={timezoneFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Timezone
+                </label>
+                <select
+                  id={timezoneFieldId}
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="input"
+                >
+                  <option value="">Use trip timezone</option>
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">Eastern Time (US & Canada)</option>
+                  <option value="America/Chicago">Central Time (US & Canada)</option>
+                  <option value="America/Denver">Mountain Time (US & Canada)</option>
+                  <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
+                  <option value="America/Anchorage">Alaska</option>
+                  <option value="Pacific/Honolulu">Hawaii</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor={descriptionFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id={descriptionFieldId}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="input"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor={costFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Cost
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id={costFieldId}
+                    value={cost}
+                    onChange={(e) => setCost(e.target.value)}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor={currencyFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Currency
+                  </label>
+                  <input
+                    type="text"
+                    id={currencyFieldId}
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="input"
+                    maxLength={3}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor={bookingUrlFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Booking URL
+                  </label>
+                  <input
+                    type="url"
+                    id={bookingUrlFieldId}
+                    value={bookingUrl}
+                    onChange={(e) => setBookingUrl(e.target.value)}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor={bookingReferenceFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Booking Reference
+                  </label>
+                  <input
+                    type="text"
+                    id={bookingReferenceFieldId}
+                    value={bookingReference}
+                    onChange={(e) => setBookingReference(e.target.value)}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor={notesFieldId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  id={notesFieldId}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  className="input"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button type="submit" className="btn btn-primary">
+                  Update Activity
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            // View Mode
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {activity.name}
+                  </h3>
+                  {activity.category && (() => {
+                    const categoryObj = activityCategories.find(
+                      c => c.name.toLowerCase() === activity.category?.toLowerCase()
+                    );
+                    return (
+                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs rounded-full capitalize">
+                        {categoryObj?.emoji} {activity.category}
+                      </span>
+                    );
+                  })()}
+                </div>
+
+                {activity.location && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    📍 {activity.location.name}
+                  </p>
+                )}
+
+                {activity.description && (
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    {activity.description}
+                  </p>
+                )}
+
+                <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  {activity.cost !== null && (
+                    <span>
+                      Cost: {activity.currency} {activity.cost.toFixed(2)}
+                    </span>
+                  )}
+                  {activity.bookingReference && (
+                    <span>Ref: {activity.bookingReference}</span>
+                  )}
+                </div>
+
+                {activity.bookingUrl && (
+                  <div className="mt-2">
+                    <a
+                      href={activity.bookingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      View Booking →
+                    </a>
+                  </div>
+                )}
+
+                {activity.notes && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
+                    {activity.notes}
+                  </p>
+                )}
+
+                <AssociatedAlbums
+                  albums={activity.photoAlbums}
+                  tripId={tripId}
+                />
+              </div>
+
+              {/* Edit and Delete Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEdit(activity)}
+                  className="btn btn-secondary"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(activity.id)}
+                  className="btn btn-danger"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}

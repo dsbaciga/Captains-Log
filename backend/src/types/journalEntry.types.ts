@@ -21,17 +21,23 @@ export interface JournalEntryWithLocation extends JournalEntry {
 // Validation schemas
 export const createJournalEntrySchema = z.object({
   tripId: z.number(),
-  locationId: z.number().optional(),
+  locationIds: z.array(z.number()).optional(),
+  activityIds: z.array(z.number()).optional(),
+  lodgingIds: z.array(z.number()).optional(),
+  transportationIds: z.array(z.number()).optional(),
   title: z.string().min(1).max(500),
   content: z.string().min(1),
-  entryDate: z.string().datetime().optional(),
+  entryDate: z.string().optional(),
 });
 
 export const updateJournalEntrySchema = z.object({
-  locationId: z.number().optional().nullable(),
-  title: z.string().min(1).max(500).optional(),
+  locationIds: z.array(z.number()).optional(),
+  activityIds: z.array(z.number()).optional(),
+  lodgingIds: z.array(z.number()).optional(),
+  transportationIds: z.array(z.number()).optional(),
+  title: z.string().min(1).max(500).optional().nullable(),
   content: z.string().min(1).optional(),
-  entryDate: z.string().datetime().optional(),
+  entryDate: z.string().optional().nullable(),
 });
 
 export type CreateJournalEntryInput = z.infer<typeof createJournalEntrySchema>;

@@ -44,7 +44,27 @@ export const createTripSchema = z.object({
   addToPlacesVisited: z.boolean().optional(),
 });
 
-export const updateTripSchema = createTripSchema.partial();
+export const updateTripSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  description: z.string().nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  timezone: z.string().max(100).nullable().optional(),
+  status: z.enum([
+    TripStatus.DREAM,
+    TripStatus.PLANNING,
+    TripStatus.PLANNED,
+    TripStatus.IN_PROGRESS,
+    TripStatus.COMPLETED,
+    TripStatus.CANCELLED,
+  ]).optional(),
+  privacyLevel: z.enum([
+    PrivacyLevel.PRIVATE,
+    PrivacyLevel.SHARED,
+    PrivacyLevel.PUBLIC,
+  ]).optional(),
+  addToPlacesVisited: z.boolean().optional(),
+});
 
 export const getTripQuerySchema = z.object({
   status: z.enum([...TripStatusValues as [string, ...string[]]]).optional(),

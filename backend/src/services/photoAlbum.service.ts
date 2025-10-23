@@ -210,10 +210,23 @@ class PhotoAlbumService {
       throw new AppError('Access denied', 403);
     }
 
+    const loadedCount = skip + album.photoAssignments.length;
+    const totalCount = album._count.photoAssignments;
+
+    console.log('[PhotoAlbumService] getAlbumById pagination:', {
+      albumId,
+      skip,
+      take,
+      returnedPhotos: album.photoAssignments.length,
+      loadedCount,
+      totalCount,
+      hasMore: loadedCount < totalCount,
+    });
+
     return {
       ...album,
-      hasMore: skip + album.photoAssignments.length < album._count.photoAssignments,
-      total: album._count.photoAssignments,
+      hasMore: loadedCount < totalCount,
+      total: totalCount,
     };
   }
 

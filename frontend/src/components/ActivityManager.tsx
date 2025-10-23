@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect } from "react";
 import type { Activity } from "../types/activity";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
@@ -6,59 +6,84 @@ import activityService from "../services/activity.service";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
+import JournalEntriesButton from "./JournalEntriesButton";
+import LocationQuickAdd from "./LocationQuickAdd";
+import { formatDateTimeInTimezone, formatDateInTimezone } from "../utils/timezone";
+import { useFormFields } from "../hooks/useFormFields";
+import EmptyState from "./EmptyState";
+import TimezoneSelect from "./TimezoneSelect";
+import CostCurrencyFields from "./CostCurrencyFields";
+import BookingFields from "./BookingFields";
 
 interface ActivityManagerProps {
   tripId: number;
   locations: Location[];
+  tripTimezone?: string | null;
+  onUpdate?: () => void;
 }
+
+interface ActivityFormFields {
+  name: string;
+  description: string;
+  category: string;
+  locationId: number | undefined;
+  parentId: number | undefined;
+  allDay: boolean;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  timezone: string;
+  cost: string;
+  currency: string;
+  bookingUrl: string;
+  bookingReference: string;
+  notes: string;
+}
+
+const initialFormState: ActivityFormFields = {
+  name: "",
+  description: "",
+  category: "",
+  locationId: undefined,
+  parentId: undefined,
+  allDay: false,
+  startDate: "",
+  startTime: "",
+  endDate: "",
+  endTime: "",
+  timezone: "",
+  cost: "",
+  currency: "USD",
+  bookingUrl: "",
+  bookingReference: "",
+  notes: "",
+};
 
 export default function ActivityManager({
   tripId,
   locations,
+  tripTimezone,
+  onUpdate,
 }: ActivityManagerProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
+  const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
-  // Form state
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
-  const [locationId, setLocationId] = useState<number | undefined>();
-  const [parentId, setParentId] = useState<number | undefined>();
-  const [allDay, setAllDay] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [timezone, setTimezone] = useState("");
-  const [cost, setCost] = useState("");
-  const [currency, setCurrency] = useState("USD");
-  const [bookingUrl, setBookingUrl] = useState("");
-  const [bookingReference, setBookingReference] = useState("");
-  const [notes, setNotes] = useState("");
-  const nameFieldId = useId();
-  const categoryFieldId = useId();
-  const locationFieldId = useId();
-  const parentFieldId = useId();
-  const allDayFieldId = useId();
-  const startDateFieldId = useId();
-  const startTimeFieldId = useId();
-  const endDateFieldId = useId();
-  const endTimeFieldId = useId();
-  const timezoneFieldId = useId();
-  const descriptionFieldId = useId();
-  const costFieldId = useId();
-  const currencyFieldId = useId();
-  const bookingUrlFieldId = useId();
-  const bookingReferenceFieldId = useId();
-  const notesFieldId = useId();
+  const { values, handleChange, reset } = useFormFields<ActivityFormFields>(initialFormState);
 
   useEffect(() => {
     loadActivities();
     loadUserCategories();
   }, [tripId]);
+
+  // Sync localLocations with locations prop
+  useEffect(() => {
+    setLocalLocations(locations);
+  }, [locations]);
 
   const loadUserCategories = async () => {
     try {
@@ -78,155 +103,352 @@ export default function ActivityManager({
     }
   };
 
+  const handleLocationCreated = (locationId: number, locationName: string) => {
+    // Add the new location to local state
+    const newLocation: Location = {
+      id: locationId,
+      name: locationName,
+      tripId,
+      address: null,
+      latitude: null,
+      longitude: null,
+      categoryId: null,
+      visitDatetime: null,
+      visitDurationMinutes: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalLocations([...localLocations, newLocation]);
+    handleChange("locationId", locationId);
+    setShowLocationQuickAdd(false);
+  };
+
   const resetForm = () => {
-    setName("");
-    setDescription("");
-    setCategory("");
-    setLocationId(undefined);
-    setParentId(undefined);
-    setAllDay(false);
-    setStartDate("");
-    setStartTime("");
-    setEndDate("");
-    setEndTime("");
-    setTimezone("");
-    setCost("");
-    setCurrency("USD");
-    setBookingUrl("");
-    setBookingReference("");
-    setNotes("");
+    reset();
     setEditingId(null);
   };
 
   const handleEdit = (activity: Activity) => {
     setEditingId(activity.id);
-    setName(activity.name);
-    setDescription(activity.description || "");
-    setCategory(activity.category || "");
-    setLocationId(activity.locationId || undefined);
-    setParentId(activity.parentId || undefined);
-    setAllDay(activity.allDay);
+    handleChange("name", activity.name);
+    handleChange("description", activity.description || "");
+    handleChange("category", activity.category || "");
+    handleChange("locationId", activity.locationId || undefined);
+    handleChange("parentId", activity.parentId || undefined);
+    handleChange("allDay", activity.allDay);
+    handleChange("timezone", activity.timezone || "");
+    handleChange("cost", activity.cost?.toString() || "");
+    handleChange("currency", activity.currency || "USD");
+    handleChange("bookingUrl", activity.bookingUrl || "");
+    handleChange("bookingReference", activity.bookingReference || "");
+    handleChange("notes", activity.notes || "");
 
-    // Parse start date and time
-    if (activity.startTime) {
-      const startDateTime = new Date(activity.startTime);
-      setStartDate(startDateTime.toISOString().slice(0, 10)); // YYYY-MM-DD
-      setStartTime(startDateTime.toISOString().slice(11, 16)); // HH:mm
+    // Handle date/time fields based on allDay flag
+    if (activity.allDay) {
+      // For all-day events, populate just the date fields
+      handleChange(
+        "startDate",
+        activity.startTime
+          ? new Date(activity.startTime).toISOString().slice(0, 10)
+          : ""
+      );
+      handleChange(
+        "endDate",
+        activity.endTime
+          ? new Date(activity.endTime).toISOString().slice(0, 10)
+          : ""
+      );
+      handleChange("startTime", "");
+      handleChange("endTime", "");
     } else {
-      setStartDate("");
-      setStartTime("");
+      // For timed events, populate date-time fields
+      const startDateTime = activity.startTime
+        ? new Date(activity.startTime).toISOString().slice(0, 16)
+        : "";
+      const endDateTime = activity.endTime
+        ? new Date(activity.endTime).toISOString().slice(0, 16)
+        : "";
+
+      handleChange("startDate", startDateTime.slice(0, 10));
+      handleChange("startTime", startDateTime.slice(11));
+      handleChange("endDate", endDateTime.slice(0, 10));
+      handleChange("endTime", endDateTime.slice(11));
     }
 
-    // Parse end date and time
-    if (activity.endTime) {
-      const endDateTime = new Date(activity.endTime);
-      setEndDate(endDateTime.toISOString().slice(0, 10)); // YYYY-MM-DD
-      setEndTime(endDateTime.toISOString().slice(11, 16)); // HH:mm
-    } else {
-      setEndDate("");
-      setEndTime("");
-    }
-
-    setTimezone(activity.timezone || "");
-    setCost(activity.cost?.toString() || "");
-    setCurrency(activity.currency || "USD");
-    setBookingUrl(activity.bookingUrl || "");
-    setBookingReference(activity.bookingReference || "");
-    setNotes(activity.notes || "");
     setShowForm(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!values.name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+
     try {
-      // Combine date and time into ISO string for backend
-      let startTimeISO: string | undefined;
-      let endTimeISO: string | undefined;
+      // Combine date and time fields into ISO strings
+      let startTimeISO: string | null = null;
+      let endTimeISO: string | null = null;
 
-      if (!allDay) {
-        // Only include time if user provided it
-        // If only date is provided without time, leave as undefined (unscheduled)
-        if (startDate && startTime) {
-          startTimeISO = `${startDate}T${startTime}:00`;
+      if (values.allDay) {
+        // For all-day events, use just the date (set time to 00:00)
+        if (values.startDate) {
+          startTimeISO = `${values.startDate}T00:00:00`;
         }
-
-        if (endDate && endTime) {
-          endTimeISO = `${endDate}T${endTime}:00`;
+        if (values.endDate) {
+          endTimeISO = `${values.endDate}T23:59:59`;
         }
       } else {
-        // For all day activities, set to midnight if date is provided
-        if (startDate) {
-          startTimeISO = `${startDate}T00:00:00`;
+        // For timed events, combine date and time
+        if (values.startDate && values.startTime) {
+          startTimeISO = `${values.startDate}T${values.startTime}:00`;
         }
-        if (endDate) {
-          endTimeISO = `${endDate}T23:59:59`;
+        if (values.endDate && values.endTime) {
+          endTimeISO = `${values.endDate}T${values.endTime}:00`;
         }
       }
 
-      const data = {
-        tripId,
-        name,
-        description: description || undefined,
-        category: category || undefined,
-        locationId,
-        parentId: parentId || undefined,
-        allDay,
-        startTime: startTimeISO,
-        endTime: endTimeISO,
-        timezone: timezone || undefined,
-        cost: cost ? parseFloat(cost) : undefined,
-        currency: currency || undefined,
-        bookingUrl: bookingUrl || undefined,
-        bookingReference: bookingReference || undefined,
-        notes: notes || undefined,
-      };
-
       if (editingId) {
-        await activityService.updateActivity(editingId, data);
+        // For updates, send null to clear empty fields
+        const updateData = {
+          tripId,
+          name: values.name,
+          description: values.description || null,
+          category: values.category || null,
+          locationId: values.locationId,
+          parentId: values.parentId,
+          allDay: values.allDay,
+          startTime: startTimeISO,
+          endTime: endTimeISO,
+          timezone: values.timezone || null,
+          cost: values.cost ? parseFloat(values.cost) : null,
+          currency: values.currency || null,
+          bookingUrl: values.bookingUrl || null,
+          bookingReference: values.bookingReference || null,
+          notes: values.notes || null,
+        };
+        await activityService.updateActivity(editingId, updateData);
         toast.success("Activity updated");
       } else {
-        await activityService.createActivity(data);
+        // For creates, use undefined to omit optional fields
+        const createData = {
+          tripId,
+          name: values.name,
+          description: values.description || undefined,
+          category: values.category || undefined,
+          locationId: values.locationId,
+          parentId: values.parentId,
+          allDay: values.allDay,
+          startTime: startTimeISO || undefined,
+          endTime: endTimeISO || undefined,
+          timezone: values.timezone || undefined,
+          cost: values.cost ? parseFloat(values.cost) : undefined,
+          currency: values.currency || undefined,
+          bookingUrl: values.bookingUrl || undefined,
+          bookingReference: values.bookingReference || undefined,
+          notes: values.notes || undefined,
+        };
+        await activityService.createActivity(createData);
         toast.success("Activity added");
       }
 
       resetForm();
       setShowForm(false);
       loadActivities();
+      onUpdate?.(); // Notify parent to refresh counts
     } catch (error) {
       toast.error("Failed to save activity");
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this activity?")) return;
+    if (!confirm("Delete this activity and all its sub-activities?")) return;
 
     try {
       await activityService.deleteActivity(id);
       toast.success("Activity deleted");
       loadActivities();
+      onUpdate?.(); // Notify parent to refresh counts
     } catch (error) {
       toast.error("Failed to delete activity");
     }
   };
 
-  const formatDateTime = (dateTime: string | null) => {
-    if (!dateTime) return "Not set";
-    return new Date(dateTime).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+  // Filter top-level activities (no parent)
+  const topLevelActivities = activities.filter((a) => !a.parentId);
+
+  // Get children for a parent activity
+  const getChildren = (parentId: number) => {
+    return activities.filter((a) => a.parentId === parentId);
   };
 
-  const formatDate = (dateTime: string | null) => {
-    if (!dateTime) return "";
-    return new Date(dateTime).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const formatDateTime = (
+    dateTime: string | null,
+    timezone?: string | null,
+    isAllDay?: boolean
+  ) => {
+    if (isAllDay) {
+      return formatDateInTimezone(dateTime, timezone, tripTimezone);
+    }
+    return formatDateTimeInTimezone(
+      dateTime,
+      timezone,
+      tripTimezone,
+      { includeTimezone: true, format: 'medium' }
+    );
+  };
+
+  const renderActivity = (activity: Activity, isChild = false) => {
+    const children = getChildren(activity.id);
+
+    return (
+      <div
+        key={activity.id}
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 ${
+          isChild ? "ml-8 mt-3 border-l-4 border-blue-300 dark:border-blue-700" : ""
+        }`}
+      >
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              {activity.category && (
+                <span className="text-xl">
+                  {activityCategories.find((c) => c.name === activity.category)?.emoji || "📍"}
+                </span>
+              )}
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {activity.name}
+              </h3>
+              {activity.category && (
+                <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
+                  {activity.category}
+                </span>
+              )}
+            </div>
+
+            {activity.description && (
+              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                {activity.description}
+              </p>
+            )}
+
+            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+              {/* Location */}
+              {activity.location && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Location:</span>
+                  <span>{activity.location.name}</span>
+                  {activity.location.address && (
+                    <span className="text-gray-500 dark:text-gray-500">
+                      ({activity.location.address})
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Time */}
+              {activity.startTime && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">
+                    {activity.allDay ? "Date:" : "Time:"}
+                  </span>
+                  <span>
+                    {formatDateTime(
+                      activity.startTime,
+                      activity.timezone,
+                      activity.allDay
+                    )}
+                    {activity.endTime &&
+                      ` - ${formatDateTime(
+                        activity.endTime,
+                        activity.timezone,
+                        activity.allDay
+                      )}`}
+                  </span>
+                </div>
+              )}
+
+              {/* Booking Reference */}
+              {activity.bookingReference && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Reference:</span>
+                  <span>{activity.bookingReference}</span>
+                </div>
+              )}
+
+              {/* Booking URL */}
+              {activity.bookingUrl && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Booking:</span>
+                  <a
+                    href={activity.bookingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    View Booking
+                  </a>
+                </div>
+              )}
+
+              {/* Cost */}
+              {activity.cost && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Cost:</span>
+                  <span>
+                    {activity.currency} {activity.cost}
+                  </span>
+                </div>
+              )}
+
+              {/* Notes */}
+              {activity.notes && (
+                <div className="mt-2">
+                  <span className="font-medium">Notes:</span>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    {activity.notes}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 ml-4">
+            <AssociatedAlbums
+              entityType="activity"
+              entityId={activity.id}
+              tripId={tripId}
+            />
+            <JournalEntriesButton
+              entityType="activity"
+              entityId={activity.id}
+            />
+            <button
+              onClick={() => handleEdit(activity)}
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => handleDelete(activity.id)}
+              className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+
+        {/* Render children */}
+        {children.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {children.map((child) => renderActivity(child, true))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -248,498 +470,276 @@ export default function ActivityManager({
 
       {showForm && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-lg font-semibold mb-4">
             {editingId ? "Edit Activity" : "Add Activity"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor={nameFieldId}
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Activity Name *
-              </label>
-              <input
-                type="text"
-                id={nameFieldId}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="input"
-                required
-                placeholder="Museum Tour, Dinner Reservation, etc."
-              />
-            </div>
-
+            {/* Name and Category */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor={categoryFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  value={values.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  className="input"
+                  required
+                  placeholder="Activity name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Category
                 </label>
                 <select
-                  id={categoryFieldId}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  value={values.category}
+                  onChange={(e) => handleChange("category", e.target.value)}
                   className="input"
                 >
-                  <option value="">Select category</option>
+                  <option value="">-- Select Category --</option>
                   {activityCategories.map((cat) => (
-                    <option key={cat.name} value={cat.name.toLowerCase()}>
+                    <option key={cat.name} value={cat.name}>
                       {cat.emoji} {cat.name}
                     </option>
                   ))}
                 </select>
               </div>
-
-              <div>
-                <label
-                  htmlFor={locationFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Location
-                </label>
-                <select
-                  id={locationFieldId}
-                  value={locationId || ""}
-                  onChange={(e) =>
-                    setLocationId(
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
-                  className="input"
-                >
-                  <option value="">Select location</option>
-                  {locations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
 
-            {/* Parent Activity Selection */}
+            {/* Description */}
             <div>
-              <label
-                htmlFor={parentFieldId}
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Parent Activity (Optional)
-              </label>
-              <select
-                id={parentFieldId}
-                value={parentId || ""}
-                onChange={(e) =>
-                  setParentId(
-                    e.target.value ? parseInt(e.target.value) : undefined
-                  )
-                }
-                className="input"
-              >
-                <option value="">None - This is a standalone activity</option>
-                {activities
-                  .filter((act) => !act.parentId && act.id !== editingId)
-                  .map((act) => (
-                    <option key={act.id} value={act.id}>
-                      {act.name}
-                    </option>
-                  ))}
-              </select>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Group this activity under a parent to organize related events together
-              </p>
-            </div>
-
-            {/* Date and Time */}
-            <div className="space-y-4">
-              {/* Start Date and Time */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Start Date & Time
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <input
-                      type="date"
-                      id={startDateFieldId}
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="input"
-                    />
-                  </div>
-                  {!allDay && (
-                    <div>
-                      <input
-                        type="time"
-                        id={startTimeFieldId}
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        className="input"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* End Date and Time */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  End Date & Time
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <input
-                      type="date"
-                      id={endDateFieldId}
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="input"
-                    />
-                  </div>
-                  {!allDay && (
-                    <div>
-                      <input
-                        type="time"
-                        id={endTimeFieldId}
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                        className="input"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* All Day Checkbox */}
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={allDayFieldId}
-                  checked={allDay}
-                  onChange={(e) => setAllDay(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor={allDayFieldId}
-                  className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-                >
-                  All Day Activity
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor={timezoneFieldId}
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Timezone
-              </label>
-              <select
-                id={timezoneFieldId}
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="input"
-              >
-                <option value="">Use trip timezone</option>
-                <option value="UTC">UTC (Coordinated Universal Time)</option>
-                <option value="America/New_York">Eastern Time (US & Canada)</option>
-                <option value="America/Chicago">Central Time (US & Canada)</option>
-                <option value="America/Denver">Mountain Time (US & Canada)</option>
-                <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
-                <option value="America/Anchorage">Alaska</option>
-                <option value="Pacific/Honolulu">Hawaii</option>
-                <option value="Europe/London">London</option>
-                <option value="Europe/Paris">Paris</option>
-                <option value="Europe/Berlin">Berlin</option>
-                <option value="Asia/Tokyo">Tokyo</option>
-                <option value="Asia/Shanghai">Shanghai</option>
-                <option value="Asia/Dubai">Dubai</option>
-                <option value="Australia/Sydney">Sydney</option>
-                <option value="Pacific/Auckland">Auckland</option>
-              </select>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                If not specified, the trip's timezone will be used
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor={descriptionFieldId}
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Description
               </label>
               <textarea
-                id={descriptionFieldId}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
+                value={values.description}
+                onChange={(e) => handleChange("description", e.target.value)}
                 className="input"
-                placeholder="Details about the activity..."
+                rows={2}
+                placeholder="Activity description"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor={costFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Cost
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  id={costFieldId}
-                  value={cost}
-                  onChange={(e) => setCost(e.target.value)}
-                  className="input"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={currencyFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Currency
-                </label>
-                <input
-                  type="text"
-                  id={currencyFieldId}
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="input"
-                  maxLength={3}
-                  placeholder="USD"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor={bookingUrlFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Booking URL
-                </label>
-                <input
-                  type="url"
-                  id={bookingUrlFieldId}
-                  value={bookingUrl}
-                  onChange={(e) => setBookingUrl(e.target.value)}
-                  className="input"
-                  placeholder="https://example.com/booking"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={bookingReferenceFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Booking Reference
-                </label>
-                <input
-                  type="text"
-                  id={bookingReferenceFieldId}
-                  value={bookingReference}
-                  onChange={(e) => setBookingReference(e.target.value)}
-                  className="input"
-                  placeholder="ABC123"
-                />
-              </div>
-            </div>
-
+            {/* Location with Quick Add */}
             <div>
-              <label
-                htmlFor={notesFieldId}
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Location
+              </label>
+              {showLocationQuickAdd ? (
+                <LocationQuickAdd
+                  tripId={tripId}
+                  onLocationCreated={handleLocationCreated}
+                  onCancel={() => setShowLocationQuickAdd(false)}
+                />
+              ) : (
+                <div className="flex gap-2">
+                  <select
+                    value={values.locationId || ""}
+                    onChange={(e) =>
+                      handleChange("locationId", e.target.value ? parseInt(e.target.value) : undefined)
+                    }
+                    className="input flex-1"
+                  >
+                    <option value="">-- Select Location --</option>
+                    {localLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationQuickAdd(true)}
+                    className="btn btn-secondary whitespace-nowrap"
+                  >
+                    + New Location
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Parent Activity */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Parent Activity (Optional)
+              </label>
+              <select
+                value={values.parentId || ""}
+                onChange={(e) =>
+                  handleChange("parentId", e.target.value ? parseInt(e.target.value) : undefined)
+                }
+                className="input"
               >
+                <option value="">-- No Parent (Top Level) --</option>
+                {topLevelActivities
+                  .filter((a) => a.id !== editingId)
+                  .map((activity) => (
+                    <option key={activity.id} value={activity.id}>
+                      {activity.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Group this activity under another activity
+              </p>
+            </div>
+
+            {/* All Day Toggle */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="allDay"
+                checked={values.allDay}
+                onChange={(e) => handleChange("allDay", e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="allDay" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                All-day activity
+              </label>
+            </div>
+
+            {/* Date/Time Fields */}
+            {values.allDay ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={values.startDate}
+                    onChange={(e) => handleChange("startDate", e.target.value)}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={values.endDate}
+                    onChange={(e) => handleChange("endDate", e.target.value)}
+                    className="input"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Time
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={values.startDate}
+                      onChange={(e) => handleChange("startDate", e.target.value)}
+                      className="input flex-1"
+                    />
+                    <input
+                      type="time"
+                      value={values.startTime}
+                      onChange={(e) => handleChange("startTime", e.target.value)}
+                      className="input flex-1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Time
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={values.endDate}
+                      onChange={(e) => handleChange("endDate", e.target.value)}
+                      className="input flex-1"
+                    />
+                    <input
+                      type="time"
+                      value={values.endTime}
+                      onChange={(e) => handleChange("endTime", e.target.value)}
+                      className="input flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Timezone Component */}
+            <TimezoneSelect
+              value={values.timezone}
+              onChange={(value) => handleChange("timezone", value)}
+              label="Timezone"
+            />
+
+            {/* Booking Fields Component */}
+            <BookingFields
+              confirmationNumber={values.bookingReference}
+              bookingUrl={values.bookingUrl}
+              onConfirmationNumberChange={(value) => handleChange("bookingReference", value)}
+              onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
+              confirmationLabel="Booking Reference"
+            />
+
+            {/* Cost and Currency Component */}
+            <CostCurrencyFields
+              cost={values.cost}
+              currency={values.currency}
+              onCostChange={(value) => handleChange("cost", value)}
+              onCurrencyChange={(value) => handleChange("currency", value)}
+            />
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Notes
               </label>
               <textarea
-                id={notesFieldId}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
+                value={values.notes}
+                onChange={(e) => handleChange("notes", e.target.value)}
                 className="input"
+                rows={3}
                 placeholder="Additional notes..."
               />
             </div>
 
-            <button type="submit" className="btn btn-primary">
-              {editingId ? "Update" : "Add"} Activity
-            </button>
+            {/* Submit Buttons */}
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  setShowForm(false);
+                }}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary">
+                {editingId ? "Update" : "Add"} Activity
+              </button>
+            </div>
           </form>
         </div>
       )}
 
-      {activities.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <p className="text-gray-500 dark:text-gray-400">
-            No activities added yet. Click "Add Activity" to get started!
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {activities.map((activity) => (
-            <div
-              key={activity.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {activity.name}
-                    </h3>
-                    {activity.category && (() => {
-                      const categoryObj = activityCategories.find(
-                        c => c.name.toLowerCase() === activity.category?.toLowerCase()
-                      );
-                      return (
-                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs rounded-full capitalize">
-                          {categoryObj?.emoji} {activity.category}
-                        </span>
-                      );
-                    })()}
-                  </div>
-
-                  {activity.location && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      📍 {activity.location.name}
-                    </p>
-                  )}
-
-                  {activity.parent && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      🔗 Part of: <span className="font-medium">{activity.parent.name}</span>
-                    </p>
-                  )}
-
-                  {activity.children && activity.children.length > 0 && (
-                    <div className="mt-3 mb-2">
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Child Activities ({activity.children.length}):
-                      </p>
-                      <div className="ml-4 space-y-1">
-                        {activity.children.map((child) => (
-                          <div key={child.id} className="text-sm text-gray-600 dark:text-gray-400">
-                            • {child.name}
-                            {child.startTime && (
-                              <span className="ml-2 text-xs">
-                                ({formatDate(child.startTime)})
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {(activity.allDay || activity.startTime || activity.endTime) && (
-                    <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                      {activity.allDay ? (
-                        <div>
-                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs rounded">
-                            All Day
-                          </span>
-                        </div>
-                      ) : (
-                        <>
-                          <div>
-                            {activity.startTime && (
-                              <span>
-                                <strong>Start:</strong>{" "}
-                                {formatDateTime(activity.startTime)}
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            {activity.endTime && (
-                              <span>
-                                <strong>End:</strong>{" "}
-                                {formatDateTime(activity.endTime)}
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      )}
-                      {activity.timezone && (
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          🌍 {activity.timezone}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {activity.description && (
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                      {activity.description}
-                    </p>
-                  )}
-
-                  <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400 mt-2">
-                    {activity.cost !== null && (
-                      <span>
-                        Cost: {activity.currency} {activity.cost.toFixed(2)}
-                      </span>
-                    )}
-                    {activity.bookingReference && (
-                      <span>Ref: {activity.bookingReference}</span>
-                    )}
-                  </div>
-
-                  {activity.bookingUrl && (
-                    <div className="mt-2">
-                      <a
-                        href={activity.bookingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        View Booking →
-                      </a>
-                    </div>
-                  )}
-
-                  {activity.notes && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
-                      {activity.notes}
-                    </p>
-                  )}
-
-                  <AssociatedAlbums
-                    albums={activity.photoAlbums}
-                    tripId={tripId}
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(activity)}
-                    className="btn-secondary"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(activity.id)}
-                    className="btn-danger"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Activities List */}
+      <div className="space-y-4">
+        {topLevelActivities.length === 0 ? (
+          <EmptyState
+            icon="🎯"
+            message="No activities added yet"
+            subMessage="Add activities, tours, dining, and other things you plan to do"
+          />
+        ) : (
+          topLevelActivities.map((activity) => renderActivity(activity))
+        )}
+      </div>
     </div>
   );
 }

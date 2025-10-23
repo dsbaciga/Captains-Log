@@ -269,6 +269,7 @@ model Activity {
   parent   Activity? @relation("ActivityChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children Activity[] @relation("ActivityChildren")
   photoAlbums PhotoAlbum[]
+  journalAssignments JournalActivity[]
 
   @@map("activities")
 }
@@ -306,6 +307,7 @@ model Transportation {
   startLocation  Location?        @relation("StartLocation", fields: [startLocationId], references: [id], onDelete: SetNull)
   endLocation    Location?        @relation("EndLocation", fields: [endLocationId], references: [id], onDelete: SetNull)
   flightTracking FlightTracking?
+  journalAssignments JournalTransportation[]
 
   @@map("transportation")
 }
@@ -331,6 +333,7 @@ model Lodging {
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
   photoAlbums PhotoAlbum[]
+  journalAssignments JournalLodging[]
 
   @@map("lodging")
 }
@@ -350,6 +353,9 @@ model JournalEntry {
   trip                      Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
   photoAssignments          JournalPhoto[]
   locationAssignments       JournalLocation[]
+  activityAssignments       JournalActivity[]
+  lodgingAssignments        JournalLodging[]
+  transportationAssignments JournalTransportation[]
 
   @@map("journal_entries")
 }
@@ -378,6 +384,45 @@ model JournalLocation {
 
   @@unique([journalId, locationId])
   @@map("journal_locations")
+}
+
+model JournalActivity {
+  id         Int      @id @default(autoincrement())
+  journalId  Int      @map("journal_id")
+  activityId Int      @map("activity_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  journal  JournalEntry @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  activity Activity     @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([journalId, activityId])
+  @@map("journal_activities")
+}
+
+model JournalLodging {
+  id        Int      @id @default(autoincrement())
+  journalId Int      @map("journal_id")
+  lodgingId Int      @map("lodging_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  journal JournalEntry @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  lodging Lodging      @relation(fields: [lodgingId], references: [id], onDelete: Cascade)
+
+  @@unique([journalId, lodgingId])
+  @@map("journal_lodgings")
+}
+
+model JournalTransportation {
+  id               Int      @id @default(autoincrement())
+  journalId        Int      @map("journal_id")
+  transportationId Int      @map("transportation_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  journal        JournalEntry   @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  transportation Transportation @relation(fields: [transportationId], references: [id], onDelete: Cascade)
+
+  @@unique([journalId, transportationId])
+  @@map("journal_transportations")
 }
 
 model WeatherData {

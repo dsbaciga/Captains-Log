@@ -13,7 +13,16 @@ export const createLocationSchema = z.object({
   notes: z.string().optional(),
 });
 
-export const updateLocationSchema = createLocationSchema.partial().omit({ tripId: true });
+export const updateLocationSchema = z.object({
+  name: z.string().min(1).max(500).optional(),
+  address: z.string().nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+  categoryId: z.number().nullable().optional(),
+  visitDatetime: z.string().nullable().optional(),
+  visitDurationMinutes: z.number().min(0).nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
 
 export const createLocationCategorySchema = z.object({
   name: z.string().min(1).max(255),
@@ -21,7 +30,11 @@ export const createLocationCategorySchema = z.object({
   color: z.string().max(7).optional(), // Hex color code
 });
 
-export const updateLocationCategorySchema = createLocationCategorySchema.partial();
+export const updateLocationCategorySchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  icon: z.string().max(100).nullable().optional(),
+  color: z.string().max(7).nullable().optional(),
+});
 
 // Types
 export type CreateLocationInput = z.infer<typeof createLocationSchema>;

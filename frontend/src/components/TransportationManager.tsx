@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect } from "react";
 import type {
   Transportation,
   TransportationType,
@@ -6,51 +6,68 @@ import type {
 import type { Location } from "../types/location";
 import transportationService from "../services/transportation.service";
 import toast from "react-hot-toast";
+import JournalEntriesButton from "./JournalEntriesButton";
+import { formatDateTimeInTimezone } from "../utils/timezone";
+import { useFormFields } from "../hooks/useFormFields";
+import EmptyState from "./EmptyState";
+import TimezoneSelect from "./TimezoneSelect";
+import CostCurrencyFields from "./CostCurrencyFields";
+import BookingFields from "./BookingFields";
 
 interface TransportationManagerProps {
   tripId: number;
   locations: Location[];
+  tripTimezone?: string | null;
+  onUpdate?: () => void;
 }
+
+interface TransportationFormFields {
+  type: TransportationType;
+  fromLocationId: number | undefined;
+  toLocationId: number | undefined;
+  fromLocationName: string;
+  toLocationName: string;
+  departureTime: string;
+  arrivalTime: string;
+  startTimezone: string;
+  endTimezone: string;
+  carrier: string;
+  vehicleNumber: string;
+  confirmationNumber: string;
+  cost: string;
+  currency: string;
+  notes: string;
+}
+
+const initialFormState: TransportationFormFields = {
+  type: "flight",
+  fromLocationId: undefined,
+  toLocationId: undefined,
+  fromLocationName: "",
+  toLocationName: "",
+  departureTime: "",
+  arrivalTime: "",
+  startTimezone: "",
+  endTimezone: "",
+  carrier: "",
+  vehicleNumber: "",
+  confirmationNumber: "",
+  cost: "",
+  currency: "USD",
+  notes: "",
+};
 
 export default function TransportationManager({
   tripId,
   locations,
+  tripTimezone,
+  onUpdate,
 }: TransportationManagerProps) {
   const [transportations, setTransportations] = useState<Transportation[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const typeFieldId = useId();
-  const fromLocationSelectId = useId();
-  const toLocationSelectId = useId();
-  const carrierFieldId = useId();
-  const fromCustomFieldId = useId();
-  const toCustomFieldId = useId();
-  const departureFieldId = useId();
-  const arrivalFieldId = useId();
-  const startTimezoneFieldId = useId();
-  const endTimezoneFieldId = useId();
-  const vehicleNumberFieldId = useId();
-  const confirmationFieldId = useId();
-  const costFieldId = useId();
-  const currencyFieldId = useId();
-  const notesFieldId = useId();
 
-  // Form state
-  const [type, setType] = useState<TransportationType>("flight");
-  const [fromLocationId, setFromLocationId] = useState<number | undefined>();
-  const [toLocationId, setToLocationId] = useState<number | undefined>();
-  const [fromLocationName, setFromLocationName] = useState("");
-  const [toLocationName, setToLocationName] = useState("");
-  const [departureTime, setDepartureTime] = useState("");
-  const [arrivalTime, setArrivalTime] = useState("");
-  const [startTimezone, setStartTimezone] = useState("");
-  const [endTimezone, setEndTimezone] = useState("");
-  const [carrier, setCarrier] = useState("");
-  const [vehicleNumber, setVehicleNumber] = useState("");
-  const [confirmationNumber, setConfirmationNumber] = useState("");
-  const [cost, setCost] = useState("");
-  const [currency, setCurrency] = useState("USD");
-  const [notes, setNotes] = useState("");
+  const { values, handleChange, reset } = useFormFields<TransportationFormFields>(initialFormState);
 
   useEffect(() => {
     loadTransportations();
@@ -66,49 +83,37 @@ export default function TransportationManager({
   };
 
   const resetForm = () => {
-    setType("flight");
-    setFromLocationId(undefined);
-    setToLocationId(undefined);
-    setFromLocationName("");
-    setToLocationName("");
-    setDepartureTime("");
-    setArrivalTime("");
-    setStartTimezone("");
-    setEndTimezone("");
-    setCarrier("");
-    setVehicleNumber("");
-    setConfirmationNumber("");
-    setCost("");
-    setCurrency("USD");
-    setNotes("");
+    reset();
     setEditingId(null);
   };
 
   const handleEdit = (transportation: Transportation) => {
     setEditingId(transportation.id);
-    setType(transportation.type);
-    setFromLocationId(transportation.fromLocationId || undefined);
-    setToLocationId(transportation.toLocationId || undefined);
-    setFromLocationName(transportation.fromLocationName || "");
-    setToLocationName(transportation.toLocationName || "");
-    setDepartureTime(
+    handleChange("type", transportation.type);
+    handleChange("fromLocationId", transportation.fromLocationId || undefined);
+    handleChange("toLocationId", transportation.toLocationId || undefined);
+    handleChange("fromLocationName", transportation.fromLocationName || "");
+    handleChange("toLocationName", transportation.toLocationName || "");
+    handleChange(
+      "departureTime",
       transportation.departureTime
         ? new Date(transportation.departureTime).toISOString().slice(0, 16)
         : ""
     );
-    setArrivalTime(
+    handleChange(
+      "arrivalTime",
       transportation.arrivalTime
         ? new Date(transportation.arrivalTime).toISOString().slice(0, 16)
         : ""
     );
-    setStartTimezone(transportation.startTimezone || "");
-    setEndTimezone(transportation.endTimezone || "");
-    setCarrier(transportation.carrier || "");
-    setVehicleNumber(transportation.vehicleNumber || "");
-    setConfirmationNumber(transportation.confirmationNumber || "");
-    setCost(transportation.cost?.toString() || "");
-    setCurrency(transportation.currency || "USD");
-    setNotes(transportation.notes || "");
+    handleChange("startTimezone", transportation.startTimezone || "");
+    handleChange("endTimezone", transportation.endTimezone || "");
+    handleChange("carrier", transportation.carrier || "");
+    handleChange("vehicleNumber", transportation.vehicleNumber || "");
+    handleChange("confirmationNumber", transportation.confirmationNumber || "");
+    handleChange("cost", transportation.cost?.toString() || "");
+    handleChange("currency", transportation.currency || "USD");
+    handleChange("notes", transportation.notes || "");
     setShowForm(true);
   };
 
@@ -116,36 +121,56 @@ export default function TransportationManager({
     e.preventDefault();
 
     try {
-      const data = {
-        tripId,
-        type,
-        fromLocationId,
-        toLocationId,
-        fromLocationName: fromLocationName || undefined,
-        toLocationName: toLocationName || undefined,
-        departureTime: departureTime || undefined,
-        arrivalTime: arrivalTime || undefined,
-        startTimezone: startTimezone || undefined,
-        endTimezone: endTimezone || undefined,
-        carrier: carrier || undefined,
-        vehicleNumber: vehicleNumber || undefined,
-        confirmationNumber: confirmationNumber || undefined,
-        cost: cost ? parseFloat(cost) : undefined,
-        currency: currency || undefined,
-        notes: notes || undefined,
-      };
-
       if (editingId) {
-        await transportationService.updateTransportation(editingId, data);
+        // For updates, send null to clear empty fields
+        const updateData = {
+          tripId,
+          type: values.type,
+          fromLocationId: values.fromLocationId,
+          toLocationId: values.toLocationId,
+          fromLocationName: values.fromLocationName || null,
+          toLocationName: values.toLocationName || null,
+          departureTime: values.departureTime || null,
+          arrivalTime: values.arrivalTime || null,
+          startTimezone: values.startTimezone || null,
+          endTimezone: values.endTimezone || null,
+          carrier: values.carrier || null,
+          vehicleNumber: values.vehicleNumber || null,
+          confirmationNumber: values.confirmationNumber || null,
+          cost: values.cost ? parseFloat(values.cost) : null,
+          currency: values.currency || null,
+          notes: values.notes || null,
+        };
+        await transportationService.updateTransportation(editingId, updateData);
         toast.success("Transportation updated");
       } else {
-        await transportationService.createTransportation(data);
+        // For creates, use undefined to omit optional fields
+        const createData = {
+          tripId,
+          type: values.type,
+          fromLocationId: values.fromLocationId,
+          toLocationId: values.toLocationId,
+          fromLocationName: values.fromLocationName || undefined,
+          toLocationName: values.toLocationName || undefined,
+          departureTime: values.departureTime || undefined,
+          arrivalTime: values.arrivalTime || undefined,
+          startTimezone: values.startTimezone || undefined,
+          endTimezone: values.endTimezone || undefined,
+          carrier: values.carrier || undefined,
+          vehicleNumber: values.vehicleNumber || undefined,
+          confirmationNumber: values.confirmationNumber || undefined,
+          cost: values.cost ? parseFloat(values.cost) : undefined,
+          currency: values.currency || undefined,
+          notes: values.notes || undefined,
+        };
+        await transportationService.createTransportation(createData);
         toast.success("Transportation added");
       }
 
       resetForm();
       setShowForm(false);
       loadTransportations();
+      onUpdate?.(); // Notify parent to refresh counts
     } catch (error) {
       toast.error("Failed to save transportation");
     }
@@ -158,6 +183,7 @@ export default function TransportationManager({
       await transportationService.deleteTransportation(id);
       toast.success("Transportation deleted");
       loadTransportations();
+      onUpdate?.(); // Notify parent to refresh counts
     } catch (error) {
       toast.error("Failed to delete transportation");
     }
@@ -184,14 +210,16 @@ export default function TransportationManager({
     }
   };
 
-  const formatDateTime = (dateTime: string | null) => {
-    if (!dateTime) return "Not set";
-    return new Date(dateTime).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+  const formatDateTime = (
+    dateTime: string | null,
+    timezone?: string | null
+  ) => {
+    return formatDateTimeInTimezone(
+      dateTime,
+      timezone,
+      tripTimezone,
+      { includeTimezone: true, format: 'medium' }
+    );
   };
 
   return (
@@ -218,70 +246,55 @@ export default function TransportationManager({
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
+              {/* Type Selection */}
               <div>
-                <label
-                  htmlFor={typeFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Type *
                 </label>
                 <select
-                  id={typeFieldId}
-                  value={type}
-                  onChange={(e) =>
-                    setType(e.target.value as TransportationType)
-                  }
+                  value={values.type}
+                  onChange={(e) => handleChange("type", e.target.value as TransportationType)}
                   className="input"
                   required
                 >
-                  <option value="flight">Flight</option>
-                  <option value="train">Train</option>
-                  <option value="bus">Bus</option>
-                  <option value="car">Car</option>
-                  <option value="ferry">Ferry</option>
-                  <option value="bicycle">Bicycle</option>
-                  <option value="walk">Walk</option>
-                  <option value="other">Other</option>
+                  <option value="flight">✈️ Flight</option>
+                  <option value="train">🚆 Train</option>
+                  <option value="bus">🚌 Bus</option>
+                  <option value="car">🚗 Car</option>
+                  <option value="ferry">⛴️ Ferry</option>
+                  <option value="bicycle">🚴 Bicycle</option>
+                  <option value="walk">🚶 Walk</option>
+                  <option value="other">🚀 Other</option>
                 </select>
               </div>
 
+              {/* Carrier/Company */}
               <div>
-                <label
-                  htmlFor={carrierFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Carrier / Operator
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Carrier/Company
                 </label>
                 <input
                   type="text"
-                  id={carrierFieldId}
-                  value={carrier}
-                  onChange={(e) => setCarrier(e.target.value)}
+                  value={values.carrier}
+                  onChange={(e) => handleChange("carrier", e.target.value)}
                   className="input"
-                  placeholder="United Airlines, Amtrak, etc."
+                  placeholder="e.g., United Airlines"
                 />
               </div>
             </div>
 
+            {/* From Location */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor={fromLocationSelectId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  From (Location)
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  From Location
                 </label>
                 <select
-                  id={fromLocationSelectId}
-                  value={fromLocationId || ""}
-                  onChange={(e) =>
-                    setFromLocationId(
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
+                  value={values.fromLocationId || ""}
+                  onChange={(e) => handleChange("fromLocationId", e.target.value ? parseInt(e.target.value) : undefined)}
                   className="input"
                 >
-                  <option value="">Select location</option>
+                  <option value="">-- Select Location --</option>
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {loc.name}
@@ -291,42 +304,31 @@ export default function TransportationManager({
               </div>
 
               <div>
-                <label
-                  htmlFor={fromCustomFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  From (Custom)
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Or Custom From Location
                 </label>
                 <input
                   type="text"
-                  id={fromCustomFieldId}
-                  value={fromLocationName}
-                  onChange={(e) => setFromLocationName(e.target.value)}
+                  value={values.fromLocationName}
+                  onChange={(e) => handleChange("fromLocationName", e.target.value)}
                   className="input"
-                  placeholder="JFK Airport"
+                  placeholder="e.g., JFK Airport"
                 />
               </div>
             </div>
 
+            {/* To Location */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor={toLocationSelectId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  To (Location)
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  To Location
                 </label>
                 <select
-                  id={toLocationSelectId}
-                  value={toLocationId || ""}
-                  onChange={(e) =>
-                    setToLocationId(
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
+                  value={values.toLocationId || ""}
+                  onChange={(e) => handleChange("toLocationId", e.target.value ? parseInt(e.target.value) : undefined)}
                   className="input"
                 >
-                  <option value="">Select location</option>
+                  <option value="">-- Select Location --</option>
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {loc.name}
@@ -336,341 +338,257 @@ export default function TransportationManager({
               </div>
 
               <div>
-                <label
-                  htmlFor={toCustomFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  To (Custom)
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Or Custom To Location
                 </label>
                 <input
                   type="text"
-                  id={toCustomFieldId}
-                  value={toLocationName}
-                  onChange={(e) => setToLocationName(e.target.value)}
+                  value={values.toLocationName}
+                  onChange={(e) => handleChange("toLocationName", e.target.value)}
                   className="input"
-                  placeholder="LAX Airport"
+                  placeholder="e.g., LAX Airport"
                 />
               </div>
             </div>
 
+            {/* Departure Time and Timezone */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor={departureFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Departure Time
                 </label>
                 <input
                   type="datetime-local"
-                  id={departureFieldId}
-                  value={departureTime}
-                  onChange={(e) => setDepartureTime(e.target.value)}
+                  value={values.departureTime}
+                  onChange={(e) => handleChange("departureTime", e.target.value)}
                   className="input"
                 />
               </div>
 
+              <TimezoneSelect
+                value={values.startTimezone}
+                onChange={(value) => handleChange("startTimezone", value)}
+                label="Departure Timezone"
+              />
+            </div>
+
+            {/* Arrival Time and Timezone */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor={arrivalFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Arrival Time
                 </label>
                 <input
                   type="datetime-local"
-                  id={arrivalFieldId}
-                  value={arrivalTime}
-                  onChange={(e) => setArrivalTime(e.target.value)}
+                  value={values.arrivalTime}
+                  onChange={(e) => handleChange("arrivalTime", e.target.value)}
                   className="input"
                 />
               </div>
+
+              <TimezoneSelect
+                value={values.endTimezone}
+                onChange={(value) => handleChange("endTimezone", value)}
+                label="Arrival Timezone"
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor={startTimezoneFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Departure Timezone
-                </label>
-                <select
-                  id={startTimezoneFieldId}
-                  value={startTimezone}
-                  onChange={(e) => setStartTimezone(e.target.value)}
-                  className="input"
-                >
-                  <option value="">Use trip timezone</option>
-                  <option value="UTC">UTC (Coordinated Universal Time)</option>
-                  <option value="America/New_York">Eastern Time (US & Canada)</option>
-                  <option value="America/Chicago">Central Time (US & Canada)</option>
-                  <option value="America/Denver">Mountain Time (US & Canada)</option>
-                  <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
-                  <option value="America/Anchorage">Alaska</option>
-                  <option value="Pacific/Honolulu">Hawaii</option>
-                  <option value="Europe/London">London</option>
-                  <option value="Europe/Paris">Paris</option>
-                  <option value="Europe/Berlin">Berlin</option>
-                  <option value="Asia/Tokyo">Tokyo</option>
-                  <option value="Asia/Shanghai">Shanghai</option>
-                  <option value="Asia/Dubai">Dubai</option>
-                  <option value="Australia/Sydney">Sydney</option>
-                  <option value="Pacific/Auckland">Auckland</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor={endTimezoneFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Arrival Timezone
-                </label>
-                <select
-                  id={endTimezoneFieldId}
-                  value={endTimezone}
-                  onChange={(e) => setEndTimezone(e.target.value)}
-                  className="input"
-                >
-                  <option value="">Use trip timezone</option>
-                  <option value="UTC">UTC (Coordinated Universal Time)</option>
-                  <option value="America/New_York">Eastern Time (US & Canada)</option>
-                  <option value="America/Chicago">Central Time (US & Canada)</option>
-                  <option value="America/Denver">Mountain Time (US & Canada)</option>
-                  <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
-                  <option value="America/Anchorage">Alaska</option>
-                  <option value="Pacific/Honolulu">Hawaii</option>
-                  <option value="Europe/London">London</option>
-                  <option value="Europe/Paris">Paris</option>
-                  <option value="Europe/Berlin">Berlin</option>
-                  <option value="Asia/Tokyo">Tokyo</option>
-                  <option value="Asia/Shanghai">Shanghai</option>
-                  <option value="Asia/Dubai">Dubai</option>
-                  <option value="Australia/Sydney">Sydney</option>
-                  <option value="Pacific/Auckland">Auckland</option>
-                </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  If not specified, the trip's timezone will be used
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor={vehicleNumberFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Vehicle / Flight Number
-                </label>
-                <input
-                  type="text"
-                  id={vehicleNumberFieldId}
-                  value={vehicleNumber}
-                  onChange={(e) => setVehicleNumber(e.target.value)}
-                  className="input"
-                  placeholder="UA123"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={confirmationFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Confirmation Number
-                </label>
-                <input
-                  type="text"
-                  id={confirmationFieldId}
-                  value={confirmationNumber}
-                  onChange={(e) => setConfirmationNumber(e.target.value)}
-                  className="input"
-                  placeholder="ABC123"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor={costFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Cost
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  id={costFieldId}
-                  value={cost}
-                  onChange={(e) => setCost(e.target.value)}
-                  className="input"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={currencyFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Currency
-                </label>
-                <input
-                  type="text"
-                  id={currencyFieldId}
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="input"
-                  maxLength={3}
-                  placeholder="USD"
-                />
-              </div>
-            </div>
-
+            {/* Vehicle Number */}
             <div>
-              <label
-                htmlFor={notesFieldId}
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Flight/Train/Vehicle Number
+              </label>
+              <input
+                type="text"
+                value={values.vehicleNumber}
+                onChange={(e) => handleChange("vehicleNumber", e.target.value)}
+                className="input"
+                placeholder="e.g., UA 123"
+              />
+            </div>
+
+            {/* Booking Fields Component */}
+            <BookingFields
+              confirmationNumber={values.confirmationNumber}
+              bookingUrl=""
+              onConfirmationNumberChange={(value) => handleChange("confirmationNumber", value)}
+              onBookingUrlChange={() => {}}
+              confirmationLabel="Confirmation Number"
+              hideBookingUrl={true}
+            />
+
+            {/* Cost and Currency Component */}
+            <CostCurrencyFields
+              cost={values.cost}
+              currency={values.currency}
+              onCostChange={(value) => handleChange("cost", value)}
+              onCurrencyChange={(value) => handleChange("currency", value)}
+            />
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Notes
               </label>
               <textarea
-                id={notesFieldId}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
+                value={values.notes}
+                onChange={(e) => handleChange("notes", e.target.value)}
                 className="input"
+                rows={3}
                 placeholder="Additional notes..."
               />
             </div>
 
-            <button type="submit" className="btn btn-primary">
-              {editingId ? "Update" : "Add"} Transportation
-            </button>
+            {/* Submit Buttons */}
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  setShowForm(false);
+                }}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary">
+                {editingId ? "Update" : "Add"} Transportation
+              </button>
+            </div>
           </form>
         </div>
       )}
 
-      {transportations.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <p className="text-gray-500 dark:text-gray-400">
-            No transportation added yet. Click "Add Transportation" to get
-            started!
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {transportations.map((transport) => (
+      {/* Transportation List */}
+      <div className="space-y-4">
+        {transportations.length === 0 ? (
+          <EmptyState
+            icon="🚗"
+            message="No transportation added yet"
+            subMessage="Add your flights, trains, buses, and other transportation"
+          />
+        ) : (
+          transportations.map((transportation) => (
             <div
-              key={transport.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+              key={transportation.id}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-4 flex-1">
-                  <div className="text-4xl">{getTypeIcon(transport.type)}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold capitalize">
-                        {transport.type}
-                      </h3>
-                      {transport.carrier && (
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          • {transport.carrier}
-                        </span>
-                      )}
-                      {transport.vehicleNumber && (
-                        <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                          {transport.vehicleNumber}
-                        </span>
-                      )}
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">
+                      {getTypeIcon(transportation.type)}
+                    </span>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                      {transportation.type}
+                    </h3>
+                    {transportation.carrier && (
+                      <span className="text-gray-600 dark:text-gray-400">
+                        - {transportation.carrier}
+                      </span>
+                    )}
+                    {transportation.vehicleNumber && (
+                      <span className="text-sm text-gray-500 dark:text-gray-500">
+                        #{transportation.vehicleNumber}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                    {/* Route */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Route:</span>
+                      <span>
+                        {transportation.fromLocation?.name ||
+                          transportation.fromLocationName ||
+                          "Unknown"}{" "}
+                        →{" "}
+                        {transportation.toLocation?.name ||
+                          transportation.toLocationName ||
+                          "Unknown"}
+                      </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">
-                          From
-                        </div>
-                        <div className="font-medium">
-                          {transport.fromLocation?.name ||
-                            transport.fromLocationName ||
-                            "Not specified"}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {formatDateTime(transport.departureTime)}
-                        </div>
-                        {transport.startTimezone && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            🌍 {transport.startTimezone}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">
-                          To
-                        </div>
-                        <div className="font-medium">
-                          {transport.toLocation?.name ||
-                            transport.toLocationName ||
-                            "Not specified"}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {formatDateTime(transport.arrivalTime)}
-                        </div>
-                        {transport.endTimezone && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            🌍 {transport.endTimezone}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {(transport.confirmationNumber ||
-                      transport.cost !== null) && (
-                      <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-400">
-                        {transport.confirmationNumber && (
-                          <span>
-                            Confirmation: {transport.confirmationNumber}
-                          </span>
-                        )}
-                        {transport.cost !== null && (
-                          <span>
-                            Cost: {transport.currency}{" "}
-                            {transport.cost.toFixed(2)}
-                          </span>
-                        )}
+                    {/* Departure */}
+                    {transportation.departureTime && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Departure:</span>
+                        <span>
+                          {formatDateTime(
+                            transportation.departureTime,
+                            transportation.startTimezone
+                          )}
+                        </span>
                       </div>
                     )}
 
-                    {transport.notes && (
-                      <p className="text-sm text-gray-700 mt-2">
-                        {transport.notes}
-                      </p>
+                    {/* Arrival */}
+                    {transportation.arrivalTime && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Arrival:</span>
+                        <span>
+                          {formatDateTime(
+                            transportation.arrivalTime,
+                            transportation.endTimezone
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Confirmation Number */}
+                    {transportation.confirmationNumber && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Confirmation:</span>
+                        <span>{transportation.confirmationNumber}</span>
+                      </div>
+                    )}
+
+                    {/* Cost */}
+                    {transportation.cost && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Cost:</span>
+                        <span>
+                          {transportation.currency} {transportation.cost}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {transportation.notes && (
+                      <div className="mt-2">
+                        <span className="font-medium">Notes:</span>
+                        <p className="text-gray-600 dark:text-gray-400 mt-1">
+                          {transportation.notes}
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                {/* Actions */}
+                <div className="flex items-center gap-2 ml-4">
+                  <JournalEntriesButton
+                    entityType="transportation"
+                    entityId={transportation.id}
+                  />
                   <button
-                    onClick={() => handleEdit(transport)}
-                    className="btn-secondary"
+                    onClick={() => handleEdit(transportation)}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(transport.id)}
-                    className="btn-danger"
+                    onClick={() => handleDelete(transportation.id)}
+                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                   >
                     Delete
                   </button>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }

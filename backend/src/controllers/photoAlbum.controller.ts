@@ -82,8 +82,12 @@ class PhotoAlbumController {
 
       console.log('Album transformation result:', {
         albumId,
+        skip,
+        take,
         originalPhotoAssignmentsCount: album.photoAssignments?.length || 0,
         transformedPhotosCount: transformed.photos.length,
+        hasMore: transformed.hasMore,
+        total: transformed.total,
         firstPhoto: transformed.photos[0],
       });
 

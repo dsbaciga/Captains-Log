@@ -101,6 +101,20 @@ class TransportationService {
             name: true,
           },
         },
+        journalAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
+            },
+          },
+        },
       },
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
     });
@@ -115,6 +129,20 @@ class TransportationService {
         trip: true,
         fromLocation: true,
         toLocation: true,
+        journalAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
+            },
+          },
+        },
       },
     });
 

@@ -31,6 +31,7 @@ export type Lodging = {
   location?: {
     id: number;
     name: string;
+    address: string | null;
   };
   photoAlbums?: {
     id: number;
@@ -38,6 +39,16 @@ export type Lodging = {
     description: string | null;
     _count?: {
       photoAssignments: number;
+    };
+  }[];
+  journalAssignments?: {
+    id: number;
+    journal: {
+      id: number;
+      title: string | null;
+      content: string;
+      date: string | null;
+      entryType: string;
     };
   }[];
 };

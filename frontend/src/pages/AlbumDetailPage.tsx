@@ -71,8 +71,17 @@ export default function AlbumDetailPage() {
         take: 40,
       });
 
+      console.log('[AlbumDetailPage] Loaded album data:', {
+        skip,
+        photosCount: data.photos?.length || 0,
+        hasMore: data.hasMore,
+        total: data.total,
+      });
+
       if (loadingMore) {
         setPhotos(prev => [...prev, ...data.photos.map(p => p.photo)]);
+        // Update album to preserve hasMore and total
+        setAlbum(prev => prev ? { ...prev, hasMore: data.hasMore, total: data.total } : data);
       } else {
         setAlbum(data);
         setPhotos(data.photos.map(p => p.photo));
@@ -84,6 +93,7 @@ export default function AlbumDetailPage() {
       }
 
       setHasMore(data.hasMore || false);
+      console.log('[AlbumDetailPage] Set hasMore to:', data.hasMore || false);
     } catch (error) {
       console.error("Failed to load album:", error);
     } finally {
@@ -341,7 +351,7 @@ export default function AlbumDetailPage() {
             </p>
             <Link
               to={`/trips/${tripId}`}
-              className="btn-primary inline-block mt-4"
+              className="btn btn-primary inline-block mt-4"
             >
               Go to Trip Gallery
             </Link>
@@ -365,6 +375,11 @@ export default function AlbumDetailPage() {
                 </button>
               </div>
             )}
+
+            {/* Debug info */}
+            <div className="mt-4 text-xs text-gray-400 text-center">
+              Frontend v1.1.5 | Photos: {photos.length}/{album?.total || 0} | hasMore: {String(hasMore)}
+            </div>
           </div>
         )}
       </div>
