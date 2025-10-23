@@ -32,6 +32,13 @@ export default function SettingsPage() {
   const [editingTagTextColor, setEditingTagTextColor] = useState("#FFFFFF");
   const [backendVersion, setBackendVersion] = useState<string>("");
   const timezoneSelectId = useId();
+  const currentUsernameId = useId();
+  const newUsernameId = useId();
+  const currentPasswordId = useId();
+  const newPasswordId = useId();
+  const confirmPasswordId = useId();
+  const newTagColorId = useId();
+  const newTagTextColorId = useId();
 
   useEffect(() => {
     loadSettings();
@@ -130,11 +137,18 @@ export default function SettingsPage() {
 
   const handleAddCategory = () => {
     if (!newCategory.trim()) return;
-    if (categories.some(c => c.name.toLowerCase() === newCategory.trim().toLowerCase())) {
+    if (
+      categories.some(
+        (c) => c.name.toLowerCase() === newCategory.trim().toLowerCase()
+      )
+    ) {
       toast.error("Category already exists");
       return;
     }
-    setCategories([...categories, { name: newCategory.trim(), emoji: newCategoryEmoji }]);
+    setCategories([
+      ...categories,
+      { name: newCategory.trim(), emoji: newCategoryEmoji },
+    ]);
     setNewCategory("");
     setNewCategoryEmoji("😀");
   };
@@ -143,10 +157,15 @@ export default function SettingsPage() {
     setCategories(categories.filter((c) => c.name !== categoryName));
   };
 
-  const handleUpdateCategoryEmoji = (categoryName: string, newEmoji: string) => {
-    setCategories(categories.map((c) =>
-      c.name === categoryName ? { ...c, emoji: newEmoji } : c
-    ));
+  const handleUpdateCategoryEmoji = (
+    categoryName: string,
+    newEmoji: string
+  ) => {
+    setCategories(
+      categories.map((c) =>
+        c.name === categoryName ? { ...c, emoji: newEmoji } : c
+      )
+    );
   };
 
   const handleSave = async () => {
@@ -196,7 +215,10 @@ export default function SettingsPage() {
     }
 
     try {
-      const result = await userService.updatePassword(currentPassword, newPassword);
+      const result = await userService.updatePassword(
+        currentPassword,
+        newPassword
+      );
       toast.success(result.message);
       // Clear password fields
       setCurrentPassword("");
@@ -230,8 +252,15 @@ export default function SettingsPage() {
             Settings
           </h1>
           <div className="text-sm text-gray-500 dark:text-gray-400 text-right">
-            <div>Frontend: <span className="font-mono">{__APP_VERSION__}</span></div>
-            <div>Backend: <span className="font-mono">{backendVersion || 'Loading...'}</span></div>
+            <div>
+              Frontend: <span className="font-mono">{__APP_VERSION__}</span>
+            </div>
+            <div>
+              Backend:{" "}
+              <span className="font-mono">
+                {backendVersion || "Loading..."}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -246,18 +275,24 @@ export default function SettingsPage() {
             </p>
             <form onSubmit={handleUpdateUsername} className="space-y-4">
               <div>
-                <label className="label">Current Username</label>
+                <label className="label" htmlFor={currentUsernameId}>
+                  Current Username
+                </label>
                 <input
                   type="text"
+                  id={currentUsernameId}
                   value={username}
                   disabled
                   className="input w-full max-w-md bg-gray-100 dark:bg-gray-700"
                 />
               </div>
               <div>
-                <label className="label">New Username</label>
+                <label className="label" htmlFor={newUsernameId}>
+                  New Username
+                </label>
                 <input
                   type="text"
+                  id={newUsernameId}
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   className="input w-full max-w-md"
@@ -286,9 +321,12 @@ export default function SettingsPage() {
             </p>
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div>
-                <label className="label">Current Password</label>
+                <label className="label" htmlFor={currentPasswordId}>
+                  Current Password
+                </label>
                 <input
                   type="password"
+                  id={currentPasswordId}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="input w-full max-w-md"
@@ -296,9 +334,12 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="label">New Password</label>
+                <label className="label" htmlFor={newPasswordId}>
+                  New Password
+                </label>
                 <input
                   type="password"
+                  id={newPasswordId}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="input w-full max-w-md"
@@ -307,20 +348,20 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="label">Confirm New Password</label>
+                <label className="label" htmlFor={confirmPasswordId}>
+                  Confirm New Password
+                </label>
                 <input
                   type="password"
+                  id={confirmPasswordId}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input w-full max-w-md"
+                  className="input w-full.max-w-md"
                   minLength={6}
                   required
                 />
               </div>
-              <button
-                type="submit"
-                className="btn btn-primary"
-              >
+              <button type="submit" className="btn btn-primary">
                 Update Password
               </button>
             </form>
@@ -387,7 +428,8 @@ export default function SettingsPage() {
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Customize the activity categories available when creating
-              activities in your trips. Each category requires a name and an emoji.
+              activities in your trips. Each category requires a name and an
+              emoji.
             </p>
 
             {/* Add New Category */}
@@ -406,7 +448,11 @@ export default function SettingsPage() {
                 placeholder="New category name"
                 className="input flex-1"
               />
-              <button onClick={handleAddCategory} className="btn btn-primary">
+              <button
+                onClick={handleAddCategory}
+                type="button"
+                className="btn btn-primary"
+              >
                 Add Category
               </button>
             </div>
@@ -426,7 +472,9 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3">
                       <EmojiPicker
                         value={category.emoji}
-                        onChange={(emoji) => handleUpdateCategoryEmoji(category.name, emoji)}
+                        onChange={(emoji) =>
+                          handleUpdateCategoryEmoji(category.name, emoji)
+                        }
                       />
                       <span className="text-gray-900 dark:text-white">
                         {category.name}
@@ -457,7 +505,8 @@ export default function SettingsPage() {
               Trip Tags
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Create and manage tags that can be assigned to trips. Tags help organize and categorize your trips.
+              Create and manage tags that can be assigned to trips. Tags help
+              organize and categorize your trips.
             </p>
 
             {/* Create New Tag */}
@@ -472,29 +521,40 @@ export default function SettingsPage() {
               />
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    htmlFor={newTagColorId}
+                  >
                     Background Color
                   </label>
                   <input
                     type="color"
+                    id={newTagColorId}
                     value={newTagColor}
                     onChange={(e) => setNewTagColor(e.target.value)}
                     className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    htmlFor={newTagTextColorId}
+                  >
                     Text Color
                   </label>
                   <input
                     type="color"
+                    id={newTagTextColorId}
                     value={newTagTextColor}
                     onChange={(e) => setNewTagTextColor(e.target.value)}
                     className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
                   />
                 </div>
               </div>
-              <button onClick={handleCreateTag} className="btn btn-primary w-full">
+              <button
+                onClick={handleCreateTag}
+                className="btn btn-primary w-full"
+              >
                 Create Tag
               </button>
             </div>
@@ -519,7 +579,7 @@ export default function SettingsPage() {
                             className="px-3 py-1 rounded-full text-sm font-medium"
                             style={{
                               backgroundColor: editingTagColor,
-                              color: editingTagTextColor
+                              color: editingTagTextColor,
                             }}
                           >
                             {tag.name}
@@ -530,24 +590,36 @@ export default function SettingsPage() {
                         </div>
                         <div className="flex gap-4">
                           <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label
+                              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                              htmlFor={`edit-tag-bg-${tag.id}`}
+                            >
                               Background Color
                             </label>
                             <input
                               type="color"
+                              id={`edit-tag-bg-${tag.id}`}
                               value={editingTagColor}
-                              onChange={(e) => setEditingTagColor(e.target.value)}
+                              onChange={(e) =>
+                                setEditingTagColor(e.target.value)
+                              }
                               className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
                             />
                           </div>
                           <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label
+                              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                              htmlFor={`edit-tag-text-${tag.id}`}
+                            >
                               Text Color
                             </label>
                             <input
                               type="color"
+                              id={`edit-tag-text-${tag.id}`}
                               value={editingTagTextColor}
-                              onChange={(e) => setEditingTagTextColor(e.target.value)}
+                              onChange={(e) =>
+                                setEditingTagTextColor(e.target.value)
+                              }
                               className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
                             />
                           </div>
@@ -555,12 +627,14 @@ export default function SettingsPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleSaveTagColors(tag.id)}
+                            type="button"
                             className="btn btn-primary text-sm"
                           >
                             Save Colors
                           </button>
                           <button
                             onClick={handleCancelEditTag}
+                            type="button"
                             className="btn btn-secondary text-sm"
                           >
                             Cancel
@@ -575,7 +649,7 @@ export default function SettingsPage() {
                             className="px-3 py-1 rounded-full text-sm font-medium"
                             style={{
                               backgroundColor: tag.color || "#3B82F6",
-                              color: tag.textColor || "#FFFFFF"
+                              color: tag.textColor || "#FFFFFF",
                             }}
                           >
                             {tag.name}
@@ -584,12 +658,14 @@ export default function SettingsPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleStartEditTag(tag)}
+                            type="button"
                             className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                           >
                             Edit Colors
                           </button>
                           <button
                             onClick={() => handleDeleteTag(tag.id)}
+                            type="button"
                             className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                           >
                             Delete

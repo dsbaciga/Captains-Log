@@ -62,7 +62,8 @@ export default function LodgingManager({
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
-  const { values, handleChange, reset } = useFormFields<LodgingFormFields>(initialFormState);
+  const { values, handleChange, reset } =
+    useFormFields<LodgingFormFields>(initialFormState);
 
   useEffect(() => {
     loadLodgings();
@@ -77,7 +78,7 @@ export default function LodgingManager({
     try {
       const data = await lodgingService.getLodgingByTrip(tripId);
       setLodgings(data);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to load lodging");
     }
   };
@@ -196,7 +197,7 @@ export default function LodgingManager({
       setShowForm(false);
       loadLodgings();
       onUpdate?.(); // Notify parent to refresh counts
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to save lodging");
     }
   };
@@ -209,7 +210,7 @@ export default function LodgingManager({
       toast.success("Lodging deleted");
       loadLodgings();
       onUpdate?.(); // Notify parent to refresh counts
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete lodging");
     }
   };
@@ -231,13 +232,14 @@ export default function LodgingManager({
     }
   };
 
-  const formatDateTime = (dateTime: string | null, timezone?: string | null) => {
-    return formatDateTimeInTimezone(
-      dateTime,
-      timezone,
-      tripTimezone,
-      { includeTimezone: true, format: 'medium' }
-    );
+  const formatDateTime = (
+    dateTime: string | null,
+    timezone?: string | null
+  ) => {
+    return formatDateTimeInTimezone(dateTime, timezone, tripTimezone, {
+      includeTimezone: true,
+      format: "medium",
+    });
   };
 
   return (
@@ -266,12 +268,18 @@ export default function LodgingManager({
             <div className="grid grid-cols-2 gap-4">
               {/* Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="lodging-type"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Type *
                 </label>
                 <select
+                  id="lodging-type"
                   value={values.type}
-                  onChange={(e) => handleChange("type", e.target.value as LodgingType)}
+                  onChange={(e) =>
+                    handleChange("type", e.target.value as LodgingType)
+                  }
                   className="input"
                   required
                 >
@@ -286,11 +294,15 @@ export default function LodgingManager({
 
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="lodging-name"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Name *
                 </label>
                 <input
                   type="text"
+                  id="lodging-name"
                   value={values.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   className="input"
@@ -302,7 +314,10 @@ export default function LodgingManager({
 
             {/* Location Selection with Quick Add */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="lodging-location"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Location
               </label>
               {showLocationQuickAdd ? (
@@ -314,9 +329,13 @@ export default function LodgingManager({
               ) : (
                 <div className="flex gap-2">
                   <select
+                    id="lodging-location"
                     value={values.locationId || ""}
                     onChange={(e) =>
-                      handleChange("locationId", e.target.value ? parseInt(e.target.value) : undefined)
+                      handleChange(
+                        "locationId",
+                        e.target.value ? parseInt(e.target.value) : undefined
+                      )
                     }
                     className="input flex-1"
                   >
@@ -340,11 +359,15 @@ export default function LodgingManager({
 
             {/* Address */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="lodging-address"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Address
               </label>
               <input
                 type="text"
+                id="lodging-address"
                 value={values.address}
                 onChange={(e) => handleChange("address", e.target.value)}
                 className="input"
@@ -355,11 +378,15 @@ export default function LodgingManager({
             {/* Check-in and Check-out */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="lodging-check-in"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Check-in *
                 </label>
                 <input
                   type="datetime-local"
+                  id="lodging-check-in"
                   value={values.checkInDate}
                   onChange={(e) => handleChange("checkInDate", e.target.value)}
                   className="input"
@@ -368,11 +395,15 @@ export default function LodgingManager({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="lodging-check-out"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Check-out *
                 </label>
                 <input
                   type="datetime-local"
+                  id="lodging-check-out"
                   value={values.checkOutDate}
                   onChange={(e) => handleChange("checkOutDate", e.target.value)}
                   className="input"
@@ -393,7 +424,9 @@ export default function LodgingManager({
             <BookingFields
               confirmationNumber={values.confirmationNumber}
               bookingUrl={values.bookingUrl}
-              onConfirmationNumberChange={(value) => handleChange("confirmationNumber", value)}
+              onConfirmationNumberChange={(value) =>
+                handleChange("confirmationNumber", value)
+              }
               onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
             />
 
@@ -407,10 +440,14 @@ export default function LodgingManager({
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="lodging-notes"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Notes
               </label>
               <textarea
+                id="lodging-notes"
                 value={values.notes}
                 onChange={(e) => handleChange("notes", e.target.value)}
                 className="input"
@@ -456,7 +493,9 @@ export default function LodgingManager({
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{getTypeIcon(lodging.type)}</span>
+                    <span className="text-2xl">
+                      {getTypeIcon(lodging.type)}
+                    </span>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {lodging.name}
                     </h3>
@@ -485,13 +524,17 @@ export default function LodgingManager({
                     {/* Check-in */}
                     <div className="flex items-center gap-2">
                       <span className="font-medium">Check-in:</span>
-                      <span>{formatDateTime(lodging.checkInDate, lodging.timezone)}</span>
+                      <span>
+                        {formatDateTime(lodging.checkInDate, lodging.timezone)}
+                      </span>
                     </div>
 
                     {/* Check-out */}
                     <div className="flex items-center gap-2">
                       <span className="font-medium">Check-out:</span>
-                      <span>{formatDateTime(lodging.checkOutDate, lodging.timezone)}</span>
+                      <span>
+                        {formatDateTime(lodging.checkOutDate, lodging.timezone)}
+                      </span>
                     </div>
 
                     {/* Confirmation Number */}
@@ -542,8 +585,7 @@ export default function LodgingManager({
                 {/* Actions */}
                 <div className="flex items-center gap-2 ml-4">
                   <AssociatedAlbums
-                    entityType="lodging"
-                    entityId={lodging.id}
+                    albums={lodging.photoAlbums}
                     tripId={tripId}
                   />
                   <JournalEntriesButton

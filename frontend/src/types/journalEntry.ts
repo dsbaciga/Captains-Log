@@ -11,19 +11,53 @@ export type JournalEntry = {
     id: number;
     name: string;
   };
+  locationAssignments?: {
+    id: number;
+    location: {
+      id: number;
+      name: string;
+    };
+  }[];
+  activityAssignments?: {
+    id: number;
+    activity: {
+      id: number;
+      name: string;
+    };
+  }[];
+  lodgingAssignments?: {
+    id: number;
+    lodging: {
+      id: number;
+      name: string;
+    };
+  }[];
+  transportationAssignments?: {
+    id: number;
+    transportation: {
+      id: number;
+      type: string;
+    };
+  }[];
 };
 
 export type CreateJournalEntryInput = {
   tripId: number;
-  locationId?: number;
+  locationIds?: number[];
+  activityIds?: number[];
+  lodgingIds?: number[];
+  transportationIds?: number[];
   title: string;
   content: string;
   entryDate?: string;
 };
 
 export type UpdateJournalEntryInput = {
-  locationId?: number | null;
+  locationIds?: number[];
+  activityIds?: number[];
+  lodgingIds?: number[];
+  transportationIds?: number[];
   title?: string;
   content?: string;
-  entryDate?: string;
+  entryDate?: string | null;
 };

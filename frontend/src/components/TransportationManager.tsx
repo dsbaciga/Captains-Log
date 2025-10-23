@@ -67,7 +67,8 @@ export default function TransportationManager({
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const { values, handleChange, reset } = useFormFields<TransportationFormFields>(initialFormState);
+  const { values, handleChange, reset } =
+    useFormFields<TransportationFormFields>(initialFormState);
 
   useEffect(() => {
     loadTransportations();
@@ -214,12 +215,10 @@ export default function TransportationManager({
     dateTime: string | null,
     timezone?: string | null
   ) => {
-    return formatDateTimeInTimezone(
-      dateTime,
-      timezone,
-      tripTimezone,
-      { includeTimezone: true, format: 'medium' }
-    );
+    return formatDateTimeInTimezone(dateTime, timezone, tripTimezone, {
+      includeTimezone: true,
+      format: "medium",
+    });
   };
 
   return (
@@ -248,12 +247,18 @@ export default function TransportationManager({
             <div className="grid grid-cols-2 gap-4">
               {/* Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="transportation-type"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Type *
                 </label>
                 <select
+                  id="transportation-type"
                   value={values.type}
-                  onChange={(e) => handleChange("type", e.target.value as TransportationType)}
+                  onChange={(e) =>
+                    handleChange("type", e.target.value as TransportationType)
+                  }
                   className="input"
                   required
                 >
@@ -270,11 +275,15 @@ export default function TransportationManager({
 
               {/* Carrier/Company */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="transportation-carrier"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Carrier/Company
                 </label>
                 <input
                   type="text"
+                  id="transportation-carrier"
                   value={values.carrier}
                   onChange={(e) => handleChange("carrier", e.target.value)}
                   className="input"
@@ -286,12 +295,21 @@ export default function TransportationManager({
             {/* From Location */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="transportation-from-location"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   From Location
                 </label>
                 <select
+                  id="transportation-from-location"
                   value={values.fromLocationId || ""}
-                  onChange={(e) => handleChange("fromLocationId", e.target.value ? parseInt(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    handleChange(
+                      "fromLocationId",
+                      e.target.value ? parseInt(e.target.value) : undefined
+                    )
+                  }
                   className="input"
                 >
                   <option value="">-- Select Location --</option>
@@ -304,13 +322,19 @@ export default function TransportationManager({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="transportation-from-custom"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Or Custom From Location
                 </label>
                 <input
                   type="text"
+                  id="transportation-from-custom"
                   value={values.fromLocationName}
-                  onChange={(e) => handleChange("fromLocationName", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("fromLocationName", e.target.value)
+                  }
                   className="input"
                   placeholder="e.g., JFK Airport"
                 />
@@ -320,12 +344,21 @@ export default function TransportationManager({
             {/* To Location */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="transportation-to-location"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   To Location
                 </label>
                 <select
+                  id="transportation-to-location"
                   value={values.toLocationId || ""}
-                  onChange={(e) => handleChange("toLocationId", e.target.value ? parseInt(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    handleChange(
+                      "toLocationId",
+                      e.target.value ? parseInt(e.target.value) : undefined
+                    )
+                  }
                   className="input"
                 >
                   <option value="">-- Select Location --</option>
@@ -338,13 +371,19 @@ export default function TransportationManager({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="transportation-to-custom"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Or Custom To Location
                 </label>
                 <input
                   type="text"
+                  id="transportation-to-custom"
                   value={values.toLocationName}
-                  onChange={(e) => handleChange("toLocationName", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("toLocationName", e.target.value)
+                  }
                   className="input"
                   placeholder="e.g., LAX Airport"
                 />
@@ -354,13 +393,19 @@ export default function TransportationManager({
             {/* Departure Time and Timezone */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="transportation-departure-time"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Departure Time
                 </label>
                 <input
                   type="datetime-local"
+                  id="transportation-departure-time"
                   value={values.departureTime}
-                  onChange={(e) => handleChange("departureTime", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("departureTime", e.target.value)
+                  }
                   className="input"
                 />
               </div>
@@ -375,11 +420,15 @@ export default function TransportationManager({
             {/* Arrival Time and Timezone */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="transportation-arrival-time"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Arrival Time
                 </label>
                 <input
                   type="datetime-local"
+                  id="transportation-arrival-time"
                   value={values.arrivalTime}
                   onChange={(e) => handleChange("arrivalTime", e.target.value)}
                   className="input"
@@ -395,11 +444,15 @@ export default function TransportationManager({
 
             {/* Vehicle Number */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="transportation-vehicle-number"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Flight/Train/Vehicle Number
               </label>
               <input
                 type="text"
+                id="transportation-vehicle-number"
                 value={values.vehicleNumber}
                 onChange={(e) => handleChange("vehicleNumber", e.target.value)}
                 className="input"
@@ -411,7 +464,9 @@ export default function TransportationManager({
             <BookingFields
               confirmationNumber={values.confirmationNumber}
               bookingUrl=""
-              onConfirmationNumberChange={(value) => handleChange("confirmationNumber", value)}
+              onConfirmationNumberChange={(value) =>
+                handleChange("confirmationNumber", value)
+              }
               onBookingUrlChange={() => {}}
               confirmationLabel="Confirmation Number"
               hideBookingUrl={true}
@@ -427,10 +482,14 @@ export default function TransportationManager({
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="transportation-notes"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Notes
               </label>
               <textarea
+                id="transportation-notes"
                 value={values.notes}
                 onChange={(e) => handleChange("notes", e.target.value)}
                 className="input"

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 interface JournalEntryInfo {
   id: number;
@@ -25,11 +25,11 @@ export default function JournalEntriesButton({
   }
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Trip Journal';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    if (!dateString) return "Trip Journal";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -38,8 +38,11 @@ export default function JournalEntriesButton({
       {/* Journal Icon Button */}
       <button
         onClick={() => setShowModal(true)}
+        type="button"
         className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-        title={`${journalEntries.length} journal ${journalEntries.length === 1 ? 'entry' : 'entries'}`}
+        aria-label={`${journalEntries.length} journal ${
+          journalEntries.length === 1 ? "entry" : "entries"
+        }`}
       >
         <svg
           className="w-5 h-5"
@@ -72,6 +75,8 @@ export default function JournalEntriesButton({
               </h3>
               <button
                 onClick={() => setShowModal(false)}
+                type="button"
+                aria-label="Close"
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <svg

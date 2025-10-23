@@ -8,7 +8,10 @@ import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
 import JournalEntriesButton from "./JournalEntriesButton";
 import LocationQuickAdd from "./LocationQuickAdd";
-import { formatDateTimeInTimezone, formatDateInTimezone } from "../utils/timezone";
+import {
+  formatDateTimeInTimezone,
+  formatDateInTimezone,
+} from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
@@ -67,13 +70,16 @@ export default function ActivityManager({
   onUpdate,
 }: ActivityManagerProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
+  const [activityCategories, setActivityCategories] = useState<
+    ActivityCategory[]
+  >([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
-  const { values, handleChange, reset } = useFormFields<ActivityFormFields>(initialFormState);
+  const { values, handleChange, reset } =
+    useFormFields<ActivityFormFields>(initialFormState);
 
   useEffect(() => {
     loadActivities();
@@ -89,7 +95,7 @@ export default function ActivityManager({
     try {
       const user = await userService.getMe();
       setActivityCategories(user.activityCategories || []);
-    } catch (error) {
+    } catch (_error) {
       console.error("Failed to load activity categories");
     }
   };
@@ -98,7 +104,7 @@ export default function ActivityManager({
     try {
       const data = await activityService.getActivitiesByTrip(tripId);
       setActivities(data);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to load activities");
     }
   };
@@ -258,7 +264,7 @@ export default function ActivityManager({
       setShowForm(false);
       loadActivities();
       onUpdate?.(); // Notify parent to refresh counts
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to save activity");
     }
   };
@@ -271,7 +277,7 @@ export default function ActivityManager({
       toast.success("Activity deleted");
       loadActivities();
       onUpdate?.(); // Notify parent to refresh counts
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete activity");
     }
   };
@@ -292,12 +298,10 @@ export default function ActivityManager({
     if (isAllDay) {
       return formatDateInTimezone(dateTime, timezone, tripTimezone);
     }
-    return formatDateTimeInTimezone(
-      dateTime,
-      timezone,
-      tripTimezone,
-      { includeTimezone: true, format: 'medium' }
-    );
+    return formatDateTimeInTimezone(dateTime, timezone, tripTimezone, {
+      includeTimezone: true,
+      format: "medium",
+    });
   };
 
   const renderActivity = (activity: Activity, isChild = false) => {
@@ -307,7 +311,9 @@ export default function ActivityManager({
       <div
         key={activity.id}
         className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 ${
-          isChild ? "ml-8 mt-3 border-l-4 border-blue-300 dark:border-blue-700" : ""
+          isChild
+            ? "ml-8 mt-3 border-l-4 border-blue-300 dark:border-blue-700"
+            : ""
         }`}
       >
         <div className="flex justify-between items-start">
@@ -315,7 +321,8 @@ export default function ActivityManager({
             <div className="flex items-center gap-2 mb-2">
               {activity.category && (
                 <span className="text-xl">
-                  {activityCategories.find((c) => c.name === activity.category)?.emoji || "📍"}
+                  {activityCategories.find((c) => c.name === activity.category)
+                    ?.emoji || "📍"}
                 </span>
               )}
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -417,11 +424,7 @@ export default function ActivityManager({
 
           {/* Actions */}
           <div className="flex items-center gap-2 ml-4">
-            <AssociatedAlbums
-              entityType="activity"
-              entityId={activity.id}
-              tripId={tripId}
-            />
+            <AssociatedAlbums albums={activity.photoAlbums} tripId={tripId} />
             <JournalEntriesButton
               journalEntries={activity.journalAssignments}
               tripId={tripId}
@@ -477,11 +480,15 @@ export default function ActivityManager({
             {/* Name and Category */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="activity-name"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Name *
                 </label>
                 <input
                   type="text"
+                  id="activity-name"
                   value={values.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   className="input"
@@ -491,10 +498,14 @@ export default function ActivityManager({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="activity-category"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Category
                 </label>
                 <select
+                  id="activity-category"
                   value={values.category}
                   onChange={(e) => handleChange("category", e.target.value)}
                   className="input"
@@ -511,10 +522,14 @@ export default function ActivityManager({
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="activity-description"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Description
               </label>
               <textarea
+                id="activity-description"
                 value={values.description}
                 onChange={(e) => handleChange("description", e.target.value)}
                 className="input"
@@ -525,7 +540,10 @@ export default function ActivityManager({
 
             {/* Location with Quick Add */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="activity-location"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Location
               </label>
               {showLocationQuickAdd ? (
@@ -537,9 +555,13 @@ export default function ActivityManager({
               ) : (
                 <div className="flex gap-2">
                   <select
+                    id="activity-location"
                     value={values.locationId || ""}
                     onChange={(e) =>
-                      handleChange("locationId", e.target.value ? parseInt(e.target.value) : undefined)
+                      handleChange(
+                        "locationId",
+                        e.target.value ? parseInt(e.target.value) : undefined
+                      )
                     }
                     className="input flex-1"
                   >
@@ -563,13 +585,20 @@ export default function ActivityManager({
 
             {/* Parent Activity */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="activity-parent"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Parent Activity (Optional)
               </label>
               <select
+                id="activity-parent"
                 value={values.parentId || ""}
                 onChange={(e) =>
-                  handleChange("parentId", e.target.value ? parseInt(e.target.value) : undefined)
+                  handleChange(
+                    "parentId",
+                    e.target.value ? parseInt(e.target.value) : undefined
+                  )
                 }
                 className="input"
               >
@@ -596,7 +625,10 @@ export default function ActivityManager({
                 onChange={(e) => handleChange("allDay", e.target.checked)}
                 className="rounded"
               />
-              <label htmlFor="allDay" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="allDay"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 All-day activity
               </label>
             </div>
@@ -605,22 +637,30 @@ export default function ActivityManager({
             {values.allDay ? (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="activity-start-date"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Start Date
                   </label>
                   <input
                     type="date"
+                    id="activity-start-date"
                     value={values.startDate}
                     onChange={(e) => handleChange("startDate", e.target.value)}
                     className="input"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="activity-end-date"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     End Date
                   </label>
                   <input
                     type="date"
+                    id="activity-end-date"
                     value={values.endDate}
                     onChange={(e) => handleChange("endDate", e.target.value)}
                     className="input"
@@ -630,37 +670,53 @@ export default function ActivityManager({
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="activity-start-date-time"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Start Time
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="date"
+                      id="activity-start-date-time"
                       value={values.startDate}
-                      onChange={(e) => handleChange("startDate", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("startDate", e.target.value)
+                      }
                       className="input flex-1"
                     />
                     <input
                       type="time"
+                      id="activity-start-time"
+                      aria-label="Start time"
                       value={values.startTime}
-                      onChange={(e) => handleChange("startTime", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("startTime", e.target.value)
+                      }
                       className="input flex-1"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="activity-end-date-time"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     End Time
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="date"
+                      id="activity-end-date-time"
                       value={values.endDate}
                       onChange={(e) => handleChange("endDate", e.target.value)}
                       className="input flex-1"
                     />
                     <input
                       type="time"
+                      id="activity-end-time"
+                      aria-label="End time"
                       value={values.endTime}
                       onChange={(e) => handleChange("endTime", e.target.value)}
                       className="input flex-1"
@@ -681,7 +737,9 @@ export default function ActivityManager({
             <BookingFields
               confirmationNumber={values.bookingReference}
               bookingUrl={values.bookingUrl}
-              onConfirmationNumberChange={(value) => handleChange("bookingReference", value)}
+              onConfirmationNumberChange={(value) =>
+                handleChange("bookingReference", value)
+              }
               onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
               confirmationLabel="Booking Reference"
             />
@@ -696,10 +754,14 @@ export default function ActivityManager({
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="activity-notes"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Notes
               </label>
               <textarea
+                id="activity-notes"
                 value={values.notes}
                 onChange={(e) => handleChange("notes", e.target.value)}
                 className="input"

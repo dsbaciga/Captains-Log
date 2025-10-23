@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import type { Location } from '../types/location';
-import type { ImmichAsset, ImmichAlbum } from '../types/immich';
-import photoService from '../services/photo.service';
-import immichService from '../services/immich.service';
-import ImmichBrowser from './ImmichBrowser';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import type { Location } from "../types/location";
+import type { ImmichAsset, ImmichAlbum } from "../types/immich";
+import photoService from "../services/photo.service";
+import immichService from "../services/immich.service";
+import ImmichBrowser from "./ImmichBrowser";
+import toast from "react-hot-toast";
 
 interface PhotoUploadProps {
   tripId: number;
@@ -22,7 +22,7 @@ export default function PhotoUpload({
   tripEndDate,
 }: PhotoUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [caption, setCaption] = useState('');
+  const [caption, setCaption] = useState("");
   const [locationId, setLocationId] = useState<number | undefined>();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -38,7 +38,7 @@ export default function PhotoUpload({
       const settings = await immichService.getSettings();
       setImmichConfigured(settings.immichConfigured);
     } catch (error) {
-      console.error('Failed to check Immich settings:', error);
+      console.error("Failed to check Immich settings:", error);
     }
   };
 
@@ -61,33 +61,38 @@ export default function PhotoUpload({
           tripId,
           locationId,
           immichAssetId: asset.id,
-          caption: assets.length === 1 ? (caption || undefined) : undefined,
-          takenAt: takenAt || null,
-          latitude: asset.exifInfo?.latitude ?? null,
-          longitude: asset.exifInfo?.longitude ?? null,
+          caption: assets.length === 1 ? caption || undefined : undefined,
+          takenAt: takenAt ?? undefined,
+          latitude: asset.exifInfo?.latitude ?? undefined,
+          longitude: asset.exifInfo?.longitude ?? undefined,
         });
         setUploadProgress(((i + 1) / assets.length) * 100);
       }
 
-      setCaption('');
+      setCaption("");
       setLocationId(undefined);
       setUploadProgress(0);
       setShowImmichBrowser(false);
       onPhotoUploaded();
     } catch (error) {
-      console.error('Failed to link Immich photos:', error);
-      alert('Failed to link Immich photos');
+      console.error("Failed to link Immich photos:", error);
+      alert("Failed to link Immich photos");
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleImportAlbum = async (album: ImmichAlbum, assets: ImmichAsset[]) => {
+  const handleImportAlbum = async (
+    album: ImmichAlbum,
+    assets: ImmichAsset[]
+  ) => {
     setIsUploading(true);
     setUploadProgress(0);
 
     try {
-      toast.loading(`Importing album "${album.albumName}" with ${assets.length} photos...`);
+      toast.loading(
+        `Importing album "${album.albumName}" with ${assets.length} photos...`
+      );
 
       // Step 1: Create the album in the trip
       const newAlbum = await photoService.createAlbum({
@@ -107,9 +112,9 @@ export default function PhotoUpload({
           locationId: undefined,
           immichAssetId: asset.id,
           caption: undefined,
-          takenAt: takenAt || null,
-          latitude: asset.exifInfo?.latitude ?? null,
-          longitude: asset.exifInfo?.longitude ?? null,
+          takenAt: takenAt ?? undefined,
+          latitude: asset.exifInfo?.latitude ?? undefined,
+          longitude: asset.exifInfo?.longitude ?? undefined,
         });
 
         linkedPhotoIds.push(photo.id);
@@ -124,12 +129,14 @@ export default function PhotoUpload({
       setUploadProgress(0);
       setShowImmichBrowser(false);
       toast.dismiss();
-      toast.success(`Successfully imported album "${album.albumName}" with ${assets.length} photos!`);
+      toast.success(
+        `Successfully imported album "${album.albumName}" with ${assets.length} photos!`
+      );
       onPhotoUploaded();
     } catch (error) {
-      console.error('Failed to import album:', error);
+      console.error("Failed to import album:", error);
       toast.dismiss();
-      toast.error('Failed to import album');
+      toast.error("Failed to import album");
     } finally {
       setIsUploading(false);
     }
@@ -154,12 +161,12 @@ export default function PhotoUpload({
 
       // Reset form
       setSelectedFiles([]);
-      setCaption('');
+      setCaption("");
       setLocationId(undefined);
       setUploadProgress(0);
       onPhotoUploaded();
     } catch (error) {
-      alert('Failed to upload photos');
+      alert("Failed to upload photos");
     } finally {
       setIsUploading(false);
     }
@@ -169,7 +176,9 @@ export default function PhotoUpload({
     <>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Add Photos</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Add Photos
+          </h3>
           {immichConfigured && (
             <button
               onClick={() => setShowImmichBrowser(true)}
@@ -184,11 +193,15 @@ export default function PhotoUpload({
         <div className="space-y-4">
           {/* File Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="photo-upload-file-input"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Upload from Computer
             </label>
             <input
               type="file"
+              id="photo-upload-file-input"
               accept="image/*"
               multiple
               onChange={handleFileSelect}
@@ -208,108 +221,124 @@ export default function PhotoUpload({
             )}
           </div>
 
-        {/* Preview */}
-        {selectedFiles.length > 0 && (
-          <div className="grid grid-cols-4 gap-2">
-            {selectedFiles.map((file, index) => (
-              <div key={index} className="relative aspect-square">
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={`Preview ${index + 1}`}
-                  className="w-full h-full object-cover rounded"
-                />
-                <button
-                  onClick={() =>
-                    setSelectedFiles(selectedFiles.filter((_, i) => i !== index))
-                  }
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
-                  disabled={isUploading}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+          {/* Preview */}
+          {selectedFiles.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {selectedFiles.map((file, index) => (
+                <div key={index} className="relative aspect-square">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-full object-cover rounded"
+                  />
+                  <button
+                    onClick={() =>
+                      setSelectedFiles(
+                        selectedFiles.filter((_, i) => i !== index)
+                      )
+                    }
+                    type="button"
+                    aria-label={`Remove photo ${index + 1}`}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                    disabled={isUploading}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
-        {/* Caption (only for single upload) */}
-        {selectedFiles.length === 1 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Caption
-            </label>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={2}
-              className="input"
-              placeholder="Add a caption..."
-              disabled={isUploading}
-            />
-          </div>
-        )}
-
-        {/* Location */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Location (Optional)
-          </label>
-          <select
-            value={locationId || ''}
-            onChange={(e) =>
-              setLocationId(e.target.value ? parseInt(e.target.value) : undefined)
-            }
-            className="input"
-            disabled={isUploading}
-          >
-            <option value="">No specific location</option>
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Upload Progress */}
-        {isUploading && (
-          <div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${uploadProgress}%` }}
+          {/* Caption (only for single upload) */}
+          {selectedFiles.length === 1 && (
+            <div>
+              <label
+                htmlFor="photo-upload-caption"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Caption
+              </label>
+              <textarea
+                id="photo-upload-caption"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={2}
+                className="input"
+                placeholder="Add a caption..."
+                disabled={isUploading}
               />
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 text-center">
-              Uploading... {Math.round(uploadProgress)}%
-            </p>
+          )}
+
+          {/* Location */}
+          <div>
+            <label
+              htmlFor="photo-upload-location"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Location (Optional)
+            </label>
+            <select
+              id="photo-upload-location"
+              value={locationId || ""}
+              onChange={(e) =>
+                setLocationId(
+                  e.target.value ? parseInt(e.target.value) : undefined
+                )
+              }
+              className="input"
+              disabled={isUploading}
+            >
+              <option value="">No specific location</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
 
-        {/* Upload Button */}
-        <button
-          onClick={handleUpload}
-          disabled={selectedFiles.length === 0 || isUploading}
-          className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors disabled:cursor-not-allowed"
-        >
-          {isUploading
-            ? 'Uploading...'
-            : selectedFiles.length > 0
-            ? `Upload ${selectedFiles.length} Photo${selectedFiles.length !== 1 ? 's' : ''}`
-            : 'Select Photos to Upload'}
-        </button>
+          {/* Upload Progress */}
+          {isUploading && (
+            <div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 text-center">
+                Uploading... {Math.round(uploadProgress)}%
+              </p>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <button
+            onClick={handleUpload}
+            disabled={selectedFiles.length === 0 || isUploading}
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors disabled:cursor-not-allowed"
+          >
+            {isUploading
+              ? "Uploading..."
+              : selectedFiles.length > 0
+              ? `Upload ${selectedFiles.length} Photo${
+                  selectedFiles.length !== 1 ? "s" : ""
+                }`
+              : "Select Photos to Upload"}
+          </button>
+        </div>
       </div>
-    </div>
 
-    {showImmichBrowser && (
-      <ImmichBrowser
-        onSelect={handleImmichSelect}
-        onImportAlbum={handleImportAlbum}
-        onClose={() => setShowImmichBrowser(false)}
-        tripStartDate={tripStartDate}
-        tripEndDate={tripEndDate}
-      />
-    )}
-  </>
+      {showImmichBrowser && (
+        <ImmichBrowser
+          onSelect={handleImmichSelect}
+          onImportAlbum={handleImportAlbum}
+          onClose={() => setShowImmichBrowser(false)}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
+        />
+      )}
+    </>
   );
 }

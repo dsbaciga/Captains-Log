@@ -1,7 +1,13 @@
 import { useState, useEffect, useId } from "react";
 import type { JournalEntry } from "../types/journalEntry";
 import type { Location } from "../types/location";
+import type { Activity } from "../types/activity";
+import type { Lodging } from "../types/lodging";
+import type { Transportation } from "../types/transportation";
 import journalEntryService from "../services/journalEntry.service";
+import activityService from "../services/activity.service";
+import lodgingService from "../services/lodging.service";
+import transportationService from "../services/transportation.service";
 import toast from "react-hot-toast";
 import EmptyState from "./EmptyState";
 import { useFormFields } from "../hooks/useFormFields";
@@ -18,6 +24,9 @@ export default function JournalManager({
   onUpdate,
 }: JournalManagerProps) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [lodgings, setLodgings] = useState<Lodging[]>([]);
+  const [transportations, setTransportations] = useState<Transportation[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -26,18 +35,25 @@ export default function JournalManager({
   const { values: formValues, setField, resetFields, setAllFields } = useFormFields({
     title: "",
     content: "",
-    locationId: undefined as number | undefined,
+    locationIds: [] as number[],
+    activityIds: [] as number[],
+    lodgingIds: [] as number[],
+    transportationIds: [] as number[],
     entryDate: "",
   });
 
   // Generate IDs for accessibility
   const titleFieldId = useId();
-  const locationFieldId = useId();
+  const locationsFieldId = useId();
   const entryDateFieldId = useId();
   const contentFieldId = useId();
+  const activitiesFieldId = useId();
+  const lodgingsFieldId = useId();
+  const transportationsFieldId = useId();
 
   useEffect(() => {
     loadEntries();
+    loadTripEntities();
   }, [tripId]);
 
   const loadEntries = async () => {
@@ -46,6 +62,21 @@ export default function JournalManager({
       setEntries(data);
     } catch (error) {
       toast.error("Failed to load journal entries");
+    }
+  };
+
+  const loadTripEntities = async () => {
+    try {
+      const [activitiesData, lodgingsData, transportationsData] = await Promise.all([
+        activityService.getActivitiesByTrip(tripId),
+        lodgingService.getLodgingByTrip(tripId),
+        transportationService.getTransportationByTrip(tripId),
+      ]);
+      setActivities(activitiesData);
+      setLodgings(lodgingsData);
+      setTransportations(transportationsData);
+    } catch (error) {
+      console.error("Failed to load trip entities", error);
     }
   };
 
@@ -59,7 +90,10 @@ export default function JournalManager({
     setAllFields({
       title: entry.title,
       content: entry.content,
-      locationId: entry.locationId || undefined,
+      locationIds: entry.locationAssignments?.map(la => la.location.id) || [],
+      activityIds: entry.activityAssignments?.map(aa => aa.activity.id) || [],
+      lodgingIds: entry.lodgingAssignments?.map(la => la.lodging.id) || [],
+      transportationIds: entry.transportationAssignments?.map(ta => ta.transportation.id) || [],
       entryDate: entry.entryDate
         ? new Date(entry.entryDate).toISOString().slice(0, 16)
         : "",
@@ -78,23 +112,28 @@ export default function JournalManager({
 
     try {
       if (editingId) {
-        // For updates, send null to clear empty fields
+        // For updates
         const updateData = {
-          tripId,
           title: formValues.title,
           content: formValues.content,
-          locationId: formValues.locationId,
+          locationIds: formValues.locationIds,
+          activityIds: formValues.activityIds,
+          lodgingIds: formValues.lodgingIds,
+          transportationIds: formValues.transportationIds,
           entryDate: formValues.entryDate || null,
         };
         await journalEntryService.updateJournalEntry(editingId, updateData);
         toast.success("Journal entry updated");
       } else {
-        // For creates, use undefined to omit optional fields
+        // For creates
         const createData = {
           tripId,
           title: formValues.title,
           content: formValues.content,
-          locationId: formValues.locationId,
+          locationIds: formValues.locationIds.length > 0 ? formValues.locationIds : undefined,
+          activityIds: formValues.activityIds.length > 0 ? formValues.activityIds : undefined,
+          lodgingIds: formValues.lodgingIds.length > 0 ? formValues.lodgingIds : undefined,
+          transportationIds: formValues.transportationIds.length > 0 ? formValues.transportationIds : undefined,
           entryDate: formValues.entryDate || undefined,
         };
         await journalEntryService.createJournalEntry(createData);
@@ -135,6 +174,15 @@ export default function JournalManager({
   const truncateContent = (text: string, maxLength: number = 200) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + "...";
+  };
+
+  const handleMultiSelectChange = (
+    fieldName: 'locationIds' | 'activityIds' | 'lodgingIds' | 'transportationIds',
+    selectElement: HTMLSelectElement
+  ) => {
+    const selectedOptions = Array.from(selectElement.selectedOptions);
+    const selectedIds = selectedOptions.map(option => parseInt(option.value));
+    setField(fieldName, selectedIds);
   };
 
   return (
@@ -181,30 +229,6 @@ export default function JournalManager({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label
-                  htmlFor={locationFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Location
-                </label>
-                <select
-                  id={locationFieldId}
-                  value={formValues.locationId || ""}
-                  onChange={(e) =>
-                    setField('locationId', e.target.value ? parseInt(e.target.value) : undefined)
-                  }
-                  className="input"
-                >
-                  <option value="">Select location</option>
-                  {locations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
                   htmlFor={entryDateFieldId}
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
@@ -248,6 +272,122 @@ Tell your story!"
               </p>
             </div>
 
+            {/* Associated Entities Section */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Link to Trip Items (optional)
+              </h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Hold Ctrl (Windows) or Cmd (Mac) to select multiple items
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Locations */}
+                {locations.length > 0 && (
+                  <div>
+                    <label
+                      htmlFor={locationsFieldId}
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Locations ({formValues.locationIds.length} selected)
+                    </label>
+                    <select
+                      id={locationsFieldId}
+                      multiple
+                      value={formValues.locationIds.map(String)}
+                      onChange={(e) => handleMultiSelectChange('locationIds', e.target)}
+                      className="input h-24"
+                      size={4}
+                    >
+                      {locations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Activities */}
+                {activities.length > 0 && (
+                  <div>
+                    <label
+                      htmlFor={activitiesFieldId}
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Activities ({formValues.activityIds.length} selected)
+                    </label>
+                    <select
+                      id={activitiesFieldId}
+                      multiple
+                      value={formValues.activityIds.map(String)}
+                      onChange={(e) => handleMultiSelectChange('activityIds', e.target)}
+                      className="input h-24"
+                      size={4}
+                    >
+                      {activities.map((activity) => (
+                        <option key={activity.id} value={activity.id}>
+                          {activity.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Lodging */}
+                {lodgings.length > 0 && (
+                  <div>
+                    <label
+                      htmlFor={lodgingsFieldId}
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Lodging ({formValues.lodgingIds.length} selected)
+                    </label>
+                    <select
+                      id={lodgingsFieldId}
+                      multiple
+                      value={formValues.lodgingIds.map(String)}
+                      onChange={(e) => handleMultiSelectChange('lodgingIds', e.target)}
+                      className="input h-24"
+                      size={4}
+                    >
+                      {lodgings.map((lodging) => (
+                        <option key={lodging.id} value={lodging.id}>
+                          {lodging.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Transportation */}
+                {transportations.length > 0 && (
+                  <div>
+                    <label
+                      htmlFor={transportationsFieldId}
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Transportation ({formValues.transportationIds.length} selected)
+                    </label>
+                    <select
+                      id={transportationsFieldId}
+                      multiple
+                      value={formValues.transportationIds.map(String)}
+                      onChange={(e) => handleMultiSelectChange('transportationIds', e.target)}
+                      className="input h-24"
+                      size={4}
+                    >
+                      {transportations.map((transport) => (
+                        <option key={transport.id} value={transport.id}>
+                          {transport.type}: {transport.fromLocationName || 'Start'} → {transport.toLocationName || 'End'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <button type="submit" className="btn btn-primary">
               {editingId ? "Update" : "Create"} Entry
             </button>
@@ -265,6 +405,12 @@ Tell your story!"
         <div className="space-y-4">
           {entries.map((entry) => {
             const isExpanded = expandedId === entry.id;
+            const hasLinkedItems =
+              (entry.locationAssignments?.length || 0) > 0 ||
+              (entry.activityAssignments?.length || 0) > 0 ||
+              (entry.lodgingAssignments?.length || 0) > 0 ||
+              (entry.transportationAssignments?.length || 0) > 0;
+
             return (
               <div
                 key={entry.id}
@@ -273,14 +419,11 @@ Tell your story!"
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
                         {entry.title}
                       </h3>
                       <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                         <span>📅 {formatDate(entry.entryDate)}</span>
-                        {entry.location && (
-                          <span>📍 {entry.location.name}</span>
-                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -299,8 +442,46 @@ Tell your story!"
                     </div>
                   </div>
 
+                  {/* Linked Items */}
+                  {hasLinkedItems && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {entry.locationAssignments?.map((la) => (
+                        <span
+                          key={`loc-${la.location.id}`}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                        >
+                          📍 {la.location.name}
+                        </span>
+                      ))}
+                      {entry.activityAssignments?.map((aa) => (
+                        <span
+                          key={`act-${aa.activity.id}`}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                        >
+                          🎯 {aa.activity.name}
+                        </span>
+                      ))}
+                      {entry.lodgingAssignments?.map((la) => (
+                        <span
+                          key={`lodg-${la.lodging.id}`}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+                        >
+                          🏨 {la.lodging.name}
+                        </span>
+                      ))}
+                      {entry.transportationAssignments?.map((ta) => (
+                        <span
+                          key={`trans-${ta.transportation.id}`}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+                        >
+                          🚗 {ta.transportation.type}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="prose prose-sm max-w-none">
-                    <p className="text-gray-700 whitespace-pre-wrap">
+                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                       {isExpanded
                         ? entry.content
                         : truncateContent(entry.content)}
@@ -319,7 +500,7 @@ Tell your story!"
                   )}
                 </div>
 
-                <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 dark:text-gray-400">
+                <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400">
                   {entry.updatedAt !== entry.createdAt
                     ? `Last edited ${new Date(
                         entry.updatedAt

@@ -9,7 +9,11 @@ interface TagsModalProps {
   onTagsUpdated: () => void;
 }
 
-export default function TagsModal({ tripId, onClose, onTagsUpdated }: TagsModalProps) {
+export default function TagsModal({
+  tripId,
+  onClose,
+  onTagsUpdated,
+}: TagsModalProps) {
   const [tripTags, setTripTags] = useState<TripTag[]>([]);
   const [allTags, setAllTags] = useState<TripTag[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,10 +105,22 @@ export default function TagsModal({ tripId, onClose, onTagsUpdated }: TagsModalP
           </h2>
           <button
             onClick={onClose}
+            type="button"
+            aria-label="Close"
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -113,7 +129,9 @@ export default function TagsModal({ tripId, onClose, onTagsUpdated }: TagsModalP
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400">Loading tags...</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                Loading tags...
+              </p>
             </div>
           ) : (
             <>
@@ -134,16 +152,28 @@ export default function TagsModal({ tripId, onClose, onTagsUpdated }: TagsModalP
                         className="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium"
                         style={{
                           backgroundColor: tag.color || "#3B82F6",
-                          color: tag.textColor || "#FFFFFF"
+                          color: tag.textColor || "#FFFFFF",
                         }}
                       >
                         <span>{tag.name}</span>
                         <button
                           onClick={() => handleRemoveTag(tag.id)}
+                          type="button"
+                          aria-label={`Remove tag ${tag.name}`}
                           className="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5"
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -158,8 +188,12 @@ export default function TagsModal({ tripId, onClose, onTagsUpdated }: TagsModalP
                   Create New Tag
                 </h3>
                 <form onSubmit={handleCreateTag} className="space-y-3">
+                  <label htmlFor="tag-name-input" className="sr-only">
+                    Tag name
+                  </label>
                   <input
                     type="text"
+                    id="tag-name-input"
                     value={newTagName}
                     onChange={(e) => setNewTagName(e.target.value)}
                     placeholder="Tag name"
@@ -167,22 +201,30 @@ export default function TagsModal({ tripId, onClose, onTagsUpdated }: TagsModalP
                   />
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label
+                        htmlFor="tag-background-color"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
                         Background Color
                       </label>
                       <input
                         type="color"
+                        id="tag-background-color"
                         value={newTagColor}
                         onChange={(e) => setNewTagColor(e.target.value)}
                         className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label
+                        htmlFor="tag-text-color"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
                         Text Color
                       </label>
                       <input
                         type="color"
+                        id="tag-text-color"
                         value={newTagTextColor}
                         onChange={(e) => setNewTagTextColor(e.target.value)}
                         className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
@@ -209,7 +251,9 @@ export default function TagsModal({ tripId, onClose, onTagsUpdated }: TagsModalP
                 />
                 {filteredAvailableTags.length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    {searchQuery ? "No tags found matching your search." : "All tags are already added to this trip."}
+                    {searchQuery
+                      ? "No tags found matching your search."
+                      : "All tags are already added to this trip."}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -229,6 +273,8 @@ export default function TagsModal({ tripId, onClose, onTagsUpdated }: TagsModalP
                         </div>
                         <button
                           onClick={() => handleAddTag(tag.id)}
+                          type="button"
+                          aria-label={`Add tag ${tag.name}`}
                           className="btn btn-primary text-sm"
                         >
                           Add to Trip

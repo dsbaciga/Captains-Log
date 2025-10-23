@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
-import type { Activity } from '../types/activity';
-import type { Location } from '../types/location';
-import type { ActivityCategory } from '../types/user';
-import activityService from '../services/activity.service';
-import userService from '../services/user.service';
-import toast from 'react-hot-toast';
-import AssociatedAlbums from './AssociatedAlbums';
-import { formatDateTimeInTimezone } from '../utils/timezone';
-import { useFormFields } from '../hooks/useFormFields';
-import EmptyState from './EmptyState';
-import TimezoneSelect from './TimezoneSelect';
-import CostCurrencyFields from './CostCurrencyFields';
-import BookingFields from './BookingFields';
+import { useState, useEffect } from "react";
+import type { Activity } from "../types/activity";
+import type { Location } from "../types/location";
+import type { ActivityCategory } from "../types/user";
+import activityService from "../services/activity.service";
+import userService from "../services/user.service";
+import toast from "react-hot-toast";
+import AssociatedAlbums from "./AssociatedAlbums";
+import { formatDateTimeInTimezone } from "../utils/timezone";
+import { useFormFields } from "../hooks/useFormFields";
+import EmptyState from "./EmptyState";
+import TimezoneSelect from "./TimezoneSelect";
+import CostCurrencyFields from "./CostCurrencyFields";
+import BookingFields from "./BookingFields";
 
 interface UnscheduledActivitiesProps {
   tripId: number;
@@ -62,13 +62,16 @@ export default function UnscheduledActivities({
   tripId,
   locations,
   tripTimezone,
-  onActivityUpdated
+  onActivityUpdated,
 }: UnscheduledActivitiesProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
+  const [activityCategories, setActivityCategories] = useState<
+    ActivityCategory[]
+  >([]);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const { values, handleChange, reset } = useFormFields<ActivityFormFields>(initialFormState);
+  const { values, handleChange, reset } =
+    useFormFields<ActivityFormFields>(initialFormState);
 
   useEffect(() => {
     loadActivities();
@@ -80,7 +83,7 @@ export default function UnscheduledActivities({
       const user = await userService.getMe();
       setActivityCategories(user.activityCategories || []);
     } catch (error) {
-      console.error('Failed to load activity categories');
+      console.error("Failed to load activity categories");
     }
   };
 
@@ -88,10 +91,10 @@ export default function UnscheduledActivities({
     try {
       const data = await activityService.getActivitiesByTrip(tripId);
       // Filter for unscheduled activities (no start time and not all day)
-      const unscheduled = data.filter(a => !a.startTime && !a.allDay);
+      const unscheduled = data.filter((a) => !a.startTime && !a.allDay);
       setActivities(unscheduled);
     } catch (error) {
-      toast.error('Failed to load activities');
+      toast.error("Failed to load activities");
     }
   };
 
@@ -215,7 +218,8 @@ export default function UnscheduledActivities({
       </div>
 
       <p className="text-sm text-gray-600 dark:text-gray-400">
-        These are activities without scheduled dates/times. Add times to move them to the main Activities tab.
+        These are activities without scheduled dates/times. Add times to move
+        them to the main Activities tab.
       </p>
 
       {editingId && (
@@ -225,11 +229,15 @@ export default function UnscheduledActivities({
             {/* Name and Category */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="unscheduled-activity-name"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Name *
                 </label>
                 <input
                   type="text"
+                  id="unscheduled-activity-name"
                   value={values.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   className="input"
@@ -238,10 +246,14 @@ export default function UnscheduledActivities({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="unscheduled-activity-category"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Category
                 </label>
                 <select
+                  id="unscheduled-activity-category"
                   value={values.category}
                   onChange={(e) => handleChange("category", e.target.value)}
                   className="input"
@@ -258,26 +270,38 @@ export default function UnscheduledActivities({
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="unscheduled-activity-description"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Description
               </label>
               <textarea
+                id="unscheduled-activity-description"
                 value={values.description}
                 onChange={(e) => handleChange("description", e.target.value)}
                 className="input"
                 rows={2}
+                placeholder="Activity description"
               />
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="unscheduled-activity-location"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Location
               </label>
               <select
+                id="unscheduled-activity-location"
                 value={values.locationId || ""}
                 onChange={(e) =>
-                  handleChange("locationId", e.target.value ? parseInt(e.target.value) : undefined)
+                  handleChange(
+                    "locationId",
+                    e.target.value ? parseInt(e.target.value) : undefined
+                  )
                 }
                 className="input"
               >
@@ -299,7 +323,10 @@ export default function UnscheduledActivities({
                 onChange={(e) => handleChange("allDay", e.target.checked)}
                 className="rounded"
               />
-              <label htmlFor="allDay" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="allDay"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 All-day activity
               </label>
             </div>
@@ -308,22 +335,30 @@ export default function UnscheduledActivities({
             {values.allDay ? (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="unscheduled-activity-start-date"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Start Date
                   </label>
                   <input
                     type="date"
+                    id="unscheduled-activity-start-date"
                     value={values.startDate}
                     onChange={(e) => handleChange("startDate", e.target.value)}
                     className="input"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="unscheduled-activity-end-date"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     End Date
                   </label>
                   <input
                     type="date"
+                    id="unscheduled-activity-end-date"
                     value={values.endDate}
                     onChange={(e) => handleChange("endDate", e.target.value)}
                     className="input"
@@ -333,37 +368,53 @@ export default function UnscheduledActivities({
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="unscheduled-activity-start-date-time"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Start Time
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="date"
+                      id="unscheduled-activity-start-date-time"
                       value={values.startDate}
-                      onChange={(e) => handleChange("startDate", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("startDate", e.target.value)
+                      }
                       className="input flex-1"
                     />
                     <input
                       type="time"
+                      id="unscheduled-activity-start-time"
+                      aria-label="Start time"
                       value={values.startTime}
-                      onChange={(e) => handleChange("startTime", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("startTime", e.target.value)
+                      }
                       className="input flex-1"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="unscheduled-activity-end-date-time"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     End Time
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="date"
+                      id="unscheduled-activity-end-date-time"
                       value={values.endDate}
                       onChange={(e) => handleChange("endDate", e.target.value)}
                       className="input flex-1"
                     />
                     <input
                       type="time"
+                      id="unscheduled-activity-end-time"
+                      aria-label="End time"
                       value={values.endTime}
                       onChange={(e) => handleChange("endTime", e.target.value)}
                       className="input flex-1"
@@ -384,7 +435,9 @@ export default function UnscheduledActivities({
             <BookingFields
               confirmationNumber={values.bookingReference}
               bookingUrl={values.bookingUrl}
-              onConfirmationNumberChange={(value) => handleChange("bookingReference", value)}
+              onConfirmationNumberChange={(value) =>
+                handleChange("bookingReference", value)
+              }
               onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
               confirmationLabel="Booking Reference"
             />
@@ -399,10 +452,14 @@ export default function UnscheduledActivities({
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="unscheduled-activity-notes"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Notes
               </label>
               <textarea
+                id="unscheduled-activity-notes"
                 value={values.notes}
                 onChange={(e) => handleChange("notes", e.target.value)}
                 className="input"
@@ -446,7 +503,9 @@ export default function UnscheduledActivities({
                   <div className="flex items-center gap-2 mb-2">
                     {activity.category && (
                       <span className="text-xl">
-                        {activityCategories.find((c) => c.name === activity.category)?.emoji || "📍"}
+                        {activityCategories.find(
+                          (c) => c.name === activity.category
+                        )?.emoji || "📍"}
                       </span>
                     )}
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -522,12 +581,12 @@ export default function UnscheduledActivities({
                 {/* Actions */}
                 <div className="flex items-center gap-2 ml-4">
                   <AssociatedAlbums
-                    entityType="activity"
-                    entityId={activity.id}
+                    albums={activity.photoAlbums}
                     tripId={tripId}
                   />
                   <button
                     onClick={() => handleEdit(activity)}
+                    type="button"
                     className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     {editingId === activity.id ? "Cancel" : "Edit"}
