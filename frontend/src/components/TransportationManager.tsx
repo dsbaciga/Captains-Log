@@ -568,8 +568,8 @@ export default function TransportationManager({
                 {/* Actions */}
                 <div className="flex items-center gap-2 ml-4">
                   <JournalEntriesButton
-                    entityType="transportation"
-                    entityId={transportation.id}
+                    journalEntries={transportation.journalAssignments}
+                    tripId={tripId}
                   />
                   <button
                     onClick={() => handleEdit(transportation)}

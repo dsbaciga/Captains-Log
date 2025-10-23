@@ -423,8 +423,8 @@ export default function ActivityManager({
               tripId={tripId}
             />
             <JournalEntriesButton
-              entityType="activity"
-              entityId={activity.id}
+              journalEntries={activity.journalAssignments}
+              tripId={tripId}
             />
             <button
               onClick={() => handleEdit(activity)}

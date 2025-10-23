@@ -547,8 +547,8 @@ export default function LodgingManager({
                     tripId={tripId}
                   />
                   <JournalEntriesButton
-                    entityType="lodging"
-                    entityId={lodging.id}
+                    journalEntries={lodging.journalAssignments}
+                    tripId={tripId}
                   />
                   <button
                     onClick={() => handleEdit(lodging)}
