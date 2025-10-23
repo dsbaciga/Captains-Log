@@ -1,6 +1,6 @@
 # Captain's Log - Implementation Status
 
-Last Updated: 2025-10-16
+Last Updated: 2025-10-23
 
 ## ✅ Completed Features
 
@@ -177,7 +177,16 @@ Last Updated: 2025-10-16
 
 ## 🚧 Known Issues & Recent Fixes
 
-### Recently Fixed
+### Recently Fixed (v1.3.3 - 2025-10-23)
+
+- ✅ JournalManager service method calls (getLodgingByTrip, getTransportationByTrip)
+- ✅ ActivityManager AssociatedAlbums props (updated to use albums array)
+- ✅ LodgingManager AssociatedAlbums props (updated to use albums array)
+- ✅ UnscheduledActivities AssociatedAlbums props (updated to use albums array)
+- ✅ TypeScript compilation errors in manager components
+- ✅ AssociatedAlbums component prop mismatches after refactoring
+
+### Previously Fixed
 
 - ✅ Prisma Client schema sync issues (resolved with migrations and regeneration)
 - ✅ PhotoAlbum coverPhoto field error (removed invalid field)
