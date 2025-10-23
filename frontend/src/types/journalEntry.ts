@@ -1,16 +1,14 @@
 export type JournalEntry = {
   id: number;
   tripId: number;
-  locationId: number | null;
-  title: string;
+  date: string | null;
+  title: string | null;
   content: string;
-  entryDate: string;
+  entryType: string;
+  mood: string | null;
+  weatherNotes: string | null;
   createdAt: string;
   updatedAt: string;
-  location?: {
-    id: number;
-    name: string;
-  };
   locationAssignments?: {
     id: number;
     location: {

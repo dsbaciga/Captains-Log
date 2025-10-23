@@ -171,15 +171,17 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
 
       // Add journal entries
       journal.forEach((entry) => {
-        items.push({
-          id: entry.id,
-          type: 'journal',
-          dateTime: new Date(entry.entryDate),
-          title: entry.title,
-          description: entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : ''),
-          location: entry.location?.name,
-          data: entry,
-        });
+        if (entry.date) {
+          items.push({
+            id: entry.id,
+            type: 'journal',
+            dateTime: new Date(entry.date),
+            title: entry.title || 'Untitled Entry',
+            description: entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : ''),
+            location: entry.locationAssignments?.[0]?.location?.name,
+            data: entry,
+          });
+        }
       });
 
       // Sort by date/time

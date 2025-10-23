@@ -3,19 +3,45 @@ import { z } from 'zod';
 export interface JournalEntry {
   id: number;
   tripId: number;
-  locationId: number | null;
-  title: string;
+  date: Date | null;
+  title: string | null;
   content: string;
-  entryDate: Date;
+  entryType: string;
+  mood: string | null;
+  weatherNotes: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface JournalEntryWithLocation extends JournalEntry {
-  location?: {
+export interface JournalEntryWithAssociations extends JournalEntry {
+  locationAssignments?: Array<{
     id: number;
-    name: string;
-  };
+    location: {
+      id: number;
+      name: string;
+    };
+  }>;
+  activityAssignments?: Array<{
+    id: number;
+    activity: {
+      id: number;
+      name: string;
+    };
+  }>;
+  lodgingAssignments?: Array<{
+    id: number;
+    lodging: {
+      id: number;
+      name: string;
+    };
+  }>;
+  transportationAssignments?: Array<{
+    id: number;
+    transportation: {
+      id: number;
+      type: string;
+    };
+  }>;
 }
 
 // Validation schemas
@@ -28,6 +54,7 @@ export const createJournalEntrySchema = z.object({
   title: z.string().min(1).max(500),
   content: z.string().min(1),
   entryDate: z.string().optional(),
+  entryType: z.string().optional(), // Optional, defaults to 'daily' in service
 });
 
 export const updateJournalEntrySchema = z.object({

@@ -65,9 +65,10 @@ class JournalEntryService {
       const entry = await tx.journalEntry.create({
         data: {
           tripId: data.tripId,
-          title: data.title,
+          title: data.title || null,
           content: data.content,
-          entryDate: data.entryDate ? new Date(data.entryDate) : new Date(),
+          date: data.entryDate ? new Date(data.entryDate) : new Date(),
+          entryType: data.entryType || 'daily', // Default to daily entry type
         },
       });
 
@@ -371,16 +372,21 @@ class JournalEntryService {
     // Update journal entry and sync all associations in a transaction
     const updatedEntry = await prisma.$transaction(async (tx) => {
       // Update the journal entry itself
+      const updateData: any = {};
+
+      if (data.title !== undefined) {
+        updateData.title = data.title || null;
+      }
+      if (data.content !== undefined) {
+        updateData.content = data.content;
+      }
+      if (data.entryDate !== undefined) {
+        updateData.date = data.entryDate ? new Date(data.entryDate) : null;
+      }
+
       await tx.journalEntry.update({
         where: { id: entryId },
-        data: {
-          title: data.title,
-          content: data.content,
-          entryDate:
-            data.entryDate !== undefined
-              ? new Date(data.entryDate)
-              : undefined,
-        },
+        data: updateData,
       });
 
       // Sync location associations (delete old, create new)

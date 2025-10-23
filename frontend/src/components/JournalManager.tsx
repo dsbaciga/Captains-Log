@@ -88,14 +88,14 @@ export default function JournalManager({
   const handleEdit = (entry: JournalEntry) => {
     setEditingId(entry.id);
     setAllFields({
-      title: entry.title,
+      title: entry.title || "",
       content: entry.content,
       locationIds: entry.locationAssignments?.map(la => la.location.id) || [],
       activityIds: entry.activityAssignments?.map(aa => aa.activity.id) || [],
       lodgingIds: entry.lodgingAssignments?.map(la => la.lodging.id) || [],
       transportationIds: entry.transportationAssignments?.map(ta => ta.transportation.id) || [],
-      entryDate: entry.entryDate
-        ? new Date(entry.entryDate).toISOString().slice(0, 16)
+      entryDate: entry.date
+        ? new Date(entry.date).toISOString().slice(0, 16)
         : "",
     });
     setShowForm(true);
@@ -420,10 +420,10 @@ Tell your story!"
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-                        {entry.title}
+                        {entry.title || "Untitled Entry"}
                       </h3>
                       <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                        <span>📅 {formatDate(entry.entryDate)}</span>
+                        {entry.date && <span>📅 {formatDate(entry.date)}</span>}
                       </div>
                     </div>
                     <div className="flex gap-2">
