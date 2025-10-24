@@ -101,7 +101,7 @@ export default function JournalEntriesButton({
                 {journalEntries.map(({ journal }) => (
                   <Link
                     key={journal.id}
-                    to={`/trips/${tripId}/journal`}
+                    to={`/trips/${tripId}?tab=journal`}
                     onClick={() => setShowModal(false)}
                     className="block p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
                   >
@@ -133,7 +133,7 @@ export default function JournalEntriesButton({
             {/* Footer */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <Link
-                to={`/trips/${tripId}/journal`}
+                to={`/trips/${tripId}?tab=journal`}
                 onClick={() => setShowModal(false)}
                 className="btn btn-primary w-full"
               >

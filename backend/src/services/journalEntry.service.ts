@@ -5,11 +5,13 @@ import {
   UpdateJournalEntryInput,
 } from '../types/journalEntry.types';
 import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
+import { fromZonedTime } from 'date-fns-tz';
+import { parseISO } from 'date-fns';
 
 class JournalEntryService {
   async createJournalEntry(userId: number, data: CreateJournalEntryInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    // Verify user owns the trip and get trip timezone
+    const trip = await verifyTripAccess(userId, data.tripId);
 
     // Verify locations belong to trip if provided
     if (data.locationIds && data.locationIds.length > 0) {
@@ -55,6 +57,26 @@ class JournalEntryService {
       }
     }
 
+    // Parse entry date with trip timezone
+    let entryDate: Date;
+    if (data.entryDate) {
+      // If trip has timezone, convert from that timezone to UTC for storage
+      if (trip.timezone) {
+        try {
+          // Parse the ISO string and interpret it as being in the trip's timezone
+          const parsedDate = parseISO(data.entryDate);
+          entryDate = fromZonedTime(parsedDate, trip.timezone);
+        } catch (error) {
+          console.error('Error parsing date with timezone:', error);
+          entryDate = new Date(data.entryDate);
+        }
+      } else {
+        entryDate = new Date(data.entryDate);
+      }
+    } else {
+      entryDate = new Date();
+    }
+
     // Create journal entry and all associations in a transaction
     const journalEntry = await prisma.$transaction(async (tx) => {
       const entry = await tx.journalEntry.create({
@@ -62,7 +84,7 @@ class JournalEntryService {
           tripId: data.tripId,
           title: data.title || null,
           content: data.content,
-          date: data.entryDate ? new Date(data.entryDate) : new Date(),
+          date: entryDate,
           entryType: data.entryType || 'daily', // Default to daily entry type
         },
       });
@@ -356,7 +378,22 @@ class JournalEntryService {
         updateData.content = data.content;
       }
       if (data.entryDate !== undefined) {
-        updateData.date = data.entryDate ? new Date(data.entryDate) : null;
+        if (data.entryDate) {
+          // Parse date with trip timezone if available
+          if (entry?.trip?.timezone) {
+            try {
+              const parsedDate = parseISO(data.entryDate);
+              updateData.date = fromZonedTime(parsedDate, entry.trip.timezone);
+            } catch (error) {
+              console.error('Error parsing date with timezone:', error);
+              updateData.date = new Date(data.entryDate);
+            }
+          } else {
+            updateData.date = new Date(data.entryDate);
+          }
+        } else {
+          updateData.date = null;
+        }
       }
 
       await tx.journalEntry.update({

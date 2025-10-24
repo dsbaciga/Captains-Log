@@ -41,7 +41,7 @@ export default function AssociatedJournalEntries({
         {journalEntries.map(({ journal }) => (
           <Link
             key={journal.id}
-            to={`/trips/${tripId}/journal`}
+            to={`/trips/${tripId}?tab=journal`}
             className="block p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
           >
             <div className="flex items-start justify-between">

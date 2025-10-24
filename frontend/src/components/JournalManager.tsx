@@ -15,12 +15,14 @@ import { useManagerCRUD } from "../hooks/useManagerCRUD";
 
 interface JournalManagerProps {
   tripId: number;
+  tripTimezone?: string;
   locations: Location[];
   onUpdate?: () => void;
 }
 
 export default function JournalManager({
   tripId,
+  tripTimezone,
   locations,
   onUpdate,
 }: JournalManagerProps) {

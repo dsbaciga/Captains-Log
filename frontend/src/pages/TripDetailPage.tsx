@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import locationService from '../services/location.service';
 import photoService from '../services/photo.service';
@@ -40,6 +40,7 @@ import { usePagination } from '../hooks/usePagination';
 export default function TripDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
@@ -69,7 +70,9 @@ export default function TripDetailPage() {
   const [locationNotes, setLocationNotes] = useState('');
   const [locationLatitude, setLocationLatitude] = useState<number | undefined>();
   const [locationLongitude, setLocationLongitude] = useState<number | undefined>();
-  const [activeTab, setActiveTab] = useState<'timeline' | 'locations' | 'photos' | 'activities' | 'unscheduled' | 'transportation' | 'lodging' | 'journal' | 'companions'>('timeline');
+  // Initialize activeTab from URL parameter or default to 'timeline'
+  const initialTab = searchParams.get('tab') as 'timeline' | 'locations' | 'photos' | 'activities' | 'unscheduled' | 'transportation' | 'lodging' | 'journal' | 'companions' || 'timeline';
+  const [activeTab, setActiveTab] = useState<'timeline' | 'locations' | 'photos' | 'activities' | 'unscheduled' | 'transportation' | 'lodging' | 'journal' | 'companions'>(initialTab);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
 
@@ -120,6 +123,12 @@ export default function TripDetailPage() {
     }
     loadUserTimezone();
   }, [id]);
+
+  // Function to change tabs and update URL
+  const changeTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   // Load photos when trip is set
   useEffect(() => {
@@ -619,7 +628,7 @@ export default function TripDetailPage() {
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="flex -mb-px">
               <button
-                onClick={() => setActiveTab('timeline')}
+                onClick={() => changeTab('timeline')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'timeline'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -629,7 +638,7 @@ export default function TripDetailPage() {
                 <span>Timeline</span>
               </button>
               <button
-                onClick={() => setActiveTab('locations')}
+                onClick={() => changeTab('locations')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'locations'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -640,7 +649,7 @@ export default function TripDetailPage() {
                 <span className="text-xs mt-1">({locations.length})</span>
               </button>
               <button
-                onClick={() => setActiveTab('photos')}
+                onClick={() => changeTab('photos')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'photos'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -651,7 +660,7 @@ export default function TripDetailPage() {
                 <span className="text-xs mt-1">({totalPhotosCount})</span>
               </button>
               <button
-                onClick={() => setActiveTab('activities')}
+                onClick={() => changeTab('activities')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'activities'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -662,7 +671,7 @@ export default function TripDetailPage() {
                 <span className="text-xs mt-1">({activitiesCount})</span>
               </button>
               <button
-                onClick={() => setActiveTab('unscheduled')}
+                onClick={() => changeTab('unscheduled')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'unscheduled'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -673,7 +682,7 @@ export default function TripDetailPage() {
                 <span className="text-xs mt-1">({unscheduledCount})</span>
               </button>
               <button
-                onClick={() => setActiveTab('transportation')}
+                onClick={() => changeTab('transportation')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'transportation'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -684,7 +693,7 @@ export default function TripDetailPage() {
                 <span className="text-xs mt-1">({transportationCount})</span>
               </button>
               <button
-                onClick={() => setActiveTab('lodging')}
+                onClick={() => changeTab('lodging')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'lodging'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -695,7 +704,7 @@ export default function TripDetailPage() {
                 <span className="text-xs mt-1">({lodgingCount})</span>
               </button>
               <button
-                onClick={() => setActiveTab('journal')}
+                onClick={() => changeTab('journal')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'journal'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -706,7 +715,7 @@ export default function TripDetailPage() {
                 <span className="text-xs mt-1">({journalCount})</span>
               </button>
               <button
-                onClick={() => setActiveTab('companions')}
+                onClick={() => changeTab('companions')}
                 className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
                   activeTab === 'companions'
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -1094,6 +1103,7 @@ export default function TripDetailPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <JournalManager
               tripId={trip.id}
+              tripTimezone={trip.timezone || undefined}
               locations={locations}
               onUpdate={() => loadTripData(trip.id)}
             />

@@ -171,18 +171,26 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
         }
       });
 
-      // Add journal entries
+      // Add journal entries (only if they're NOT associated with other entities)
       journal.forEach((entry) => {
         if (entry.date) {
-          items.push({
-            id: entry.id,
-            type: 'journal',
-            dateTime: new Date(entry.date),
-            title: entry.title || 'Untitled Entry',
-            description: entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : ''),
-            location: entry.locationAssignments?.[0]?.location?.name,
-            data: entry,
-          });
+          // Check if this journal entry is linked to any activities, lodging, or transportation
+          const hasActivityLinks = (entry.activityAssignments?.length || 0) > 0;
+          const hasLodgingLinks = (entry.lodgingAssignments?.length || 0) > 0;
+          const hasTransportationLinks = (entry.transportationAssignments?.length || 0) > 0;
+
+          // Only add to timeline if it's a standalone journal entry
+          if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
+            items.push({
+              id: entry.id,
+              type: 'journal',
+              dateTime: new Date(entry.date),
+              title: entry.title || 'Untitled Entry',
+              description: entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : ''),
+              location: entry.locationAssignments?.[0]?.location?.name,
+              data: entry,
+            });
+          }
         }
       });
 
@@ -383,10 +391,9 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
                       </div>
                       <div className="space-y-2">
                         {item.data.journalAssignments.map((assignment: any) => (
-                          <button
+                          <div
                             key={assignment.id}
-                            onClick={() => navigate(`/trips/${tripId}/journal`)}
-                            className="w-full text-left text-sm bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded p-2 transition-colors cursor-pointer"
+                            className="w-full text-left text-sm bg-orange-50 dark:bg-orange-900/20 rounded p-2"
                           >
                             <div className="font-medium text-gray-900 dark:text-white">
                               {assignment.journal.title || 'Untitled Entry'}
@@ -397,7 +404,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
                                 {assignment.journal.content.length > 100 ? '...' : ''}
                               </div>
                             )}
-                          </button>
+                          </div>
                         ))}
                       </div>
                     </div>

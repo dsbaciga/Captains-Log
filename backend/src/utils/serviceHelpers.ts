@@ -13,11 +13,12 @@ import { AppError } from './errors';
 /**
  * Verifies user owns the trip
  * @throws {AppError} 404 if trip not found or access denied
+ * @returns The trip if access is granted
  */
 export async function verifyTripAccess(
   userId: number,
   tripId: number
-): Promise<void> {
+) {
   const trip = await prisma.trip.findFirst({
     where: { id: tripId, userId },
   });
@@ -25,6 +26,8 @@ export async function verifyTripAccess(
   if (!trip) {
     throw new AppError('Trip not found or access denied', 404);
   }
+
+  return trip;
 }
 
 /**
