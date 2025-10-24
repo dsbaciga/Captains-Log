@@ -64,13 +64,6 @@ export default function AlbumDetailPage() {
     loadTripData();
   }, [albumId, tripId]);
 
-  // Load photos when album state is set (after metadata loads)
-  useEffect(() => {
-    if (album?.id) {
-      photosPagination.loadInitial();
-    }
-  }, [album?.id]);
-
   const loadTripData = async () => {
     if (!tripId) return;
 
@@ -106,12 +99,13 @@ export default function AlbumDetailPage() {
       setLocationId(data.locationId || null);
       setActivityId(data.activityId || null);
       setLodgingId(data.lodgingId || null);
-
-      // Photos are loaded via separate useEffect watching albumId
     } catch (error) {
       console.error("Failed to load album:", error);
     } finally {
       setIsLoading(false);
+      // Load photos after loading state is cleared
+      // This ensures the component is fully rendered before pagination loads
+      photosPagination.loadInitial();
     }
   };
 
