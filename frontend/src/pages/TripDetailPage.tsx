@@ -84,7 +84,7 @@ export default function TripDetailPage() {
         hasMore: result.hasMore,
       };
     },
-    { pageSize: 40, enabled: false }
+    { pageSize: 40, enabled: true }
   );
 
   const unsortedPagination = usePagination<Photo>(
@@ -97,7 +97,7 @@ export default function TripDetailPage() {
         hasMore: result.hasMore,
       };
     },
-    { pageSize: 40, enabled: false }
+    { pageSize: 40, enabled: true }
   );
 
   const albumPhotosPagination = usePagination<Photo>(
@@ -111,7 +111,7 @@ export default function TripDetailPage() {
         hasMore: result.hasMore || false,
       };
     },
-    { pageSize: 40, enabled: false }
+    { pageSize: 40, enabled: true }
   );
 
   useEffect(() => {

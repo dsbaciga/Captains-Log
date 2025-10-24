@@ -53,7 +53,7 @@ export default function AlbumDetailPage() {
         hasMore: data.hasMore || false,
       };
     },
-    { pageSize: 40, enabled: false }
+    { pageSize: 40, enabled: true }
   );
 
   useEffect(() => {
