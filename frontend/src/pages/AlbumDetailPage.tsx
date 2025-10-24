@@ -1,4 +1,4 @@
-import { useEffect, useState, useId } from "react";
+import { useEffect, useState, useId, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { AlbumWithPhotos, Photo } from "../types/photo";
 import type { Location } from "../types/location";
@@ -30,29 +30,32 @@ export default function AlbumDetailPage() {
   const activitySelectId = useId();
   const lodgingSelectId = useId();
 
+  // Memoized load function for pagination
+  const loadPhotos = useCallback(async (skip: number, take: number) => {
+    if (!albumId) return { items: [], total: 0, hasMore: false };
+
+    const data = await photoService.getAlbumById(parseInt(albumId), {
+      skip,
+      take,
+    });
+
+    console.log('[AlbumDetailPage] Loaded album data:', {
+      skip,
+      photosCount: data.photos?.length || 0,
+      hasMore: data.hasMore,
+      total: data.total,
+    });
+
+    return {
+      items: data.photos.map(p => p.photo),
+      total: data.total || 0,
+      hasMore: data.hasMore || false,
+    };
+  }, [albumId]);
+
   // Pagination hook for album photos
   const photosPagination = usePagination<Photo>(
-    async (skip, take) => {
-      if (!albumId) return { items: [], total: 0, hasMore: false };
-
-      const data = await photoService.getAlbumById(parseInt(albumId), {
-        skip,
-        take,
-      });
-
-      console.log('[AlbumDetailPage] Loaded album data:', {
-        skip,
-        photosCount: data.photos?.length || 0,
-        hasMore: data.hasMore,
-        total: data.total,
-      });
-
-      return {
-        items: data.photos.map(p => p.photo),
-        total: data.total || 0,
-        hasMore: data.hasMore || false,
-      };
-    },
+    loadPhotos,
     { pageSize: 40, enabled: true }
   );
 
@@ -60,6 +63,13 @@ export default function AlbumDetailPage() {
     loadAlbum();
     loadTripData();
   }, [albumId, tripId]);
+
+  // Load photos when albumId changes (separate from loadAlbum metadata)
+  useEffect(() => {
+    if (albumId) {
+      photosPagination.loadInitial();
+    }
+  }, [albumId, photosPagination.loadInitial]);
 
   const loadTripData = async () => {
     if (!tripId) return;
@@ -97,8 +107,7 @@ export default function AlbumDetailPage() {
       setActivityId(data.activityId || null);
       setLodgingId(data.lodgingId || null);
 
-      // Load photos via pagination hook
-      photosPagination.loadInitial();
+      // Photos are loaded via separate useEffect watching albumId
     } catch (error) {
       console.error("Failed to load album:", error);
     } finally {
