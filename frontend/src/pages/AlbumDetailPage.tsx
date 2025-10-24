@@ -60,6 +60,8 @@ export default function AlbumDetailPage() {
   );
 
   useEffect(() => {
+    // Clear previous album's photos before loading new album
+    photosPagination.clear();
     loadAlbum();
     loadTripData();
   }, [albumId, tripId]);
