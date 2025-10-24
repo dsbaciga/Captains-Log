@@ -64,12 +64,12 @@ export default function AlbumDetailPage() {
     loadTripData();
   }, [albumId, tripId]);
 
-  // Load photos when albumId changes (separate from loadAlbum metadata)
+  // Load photos when album state is set (after metadata loads)
   useEffect(() => {
-    if (albumId) {
+    if (album?.id) {
       photosPagination.loadInitial();
     }
-  }, [albumId, photosPagination.loadInitial]);
+  }, [album?.id]);
 
   const loadTripData = async () => {
     if (!tripId) return;
