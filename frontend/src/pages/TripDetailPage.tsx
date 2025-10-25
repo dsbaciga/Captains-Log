@@ -137,6 +137,21 @@ export default function TripDetailPage() {
     }
   }, [trip?.id]);
 
+  // Load photos when selected album changes
+  useEffect(() => {
+    if (!trip) return;
+
+    if (selectedAlbumId === null) {
+      // All Photos - already loaded by trip useEffect
+    } else if (selectedAlbumId === -1) {
+      // Unsorted photos
+      unsortedPagination.loadInitial();
+    } else if (selectedAlbumId > 0) {
+      // Specific album photos
+      albumPhotosPagination.loadInitial();
+    }
+  }, [selectedAlbumId, trip?.id]);
+
   // Update filtered photos based on selected album
   useEffect(() => {
     if (selectedAlbumId === null) {
@@ -283,17 +298,7 @@ export default function TripDetailPage() {
 
   const handleSelectAlbum = async (albumId: number | null) => {
     setSelectedAlbumId(albumId);
-
-    if (albumId === null) {
-      // Show all photos - filteredPhotos will update via useEffect
-    } else if (albumId === -1) {
-      // Load unsorted photos from backend
-      if (!trip) return;
-      unsortedPagination.loadInitial();
-    } else {
-      // Load photos for selected album
-      albumPhotosPagination.loadInitial();
-    }
+    // Loading will be triggered by useEffect below
   };
 
   const handleCreateAlbum = () => {
