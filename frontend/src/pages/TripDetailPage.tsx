@@ -141,6 +141,9 @@ export default function TripDetailPage() {
   useEffect(() => {
     if (!trip) return;
 
+    // Clear filtered photos IMMEDIATELY to prevent thumbnail loading race condition
+    setFilteredPhotos([]);
+
     // Clear non-active pagination states when switching views
     if (selectedAlbumId === null) {
       // All Photos - clear other paginations
