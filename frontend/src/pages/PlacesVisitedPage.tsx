@@ -141,8 +141,8 @@ export default function PlacesVisitedPage() {
                       {location.address && (
                         <p className="text-sm text-gray-600 mb-2">{location.address}</p>
                       )}
-                      {location.description && (
-                        <p className="text-sm text-gray-700 mt-2 border-t pt-2">{location.description}</p>
+                      {location.notes && (
+                        <p className="text-sm text-gray-700 mt-2 border-t pt-2">{location.notes}</p>
                       )}
                     </div>
                   </Popup>
@@ -186,29 +186,11 @@ export default function PlacesVisitedPage() {
                 </div>
               )}
 
-              {selectedLocation.trip && (
+              {selectedLocation.notes && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Trip</h4>
-                  <Link
-                    to={`/trips/${selectedLocation.trip.id}`}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    {selectedLocation.trip.title}
-                  </Link>
-                  {selectedLocation.trip.startDate && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {new Date(selectedLocation.trip.startDate).toLocaleDateString()}
-                      {selectedLocation.trip.endDate && ` - ${new Date(selectedLocation.trip.endDate).toLocaleDateString()}`}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {selectedLocation.description && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</h4>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                    {selectedLocation.description}
+                    {selectedLocation.notes}
                   </p>
                 </div>
               )}

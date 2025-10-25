@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import { TripStatus, PrivacyLevel } from '../types/trip';
-import type { Trip } from '../types/trip';
+import type { Trip, TripStatusType, PrivacyLevelType } from '../types/trip';
 import toast from 'react-hot-toast';
 
 export default function TripFormPage() {
@@ -16,8 +16,8 @@ export default function TripFormPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [timezone, setTimezone] = useState('');
-  const [status, setStatus] = useState(TripStatus.PLANNING);
-  const [privacyLevel, setPrivacyLevel] = useState(PrivacyLevel.PRIVATE);
+  const [status, setStatus] = useState<TripStatusType>(TripStatus.PLANNING);
+  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevelType>(PrivacyLevel.PRIVATE);
   const [addToPlacesVisited, setAddToPlacesVisited] = useState(true);
 
   useEffect(() => {
