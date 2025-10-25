@@ -141,13 +141,20 @@ export default function TripDetailPage() {
   useEffect(() => {
     if (!trip) return;
 
+    // Clear non-active pagination states when switching views
     if (selectedAlbumId === null) {
-      // All Photos - already loaded by trip useEffect
+      // All Photos - clear other paginations
+      unsortedPagination.clear();
+      albumPhotosPagination.clear();
     } else if (selectedAlbumId === -1) {
-      // Unsorted photos
+      // Unsorted photos - clear others and load
+      photosPagination.clear();
+      albumPhotosPagination.clear();
       unsortedPagination.loadInitial();
     } else if (selectedAlbumId > 0) {
-      // Specific album photos
+      // Specific album photos - clear others and load
+      photosPagination.clear();
+      unsortedPagination.clear();
       albumPhotosPagination.loadInitial();
     }
   }, [selectedAlbumId, trip?.id]);
