@@ -1,4 +1,4 @@
-import { useEffect, useState, useId, useCallback } from "react";
+import { useEffect, useState, useId } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { AlbumWithPhotos, Photo } from "../types/photo";
 import type { Location } from "../types/location";
@@ -30,32 +30,31 @@ export default function AlbumDetailPage() {
   const activitySelectId = useId();
   const lodgingSelectId = useId();
 
-  // Memoized load function for pagination
-  const loadPhotos = useCallback(async (skip: number, take: number) => {
-    if (!albumId) return { items: [], total: 0, hasMore: false };
-
-    const data = await photoService.getAlbumById(parseInt(albumId), {
-      skip,
-      take,
-    });
-
-    console.log('[AlbumDetailPage] Loaded album data:', {
-      skip,
-      photosCount: data.photos?.length || 0,
-      hasMore: data.hasMore,
-      total: data.total,
-    });
-
-    return {
-      items: data.photos.map(p => p.photo),
-      total: data.total || 0,
-      hasMore: data.hasMore || false,
-    };
-  }, [albumId]);
-
   // Pagination hook for album photos
+  // Load function defined inline to avoid stale closures with albumId
   const photosPagination = usePagination<Photo>(
-    loadPhotos,
+    async (skip, take) => {
+      if (!albumId) return { items: [], total: 0, hasMore: false };
+
+      const data = await photoService.getAlbumById(parseInt(albumId), {
+        skip,
+        take,
+      });
+
+      console.log('[AlbumDetailPage] Loaded album data:', {
+        albumId,
+        skip,
+        photosCount: data.photos?.length || 0,
+        hasMore: data.hasMore,
+        total: data.total,
+      });
+
+      return {
+        items: data.photos.map(p => p.photo),
+        total: data.total || 0,
+        hasMore: data.hasMore || false,
+      };
+    },
     { pageSize: 40, enabled: true }
   );
 
