@@ -46,12 +46,19 @@ export const BulkUpdateChecklistItemsSchema = z.object({
   ),
 });
 
+export const SelectiveChecklistOperationSchema = z.object({
+  types: z.array(z.enum(['airports', 'countries', 'cities', 'us_states'])),
+});
+
 // TypeScript Types
 export type ChecklistItem = z.infer<typeof ChecklistItemSchema>;
 export type CreateChecklist = z.infer<typeof CreateChecklistSchema>;
 export type UpdateChecklist = z.infer<typeof UpdateChecklistSchema>;
 export type UpdateChecklistItem = z.infer<typeof UpdateChecklistItemSchema>;
 export type BulkUpdateChecklistItems = z.infer<typeof BulkUpdateChecklistItemsSchema>;
+export type SelectiveChecklistOperation = z.infer<typeof SelectiveChecklistOperationSchema>;
+
+export type ChecklistType = 'airports' | 'countries' | 'cities' | 'us_states';
 
 export interface ChecklistWithItems {
   id: number;

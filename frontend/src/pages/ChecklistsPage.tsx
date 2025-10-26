@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Checklist } from '../types/checklist';
+import type { Checklist, DefaultChecklistStatus, ChecklistType } from '../types/checklist';
 import checklistService from '../services/checklist.service';
+import ChecklistSelectorModal from '../components/ChecklistSelectorModal';
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
@@ -13,9 +14,13 @@ export default function ChecklistsPage() {
   const [isAutoChecking, setIsAutoChecking] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [showSelectorModal, setShowSelectorModal] = useState(false);
+  const [selectorMode, setSelectorMode] = useState<'add' | 'remove'>('add');
+  const [defaultChecklistsStatus, setDefaultChecklistsStatus] = useState<DefaultChecklistStatus[]>([]);
 
   useEffect(() => {
     loadChecklists();
+    loadDefaultsStatus();
   }, []);
 
   const loadChecklists = async () => {
@@ -27,6 +32,15 @@ export default function ChecklistsPage() {
       alert('Failed to load checklists');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadDefaultsStatus = async () => {
+    try {
+      const status = await checklistService.getDefaultsStatus();
+      setDefaultChecklistsStatus(status);
+    } catch (error) {
+      console.error('Failed to load defaults status:', error);
     }
   };
 
@@ -124,12 +138,37 @@ export default function ChecklistsPage() {
     try {
       const result = await checklistService.restoreDefaults();
       await loadChecklists();
+      await loadDefaultsStatus();
       alert(`Successfully restored ${result.restored} default checklists`);
     } catch (error) {
       console.error('Failed to restore defaults:', error);
       alert('Failed to restore default checklists');
     } finally {
       setIsRestoring(false);
+    }
+  };
+
+  const handleOpenAddModal = () => {
+    setSelectorMode('add');
+    setShowSelectorModal(true);
+  };
+
+  const handleOpenRemoveModal = () => {
+    setSelectorMode('remove');
+    setShowSelectorModal(true);
+  };
+
+  const handleSelectorConfirm = async (selectedTypes: ChecklistType[]) => {
+    if (selectorMode === 'add') {
+      const result = await checklistService.addDefaults(selectedTypes);
+      await loadChecklists();
+      await loadDefaultsStatus();
+      alert(`Successfully added ${result.added} default checklists`);
+    } else {
+      const result = await checklistService.removeDefaultsByType(selectedTypes);
+      await loadChecklists();
+      await loadDefaultsStatus();
+      alert(`Successfully removed ${result.removed} default checklists`);
     }
   };
 
@@ -175,26 +214,24 @@ export default function ChecklistsPage() {
                 disabled={isInitializing}
                 className="btn btn-secondary"
               >
-                {isInitializing ? 'Initializing...' : 'Initialize Default Lists'}
+                {isInitializing ? 'Initializing...' : 'Initialize All Defaults'}
+              </button>
+            )}
+            {defaultChecklistsStatus.some(c => !c.exists) && (
+              <button
+                onClick={handleOpenAddModal}
+                className="btn btn-secondary text-green-600 dark:text-green-400"
+              >
+                + Add Defaults
               </button>
             )}
             {checklists.some(c => c.isDefault) && (
-              <>
-                <button
-                  onClick={handleRemoveDefaults}
-                  disabled={isRemoving}
-                  className="btn btn-secondary text-red-600 dark:text-red-400"
-                >
-                  {isRemoving ? 'Removing...' : 'Remove Defaults'}
-                </button>
-                <button
-                  onClick={handleRestoreDefaults}
-                  disabled={isRestoring}
-                  className="btn btn-secondary"
-                >
-                  {isRestoring ? 'Restoring...' : 'Restore Defaults'}
-                </button>
-              </>
+              <button
+                onClick={handleOpenRemoveModal}
+                className="btn btn-secondary text-red-600 dark:text-red-400"
+              >
+                - Remove Defaults
+              </button>
             )}
             <button
               onClick={handleAutoCheck}
@@ -334,6 +371,14 @@ export default function ChecklistsPage() {
             ))}
           </div>
         )}
+
+        <ChecklistSelectorModal
+          isOpen={showSelectorModal}
+          onClose={() => setShowSelectorModal(false)}
+          onConfirm={handleSelectorConfirm}
+          availableChecklists={defaultChecklistsStatus}
+          mode={selectorMode}
+        />
       </div>
     </div>
   );

@@ -6,6 +6,9 @@ import type {
   AddChecklistItemDTO,
   UpdateChecklistItemDTO,
   ChecklistItem,
+  DefaultChecklistStatus,
+  SelectiveChecklistOperationDTO,
+  ChecklistType,
 } from '../types/checklist';
 
 class ChecklistService {
@@ -101,6 +104,30 @@ class ChecklistService {
    */
   async restoreDefaults(): Promise<{ restored: number }> {
     const response = await axios.post(`${this.baseUrl}/defaults/restore`);
+    return response.data.data;
+  }
+
+  /**
+   * Get status of default checklists (which exist, which are available)
+   */
+  async getDefaultsStatus(): Promise<DefaultChecklistStatus[]> {
+    const response = await axios.get(`${this.baseUrl}/defaults/status`);
+    return response.data.data;
+  }
+
+  /**
+   * Add specific default checklists
+   */
+  async addDefaults(types: ChecklistType[]): Promise<{ added: number }> {
+    const response = await axios.post(`${this.baseUrl}/defaults/add`, { types });
+    return response.data.data;
+  }
+
+  /**
+   * Remove specific default checklists by type
+   */
+  async removeDefaultsByType(types: ChecklistType[]): Promise<{ removed: number }> {
+    const response = await axios.post(`${this.baseUrl}/defaults/remove`, { types });
     return response.data.data;
   }
 }

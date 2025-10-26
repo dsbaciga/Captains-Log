@@ -65,3 +65,16 @@ export interface AddChecklistItemDTO {
   description?: string | null;
   metadata?: any;
 }
+
+export type ChecklistType = 'airports' | 'countries' | 'cities' | 'us_states';
+
+export interface DefaultChecklistStatus {
+  type: ChecklistType;
+  name: string;
+  description: string;
+  exists: boolean;
+}
+
+export interface SelectiveChecklistOperationDTO {
+  types: ChecklistType[];
+}

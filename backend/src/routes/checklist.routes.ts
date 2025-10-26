@@ -25,4 +25,9 @@ router.post('/auto-check', checklistController.autoCheckFromTrips);
 router.delete('/defaults', checklistController.removeDefaults);
 router.post('/defaults/restore', checklistController.restoreDefaults);
 
+// Selective default checklist management
+router.get('/defaults/status', checklistController.getDefaultsStatus);
+router.post('/defaults/add', checklistController.addDefaults);
+router.post('/defaults/remove', checklistController.removeDefaultsByType);
+
 export default router;

@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
-import { CreateChecklist, UpdateChecklist, UpdateChecklistItem, ChecklistWithItems } from '../types/checklist.types';
+import { CreateChecklist, UpdateChecklist, UpdateChecklistItem, ChecklistWithItems, ChecklistType } from '../types/checklist.types';
 import { DEFAULT_AIRPORTS, DEFAULT_COUNTRIES, DEFAULT_CITIES, DEFAULT_US_STATES } from '../data/checklist-defaults';
 
 class ChecklistService {
@@ -95,10 +95,10 @@ class ChecklistService {
           ? {
               create: items.map((item, index) => ({
                 name: item.name,
-                description: item.description,
+                description: item.description ?? null,
                 isDefault: item.isDefault ?? false,
                 sortOrder: item.sortOrder ?? index,
-                metadata: item.metadata,
+                metadata: item.metadata || null,
               })),
             }
           : undefined,
@@ -133,7 +133,10 @@ class ChecklistService {
     await prisma.checklist.update({
       where: { id: checklistId },
       data: {
-        ...data,
+        name: data.name ?? undefined,
+        description: data.description ?? undefined,
+        type: data.type ?? undefined,
+        sortOrder: data.sortOrder ?? undefined,
         updatedAt: new Date(),
       },
     });
@@ -217,7 +220,11 @@ class ChecklistService {
     const updatedItem = await prisma.checklistItem.update({
       where: { id: itemId },
       data: {
-        ...data,
+        name: data.name ?? undefined,
+        description: data.description ?? undefined,
+        sortOrder: data.sortOrder ?? undefined,
+        isChecked: data.isChecked ?? undefined,
+        metadata: data.metadata ?? undefined,
         checkedAt: data.isChecked !== undefined
           ? data.isChecked
             ? new Date()
@@ -565,6 +572,198 @@ class ChecklistService {
     });
 
     return { removed: result.count };
+  }
+
+  /**
+   * Add specific default checklists
+   */
+  async addDefaultChecklists(userId: number, types: ChecklistType[]): Promise<{ added: number }> {
+    let added = 0;
+
+    // Check which types already exist
+    const existing = await prisma.checklist.findMany({
+      where: {
+        userId,
+        isDefault: true,
+        type: { in: types },
+      },
+      select: { type: true },
+    });
+
+    const existingTypes = new Set(existing.map(c => c.type));
+
+    for (const type of types) {
+      if (existingTypes.has(type)) {
+        continue; // Skip if already exists
+      }
+
+      switch (type) {
+        case 'airports':
+          await prisma.checklist.create({
+            data: {
+              userId,
+              name: 'Airports',
+              description: 'Track airports you\'ve visited around the world',
+              type: 'airports',
+              isDefault: true,
+              sortOrder: 0,
+              items: {
+                create: DEFAULT_AIRPORTS.map((airport, index) => ({
+                  name: `${airport.name} (${airport.code})`,
+                  description: `${airport.city}, ${airport.country}`,
+                  isDefault: true,
+                  sortOrder: index,
+                  metadata: {
+                    code: airport.code,
+                    city: airport.city,
+                    country: airport.country,
+                  },
+                })),
+              },
+            },
+          });
+          added++;
+          break;
+
+        case 'countries':
+          await prisma.checklist.create({
+            data: {
+              userId,
+              name: 'Countries',
+              description: 'Track countries you\'ve visited',
+              type: 'countries',
+              isDefault: true,
+              sortOrder: 1,
+              items: {
+                create: DEFAULT_COUNTRIES.map((country, index) => ({
+                  name: country,
+                  isDefault: true,
+                  sortOrder: index,
+                  metadata: {
+                    country,
+                  },
+                })),
+              },
+            },
+          });
+          added++;
+          break;
+
+        case 'cities':
+          await prisma.checklist.create({
+            data: {
+              userId,
+              name: 'Cities',
+              description: 'Track major cities you\'ve visited',
+              type: 'cities',
+              isDefault: true,
+              sortOrder: 2,
+              items: {
+                create: DEFAULT_CITIES.map((city, index) => ({
+                  name: city.name,
+                  description: city.state
+                    ? `${city.state}, ${city.country}`
+                    : city.country,
+                  isDefault: true,
+                  sortOrder: index,
+                  metadata: {
+                    city: city.name,
+                    country: city.country,
+                    state: city.state,
+                  },
+                })),
+              },
+            },
+          });
+          added++;
+          break;
+
+        case 'us_states':
+          await prisma.checklist.create({
+            data: {
+              userId,
+              name: 'US States',
+              description: 'Track US states and territories you\'ve visited',
+              type: 'us_states',
+              isDefault: true,
+              sortOrder: 3,
+              items: {
+                create: DEFAULT_US_STATES.map((state, index) => ({
+                  name: state.name,
+                  description: state.code,
+                  isDefault: true,
+                  sortOrder: index,
+                  metadata: {
+                    code: state.code,
+                    name: state.name,
+                  },
+                })),
+              },
+            },
+          });
+          added++;
+          break;
+      }
+    }
+
+    return { added };
+  }
+
+  /**
+   * Remove specific default checklists
+   */
+  async removeDefaultChecklistsByType(userId: number, types: ChecklistType[]): Promise<{ removed: number }> {
+    const result = await prisma.checklist.deleteMany({
+      where: {
+        userId,
+        isDefault: true,
+        type: { in: types },
+      },
+    });
+
+    return { removed: result.count };
+  }
+
+  /**
+   * Get available default checklist types and their status
+   */
+  async getDefaultChecklistsStatus(userId: number): Promise<Array<{ type: ChecklistType; name: string; description: string; exists: boolean }>> {
+    const existing = await prisma.checklist.findMany({
+      where: {
+        userId,
+        isDefault: true,
+      },
+      select: { type: true },
+    });
+
+    const existingTypes = new Set(existing.map(c => c.type));
+
+    return [
+      {
+        type: 'airports' as ChecklistType,
+        name: 'Airports',
+        description: 'Track airports you\'ve visited around the world (100 major airports)',
+        exists: existingTypes.has('airports'),
+      },
+      {
+        type: 'countries' as ChecklistType,
+        name: 'Countries',
+        description: 'Track countries you\'ve visited (195 countries)',
+        exists: existingTypes.has('countries'),
+      },
+      {
+        type: 'cities' as ChecklistType,
+        name: 'Cities',
+        description: 'Track major cities you\'ve visited (country capitals + US state capitals)',
+        exists: existingTypes.has('cities'),
+      },
+      {
+        type: 'us_states' as ChecklistType,
+        name: 'US States',
+        description: 'Track US states and territories you\'ve visited (50 states + territories)',
+        exists: existingTypes.has('us_states'),
+      },
+    ];
   }
 
   /**

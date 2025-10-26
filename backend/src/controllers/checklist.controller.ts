@@ -4,6 +4,7 @@ import {
   CreateChecklistSchema,
   UpdateChecklistSchema,
   UpdateChecklistItemSchema,
+  SelectiveChecklistOperationSchema,
 } from '../types/checklist.types';
 import { z } from 'zod';
 
@@ -50,7 +51,7 @@ class ChecklistController {
    * POST /api/checklists
    * Create a new checklist
    */
-  async createChecklist(req: Request, res: Response, next: NextFunction) {
+  async createChecklist(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.userId;
       const validatedData = CreateChecklistSchema.parse(req.body);
@@ -63,11 +64,12 @@ class ChecklistController {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({
+        res.status(400).json({
           status: 'error',
           message: 'Validation error',
           errors: error.errors,
         });
+        return;
       }
       next(error);
     }
@@ -77,7 +79,7 @@ class ChecklistController {
    * PUT /api/checklists/:id
    * Update a checklist
    */
-  async updateChecklist(req: Request, res: Response, next: NextFunction) {
+  async updateChecklist(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.userId;
       const checklistId = parseInt(req.params.id);
@@ -91,11 +93,12 @@ class ChecklistController {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({
+        res.status(400).json({
           status: 'error',
           message: 'Validation error',
           errors: error.errors,
         });
+        return;
       }
       next(error);
     }
@@ -125,17 +128,18 @@ class ChecklistController {
    * POST /api/checklists/:id/items
    * Add an item to a checklist
    */
-  async addChecklistItem(req: Request, res: Response, next: NextFunction) {
+  async addChecklistItem(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.userId;
       const checklistId = parseInt(req.params.id);
       const { name, description, metadata } = req.body;
 
       if (!name) {
-        return res.status(400).json({
+        res.status(400).json({
           status: 'error',
           message: 'Item name is required',
         });
+        return;
       }
 
       const item = await checklistService.addChecklistItem(checklistId, userId, {
@@ -157,7 +161,7 @@ class ChecklistController {
    * PUT /api/checklists/items/:itemId
    * Update a checklist item
    */
-  async updateChecklistItem(req: Request, res: Response, next: NextFunction) {
+  async updateChecklistItem(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.userId;
       const itemId = parseInt(req.params.itemId);
@@ -171,11 +175,12 @@ class ChecklistController {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({
+        res.status(400).json({
           status: 'error',
           message: 'Validation error',
           errors: error.errors,
         });
+        return;
       }
       next(error);
     }
@@ -276,6 +281,83 @@ class ChecklistController {
         message: `${result.restored} default checklists restored`,
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/checklists/defaults/status
+   * Get status of default checklists (which ones exist, which are available)
+   */
+  async getDefaultsStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+
+      const status = await checklistService.getDefaultChecklistsStatus(userId);
+
+      res.json({
+        status: 'success',
+        data: status,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/checklists/defaults/add
+   * Add specific default checklists
+   */
+  async addDefaults(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const validatedData = SelectiveChecklistOperationSchema.parse(req.body);
+
+      const result = await checklistService.addDefaultChecklists(userId, validatedData.types);
+
+      res.json({
+        status: 'success',
+        data: result,
+        message: `${result.added} default checklists added`,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          status: 'error',
+          message: 'Validation error',
+          errors: error.errors,
+        });
+        return;
+      }
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/checklists/defaults/remove
+   * Remove specific default checklists by type
+   */
+  async removeDefaultsByType(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const validatedData = SelectiveChecklistOperationSchema.parse(req.body);
+
+      const result = await checklistService.removeDefaultChecklistsByType(userId, validatedData.types);
+
+      res.json({
+        status: 'success',
+        data: result,
+        message: `${result.removed} default checklists removed`,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          status: 'error',
+          message: 'Validation error',
+          errors: error.errors,
+        });
+        return;
+      }
       next(error);
     }
   }
