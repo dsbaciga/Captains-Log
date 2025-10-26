@@ -14,7 +14,6 @@ export default function ChecklistDetailPage() {
   const [editingName, setEditingName] = useState(false);
   const [checklistName, setChecklistName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showOnlyUnchecked, setShowOnlyUnchecked] = useState(false);
 
   useEffect(() => {
     loadChecklist();
@@ -97,7 +96,7 @@ export default function ChecklistDetailPage() {
   };
 
   const getFilteredItems = () => {
-    if (!checklist) return [];
+    if (!checklist) return { unchecked: [], checked: [] };
 
     let items = checklist.items;
 
@@ -110,12 +109,11 @@ export default function ChecklistDetailPage() {
       );
     }
 
-    // Filter by checked status
-    if (showOnlyUnchecked) {
-      items = items.filter((item) => !item.isChecked);
-    }
+    // Separate into unchecked and checked
+    const unchecked = items.filter((item) => !item.isChecked);
+    const checked = items.filter((item) => item.isChecked);
 
-    return items;
+    return { unchecked, checked };
   };
 
   if (isLoading) {
@@ -138,7 +136,49 @@ export default function ChecklistDetailPage() {
     );
   }
 
-  const filteredItems = getFilteredItems();
+  const { unchecked, checked } = getFilteredItems();
+
+  const renderItem = (item: ChecklistItem, isChecked: boolean) => (
+    <div
+      key={item.id}
+      className={`flex items-start gap-3 p-4 rounded-lg transition-colors ${
+        isChecked
+          ? 'bg-blue-50 dark:bg-blue-900/20'
+          : 'bg-white dark:bg-gray-700'
+      } hover:shadow-md`}
+    >
+      <input
+        type="checkbox"
+        checked={item.isChecked}
+        onChange={() => handleToggleItem(item)}
+        className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 mt-0.5"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-gray-900 dark:text-white">
+          {item.name}
+        </div>
+        {item.description && (
+          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            {item.description}
+          </div>
+        )}
+        {item.checkedAt && (
+          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            Checked: {new Date(item.checkedAt).toLocaleDateString()}
+          </div>
+        )}
+      </div>
+      {!item.isDefault && (
+        <button
+          onClick={() => handleDeleteItem(item.id)}
+          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 flex-shrink-0"
+          title="Delete item"
+        >
+          🗑️
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -226,14 +266,6 @@ export default function ChecklistDetailPage() {
               placeholder="Search items..."
             />
             <button
-              onClick={() => setShowOnlyUnchecked(!showOnlyUnchecked)}
-              className={`btn ${
-                showOnlyUnchecked ? 'btn-primary' : 'btn-secondary'
-              }`}
-            >
-              {showOnlyUnchecked ? 'Show All' : 'Show Unchecked Only'}
-            </button>
-            <button
               onClick={() => setShowAddForm(!showAddForm)}
               className="btn btn-primary"
             >
@@ -283,59 +315,47 @@ export default function ChecklistDetailPage() {
             </form>
           )}
 
-          <div className="space-y-2">
-            {filteredItems.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                {searchQuery || showOnlyUnchecked
-                  ? 'No items match your filters'
-                  : 'No items in this checklist yet'}
-              </div>
-            ) : (
-              filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={item.isChecked}
-                    onChange={() => handleToggleItem(item)}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div
-                      className={`font-medium ${
-                        item.isChecked
-                          ? 'text-gray-500 dark:text-gray-400 line-through'
-                          : 'text-gray-900 dark:text-white'
-                      }`}
-                    >
-                      {item.name}
+          {unchecked.length === 0 && checked.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              {searchQuery
+                ? 'No items match your search'
+                : 'No items in this checklist yet'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Unchecked Items Column */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  To Do ({unchecked.length})
+                </h2>
+                <div className="space-y-3">
+                  {unchecked.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      All items checked!
                     </div>
-                    {item.description && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {item.description}
-                      </div>
-                    )}
-                    {item.checkedAt && (
-                      <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        Checked: {new Date(item.checkedAt).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                  {!item.isDefault && (
-                    <button
-                      onClick={() => handleDeleteItem(item.id)}
-                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-                      title="Delete item"
-                    >
-                      🗑️
-                    </button>
+                  ) : (
+                    unchecked.map((item) => renderItem(item, false))
                   )}
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+
+              {/* Checked Items Column */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Completed ({checked.length})
+                </h2>
+                <div className="space-y-3">
+                  {checked.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      No completed items yet
+                    </div>
+                  ) : (
+                    checked.map((item) => renderItem(item, true))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
