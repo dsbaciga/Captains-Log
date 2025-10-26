@@ -87,6 +87,22 @@ class ChecklistService {
     const response = await axios.post(`${this.baseUrl}/auto-check`);
     return response.data.data;
   }
+
+  /**
+   * Remove all default checklists
+   */
+  async removeDefaults(): Promise<{ removed: number }> {
+    const response = await axios.delete(`${this.baseUrl}/defaults`);
+    return response.data.data;
+  }
+
+  /**
+   * Restore missing default checklists
+   */
+  async restoreDefaults(): Promise<{ restored: number }> {
+    const response = await axios.post(`${this.baseUrl}/defaults/restore`);
+    return response.data.data;
+  }
 }
 
 export default new ChecklistService();

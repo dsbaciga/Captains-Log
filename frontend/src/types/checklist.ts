@@ -17,7 +17,7 @@ export interface Checklist {
   userId: number;
   name: string;
   description: string | null;
-  type: 'custom' | 'airports' | 'countries' | 'cities';
+  type: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states';
   isDefault: boolean;
   sortOrder: number;
   createdAt: string;
@@ -33,7 +33,7 @@ export interface Checklist {
 export interface CreateChecklistDTO {
   name: string;
   description?: string | null;
-  type: 'custom' | 'airports' | 'countries' | 'cities';
+  type: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states';
   isDefault?: boolean;
   sortOrder?: number;
   items?: Array<{
@@ -48,7 +48,7 @@ export interface CreateChecklistDTO {
 export interface UpdateChecklistDTO {
   name?: string | null;
   description?: string | null;
-  type?: 'custom' | 'airports' | 'countries' | 'cities' | null;
+  type?: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states' | null;
   sortOrder?: number | null;
 }
 

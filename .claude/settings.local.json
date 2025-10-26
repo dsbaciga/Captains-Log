@@ -19,7 +19,8 @@
       "Bash(docker push ghcr.io/dsbaciga/captains-log-backend:v1.6.0)",
       "Bash(docker push ghcr.io/dsbaciga/captains-log-frontend:v1.6.0)",
       "Bash(git tag -a v1.6.0 -m \"v1.6.0 - Add Checklists feature with auto-population\")",
-      "Bash(git push origin v1.6.0)"
+      "Bash(git push origin v1.6.0)",
+      "Bash(git tag --sort=-v:refname)"
     ],
     "deny": [],
     "ask": []

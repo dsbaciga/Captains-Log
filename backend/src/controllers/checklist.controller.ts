@@ -239,6 +239,46 @@ class ChecklistController {
       next(error);
     }
   }
+
+  /**
+   * DELETE /api/checklists/defaults
+   * Remove all default checklists
+   */
+  async removeDefaults(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+
+      const result = await checklistService.removeDefaultChecklists(userId);
+
+      res.json({
+        status: 'success',
+        data: result,
+        message: `${result.removed} default checklists removed`,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/checklists/defaults/restore
+   * Restore missing default checklists
+   */
+  async restoreDefaults(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+
+      const result = await checklistService.restoreDefaultChecklists(userId);
+
+      res.json({
+        status: 'success',
+        data: result,
+        message: `${result.restored} default checklists restored`,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new ChecklistController();

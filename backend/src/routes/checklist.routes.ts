@@ -22,5 +22,7 @@ router.delete('/items/:itemId', checklistController.deleteChecklistItem);
 // Special routes
 router.post('/initialize', checklistController.initializeDefaults);
 router.post('/auto-check', checklistController.autoCheckFromTrips);
+router.delete('/defaults', checklistController.removeDefaults);
+router.post('/defaults/restore', checklistController.restoreDefaults);
 
 export default router;

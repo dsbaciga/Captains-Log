@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateChecklist, UpdateChecklist, UpdateChecklistItem, ChecklistWithItems } from '../types/checklist.types';
-import { DEFAULT_AIRPORTS, DEFAULT_COUNTRIES, DEFAULT_CITIES } from '../data/checklist-defaults';
+import { DEFAULT_AIRPORTS, DEFAULT_COUNTRIES, DEFAULT_CITIES, DEFAULT_US_STATES } from '../data/checklist-defaults';
 
 class ChecklistService {
   /**
@@ -336,6 +336,30 @@ class ChecklistService {
         },
       },
     });
+
+    // Create US States checklist
+    await prisma.checklist.create({
+      data: {
+        userId,
+        name: 'US States',
+        description: 'Track US states and territories you\'ve visited',
+        type: 'us_states',
+        isDefault: true,
+        sortOrder: 3,
+        items: {
+          create: DEFAULT_US_STATES.map((state, index) => ({
+            name: state.name,
+            description: state.code,
+            isDefault: true,
+            sortOrder: index,
+            metadata: {
+              code: state.code,
+              name: state.name,
+            },
+          })),
+        },
+      },
+    });
   }
 
   /**
@@ -478,7 +502,200 @@ class ChecklistService {
       }
     }
 
+    // Process US States checklist
+    const usStatesChecklist = checklists.find(c => c.type === 'us_states');
+    if (usStatesChecklist) {
+      const visitedStates = new Set<string>();
+
+      trips.forEach(trip => {
+        trip.locations.forEach(location => {
+          // Extract state from address
+          if (location.address) {
+            const parts = location.address.split(',').map(p => p.trim());
+            // Look for state codes or names in address parts
+            parts.forEach(part => {
+              // Check if it matches a state code (2 letters)
+              if (/^[A-Z]{2}$/.test(part)) {
+                visitedStates.add(part);
+              }
+              // Check if it matches a state name
+              visitedStates.add(part);
+            });
+          }
+        });
+      });
+
+      // Check off visited states
+      for (const item of usStatesChecklist.items) {
+        if (!item.isChecked && item.metadata && typeof item.metadata === 'object' && 'code' in item.metadata) {
+          const code = (item.metadata as any).code;
+          const name = (item.metadata as any).name;
+
+          // Check if state code or name is in visited states
+          const isVisited = Array.from(visitedStates).some(vs =>
+            vs === code ||
+            vs.toLowerCase() === name.toLowerCase() ||
+            vs.toLowerCase().includes(name.toLowerCase()) ||
+            name.toLowerCase().includes(vs.toLowerCase())
+          );
+
+          if (isVisited) {
+            await prisma.checklistItem.update({
+              where: { id: item.id },
+              data: { isChecked: true, checkedAt: new Date() },
+            });
+            updated++;
+          }
+        }
+      }
+    }
+
     return { updated };
+  }
+
+  /**
+   * Remove all default checklists for a user
+   */
+  async removeDefaultChecklists(userId: number): Promise<{ removed: number }> {
+    const result = await prisma.checklist.deleteMany({
+      where: {
+        userId,
+        isDefault: true,
+      },
+    });
+
+    return { removed: result.count };
+  }
+
+  /**
+   * Restore default checklists for a user
+   * This will recreate any missing default checklists
+   */
+  async restoreDefaultChecklists(userId: number): Promise<{ restored: number }> {
+    let restored = 0;
+
+    // Check which default checklists are missing
+    const existing = await prisma.checklist.findMany({
+      where: {
+        userId,
+        isDefault: true,
+      },
+      select: { type: true },
+    });
+
+    const existingTypes = new Set(existing.map(c => c.type));
+
+    // Restore missing Airports checklist
+    if (!existingTypes.has('airports')) {
+      await prisma.checklist.create({
+        data: {
+          userId,
+          name: 'Airports',
+          description: 'Track airports you\'ve visited around the world',
+          type: 'airports',
+          isDefault: true,
+          sortOrder: 0,
+          items: {
+            create: DEFAULT_AIRPORTS.map((airport, index) => ({
+              name: `${airport.name} (${airport.code})`,
+              description: `${airport.city}, ${airport.country}`,
+              isDefault: true,
+              sortOrder: index,
+              metadata: {
+                code: airport.code,
+                city: airport.city,
+                country: airport.country,
+              },
+            })),
+          },
+        },
+      });
+      restored++;
+    }
+
+    // Restore missing Countries checklist
+    if (!existingTypes.has('countries')) {
+      await prisma.checklist.create({
+        data: {
+          userId,
+          name: 'Countries',
+          description: 'Track countries you\'ve visited',
+          type: 'countries',
+          isDefault: true,
+          sortOrder: 1,
+          items: {
+            create: DEFAULT_COUNTRIES.map((country, index) => ({
+              name: country,
+              isDefault: true,
+              sortOrder: index,
+              metadata: {
+                country,
+              },
+            })),
+          },
+        },
+      });
+      restored++;
+    }
+
+    // Restore missing Cities checklist
+    if (!existingTypes.has('cities')) {
+      await prisma.checklist.create({
+        data: {
+          userId,
+          name: 'Cities',
+          description: 'Track major cities you\'ve visited',
+          type: 'cities',
+          isDefault: true,
+          sortOrder: 2,
+          items: {
+            create: DEFAULT_CITIES.map((city, index) => ({
+              name: city.name,
+              description: city.state
+                ? `${city.state}, ${city.country}`
+                : city.country,
+              isDefault: true,
+              sortOrder: index,
+              metadata: {
+                city: city.name,
+                country: city.country,
+                state: city.state,
+              },
+            })),
+          },
+        },
+      });
+      restored++;
+    }
+
+    // Restore missing US States checklist
+    if (!existingTypes.has('us_states')) {
+      await prisma.checklist.create({
+        data: {
+          userId,
+          name: 'US States',
+          description: 'Track US states and territories you\'ve visited',
+          type: 'us_states',
+          isDefault: true,
+          sortOrder: 3,
+          items: {
+            create: DEFAULT_US_STATES.map((state, index) => ({
+              name: state.name,
+              description: state.code,
+              isDefault: true,
+              sortOrder: index,
+              metadata: {
+                code: state.code,
+                name: state.name,
+              },
+            })),
+          },
+        },
+      });
+      restored++;
+    }
+
+    return { restored };
   }
 }
 

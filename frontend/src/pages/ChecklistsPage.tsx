@@ -11,6 +11,8 @@ export default function ChecklistsPage() {
   const [newChecklistDescription, setNewChecklistDescription] = useState('');
   const [isInitializing, setIsInitializing] = useState(false);
   const [isAutoChecking, setIsAutoChecking] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   useEffect(() => {
     loadChecklists();
@@ -95,6 +97,42 @@ export default function ChecklistsPage() {
     }
   };
 
+  const handleRemoveDefaults = async () => {
+    if (!confirm('This will remove all default checklists (Airports, Countries, Cities, US States). Are you sure?')) {
+      return;
+    }
+
+    setIsRemoving(true);
+    try {
+      const result = await checklistService.removeDefaults();
+      await loadChecklists();
+      alert(`Successfully removed ${result.removed} default checklists`);
+    } catch (error) {
+      console.error('Failed to remove defaults:', error);
+      alert('Failed to remove default checklists');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
+  const handleRestoreDefaults = async () => {
+    if (!confirm('This will restore any missing default checklists. Continue?')) {
+      return;
+    }
+
+    setIsRestoring(true);
+    try {
+      const result = await checklistService.restoreDefaults();
+      await loadChecklists();
+      alert(`Successfully restored ${result.restored} default checklists`);
+    } catch (error) {
+      console.error('Failed to restore defaults:', error);
+      alert('Failed to restore default checklists');
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
   const getChecklistIcon = (type: string) => {
     switch (type) {
       case 'airports':
@@ -103,6 +141,8 @@ export default function ChecklistsPage() {
         return '🌍';
       case 'cities':
         return '🏙️';
+      case 'us_states':
+        return '🗽';
       default:
         return '📋';
     }
@@ -128,7 +168,7 @@ export default function ChecklistsPage() {
               Track your travel achievements
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {checklists.length === 0 && (
               <button
                 onClick={handleInitializeDefaults}
@@ -137,6 +177,24 @@ export default function ChecklistsPage() {
               >
                 {isInitializing ? 'Initializing...' : 'Initialize Default Lists'}
               </button>
+            )}
+            {checklists.some(c => c.isDefault) && (
+              <>
+                <button
+                  onClick={handleRemoveDefaults}
+                  disabled={isRemoving}
+                  className="btn btn-secondary text-red-600 dark:text-red-400"
+                >
+                  {isRemoving ? 'Removing...' : 'Remove Defaults'}
+                </button>
+                <button
+                  onClick={handleRestoreDefaults}
+                  disabled={isRestoring}
+                  className="btn btn-secondary"
+                >
+                  {isRestoring ? 'Restoring...' : 'Restore Defaults'}
+                </button>
+              </>
             )}
             <button
               onClick={handleAutoCheck}
