@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import companionService from '../services/companion.service';
 import type { Companion } from '../types/companion';
 import toast from 'react-hot-toast';
@@ -9,13 +9,13 @@ interface CompanionManagerProps {
 }
 
 export default function CompanionManager({ tripId }: CompanionManagerProps) {
-  // Service adapter for trip companions (companions linked to this trip)
-  const tripCompanionServiceAdapter = {
+  // Service adapter for trip companions (companions linked to this trip) - memoized to prevent infinite loops
+  const tripCompanionServiceAdapter = useMemo(() => ({
     getByTrip: companionService.getCompanionsByTrip,
     create: async () => { throw new Error("Use handleCreateCompanion instead"); },
     update: async () => { throw new Error("Use handleUpdateCompanion instead"); },
     delete: async () => { throw new Error("Use handleDeleteCompanion instead"); },
-  };
+  }), []);
 
   // Initialize CRUD hook for trip companions
   const manager = useManagerCRUD<Companion>(tripCompanionServiceAdapter, tripId, {

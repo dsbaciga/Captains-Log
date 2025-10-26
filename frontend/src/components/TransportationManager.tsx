@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type {
   Transportation,
   TransportationType,
@@ -63,13 +64,13 @@ export default function TransportationManager({
   tripTimezone,
   onUpdate,
 }: TransportationManagerProps) {
-  // Service adapter for useManagerCRUD hook
-  const transportationServiceAdapter = {
+  // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
+  const transportationServiceAdapter = useMemo(() => ({
     getByTrip: transportationService.getTransportationByTrip,
     create: transportationService.createTransportation,
     update: transportationService.updateTransportation,
     delete: transportationService.deleteTransportation,
-  };
+  }), []);
 
   // Initialize CRUD hook
   const manager = useManagerCRUD<Transportation>(transportationServiceAdapter, tripId, {

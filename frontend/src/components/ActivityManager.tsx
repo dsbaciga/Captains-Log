@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { Activity } from "../types/activity";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
@@ -70,13 +70,13 @@ export default function ActivityManager({
   tripTimezone,
   onUpdate,
 }: ActivityManagerProps) {
-  // Service adapter for useManagerCRUD hook
-  const activityServiceAdapter = {
+  // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
+  const activityServiceAdapter = useMemo(() => ({
     getByTrip: activityService.getActivitiesByTrip,
     create: activityService.createActivity,
     update: activityService.updateActivity,
     delete: activityService.deleteActivity,
-  };
+  }), []);
 
   // Initialize CRUD hook
   const manager = useManagerCRUD<Activity>(activityServiceAdapter, tripId, {

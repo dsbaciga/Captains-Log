@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { Lodging, LodgingType } from "../types/lodging";
 import type { Location } from "../types/location";
 import lodgingService from "../services/lodging.service";
@@ -57,13 +57,13 @@ export default function LodgingManager({
   tripTimezone,
   onUpdate,
 }: LodgingManagerProps) {
-  // Service adapter for useManagerCRUD hook
-  const lodgingServiceAdapter = {
+  // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
+  const lodgingServiceAdapter = useMemo(() => ({
     getByTrip: lodgingService.getLodgingByTrip,
     create: lodgingService.createLodging,
     update: lodgingService.updateLodging,
     delete: lodgingService.deleteLodging,
-  };
+  }), []);
 
   // Initialize CRUD hook
   const manager = useManagerCRUD<Lodging>(lodgingServiceAdapter, tripId, {

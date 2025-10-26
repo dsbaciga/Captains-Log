@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect, useId, useMemo } from "react";
 import type { JournalEntry } from "../types/journalEntry";
 import type { Location } from "../types/location";
 import type { Activity } from "../types/activity";
@@ -26,13 +26,13 @@ export default function JournalManager({
   locations,
   onUpdate,
 }: JournalManagerProps) {
-  // Service adapter for useManagerCRUD hook
-  const journalServiceAdapter = {
+  // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
+  const journalServiceAdapter = useMemo(() => ({
     getByTrip: journalEntryService.getJournalEntriesByTrip,
     create: journalEntryService.createJournalEntry,
     update: journalEntryService.updateJournalEntry,
     delete: journalEntryService.deleteJournalEntry,
-  };
+  }), []);
 
   // Initialize CRUD hook
   const manager = useManagerCRUD<JournalEntry>(journalServiceAdapter, tripId, {
