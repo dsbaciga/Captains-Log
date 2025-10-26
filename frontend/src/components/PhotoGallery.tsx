@@ -11,6 +11,10 @@ interface PhotoGalleryProps {
   onSetCoverPhoto?: (photoId: number) => void;
   onPhotosAddedToAlbum?: () => void;
   coverPhotoId?: number | null;
+  totalPhotosInView?: number;
+  onLoadAllPhotos?: () => Promise<void>;
+  currentAlbumId?: number | null;
+  onPhotosRemovedFromAlbum?: () => void;
 }
 
 interface ThumbnailCache {
@@ -25,6 +29,10 @@ export default function PhotoGallery({
   onSetCoverPhoto,
   onPhotosAddedToAlbum,
   coverPhotoId,
+  totalPhotosInView = 0,
+  onLoadAllPhotos,
+  currentAlbumId = null,
+  onPhotosRemovedFromAlbum,
 }: PhotoGalleryProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -34,6 +42,7 @@ export default function PhotoGallery({
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(new Set());
   const [showAlbumSelectModal, setShowAlbumSelectModal] = useState(false);
   const [isAddingToAlbum, setIsAddingToAlbum] = useState(false);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
 
   // Track which photos we're currently fetching to avoid duplicate requests
   const fetchingPhotos = useRef<Set<number>>(new Set());
@@ -147,14 +156,86 @@ export default function PhotoGallery({
     }
   };
 
-  const togglePhotoSelection = (photoId: number) => {
-    const newSelection = new Set(selectedPhotoIds);
-    if (newSelection.has(photoId)) {
-      newSelection.delete(photoId);
+  const togglePhotoSelection = (photoId: number, shiftKey: boolean = false) => {
+    const photoIndex = photos.findIndex(p => p.id === photoId);
+
+    // Handle shift-click range selection
+    if (shiftKey && lastSelectedIndex !== null) {
+      const newSelection = new Set(selectedPhotoIds);
+      const start = Math.min(lastSelectedIndex, photoIndex);
+      const end = Math.max(lastSelectedIndex, photoIndex);
+
+      // Select all photos in the range
+      for (let i = start; i <= end; i++) {
+        newSelection.add(photos[i].id);
+      }
+
+      setSelectedPhotoIds(newSelection);
+      setLastSelectedIndex(photoIndex);
     } else {
-      newSelection.add(photoId);
+      // Normal toggle behavior
+      const newSelection = new Set(selectedPhotoIds);
+      if (newSelection.has(photoId)) {
+        newSelection.delete(photoId);
+      } else {
+        newSelection.add(photoId);
+      }
+      setSelectedPhotoIds(newSelection);
+      setLastSelectedIndex(photoIndex);
     }
-    setSelectedPhotoIds(newSelection);
+  };
+
+  const selectAllLoadedPhotos = () => {
+    const allPhotoIds = new Set(photos.map(p => p.id));
+    setSelectedPhotoIds(allPhotoIds);
+  };
+
+  const selectAllPhotosInFolder = async () => {
+    if (!onLoadAllPhotos) {
+      // If no load function provided, just select all loaded
+      selectAllLoadedPhotos();
+      return;
+    }
+
+    try {
+      // Load all photos first
+      await onLoadAllPhotos();
+      // Then select all (photos will be updated via useEffect below)
+    } catch (error) {
+      alert('Failed to load all photos');
+    }
+  };
+
+  // Effect to select all photos after they're loaded
+  const [shouldSelectAll, setShouldSelectAll] = useState(false);
+
+  useEffect(() => {
+    if (shouldSelectAll && photos.length === totalPhotosInView) {
+      const allPhotoIds = new Set(photos.map(p => p.id));
+      setSelectedPhotoIds(allPhotoIds);
+      setShouldSelectAll(false);
+    }
+  }, [photos.length, totalPhotosInView, shouldSelectAll]);
+
+  // Update selectAllPhotosInFolder to trigger the effect
+  const selectAllPhotosInFolderWithEffect = async () => {
+    if (!onLoadAllPhotos) {
+      selectAllLoadedPhotos();
+      return;
+    }
+
+    try {
+      setShouldSelectAll(true);
+      await onLoadAllPhotos();
+    } catch (error) {
+      setShouldSelectAll(false);
+      alert('Failed to load all photos');
+    }
+  };
+
+  const deselectAllPhotos = () => {
+    setSelectedPhotoIds(new Set());
+    setLastSelectedIndex(null);
   };
 
   const handleAddToAlbum = async (albumId: number) => {
@@ -168,10 +249,37 @@ export default function PhotoGallery({
       setShowAlbumSelectModal(false);
       setSelectionMode(false);
       setSelectedPhotoIds(new Set());
+      setLastSelectedIndex(null);
       onPhotosAddedToAlbum?.();
       alert(`Successfully added ${selectedPhotoIds.size} photo(s) to album`);
     } catch (error) {
       alert('Failed to add photos to album');
+    } finally {
+      setIsAddingToAlbum(false);
+    }
+  };
+
+  const handleRemoveFromAlbum = async () => {
+    if (selectedPhotoIds.size === 0 || !currentAlbumId) return;
+
+    if (!confirm(`Remove ${selectedPhotoIds.size} photo(s) from this album?`)) {
+      return;
+    }
+
+    try {
+      setIsAddingToAlbum(true);
+      // Remove photos one by one (backend doesn't have bulk remove yet)
+      const photoIds = Array.from(selectedPhotoIds);
+      for (const photoId of photoIds) {
+        await photoService.removePhotoFromAlbum(currentAlbumId, photoId);
+      }
+      setSelectionMode(false);
+      setSelectedPhotoIds(new Set());
+      setLastSelectedIndex(null);
+      onPhotosRemovedFromAlbum?.();
+      alert(`Successfully removed ${photoIds.length} photo(s) from album`);
+    } catch (error) {
+      alert('Failed to remove photos from album');
     } finally {
       setIsAddingToAlbum(false);
     }
@@ -214,7 +322,7 @@ export default function PhotoGallery({
     <>
       {/* Selection Toolbar */}
       {albums && albums.length > 0 && (
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex items-center gap-2 flex-wrap">
           {!selectionMode ? (
             <button
               onClick={() => setSelectionMode(true)}
@@ -228,18 +336,51 @@ export default function PhotoGallery({
                 onClick={() => {
                   setSelectionMode(false);
                   setSelectedPhotoIds(new Set());
+                  setLastSelectedIndex(null);
                 }}
                 className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button
-                onClick={() => setShowAlbumSelectModal(true)}
-                disabled={selectedPhotoIds.size === 0}
-                className="btn btn-primary"
+                onClick={selectAllLoadedPhotos}
+                className="btn btn-secondary"
               >
-                Add {selectedPhotoIds.size > 0 ? `${selectedPhotoIds.size} ` : ''}to Album
+                Select All Loaded ({photos.length})
               </button>
+              {totalPhotosInView > photos.length && onLoadAllPhotos && (
+                <button
+                  onClick={selectAllPhotosInFolderWithEffect}
+                  className="btn btn-secondary"
+                >
+                  Select All in Folder ({totalPhotosInView})
+                </button>
+              )}
+              {selectedPhotoIds.size > 0 && (
+                <button
+                  onClick={deselectAllPhotos}
+                  className="btn btn-secondary"
+                >
+                  Deselect All
+                </button>
+              )}
+              {currentAlbumId && currentAlbumId > 0 ? (
+                <button
+                  onClick={handleRemoveFromAlbum}
+                  disabled={selectedPhotoIds.size === 0 || isAddingToAlbum}
+                  className="btn btn-danger"
+                >
+                  Remove {selectedPhotoIds.size > 0 ? `${selectedPhotoIds.size} ` : ''}from Album
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAlbumSelectModal(true)}
+                  disabled={selectedPhotoIds.size === 0}
+                  className="btn btn-primary"
+                >
+                  Add {selectedPhotoIds.size > 0 ? `${selectedPhotoIds.size} ` : ''}to Album
+                </button>
+              )}
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {selectedPhotoIds.size} photo{selectedPhotoIds.size !== 1 ? 's' : ''} selected
               </span>
@@ -256,7 +397,7 @@ export default function PhotoGallery({
             <div
               key={photo.id}
               className="relative group cursor-pointer aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700"
-              onClick={() => selectionMode ? togglePhotoSelection(photo.id) : setSelectedPhoto(photo)}
+              onClick={(e) => selectionMode ? togglePhotoSelection(photo.id, e.shiftKey) : setSelectedPhoto(photo)}
             >
               {thumbnailUrl ? (
                 <img

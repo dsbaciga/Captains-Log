@@ -60,12 +60,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(config.upload.dir));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // API routes
-app.get('/api', (req, res) => {
+app.get('/api', (_req, res) => {
   res.json({
     message: "Captain's Log API",
     version: packageJson.version,
@@ -74,7 +74,7 @@ app.get('/api', (req, res) => {
 });
 
 // Version endpoint
-app.get('/api/version', (req, res) => {
+app.get('/api/version', (_req, res) => {
   res.json({
     version: packageJson.version,
     name: packageJson.name,

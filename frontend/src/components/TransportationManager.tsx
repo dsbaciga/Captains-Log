@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type {
   Transportation,
   TransportationType,
@@ -14,6 +14,8 @@ import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
+import FlightRouteMap from "./FlightRouteMap";
+import TransportationStats from "./TransportationStats";
 
 interface TransportationManagerProps {
   tripId: number;
@@ -58,12 +60,16 @@ const initialFormState: TransportationFormFields = {
   notes: "",
 };
 
+type FilterTab = "all" | "upcoming" | "historical";
+
 export default function TransportationManager({
   tripId,
   locations,
   tripTimezone,
   onUpdate,
 }: TransportationManagerProps) {
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
+
   // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
   const transportationServiceAdapter = useMemo(() => ({
     getByTrip: transportationService.getTransportationByTrip,
@@ -80,6 +86,25 @@ export default function TransportationManager({
 
   const { values, handleChange, reset } =
     useFormFields<TransportationFormFields>(initialFormState);
+
+  // Filter transportation based on active tab
+  const filteredItems = useMemo(() => {
+    if (activeTab === "all") return manager.items;
+    if (activeTab === "upcoming") {
+      return manager.items.filter((t) => t.isUpcoming);
+    }
+    if (activeTab === "historical") {
+      return manager.items.filter((t) => !t.isUpcoming);
+    }
+    return manager.items;
+  }, [manager.items, activeTab]);
+
+  // Calculate counts for tab badges
+  const counts = useMemo(() => {
+    const upcoming = manager.items.filter((t) => t.isUpcoming).length;
+    const historical = manager.items.filter((t) => !t.isUpcoming).length;
+    return { all: manager.items.length, upcoming, historical };
+  }, [manager.items]);
 
   const resetForm = () => {
     reset();
@@ -209,6 +234,40 @@ export default function TransportationManager({
     });
   };
 
+  const formatDuration = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) {
+      return `${hours}h ${mins}m`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else {
+      return `${mins}m`;
+    }
+  };
+
+  const getStatusBadge = (transportation: Transportation) => {
+    if (transportation.isInProgress) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+          In Progress
+        </span>
+      );
+    }
+    if (transportation.isUpcoming) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+          Upcoming
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+        Completed
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -225,6 +284,47 @@ export default function TransportationManager({
           {manager.showForm ? "Cancel" : "+ Add Transportation"}
         </button>
       </div>
+
+      {/* Statistics */}
+      {manager.items.length > 0 && (
+        <TransportationStats transportation={manager.items} />
+      )}
+
+      {/* Filter Tabs */}
+      {manager.items.length > 0 && (
+        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${
+              activeTab === "all"
+                ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+            }`}
+          >
+            All {counts.all > 0 && `(${counts.all})`}
+          </button>
+          <button
+            onClick={() => setActiveTab("upcoming")}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${
+              activeTab === "upcoming"
+                ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+            }`}
+          >
+            Upcoming {counts.upcoming > 0 && `(${counts.upcoming})`}
+          </button>
+          <button
+            onClick={() => setActiveTab("historical")}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${
+              activeTab === "historical"
+                ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+            }`}
+          >
+            Historical {counts.historical > 0 && `(${counts.historical})`}
+          </button>
+        </div>
+      )}
 
       {manager.showForm && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -514,12 +614,25 @@ export default function TransportationManager({
             message="No transportation added yet"
             subMessage="Add your flights, trains, buses, and other transportation"
           />
+        ) : filteredItems.length === 0 ? (
+          <EmptyState
+            icon="🔍"
+            message={`No ${activeTab} transportation`}
+            subMessage={`Try selecting a different filter`}
+          />
         ) : (
-          manager.items.map((transportation) => (
+          filteredItems.map((transportation) => (
             <div
               key={transportation.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
             >
+              {/* Route Map - Show for flights with route data */}
+              {transportation.type === "flight" && transportation.route && (
+                <div className="mb-4">
+                  <FlightRouteMap route={transportation.route} height="250px" />
+                </div>
+              )}
+
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -539,6 +652,7 @@ export default function TransportationManager({
                         #{transportation.vehicleNumber}
                       </span>
                     )}
+                    {getStatusBadge(transportation)}
                   </div>
 
                   <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
@@ -580,6 +694,38 @@ export default function TransportationManager({
                           )}
                         </span>
                       </div>
+                    )}
+
+                    {/* Duration */}
+                    {transportation.durationMinutes && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Duration:</span>
+                        <span>{formatDuration(transportation.durationMinutes)}</span>
+                      </div>
+                    )}
+
+                    {/* Flight Tracking Info */}
+                    {transportation.flightTracking && (
+                      <>
+                        {transportation.flightTracking.gate && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Gate:</span>
+                            <span>{transportation.flightTracking.gate}</span>
+                          </div>
+                        )}
+                        {transportation.flightTracking.terminal && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Terminal:</span>
+                            <span>{transportation.flightTracking.terminal}</span>
+                          </div>
+                        )}
+                        {transportation.flightTracking.baggageClaim && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Baggage Claim:</span>
+                            <span>{transportation.flightTracking.baggageClaim}</span>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     {/* Confirmation Number */}

@@ -66,12 +66,16 @@ class TransportationService {
           select: {
             id: true,
             name: true,
+            latitude: true,
+            longitude: true,
           },
         },
         endLocation: {
           select: {
             id: true,
             name: true,
+            latitude: true,
+            longitude: true,
           },
         },
         journalAssignments: {
@@ -88,11 +92,61 @@ class TransportationService {
             },
           },
         },
+        flightTracking: true,
       },
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
     });
 
-    return transportations;
+    // Enhance with computed fields
+    const now = new Date();
+    const enhancedTransportations = transportations.map((t) => {
+      const enhanced: any = { ...t };
+
+      // Calculate route if we have coordinates
+      if (
+        t.startLocation?.latitude &&
+        t.startLocation?.longitude &&
+        t.endLocation?.latitude &&
+        t.endLocation?.longitude
+      ) {
+        enhanced.route = {
+          from: {
+            name: t.startLocation.name,
+            latitude: Number(t.startLocation.latitude),
+            longitude: Number(t.startLocation.longitude),
+          },
+          to: {
+            name: t.endLocation.name,
+            latitude: Number(t.endLocation.latitude),
+            longitude: Number(t.endLocation.longitude),
+          },
+        };
+      }
+
+      // Calculate duration
+      if (t.scheduledStart && t.scheduledEnd) {
+        const start = new Date(t.scheduledStart);
+        const end = new Date(t.scheduledEnd);
+        enhanced.durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+      }
+
+      // Calculate status flags
+      if (t.scheduledStart) {
+        const departureTime = new Date(t.scheduledStart);
+        enhanced.isUpcoming = departureTime > now;
+
+        if (t.scheduledEnd) {
+          const arrivalTime = new Date(t.scheduledEnd);
+          enhanced.isInProgress = departureTime <= now && arrivalTime > now;
+        } else {
+          enhanced.isInProgress = false;
+        }
+      }
+
+      return enhanced;
+    });
+
+    return enhancedTransportations;
   }
 
   async getTransportationById(userId: number, transportationId: number) {

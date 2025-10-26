@@ -37,11 +37,33 @@ export interface TransportationWithLocations extends Transportation {
   fromLocation?: {
     id: number;
     name: string;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   toLocation?: {
     id: number;
     name: string;
+    latitude?: number | null;
+    longitude?: number | null;
   };
+}
+
+export interface TransportationWithRoute extends TransportationWithLocations {
+  route?: {
+    from: {
+      name: string;
+      latitude: number;
+      longitude: number;
+    };
+    to: {
+      name: string;
+      latitude: number;
+      longitude: number;
+    };
+  } | null;
+  durationMinutes?: number | null;
+  isUpcoming?: boolean;
+  isInProgress?: boolean;
 }
 
 // Validation schemas

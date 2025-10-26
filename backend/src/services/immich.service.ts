@@ -176,7 +176,7 @@ class ImmichService {
   /**
    * Get asset thumbnail URL - returns our backend proxy URL
    */
-  getAssetThumbnailUrl(apiUrl: string, assetId: string, apiKey: string): string {
+  getAssetThumbnailUrl(_apiUrl: string, assetId: string, _apiKey: string): string {
     // Return our backend proxy URL instead of direct Immich URL
     return `/api/immich/assets/${assetId}/thumbnail`;
   }
@@ -184,7 +184,7 @@ class ImmichService {
   /**
    * Get asset original file URL - returns our backend proxy URL
    */
-  getAssetFileUrl(apiUrl: string, assetId: string, apiKey: string): string {
+  getAssetFileUrl(_apiUrl: string, assetId: string, _apiKey: string): string {
     // Return our backend proxy URL instead of direct Immich URL
     return `/api/immich/assets/${assetId}/original`;
   }

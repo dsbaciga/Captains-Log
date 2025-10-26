@@ -5,10 +5,11 @@ import { z } from 'zod';
 import logger from '../config/logger';
 
 export class TripController {
-  async createTrip(req: Request, res: Response, next: NextFunction) {
+  async createTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const validatedData = createTripSchema.parse(req.body);
@@ -25,10 +26,11 @@ export class TripController {
     }
   }
 
-  async getTrips(req: Request, res: Response, next: NextFunction) {
+  async getTrips(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const validatedQuery = getTripQuerySchema.parse(req.query);
@@ -43,10 +45,11 @@ export class TripController {
     }
   }
 
-  async getTripById(req: Request, res: Response, next: NextFunction) {
+  async getTripById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const tripId = parseInt(req.params.id);
@@ -61,10 +64,11 @@ export class TripController {
     }
   }
 
-  async updateTrip(req: Request, res: Response, next: NextFunction) {
+  async updateTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const tripId = parseInt(req.params.id);
@@ -82,10 +86,11 @@ export class TripController {
     }
   }
 
-  async deleteTrip(req: Request, res: Response, next: NextFunction) {
+  async deleteTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const tripId = parseInt(req.params.id);
@@ -102,10 +107,11 @@ export class TripController {
     }
   }
 
-  async updateCoverPhoto(req: Request, res: Response, next: NextFunction) {
+  async updateCoverPhoto(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const tripId = parseInt(req.params.id);

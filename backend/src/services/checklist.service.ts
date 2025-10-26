@@ -98,7 +98,7 @@ class ChecklistService {
                 description: item.description ?? null,
                 isDefault: item.isDefault ?? false,
                 sortOrder: item.sortOrder ?? index,
-                metadata: item.metadata || null,
+                metadata: item.metadata ?? undefined,
               })),
             }
           : undefined,

@@ -22,8 +22,8 @@ class LodgingService {
         name: data.name,
         locationId: data.locationId || null,
         address: data.address || null,
-        checkInDate: data.checkInDate ? new Date(data.checkInDate) : null,
-        checkOutDate: data.checkOutDate ? new Date(data.checkOutDate) : null,
+        checkInDate: data.checkInDate ? new Date(data.checkInDate) : new Date(),
+        checkOutDate: data.checkOutDate ? new Date(data.checkOutDate) : new Date(),
         confirmationNumber: data.confirmationNumber || null,
         cost: data.cost || null,
         currency: data.currency || null,
@@ -150,18 +150,12 @@ class LodgingService {
         name: data.name,
         locationId: data.locationId !== undefined ? data.locationId : undefined,
         address: data.address !== undefined ? data.address : undefined,
-        checkInDate:
-          data.checkInDate !== undefined
-            ? data.checkInDate
-              ? new Date(data.checkInDate)
-              : null
-            : undefined,
-        checkOutDate:
-          data.checkOutDate !== undefined
-            ? data.checkOutDate
-              ? new Date(data.checkOutDate)
-              : null
-            : undefined,
+        ...(data.checkInDate !== undefined && data.checkInDate !== null
+          ? { checkInDate: new Date(data.checkInDate) }
+          : {}),
+        ...(data.checkOutDate !== undefined && data.checkOutDate !== null
+          ? { checkOutDate: new Date(data.checkOutDate) }
+          : {}),
         confirmationNumber: data.confirmationNumber !== undefined ? data.confirmationNumber : undefined,
         cost: data.cost !== undefined ? data.cost : undefined,
         currency: data.currency !== undefined ? data.currency : undefined,

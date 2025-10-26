@@ -59,13 +59,14 @@ export class AuthController {
     }
   }
 
-  async getCurrentUser(req: Request, res: Response, next: NextFunction) {
+  async getCurrentUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({
+        res.status(401).json({
           status: 'error',
           message: 'Unauthorized',
         });
+        return;
       }
 
       const user = await authService.getCurrentUser(req.user.userId);
@@ -79,7 +80,7 @@ export class AuthController {
     }
   }
 
-  async logout(req: Request, res: Response, next: NextFunction) {
+  async logout(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // In a stateless JWT system, logout is handled client-side
       // If you implement token blacklisting, add that logic here

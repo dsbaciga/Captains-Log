@@ -72,14 +72,14 @@ export class ImmichController {
       const assetsWithUrls = result.assets.map(asset => ({
         ...asset,
         thumbnailUrl: immichService.getAssetThumbnailUrl(
-          user.immichApiUrl,
+          user.immichApiUrl!,
           asset.id,
-          user.immichApiKey
+          user.immichApiKey!
         ),
         fileUrl: immichService.getAssetFileUrl(
-          user.immichApiUrl,
+          user.immichApiUrl!,
           asset.id,
-          user.immichApiKey
+          user.immichApiKey!
         ),
       }));
 
@@ -174,14 +174,14 @@ export class ImmichController {
       const assetsWithUrls = assets.map(asset => ({
         ...asset,
         thumbnailUrl: immichService.getAssetThumbnailUrl(
-          user.immichApiUrl,
+          user.immichApiUrl!,
           asset.id,
-          user.immichApiKey
+          user.immichApiKey!
         ),
         fileUrl: immichService.getAssetFileUrl(
-          user.immichApiUrl,
+          user.immichApiUrl!,
           asset.id,
-          user.immichApiKey
+          user.immichApiKey!
         ),
       }));
 
@@ -264,14 +264,14 @@ export class ImmichController {
         assets: album.assets.map(asset => ({
           ...asset,
           thumbnailUrl: immichService.getAssetThumbnailUrl(
-            user.immichApiUrl,
+            user.immichApiUrl!,
             asset.id,
-            user.immichApiKey
+            user.immichApiKey!
           ),
           fileUrl: immichService.getAssetFileUrl(
-            user.immichApiUrl,
+            user.immichApiUrl!,
             asset.id,
-            user.immichApiKey
+            user.immichApiKey!
           ),
         })),
       };
@@ -326,14 +326,14 @@ export class ImmichController {
       const assetsWithUrls = result.assets.map(asset => ({
         ...asset,
         thumbnailUrl: immichService.getAssetThumbnailUrl(
-          user.immichApiUrl,
+          user.immichApiUrl!,
           asset.id,
-          user.immichApiKey
+          user.immichApiKey!
         ),
         fileUrl: immichService.getAssetFileUrl(
-          user.immichApiUrl,
+          user.immichApiUrl!,
           asset.id,
-          user.immichApiKey
+          user.immichApiKey!
         ),
       }));
 

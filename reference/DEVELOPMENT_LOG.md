@@ -2,7 +2,7 @@
 
 This document provides a comprehensive list of all features in Captain's Log, organized by functional area. **Update this file whenever new features are added or existing features are modified.**
 
-Last Updated: 2025-01-22 | Current Version: v1.2.6
+Last Updated: 2025-10-26 | Current Version: v1.6.5 (Flight Tracking & Visualization)
 
 ---
 
@@ -258,6 +258,49 @@ Last Updated: 2025-01-22 | Current Version: v1.2.6
   - Visual connection lines on timeline
   - Travel duration calculation
 
+- **Flight Tracking & Visualization** (v1.6.5)
+  - **Route Visualization**
+    - Interactive map display showing flight paths
+    - Curved arc visualization between departure and arrival
+    - Automatic coordinate extraction from Location entities
+    - Supports flights with linked locations or text-based locations
+
+  - **Upcoming vs Historical Filtering**
+    - Tab-based filtering: All, Upcoming, Historical
+    - Count badges showing items in each category
+    - Automatic categorization based on departure time vs current date
+    - Empty state handling for each filter
+
+  - **Flight Status Indicators**
+    - Visual status badges: Upcoming (blue), In Progress (green), Completed (gray)
+    - Automatic status calculation based on departure/arrival times
+    - Real-time status updates
+
+  - **Flight Duration Display**
+    - Automatic duration calculation from departure/arrival times
+    - Human-readable formatting (e.g., "2h 30m")
+    - Displayed on transportation cards
+
+  - **Flight Statistics Dashboard**
+    - Total flights count
+    - Upcoming vs completed flight breakdown
+    - Total distance traveled (calculated via Haversine formula)
+    - Total flight time with hour conversion
+    - Number of unique airlines
+    - Most frequent routes (top 3)
+    - Distance display in both km and miles
+
+  - **Flight Tracking Integration**
+    - Gate number display
+    - Terminal information
+    - Baggage claim location
+    - Integration with FlightTracking database table
+
+  - **Enhanced Location Support**
+    - Coordinates extracted from Location entities with lat/long
+    - Text-based location support for airport codes
+    - Dual timezone support maintained for departure/arrival
+
 ---
 
 ## Lodging Management
@@ -421,7 +464,7 @@ Last Updated: 2025-01-22 | Current Version: v1.2.6
 - **Timezone Support** (v1.2.3)
   - Timezone-aware time display
   - Show timezone abbreviations (PST, EST, etc.)
-  - Hierarchical timezone fallback (entity ’ trip ’ browser)
+  - Hierarchical timezone fallback (entity ï¿½ trip ï¿½ browser)
   - Proper DST handling with IANA timezone identifiers
 
 - **Timeline Features**
@@ -521,7 +564,7 @@ Last Updated: 2025-01-22 | Current Version: v1.2.6
 - **Nominatim Integration**
   - Self-hosted Nominatim instance (optional)
   - External Nominatim API (fallback)
-  - Address ’ Coordinates conversion
+  - Address ï¿½ Coordinates conversion
   - Reverse geocoding
   - Place name search
 

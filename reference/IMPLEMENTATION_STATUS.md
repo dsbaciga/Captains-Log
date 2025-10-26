@@ -1,6 +1,6 @@
 # Captain's Log - Implementation Status
 
-Last Updated: 2025-10-25
+Last Updated: 2025-10-26
 
 ## ✅ Completed Features
 
@@ -82,6 +82,13 @@ Last Updated: 2025-10-25
 - [x] Start and end location support
 - [x] Start and end timezone fields (dual timezone support)
 - [x] Timeline integration for transportation
+- [x] **Flight route visualization** - Interactive maps showing flight paths with curved arcs
+- [x] **Upcoming vs Historical flight filtering** - Tab-based filtering to view upcoming, historical, or all transportation
+- [x] **Flight status badges** - Visual indicators for upcoming, in-progress, and completed flights
+- [x] **Flight duration calculation and display** - Automatic calculation and formatting of flight duration
+- [x] **Flight statistics dashboard** - Total flights, distance traveled, flight time, most frequent routes, and airline counts
+- [x] **Flight tracking integration** - Gate, terminal, and baggage claim information display
+- [x] **Coordinate-based route mapping** - Extracts coordinates from Location entities for accurate route visualization
 
 ### Lodging Management
 

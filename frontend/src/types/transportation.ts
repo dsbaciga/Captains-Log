@@ -8,6 +8,19 @@ export type TransportationType =
   | 'walk'
   | 'other';
 
+export type TransportationRoute = {
+  from: {
+    name: string;
+    latitude: number;
+    longitude: number;
+  };
+  to: {
+    name: string;
+    latitude: number;
+    longitude: number;
+  };
+};
+
 export type Transportation = {
   id: number;
   tripId: number;
@@ -31,10 +44,14 @@ export type Transportation = {
   fromLocation?: {
     id: number;
     name: string;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   toLocation?: {
     id: number;
     name: string;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   journalAssignments?: {
     id: number;
@@ -46,6 +63,19 @@ export type Transportation = {
       entryType: string;
     };
   }[];
+  route?: TransportationRoute | null;
+  durationMinutes?: number | null;
+  isUpcoming?: boolean;
+  isInProgress?: boolean;
+  flightTracking?: {
+    id: number;
+    flightNumber: string | null;
+    airlineCode: string | null;
+    status: string | null;
+    gate: string | null;
+    terminal: string | null;
+    baggageClaim: string | null;
+  } | null;
 };
 
 export type CreateTransportationInput = {

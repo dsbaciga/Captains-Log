@@ -99,24 +99,51 @@ Captain's Log is a full-stack travel documentation application built with a Reac
 
 ## Build and Deployment Workflow
 
-**IMPORTANT**: When the user asks you to "build and deploy", "build and push", "push a new version", or similar deployment requests, you MUST:
+**CRITICAL - READ THIS SECTION CAREFULLY**
 
-1. **Reference [reference/BUILD_AND_PUSH.md](reference/BUILD_AND_PUSH.md)** - This contains the step-by-step checklist for building and pushing new versions
-2. **Follow the checklist systematically** - Don't skip steps or assume steps are done
-3. **Verify each step completes** before moving to the next
-4. **Update version numbers** in all required files (package.json files, docker-compose files, etc.)
-5. **Test the build locally** before pushing to registry
-6. **Document what was deployed** in the appropriate files
+When the user asks you to "build and deploy", "build and push", "push a new version", "release", or ANY similar deployment request:
 
-The BUILD_AND_PUSH.md file includes:
-- Pre-deployment checklist (tests, TypeScript compilation, dependency updates)
-- Version bumping process
-- Docker build and tag commands
-- Push to container registry steps
-- Post-deployment verification
-- Common troubleshooting steps
+### YOU MUST ONLY USE THE STEPS IN BUILD_AND_PUSH.md
 
-**DO NOT** attempt to build/deploy without first reading BUILD_AND_PUSH.md to ensure all steps are followed correctly.
+**MANDATORY REQUIREMENTS:**
+
+1. **FIRST ACTION**: Read [reference/BUILD_AND_PUSH.md](reference/BUILD_AND_PUSH.md) in its entirety
+2. **FOLLOW EVERY STEP**: Execute the checklist systematically from start to finish
+3. **NO SHORTCUTS**: Do not skip steps, assume steps are done, or use alternative methods
+4. **NO IMPROVISATION**: Do not deviate from the documented process
+5. **VERIFY COMPLETION**: Check each step completes successfully before proceeding
+
+**WHY THIS IS CRITICAL:**
+
+The BUILD_AND_PUSH.md checklist ensures:
+- All tests pass before deployment
+- Version numbers are updated in ALL required files (package.json, docker-compose files, etc.)
+- Docker images are built and tagged correctly
+- Images are pushed to the registry successfully
+- Git tags are created and pushed
+- Documentation is updated
+
+**WHAT BUILD_AND_PUSH.md CONTAINS:**
+
+- Pre-deployment verification (tests, TypeScript compilation, clean working directory)
+- Complete version bumping process across all files
+- Docker build commands with correct tags
+- Container registry push commands
+- Git tag creation and push
+- Post-deployment verification steps
+- Common troubleshooting and rollback procedures
+
+**CONSEQUENCES OF NOT FOLLOWING THIS PROCESS:**
+
+- Inconsistent version numbers across services
+- Failed deployments due to missing steps
+- Broken production environments
+- Loss of deployment history
+- Wasted time troubleshooting preventable issues
+
+### DO NOT ATTEMPT BUILD/DEPLOY WITHOUT READING AND FOLLOWING BUILD_AND_PUSH.md
+
+If you are unsure about any step, STOP and ask the user for clarification. Do not guess or improvise.
 
 ## Architecture
 

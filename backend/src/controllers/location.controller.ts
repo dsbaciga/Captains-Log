@@ -4,10 +4,11 @@ import { createLocationSchema, updateLocationSchema, createLocationCategorySchem
 import logger from '../config/logger';
 
 export class LocationController {
-  async createLocation(req: Request, res: Response, next: NextFunction) {
+  async createLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const validatedData = createLocationSchema.parse(req.body);
@@ -24,10 +25,11 @@ export class LocationController {
     }
   }
 
-  async getLocationsByTrip(req: Request, res: Response, next: NextFunction) {
+  async getLocationsByTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const tripId = parseInt(req.params.tripId);
@@ -42,10 +44,11 @@ export class LocationController {
     }
   }
 
-  async getLocationById(req: Request, res: Response, next: NextFunction) {
+  async getLocationById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const locationId = parseInt(req.params.id);
@@ -60,10 +63,11 @@ export class LocationController {
     }
   }
 
-  async updateLocation(req: Request, res: Response, next: NextFunction) {
+  async updateLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const locationId = parseInt(req.params.id);
@@ -81,10 +85,11 @@ export class LocationController {
     }
   }
 
-  async deleteLocation(req: Request, res: Response, next: NextFunction) {
+  async deleteLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const locationId = parseInt(req.params.id);
@@ -102,10 +107,11 @@ export class LocationController {
   }
 
   // Location Categories
-  async getCategories(req: Request, res: Response, next: NextFunction) {
+  async getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const categories = await locationService.getCategories(req.user.userId);
@@ -119,10 +125,11 @@ export class LocationController {
     }
   }
 
-  async createCategory(req: Request, res: Response, next: NextFunction) {
+  async createCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const validatedData = createLocationCategorySchema.parse(req.body);
@@ -137,10 +144,11 @@ export class LocationController {
     }
   }
 
-  async updateCategory(req: Request, res: Response, next: NextFunction) {
+  async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const categoryId = parseInt(req.params.id);
@@ -156,10 +164,11 @@ export class LocationController {
     }
   }
 
-  async deleteCategory(req: Request, res: Response, next: NextFunction) {
+  async deleteCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const categoryId = parseInt(req.params.id);
@@ -174,10 +183,11 @@ export class LocationController {
     }
   }
 
-  async getAllVisitedLocations(req: Request, res: Response, next: NextFunction) {
+  async getAllVisitedLocations(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
       }
 
       const locations = await locationService.getAllVisitedLocations(req.user.userId);

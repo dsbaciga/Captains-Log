@@ -1001,6 +1001,38 @@ export default function TripDetailPage() {
                     }
                   }}
                   coverPhotoId={trip.coverPhotoId}
+                  totalPhotosInView={
+                    selectedAlbumId === null
+                      ? photosPagination.total
+                      : selectedAlbumId === -1
+                      ? unsortedPagination.total
+                      : albumPhotosPagination.total
+                  }
+                  onLoadAllPhotos={async () => {
+                    // Load all remaining photos for current view
+                    if (selectedAlbumId === null) {
+                      while (photosPagination.hasMore) {
+                        await photosPagination.loadMore();
+                      }
+                    } else if (selectedAlbumId === -1) {
+                      while (unsortedPagination.hasMore) {
+                        await unsortedPagination.loadMore();
+                      }
+                    } else {
+                      while (albumPhotosPagination.hasMore) {
+                        await albumPhotosPagination.loadMore();
+                      }
+                    }
+                  }}
+                  currentAlbumId={selectedAlbumId}
+                  onPhotosRemovedFromAlbum={() => {
+                    loadAlbums(trip.id);
+                    // Refresh the current album view
+                    if (selectedAlbumId && selectedAlbumId > 0) {
+                      albumPhotosPagination.reset();
+                    }
+                    toast.success('Photos removed from album');
+                  }}
                 />
 
                 {photosPagination.hasMore && selectedAlbumId === null && (
