@@ -10,8 +10,14 @@ export const companionService = {
   async createCompanion(userId: number, data: CreateCompanionInput) {
     return await prisma.travelCompanion.create({
       data: {
-        ...data,
-        userId,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        notes: data.notes,
+        relationship: data.relationship,
+        user: {
+          connect: { id: userId },
+        },
       },
     });
   },

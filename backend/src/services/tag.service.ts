@@ -10,8 +10,12 @@ export const tagService = {
   async createTag(userId: number, data: CreateTagInput) {
     return await prisma.tripTag.create({
       data: {
-        ...data,
-        userId,
+        name: data.name,
+        color: data.color,
+        textColor: data.textColor,
+        user: {
+          connect: { id: userId },
+        },
       },
     });
   },
@@ -34,7 +38,7 @@ export const tagService = {
     const tag = await prisma.tripTag.findFirst({
       where: { id: tagId, userId },
       include: {
-        trips: {
+        assignments: {
           include: {
             trip: {
               select: {

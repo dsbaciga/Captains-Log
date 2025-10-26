@@ -10,6 +10,8 @@ import AlbumDetailPage from './pages/AlbumDetailPage';
 import CompanionsPage from './pages/CompanionsPage';
 import PlacesVisitedPage from './pages/PlacesVisitedPage';
 import SettingsPage from './pages/SettingsPage';
+import ChecklistsPage from './pages/ChecklistsPage';
+import ChecklistDetailPage from './pages/ChecklistDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 
@@ -84,6 +86,22 @@ function App() {
           element={
             <ProtectedRoute>
               <PlacesVisitedPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/checklists"
+          element={
+            <ProtectedRoute>
+              <ChecklistsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/checklists/:id"
+          element={
+            <ProtectedRoute>
+              <ChecklistDetailPage />
             </ProtectedRoute>
           }
         />

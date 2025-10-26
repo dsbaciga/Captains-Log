@@ -265,18 +265,18 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Username */}
+          {/* Name */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Username
+              Name
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Change your username (must be 3-50 characters).
+              Change your name (must be 3-50 characters).
             </p>
             <form onSubmit={handleUpdateUsername} className="space-y-4">
               <div>
                 <label className="label" htmlFor={currentUsernameId}>
-                  Current Username
+                  Current Name
                 </label>
                 <input
                   type="text"
@@ -288,7 +288,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="label" htmlFor={newUsernameId}>
-                  New Username
+                  New Name
                 </label>
                 <input
                   type="text"
@@ -306,7 +306,7 @@ export default function SettingsPage() {
                 className="btn btn-primary"
                 disabled={!newUsername.trim() || newUsername === username}
               >
-                Update Username
+                Update Name
               </button>
             </form>
           </div>

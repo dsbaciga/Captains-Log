@@ -4,14 +4,14 @@ import { JwtPayload } from '../types/auth.types';
 
 export const generateAccessToken = (payload: JwtPayload): string => {
   return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
-  });
+    expiresIn: config.jwt.expiresIn as string,
+  } as jwt.SignOptions);
 };
 
 export const generateRefreshToken = (payload: JwtPayload): string => {
   return jwt.sign(payload, config.jwt.refreshSecret, {
-    expiresIn: config.jwt.refreshExpiresIn,
-  });
+    expiresIn: config.jwt.refreshExpiresIn as string,
+  } as jwt.SignOptions);
 };
 
 export const verifyAccessToken = (token: string): JwtPayload => {

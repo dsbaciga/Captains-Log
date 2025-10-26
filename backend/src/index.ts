@@ -21,6 +21,7 @@ import tagRoutes from './routes/tag.routes';
 import companionRoutes from './routes/companion.routes';
 import immichRoutes from './routes/immich.routes';
 import weatherRoutes from './routes/weather.routes';
+import checklistRoutes from './routes/checklist.routes';
 
 // Read version from package.json
 const packageJson = JSON.parse(
@@ -95,6 +96,7 @@ app.use('/api/tags', tagRoutes);
 app.use('/api/companions', companionRoutes);
 app.use('/api/immich', immichRoutes);
 app.use('/api', weatherRoutes);
+app.use('/api/checklists', checklistRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

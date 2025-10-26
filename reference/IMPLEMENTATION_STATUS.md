@@ -1,6 +1,6 @@
 # Captain's Log - Implementation Status
 
-Last Updated: 2025-10-23
+Last Updated: 2025-10-25
 
 ## ✅ Completed Features
 
@@ -37,6 +37,7 @@ Last Updated: 2025-10-23
 - [x] Trip detail page with tabs
 - [x] Trip create/edit form
 - [x] Trip status management (Dream, Planning, Planned, In Progress, Completed, Cancelled)
+- [x] **Automatic trip status updates based on dates** - Trips automatically transition to "In Progress" when start date arrives and "Completed" when end date passes
 - [x] Privacy levels (Private, Shared, Public)
 - [x] Trip cover photo support
 - [x] Trip timezone field
@@ -175,30 +176,7 @@ Last Updated: 2025-10-23
 - [x] Immich photo library integration
 - [x] Self-hosted Nominatim geocoding
 
-## 🚧 Known Issues & Recent Fixes
-
-### Recently Fixed (v1.3.3 - 2025-10-23)
-
-- ✅ JournalManager service method calls (getLodgingByTrip, getTransportationByTrip)
-- ✅ ActivityManager AssociatedAlbums props (updated to use albums array)
-- ✅ LodgingManager AssociatedAlbums props (updated to use albums array)
-- ✅ UnscheduledActivities AssociatedAlbums props (updated to use albums array)
-- ✅ TypeScript compilation errors in manager components
-- ✅ AssociatedAlbums component prop mismatches after refactoring
-
-### Previously Fixed
-
-- ✅ Prisma Client schema sync issues (resolved with migrations and regeneration)
-- ✅ PhotoAlbum coverPhoto field error (removed invalid field)
-- ✅ Album service import error (switched to photoService.getAlbumsByTrip)
-- ✅ Timezone conversion issues in dual timeline (fixed offset calculation)
-- ✅ Multi-day lodging display (shows check-in time, "All Day", and check-out time appropriately)
-- ✅ Dark mode missing in Timeline, TagManager, and CompanionManager (all fixed)
-- ✅ Companion creation failing due to missing schema fields (added email, phone, notes to schema)
-
-### Current Issues
-
-- ⚠️ Nominatim takes 1-2 hours to initialize on first startup
+## 🚧 Known Issues
 
 ## 📋 Remaining Work
 
@@ -226,16 +204,16 @@ Last Updated: 2025-10-23
 
 - [ ] Walking route auto-calculation
 - [ ] Multi-day transportation support
-- [ ] Activities with sub-activities
-- [ ] Photo pagination for large galleries
-- [ ] Combine Albums and Photos tabs (under consideration)
+- [x] Activities with sub-activities
+- [x] Photo pagination for large galleries
+- [x] Combine Albums and Photos tabs (under consideration)
 - [ ] XML import/export
 - [ ] Print-friendly reports
 - [ ] PDF export
 
 ### Phase 6: Polish & Optimization
 
-- [ ] Performance optimization (lazy loading, pagination)
+- [x] Performance optimization (lazy loading, pagination)
 - [ ] Mobile app (React Native or PWA)
 - [ ] Offline support
 - [ ] Redis caching

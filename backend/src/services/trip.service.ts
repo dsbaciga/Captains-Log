@@ -56,6 +56,9 @@ export class TripService {
       ];
     }
 
+    // Auto-update trip statuses before fetching
+    await this.autoUpdateAllTripStatuses(userId);
+
     const [trips, total] = await Promise.all([
       prisma.trip.findMany({
         where,
@@ -81,6 +84,72 @@ export class TripService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /**
+   * Auto-update status for all user's trips that have dates
+   * Does not update trips that are Completed or Cancelled
+   */
+  async autoUpdateAllTripStatuses(userId: number) {
+    const trips = await prisma.trip.findMany({
+      where: {
+        userId,
+        startDate: { not: null },
+        endDate: { not: null },
+        status: {
+          notIn: [TripStatus.COMPLETED, TripStatus.CANCELLED],
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const updates = trips
+      .map((trip) => {
+        if (!trip.startDate || !trip.endDate) return null;
+
+        const startDate = new Date(trip.startDate);
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = new Date(trip.endDate);
+        endDate.setHours(0, 0, 0, 0);
+
+        let newStatus: string | null = null;
+
+        // If today is after end date, mark as Completed
+        if (today > endDate && trip.status !== TripStatus.COMPLETED) {
+          newStatus = TripStatus.COMPLETED;
+        }
+        // If today is within trip dates (inclusive), mark as In Progress
+        else if (today >= startDate && today <= endDate && trip.status !== TripStatus.IN_PROGRESS) {
+          newStatus = TripStatus.IN_PROGRESS;
+        }
+
+        if (newStatus) {
+          return prisma.trip.update({
+            where: { id: trip.id },
+            data: {
+              status: newStatus,
+              addToPlacesVisited: newStatus === TripStatus.COMPLETED ? true : undefined,
+            },
+          });
+        }
+
+        return null;
+      })
+      .filter((update) => update !== null);
+
+    if (updates.length > 0) {
+      await Promise.all(updates);
+    }
   }
 
   async getTripById(userId: number, tripId: number) {
@@ -117,7 +186,98 @@ export class TripService {
       throw new AppError('Trip not found', 404);
     }
 
-    return trip;
+    // Auto-update status based on dates
+    await this.autoUpdateTripStatus(trip.id, trip.userId);
+
+    // Fetch updated trip
+    const updatedTrip = await prisma.trip.findUnique({
+      where: { id: tripId },
+      include: {
+        coverPhoto: true,
+        bannerPhoto: true,
+        tagAssignments: {
+          include: {
+            tag: true,
+          },
+        },
+        companionAssignments: {
+          include: {
+            companion: true,
+          },
+        },
+      },
+    });
+
+    return updatedTrip || trip;
+  }
+
+  /**
+   * Automatically update trip status based on start and end dates
+   * - If today >= startDate and today <= endDate, set to "In Progress"
+   * - If today > endDate, set to "Completed"
+   * - Only updates if trip has both startDate and endDate
+   * - Does not override manually set Completed or Cancelled status
+   */
+  async autoUpdateTripStatus(tripId: number, ownerId: number) {
+    const trip = await prisma.trip.findUnique({
+      where: { id: tripId },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    if (!trip || trip.userId !== ownerId) {
+      return; // Trip not found or not owned by user
+    }
+
+    // Don't auto-update Completed or Cancelled trips
+    if (trip.status === TripStatus.COMPLETED || trip.status === TripStatus.CANCELLED) {
+      return;
+    }
+
+    // Need both dates to auto-update
+    if (!trip.startDate || !trip.endDate) {
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    const startDate = new Date(trip.startDate);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(trip.endDate);
+    endDate.setHours(0, 0, 0, 0);
+
+    let newStatus: string | null = null;
+
+    // If today is after end date, mark as Completed
+    if (today > endDate) {
+      if (trip.status !== TripStatus.COMPLETED) {
+        newStatus = TripStatus.COMPLETED;
+      }
+    }
+    // If today is within trip dates (inclusive), mark as In Progress
+    else if (today >= startDate && today <= endDate) {
+      if (trip.status !== TripStatus.IN_PROGRESS) {
+        newStatus = TripStatus.IN_PROGRESS;
+      }
+    }
+
+    // Update if status changed
+    if (newStatus) {
+      await prisma.trip.update({
+        where: { id: tripId },
+        data: {
+          status: newStatus,
+          addToPlacesVisited: newStatus === TripStatus.COMPLETED ? true : undefined,
+        },
+      });
+    }
   }
 
   async updateTrip(userId: number, tripId: number, data: UpdateTripInput) {

@@ -292,9 +292,9 @@ class PhotoService {
     // Check trip access
     const hasAccess =
       location.trip.userId === userId ||
-      location.trip.privacy === 'public' ||
-      (location.trip.privacy === 'shared' &&
-        (await prisma.travelCompanion.count({
+      location.trip.privacyLevel === 'Public' ||
+      (location.trip.privacyLevel === 'Shared' &&
+        (await prisma.tripCollaborator.count({
           where: { tripId: location.trip.id, userId },
         })) > 0);
 
@@ -316,7 +316,7 @@ class PhotoService {
       include: {
         trip: true,
         location: true,
-        albums: {
+        albumAssignments: {
           include: {
             album: true,
           },
@@ -331,9 +331,9 @@ class PhotoService {
     // Check trip access
     const hasAccess =
       photo.trip.userId === userId ||
-      photo.trip.privacy === 'public' ||
-      (photo.trip.privacy === 'shared' &&
-        (await prisma.travelCompanion.count({
+      photo.trip.privacyLevel === 'Public' ||
+      (photo.trip.privacyLevel === 'Shared' &&
+        (await prisma.tripCollaborator.count({
           where: { tripId: photo.trip.id, userId },
         })) > 0);
 

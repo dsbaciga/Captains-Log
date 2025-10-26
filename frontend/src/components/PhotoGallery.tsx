@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Photo, PhotoAlbum } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
@@ -35,21 +35,46 @@ export default function PhotoGallery({
   const [showAlbumSelectModal, setShowAlbumSelectModal] = useState(false);
   const [isAddingToAlbum, setIsAddingToAlbum] = useState(false);
 
+  // Track which photos we're currently fetching to avoid duplicate requests
+  const fetchingPhotos = useRef<Set<number>>(new Set());
+
   // Load thumbnails for Immich photos with authentication
   useEffect(() => {
+    // Clear cache when photos array is empty (e.g., album changed)
+    if (photos.length === 0 && Object.keys(thumbnailCache).length > 0) {
+      console.log('[PhotoGallery] Photos cleared, revoking cached blob URLs');
+      Object.values(thumbnailCache).forEach(url => URL.revokeObjectURL(url));
+      setThumbnailCache({});
+      fetchingPhotos.current.clear();
+      return;
+    }
+
     const loadThumbnails = async () => {
       const token = localStorage.getItem('accessToken');
-      if (!token) return;
+      if (!token) {
+        console.log('[PhotoGallery] No access token available');
+        return;
+      }
 
       const baseUrl = getAssetBaseUrl();
 
       for (const photo of photos) {
-        // Skip if already cached or not an Immich photo
-        if (thumbnailCache[photo.id] || photo.source !== 'immich' || !photo.thumbnailPath) {
+        // Skip if already cached, currently fetching, or not an Immich photo
+        if (
+          thumbnailCache[photo.id] ||
+          fetchingPhotos.current.has(photo.id) ||
+          photo.source !== 'immich' ||
+          !photo.thumbnailPath
+        ) {
           continue;
         }
 
+        // Mark as fetching
+        fetchingPhotos.current.add(photo.id);
+
         try {
+          console.log(`[PhotoGallery] Fetching thumbnail for photo ${photo.id}:`, `${baseUrl}${photo.thumbnailPath}`);
+
           const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -57,19 +82,26 @@ export default function PhotoGallery({
           });
 
           if (!response.ok) {
-            console.error(`Failed to fetch thumbnail for photo ${photo.id}:`, response.status);
+            console.error(`[PhotoGallery] Failed to fetch thumbnail for photo ${photo.id}: ${response.status} ${response.statusText}`);
+            fetchingPhotos.current.delete(photo.id);
             continue;
           }
 
           const blob = await response.blob();
           const blobUrl = URL.createObjectURL(blob);
 
+          console.log(`[PhotoGallery] Successfully loaded thumbnail for photo ${photo.id}, blob URL: ${blobUrl}`);
+
           setThumbnailCache(prev => ({
             ...prev,
             [photo.id]: blobUrl,
           }));
+
+          // Remove from fetching set after successful load
+          fetchingPhotos.current.delete(photo.id);
         } catch (error) {
-          console.error(`Error loading thumbnail for photo ${photo.id}:`, error);
+          console.error(`[PhotoGallery] Error loading thumbnail for photo ${photo.id}:`, error);
+          fetchingPhotos.current.delete(photo.id);
         }
       }
     };
@@ -77,20 +109,17 @@ export default function PhotoGallery({
     if (photos.length > 0) {
       loadThumbnails();
     }
-
-    // Cleanup blob URLs when component unmounts or photos list completely changes
-    // Don't cleanup on every photos change, only on unmount
-    return () => {
-      // Only cleanup on unmount, not on every render
-    };
-  }, [photos]);
+  }, [photos]); // thumbnailCache removed - was causing infinite loop
 
   // Cleanup all blob URLs only when component unmounts
   useEffect(() => {
     return () => {
+      console.log('[PhotoGallery] Component unmounting, revoking blob URLs');
+      // Access thumbnailCache via a ref to avoid dependency
       Object.values(thumbnailCache).forEach(url => URL.revokeObjectURL(url));
+      fetchingPhotos.current.clear();
     };
-  }, []);
+  }, []); // Empty array - only run cleanup on unmount
 
   const handleDelete = async (photoId: number) => {
     if (!confirm('Are you sure you want to delete this photo?')) return;

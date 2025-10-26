@@ -5,6 +5,7 @@ export const createCompanionSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().max(20).optional(),
   notes: z.string().max(1000).optional(),
+  relationship: z.string().max(255).optional(),
 });
 
 export const updateCompanionSchema = z.object({
@@ -12,6 +13,7 @@ export const updateCompanionSchema = z.object({
   email: z.string().email().optional().nullable(),
   phone: z.string().max(20).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
+  relationship: z.string().max(255).optional().nullable(),
 });
 
 export const linkCompanionToTripSchema = z.object({

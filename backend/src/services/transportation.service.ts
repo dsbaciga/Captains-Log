@@ -23,27 +23,27 @@ class TransportationService {
       data: {
         tripId: data.tripId,
         type: data.type,
-        fromLocationId: data.fromLocationId || null,
-        toLocationId: data.toLocationId || null,
-        fromLocationName: data.fromLocationName || null,
-        toLocationName: data.toLocationName || null,
-        departureTime: data.departureTime ? new Date(data.departureTime) : null,
-        arrivalTime: data.arrivalTime ? new Date(data.arrivalTime) : null,
-        carrier: data.carrier || null,
-        vehicleNumber: data.vehicleNumber || null,
-        confirmationNumber: data.confirmationNumber || null,
+        startLocationId: data.fromLocationId || null,
+        endLocationId: data.toLocationId || null,
+        startLocationText: data.fromLocationName || null,
+        endLocationText: data.toLocationName || null,
+        scheduledStart: data.departureTime ? new Date(data.departureTime) : null,
+        scheduledEnd: data.arrivalTime ? new Date(data.arrivalTime) : null,
+        company: data.carrier || null,
+        referenceNumber: data.vehicleNumber || null,
+        bookingReference: data.confirmationNumber || null,
         cost: data.cost || null,
         currency: data.currency || null,
         notes: data.notes || null,
       },
       include: {
-        fromLocation: {
+        startLocation: {
           select: {
             id: true,
             name: true,
           },
         },
-        toLocation: {
+        endLocation: {
           select: {
             id: true,
             name: true,
@@ -100,8 +100,8 @@ class TransportationService {
       where: { id: transportationId },
       include: {
         trip: true,
-        fromLocation: true,
-        toLocation: true,
+        startLocation: true,
+        endLocation: true,
         journalAssignments: {
           select: {
             id: true,
@@ -151,37 +151,37 @@ class TransportationService {
       where: { id: transportationId },
       data: {
         type: data.type,
-        fromLocationId: data.fromLocationId !== undefined ? data.fromLocationId : undefined,
-        toLocationId: data.toLocationId !== undefined ? data.toLocationId : undefined,
-        fromLocationName: data.fromLocationName !== undefined ? data.fromLocationName : undefined,
-        toLocationName: data.toLocationName !== undefined ? data.toLocationName : undefined,
-        departureTime:
+        startLocationId: data.fromLocationId !== undefined ? data.fromLocationId : undefined,
+        endLocationId: data.toLocationId !== undefined ? data.toLocationId : undefined,
+        startLocationText: data.fromLocationName !== undefined ? data.fromLocationName : undefined,
+        endLocationText: data.toLocationName !== undefined ? data.toLocationName : undefined,
+        scheduledStart:
           data.departureTime !== undefined
             ? data.departureTime
               ? new Date(data.departureTime)
               : null
             : undefined,
-        arrivalTime:
+        scheduledEnd:
           data.arrivalTime !== undefined
             ? data.arrivalTime
               ? new Date(data.arrivalTime)
               : null
             : undefined,
-        carrier: data.carrier !== undefined ? data.carrier : undefined,
-        vehicleNumber: data.vehicleNumber !== undefined ? data.vehicleNumber : undefined,
-        confirmationNumber: data.confirmationNumber !== undefined ? data.confirmationNumber : undefined,
+        company: data.carrier !== undefined ? data.carrier : undefined,
+        referenceNumber: data.vehicleNumber !== undefined ? data.vehicleNumber : undefined,
+        bookingReference: data.confirmationNumber !== undefined ? data.confirmationNumber : undefined,
         cost: data.cost !== undefined ? data.cost : undefined,
         currency: data.currency !== undefined ? data.currency : undefined,
         notes: data.notes !== undefined ? data.notes : undefined,
       },
       include: {
-        fromLocation: {
+        startLocation: {
           select: {
             id: true,
             name: true,
           },
         },
-        toLocation: {
+        endLocation: {
           select: {
             id: true,
             name: true,

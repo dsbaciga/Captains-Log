@@ -83,6 +83,16 @@ export default function Navbar() {
             >
               Places Visited
             </Link>
+            <Link
+              to="/checklists"
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                isActive('/checklists')
+                  ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-medium'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              Checklists
+            </Link>
           </div>
 
           {/* Right Side: User Menu */}

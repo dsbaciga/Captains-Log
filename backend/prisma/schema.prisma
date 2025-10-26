@@ -32,6 +32,7 @@ model User {
   companions         TravelCompanion[]
   locationCategories LocationCategory[]
   tripCollaborators  TripCollaborator[]
+  checklists         Checklist[]
 
   @@map("users")
 }
@@ -460,4 +461,39 @@ model FlightTracking {
   transportation Transportation @relation(fields: [transportationId], references: [id], onDelete: Cascade)
 
   @@map("flight_tracking")
+}
+
+model Checklist {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  name        String   @db.VarChar(500)
+  description String?  @db.Text
+  type        String   @db.VarChar(50) // 'custom', 'airports', 'countries', 'cities'
+  isDefault   Boolean  @default(false) @map("is_default") // true for system-generated lists
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ChecklistItem[]
+
+  @@map("checklists")
+}
+
+model ChecklistItem {
+  id           Int       @id @default(autoincrement())
+  checklistId  Int       @map("checklist_id")
+  name         String    @db.VarChar(500)
+  description  String?   @db.Text
+  isChecked    Boolean   @default(false) @map("is_checked")
+  isDefault    Boolean   @default(false) @map("is_default") // true for pre-populated items
+  sortOrder    Int       @default(0) @map("sort_order")
+  metadata     Json?     // Store additional info like airport code, country code, etc.
+  checkedAt    DateTime? @map("checked_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_items")
 }
