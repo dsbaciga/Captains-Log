@@ -639,106 +639,133 @@ export default function TripDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
-          <div className="border-b border-gray-200 dark:border-gray-700">
-            <nav className="flex -mb-px">
+        <div className="bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-primary-500/10 dark:border-gold/10 mb-6 overflow-hidden">
+          <div className="border-b-2 border-primary-500/10 dark:border-gold/10">
+            <nav className="flex -mb-0.5 overflow-x-auto">
               <button
                 onClick={() => changeTab('timeline')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'timeline'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Timeline</span>
+                {activeTab === 'timeline' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
               <button
                 onClick={() => changeTab('locations')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'locations'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Locations</span>
-                <span className="text-xs mt-1">({locations.length})</span>
+                <span className="text-xs mt-1 opacity-75">({locations.length})</span>
+                {activeTab === 'locations' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
               <button
                 onClick={() => changeTab('photos')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'photos'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Photos</span>
-                <span className="text-xs mt-1">({totalPhotosCount})</span>
+                <span className="text-xs mt-1 opacity-75">({totalPhotosCount})</span>
+                {activeTab === 'photos' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
               <button
                 onClick={() => changeTab('activities')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'activities'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Activities</span>
-                <span className="text-xs mt-1">({activitiesCount})</span>
+                <span className="text-xs mt-1 opacity-75">({activitiesCount})</span>
+                {activeTab === 'activities' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
               <button
                 onClick={() => changeTab('unscheduled')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'unscheduled'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Unscheduled</span>
-                <span className="text-xs mt-1">({unscheduledCount})</span>
+                <span className="text-xs mt-1 opacity-75">({unscheduledCount})</span>
+                {activeTab === 'unscheduled' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
               <button
                 onClick={() => changeTab('transportation')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[120px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'transportation'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Transportation</span>
-                <span className="text-xs mt-1">({transportationCount})</span>
+                <span className="text-xs mt-1 opacity-75">({transportationCount})</span>
+                {activeTab === 'transportation' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
               <button
                 onClick={() => changeTab('lodging')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'lodging'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Lodging</span>
-                <span className="text-xs mt-1">({lodgingCount})</span>
+                <span className="text-xs mt-1 opacity-75">({lodgingCount})</span>
+                {activeTab === 'lodging' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
               <button
                 onClick={() => changeTab('journal')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'journal'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Journal</span>
-                <span className="text-xs mt-1">({journalCount})</span>
+                <span className="text-xs mt-1 opacity-75">({journalCount})</span>
+                {activeTab === 'journal' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
               <button
                 onClick={() => changeTab('companions')}
-                className={`flex-1 py-4 px-2 text-sm font-medium border-b-2 flex flex-col items-center ${
+                className={`flex-1 min-w-[110px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
                   activeTab === 'companions'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    ? 'text-primary-600 dark:text-gold'
+                    : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold'
                 }`}
               >
                 <span>Companions</span>
-                <span className="text-xs mt-1">({companionsCount})</span>
+                <span className="text-xs mt-1 opacity-75">({companionsCount})</span>
+                {activeTab === 'companions' && (
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
+                )}
               </button>
             </nav>
           </div>

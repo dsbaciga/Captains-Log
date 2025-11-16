@@ -1,33 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 m-0;
+    @apply bg-cream dark:bg-navy-900 text-charcoal dark:text-warm-gray m-0 font-body;
     min-height: 100vh;
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+    @apply px-4 py-2 rounded-lg font-medium font-body transition-all duration-200;
   }
 
   .btn-primary {
-    @apply bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed;
+    @apply px-6 py-3 rounded-lg font-semibold tracking-wide font-body
+           bg-gradient-to-r from-primary-500 to-primary-600
+           dark:from-accent-400 dark:to-accent-600
+           text-white shadow-lg shadow-primary-500/20 dark:shadow-accent-400/20
+           hover:shadow-xl hover:shadow-primary-500/30 dark:hover:shadow-accent-400/30
+           transform hover:-translate-y-0.5 active:translate-y-0
+           transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
 
   .btn-secondary {
-    @apply bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600;
+    @apply px-6 py-3 rounded-lg font-semibold tracking-wide font-body
+           bg-parchment dark:bg-navy-800
+           text-primary-600 dark:text-gold
+           border-2 border-primary-100 dark:border-navy-700
+           hover:bg-primary-50 dark:hover:bg-navy-700
+           transform hover:-translate-y-0.5 active:translate-y-0
+           transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed;
+    @apply px-6 py-3 rounded-lg font-semibold tracking-wide font-body
+           bg-gradient-to-r from-red-600 to-red-700
+           text-white shadow-lg shadow-red-600/20
+           hover:shadow-xl hover:shadow-red-600/30
+           transform hover:-translate-y-0.5 active:translate-y-0
+           transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
 
   .input {
-    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400;
+    @apply w-full px-4 py-3 rounded-lg border-2
+           border-primary-100 dark:border-primary-500/30
+           bg-white dark:bg-navy-800
+           text-charcoal dark:text-warm-gray font-body
+           placeholder:text-slate/50 dark:placeholder:text-warm-gray/40
+           focus:outline-none
+           focus:border-primary-500 dark:focus:border-gold
+           focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-gold/10
+           transition-all duration-200;
   }
 
   /* Make date and time input calendar icons white for both light and dark mode */
@@ -46,14 +76,66 @@
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-medium font-body text-charcoal dark:text-warm-gray mb-2 tracking-wide;
   }
 
   .error-message {
-    @apply text-red-600 dark:text-red-400 text-sm mt-1;
+    @apply text-red-600 dark:text-red-400 text-sm mt-1 font-body;
   }
 
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700;
+    @apply bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm
+           rounded-2xl shadow-lg p-6
+           border-2 border-primary-500/10 dark:border-gold/10
+           transition-all duration-300
+           hover:shadow-xl hover:border-accent-400/30 dark:hover:border-gold/20;
   }
 }
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.4s ease-out forwards;
+}
+
+/* Stagger delays for cards */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
