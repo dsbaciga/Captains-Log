@@ -1,6 +1,6 @@
 # Captain's Log - Implementation Status
 
-Last Updated: 2025-10-26
+Last Updated: 2025-12-21
 
 ## ✅ Completed Features
 
@@ -126,6 +126,17 @@ Last Updated: 2025-10-26
 - [x] Weather notes
 - [x] Location and photo linking
 
+### Checklists
+
+- [x] Checklist CRUD endpoints (backend)
+- [x] Checklist model with items and completion status
+- [x] Checklist creation and management UI
+- [x] Auto-population of default checklists
+- [x] Category-based checklist filtering
+- [x] Selective default checklist management
+- [x] Two-column layout for better organization
+- [x] Per-trip checklist customization
+
 ### Tags & Organization
 
 - [x] Tag CRUD endpoints (backend)
@@ -177,6 +188,12 @@ Last Updated: 2025-10-26
 - [x] Sticky headers
 - [x] Collapsible sections
 - [x] Empty states with helpful messaging
+- [x] **Comprehensive Design System (v1.8.0)** - Nautical-themed visual identity
+- [x] **Custom Typography** - Crimson Pro (serif) for headings, Manrope (sans-serif) for body
+- [x] **Navigator's Color Palette** - Deep ocean navy, weathered bronze/gold accents, warm neutrals
+- [x] **Animation System** - fadeInUp, float, slideIn animations with staggered effects
+- [x] **Enhanced Components** - Refined buttons with gradients, improved inputs, backdrop blur effects
+- [x] **Production-Grade Polish** - Micro-interactions, refined spacing, visual hierarchy
 
 ### External Integrations
 
@@ -241,11 +258,12 @@ Last Updated: 2025-10-26
 | Lodging                | 100%       |
 | Activities             | 100%       |
 | Journal Entries        | 100%       |
+| Checklists             | 100%       |
 | Tags                   | 100%       |
 | Companions             | 100%       |
 | Timeline               | 100%       |
 | User Settings          | 95%        |
-| UI/UX Polish           | 90%        |
+| UI/UX Polish           | 95%        |
 | Advanced Features      | 20%        |
 | External Integrations  | 20%        |
 
@@ -296,7 +314,7 @@ Last Updated: 2025-10-26
 
 ## 📝 Database Schema
 
-All 19 tables are created and operational:
+All 21 tables are created and operational:
 
 - `users` - User accounts with timezone and settings
 - `trips` - Trip records with status, dates, timezone
@@ -313,6 +331,8 @@ All 19 tables are created and operational:
 - `transportation` - Transportation records with dual timezones
 - `lodging` - Lodging records with dates and timezone
 - `activities` - Activity records with status and timezone
+- `checklists` - Trip checklists with categories
+- `checklist_items` - Individual checklist items with completion status
 - `journal_entries` - Journal entries with mood and weather
 - `journal_photos` - Many-to-many journal-photo relationships
 - `journal_locations` - Many-to-many journal-location relationships

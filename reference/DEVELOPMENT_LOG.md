@@ -2,7 +2,7 @@
 
 This document provides a comprehensive list of all features in Captain's Log, organized by functional area. **Update this file whenever new features are added or existing features are modified.**
 
-Last Updated: 2025-10-26 | Current Version: v1.6.5 (Flight Tracking & Visualization)
+Last Updated: 2025-12-21 | Current Version: v1.8.0 (Comprehensive Design System)
 
 ---
 
@@ -15,11 +15,12 @@ Last Updated: 2025-10-26 | Current Version: v1.6.5 (Flight Tracking & Visualizat
 5. [Transportation Management](#transportation-management)
 6. [Lodging Management](#lodging-management)
 7. [Journal Entries](#journal-entries)
-8. [Photo Management](#photo-management)
-9. [Timeline & Visualization](#timeline--visualization)
-10. [Collaboration Features](#collaboration-features)
-11. [Settings & Customization](#settings--customization)
-12. [External Integrations](#external-integrations)
+8. [Checklists](#checklists)
+9. [Photo Management](#photo-management)
+10. [Timeline & Visualization](#timeline--visualization)
+11. [Collaboration Features](#collaboration-features)
+12. [Settings & Customization](#settings--customization)
+13. [External Integrations](#external-integrations)
 
 ---
 
@@ -396,6 +397,52 @@ Last Updated: 2025-10-26 | Current Version: v1.6.5 (Flight Tracking & Visualizat
 
 ---
 
+## Checklists
+
+### Checklist CRUD
+- **Create Checklists**
+  - Checklist name and description
+  - Category assignment (Packing, Planning, Pre-Trip, etc.)
+  - Trip association
+  - Auto-population from default checklists
+
+- **Edit Checklists**
+  - Update checklist details
+  - Add/remove checklist items
+  - Reorder items
+  - Change categories
+
+- **Delete Checklists**
+  - Remove checklist from trip
+  - Confirmation prompt
+
+### Checklist Features (v1.6.0 - v1.6.3)
+- **Checklist Items**
+  - Item description
+  - Completion checkbox
+  - Per-item completion tracking
+  - Bulk item operations
+
+- **Default Checklists**
+  - System-provided default checklists
+  - Selective default checklist auto-population
+  - Category-based checklist filtering
+  - User can choose which defaults to include
+
+- **Checklist Organization**
+  - Two-column layout for better space utilization
+  - Category-based grouping
+  - Completion progress tracking
+  - Visual completion indicators
+
+- **Per-Trip Customization**
+  - Customize checklists for each trip
+  - Add trip-specific items
+  - Modify default checklist items
+  - Independent checklist states per trip
+
+---
+
 ## Photo Management
 
 ### Photo Upload & Storage
@@ -555,6 +602,15 @@ Last Updated: 2025-10-26 | Current Version: v1.6.5 (Flight Tracking & Visualizat
   - Responsive design
   - Mobile-friendly interface
   - Consistent styling across all components
+
+- **Design System (v1.8.0)**
+  - Comprehensive nautical-themed visual identity
+  - Custom typography (Crimson Pro serif for headings, Manrope sans-serif for body)
+  - Navigator's Color Palette (deep ocean navy, weathered bronze/gold accents, warm neutrals)
+  - Animation system with fadeInUp, float, and slideIn effects
+  - Enhanced component styling with gradients, shadows, and backdrop blur
+  - Production-grade polish with thoughtful micro-interactions
+  - Refined spacing and visual hierarchy throughout application
 
 ---
 
