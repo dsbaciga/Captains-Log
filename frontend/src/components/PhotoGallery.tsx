@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Photo, PhotoAlbum } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -43,6 +44,7 @@ export default function PhotoGallery({
   const [showAlbumSelectModal, setShowAlbumSelectModal] = useState(false);
   const [isAddingToAlbum, setIsAddingToAlbum] = useState(false);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   // Track which photos we're currently fetching to avoid duplicate requests
   const fetchingPhotos = useRef<Set<number>>(new Set());
@@ -131,7 +133,13 @@ export default function PhotoGallery({
   }, []); // Empty array - only run cleanup on unmount
 
   const handleDelete = async (photoId: number) => {
-    if (!confirm('Are you sure you want to delete this photo?')) return;
+    const confirmed = await confirm({
+      title: "Delete Photo",
+      message: "Are you sure you want to delete this photo? This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       await photoService.deletePhoto(photoId);
@@ -262,9 +270,13 @@ export default function PhotoGallery({
   const handleRemoveFromAlbum = async () => {
     if (selectedPhotoIds.size === 0 || !currentAlbumId) return;
 
-    if (!confirm(`Remove ${selectedPhotoIds.size} photo(s) from this album?`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Remove Photos",
+      message: `Remove ${selectedPhotoIds.size} photo(s) from this album? The photos will not be deleted, only removed from this album.`,
+      confirmLabel: "Remove",
+      variant: "warning",
+    });
+    if (!confirmed) return;
 
     try {
       setIsAddingToAlbum(true);
@@ -320,6 +332,7 @@ export default function PhotoGallery({
 
   return (
     <>
+      <ConfirmDialogComponent />
       {/* Selection Toolbar */}
       {albums && albums.length > 0 && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">

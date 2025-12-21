@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 import EmptyState from "./EmptyState";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface JournalManagerProps {
   tripId: number;
@@ -39,6 +40,8 @@ export default function JournalManager({
     itemName: "journal entry",
     onUpdate,
   });
+
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const [activities, setActivities] = useState<Activity[]>([]);
   const [lodgings, setLodgings] = useState<Lodging[]>([]);
@@ -152,7 +155,13 @@ export default function JournalManager({
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this journal entry?")) return;
+    const confirmed = await confirm({
+      title: "Delete Journal Entry",
+      message: "Delete this journal entry? This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     await manager.handleDelete(id);
   };
 
@@ -181,6 +190,7 @@ export default function JournalManager({
 
   return (
     <div className="space-y-6">
+      <ConfirmDialogComponent />
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Journal

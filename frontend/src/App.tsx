@@ -19,8 +19,12 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
+      {/* Skip to content link for accessibility */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <Navbar />
-      <div className="pt-16">
+      <main id="main-content" className="pt-16 sm:pt-20" tabIndex={-1}>
         <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<LoginPage />} />
@@ -114,7 +118,7 @@ function App() {
           }
         />
         </Routes>
-      </div>
+      </main>
     </BrowserRouter>
   );
 }

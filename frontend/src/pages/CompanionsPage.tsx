@@ -5,6 +5,7 @@ import tripService from '../services/trip.service';
 import type { Companion } from '../types/companion';
 import type { Trip } from '../types/trip';
 import toast from 'react-hot-toast';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface CompanionWithTrips extends Companion {
   tripAssignments?: Array<{
@@ -35,6 +36,7 @@ export default function CompanionsPage() {
   const [selectedCompanionForTrip, setSelectedCompanionForTrip] = useState<Companion | null>(null);
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
   const [loadingAllTrips, setLoadingAllTrips] = useState(false);
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   useEffect(() => {
     loadCompanions();
@@ -89,7 +91,13 @@ export default function CompanionsPage() {
   };
 
   const handleDeleteCompanion = async (companionId: number) => {
-    if (!confirm('Delete this companion? They will be removed from all trips.')) return;
+    const confirmed = await confirm({
+      title: 'Delete Companion',
+      message: 'Delete this companion? They will be removed from all trips.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await companionService.deleteCompanion(companionId);
@@ -194,7 +202,13 @@ export default function CompanionsPage() {
     e.preventDefault(); // Prevent Link navigation
     e.stopPropagation(); // Stop event bubbling
 
-    if (!confirm('Remove this companion from the trip?')) return;
+    const confirmed = await confirm({
+      title: 'Remove from Trip',
+      message: 'Remove this companion from the trip?',
+      confirmLabel: 'Remove',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
 
     try {
       await companionService.unlinkCompanionFromTrip(tripId, companionId);
@@ -226,6 +240,7 @@ export default function CompanionsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <ConfirmDialogComponent />
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Travel Companions</h1>

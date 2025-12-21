@@ -119,15 +119,11 @@ export function useManagerCRUD<T extends { id: number }>(
   );
 
   /**
-   * Deletes an item with confirmation
+   * Deletes an item (without confirmation - use with ConfirmDialog)
    * @returns true if successful, false otherwise
    */
   const handleDelete = useCallback(
     async (id: number): Promise<boolean> => {
-      if (!confirm(`Are you sure you want to delete this ${itemName}?`)) {
-        return false;
-      }
-
       try {
         await service.delete(id);
         toast.success(`${capitalize(itemName)} deleted successfully`);
@@ -142,6 +138,17 @@ export function useManagerCRUD<T extends { id: number }>(
     },
     [service, loadItems, onUpdate, itemName]
   );
+
+  /**
+   * Gets the default confirmation message for deleting an item
+   * Use with ConfirmDialog for consistent messaging
+   */
+  const getDeleteConfirmation = useCallback(() => ({
+    title: `Delete ${capitalize(itemName)}`,
+    message: `Are you sure you want to delete this ${itemName}? This action cannot be undone.`,
+    confirmLabel: 'Delete',
+    variant: 'danger' as const,
+  }), [itemName]);
 
   /**
    * Opens the form in create mode
@@ -196,6 +203,9 @@ export function useManagerCRUD<T extends { id: number }>(
     handleCreate,
     handleUpdate,
     handleDelete,
+
+    // Confirmation helpers
+    getDeleteConfirmation,
 
     // Form controls
     openCreateForm,
