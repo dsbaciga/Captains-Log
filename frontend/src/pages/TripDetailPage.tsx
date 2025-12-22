@@ -10,6 +10,7 @@ import journalService from '../services/journalEntry.service';
 import tagService from '../services/tag.service';
 import companionService from '../services/companion.service';
 import userService from '../services/user.service';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import type { Trip } from '../types/trip';
 import type { Location } from '../types/location';
 import type { Photo } from '../types/photo';
@@ -40,6 +41,7 @@ import { usePagination } from '../hooks/usePagination';
 export default function TripDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -356,7 +358,13 @@ export default function TripDetailPage() {
   };
 
   const handleDeleteAlbum = async (albumId: number) => {
-    if (!confirm('Delete this album? Photos will not be deleted, only the album.')) {
+    const confirmed = await confirm({
+      title: 'Delete Album',
+      message: 'Delete this album? Photos will not be deleted, only the album.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -445,7 +453,13 @@ export default function TripDetailPage() {
   };
 
   const handleDeleteLocation = async (locationId: number) => {
-    if (!confirm('Delete this location?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Location',
+      message: 'Delete this location?',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await locationService.deleteLocation(locationId);
@@ -1202,6 +1216,7 @@ export default function TripDetailPage() {
           }}
         />
       )}
+      {ConfirmDialogComponent}
     </div>
   );
 }

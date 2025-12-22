@@ -3,6 +3,7 @@ import companionService from '../services/companion.service';
 import type { Companion } from '../types/companion';
 import toast from 'react-hot-toast';
 import { useManagerCRUD } from '../hooks/useManagerCRUD';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface CompanionManagerProps {
   tripId: number;
@@ -22,6 +23,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     itemName: "companion",
   });
 
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -84,7 +86,13 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
   };
 
   const handleDeleteCompanion = async (companionId: number) => {
-    if (!confirm('Delete this companion? They will be removed from all trips.')) return;
+    const confirmed = await confirm({
+      title: 'Delete Companion',
+      message: 'Delete this companion? They will be removed from all trips.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await companionService.deleteCompanion(companionId);
@@ -358,7 +366,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
           )}
         </div>
       )}
-
+      {ConfirmDialogComponent}
     </div>
   );
 }

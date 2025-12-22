@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import type { Checklist, DefaultChecklistStatus, ChecklistType } from '../types/checklist';
 import checklistService from '../services/checklist.service';
 import ChecklistSelectorModal from '../components/ChecklistSelectorModal';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import toast from 'react-hot-toast';
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
@@ -17,6 +19,7 @@ export default function ChecklistsPage() {
   const [showSelectorModal, setShowSelectorModal] = useState(false);
   const [selectorMode, setSelectorMode] = useState<'add' | 'remove'>('add');
   const [defaultChecklistsStatus, setDefaultChecklistsStatus] = useState<DefaultChecklistStatus[]>([]);
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   useEffect(() => {
     loadChecklists();
@@ -45,7 +48,13 @@ export default function ChecklistsPage() {
   };
 
   const handleInitializeDefaults = async () => {
-    if (!confirm('This will create default checklists for Airports, Countries, and Cities. Continue?')) {
+    const confirmed = await confirm({
+      title: 'Initialize Default Checklists',
+      message: 'This will create default checklists for Airports, Countries, and Cities. Continue?',
+      confirmText: 'Initialize',
+      variant: 'info',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -98,7 +107,13 @@ export default function ChecklistsPage() {
   };
 
   const handleDeleteChecklist = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this checklist? This cannot be undone.')) {
+    const confirmed = await confirm({
+      title: 'Delete Checklist',
+      message: 'Are you sure you want to delete this checklist? This cannot be undone.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -112,7 +127,13 @@ export default function ChecklistsPage() {
   };
 
   const handleRemoveDefaults = async () => {
-    if (!confirm('This will remove all default checklists (Airports, Countries, Cities, US States). Are you sure?')) {
+    const confirmed = await confirm({
+      title: 'Remove Default Checklists',
+      message: 'This will remove all default checklists (Airports, Countries, Cities, US States). Are you sure?',
+      confirmText: 'Remove',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -130,7 +151,13 @@ export default function ChecklistsPage() {
   };
 
   const handleRestoreDefaults = async () => {
-    if (!confirm('This will restore any missing default checklists. Continue?')) {
+    const confirmed = await confirm({
+      title: 'Restore Default Checklists',
+      message: 'This will restore any missing default checklists. Continue?',
+      confirmText: 'Restore',
+      variant: 'info',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -379,6 +406,7 @@ export default function ChecklistsPage() {
           availableChecklists={defaultChecklistsStatus}
           mode={selectorMode}
         />
+        {ConfirmDialogComponent}
       </div>
     </div>
   );

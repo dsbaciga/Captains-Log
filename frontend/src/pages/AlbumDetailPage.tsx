@@ -10,9 +10,11 @@ import activityService from "../services/activity.service";
 import lodgingService from "../services/lodging.service";
 import PhotoGallery from "../components/PhotoGallery";
 import { usePagination } from "../hooks/usePagination";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 export default function AlbumDetailPage() {
   const { tripId, albumId } = useParams<{ tripId: string; albumId: string }>();
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [album, setAlbum] = useState<AlbumWithPhotos | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -132,7 +134,13 @@ export default function AlbumDetailPage() {
 
   const handleRemovePhoto = async (photoId: number) => {
     if (!albumId) return;
-    if (!confirm("Remove this photo from the album?")) return;
+    const confirmed = await confirm({
+      title: 'Remove Photo',
+      message: 'Remove this photo from the album?',
+      confirmText: 'Remove',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
 
     try {
       await photoService.removePhotoFromAlbum(parseInt(albumId), photoId);
@@ -386,6 +394,7 @@ export default function AlbumDetailPage() {
             </div>
           </div>
         )}
+        {ConfirmDialogComponent}
       </div>
     </div>
   );

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import immichService from '../services/immich.service';
 import type { ImmichSettings } from '../types/immich';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function ImmichSettings() {
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [settings, setSettings] = useState<ImmichSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -76,7 +78,13 @@ export default function ImmichSettings() {
   };
 
   const handleClearSettings = async () => {
-    if (!confirm('Are you sure you want to remove Immich integration?')) {
+    const confirmed = await confirm({
+      title: 'Remove Immich Integration',
+      message: 'Are you sure you want to remove Immich integration?',
+      confirmText: 'Remove',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -214,6 +222,7 @@ export default function ImmichSettings() {
           <li>Copy the generated API key and paste it above</li>
         </ol>
       </div>
+      {ConfirmDialogComponent}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import tagService from "../services/tag.service";
 import type { Tag } from "../types/tag";
 import toast from "react-hot-toast";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface TagManagerProps {
   tripId: number;
@@ -33,6 +34,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     itemName: "tag",
   });
 
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState(DEFAULT_COLORS[0]);
@@ -93,7 +95,13 @@ export default function TagManager({ tripId }: TagManagerProps) {
   };
 
   const handleDeleteTag = async (tagId: number) => {
-    if (!confirm("Delete this tag? It will be removed from all trips.")) return;
+    const confirmed = await confirm({
+      title: 'Delete Tag',
+      message: 'Delete this tag? It will be removed from all trips.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await tagService.deleteTag(tagId);
@@ -329,6 +337,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
           </div>
         </div>
       )}
+      {ConfirmDialogComponent}
     </div>
   );
 }

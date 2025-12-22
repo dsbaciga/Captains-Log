@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { Checklist, ChecklistItem } from '../types/checklist';
 import checklistService from '../services/checklist.service';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function ChecklistDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -67,7 +69,13 @@ export default function ChecklistDetailPage() {
   };
 
   const handleDeleteItem = async (itemId: number) => {
-    if (!confirm('Are you sure you want to delete this item?')) {
+    const confirmed = await confirm({
+      title: 'Delete Item',
+      message: 'Are you sure you want to delete this item?',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -357,6 +365,7 @@ export default function ChecklistDetailPage() {
             </div>
           )}
         </div>
+        {ConfirmDialogComponent}
       </div>
     </div>
   );

@@ -10,9 +10,11 @@ import toast from "react-hot-toast";
 import ImmichSettings from "../components/ImmichSettings";
 import WeatherSettings from "../components/WeatherSettings";
 import EmojiPicker from "../components/EmojiPicker";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 export default function SettingsPage() {
   const { updateUser } = useAuthStore();
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [categories, setCategories] = useState<ActivityCategory[]>([]);
   const [newCategory, setNewCategory] = useState("");
   const [newCategoryEmoji, setNewCategoryEmoji] = useState("😀");
@@ -98,7 +100,13 @@ export default function SettingsPage() {
   };
 
   const handleDeleteTag = async (tagId: number) => {
-    if (!confirm("Delete this tag? It will be removed from all trips.")) return;
+    const confirmed = await confirm({
+      title: 'Delete Tag',
+      message: 'Delete this tag? It will be removed from all trips.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await tagService.deleteTag(tagId);
@@ -679,6 +687,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        {ConfirmDialogComponent}
       </main>
     </div>
   );

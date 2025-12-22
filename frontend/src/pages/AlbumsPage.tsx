@@ -3,10 +3,12 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { PhotoAlbum } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function AlbumsPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [albums, setAlbums] = useState<PhotoAlbum[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -59,7 +61,13 @@ export default function AlbumsPage() {
   };
 
   const handleDeleteAlbum = async (albumId: number) => {
-    if (!confirm('Are you sure you want to delete this album? Photos will not be deleted.')) {
+    const confirmed = await confirm({
+      title: 'Delete Album',
+      message: 'Are you sure you want to delete this album? Photos will not be deleted.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -211,6 +219,7 @@ export default function AlbumsPage() {
           ))}
         </div>
       )}
+        {ConfirmDialogComponent}
       </div>
     </div>
   );

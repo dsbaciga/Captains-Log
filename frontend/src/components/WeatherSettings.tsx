@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import userService from '../services/user.service';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function WeatherSettings() {
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [settings, setSettings] = useState<{ weatherApiKeySet: boolean } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,7 +51,13 @@ export default function WeatherSettings() {
   };
 
   const handleClearSettings = async () => {
-    if (!confirm('Are you sure you want to remove your weather API key?')) {
+    const confirmed = await confirm({
+      title: 'Remove Weather API Key',
+      message: 'Are you sure you want to remove your weather API key?',
+      confirmText: 'Remove',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -168,6 +176,7 @@ export default function WeatherSettings() {
           <li>Note: It may take a few minutes for a new API key to become active</li>
         </ol>
       </div>
+      {ConfirmDialogComponent}
     </div>
   );
 }
