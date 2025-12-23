@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import type { Trip } from '../types/trip';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
-import { useAuthStore } from '../store/authStore';
 import { getAssetBaseUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
@@ -13,8 +12,6 @@ export default function TripsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
-  const navigate = useNavigate();
-  const { logout } = useAuthStore();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   useEffect(() => {
@@ -80,7 +77,7 @@ export default function TripsPage() {
       const params = statusFilter ? { status: statusFilter } : {};
       const response = await tripService.getTrips(params);
       setTrips(response.trips);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load trips');
     } finally {
       setLoading(false);
@@ -101,14 +98,9 @@ export default function TripsPage() {
       await tripService.deleteTrip(id);
       toast.success('Trip deleted successfully');
       loadTrips();
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete trip');
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
   };
 
   const getStatusColor = (status: string) => {

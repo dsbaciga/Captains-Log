@@ -43,10 +43,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       const errorMessage = error.response?.data?.message || 'Login failed';
       set({ error: errorMessage, isLoading: false });
-      throw error;
+      throw err;
     }
   },
 
@@ -67,10 +68,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       const errorMessage = error.response?.data?.message || 'Registration failed';
       set({ error: errorMessage, isLoading: false });
-      throw error;
+      throw err;
     }
   },
 
@@ -109,7 +111,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch (error) {
+    } catch {
       // Token is invalid, clear everything
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');

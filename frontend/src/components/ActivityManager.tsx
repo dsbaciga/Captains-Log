@@ -109,7 +109,7 @@ export default function ActivityManager({
     try {
       const user = await userService.getMe();
       setActivityCategories(user.activityCategories || []);
-    } catch (_error) {
+    } catch {
       console.error("Failed to load activity categories");
     }
   };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { PhotoAlbum } from "../types/photo";
 import type { Location } from "../types/location";
 import type { Activity } from "../types/activity";

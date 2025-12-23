@@ -145,7 +145,7 @@ export default function PhotoGallery({
       await photoService.deletePhoto(photoId);
       setSelectedPhoto(null);
       onPhotoDeleted?.();
-    } catch (error) {
+    } catch {
       alert('Failed to delete photo');
     }
   };
@@ -159,7 +159,7 @@ export default function PhotoGallery({
       });
       setIsEditMode(false);
       onPhotoUpdated?.();
-    } catch (error) {
+    } catch {
       alert('Failed to update photo');
     }
   };
@@ -198,22 +198,6 @@ export default function PhotoGallery({
     setSelectedPhotoIds(allPhotoIds);
   };
 
-  const selectAllPhotosInFolder = async () => {
-    if (!onLoadAllPhotos) {
-      // If no load function provided, just select all loaded
-      selectAllLoadedPhotos();
-      return;
-    }
-
-    try {
-      // Load all photos first
-      await onLoadAllPhotos();
-      // Then select all (photos will be updated via useEffect below)
-    } catch (error) {
-      alert('Failed to load all photos');
-    }
-  };
-
   // Effect to select all photos after they're loaded
   const [shouldSelectAll, setShouldSelectAll] = useState(false);
 
@@ -235,7 +219,7 @@ export default function PhotoGallery({
     try {
       setShouldSelectAll(true);
       await onLoadAllPhotos();
-    } catch (error) {
+    } catch {
       setShouldSelectAll(false);
       alert('Failed to load all photos');
     }
@@ -260,7 +244,7 @@ export default function PhotoGallery({
       setLastSelectedIndex(null);
       onPhotosAddedToAlbum?.();
       alert(`Successfully added ${selectedPhotoIds.size} photo(s) to album`);
-    } catch (error) {
+    } catch {
       alert('Failed to add photos to album');
     } finally {
       setIsAddingToAlbum(false);
@@ -290,7 +274,7 @@ export default function PhotoGallery({
       setLastSelectedIndex(null);
       onPhotosRemovedFromAlbum?.();
       alert(`Successfully removed ${photoIds.length} photo(s) from album`);
-    } catch (error) {
+    } catch {
       alert('Failed to remove photos from album');
     } finally {
       setIsAddingToAlbum(false);

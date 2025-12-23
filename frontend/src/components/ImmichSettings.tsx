@@ -46,7 +46,8 @@ export default function ImmichSettings() {
       } else {
         setMessage({ type: 'error', text: 'Failed to connect to Immich' });
       }
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to test connection' });
     } finally {
       setIsTesting(false);
@@ -70,7 +71,8 @@ export default function ImmichSettings() {
 
       setMessage({ type: 'success', text: result.message });
       await loadSettings();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to save settings' });
     } finally {
       setIsSaving(false);
@@ -101,7 +103,8 @@ export default function ImmichSettings() {
       setApiKey('');
       setMessage({ type: 'success', text: 'Immich integration removed' });
       await loadSettings();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to clear settings' });
     } finally {
       setIsSaving(false);

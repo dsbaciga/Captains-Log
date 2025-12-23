@@ -38,7 +38,6 @@ interface UseConfirmDialogReturn {
  */
 export function useConfirmDialog(): UseConfirmDialogReturn {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const [resolveRef, setResolveRef] = useState<((value: boolean) => void) | null>(null);
 
@@ -51,12 +50,11 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
   }, []);
 
   const handleClose = useCallback(() => {
-    if (isLoading) return;
     setIsOpen(false);
     resolveRef?.(false);
     setResolveRef(null);
     setOptions(null);
-  }, [isLoading, resolveRef]);
+  }, [resolveRef]);
 
   const handleConfirm = useCallback(() => {
     setIsOpen(false);
@@ -73,11 +71,11 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
         isOpen={isOpen}
         onClose={handleClose}
         onConfirm={handleConfirm}
-        isLoading={isLoading}
+        isLoading={false}
         {...options}
       />
     );
-  }, [isOpen, isLoading, options, handleClose, handleConfirm]);
+  }, [isOpen, options, handleClose, handleConfirm]);
 
   return {
     confirm,

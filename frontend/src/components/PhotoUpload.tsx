@@ -37,8 +37,8 @@ export default function PhotoUpload({
     try {
       const settings = await immichService.getSettings();
       setImmichConfigured(settings.immichConfigured);
-    } catch (error) {
-      console.error("Failed to check Immich settings:", error);
+    } catch (err) {
+      console.error("Failed to check Immich settings:", err);
     }
   };
 
@@ -74,8 +74,8 @@ export default function PhotoUpload({
       setUploadProgress(0);
       setShowImmichBrowser(false);
       onPhotoUploaded();
-    } catch (error) {
-      console.error("Failed to link Immich photos:", error);
+    } catch (err) {
+      console.error("Failed to link Immich photos:", err);
       alert("Failed to link Immich photos");
     } finally {
       setIsUploading(false);
@@ -133,8 +133,8 @@ export default function PhotoUpload({
         `Successfully imported album "${album.albumName}" with ${assets.length} photos!`
       );
       onPhotoUploaded();
-    } catch (error) {
-      console.error("Failed to import album:", error);
+    } catch (err) {
+      console.error("Failed to import album:", err);
       toast.dismiss();
       toast.error("Failed to import album");
     } finally {
@@ -165,7 +165,7 @@ export default function PhotoUpload({
       setLocationId(undefined);
       setUploadProgress(0);
       onPhotoUploaded();
-    } catch (error) {
+    } catch {
       alert("Failed to upload photos");
     } finally {
       setIsUploading(false);

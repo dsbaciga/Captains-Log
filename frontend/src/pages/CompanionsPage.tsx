@@ -47,7 +47,7 @@ export default function CompanionsPage() {
       setLoading(true);
       const allCompanions = await companionService.getCompanionsByUser();
       setCompanions(allCompanions);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load companions');
     } finally {
       setLoading(false);
@@ -66,7 +66,7 @@ export default function CompanionsPage() {
       toast.success('Companion created');
       resetForm();
       await loadCompanions();
-    } catch (error) {
+    } catch {
       toast.error('Failed to create companion');
     }
   };
@@ -85,7 +85,7 @@ export default function CompanionsPage() {
       toast.success('Companion updated');
       resetForm();
       loadCompanions();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update companion');
     }
   };
@@ -103,7 +103,7 @@ export default function CompanionsPage() {
       await companionService.deleteCompanion(companionId);
       toast.success('Companion deleted');
       loadCompanions();
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete companion');
     }
   };
@@ -132,7 +132,7 @@ export default function CompanionsPage() {
       setShowTripsModal(true);
       const companionWithTrips = await companionService.getCompanionById(companionId) as CompanionWithTrips;
       setSelectedCompanionTrips(companionWithTrips);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load trips');
       setShowTripsModal(false);
     } finally {
@@ -164,7 +164,7 @@ export default function CompanionsPage() {
       const availableTrips = tripsData.trips.filter(trip => !assignedTripIds.has(trip.id));
 
       setAllTrips(availableTrips);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load trips');
       setShowAddToTripModal(false);
     } finally {
@@ -183,7 +183,8 @@ export default function CompanionsPage() {
       setAllTrips([]);
       // Refresh companions to update counts
       loadCompanions();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       if (error.response?.data?.message?.includes('already linked')) {
         toast.error('Companion already added to this trip');
       } else {
@@ -222,7 +223,7 @@ export default function CompanionsPage() {
 
       // Refresh companions list to update counts
       loadCompanions();
-    } catch (error) {
+    } catch {
       toast.error('Failed to remove companion from trip');
     }
   };

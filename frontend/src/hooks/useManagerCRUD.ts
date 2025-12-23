@@ -38,11 +38,11 @@ import { toast } from 'react-hot-toast';
  * <button onClick={() => manager.handleDelete(item.id)}>Delete</button>
  * ```
  */
-export function useManagerCRUD<T extends { id: number }>(
+export function useManagerCRUD<T extends { id: number }, TCreateData = unknown, TUpdateData = unknown>(
   service: {
     getByTrip: (tripId: number) => Promise<T[]>;
-    create: (data: any) => Promise<T>;
-    update: (id: number, data: any) => Promise<T>;
+    create: (data: TCreateData) => Promise<T>;
+    update: (id: number, data: TUpdateData) => Promise<T>;
     delete: (id: number) => Promise<void>;
   },
   tripId: number,
@@ -81,7 +81,7 @@ export function useManagerCRUD<T extends { id: number }>(
    * @returns true if successful, false otherwise
    */
   const handleCreate = useCallback(
-    async (data: any): Promise<boolean> => {
+    async (data: TCreateData): Promise<boolean> => {
       try {
         await service.create(data);
         toast.success(`${capitalize(itemName)} added successfully`);
@@ -102,7 +102,7 @@ export function useManagerCRUD<T extends { id: number }>(
    * @returns true if successful, false otherwise
    */
   const handleUpdate = useCallback(
-    async (id: number, data: any): Promise<boolean> => {
+    async (id: number, data: TUpdateData): Promise<boolean> => {
       try {
         await service.update(id, data);
         toast.success(`${capitalize(itemName)} updated successfully`);

@@ -4,7 +4,6 @@ import type { Checklist, DefaultChecklistStatus, ChecklistType } from '../types/
 import checklistService from '../services/checklist.service';
 import ChecklistSelectorModal from '../components/ChecklistSelectorModal';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
-import toast from 'react-hot-toast';
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
@@ -14,8 +13,6 @@ export default function ChecklistsPage() {
   const [newChecklistDescription, setNewChecklistDescription] = useState('');
   const [isInitializing, setIsInitializing] = useState(false);
   const [isAutoChecking, setIsAutoChecking] = useState(false);
-  const [isRemoving, setIsRemoving] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
   const [showSelectorModal, setShowSelectorModal] = useState(false);
   const [selectorMode, setSelectorMode] = useState<'add' | 'remove'>('add');
   const [defaultChecklistsStatus, setDefaultChecklistsStatus] = useState<DefaultChecklistStatus[]>([]);
@@ -30,8 +27,8 @@ export default function ChecklistsPage() {
     try {
       const data = await checklistService.getChecklists();
       setChecklists(data);
-    } catch (error) {
-      console.error('Failed to load checklists:', error);
+    } catch (err) {
+      console.error('Failed to load checklists:', err);
       alert('Failed to load checklists');
     } finally {
       setIsLoading(false);
@@ -42,8 +39,8 @@ export default function ChecklistsPage() {
     try {
       const status = await checklistService.getDefaultsStatus();
       setDefaultChecklistsStatus(status);
-    } catch (error) {
-      console.error('Failed to load defaults status:', error);
+    } catch (err) {
+      console.error('Failed to load defaults status:', err);
     }
   };
 
@@ -63,8 +60,8 @@ export default function ChecklistsPage() {
       await checklistService.initializeDefaults();
       await loadChecklists();
       alert('Default checklists initialized successfully!');
-    } catch (error) {
-      console.error('Failed to initialize defaults:', error);
+    } catch (err) {
+      console.error('Failed to initialize defaults:', err);
       alert('Failed to initialize default checklists. They may already exist.');
     } finally {
       setIsInitializing(false);
@@ -77,8 +74,8 @@ export default function ChecklistsPage() {
       const result = await checklistService.autoCheckFromTrips();
       await loadChecklists();
       alert(`Successfully auto-checked ${result.updated} items based on your trips!`);
-    } catch (error) {
-      console.error('Failed to auto-check items:', error);
+    } catch (err) {
+      console.error('Failed to auto-check items:', err);
       alert('Failed to auto-check items from trips');
     } finally {
       setIsAutoChecking(false);
@@ -100,8 +97,8 @@ export default function ChecklistsPage() {
       setNewChecklistDescription('');
       setShowCreateForm(false);
       await loadChecklists();
-    } catch (error) {
-      console.error('Failed to create checklist:', error);
+    } catch (err) {
+      console.error('Failed to create checklist:', err);
       alert('Failed to create checklist');
     }
   };
@@ -120,58 +117,9 @@ export default function ChecklistsPage() {
     try {
       await checklistService.deleteChecklist(id);
       await loadChecklists();
-    } catch (error) {
-      console.error('Failed to delete checklist:', error);
+    } catch (err) {
+      console.error('Failed to delete checklist:', err);
       alert('Failed to delete checklist');
-    }
-  };
-
-  const handleRemoveDefaults = async () => {
-    const confirmed = await confirm({
-      title: 'Remove Default Checklists',
-      message: 'This will remove all default checklists (Airports, Countries, Cities, US States). Are you sure?',
-      confirmText: 'Remove',
-      variant: 'danger',
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    setIsRemoving(true);
-    try {
-      const result = await checklistService.removeDefaults();
-      await loadChecklists();
-      alert(`Successfully removed ${result.removed} default checklists`);
-    } catch (error) {
-      console.error('Failed to remove defaults:', error);
-      alert('Failed to remove default checklists');
-    } finally {
-      setIsRemoving(false);
-    }
-  };
-
-  const handleRestoreDefaults = async () => {
-    const confirmed = await confirm({
-      title: 'Restore Default Checklists',
-      message: 'This will restore any missing default checklists. Continue?',
-      confirmText: 'Restore',
-      variant: 'info',
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    setIsRestoring(true);
-    try {
-      const result = await checklistService.restoreDefaults();
-      await loadChecklists();
-      await loadDefaultsStatus();
-      alert(`Successfully restored ${result.restored} default checklists`);
-    } catch (error) {
-      console.error('Failed to restore defaults:', error);
-      alert('Failed to restore default checklists');
-    } finally {
-      setIsRestoring(false);
     }
   };
 

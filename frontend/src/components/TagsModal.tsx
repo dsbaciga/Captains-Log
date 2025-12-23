@@ -35,7 +35,7 @@ export default function TagsModal({
       ]);
       setTripTags(tripTagsData);
       setAllTags(allTagsData);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load tags");
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export default function TagsModal({
       await loadTags();
       onTagsUpdated();
       toast.success("Tag created and added to trip");
-    } catch (error) {
+    } catch {
       toast.error("Failed to create tag");
     }
   };
@@ -73,7 +73,7 @@ export default function TagsModal({
       await loadTags();
       onTagsUpdated();
       toast.success("Tag added to trip");
-    } catch (error) {
+    } catch {
       toast.error("Failed to add tag");
     }
   };
@@ -84,7 +84,7 @@ export default function TagsModal({
       await loadTags();
       onTagsUpdated();
       toast.success("Tag removed from trip");
-    } catch (error) {
+    } catch {
       toast.error("Failed to remove tag");
     }
   };

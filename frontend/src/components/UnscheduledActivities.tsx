@@ -6,7 +6,6 @@ import activityService from "../services/activity.service";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
-import { formatDateTimeInTimezone } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
@@ -61,6 +60,7 @@ const initialFormState: ActivityFormFields = {
 export default function UnscheduledActivities({
   tripId,
   locations,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   tripTimezone,
   onActivityUpdated,
 }: UnscheduledActivitiesProps) {
@@ -82,7 +82,7 @@ export default function UnscheduledActivities({
     try {
       const user = await userService.getMe();
       setActivityCategories(user.activityCategories || []);
-    } catch (error) {
+    } catch {
       console.error("Failed to load activity categories");
     }
   };
@@ -93,7 +93,7 @@ export default function UnscheduledActivities({
       // Filter for unscheduled activities (no start time and not all day)
       const unscheduled = data.filter((a) => !a.startTime && !a.allDay);
       setActivities(unscheduled);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load activities");
     }
   };
@@ -204,7 +204,7 @@ export default function UnscheduledActivities({
       resetForm();
       loadActivities();
       onActivityUpdated?.(); // Notify parent to refresh counts
-    } catch (error) {
+    } catch {
       toast.error("Failed to save activity");
     }
   };

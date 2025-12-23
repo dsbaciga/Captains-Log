@@ -14,7 +14,7 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 export default function AlbumDetailPage() {
   const { tripId, albumId } = useParams<{ tripId: string; albumId: string }>();
-  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  const { ConfirmDialogComponent } = useConfirmDialog();
   const [album, setAlbum] = useState<AlbumWithPhotos | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -80,8 +80,8 @@ export default function AlbumDetailPage() {
       setLocations(locationsData);
       setActivities(activitiesData);
       setLodgings(lodgingsData);
-    } catch (error) {
-      console.error("Failed to load trip data:", error);
+    } catch (err) {
+      console.error("Failed to load trip data:", err);
     }
   };
 
@@ -102,8 +102,8 @@ export default function AlbumDetailPage() {
       setLocationId(data.locationId || null);
       setActivityId(data.activityId || null);
       setLodgingId(data.lodgingId || null);
-    } catch (error) {
-      console.error("Failed to load album:", error);
+    } catch (err) {
+      console.error("Failed to load album:", err);
     } finally {
       setIsLoading(false);
       // Load photos after loading state is cleared
@@ -127,26 +127,8 @@ export default function AlbumDetailPage() {
 
       setIsEditMode(false);
       loadAlbum();
-    } catch (error) {
+    } catch {
       alert("Failed to update album");
-    }
-  };
-
-  const handleRemovePhoto = async (photoId: number) => {
-    if (!albumId) return;
-    const confirmed = await confirm({
-      title: 'Remove Photo',
-      message: 'Remove this photo from the album?',
-      confirmText: 'Remove',
-      variant: 'warning',
-    });
-    if (!confirmed) return;
-
-    try {
-      await photoService.removePhotoFromAlbum(parseInt(albumId), photoId);
-      loadAlbum();
-    } catch (error) {
-      alert("Failed to remove photo from album");
     }
   };
 

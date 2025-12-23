@@ -50,7 +50,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     try {
       const allTags = await tagService.getTagsByUser();
       setTags(allTags);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load tags");
     }
   };
@@ -69,7 +69,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       await loadAllTags();
       // Automatically link the new tag to this trip
       await handleLinkTag(newTag.id);
-    } catch (error) {
+    } catch {
       toast.error("Failed to create tag");
     }
   };
@@ -89,7 +89,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       setTagColor(DEFAULT_COLORS[0]);
       loadAllTags();
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error("Failed to update tag");
     }
   };
@@ -108,7 +108,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       toast.success("Tag deleted");
       loadAllTags();
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete tag");
     }
   };
@@ -118,7 +118,8 @@ export default function TagManager({ tripId }: TagManagerProps) {
       await tagService.linkTagToTrip(tripId, tagId);
       toast.success("Tag added to trip");
       manager.loadItems();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       if (error.response?.data?.message?.includes("already linked")) {
         toast.error("Tag already added to this trip");
       } else {
@@ -132,7 +133,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       await tagService.unlinkTagFromTrip(tripId, tagId);
       toast.success("Tag removed from trip");
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error("Failed to remove tag");
     }
   };

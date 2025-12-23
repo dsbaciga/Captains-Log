@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { Activity } from '../types/activity';
 import type { Transportation } from '../types/transportation';
 import type { Lodging } from '../types/lodging';
@@ -40,7 +39,6 @@ interface TimelineItem {
 }
 
 const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
-  const navigate = useNavigate();
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [weatherData, setWeatherData] = useState<Record<string, WeatherData>>({});
   const [loading, setLoading] = useState(true);
@@ -113,7 +111,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
           const checkOutDateOnly = new Date(checkOut.toDateString());
 
           // Create an entry for each day of the stay
-          let currentDate = new Date(checkInDateOnly);
+          const currentDate = new Date(checkInDateOnly);
 
           while (currentDate <= checkOutDateOnly) {
             const isCheckInDay = currentDate.getTime() === checkInDateOnly.getTime();
@@ -390,7 +388,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
                         </span>
                       </div>
                       <div className="space-y-2">
-                        {item.data.journalAssignments.map((assignment: any) => (
+                        {item.data.journalAssignments.map((assignment: { id: number; journal: { title?: string; content?: string } }) => (
                           <div
                             key={assignment.id}
                             className="w-full text-left text-sm bg-orange-50 dark:bg-orange-900/20 rounded p-2"

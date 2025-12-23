@@ -27,10 +27,6 @@ const calculateCurvedPath = (
   const [lat1, lon1] = start;
   const [lat2, lon2] = end;
 
-  // Calculate the great circle midpoint
-  const midLat = (lat1 + lat2) / 2;
-  const midLon = (lon1 + lon2) / 2;
-
   // Calculate the distance for arc height
   const distance = Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
   const arcHeight = distance * 0.2; // 20% of distance for arc curvature

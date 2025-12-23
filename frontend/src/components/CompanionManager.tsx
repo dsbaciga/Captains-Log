@@ -3,7 +3,6 @@ import companionService from '../services/companion.service';
 import type { Companion } from '../types/companion';
 import toast from 'react-hot-toast';
 import { useManagerCRUD } from '../hooks/useManagerCRUD';
-import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface CompanionManagerProps {
   tripId: number;
@@ -23,7 +22,6 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     itemName: "companion",
   });
 
-  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,7 +39,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     try {
       const allCompanions = await companionService.getCompanionsByUser();
       setCompanions(allCompanions);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load companions');
     }
   };
@@ -60,7 +58,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       await loadAllCompanions();
       // Automatically link the new companion to this trip
       await handleLinkCompanion(newCompanion.id);
-    } catch (error) {
+    } catch {
       toast.error('Failed to create companion');
     }
   };
@@ -80,27 +78,8 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       resetForm();
       loadAllCompanions();
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update companion');
-    }
-  };
-
-  const handleDeleteCompanion = async (companionId: number) => {
-    const confirmed = await confirm({
-      title: 'Delete Companion',
-      message: 'Delete this companion? They will be removed from all trips.',
-      confirmText: 'Delete',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-
-    try {
-      await companionService.deleteCompanion(companionId);
-      toast.success('Companion deleted');
-      loadAllCompanions();
-      manager.loadItems();
-    } catch (error) {
-      toast.error('Failed to delete companion');
     }
   };
 
@@ -109,7 +88,8 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       await companionService.linkCompanionToTrip(tripId, companionId);
       toast.success('Companion added to trip');
       manager.loadItems();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       if (error.response?.data?.message?.includes('already linked')) {
         toast.error('Companion already added to this trip');
       } else {
@@ -123,7 +103,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       await companionService.unlinkCompanionFromTrip(tripId, companionId);
       toast.success('Companion removed from trip');
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error('Failed to remove companion');
     }
   };
@@ -366,7 +346,6 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
           )}
         </div>
       )}
-      {ConfirmDialogComponent}
     </div>
   );
 }

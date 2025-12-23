@@ -34,7 +34,7 @@ export default function PlacesVisitedPage() {
       setLoading(true);
       const data = await locationService.getAllVisitedLocations();
       setLocations(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load visited places');
     } finally {
       setLoading(false);

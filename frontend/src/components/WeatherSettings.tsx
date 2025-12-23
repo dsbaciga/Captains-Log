@@ -43,7 +43,8 @@ export default function WeatherSettings() {
       setMessage({ type: 'success', text: result.message });
       await loadSettings();
       setApiKey(''); // Clear the input after successful save
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to save settings' });
     } finally {
       setIsSaving(false);
@@ -72,7 +73,8 @@ export default function WeatherSettings() {
       setApiKey('');
       setMessage({ type: 'success', text: 'Weather API key removed' });
       await loadSettings();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to clear settings' });
     } finally {
       setIsSaving(false);

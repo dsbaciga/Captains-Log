@@ -16,14 +16,12 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface JournalManagerProps {
   tripId: number;
-  tripTimezone?: string;
   locations: Location[];
   onUpdate?: () => void;
 }
 
 export default function JournalManager({
   tripId,
-  tripTimezone,
   locations,
   onUpdate,
 }: JournalManagerProps) {

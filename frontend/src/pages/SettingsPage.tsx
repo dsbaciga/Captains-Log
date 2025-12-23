@@ -55,7 +55,7 @@ export default function SettingsPage() {
       setTimezone(user.timezone || "UTC");
       setUsername(user.username);
       setNewUsername(user.username);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load settings");
     } finally {
       setLoading(false);
@@ -66,7 +66,7 @@ export default function SettingsPage() {
     try {
       const allTags = await tagService.getAllTags();
       setTags(allTags);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load tags");
     }
   };
@@ -75,8 +75,8 @@ export default function SettingsPage() {
     try {
       const versionInfo = await apiService.getVersion();
       setBackendVersion(versionInfo.version);
-    } catch (error) {
-      console.error("Failed to load backend version:", error);
+    } catch (err) {
+      console.error("Failed to load backend version:", err);
     }
   };
 
@@ -94,7 +94,7 @@ export default function SettingsPage() {
       setNewTagTextColor("#FFFFFF");
       await loadTags();
       toast.success("Tag created");
-    } catch (error) {
+    } catch {
       toast.error("Failed to create tag");
     }
   };
@@ -112,7 +112,7 @@ export default function SettingsPage() {
       await tagService.deleteTag(tagId);
       await loadTags();
       toast.success("Tag deleted");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete tag");
     }
   };
@@ -138,7 +138,7 @@ export default function SettingsPage() {
       await loadTags();
       setEditingTagId(null);
       toast.success("Tag colors updated");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update tag colors");
     }
   };
@@ -183,7 +183,7 @@ export default function SettingsPage() {
         timezone: timezone,
       });
       toast.success("Settings saved");
-    } catch (error) {
+    } catch {
       toast.error("Failed to save settings");
     }
   };
@@ -199,7 +199,8 @@ export default function SettingsPage() {
       // Update the username in the auth store so navbar reflects change
       updateUser({ username: result.username });
       toast.success(result.message);
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || "Failed to update username");
     }
   };
@@ -232,7 +233,8 @@ export default function SettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || "Failed to update password");
     }
   };

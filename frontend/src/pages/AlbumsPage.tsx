@@ -33,8 +33,8 @@ export default function AlbumsPage() {
     try {
       const data = await photoService.getAlbumsByTrip(parseInt(tripId));
       setAlbums(data.albums);
-    } catch (error) {
-      console.error('Failed to load albums:', error);
+    } catch (err) {
+      console.error('Failed to load albums:', err);
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +55,7 @@ export default function AlbumsPage() {
       setAlbumDescription('');
       setShowCreateForm(false);
       loadAlbums();
-    } catch (error) {
+    } catch {
       alert('Failed to create album');
     }
   };
@@ -74,7 +74,7 @@ export default function AlbumsPage() {
     try {
       await photoService.deleteAlbum(albumId);
       loadAlbums();
-    } catch (error) {
+    } catch {
       alert('Failed to delete album');
     }
   };

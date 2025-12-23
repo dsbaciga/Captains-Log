@@ -25,7 +25,6 @@ import UnscheduledActivities from '../components/UnscheduledActivities';
 import TransportationManager from '../components/TransportationManager';
 import LodgingManager from '../components/LodgingManager';
 import JournalManager from '../components/JournalManager';
-import TagManager from '../components/TagManager';
 import CompanionManager from '../components/CompanionManager';
 import LocationSearchMap from '../components/LocationSearchMap';
 import TripLocationsMap from '../components/TripLocationsMap';
@@ -45,8 +44,8 @@ export default function TripDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [activities, setActivities] = useState<any[]>([]);
-  const [lodgings, setLodgings] = useState<any[]>([]);
+  const [activities, setActivities] = useState<{ id: number; name: string }[]>([]);
+  const [lodgings, setLodgings] = useState<{ id: number; name: string }[]>([]);
   const [userTimezone, setUserTimezone] = useState<string>('');
   const [activitiesCount, setActivitiesCount] = useState(0);
   const [unscheduledCount, setUnscheduledCount] = useState(0);
@@ -237,7 +236,7 @@ export default function TripDetailPage() {
     try {
       const user = await userService.getMe();
       setUserTimezone(user.timezone || '');
-    } catch (error) {
+    } catch {
       console.error('Failed to load user timezone');
     }
   };
@@ -290,7 +289,7 @@ export default function TripDetailPage() {
       setAlbums(albumsData.albums);
       setUnsortedPhotosCount(albumsData.unsortedCount);
       setTotalPhotosCount(albumsData.totalCount || 0);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load trip');
       navigate('/trips');
     } finally {
@@ -303,8 +302,8 @@ export default function TripDetailPage() {
       const albumsData = await photoService.getAlbumsByTrip(tripId);
       setAlbums(albumsData.albums);
       setUnsortedPhotosCount(albumsData.unsortedCount);
-    } catch (error) {
-      console.error('Failed to load albums:', error);
+    } catch (err) {
+      console.error('Failed to load albums:', err);
     }
   };
 
@@ -351,9 +350,9 @@ export default function TripDetailPage() {
 
       setShowAlbumModal(false);
       setEditingAlbum(null);
-    } catch (error) {
+    } catch (err) {
       toast.error(editingAlbum ? 'Failed to update album' : 'Failed to create album');
-      throw error; // Re-throw so modal knows save failed
+      throw err; // Re-throw so modal knows save failed
     }
   };
 
@@ -381,7 +380,7 @@ export default function TripDetailPage() {
       if (trip) {
         await loadAlbums(trip.id);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete album');
     }
   };
@@ -425,7 +424,7 @@ export default function TripDetailPage() {
       }
       resetLocationForm();
       loadTripData(trip.id);
-    } catch (error) {
+    } catch {
       toast.error(editingLocationId ? 'Failed to update location' : 'Failed to add location');
     }
   };
@@ -465,7 +464,7 @@ export default function TripDetailPage() {
       await locationService.deleteLocation(locationId);
       toast.success('Location deleted');
       if (trip) loadTripData(trip.id);
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete location');
     }
   };
@@ -995,7 +994,7 @@ export default function TripDetailPage() {
                           await tripService.updateCoverPhoto(trip.id, null);
                           toast.success('Cover photo removed');
                           loadTripData(trip.id);
-                        } catch (error) {
+                        } catch {
                           toast.error('Failed to remove cover photo');
                         }
                       }}
@@ -1037,7 +1036,7 @@ export default function TripDetailPage() {
                       await tripService.updateCoverPhoto(trip.id, photoId);
                       toast.success('Cover photo updated');
                       loadTripData(trip.id);
-                    } catch (error) {
+                    } catch {
                       toast.error('Failed to set cover photo');
                     }
                   }}

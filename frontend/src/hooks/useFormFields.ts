@@ -13,6 +13,7 @@ import { useState, useCallback } from 'react';
  *
  * <input value={values.name} onChange={(e) => setField('name', e.target.value)} />
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useFormFields<T extends Record<string, any>>(initialValues: T) {
   const [values, setValues] = useState<T>(initialValues);
 
