@@ -11,6 +11,9 @@ interface AlbumsSidebarProps {
   onEditAlbum: (album: PhotoAlbum) => void;
   onDeleteAlbum: (albumId: number) => void;
   uploadUrl?: string;
+  // Mobile drawer props
+  isMobileDrawerOpen?: boolean;
+  onCloseMobileDrawer?: () => void;
 }
 
 export default function AlbumsSidebar({
@@ -23,8 +26,18 @@ export default function AlbumsSidebar({
   onEditAlbum,
   onDeleteAlbum,
   uploadUrl = import.meta.env.VITE_UPLOAD_URL,
+  isMobileDrawerOpen = false,
+  onCloseMobileDrawer,
 }: AlbumsSidebarProps) {
   const [hoveredAlbumId, setHoveredAlbumId] = useState<number | null>(null);
+
+  const handleSelectAlbum = (albumId: number | null) => {
+    onSelectAlbum(albumId);
+    // Close mobile drawer when selecting an album
+    if (onCloseMobileDrawer) {
+      onCloseMobileDrawer();
+    }
+  };
 
   const getAlbumThumbnail = (album: PhotoAlbum) => {
     if (album.coverPhoto?.thumbnailPath) {
@@ -33,12 +46,44 @@ export default function AlbumsSidebar({
     return null;
   };
 
-  return (
-    <div className="w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+  const sidebarContent = (
+    <>
+      {/* Mobile Overlay */}
+      {isMobileDrawerOpen && onCloseMobileDrawer && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onCloseMobileDrawer}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar - Desktop fixed, Mobile drawer */}
+      <div className={`
+        w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto
+        md:static md:translate-x-0
+        fixed top-0 left-0 h-full z-50 transform transition-transform duration-300 ease-in-out
+        ${isMobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
       <div className="p-4 space-y-2">
+        {/* Close button for mobile */}
+        {onCloseMobileDrawer && (
+          <div className="md:hidden flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Albums</h3>
+            <button
+              onClick={onCloseMobileDrawer}
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Close albums"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* All Photos Option */}
         <button
-          onClick={() => onSelectAlbum(null)}
+          onClick={() => handleSelectAlbum(null)}
           className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
             selectedAlbumId === null
               ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
@@ -60,7 +105,7 @@ export default function AlbumsSidebar({
 
         {/* Unsorted Photos Option */}
         <button
-          onClick={() => onSelectAlbum(-1)}
+          onClick={() => handleSelectAlbum(-1)}
           className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
             selectedAlbumId === -1
               ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
@@ -95,7 +140,7 @@ export default function AlbumsSidebar({
                 className="relative"
               >
                 <button
-                  onClick={() => onSelectAlbum(album.id)}
+                  onClick={() => handleSelectAlbum(album.id)}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                     selectedAlbumId === album.id
                       ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
@@ -175,5 +220,8 @@ export default function AlbumsSidebar({
         </button>
       </div>
     </div>
+    </>
   );
+
+  return sidebarContent;
 }

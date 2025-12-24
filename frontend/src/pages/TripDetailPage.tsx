@@ -61,6 +61,7 @@ export default function TripDetailPage() {
   const [selectedAlbumId, setSelectedAlbumId] = useState<number | null>(null);
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<PhotoAlbum | null>(null);
+  const [showAlbumsMobileDrawer, setShowAlbumsMobileDrawer] = useState(false);
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   const [unsortedPhotosCount, setUnsortedPhotosCount] = useState(0);
   const [totalPhotosCount, setTotalPhotosCount] = useState(0);
@@ -653,7 +654,27 @@ export default function TripDetailPage() {
 
         {/* Tabs */}
         <div className="bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-primary-500/10 dark:border-gold/10 mb-6 overflow-hidden">
-          <div className="border-b-2 border-primary-500/10 dark:border-gold/10">
+          {/* Mobile Tab Dropdown */}
+          <div className="md:hidden p-4 border-b-2 border-primary-500/10 dark:border-gold/10">
+            <select
+              value={activeTab}
+              onChange={(e) => changeTab(e.target.value as typeof activeTab)}
+              className="w-full px-4 py-3 rounded-lg bg-white dark:bg-navy-900 border-2 border-primary-500/20 dark:border-gold/20 text-slate dark:text-warm-gray font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-gold"
+            >
+              <option value="timeline">Timeline</option>
+              <option value="locations">Locations ({locations.length})</option>
+              <option value="photos">Photos ({totalPhotosCount})</option>
+              <option value="activities">Activities ({activitiesCount})</option>
+              <option value="unscheduled">Unscheduled ({unscheduledCount})</option>
+              <option value="transportation">Transportation ({transportationCount})</option>
+              <option value="lodging">Lodging ({lodgingCount})</option>
+              <option value="journal">Journal ({journalCount})</option>
+              <option value="companions">Companions ({companionsCount})</option>
+            </select>
+          </div>
+
+          {/* Desktop Horizontal Tabs */}
+          <div className="hidden md:block border-b-2 border-primary-500/10 dark:border-gold/10">
             <nav className="flex -mb-0.5 overflow-x-auto">
               <button
                 onClick={() => changeTab('timeline')}
@@ -952,6 +973,17 @@ export default function TripDetailPage() {
               tripEndDate={trip.endDate || undefined}
             />
 
+            {/* Mobile Albums Drawer Toggle Button */}
+            <button
+              onClick={() => setShowAlbumsMobileDrawer(true)}
+              className="md:hidden fixed bottom-6 left-6 z-30 p-4 bg-blue-600 dark:bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+              aria-label="Open albums"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </button>
+
             {/* Sidebar Layout */}
             <div className="flex gap-0 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
               {/* Left: Albums Sidebar */}
@@ -964,6 +996,8 @@ export default function TripDetailPage() {
                 onCreateAlbum={handleCreateAlbum}
                 onEditAlbum={handleEditAlbum}
                 onDeleteAlbum={handleDeleteAlbum}
+                isMobileDrawerOpen={showAlbumsMobileDrawer}
+                onCloseMobileDrawer={() => setShowAlbumsMobileDrawer(false)}
               />
 
               {/* Right: Photo Gallery */}
