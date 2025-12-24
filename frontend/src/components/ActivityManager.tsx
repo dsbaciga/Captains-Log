@@ -481,7 +481,7 @@ export default function ActivityManager({
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name and Category */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="activity-name"
@@ -638,7 +638,7 @@ export default function ActivityManager({
 
             {/* Date/Time Fields */}
             {values.allDay ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
                     htmlFor="activity-start-date"
@@ -671,7 +671,7 @@ export default function ActivityManager({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
                     htmlFor="activity-start-date-time"

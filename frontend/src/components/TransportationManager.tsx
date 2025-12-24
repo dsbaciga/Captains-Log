@@ -342,7 +342,7 @@ export default function TransportationManager({
             {manager.editingId ? "Edit Transportation" : "Add Transportation"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Type Selection */}
               <div>
                 <label
@@ -391,7 +391,7 @@ export default function TransportationManager({
             </div>
 
             {/* From Location */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="transportation-from-location"
@@ -440,7 +440,7 @@ export default function TransportationManager({
             </div>
 
             {/* To Location */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="transportation-to-location"
@@ -489,7 +489,7 @@ export default function TransportationManager({
             </div>
 
             {/* Departure Time and Timezone */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="transportation-departure-time"
@@ -516,7 +516,7 @@ export default function TransportationManager({
             </div>
 
             {/* Arrival Time and Timezone */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="transportation-arrival-time"

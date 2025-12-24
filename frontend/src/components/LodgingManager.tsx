@@ -264,7 +264,7 @@ export default function LodgingManager({
             {manager.editingId ? "Edit Lodging" : "Add Lodging"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Type Selection */}
               <div>
                 <label
@@ -375,7 +375,7 @@ export default function LodgingManager({
             </div>
 
             {/* Check-in and Check-out */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="lodging-check-in"

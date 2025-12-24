@@ -228,7 +228,7 @@ export default function JournalManager({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor={entryDateFieldId}
@@ -283,7 +283,7 @@ Tell your story!"
                 Hold Ctrl (Windows) or Cmd (Mac) to select multiple items
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Locations */}
                 {locations.length > 0 && (
                   <div>

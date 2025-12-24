@@ -42,6 +42,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [weatherData, setWeatherData] = useState<Record<string, WeatherData>>({});
   const [loading, setLoading] = useState(true);
+  const [mobileActiveTimezone, setMobileActiveTimezone] = useState<'trip' | 'user'>('trip');
 
   // Check if we should show dual timezones
   const showDualTimezone = tripTimezone && userTimezone && tripTimezone !== userTimezone;
@@ -472,23 +473,54 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
 
   return (
     <div>
-      {/* Timezone headers at the top - only show when dual timezone is enabled */}
+      {/* Timezone headers/tabs - only show when dual timezone is enabled */}
       {showDualTimezone && (
-        <div className="flex gap-8 mb-6 sticky top-0 bg-white dark:bg-gray-900 z-30 py-4 border-b-2 border-gray-300 dark:border-gray-600">
-          <div className="flex-1 text-center">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-              {getTimezoneAbbr(tripTimezone!)} (Trip Timezone)
-            </h3>
+        <>
+          {/* Mobile: Tab Switcher */}
+          <div className="md:hidden mb-6 sticky top-0 bg-white dark:bg-gray-900 z-30 py-4 border-b-2 border-gray-300 dark:border-gray-600">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMobileActiveTimezone('trip')}
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors ${
+                  mobileActiveTimezone === 'trip'
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                <div className="text-sm">Trip Timezone</div>
+                <div className="text-xs opacity-75">{getTimezoneAbbr(tripTimezone!)}</div>
+              </button>
+              <button
+                onClick={() => setMobileActiveTimezone('user')}
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors ${
+                  mobileActiveTimezone === 'user'
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                <div className="text-sm">Your Timezone</div>
+                <div className="text-xs opacity-75">{getTimezoneAbbr(userTimezone!)}</div>
+              </button>
+            </div>
           </div>
-          <div className="w-8 flex items-center justify-center">
-            <div className="h-full w-px bg-gray-300 dark:bg-gray-600"></div>
+
+          {/* Desktop: Side-by-side Headers */}
+          <div className="hidden md:flex gap-8 mb-6 sticky top-0 bg-white dark:bg-gray-900 z-30 py-4 border-b-2 border-gray-300 dark:border-gray-600">
+            <div className="flex-1 text-center">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                {getTimezoneAbbr(tripTimezone!)} (Trip Timezone)
+              </h3>
+            </div>
+            <div className="w-8 flex items-center justify-center">
+              <div className="h-full w-px bg-gray-300 dark:bg-gray-600"></div>
+            </div>
+            <div className="flex-1 text-center">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                {getTimezoneAbbr(userTimezone!)} (Your Timezone)
+              </h3>
+            </div>
           </div>
-          <div className="flex-1 text-center">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-              {getTimezoneAbbr(userTimezone!)} (Your Timezone)
-            </h3>
-          </div>
-        </div>
+        </>
       )}
 
       <div className="space-y-8">
@@ -513,11 +545,22 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
               )}
 
               {showDualTimezone ? (
-                <div className="flex gap-8">
-                  {renderTimelineColumn(items, tripTimezone, true)}
-                  <div className="w-px bg-gray-300 dark:bg-gray-600"></div>
-                  {renderTimelineColumn(items, userTimezone, false)}
-                </div>
+                <>
+                  {/* Desktop: Side-by-side columns */}
+                  <div className="hidden md:flex gap-8">
+                    {renderTimelineColumn(items, tripTimezone, true)}
+                    <div className="w-px bg-gray-300 dark:bg-gray-600"></div>
+                    {renderTimelineColumn(items, userTimezone, false)}
+                  </div>
+
+                  {/* Mobile: Single column based on active timezone */}
+                  <div className="md:hidden">
+                    {mobileActiveTimezone === 'trip'
+                      ? renderTimelineColumn(items, tripTimezone, true)
+                      : renderTimelineColumn(items, userTimezone, false)
+                    }
+                  </div>
+                </>
               ) : (
                 renderTimelineColumn(items)
               )}
