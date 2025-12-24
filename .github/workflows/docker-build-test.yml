@@ -40,8 +40,8 @@ jobs:
 
       - name: Test development build
         run: |
-          docker-compose build
-          docker-compose config
+          docker compose build
+          docker compose config
 
   lint-and-test:
     runs-on: ubuntu-latest
