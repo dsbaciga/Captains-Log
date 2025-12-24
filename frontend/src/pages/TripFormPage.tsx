@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import { TripStatus, PrivacyLevel } from '../types/trip';
-import type { Trip, TripStatusType, PrivacyLevelType } from '../types/trip';
+import type { TripStatusType, PrivacyLevelType } from '../types/trip';
 import toast from 'react-hot-toast';
 
 export default function TripFormPage() {
@@ -45,7 +45,7 @@ export default function TripFormPage() {
       setStatus(trip.status);
       setPrivacyLevel(trip.privacyLevel);
       setAddToPlacesVisited(trip.addToPlacesVisited);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load trip');
       navigate('/trips');
     } finally {
@@ -92,7 +92,8 @@ export default function TripFormPage() {
       }
 
       navigate('/trips');
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'Failed to save trip');
     } finally {
       setLoading(false);
@@ -211,7 +212,7 @@ export default function TripFormPage() {
               <select
                 id="status"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as TripStatusType)}
                 className="input"
               >
                 {Object.values(TripStatus).map((s) => (
@@ -229,7 +230,7 @@ export default function TripFormPage() {
               <select
                 id="privacyLevel"
                 value={privacyLevel}
-                onChange={(e) => setPrivacyLevel(e.target.value as any)}
+                onChange={(e) => setPrivacyLevel(e.target.value as PrivacyLevelType)}
                 className="input"
               >
                 {Object.values(PrivacyLevel).map((p) => (

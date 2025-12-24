@@ -39,7 +39,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
     try {
       const allCompanions = await companionService.getCompanionsByUser();
       setCompanions(allCompanions);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load companions');
     }
   };
@@ -58,7 +58,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       await loadAllCompanions();
       // Automatically link the new companion to this trip
       await handleLinkCompanion(newCompanion.id);
-    } catch (error) {
+    } catch {
       toast.error('Failed to create companion');
     }
   };
@@ -78,21 +78,8 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       resetForm();
       loadAllCompanions();
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update companion');
-    }
-  };
-
-  const handleDeleteCompanion = async (companionId: number) => {
-    if (!confirm('Delete this companion? They will be removed from all trips.')) return;
-
-    try {
-      await companionService.deleteCompanion(companionId);
-      toast.success('Companion deleted');
-      loadAllCompanions();
-      manager.loadItems();
-    } catch (error) {
-      toast.error('Failed to delete companion');
     }
   };
 
@@ -101,7 +88,8 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       await companionService.linkCompanionToTrip(tripId, companionId);
       toast.success('Companion added to trip');
       manager.loadItems();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       if (error.response?.data?.message?.includes('already linked')) {
         toast.error('Companion already added to this trip');
       } else {
@@ -115,7 +103,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       await companionService.unlinkCompanionFromTrip(tripId, companionId);
       toast.success('Companion removed from trip');
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error('Failed to remove companion');
     }
   };
@@ -358,7 +346,6 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
           )}
         </div>
       )}
-
     </div>
   );
 }

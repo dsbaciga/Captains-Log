@@ -7,7 +7,6 @@ import type {
   UpdateChecklistItemDTO,
   ChecklistItem,
   DefaultChecklistStatus,
-  SelectiveChecklistOperationDTO,
   ChecklistType,
 } from '../types/checklist';
 

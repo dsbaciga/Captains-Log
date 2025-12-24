@@ -5,6 +5,7 @@ import tripService from '../services/trip.service';
 import type { Companion } from '../types/companion';
 import type { Trip } from '../types/trip';
 import toast from 'react-hot-toast';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface CompanionWithTrips extends Companion {
   tripAssignments?: Array<{
@@ -35,6 +36,7 @@ export default function CompanionsPage() {
   const [selectedCompanionForTrip, setSelectedCompanionForTrip] = useState<Companion | null>(null);
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
   const [loadingAllTrips, setLoadingAllTrips] = useState(false);
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   useEffect(() => {
     loadCompanions();
@@ -45,7 +47,7 @@ export default function CompanionsPage() {
       setLoading(true);
       const allCompanions = await companionService.getCompanionsByUser();
       setCompanions(allCompanions);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load companions');
     } finally {
       setLoading(false);
@@ -64,7 +66,7 @@ export default function CompanionsPage() {
       toast.success('Companion created');
       resetForm();
       await loadCompanions();
-    } catch (error) {
+    } catch {
       toast.error('Failed to create companion');
     }
   };
@@ -83,19 +85,25 @@ export default function CompanionsPage() {
       toast.success('Companion updated');
       resetForm();
       loadCompanions();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update companion');
     }
   };
 
   const handleDeleteCompanion = async (companionId: number) => {
-    if (!confirm('Delete this companion? They will be removed from all trips.')) return;
+    const confirmed = await confirm({
+      title: 'Delete Companion',
+      message: 'Delete this companion? They will be removed from all trips.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await companionService.deleteCompanion(companionId);
       toast.success('Companion deleted');
       loadCompanions();
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete companion');
     }
   };
@@ -124,7 +132,7 @@ export default function CompanionsPage() {
       setShowTripsModal(true);
       const companionWithTrips = await companionService.getCompanionById(companionId) as CompanionWithTrips;
       setSelectedCompanionTrips(companionWithTrips);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load trips');
       setShowTripsModal(false);
     } finally {
@@ -156,7 +164,7 @@ export default function CompanionsPage() {
       const availableTrips = tripsData.trips.filter(trip => !assignedTripIds.has(trip.id));
 
       setAllTrips(availableTrips);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load trips');
       setShowAddToTripModal(false);
     } finally {
@@ -175,7 +183,8 @@ export default function CompanionsPage() {
       setAllTrips([]);
       // Refresh companions to update counts
       loadCompanions();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       if (error.response?.data?.message?.includes('already linked')) {
         toast.error('Companion already added to this trip');
       } else {
@@ -194,7 +203,13 @@ export default function CompanionsPage() {
     e.preventDefault(); // Prevent Link navigation
     e.stopPropagation(); // Stop event bubbling
 
-    if (!confirm('Remove this companion from the trip?')) return;
+    const confirmed = await confirm({
+      title: 'Remove from Trip',
+      message: 'Remove this companion from the trip?',
+      confirmLabel: 'Remove',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
 
     try {
       await companionService.unlinkCompanionFromTrip(tripId, companionId);
@@ -208,7 +223,7 @@ export default function CompanionsPage() {
 
       // Refresh companions list to update counts
       loadCompanions();
-    } catch (error) {
+    } catch {
       toast.error('Failed to remove companion from trip');
     }
   };
@@ -226,6 +241,7 @@ export default function CompanionsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <ConfirmDialogComponent />
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Travel Companions</h1>

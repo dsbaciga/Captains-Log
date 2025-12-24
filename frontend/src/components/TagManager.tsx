@@ -3,6 +3,7 @@ import tagService from "../services/tag.service";
 import type { Tag } from "../types/tag";
 import toast from "react-hot-toast";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 interface TagManagerProps {
   tripId: number;
@@ -33,6 +34,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     itemName: "tag",
   });
 
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState(DEFAULT_COLORS[0]);
@@ -48,7 +50,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     try {
       const allTags = await tagService.getTagsByUser();
       setTags(allTags);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load tags");
     }
   };
@@ -67,7 +69,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       await loadAllTags();
       // Automatically link the new tag to this trip
       await handleLinkTag(newTag.id);
-    } catch (error) {
+    } catch {
       toast.error("Failed to create tag");
     }
   };
@@ -87,20 +89,26 @@ export default function TagManager({ tripId }: TagManagerProps) {
       setTagColor(DEFAULT_COLORS[0]);
       loadAllTags();
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error("Failed to update tag");
     }
   };
 
   const handleDeleteTag = async (tagId: number) => {
-    if (!confirm("Delete this tag? It will be removed from all trips.")) return;
+    const confirmed = await confirm({
+      title: 'Delete Tag',
+      message: 'Delete this tag? It will be removed from all trips.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await tagService.deleteTag(tagId);
       toast.success("Tag deleted");
       loadAllTags();
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete tag");
     }
   };
@@ -110,7 +118,8 @@ export default function TagManager({ tripId }: TagManagerProps) {
       await tagService.linkTagToTrip(tripId, tagId);
       toast.success("Tag added to trip");
       manager.loadItems();
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       if (error.response?.data?.message?.includes("already linked")) {
         toast.error("Tag already added to this trip");
       } else {
@@ -124,7 +133,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       await tagService.unlinkTagFromTrip(tripId, tagId);
       toast.success("Tag removed from trip");
       manager.loadItems();
-    } catch (error) {
+    } catch {
       toast.error("Failed to remove tag");
     }
   };
@@ -329,6 +338,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
           </div>
         </div>
       )}
+      {ConfirmDialogComponent}
     </div>
   );
 }

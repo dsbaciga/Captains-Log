@@ -10,9 +10,11 @@ import activityService from "../services/activity.service";
 import lodgingService from "../services/lodging.service";
 import PhotoGallery from "../components/PhotoGallery";
 import { usePagination } from "../hooks/usePagination";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 export default function AlbumDetailPage() {
   const { tripId, albumId } = useParams<{ tripId: string; albumId: string }>();
+  const { ConfirmDialogComponent } = useConfirmDialog();
   const [album, setAlbum] = useState<AlbumWithPhotos | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -78,8 +80,8 @@ export default function AlbumDetailPage() {
       setLocations(locationsData);
       setActivities(activitiesData);
       setLodgings(lodgingsData);
-    } catch (error) {
-      console.error("Failed to load trip data:", error);
+    } catch (err) {
+      console.error("Failed to load trip data:", err);
     }
   };
 
@@ -100,8 +102,8 @@ export default function AlbumDetailPage() {
       setLocationId(data.locationId || null);
       setActivityId(data.activityId || null);
       setLodgingId(data.lodgingId || null);
-    } catch (error) {
-      console.error("Failed to load album:", error);
+    } catch (err) {
+      console.error("Failed to load album:", err);
     } finally {
       setIsLoading(false);
       // Load photos after loading state is cleared
@@ -125,20 +127,8 @@ export default function AlbumDetailPage() {
 
       setIsEditMode(false);
       loadAlbum();
-    } catch (error) {
+    } catch {
       alert("Failed to update album");
-    }
-  };
-
-  const handleRemovePhoto = async (photoId: number) => {
-    if (!albumId) return;
-    if (!confirm("Remove this photo from the album?")) return;
-
-    try {
-      await photoService.removePhotoFromAlbum(parseInt(albumId), photoId);
-      loadAlbum();
-    } catch (error) {
-      alert("Failed to remove photo from album");
     }
   };
 
@@ -386,6 +376,7 @@ export default function AlbumDetailPage() {
             </div>
           </div>
         )}
+        {ConfirmDialogComponent}
       </div>
     </div>
   );

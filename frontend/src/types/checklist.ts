@@ -6,7 +6,7 @@ export interface ChecklistItem {
   isChecked: boolean;
   isDefault: boolean;
   sortOrder: number;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   checkedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -41,7 +41,7 @@ export interface CreateChecklistDTO {
     description?: string | null;
     isDefault?: boolean;
     sortOrder?: number;
-    metadata?: any;
+    metadata?: Record<string, unknown> | null;
   }>;
 }
 
@@ -57,13 +57,13 @@ export interface UpdateChecklistItemDTO {
   description?: string | null;
   isChecked?: boolean | null;
   sortOrder?: number | null;
-  metadata?: any;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface AddChecklistItemDTO {
   name: string;
   description?: string | null;
-  metadata?: any;
+  metadata?: Record<string, unknown> | null;
 }
 
 export type ChecklistType = 'airports' | 'countries' | 'cities' | 'us_states';

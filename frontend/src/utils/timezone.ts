@@ -167,7 +167,7 @@ export function getTimezoneAbbreviation(
     const parts = formatter.formatToParts(date);
     const timeZonePart = parts.find((part) => part.type === "timeZoneName");
     return timeZonePart?.value || timezone;
-  } catch (error) {
+  } catch {
     return timezone;
   }
 }

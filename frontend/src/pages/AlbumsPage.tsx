@@ -3,10 +3,12 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { PhotoAlbum } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function AlbumsPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [albums, setAlbums] = useState<PhotoAlbum[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -31,8 +33,8 @@ export default function AlbumsPage() {
     try {
       const data = await photoService.getAlbumsByTrip(parseInt(tripId));
       setAlbums(data.albums);
-    } catch (error) {
-      console.error('Failed to load albums:', error);
+    } catch (err) {
+      console.error('Failed to load albums:', err);
     } finally {
       setIsLoading(false);
     }
@@ -53,20 +55,26 @@ export default function AlbumsPage() {
       setAlbumDescription('');
       setShowCreateForm(false);
       loadAlbums();
-    } catch (error) {
+    } catch {
       alert('Failed to create album');
     }
   };
 
   const handleDeleteAlbum = async (albumId: number) => {
-    if (!confirm('Are you sure you want to delete this album? Photos will not be deleted.')) {
+    const confirmed = await confirm({
+      title: 'Delete Album',
+      message: 'Are you sure you want to delete this album? Photos will not be deleted.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
     try {
       await photoService.deleteAlbum(albumId);
       loadAlbums();
-    } catch (error) {
+    } catch {
       alert('Failed to delete album');
     }
   };
@@ -211,6 +219,7 @@ export default function AlbumsPage() {
           ))}
         </div>
       )}
+        {ConfirmDialogComponent}
       </div>
     </div>
   );

@@ -38,11 +38,11 @@ import { toast } from 'react-hot-toast';
  * <button onClick={() => manager.handleDelete(item.id)}>Delete</button>
  * ```
  */
-export function useManagerCRUD<T extends { id: number }>(
+export function useManagerCRUD<T extends { id: number }, TCreateData = unknown, TUpdateData = unknown>(
   service: {
     getByTrip: (tripId: number) => Promise<T[]>;
-    create: (data: any) => Promise<T>;
-    update: (id: number, data: any) => Promise<T>;
+    create: (data: TCreateData) => Promise<T>;
+    update: (id: number, data: TUpdateData) => Promise<T>;
     delete: (id: number) => Promise<void>;
   },
   tripId: number,
@@ -81,7 +81,7 @@ export function useManagerCRUD<T extends { id: number }>(
    * @returns true if successful, false otherwise
    */
   const handleCreate = useCallback(
-    async (data: any): Promise<boolean> => {
+    async (data: TCreateData): Promise<boolean> => {
       try {
         await service.create(data);
         toast.success(`${capitalize(itemName)} added successfully`);
@@ -102,7 +102,7 @@ export function useManagerCRUD<T extends { id: number }>(
    * @returns true if successful, false otherwise
    */
   const handleUpdate = useCallback(
-    async (id: number, data: any): Promise<boolean> => {
+    async (id: number, data: TUpdateData): Promise<boolean> => {
       try {
         await service.update(id, data);
         toast.success(`${capitalize(itemName)} updated successfully`);
@@ -119,15 +119,11 @@ export function useManagerCRUD<T extends { id: number }>(
   );
 
   /**
-   * Deletes an item with confirmation
+   * Deletes an item (without confirmation - use with ConfirmDialog)
    * @returns true if successful, false otherwise
    */
   const handleDelete = useCallback(
     async (id: number): Promise<boolean> => {
-      if (!confirm(`Are you sure you want to delete this ${itemName}?`)) {
-        return false;
-      }
-
       try {
         await service.delete(id);
         toast.success(`${capitalize(itemName)} deleted successfully`);
@@ -142,6 +138,17 @@ export function useManagerCRUD<T extends { id: number }>(
     },
     [service, loadItems, onUpdate, itemName]
   );
+
+  /**
+   * Gets the default confirmation message for deleting an item
+   * Use with ConfirmDialog for consistent messaging
+   */
+  const getDeleteConfirmation = useCallback(() => ({
+    title: `Delete ${capitalize(itemName)}`,
+    message: `Are you sure you want to delete this ${itemName}? This action cannot be undone.`,
+    confirmLabel: 'Delete',
+    variant: 'danger' as const,
+  }), [itemName]);
 
   /**
    * Opens the form in create mode
@@ -196,6 +203,9 @@ export function useManagerCRUD<T extends { id: number }>(
     handleCreate,
     handleUpdate,
     handleDelete,
+
+    // Confirmation helpers
+    getDeleteConfirmation,
 
     // Form controls
     openCreateForm,

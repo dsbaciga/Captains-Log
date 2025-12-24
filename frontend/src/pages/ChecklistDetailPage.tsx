@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import type { Checklist, ChecklistItem } from '../types/checklist';
 import checklistService from '../services/checklist.service';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function ChecklistDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -26,8 +27,8 @@ export default function ChecklistDetailPage() {
       const data = await checklistService.getChecklistById(parseInt(id));
       setChecklist(data);
       setChecklistName(data.name);
-    } catch (error) {
-      console.error('Failed to load checklist:', error);
+    } catch (err) {
+      console.error('Failed to load checklist:', err);
       alert('Failed to load checklist');
     } finally {
       setIsLoading(false);
@@ -40,8 +41,8 @@ export default function ChecklistDetailPage() {
         isChecked: !item.isChecked,
       });
       await loadChecklist();
-    } catch (error) {
-      console.error('Failed to update item:', error);
+    } catch (err) {
+      console.error('Failed to update item:', err);
       alert('Failed to update item');
     }
   };
@@ -60,22 +61,28 @@ export default function ChecklistDetailPage() {
       setNewItemDescription('');
       setShowAddForm(false);
       await loadChecklist();
-    } catch (error) {
-      console.error('Failed to add item:', error);
+    } catch (err) {
+      console.error('Failed to add item:', err);
       alert('Failed to add item');
     }
   };
 
   const handleDeleteItem = async (itemId: number) => {
-    if (!confirm('Are you sure you want to delete this item?')) {
+    const confirmed = await confirm({
+      title: 'Delete Item',
+      message: 'Are you sure you want to delete this item?',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
     try {
       await checklistService.deleteChecklistItem(itemId);
       await loadChecklist();
-    } catch (error) {
-      console.error('Failed to delete item:', error);
+    } catch (err) {
+      console.error('Failed to delete item:', err);
       alert('Failed to delete item');
     }
   };
@@ -89,8 +96,8 @@ export default function ChecklistDetailPage() {
       });
       setEditingName(false);
       await loadChecklist();
-    } catch (error) {
-      console.error('Failed to update checklist name:', error);
+    } catch (err) {
+      console.error('Failed to update checklist name:', err);
       alert('Failed to update checklist name');
     }
   };
@@ -357,6 +364,7 @@ export default function ChecklistDetailPage() {
             </div>
           )}
         </div>
+        {ConfirmDialogComponent}
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import LocationQuickAdd from "./LocationQuickAdd";
 import { formatDateTimeInTimezone } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -70,6 +71,8 @@ export default function LodgingManager({
     itemName: "lodging",
     onUpdate,
   });
+
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
@@ -200,7 +203,13 @@ export default function LodgingManager({
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this lodging?")) return;
+    const confirmed = await confirm({
+      title: "Delete Lodging",
+      message: "Delete this lodging? This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     await manager.handleDelete(id);
   };
 
@@ -233,6 +242,7 @@ export default function LodgingManager({
 
   return (
     <div className="space-y-6">
+      <ConfirmDialogComponent />
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Lodging

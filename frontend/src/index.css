@@ -83,6 +83,47 @@
     @apply text-red-600 dark:text-red-400 text-sm mt-1 font-body;
   }
 
+  /* Form validation styles */
+  .input-error {
+    @apply border-red-500 dark:border-red-400
+           focus:border-red-500 dark:focus:border-red-400
+           focus:ring-red-500/10 dark:focus:ring-red-400/10;
+  }
+
+  .label-required::after {
+    content: ' *';
+    @apply text-red-500;
+  }
+
+  /* Button loading state */
+  .btn-loading {
+    @apply relative pointer-events-none;
+  }
+
+  .btn-loading::after {
+    content: '';
+    @apply absolute inset-0 flex items-center justify-center;
+    background: inherit;
+    border-radius: inherit;
+  }
+
+  .btn-loading .btn-text {
+    @apply opacity-0;
+  }
+
+  .btn-loading .btn-spinner {
+    @apply absolute inset-0 flex items-center justify-center;
+  }
+
+  /* Skip to content link for accessibility */
+  .skip-link {
+    @apply absolute -top-10 left-4 z-[100]
+           px-4 py-2 rounded-lg
+           bg-primary-600 text-white font-medium
+           transition-all duration-200
+           focus:top-4;
+  }
+
   .card {
     @apply bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm
            rounded-2xl shadow-lg p-6
@@ -139,3 +180,70 @@
 .stagger-3 { animation-delay: 0.3s; }
 .stagger-4 { animation-delay: 0.4s; }
 .stagger-5 { animation-delay: 0.5s; }
+
+/* Focus visible styles for accessibility */
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-primary-500 dark:outline-gold;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  @apply ring-2 ring-primary-500/50 dark:ring-gold/50 ring-offset-2 ring-offset-white dark:ring-offset-navy-900;
+}
+
+/* Page transition animations */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: pageEnter 0.3s ease-out forwards;
+}
+
+/* Responsive typography helpers */
+.text-responsive-hero {
+  @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl;
+}
+
+.text-responsive-title {
+  @apply text-xl sm:text-2xl md:text-3xl;
+}
+
+.text-responsive-subtitle {
+  @apply text-base sm:text-lg md:text-xl;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch-friendly minimum sizes for mobile */
+@media (pointer: coarse) {
+  button,
+  a,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  select {
+    min-height: 44px;
+  }
+}

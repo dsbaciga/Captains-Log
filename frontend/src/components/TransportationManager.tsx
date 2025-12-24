@@ -10,6 +10,7 @@ import JournalEntriesButton from "./JournalEntriesButton";
 import { formatDateTimeInTimezone } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -83,6 +84,8 @@ export default function TransportationManager({
     itemName: "transportation",
     onUpdate,
   });
+
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const { values, handleChange, reset } =
     useFormFields<TransportationFormFields>(initialFormState);
@@ -199,7 +202,13 @@ export default function TransportationManager({
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this transportation?")) return;
+    const confirmed = await confirm({
+      title: "Delete Transportation",
+      message: "Delete this transportation? This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     await manager.handleDelete(id);
   };
 
@@ -270,6 +279,7 @@ export default function TransportationManager({
 
   return (
     <div className="space-y-6">
+      <ConfirmDialogComponent />
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Transportation

@@ -14,6 +14,7 @@ import {
 } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -84,6 +85,8 @@ export default function ActivityManager({
     onUpdate,
   });
 
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+
   const [activityCategories, setActivityCategories] = useState<
     ActivityCategory[]
   >([]);
@@ -106,7 +109,7 @@ export default function ActivityManager({
     try {
       const user = await userService.getMe();
       setActivityCategories(user.activityCategories || []);
-    } catch (_error) {
+    } catch {
       console.error("Failed to load activity categories");
     }
   };
@@ -279,7 +282,13 @@ export default function ActivityManager({
 
   // Custom delete handler with special confirmation message
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this activity and all its sub-activities?")) return;
+    const confirmed = await confirm({
+      title: "Delete Activity",
+      message: "Delete this activity and all its sub-activities? This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     await manager.handleDelete(id);
   };
 
@@ -449,6 +458,7 @@ export default function ActivityManager({
 
   return (
     <div className="space-y-6">
+      <ConfirmDialogComponent />
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Activities

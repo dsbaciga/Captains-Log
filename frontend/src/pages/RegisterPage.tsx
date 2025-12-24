@@ -29,7 +29,7 @@ export default function RegisterPage() {
       await register({ username, email, password });
       toast.success('Registration successful!');
       navigate('/dashboard');
-    } catch (err) {
+    } catch {
       toast.error(error || 'Registration failed');
     }
   };

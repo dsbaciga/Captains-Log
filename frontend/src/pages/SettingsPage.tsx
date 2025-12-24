@@ -10,9 +10,11 @@ import toast from "react-hot-toast";
 import ImmichSettings from "../components/ImmichSettings";
 import WeatherSettings from "../components/WeatherSettings";
 import EmojiPicker from "../components/EmojiPicker";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
 export default function SettingsPage() {
   const { updateUser } = useAuthStore();
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [categories, setCategories] = useState<ActivityCategory[]>([]);
   const [newCategory, setNewCategory] = useState("");
   const [newCategoryEmoji, setNewCategoryEmoji] = useState("😀");
@@ -53,7 +55,7 @@ export default function SettingsPage() {
       setTimezone(user.timezone || "UTC");
       setUsername(user.username);
       setNewUsername(user.username);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load settings");
     } finally {
       setLoading(false);
@@ -64,7 +66,7 @@ export default function SettingsPage() {
     try {
       const allTags = await tagService.getAllTags();
       setTags(allTags);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load tags");
     }
   };
@@ -73,8 +75,8 @@ export default function SettingsPage() {
     try {
       const versionInfo = await apiService.getVersion();
       setBackendVersion(versionInfo.version);
-    } catch (error) {
-      console.error("Failed to load backend version:", error);
+    } catch (err) {
+      console.error("Failed to load backend version:", err);
     }
   };
 
@@ -92,19 +94,25 @@ export default function SettingsPage() {
       setNewTagTextColor("#FFFFFF");
       await loadTags();
       toast.success("Tag created");
-    } catch (error) {
+    } catch {
       toast.error("Failed to create tag");
     }
   };
 
   const handleDeleteTag = async (tagId: number) => {
-    if (!confirm("Delete this tag? It will be removed from all trips.")) return;
+    const confirmed = await confirm({
+      title: 'Delete Tag',
+      message: 'Delete this tag? It will be removed from all trips.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await tagService.deleteTag(tagId);
       await loadTags();
       toast.success("Tag deleted");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete tag");
     }
   };
@@ -130,7 +138,7 @@ export default function SettingsPage() {
       await loadTags();
       setEditingTagId(null);
       toast.success("Tag colors updated");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update tag colors");
     }
   };
@@ -175,7 +183,7 @@ export default function SettingsPage() {
         timezone: timezone,
       });
       toast.success("Settings saved");
-    } catch (error) {
+    } catch {
       toast.error("Failed to save settings");
     }
   };
@@ -191,7 +199,8 @@ export default function SettingsPage() {
       // Update the username in the auth store so navbar reflects change
       updateUser({ username: result.username });
       toast.success(result.message);
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || "Failed to update username");
     }
   };
@@ -224,7 +233,8 @@ export default function SettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || "Failed to update password");
     }
   };
@@ -679,6 +689,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        {ConfirmDialogComponent}
       </main>
     </div>
   );

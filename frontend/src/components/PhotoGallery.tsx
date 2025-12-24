@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Photo, PhotoAlbum } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -43,6 +44,7 @@ export default function PhotoGallery({
   const [showAlbumSelectModal, setShowAlbumSelectModal] = useState(false);
   const [isAddingToAlbum, setIsAddingToAlbum] = useState(false);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   // Track which photos we're currently fetching to avoid duplicate requests
   const fetchingPhotos = useRef<Set<number>>(new Set());
@@ -131,13 +133,19 @@ export default function PhotoGallery({
   }, []); // Empty array - only run cleanup on unmount
 
   const handleDelete = async (photoId: number) => {
-    if (!confirm('Are you sure you want to delete this photo?')) return;
+    const confirmed = await confirm({
+      title: "Delete Photo",
+      message: "Are you sure you want to delete this photo? This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       await photoService.deletePhoto(photoId);
       setSelectedPhoto(null);
       onPhotoDeleted?.();
-    } catch (error) {
+    } catch {
       alert('Failed to delete photo');
     }
   };
@@ -151,7 +159,7 @@ export default function PhotoGallery({
       });
       setIsEditMode(false);
       onPhotoUpdated?.();
-    } catch (error) {
+    } catch {
       alert('Failed to update photo');
     }
   };
@@ -190,22 +198,6 @@ export default function PhotoGallery({
     setSelectedPhotoIds(allPhotoIds);
   };
 
-  const selectAllPhotosInFolder = async () => {
-    if (!onLoadAllPhotos) {
-      // If no load function provided, just select all loaded
-      selectAllLoadedPhotos();
-      return;
-    }
-
-    try {
-      // Load all photos first
-      await onLoadAllPhotos();
-      // Then select all (photos will be updated via useEffect below)
-    } catch (error) {
-      alert('Failed to load all photos');
-    }
-  };
-
   // Effect to select all photos after they're loaded
   const [shouldSelectAll, setShouldSelectAll] = useState(false);
 
@@ -227,7 +219,7 @@ export default function PhotoGallery({
     try {
       setShouldSelectAll(true);
       await onLoadAllPhotos();
-    } catch (error) {
+    } catch {
       setShouldSelectAll(false);
       alert('Failed to load all photos');
     }
@@ -252,7 +244,7 @@ export default function PhotoGallery({
       setLastSelectedIndex(null);
       onPhotosAddedToAlbum?.();
       alert(`Successfully added ${selectedPhotoIds.size} photo(s) to album`);
-    } catch (error) {
+    } catch {
       alert('Failed to add photos to album');
     } finally {
       setIsAddingToAlbum(false);
@@ -262,9 +254,13 @@ export default function PhotoGallery({
   const handleRemoveFromAlbum = async () => {
     if (selectedPhotoIds.size === 0 || !currentAlbumId) return;
 
-    if (!confirm(`Remove ${selectedPhotoIds.size} photo(s) from this album?`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Remove Photos",
+      message: `Remove ${selectedPhotoIds.size} photo(s) from this album? The photos will not be deleted, only removed from this album.`,
+      confirmLabel: "Remove",
+      variant: "warning",
+    });
+    if (!confirmed) return;
 
     try {
       setIsAddingToAlbum(true);
@@ -278,7 +274,7 @@ export default function PhotoGallery({
       setLastSelectedIndex(null);
       onPhotosRemovedFromAlbum?.();
       alert(`Successfully removed ${photoIds.length} photo(s) from album`);
-    } catch (error) {
+    } catch {
       alert('Failed to remove photos from album');
     } finally {
       setIsAddingToAlbum(false);
@@ -320,6 +316,7 @@ export default function PhotoGallery({
 
   return (
     <>
+      <ConfirmDialogComponent />
       {/* Selection Toolbar */}
       {albums && albums.length > 0 && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">

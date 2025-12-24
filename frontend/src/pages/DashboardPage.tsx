@@ -1,10 +1,9 @@
 import { useAuthStore } from '../store/authStore';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import PlacesVisitedMap from '../components/PlacesVisitedMap';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream to-parchment dark:from-navy-900 dark:to-navy-800">
