@@ -70,7 +70,7 @@ interface SkeletonCardProps {
 export function SkeletonCard({ hasImage = false, lines = 3, className = '' }: SkeletonCardProps) {
   return (
     <div
-      className={`bg-white/80 dark:bg-navy-800/80 rounded-2xl p-6 border-2 border-primary-500/10 dark:border-gold/10 ${className}`}
+      className={`bg-white/80 dark:bg-navy-800/80 rounded-2xl p-6 border-2 border-primary-500/10 dark:border-sky/10 ${className}`}
       aria-hidden="true"
     >
       {hasImage && (

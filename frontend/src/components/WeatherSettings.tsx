@@ -55,7 +55,7 @@ export default function WeatherSettings() {
     const confirmed = await confirm({
       title: 'Remove Weather API Key',
       message: 'Are you sure you want to remove your weather API key?',
-      confirmText: 'Remove',
+      confirmLabel: 'Remove',
       variant: 'danger',
     });
     if (!confirmed) {
@@ -178,7 +178,7 @@ export default function WeatherSettings() {
           <li>Note: It may take a few minutes for a new API key to become active</li>
         </ol>
       </div>
-      {ConfirmDialogComponent}
+      <ConfirmDialogComponent />
     </div>
   );
 }

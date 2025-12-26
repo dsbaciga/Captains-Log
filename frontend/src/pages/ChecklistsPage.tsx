@@ -48,7 +48,7 @@ export default function ChecklistsPage() {
     const confirmed = await confirm({
       title: 'Initialize Default Checklists',
       message: 'This will create default checklists for Airports, Countries, and Cities. Continue?',
-      confirmText: 'Initialize',
+      confirmLabel: 'Initialize',
       variant: 'info',
     });
     if (!confirmed) {
@@ -107,7 +107,7 @@ export default function ChecklistsPage() {
     const confirmed = await confirm({
       title: 'Delete Checklist',
       message: 'Are you sure you want to delete this checklist? This cannot be undone.',
-      confirmText: 'Delete',
+      confirmLabel: 'Delete',
       variant: 'danger',
     });
     if (!confirmed) {
@@ -354,7 +354,7 @@ export default function ChecklistsPage() {
           availableChecklists={defaultChecklistsStatus}
           mode={selectorMode}
         />
-        {ConfirmDialogComponent}
+        <ConfirmDialogComponent />
       </div>
     </div>
   );

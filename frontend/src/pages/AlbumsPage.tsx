@@ -64,7 +64,7 @@ export default function AlbumsPage() {
     const confirmed = await confirm({
       title: 'Delete Album',
       message: 'Are you sure you want to delete this album? Photos will not be deleted.',
-      confirmText: 'Delete',
+      confirmLabel: 'Delete',
       variant: 'danger',
     });
     if (!confirmed) {
@@ -219,7 +219,7 @@ export default function AlbumsPage() {
           ))}
         </div>
       )}
-        {ConfirmDialogComponent}
+        <ConfirmDialogComponent />
       </div>
     </div>
   );

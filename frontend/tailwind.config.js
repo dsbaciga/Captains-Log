@@ -25,27 +25,27 @@ export default {
           800: '#0f2535',
           900: '#081623',
         },
-        // Accent - Weathered Bronze
+        // Accent - Light Blue
         accent: {
-          300: '#ddb380',
-          400: '#c9965f',
-          500: '#b67f4a',
-          600: '#8f6239',
-          700: '#6b4a2b',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
         },
-        // Warm Neutrals
-        cream: '#faf8f5',
-        parchment: '#f4f1ec',
-        'warm-gray': '#e8dfd4',
-        charcoal: '#2d2d2d',
-        slate: '#5a5a5a',
+        // Cool Neutrals
+        cream: '#f8fafc',
+        parchment: '#f1f5f9',
+        'warm-gray': '#e2e8f0',
+        charcoal: '#1e293b',
+        slate: '#64748b',
         // Dark Mode
         navy: {
-          900: '#0f1419',
-          800: '#1a2332',
-          700: '#243142',
+          900: '#0f172a',
+          800: '#1e293b',
+          700: '#334155',
         },
-        gold: '#d4a574',
+        sky: '#7dd3fc',
       },
     },
   },

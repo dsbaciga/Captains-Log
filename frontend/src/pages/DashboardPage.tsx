@@ -10,7 +10,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-6 py-16 pt-24">
         {/* Hero Section */}
         <div className="mb-16 animate-fade-in-up">
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-primary-600 dark:text-gold tracking-tight leading-none mb-4">
+          <h1 className="text-5xl md:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight leading-none mb-4">
             Welcome back,<br />
             <span className="text-accent-500 dark:text-warm-gray">{user?.username}</span>
           </h1>
@@ -26,10 +26,10 @@ export default function DashboardPage() {
             to="/trips"
             className="col-span-12 md:col-span-7 group animate-fade-in-up stagger-1"
           >
-            <div className="h-80 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-gold/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
+            <div className="h-80 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-sky/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
               <div className="relative z-10">
                 <div className="text-6xl mb-4">🗺️</div>
-                <h3 className="text-3xl font-display font-bold mb-3 text-primary-600 dark:text-gold group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
+                <h3 className="text-3xl font-display font-bold mb-3 text-primary-600 dark:text-sky group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
                   Your Trips
                 </h3>
                 <p className="text-slate dark:text-warm-gray font-body text-lg">
@@ -53,11 +53,11 @@ export default function DashboardPage() {
               to="/trips"
               className="block group animate-fade-in-up stagger-2"
             >
-              <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-gold/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
+              <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-sky/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
                 <div className="flex items-center space-x-4">
                   <div className="text-4xl">📸</div>
                   <div>
-                    <h3 className="text-xl font-display font-bold text-primary-600 dark:text-gold group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
+                    <h3 className="text-xl font-display font-bold text-primary-600 dark:text-sky group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
                       Photos
                     </h3>
                     <p className="text-slate dark:text-warm-gray font-body text-sm">
@@ -73,11 +73,11 @@ export default function DashboardPage() {
               to="/companions"
               className="block group animate-fade-in-up stagger-3"
             >
-              <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-gold/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
+              <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-sky/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
                 <div className="flex items-center space-x-4">
                   <div className="text-4xl">👥</div>
                   <div>
-                    <h3 className="text-xl font-display font-bold text-primary-600 dark:text-gold group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
+                    <h3 className="text-xl font-display font-bold text-primary-600 dark:text-sky group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
                       Companions
                     </h3>
                     <p className="text-slate dark:text-warm-gray font-body text-sm">
@@ -96,11 +96,11 @@ export default function DashboardPage() {
             to="/places-visited"
             className="block group animate-fade-in-up stagger-4"
           >
-            <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-gold/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
+            <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-sky/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
               <div className="flex items-center space-x-4">
                 <div className="text-4xl">📍</div>
                 <div>
-                  <h3 className="text-xl font-display font-bold text-primary-600 dark:text-gold group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
+                  <h3 className="text-xl font-display font-bold text-primary-600 dark:text-sky group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
                     Places Visited
                   </h3>
                   <p className="text-slate dark:text-warm-gray font-body text-sm">
@@ -115,11 +115,11 @@ export default function DashboardPage() {
             to="/checklists"
             className="block group animate-fade-in-up stagger-5"
           >
-            <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-gold/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
+            <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-sky/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
               <div className="flex items-center space-x-4">
                 <div className="text-4xl">✅</div>
                 <div>
-                  <h3 className="text-xl font-display font-bold text-primary-600 dark:text-gold group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
+                  <h3 className="text-xl font-display font-bold text-primary-600 dark:text-sky group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
                     Checklists
                   </h3>
                   <p className="text-slate dark:text-warm-gray font-body text-sm">
@@ -134,11 +134,11 @@ export default function DashboardPage() {
             to="/settings"
             className="block group animate-fade-in-up stagger-5"
           >
-            <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-gold/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
+            <div className="h-36 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-primary-500/10 dark:border-sky/10 hover:border-accent-400 dark:hover:border-accent-400 relative overflow-hidden">
               <div className="flex items-center space-x-4">
                 <div className="text-4xl">⚙️</div>
                 <div>
-                  <h3 className="text-xl font-display font-bold text-primary-600 dark:text-gold group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
+                  <h3 className="text-xl font-display font-bold text-primary-600 dark:text-sky group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
                     Settings
                   </h3>
                   <p className="text-slate dark:text-warm-gray font-body text-sm">

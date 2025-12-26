@@ -3,6 +3,7 @@ import type { Photo, PhotoAlbum } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import PhotoLightbox from './PhotoLightbox';
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -454,141 +455,33 @@ export default function PhotoGallery({
         })}
       </div>
 
-      {/* Photo Modal */}
+      {/* Photo Lightbox */}
       {selectedPhoto && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
-          onClick={() => {
+        <PhotoLightbox
+          photo={selectedPhoto}
+          photos={photos}
+          getPhotoUrl={getPhotoUrl}
+          onClose={() => {
             setSelectedPhoto(null);
             setIsEditMode(false);
           }}
-        >
-          <div
-            className="max-w-6xl w-full bg-white dark:bg-gray-800 rounded-lg overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative">
-              {getPhotoUrl(selectedPhoto) ? (
-                <img
-                  src={getPhotoUrl(selectedPhoto)!}
-                  alt={selectedPhoto.caption || 'Photo'}
-                  className="w-full max-h-[70vh] object-contain bg-gray-900"
-                />
-              ) : (
-                <div className="w-full h-96 flex items-center justify-center bg-gray-900 text-gray-400">
-                  <div className="text-center">
-                    <svg className="w-24 h-24 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p>Photo not available</p>
-                  </div>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPhoto(null);
-                  setIsEditMode(false);
-                }}
-                className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full w-10 h-10 flex items-center justify-center"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6">
-              {isEditMode ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Caption
-                    </label>
-                    <textarea
-                      value={editCaption}
-                      onChange={(e) => setEditCaption(e.target.value)}
-                      rows={3}
-                      className="input"
-                      placeholder="Add a caption..."
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleUpdateCaption}
-                      className="btn btn-primary"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditMode(false)}
-                      className="btn btn-secondary"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {selectedPhoto.caption && (
-                    <p className="text-gray-900 dark:text-white">{selectedPhoto.caption}</p>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400">
-                    {selectedPhoto.location && (
-                      <div>
-                        <span className="font-medium">Location:</span>{' '}
-                        {selectedPhoto.location.name}
-                      </div>
-                    )}
-                    {selectedPhoto.takenAt && (
-                      <div>
-                        <span className="font-medium">Taken:</span>{' '}
-                        {new Date(selectedPhoto.takenAt).toLocaleDateString()}
-                      </div>
-                    )}
-                    <div>
-                      <span className="font-medium">Source:</span>{' '}
-                      {selectedPhoto.source === 'local' ? 'Uploaded' : 'Immich'}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditCaption(selectedPhoto.caption || '');
-                        setIsEditMode(true);
-                      }}
-                      className="btn btn-secondary"
-                    >
-                      Edit Caption
-                    </button>
-                    {onSetCoverPhoto && coverPhotoId !== selectedPhoto.id && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onSetCoverPhoto(selectedPhoto.id);
-                          setSelectedPhoto(null);
-                        }}
-                        className="px-4 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-800 font-medium transition-colors duration-200"
-                      >
-                        Set as Cover Photo
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(selectedPhoto.id)}
-                      className="btn btn-danger"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+          onNavigate={(photo) => setSelectedPhoto(photo)}
+          onEdit={() => {
+            setEditCaption(selectedPhoto.caption || '');
+            setIsEditMode(true);
+          }}
+          onDelete={() => handleDelete(selectedPhoto.id)}
+          onSetCover={onSetCoverPhoto ? () => {
+            onSetCoverPhoto(selectedPhoto.id);
+            setSelectedPhoto(null);
+          } : undefined}
+          showCoverButton={!!onSetCoverPhoto && coverPhotoId !== selectedPhoto.id}
+          editMode={isEditMode}
+          editCaption={editCaption}
+          onEditCaptionChange={setEditCaption}
+          onSaveCaption={handleUpdateCaption}
+          onCancelEdit={() => setIsEditMode(false)}
+        />
       )}
 
       {/* Album Selection Modal */}

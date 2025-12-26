@@ -4,11 +4,14 @@ import type { AlbumWithPhotos, Photo } from "../types/photo";
 import type { Location } from "../types/location";
 import type { Activity } from "../types/activity";
 import type { Lodging } from "../types/lodging";
+import type { Trip } from "../types/trip";
 import photoService from "../services/photo.service";
 import locationService from "../services/location.service";
 import activityService from "../services/activity.service";
 import lodgingService from "../services/lodging.service";
+import tripService from "../services/trip.service";
 import PhotoGallery from "../components/PhotoGallery";
+import Breadcrumbs from "../components/Breadcrumbs";
 import { usePagination } from "../hooks/usePagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
@@ -26,6 +29,7 @@ export default function AlbumDetailPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [lodgings, setLodgings] = useState<Lodging[]>([]);
+  const [trip, setTrip] = useState<Trip | null>(null);
   const albumNameId = useId();
   const albumDescriptionId = useId();
   const locationSelectId = useId();
@@ -71,12 +75,14 @@ export default function AlbumDetailPage() {
     if (!tripId) return;
 
     try {
-      const [locationsData, activitiesData, lodgingsData] = await Promise.all([
+      const [tripData, locationsData, activitiesData, lodgingsData] = await Promise.all([
+        tripService.getTripById(parseInt(tripId)),
         locationService.getLocationsByTrip(parseInt(tripId)),
         activityService.getActivitiesByTrip(parseInt(tripId)),
         lodgingService.getLodgingByTrip(parseInt(tripId)),
       ]);
 
+      setTrip(tripData);
       setLocations(locationsData);
       setActivities(activitiesData);
       setLodgings(lodgingsData);
@@ -155,12 +161,13 @@ export default function AlbumDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <Link
-          to={`/trips/${tripId}`}
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-4 inline-block"
-        >
-          ← Back to Trip
-        </Link>
+        <Breadcrumbs
+          items={[
+            { label: 'Trips', href: '/trips' },
+            { label: trip?.title || 'Trip', href: `/trips/${tripId}` },
+            { label: album.name }
+          ]}
+        />
 
         {isEditMode ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
@@ -376,7 +383,7 @@ export default function AlbumDetailPage() {
             </div>
           </div>
         )}
-        {ConfirmDialogComponent}
+        <ConfirmDialogComponent />
       </div>
     </div>
   );

@@ -103,7 +103,7 @@ export default function SettingsPage() {
     const confirmed = await confirm({
       title: 'Delete Tag',
       message: 'Delete this tag? It will be removed from all trips.',
-      confirmText: 'Delete',
+      confirmLabel: 'Delete',
       variant: 'danger',
     });
     if (!confirmed) return;
@@ -366,7 +366,7 @@ export default function SettingsPage() {
                   id={confirmPasswordId}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input w-full.max-w-md"
+                  className="input w-full max-w-md"
                   minLength={6}
                   required
                 />
@@ -689,7 +689,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-        {ConfirmDialogComponent}
+        <ConfirmDialogComponent />
       </main>
     </div>
   );

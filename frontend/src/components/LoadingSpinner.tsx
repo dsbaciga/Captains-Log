@@ -13,7 +13,7 @@ const sizeClasses = {
 };
 
 const colorClasses = {
-  primary: 'border-primary-500 dark:border-gold',
+  primary: 'border-primary-500 dark:border-sky',
   white: 'border-white',
   current: 'border-current',
 };
