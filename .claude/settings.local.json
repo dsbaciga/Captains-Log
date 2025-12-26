@@ -30,7 +30,9 @@
       "Bash(docker push ghcr.io/dsbaciga/captains-log-frontend:v1.6.4)",
       "Skill(frontend-design:frontend-design)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File ./build.truenas.ps1 -Version v1.8.1 -Registry ghcr.io/dsbaciga)",
+      "Bash(docker push:*)"
     ],
     "deny": [],
     "ask": []

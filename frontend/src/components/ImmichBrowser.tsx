@@ -33,6 +33,9 @@ export default function ImmichBrowser({
   const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(
     new Set()
   );
+  const [selectedAssetsMap, setSelectedAssetsMap] = useState<Map<string, ImmichAsset>>(
+    new Map()
+  );
   const [thumbnailCache, setThumbnailCache] = useState<ThumbnailCache>({});
 
   // Pagination state
@@ -206,10 +209,19 @@ export default function ImmichBrowser({
       }
       return newSet;
     });
+    setSelectedAssetsMap((prev) => {
+      const newMap = new Map(prev);
+      if (newMap.has(asset.id)) {
+        newMap.delete(asset.id);
+      } else {
+        newMap.set(asset.id, asset);
+      }
+      return newMap;
+    });
   };
 
   const handleConfirmSelection = () => {
-    const selectedAssets = assets.filter((a) => selectedAssetIds.has(a.id));
+    const selectedAssets = Array.from(selectedAssetsMap.values());
     if (selectedAssets.length > 0) {
       onSelect(selectedAssets);
     }
@@ -221,6 +233,11 @@ export default function ImmichBrowser({
       assets.forEach((asset) => newSet.add(asset.id));
       return newSet;
     });
+    setSelectedAssetsMap((prev) => {
+      const newMap = new Map(prev);
+      assets.forEach((asset) => newMap.set(asset.id, asset));
+      return newMap;
+    });
   };
 
   const handleDeselectAllOnPage = () => {
@@ -228,6 +245,11 @@ export default function ImmichBrowser({
       const newSet = new Set(prev);
       assets.forEach((asset) => newSet.delete(asset.id));
       return newSet;
+    });
+    setSelectedAssetsMap((prev) => {
+      const newMap = new Map(prev);
+      assets.forEach((asset) => newMap.delete(asset.id));
+      return newMap;
     });
   };
 
