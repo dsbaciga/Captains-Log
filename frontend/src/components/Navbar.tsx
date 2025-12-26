@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/authStore";
 
 export default function Navbar() {
   const location = useLocation();
@@ -13,7 +13,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   const isActive = (path: string) => {
@@ -23,16 +23,22 @@ export default function Navbar() {
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setShowDropdown(false);
       }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target as Node)
+      ) {
         setShowMobileMenu(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Close mobile menu on route change
@@ -43,50 +49,70 @@ export default function Navbar() {
   // Prevent scroll when mobile menu is open
   useEffect(() => {
     if (showMobileMenu) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [showMobileMenu]);
 
   if (!user) return null;
 
+  const dropdownExpanded: "true" | "false" = showDropdown ? "true" : "false";
+  const mobileMenuExpanded: "true" | "false" = showMobileMenu
+    ? "true"
+    : "false";
+
   const navLinks = [
-    { path: '/trips', label: 'Trips' },
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/companions', label: 'Companions' },
-    { path: '/places-visited', label: 'Places' },
-    { path: '/checklists', label: 'Checklists' },
+    { path: "/trips", label: "Trips" },
+    { path: "/dashboard", label: "Dashboard" },
+    { path: "/companions", label: "Companions" },
+    { path: "/places-visited", label: "Places" },
+    { path: "/checklists", label: "Checklists" },
   ];
 
-  const NavLink = ({ path, label, mobile = false }: { path: string; label: string; mobile?: boolean }) => (
+  const NavLink = ({
+    path,
+    label,
+    mobile = false,
+  }: {
+    path: string;
+    label: string;
+    mobile?: boolean;
+  }) => (
     <Link
       to={path}
-      className={`${mobile ? 'block w-full px-4 py-3 text-lg' : 'px-4 py-2.5'} rounded-lg font-body font-medium relative group transition-colors ${
+      className={`${
+        mobile ? "block w-full px-4 py-3 text-lg" : "px-4 py-2.5"
+      } rounded-lg font-body font-medium relative group transition-colors ${
         isActive(path)
-          ? 'text-primary-600 dark:text-gold bg-primary-50 dark:bg-navy-800'
-          : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold hover:bg-primary-50/50 dark:hover:bg-navy-800/50'
+          ? "text-primary-600 dark:text-sky bg-primary-50 dark:bg-navy-800"
+          : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky hover:bg-primary-50/50 dark:hover:bg-navy-800/50"
       }`}
       onClick={() => mobile && setShowMobileMenu(false)}
     >
       <span className="relative z-10">{label}</span>
       {!mobile && (
-        <div className={`absolute inset-x-2 bottom-1 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400 transition-transform origin-left ${
-          isActive(path) ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
-        }`} />
+        <div
+          className={`absolute inset-x-2 bottom-1 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400 transition-transform origin-left ${
+            isActive(path) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+          }`}
+        />
       )}
     </Link>
   );
 
   return (
-    <nav className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md shadow-sm border-b border-primary-500/10 dark:border-gold/10 fixed top-0 left-0 right-0 z-50">
+    <nav className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md shadow-sm border-b border-primary-500/10 dark:border-sky/10 fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo / Brand */}
-          <Link to="/trips" className="flex items-center space-x-2 sm:space-x-3 group">
+          <Link
+            to="/trips"
+            className="flex items-center space-x-2 sm:space-x-3 group"
+          >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 dark:from-accent-400 dark:to-accent-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
               <svg
                 className="w-5 h-5 sm:w-6 sm:h-6 text-white"
@@ -103,14 +129,14 @@ export default function Navbar() {
                 />
               </svg>
             </div>
-            <span className="text-xl sm:text-2xl font-display font-bold text-primary-600 dark:text-gold tracking-tight">
+            <span className="text-xl sm:text-2xl font-display font-bold text-primary-600 dark:text-sky tracking-tight">
               Captain's Log
             </span>
           </Link>
 
           {/* Desktop Navigation Links */}
           <div className="hidden lg:flex items-center space-x-1">
-            {navLinks.map(link => (
+            {navLinks.map((link) => (
               <NavLink key={link.path} path={link.path} label={link.label} />
             ))}
           </div>
@@ -120,14 +146,19 @@ export default function Navbar() {
             {/* User Menu (Desktop) */}
             <div className="hidden sm:block relative" ref={dropdownRef}>
               <button
+                type="button"
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center space-x-2 px-4 py-2 text-sm font-body font-medium text-primary-600 dark:text-gold hover:bg-primary-50 dark:hover:bg-navy-800 rounded-lg transition-all"
-                aria-expanded={showDropdown}
+                className="flex items-center space-x-2 px-4 py-2 text-sm font-body font-medium text-primary-600 dark:text-sky hover:bg-primary-50 dark:hover:bg-navy-800 rounded-lg transition-all"
+                {...(dropdownExpanded === "true"
+                  ? { "aria-expanded": "true" }
+                  : { "aria-expanded": "false" })}
                 aria-haspopup="true"
               >
                 <span>{user.username}</span>
                 <svg
-                  className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform ${
+                    showDropdown ? "rotate-180" : ""
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -143,15 +174,16 @@ export default function Navbar() {
               </button>
 
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-xl py-2 z-50 border-2 border-primary-500/10 dark:border-gold/10 backdrop-blur-sm">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-xl py-2 z-50 border-2 border-primary-500/10 dark:border-sky/10 backdrop-blur-sm">
                   <Link
                     to="/settings"
-                    className="block px-4 py-2.5 text-sm font-body text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-700 hover:text-primary-600 dark:hover:text-gold transition-colors"
+                    className="block px-4 py-2.5 text-sm font-body text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-700 hover:text-primary-600 dark:hover:text-sky transition-colors"
                     onClick={() => setShowDropdown(false)}
                   >
                     Settings
                   </Link>
                   <button
+                    type="button"
                     onClick={() => {
                       setShowDropdown(false);
                       handleLogout();
@@ -166,18 +198,43 @@ export default function Navbar() {
 
             {/* Mobile Menu Toggle */}
             <button
+              type="button"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="lg:hidden p-2 rounded-lg text-primary-600 dark:text-gold hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors"
-              aria-label={showMobileMenu ? 'Close menu' : 'Open menu'}
-              aria-expanded={showMobileMenu}
+              className="lg:hidden p-2 rounded-lg text-primary-600 dark:text-sky hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors"
+              aria-label={showMobileMenu ? "Close menu" : "Open menu"}
+              {...(mobileMenuExpanded === "true"
+                ? { "aria-expanded": "true" }
+                : { "aria-expanded": "false" })}
             >
               {showMobileMenu ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               ) : (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               )}
             </button>
@@ -198,33 +255,52 @@ export default function Navbar() {
       <div
         ref={mobileMenuRef}
         className={`fixed top-0 right-0 h-full w-72 bg-white dark:bg-navy-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
-          showMobileMenu ? 'translate-x-0' : 'translate-x-full'
+          showMobileMenu ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Mobile Menu Header */}
-          <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-gold/10">
-            <span className="text-lg font-display font-bold text-primary-600 dark:text-gold">Menu</span>
+          <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-sky/10">
+            <span className="text-lg font-display font-bold text-primary-600 dark:text-sky">
+              Menu
+            </span>
             <button
+              type="button"
               onClick={() => setShowMobileMenu(false)}
               className="p-2 rounded-lg text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors"
               aria-label="Close menu"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
 
           {/* Mobile Navigation Links */}
           <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-            {navLinks.map(link => (
-              <NavLink key={link.path} path={link.path} label={link.label} mobile />
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.path}
+                path={link.path}
+                label={link.label}
+                mobile
+              />
             ))}
           </nav>
 
           {/* Mobile User Section */}
-          <div className="border-t border-primary-500/10 dark:border-gold/10 p-4">
+          <div className="border-t border-primary-500/10 dark:border-sky/10 p-4">
             <div className="flex items-center space-x-3 mb-4 px-2">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 dark:from-accent-400 dark:to-accent-600 flex items-center justify-center">
                 <span className="text-white font-medium text-sm">
@@ -232,18 +308,23 @@ export default function Navbar() {
                 </span>
               </div>
               <div>
-                <p className="font-medium text-charcoal dark:text-warm-gray">{user.username}</p>
-                <p className="text-sm text-slate dark:text-warm-gray/70">{user.email}</p>
+                <p className="font-medium text-charcoal dark:text-warm-gray">
+                  {user.username}
+                </p>
+                <p className="text-sm text-slate dark:text-warm-gray/70">
+                  {user.email}
+                </p>
               </div>
             </div>
             <Link
               to="/settings"
-              className="block w-full px-4 py-3 text-center rounded-lg font-medium text-primary-600 dark:text-gold bg-primary-50 dark:bg-navy-800 hover:bg-primary-100 dark:hover:bg-navy-700 transition-colors mb-2"
+              className="block w-full px-4 py-3 text-center rounded-lg font-medium text-primary-600 dark:text-sky bg-primary-50 dark:bg-navy-800 hover:bg-primary-100 dark:hover:bg-navy-700 transition-colors mb-2"
               onClick={() => setShowMobileMenu(false)}
             >
               Settings
             </Link>
             <button
+              type="button"
               onClick={() => {
                 setShowMobileMenu(false);
                 handleLogout();

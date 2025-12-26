@@ -59,7 +59,7 @@ export default function Breadcrumbs({ items, className = '' }: BreadcrumbsProps)
               {item.href && !isLast ? (
                 <Link
                   to={item.href}
-                  className="text-primary-600 dark:text-gold hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
+                  className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
                 >
                   {item.label}
                 </Link>

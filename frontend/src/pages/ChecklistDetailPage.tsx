@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import type { Checklist, ChecklistItem } from '../types/checklist';
-import checklistService from '../services/checklist.service';
-import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import type { Checklist, ChecklistItem } from "../types/checklist";
+import checklistService from "../services/checklist.service";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import Breadcrumbs from "../components/Breadcrumbs";
 
 export default function ChecklistDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -10,11 +11,11 @@ export default function ChecklistDetailPage() {
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemDescription, setNewItemDescription] = useState('');
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemDescription, setNewItemDescription] = useState("");
   const [editingName, setEditingName] = useState(false);
-  const [checklistName, setChecklistName] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [checklistName, setChecklistName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadChecklist();
@@ -28,8 +29,8 @@ export default function ChecklistDetailPage() {
       setChecklist(data);
       setChecklistName(data.name);
     } catch (err) {
-      console.error('Failed to load checklist:', err);
-      alert('Failed to load checklist');
+      console.error("Failed to load checklist:", err);
+      alert("Failed to load checklist");
     } finally {
       setIsLoading(false);
     }
@@ -42,8 +43,8 @@ export default function ChecklistDetailPage() {
       });
       await loadChecklist();
     } catch (err) {
-      console.error('Failed to update item:', err);
-      alert('Failed to update item');
+      console.error("Failed to update item:", err);
+      alert("Failed to update item");
     }
   };
 
@@ -57,22 +58,22 @@ export default function ChecklistDetailPage() {
         description: newItemDescription || null,
       });
 
-      setNewItemName('');
-      setNewItemDescription('');
+      setNewItemName("");
+      setNewItemDescription("");
       setShowAddForm(false);
       await loadChecklist();
     } catch (err) {
-      console.error('Failed to add item:', err);
-      alert('Failed to add item');
+      console.error("Failed to add item:", err);
+      alert("Failed to add item");
     }
   };
 
   const handleDeleteItem = async (itemId: number) => {
     const confirmed = await confirm({
-      title: 'Delete Item',
-      message: 'Are you sure you want to delete this item?',
-      confirmText: 'Delete',
-      variant: 'danger',
+      title: "Delete Item",
+      message: "Are you sure you want to delete this item?",
+      confirmLabel: "Delete",
+      variant: "danger",
     });
     if (!confirmed) {
       return;
@@ -82,8 +83,8 @@ export default function ChecklistDetailPage() {
       await checklistService.deleteChecklistItem(itemId);
       await loadChecklist();
     } catch (err) {
-      console.error('Failed to delete item:', err);
-      alert('Failed to delete item');
+      console.error("Failed to delete item:", err);
+      alert("Failed to delete item");
     }
   };
 
@@ -97,8 +98,8 @@ export default function ChecklistDetailPage() {
       setEditingName(false);
       await loadChecklist();
     } catch (err) {
-      console.error('Failed to update checklist name:', err);
-      alert('Failed to update checklist name');
+      console.error("Failed to update checklist name:", err);
+      alert("Failed to update checklist name");
     }
   };
 
@@ -150,8 +151,8 @@ export default function ChecklistDetailPage() {
       key={item.id}
       className={`flex items-start gap-3 p-4 rounded-lg transition-colors ${
         isChecked
-          ? 'bg-blue-50 dark:bg-blue-900/20'
-          : 'bg-white dark:bg-gray-700'
+          ? "bg-blue-50 dark:bg-blue-900/20"
+          : "bg-white dark:bg-gray-700"
       } hover:shadow-md`}
     >
       <input
@@ -159,6 +160,7 @@ export default function ChecklistDetailPage() {
         checked={item.isChecked}
         onChange={() => handleToggleItem(item)}
         className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 mt-0.5"
+        aria-label={`Toggle ${item.name}`}
       />
       <div className="flex-1 min-w-0">
         <div className="font-medium text-gray-900 dark:text-white">
@@ -191,12 +193,12 @@ export default function ChecklistDetailPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <Link
-            to="/checklists"
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-2 inline-block"
-          >
-            ← Back to Checklists
-          </Link>
+          <Breadcrumbs
+            items={[
+              { label: 'Checklists', href: '/checklists' },
+              { label: checklist?.name || 'Checklist' }
+            ]}
+          />
 
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -208,6 +210,8 @@ export default function ChecklistDetailPage() {
                     onChange={(e) => setChecklistName(e.target.value)}
                     className="input text-3xl font-bold"
                     autoFocus
+                    aria-label="Checklist name"
+                    placeholder="Enter checklist name"
                   />
                   <button onClick={handleSaveName} className="btn btn-primary">
                     Save
@@ -251,7 +255,9 @@ export default function ChecklistDetailPage() {
                 <span>
                   {checklist.stats.checked} / {checklist.stats.total} completed
                 </span>
-                <span className="font-semibold">{checklist.stats.percentage}%</span>
+                <span className="font-semibold">
+                  {checklist.stats.percentage}%
+                </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                 <div
@@ -271,17 +277,21 @@ export default function ChecklistDetailPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input flex-1"
               placeholder="Search items..."
+              aria-label="Search checklist items"
             />
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className="btn btn-primary"
             >
-              {showAddForm ? 'Cancel' : '+ Add Item'}
+              {showAddForm ? "Cancel" : "+ Add Item"}
             </button>
           </div>
 
           {showAddForm && (
-            <form onSubmit={handleAddItem} className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <form
+              onSubmit={handleAddItem}
+              className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+            >
               <div className="mb-3">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Item Name*
@@ -325,8 +335,8 @@ export default function ChecklistDetailPage() {
           {unchecked.length === 0 && checked.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               {searchQuery
-                ? 'No items match your search'
-                : 'No items in this checklist yet'}
+                ? "No items match your search"
+                : "No items in this checklist yet"}
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -364,7 +374,7 @@ export default function ChecklistDetailPage() {
             </div>
           )}
         </div>
-        {ConfirmDialogComponent}
+        <ConfirmDialogComponent />
       </div>
     </div>
   );

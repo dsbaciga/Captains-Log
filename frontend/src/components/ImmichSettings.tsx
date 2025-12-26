@@ -83,7 +83,7 @@ export default function ImmichSettings() {
     const confirmed = await confirm({
       title: 'Remove Immich Integration',
       message: 'Are you sure you want to remove Immich integration?',
-      confirmText: 'Remove',
+      confirmLabel: 'Remove',
       variant: 'danger',
     });
     if (!confirmed) {
@@ -225,7 +225,7 @@ export default function ImmichSettings() {
           <li>Copy the generated API key and paste it above</li>
         </ol>
       </div>
-      {ConfirmDialogComponent}
+      <ConfirmDialogComponent />
     </div>
   );
 }

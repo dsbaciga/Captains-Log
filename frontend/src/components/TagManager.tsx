@@ -98,7 +98,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     const confirmed = await confirm({
       title: 'Delete Tag',
       message: 'Delete this tag? It will be removed from all trips.',
-      confirmText: 'Delete',
+      confirmLabel: 'Delete',
       variant: 'danger',
     });
     if (!confirmed) return;
@@ -338,7 +338,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
           </div>
         </div>
       )}
-      {ConfirmDialogComponent}
+      <ConfirmDialogComponent />
     </div>
   );
 }

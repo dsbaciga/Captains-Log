@@ -76,7 +76,7 @@ export default function EmptyState({
 
   return (
     <div
-      className={`text-center py-12 px-6 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl border-2 border-primary-500/10 dark:border-gold/10 ${className}`}
+      className={`text-center py-12 px-6 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl border-2 border-primary-500/10 dark:border-sky/10 ${className}`}
       role="status"
     >
       {icon && (

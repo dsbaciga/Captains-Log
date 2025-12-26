@@ -30,7 +30,7 @@
   .btn-secondary {
     @apply px-6 py-3 rounded-lg font-semibold tracking-wide font-body
            bg-parchment dark:bg-navy-800
-           text-primary-600 dark:text-gold
+           text-primary-600 dark:text-sky
            border-2 border-primary-100 dark:border-navy-700
            hover:bg-primary-50 dark:hover:bg-navy-700
            transform hover:-translate-y-0.5 active:translate-y-0
@@ -55,8 +55,8 @@
            text-charcoal dark:text-warm-gray font-body
            placeholder:text-slate/50 dark:placeholder:text-warm-gray/40
            focus:outline-none
-           focus:border-primary-500 dark:focus:border-gold
-           focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-gold/10
+           focus:border-primary-500 dark:focus:border-sky
+           focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-sky/10
            transition-all duration-200;
   }
 
@@ -127,9 +127,9 @@
   .card {
     @apply bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm
            rounded-2xl shadow-lg p-6
-           border-2 border-primary-500/10 dark:border-gold/10
+           border-2 border-primary-500/10 dark:border-sky/10
            transition-all duration-300
-           hover:shadow-xl hover:border-accent-400/30 dark:hover:border-gold/20;
+           hover:shadow-xl hover:border-accent-400/30 dark:hover:border-sky/20;
   }
 }
 
@@ -183,7 +183,7 @@
 
 /* Focus visible styles for accessibility */
 *:focus-visible {
-  @apply outline-2 outline-offset-2 outline-primary-500 dark:outline-gold;
+  @apply outline-2 outline-offset-2 outline-primary-500 dark:outline-sky;
 }
 
 button:focus-visible,
@@ -191,7 +191,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  @apply ring-2 ring-primary-500/50 dark:ring-gold/50 ring-offset-2 ring-offset-white dark:ring-offset-navy-900;
+  @apply ring-2 ring-primary-500/50 dark:ring-sky/50 ring-offset-2 ring-offset-white dark:ring-offset-navy-900;
 }
 
 /* Page transition animations */

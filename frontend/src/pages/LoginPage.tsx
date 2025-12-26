@@ -26,7 +26,7 @@ export default function LoginPage() {
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-cream via-parchment to-warm-gray dark:from-navy-900 dark:via-navy-900 dark:to-navy-800">
       {/* Decorative compass rose - top right */}
       <div className="absolute top-8 right-8 w-32 h-32 opacity-5 dark:opacity-10 animate-float">
-        <svg viewBox="0 0 100 100" fill="currentColor" className="text-primary-500 dark:text-gold">
+        <svg viewBox="0 0 100 100" fill="currentColor" className="text-primary-500 dark:text-sky">
           <circle cx="50" cy="50" r="2" />
           <path d="M50 10 L52 48 L50 50 L48 48 Z" />
           <path d="M90 50 L52 52 L50 50 L52 48 Z" />
@@ -43,7 +43,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md animate-fade-in-up">
           {/* Title with embossed effect */}
           <div className="text-center mb-8">
-            <h1 className="text-6xl md:text-7xl font-display font-bold text-primary-600 dark:text-gold tracking-tight mb-3 drop-shadow-sm">
+            <h1 className="text-6xl md:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight mb-3 drop-shadow-sm">
               Captain's Log
             </h1>
             <p className="text-slate dark:text-warm-gray font-body text-sm italic tracking-wide">
@@ -52,8 +52,8 @@ export default function LoginPage() {
           </div>
 
           {/* Form card with refined styling */}
-          <div className="bg-white/90 dark:bg-navy-800/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(43,90,127,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border-2 border-primary-500/10 dark:border-gold/10 p-8">
-            <h2 className="text-2xl font-display font-semibold text-center mb-8 text-primary-700 dark:text-gold">
+          <div className="bg-white/90 dark:bg-navy-800/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(43,90,127,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border-2 border-primary-500/10 dark:border-sky/10 p-8">
+            <h2 className="text-2xl font-display font-semibold text-center mb-8 text-primary-700 dark:text-sky">
               Welcome Back
             </h2>
 
@@ -108,7 +108,7 @@ export default function LoginPage() {
                 Don't have an account?{' '}
                 <Link
                   to="/register"
-                  className="text-primary-600 dark:text-gold font-semibold hover:text-accent-500 dark:hover:text-accent-400 transition-colors underline decoration-2 underline-offset-2"
+                  className="text-primary-600 dark:text-sky font-semibold hover:text-accent-500 dark:hover:text-accent-400 transition-colors underline decoration-2 underline-offset-2"
                 >
                   Register
                 </Link>
