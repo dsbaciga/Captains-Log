@@ -174,10 +174,9 @@ export default function LodgingManager({
     if (manager.editingId) {
       // For updates, send null to clear empty fields
       const updateData = {
-        tripId,
         type: values.type,
         name: values.name,
-        locationId: values.locationId,
+        locationId: values.locationId || null,
         address: values.address || null,
         checkInDate: values.checkInDate,
         checkOutDate: values.checkOutDate,
