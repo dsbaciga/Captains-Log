@@ -42,6 +42,7 @@ export default function ImmichBrowser({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalAssets, setTotalAssets] = useState(0);
   const ITEMS_PER_PAGE = 50;
+  const [isLinking, setIsLinking] = useState(false);
 
   // Filter albums based on search term
   const filteredAlbums = useMemo(() => {
@@ -223,6 +224,7 @@ export default function ImmichBrowser({
   const handleConfirmSelection = () => {
     const selectedAssets = Array.from(selectedAssetsMap.values());
     if (selectedAssets.length > 0) {
+      setIsLinking(true);
       onSelect(selectedAssets);
     }
   };
@@ -301,9 +303,10 @@ export default function ImmichBrowser({
             </h2>
             <button
               onClick={onClose}
+              disabled={isLinking}
               type="button"
               aria-label="Close"
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
                 className="w-6 h-6"
@@ -583,20 +586,27 @@ export default function ImmichBrowser({
           <div className="flex gap-2">
             <button
               onClick={onClose}
+              disabled={isLinking}
               type="button"
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirmSelection}
-              disabled={selectedAssetIds.size === 0}
+              disabled={selectedAssetIds.size === 0 || isLinking}
               type="button"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
             >
-              Link{" "}
-              {selectedAssetIds.size > 0 ? `${selectedAssetIds.size} ` : ""}
-              Photo{selectedAssetIds.size !== 1 ? "s" : ""}
+              {isLinking ? (
+                "Linking..."
+              ) : (
+                <>
+                  Link{" "}
+                  {selectedAssetIds.size > 0 ? `${selectedAssetIds.size} ` : ""}
+                  Photo{selectedAssetIds.size !== 1 ? "s" : ""}
+                </>
+              )}
             </button>
           </div>
         </div>
