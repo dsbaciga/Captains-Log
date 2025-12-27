@@ -282,6 +282,34 @@ export default function PhotoGallery({
     }
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedPhotoIds.size === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Photos",
+      message: `Are you sure you want to delete ${selectedPhotoIds.size} photo(s)? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    try {
+      setIsAddingToAlbum(true);
+      const photoIds = Array.from(selectedPhotoIds);
+      for (const photoId of photoIds) {
+        await photoService.deletePhoto(photoId);
+      }
+      setSelectionMode(false);
+      setSelectedPhotoIds(new Set());
+      setLastSelectedIndex(null);
+      onPhotoDeleted?.();
+    } catch {
+      alert('Failed to delete photos');
+    } finally {
+      setIsAddingToAlbum(false);
+    }
+  };
+
   const getPhotoUrl = (photo: Photo): string | null => {
     const baseUrl = getAssetBaseUrl();
     if (photo.source === 'local' && photo.localPath && photo.localPath !== '') {
@@ -371,13 +399,24 @@ export default function PhotoGallery({
                   Remove {selectedPhotoIds.size > 0 ? `${selectedPhotoIds.size} ` : ''}from Album
                 </button>
               ) : (
-                <button
-                  onClick={() => setShowAlbumSelectModal(true)}
-                  disabled={selectedPhotoIds.size === 0}
-                  className="btn btn-primary"
-                >
-                  Add {selectedPhotoIds.size > 0 ? `${selectedPhotoIds.size} ` : ''}to Album
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowAlbumSelectModal(true)}
+                    disabled={selectedPhotoIds.size === 0}
+                    className="btn btn-primary"
+                  >
+                    Add {selectedPhotoIds.size > 0 ? `${selectedPhotoIds.size} ` : ''}to Album
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelected}
+                    disabled={selectedPhotoIds.size === 0 || isAddingToAlbum}
+                    className="btn btn-danger"
+                  >
+                    Delete {selectedPhotoIds.size > 0 ? `${selectedPhotoIds.size} ` : ''}Photo{selectedPhotoIds.size !== 1 ? 's' : ''}
+                  </button>
+                </>
               )}
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {selectedPhotoIds.size} photo{selectedPhotoIds.size !== 1 ? 's' : ''} selected
