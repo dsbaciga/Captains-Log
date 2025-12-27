@@ -32,7 +32,12 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File ./build.truenas.ps1 -Version v1.8.1 -Registry ghcr.io/dsbaciga)",
-      "Bash(docker push:*)"
+      "Bash(docker push:*)",
+      "Bash(dir:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma:*)"
     ],
     "deny": [],
     "ask": []

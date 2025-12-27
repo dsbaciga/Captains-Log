@@ -9,6 +9,7 @@ interface ImmichBrowserProps {
   onClose: () => void;
   tripStartDate?: string;
   tripEndDate?: string;
+  excludeAssetIds?: Set<string>;
 }
 
 interface ThumbnailCache {
@@ -21,6 +22,7 @@ export default function ImmichBrowser({
   onClose,
   tripStartDate,
   tripEndDate,
+  excludeAssetIds,
 }: ImmichBrowserProps) {
   const [assets, setAssets] = useState<ImmichAsset[]>([]);
   const [albums, setAlbums] = useState<ImmichAlbum[]>([]);
@@ -54,14 +56,23 @@ export default function ImmichBrowser({
     );
   }, [albums, albumSearchTerm]);
 
+  // Filter assets to exclude already-linked photos
+  const displayAssets = useMemo(() => {
+    if (!excludeAssetIds || excludeAssetIds.size === 0) {
+      return assets;
+    }
+    return assets.filter((asset) => !excludeAssetIds.has(asset.id));
+  }, [assets, excludeAssetIds]);
+
+  // Reset to page 1 when filters change
   useEffect(() => {
-    setCurrentPage(1); // Reset to page 1 when changing filters
-    loadData();
+    setCurrentPage(1);
   }, [view, selectedAlbum, filterByTripDates]);
 
+  // Load data when page or filters change
   useEffect(() => {
-    loadData(); // Load data when page changes
-  }, [currentPage]);
+    loadData();
+  }, [currentPage, view, selectedAlbum, filterByTripDates]);
 
   // Load thumbnails with authentication
   useEffect(() => {
@@ -232,12 +243,12 @@ export default function ImmichBrowser({
   const handleSelectAllOnPage = () => {
     setSelectedAssetIds((prev) => {
       const newSet = new Set(prev);
-      assets.forEach((asset) => newSet.add(asset.id));
+      displayAssets.forEach((asset) => newSet.add(asset.id));
       return newSet;
     });
     setSelectedAssetsMap((prev) => {
       const newMap = new Map(prev);
-      assets.forEach((asset) => newMap.set(asset.id, asset));
+      displayAssets.forEach((asset) => newMap.set(asset.id, asset));
       return newMap;
     });
   };
@@ -245,19 +256,19 @@ export default function ImmichBrowser({
   const handleDeselectAllOnPage = () => {
     setSelectedAssetIds((prev) => {
       const newSet = new Set(prev);
-      assets.forEach((asset) => newSet.delete(asset.id));
+      displayAssets.forEach((asset) => newSet.delete(asset.id));
       return newSet;
     });
     setSelectedAssetsMap((prev) => {
       const newMap = new Map(prev);
-      assets.forEach((asset) => newMap.delete(asset.id));
+      displayAssets.forEach((asset) => newMap.delete(asset.id));
       return newMap;
     });
   };
 
   const allPageAssetsSelected =
-    assets.length > 0 &&
-    assets.every((asset) => selectedAssetIds.has(asset.id));
+    displayAssets.length > 0 &&
+    displayAssets.every((asset) => selectedAssetIds.has(asset.id));
 
   const handleAlbumClick = (albumId: string) => {
     setSelectedAlbum(albumId);
@@ -449,7 +460,7 @@ export default function ImmichBrowser({
           ) : (
             <>
               {/* Select All Button */}
-              {assets.length > 0 && (
+              {displayAssets.length > 0 && (
                 <div className="mb-4">
                   <button
                     onClick={
@@ -468,7 +479,7 @@ export default function ImmichBrowser({
               )}
 
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {assets.map((asset) => {
+                {displayAssets.map((asset) => {
                   const blobUrl = thumbnailCache[asset.id];
                   return (
                     <button
@@ -525,10 +536,12 @@ export default function ImmichBrowser({
             </>
           )}
 
-          {!isLoading && assets.length === 0 && view === "assets" && (
+          {!isLoading && displayAssets.length === 0 && view === "assets" && (
             <div className="text-center py-12">
               <p className="text-gray-600 dark:text-gray-400">
-                No photos found
+                {excludeAssetIds && excludeAssetIds.size > 0 && assets.length > 0
+                  ? "All photos on this page are already linked to this trip"
+                  : "No photos found"}
               </p>
             </div>
           )}

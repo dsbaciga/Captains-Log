@@ -12,6 +12,7 @@ interface PhotoUploadProps {
   onPhotoUploaded: () => void;
   tripStartDate?: string;
   tripEndDate?: string;
+  existingImmichAssetIds?: Set<string>;
 }
 
 export default function PhotoUpload({
@@ -20,6 +21,7 @@ export default function PhotoUpload({
   onPhotoUploaded,
   tripStartDate,
   tripEndDate,
+  existingImmichAssetIds,
 }: PhotoUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [caption, setCaption] = useState("");
@@ -337,6 +339,7 @@ export default function PhotoUpload({
           onClose={() => setShowImmichBrowser(false)}
           tripStartDate={tripStartDate}
           tripEndDate={tripEndDate}
+          excludeAssetIds={existingImmichAssetIds}
         />
       )}
     </>

@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { UpdateUserSettingsInput } from '../types/userSettings.types';
 import bcrypt from 'bcrypt';
+import { companionService } from './companion.service';
 
 class UserService {
   async getUserById(userId: number) {
@@ -161,6 +162,9 @@ class UserService {
         updatedAt: true,
       },
     });
+
+    // Update "Myself" companion name to match new username
+    await companionService.updateMyselfCompanionName(userId, newUsername);
 
     return user;
   }

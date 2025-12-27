@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateTripInput, UpdateTripInput, GetTripQuery, TripStatus } from '../types/trip.types';
+import { companionService } from './companion.service';
 
 export class TripService {
   async createTrip(userId: number, data: CreateTripInput) {
@@ -32,6 +33,17 @@ export class TripService {
         addToPlacesVisited,
       },
     });
+
+    // Auto-add "Myself" companion to new trips
+    const myselfCompanion = await companionService.getMyselfCompanion(userId);
+    if (myselfCompanion) {
+      await prisma.tripCompanion.create({
+        data: {
+          tripId: trip.id,
+          companionId: myselfCompanion.id,
+        },
+      });
+    }
 
     return trip;
   }

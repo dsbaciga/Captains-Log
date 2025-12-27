@@ -19,6 +19,7 @@ interface LodgingManagerProps {
   tripId: number;
   locations: Location[];
   tripTimezone?: string | null;
+  tripStartDate?: string | null;
   onUpdate?: () => void;
 }
 
@@ -56,8 +57,25 @@ export default function LodgingManager({
   tripId,
   locations,
   tripTimezone,
+  tripStartDate,
   onUpdate,
 }: LodgingManagerProps) {
+  // Compute initial form state with trip start date as default
+  const getInitialFormState = useMemo((): LodgingFormFields => {
+    // Format as datetime-local (YYYY-MM-DDTHH:mm)
+    const defaultCheckIn = tripStartDate
+      ? `${tripStartDate.slice(0, 10)}T15:00`
+      : "";
+    const defaultCheckOut = tripStartDate
+      ? `${tripStartDate.slice(0, 10)}T11:00`
+      : "";
+    return {
+      ...initialFormState,
+      checkInDate: defaultCheckIn,
+      checkOutDate: defaultCheckOut,
+    };
+  }, [tripStartDate]);
+
   // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
   const lodgingServiceAdapter = useMemo(() => ({
     getByTrip: lodgingService.getLodgingByTrip,
@@ -78,7 +96,7 @@ export default function LodgingManager({
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
   const { values, handleChange, reset } =
-    useFormFields<LodgingFormFields>(initialFormState);
+    useFormFields<LodgingFormFields>(getInitialFormState);
 
   // Sync localLocations with locations prop
   useEffect(() => {

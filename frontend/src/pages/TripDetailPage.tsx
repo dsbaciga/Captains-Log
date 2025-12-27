@@ -163,9 +163,24 @@ export default function TripDetailPage() {
     { pageSize: 40, enabled: true }
   );
 
+  // State for existing Immich asset IDs to exclude from Immich browser
+  const [existingImmichAssetIds, setExistingImmichAssetIds] = useState<Set<string>>(new Set());
+
+  // Fetch all existing Immich asset IDs for this trip
+  const loadImmichAssetIds = async (tripId: number) => {
+    try {
+      const assetIds = await photoService.getImmichAssetIdsByTrip(tripId);
+      setExistingImmichAssetIds(new Set(assetIds));
+    } catch (error) {
+      console.error("Failed to load Immich asset IDs:", error);
+    }
+  };
+
   useEffect(() => {
     if (id) {
-      loadTripData(parseInt(id));
+      const tripId = parseInt(id);
+      loadTripData(tripId);
+      loadImmichAssetIds(tripId);
     }
     loadUserTimezone();
   }, [id]);
@@ -1122,6 +1137,10 @@ export default function TripDetailPage() {
               locations={locations}
               onPhotoUploaded={async () => {
                 await loadTripData(trip.id);
+                // Refresh Immich asset IDs to update the exclude list
+                await loadImmichAssetIds(trip.id);
+                // Refresh all photos pagination
+                photosPagination.loadInitial();
                 // Refresh filtered photos if viewing an album
                 if (selectedAlbumId !== null) {
                   handleSelectAlbum(selectedAlbumId);
@@ -1129,6 +1148,7 @@ export default function TripDetailPage() {
               }}
               tripStartDate={trip.startDate || undefined}
               tripEndDate={trip.endDate || undefined}
+              existingImmichAssetIds={existingImmichAssetIds}
             />
 
             {/* Mobile Albums Drawer Toggle Button */}
@@ -1370,6 +1390,7 @@ export default function TripDetailPage() {
               tripId={trip.id}
               locations={locations}
               tripTimezone={trip.timezone}
+              tripStartDate={trip.startDate}
               onUpdate={() => loadTripData(trip.id)}
             />
           </div>
@@ -1401,6 +1422,7 @@ export default function TripDetailPage() {
               tripId={trip.id}
               locations={locations}
               tripTimezone={trip.timezone}
+              tripStartDate={trip.startDate}
               onUpdate={() => loadTripData(trip.id)}
             />
           </div>
@@ -1413,6 +1435,7 @@ export default function TripDetailPage() {
               tripId={trip.id}
               locations={locations}
               tripTimezone={trip.timezone}
+              tripStartDate={trip.startDate}
               onUpdate={() => loadTripData(trip.id)}
             />
           </div>
@@ -1424,6 +1447,7 @@ export default function TripDetailPage() {
             <JournalManager
               tripId={trip.id}
               locations={locations}
+              tripStartDate={trip.startDate}
               onUpdate={() => loadTripData(trip.id)}
             />
           </div>

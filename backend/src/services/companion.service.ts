@@ -2,10 +2,65 @@ import { PrismaClient } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import type { CreateCompanionInput, UpdateCompanionInput, LinkCompanionToTripInput } from '../types/companion.types';
 import { verifyTripAccess } from '../utils/serviceHelpers';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs/promises';
 
 const prisma = new PrismaClient();
 
+const AVATAR_DIR = path.join(process.cwd(), 'uploads', 'avatars');
+
+// Ensure avatar directory exists
+async function ensureAvatarDir() {
+  await fs.mkdir(AVATAR_DIR, { recursive: true });
+}
+
 export const companionService = {
+  // Create the "Myself" companion for a user
+  async createMyselfCompanion(userId: number, name: string) {
+    // Check if "Myself" companion already exists
+    const existing = await prisma.travelCompanion.findFirst({
+      where: { userId, isMyself: true },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return await prisma.travelCompanion.create({
+      data: {
+        name: `Myself (${name})`,
+        isMyself: true,
+        user: {
+          connect: { id: userId },
+        },
+      },
+    });
+  },
+
+  // Get the "Myself" companion for a user
+  async getMyselfCompanion(userId: number) {
+    return await prisma.travelCompanion.findFirst({
+      where: { userId, isMyself: true },
+    });
+  },
+
+  // Update the "Myself" companion name when username changes
+  async updateMyselfCompanionName(userId: number, newName: string) {
+    const myselfCompanion = await prisma.travelCompanion.findFirst({
+      where: { userId, isMyself: true },
+    });
+
+    if (myselfCompanion) {
+      return await prisma.travelCompanion.update({
+        where: { id: myselfCompanion.id },
+        data: { name: `Myself (${newName})` },
+      });
+    }
+
+    return null;
+  },
+
   // Create a new companion
   async createCompanion(userId: number, data: CreateCompanionInput) {
     return await prisma.travelCompanion.create({
@@ -167,5 +222,102 @@ export const companionService = {
     });
 
     return tripCompanions.map((tc) => tc.companion);
+  },
+
+  // Upload avatar for a companion
+  async uploadAvatar(userId: number, companionId: number, file: Express.Multer.File) {
+    const companion = await prisma.travelCompanion.findFirst({
+      where: { id: companionId, userId },
+    });
+
+    if (!companion) {
+      throw new AppError('Companion not found', 404);
+    }
+
+    await ensureAvatarDir();
+
+    // Delete old avatar if it exists and is a local file
+    if (companion.avatarUrl && companion.avatarUrl.startsWith('/uploads/avatars/')) {
+      const oldFilePath = path.join(process.cwd(), companion.avatarUrl);
+      try {
+        await fs.unlink(oldFilePath);
+      } catch {
+        // Ignore if file doesn't exist
+      }
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const filename = `companion-${companionId}-${timestamp}.jpg`;
+    const filepath = path.join(AVATAR_DIR, filename);
+
+    // Resize and save as square avatar (256x256)
+    await sharp(file.buffer)
+      .resize(256, 256, { fit: 'cover' })
+      .jpeg({ quality: 85 })
+      .toFile(filepath);
+
+    const avatarUrl = `/uploads/avatars/${filename}`;
+
+    // Update companion with new avatar URL
+    return await prisma.travelCompanion.update({
+      where: { id: companionId },
+      data: { avatarUrl },
+    });
+  },
+
+  // Set Immich photo as avatar
+  async setImmichAvatar(userId: number, companionId: number, immichAssetId: string) {
+    const companion = await prisma.travelCompanion.findFirst({
+      where: { id: companionId, userId },
+    });
+
+    if (!companion) {
+      throw new AppError('Companion not found', 404);
+    }
+
+    // Delete old avatar if it was a local file
+    if (companion.avatarUrl && companion.avatarUrl.startsWith('/uploads/avatars/')) {
+      const oldFilePath = path.join(process.cwd(), companion.avatarUrl);
+      try {
+        await fs.unlink(oldFilePath);
+      } catch {
+        // Ignore if file doesn't exist
+      }
+    }
+
+    // Set Immich thumbnail URL as avatar
+    const avatarUrl = `/api/immich/assets/${immichAssetId}/thumbnail`;
+
+    return await prisma.travelCompanion.update({
+      where: { id: companionId },
+      data: { avatarUrl },
+    });
+  },
+
+  // Delete avatar for a companion
+  async deleteAvatar(userId: number, companionId: number) {
+    const companion = await prisma.travelCompanion.findFirst({
+      where: { id: companionId, userId },
+    });
+
+    if (!companion) {
+      throw new AppError('Companion not found', 404);
+    }
+
+    // Delete file if it's a local avatar
+    if (companion.avatarUrl && companion.avatarUrl.startsWith('/uploads/avatars/')) {
+      const filePath = path.join(process.cwd(), companion.avatarUrl);
+      try {
+        await fs.unlink(filePath);
+      } catch {
+        // Ignore if file doesn't exist
+      }
+    }
+
+    return await prisma.travelCompanion.update({
+      where: { id: companionId },
+      data: { avatarUrl: null },
+    });
   },
 };

@@ -3,6 +3,7 @@ import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../middleware/errorHandler';
 import { RegisterInput, LoginInput, AuthResponse } from '../types/auth.types';
+import { companionService } from './companion.service';
 
 export class AuthService {
   async register(data: RegisterInput): Promise<AuthResponse> {
@@ -31,6 +32,9 @@ export class AuthService {
         passwordHash,
       },
     });
+
+    // Create "Myself" companion for new user
+    await companionService.createMyselfCompanion(user.id, user.username);
 
     // Generate tokens
     const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
@@ -64,6 +68,9 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new AppError('Invalid email or password', 401);
     }
+
+    // Ensure "Myself" companion exists for existing users (migration support)
+    await companionService.createMyselfCompanion(user.id, user.username);
 
     // Generate tokens
     const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });

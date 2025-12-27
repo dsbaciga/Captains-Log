@@ -24,6 +24,7 @@ interface ActivityManagerProps {
   tripId: number;
   locations: Location[];
   tripTimezone?: string | null;
+  tripStartDate?: string | null;
   onUpdate?: () => void;
 }
 
@@ -69,8 +70,19 @@ export default function ActivityManager({
   tripId,
   locations,
   tripTimezone,
+  tripStartDate,
   onUpdate,
 }: ActivityManagerProps) {
+  // Compute initial form state with trip start date as default
+  const getInitialFormState = useMemo((): ActivityFormFields => {
+    const defaultDate = tripStartDate ? tripStartDate.slice(0, 10) : "";
+    return {
+      ...initialFormState,
+      startDate: defaultDate,
+      endDate: defaultDate,
+    };
+  }, [tripStartDate]);
+
   // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
   const activityServiceAdapter = useMemo(() => ({
     getByTrip: activityService.getActivitiesByTrip,
@@ -94,7 +106,7 @@ export default function ActivityManager({
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
   const { values, handleChange, reset } =
-    useFormFields<ActivityFormFields>(initialFormState);
+    useFormFields<ActivityFormFields>(getInitialFormState);
 
   useEffect(() => {
     loadUserCategories();

@@ -33,6 +33,9 @@ router.post('/immich', photoController.linkImmichPhoto);
 // Get photos by trip
 router.get('/trip/:tripId', photoController.getPhotosByTrip);
 
+// Get Immich asset IDs by trip (for excluding already-linked photos)
+router.get('/trip/:tripId/immich-asset-ids', photoController.getImmichAssetIdsByTrip);
+
 // Get unsorted photos by trip (photos not in any album)
 router.get('/trip/:tripId/unsorted', photoController.getUnsortedPhotosByTrip);
 

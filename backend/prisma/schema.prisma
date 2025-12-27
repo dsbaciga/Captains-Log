@@ -107,6 +107,8 @@ model TravelCompanion {
   phone        String?  @db.VarChar(20)
   notes        String?  @db.Text
   relationship String?  @db.VarChar(255)
+  isMyself     Boolean  @default(false) @map("is_myself")
+  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
   createdAt    DateTime @default(now()) @map("created_at")
 
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)

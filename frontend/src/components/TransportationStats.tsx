@@ -37,7 +37,7 @@ export default function TransportationStats({
       stats.totalDuration += t.durationMinutes;
     }
 
-    if (t.carrier) {
+    if (t.type === "flight" && t.carrier) {
       stats.carriers.add(t.carrier);
     }
   });

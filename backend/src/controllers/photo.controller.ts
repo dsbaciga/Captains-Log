@@ -97,6 +97,16 @@ class PhotoController {
     }
   }
 
+  async getImmichAssetIdsByTrip(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tripId = parseInt(req.params.tripId);
+      const assetIds = await photoService.getImmichAssetIdsByTrip(req.user!.userId, tripId);
+      res.json({ assetIds });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getUnsortedPhotosByTrip(req: Request, res: Response, next: NextFunction) {
     try {
       const tripId = parseInt(req.params.tripId);

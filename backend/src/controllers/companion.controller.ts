@@ -91,4 +91,50 @@ export const companionController = {
       next(error);
     }
   },
+
+  async uploadAvatar(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+      const companionId = parseInt(req.params.id);
+
+      if (!req.file) {
+        res.status(400).json({ error: 'No file uploaded' });
+        return;
+      }
+
+      const companion = await companionService.uploadAvatar(userId, companionId, req.file);
+      res.json(companion);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async setImmichAvatar(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+      const companionId = parseInt(req.params.id);
+      const { immichAssetId } = req.body;
+
+      if (!immichAssetId) {
+        res.status(400).json({ error: 'immichAssetId is required' });
+        return;
+      }
+
+      const companion = await companionService.setImmichAvatar(userId, companionId, immichAssetId);
+      res.json(companion);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async deleteAvatar(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+      const companionId = parseInt(req.params.id);
+      const companion = await companionService.deleteAvatar(userId, companionId);
+      res.json(companion);
+    } catch (error) {
+      next(error);
+    }
+  },
 };

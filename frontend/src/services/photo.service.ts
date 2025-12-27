@@ -65,6 +65,11 @@ class PhotoService {
     return response.data;
   }
 
+  async getImmichAssetIdsByTrip(tripId: number): Promise<string[]> {
+    const response = await api.get(`/photos/trip/${tripId}/immich-asset-ids`);
+    return response.data.assetIds;
+  }
+
   async getPhotosByLocation(locationId: number): Promise<Photo[]> {
     const response = await api.get(`/photos/location/${locationId}`);
     return response.data;

@@ -202,6 +202,26 @@ class PhotoService {
     };
   }
 
+  async getImmichAssetIdsByTrip(userId: number, tripId: number): Promise<string[]> {
+    // Verify user has access to trip
+    await verifyTripAccess(userId, tripId);
+
+    // Get all Immich asset IDs for photos in this trip
+    const photos = await prisma.photo.findMany({
+      where: {
+        tripId,
+        immichAssetId: {
+          not: null,
+        },
+      },
+      select: {
+        immichAssetId: true,
+      },
+    });
+
+    return photos.map((p) => p.immichAssetId).filter((id): id is string => id !== null);
+  }
+
   async getUnsortedPhotosByTrip(
     userId: number,
     tripId: number,

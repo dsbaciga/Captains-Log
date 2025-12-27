@@ -4,9 +4,11 @@ export interface Companion {
   email?: string | null;
   phone?: string | null;
   notes?: string | null;
+  relationship?: string | null;
+  isMyself?: boolean;
+  avatarUrl?: string | null;
   userId: number;
   createdAt: string;
-  updatedAt: string;
   _count?: {
     tripAssignments: number;
   };
@@ -17,6 +19,7 @@ export interface CreateCompanionInput {
   email?: string;
   phone?: string;
   notes?: string;
+  relationship?: string;
 }
 
 export interface UpdateCompanionInput {
@@ -24,4 +27,5 @@ export interface UpdateCompanionInput {
   email?: string | null;
   phone?: string | null;
   notes?: string | null;
+  relationship?: string | null;
 }

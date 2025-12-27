@@ -38,6 +38,29 @@ const companionService = {
     const response = await axios.get(`/companions/trips/${tripId}`);
     return response.data;
   },
+
+  async uploadAvatar(companionId: number, file: File): Promise<Companion> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await axios.post(`/companions/${companionId}/avatar`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  async setImmichAvatar(companionId: number, immichAssetId: string): Promise<Companion> {
+    const response = await axios.post(`/companions/${companionId}/avatar/immich`, {
+      immichAssetId,
+    });
+    return response.data;
+  },
+
+  async deleteAvatar(companionId: number): Promise<Companion> {
+    const response = await axios.delete(`/companions/${companionId}/avatar`);
+    return response.data;
+  },
 };
 
 export default companionService;

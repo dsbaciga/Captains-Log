@@ -3,6 +3,7 @@ import companionService from '../services/companion.service';
 import type { Companion } from '../types/companion';
 import toast from 'react-hot-toast';
 import { useManagerCRUD } from '../hooks/useManagerCRUD';
+import CompanionAvatar from './CompanionAvatar';
 
 interface CompanionManagerProps {
   tripId: number;
@@ -230,15 +231,29 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {manager.items.map((companion) => {
+            {/* Sort companions to show "Myself" first */}
+            {[...manager.items].sort((a, b) => {
+              if (a.isMyself && !b.isMyself) return -1;
+              if (!a.isMyself && b.isMyself) return 1;
+              return a.name.localeCompare(b.name);
+            }).map((companion) => {
               const isExpanded = expandedId === companion.id;
               return (
-                <div key={companion.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                <div key={companion.id} className={`border rounded-lg p-4 ${
+                  companion.isMyself
+                    ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                }`}>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">👤</span>
+                        <CompanionAvatar companion={companion} size="md" />
                         <h4 className="font-semibold text-lg text-gray-900 dark:text-white">{companion.name}</h4>
+                        {companion.isMyself && (
+                          <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                            You
+                          </span>
+                        )}
                       </div>
                       {(companion.email || companion.phone || companion.notes) && (
                         <button
@@ -317,14 +332,27 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
           {searchQuery && (
             <div className="space-y-2">
               {filteredCompanions.length > 0 ? (
-                filteredCompanions.map((companion) => (
+                [...filteredCompanions].sort((a, b) => {
+                  if (a.isMyself && !b.isMyself) return -1;
+                  if (!a.isMyself && b.isMyself) return 1;
+                  return a.name.localeCompare(b.name);
+                }).map((companion) => (
                   <div
                     key={companion.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      companion.isMyself
+                        ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700'
+                    }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">👤</span>
+                      <CompanionAvatar companion={companion} size="sm" />
                       <span className="font-medium text-gray-900 dark:text-white">{companion.name}</span>
+                      {companion.isMyself && (
+                        <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                          You
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={() => {

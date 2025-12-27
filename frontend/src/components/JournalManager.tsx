@@ -17,14 +17,21 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 interface JournalManagerProps {
   tripId: number;
   locations: Location[];
+  tripStartDate?: string | null;
   onUpdate?: () => void;
 }
 
 export default function JournalManager({
   tripId,
   locations,
+  tripStartDate,
   onUpdate,
 }: JournalManagerProps) {
+  // Compute default entry date from trip start date
+  const defaultEntryDate = useMemo(() => {
+    return tripStartDate ? tripStartDate.slice(0, 10) : "";
+  }, [tripStartDate]);
+
   // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
   const journalServiceAdapter = useMemo(() => ({
     getByTrip: journalEntryService.getJournalEntriesByTrip,
@@ -47,15 +54,18 @@ export default function JournalManager({
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   // Use the new useFormFields hook to manage all form state
-  const { values: formValues, setField, resetFields, setAllFields } = useFormFields({
+  // Memoize initial form values to include trip start date as default
+  const initialFormValues = useMemo(() => ({
     title: "",
     content: "",
     locationIds: [] as number[],
     activityIds: [] as number[],
     lodgingIds: [] as number[],
     transportationIds: [] as number[],
-    entryDate: "",
-  });
+    entryDate: defaultEntryDate,
+  }), [defaultEntryDate]);
+
+  const { values: formValues, setField, resetFields, setAllFields } = useFormFields(initialFormValues);
 
   // Generate IDs for accessibility
   const titleFieldId = useId();

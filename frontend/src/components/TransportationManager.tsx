@@ -22,6 +22,7 @@ interface TransportationManagerProps {
   tripId: number;
   locations: Location[];
   tripTimezone?: string | null;
+  tripStartDate?: string | null;
   onUpdate?: () => void;
 }
 
@@ -67,9 +68,23 @@ export default function TransportationManager({
   tripId,
   locations,
   tripTimezone,
+  tripStartDate,
   onUpdate,
 }: TransportationManagerProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+
+  // Compute initial form state with trip start date as default
+  const getInitialFormState = useMemo((): TransportationFormFields => {
+    // Format as datetime-local (YYYY-MM-DDTHH:mm) - default to 09:00
+    const defaultDateTime = tripStartDate
+      ? `${tripStartDate.slice(0, 10)}T09:00`
+      : "";
+    return {
+      ...initialFormState,
+      departureTime: defaultDateTime,
+      arrivalTime: defaultDateTime,
+    };
+  }, [tripStartDate]);
 
   // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
   const transportationServiceAdapter = useMemo(() => ({
@@ -88,7 +103,7 @@ export default function TransportationManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const { values, handleChange, reset } =
-    useFormFields<TransportationFormFields>(initialFormState);
+    useFormFields<TransportationFormFields>(getInitialFormState);
 
   // Filter transportation based on active tab
   const filteredItems = useMemo(() => {
