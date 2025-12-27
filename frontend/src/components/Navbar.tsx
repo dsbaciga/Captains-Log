@@ -254,12 +254,10 @@ export default function Navbar() {
       {/* Mobile Menu Drawer */}
       <div
         ref={mobileMenuRef}
-        className={`fixed top-0 right-0 h-full w-72 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed top-0 right-0 h-full w-72 bg-white dark:bg-navy-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
           showMobileMenu ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Solid background layer to prevent transparency from parent */}
-        <div className="absolute inset-0 bg-white dark:bg-navy-900" />
         <div className="relative flex flex-col h-full">
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-sky/10">
