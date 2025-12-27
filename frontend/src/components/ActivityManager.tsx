@@ -234,12 +234,11 @@ export default function ActivityManager({
     if (manager.editingId) {
       // For updates, send null to clear empty fields
       const updateData = {
-        tripId,
         name: values.name,
         description: values.description || null,
         category: values.category || null,
-        locationId: values.locationId,
-        parentId: values.parentId,
+        locationId: values.locationId || null,
+        parentId: values.parentId || null,
         allDay: values.allDay,
         startTime: startTimeISO,
         endTime: endTimeISO,

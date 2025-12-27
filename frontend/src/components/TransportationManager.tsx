@@ -164,10 +164,9 @@ export default function TransportationManager({
     if (manager.editingId) {
       // For updates, send null to clear empty fields
       const updateData = {
-        tripId,
         type: values.type,
-        fromLocationId: values.fromLocationId,
-        toLocationId: values.toLocationId,
+        fromLocationId: values.fromLocationId || null,
+        toLocationId: values.toLocationId || null,
         fromLocationName: values.fromLocationName || null,
         toLocationName: values.toLocationName || null,
         departureTime: values.departureTime || null,
