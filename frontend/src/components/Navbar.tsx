@@ -110,7 +110,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo / Brand */}
           <Link
-            to="/trips"
+            to="/dashboard"
             className="flex items-center space-x-2 sm:space-x-3 group"
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 dark:from-accent-400 dark:to-accent-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
