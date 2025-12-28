@@ -269,7 +269,6 @@ export default function ActivityManager({
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
-        toast.success("Activity updated");
         resetForm();
         manager.closeForm();
       }
@@ -294,7 +293,6 @@ export default function ActivityManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        toast.success("Activity added");
         resetForm();
         manager.closeForm();
       }
