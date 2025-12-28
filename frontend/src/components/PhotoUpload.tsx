@@ -4,6 +4,8 @@ import type { ImmichAsset, ImmichAlbum } from "../types/immich";
 import photoService from "../services/photo.service";
 import immichService from "../services/immich.service";
 import ImmichBrowser from "./ImmichBrowser";
+import DragDropUpload, { useDragDropOverlay } from "./DragDropUpload";
+import { PhotoSourcePicker } from "./CameraCapture";
 import toast from "react-hot-toast";
 
 interface PhotoUploadProps {
@@ -30,9 +32,16 @@ export default function PhotoUpload({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showImmichBrowser, setShowImmichBrowser] = useState(false);
   const [immichConfigured, setImmichConfigured] = useState(false);
+  const { isDraggingFiles, setupListeners } = useDragDropOverlay();
 
   useEffect(() => {
     checkImmichSettings();
+  }, []);
+
+  useEffect(() => {
+    // Setup global drag-and-drop overlay
+    const cleanup = setupListeners();
+    return cleanup;
   }, []);
 
   const checkImmichSettings = async () => {
@@ -48,6 +57,10 @@ export default function PhotoUpload({
     if (e.target.files) {
       setSelectedFiles(Array.from(e.target.files));
     }
+  };
+
+  const handleFilesDropped = (files: File[]) => {
+    setSelectedFiles((prev) => [...prev, ...files]);
   };
 
   const handleImmichSelect = async (assets: ImmichAsset[]) => {
@@ -193,35 +206,34 @@ export default function PhotoUpload({
         </div>
 
         <div className="space-y-4">
-          {/* File Input */}
-          <div>
-            <label
-              htmlFor="photo-upload-file-input"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              Upload from Computer
-            </label>
-            <input
-              type="file"
-              id="photo-upload-file-input"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              className="block w-full text-sm text-gray-500 dark:text-gray-400
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-lg file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300
-                hover:file:bg-blue-100 dark:hover:file:bg-blue-800
-                cursor-pointer"
+          {/* Mobile Photo Source Picker - Shows on small screens */}
+          <div className="md:hidden">
+            <PhotoSourcePicker
+              onFilesSelected={handleFilesDropped}
+              multiple={true}
               disabled={isUploading}
             />
-            {selectedFiles.length > 0 && (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {selectedFiles.length} file(s) selected
-              </p>
-            )}
           </div>
+
+          {/* Desktop Drag and Drop Upload - Shows on medium+ screens */}
+          <div className="hidden md:block">
+            <DragDropUpload
+              onFilesSelected={handleFilesDropped}
+              accept="image/*"
+              multiple
+              disabled={isUploading}
+              text="Drag and drop photos here"
+              subtext="or click to browse from your computer"
+            />
+          </div>
+
+          {selectedFiles.length > 0 && (
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {selectedFiles.length} file(s) ready to upload
+              </p>
+            </div>
+          )}
 
           {/* Preview */}
           {selectedFiles.length > 0 && (
@@ -241,7 +253,7 @@ export default function PhotoUpload({
                     }
                     type="button"
                     aria-label={`Remove photo ${index + 1}`}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-8 h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
                     disabled={isUploading}
                   >
                     ✕
@@ -340,6 +352,16 @@ export default function PhotoUpload({
           tripStartDate={tripStartDate}
           tripEndDate={tripEndDate}
           excludeAssetIds={existingImmichAssetIds}
+        />
+      )}
+
+      {/* Global drag-and-drop overlay */}
+      {isDraggingFiles && (
+        <DragDropUpload
+          onFilesSelected={handleFilesDropped}
+          accept="image/*"
+          multiple
+          overlay
         />
       )}
     </>

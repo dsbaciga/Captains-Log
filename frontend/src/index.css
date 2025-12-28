@@ -131,6 +131,152 @@
            transition-all duration-300
            hover:shadow-xl hover:border-accent-400/30 dark:hover:border-sky/20;
   }
+
+  /* Interactive card with lift effect */
+  .card-interactive {
+    @apply card cursor-pointer
+           hover:-translate-y-1 active:translate-y-0;
+  }
+
+  /* Success state animation */
+  .success-flash {
+    @apply animate-pulse bg-green-50 dark:bg-green-900/20
+           border-green-500 dark:border-green-400;
+  }
+
+  /* Error state animation */
+  .error-shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  }
+
+  /* Floating action button */
+  .fab {
+    @apply fixed bottom-6 right-6 z-40
+           w-14 h-14 rounded-full
+           bg-gradient-to-br from-primary-500 to-primary-600 dark:from-accent-400 dark:to-accent-600
+           text-white shadow-2xl
+           flex items-center justify-center
+           transition-all duration-300
+           hover:scale-110 hover:shadow-2xl hover:shadow-primary-500/50 dark:hover:shadow-accent-400/50
+           active:scale-95;
+  }
+
+  /* Badge animations */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+           transition-all duration-200
+           hover:scale-105;
+  }
+
+  /* Tab animations */
+  .tab {
+    @apply relative px-4 py-2 font-medium transition-all duration-200
+           hover:text-primary-600 dark:hover:text-sky;
+  }
+
+  .tab-active {
+    @apply text-primary-600 dark:text-sky;
+  }
+
+  .tab-active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-0.5
+           bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400
+           transform scale-x-100;
+    animation: slideInTab 0.3s ease-out;
+  }
+
+  .tab::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-0.5
+           bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400
+           transform scale-x-0 origin-left
+           transition-transform duration-300;
+  }
+
+  .tab:hover::after {
+    @apply scale-x-100;
+  }
+
+  /* Input label float animation */
+  .input-group {
+    @apply relative;
+  }
+
+  .input-float {
+    @apply input pt-6 pb-2;
+  }
+
+  .label-float {
+    @apply absolute left-4 top-1/2 -translate-y-1/2
+           text-slate/50 dark:text-warm-gray/40
+           font-body text-base
+           transition-all duration-200 pointer-events-none;
+  }
+
+  .input-float:focus ~ .label-float,
+  .input-float:not(:placeholder-shown) ~ .label-float {
+    @apply top-3 text-xs text-primary-600 dark:text-sky
+           translate-y-0;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    @apply absolute z-50 px-3 py-2 text-sm font-medium text-white
+           bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg
+           opacity-0 invisible
+           transition-all duration-200 pointer-events-none;
+  }
+
+  .tooltip-trigger:hover .tooltip {
+    @apply opacity-100 visible;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply w-5 h-5 border-2 border-current border-t-transparent rounded-full
+           animate-spin;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent
+           bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400;
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-white/10 dark:bg-navy-900/10 backdrop-blur-md
+           border border-white/20 dark:border-white/10;
+  }
+
+  /* Shimmer effect for loading states */
+  .shimmer {
+    @apply relative overflow-hidden
+           before:absolute before:inset-0
+           before:-translate-x-full
+           before:animate-[shimmer_2s_infinite]
+           before:bg-gradient-to-r
+           before:from-transparent before:via-white/20 before:to-transparent;
+  }
+
+  /* Ripple effect on click */
+  .ripple {
+    @apply relative overflow-hidden;
+  }
+
+  .ripple::after {
+    content: '';
+    @apply absolute top-1/2 left-1/2
+           w-0 h-0 rounded-full
+           bg-white/30
+           transform -translate-x-1/2 -translate-y-1/2
+           transition-all duration-500;
+  }
+
+  .ripple:active::after {
+    @apply w-full pb-[100%];
+  }
 }
 
 /* Animations */
@@ -158,6 +304,30 @@
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%, 50%, 70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%, 60% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+
+@keyframes slideInTab {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }
 

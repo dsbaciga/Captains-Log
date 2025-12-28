@@ -19,6 +19,7 @@ import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
+import { ListItemSkeleton } from "./SkeletonLoader";
 
 interface ActivityManagerProps {
   tripId: number;
@@ -806,7 +807,9 @@ export default function ActivityManager({
 
       {/* Activities List */}
       <div className="space-y-4">
-        {topLevelActivities.length === 0 ? (
+        {manager.loading ? (
+          <ListItemSkeleton count={3} />
+        ) : topLevelActivities.length === 0 ? (
           <EmptyState
             icon="🎯"
             message="No activities added yet"

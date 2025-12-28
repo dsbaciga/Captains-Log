@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
   const location = useLocation();
@@ -141,6 +142,11 @@ export default function Navbar() {
             ))}
           </div>
 
+          {/* Global Search */}
+          <div className="hidden md:block flex-1 max-w-md mx-4">
+            <GlobalSearch compact />
+          </div>
+
           {/* Right Side: User Menu + Mobile Toggle */}
           <div className="flex items-center space-x-2">
             {/* User Menu (Desktop) */}
@@ -200,7 +206,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="lg:hidden p-2 rounded-lg text-primary-600 dark:text-sky hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors"
+              className="lg:hidden p-3 min-w-[44px] min-h-[44px] rounded-lg text-primary-600 dark:text-sky hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors flex items-center justify-center"
               aria-label={showMobileMenu ? "Close menu" : "Open menu"}
               {...(mobileMenuExpanded === "true"
                 ? { "aria-expanded": "true" }
@@ -267,7 +273,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setShowMobileMenu(false)}
-              className="p-2 rounded-lg text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors"
+              className="p-3 min-w-[44px] min-h-[44px] rounded-lg text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors flex items-center justify-center"
               aria-label="Close menu"
             >
               <svg

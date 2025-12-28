@@ -4,6 +4,7 @@ import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import PhotoLightbox from './PhotoLightbox';
+import ProgressiveImage from './ProgressiveImage';
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -45,6 +46,9 @@ export default function PhotoGallery({
   const [showAlbumSelectModal, setShowAlbumSelectModal] = useState(false);
   const [isAddingToAlbum, setIsAddingToAlbum] = useState(false);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'location'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   // Track which photos we're currently fetching to avoid duplicate requests
@@ -335,6 +339,31 @@ export default function PhotoGallery({
     return getPhotoUrl(photo);
   };
 
+  // Sort photos
+  const sortedPhotos = [...photos].sort((a, b) => {
+    let comparison = 0;
+
+    switch (sortBy) {
+      case 'date':
+        const dateA = a.takenAt ? new Date(a.takenAt).getTime() : 0;
+        const dateB = b.takenAt ? new Date(b.takenAt).getTime() : 0;
+        comparison = dateB - dateA; // Most recent first by default
+        break;
+      case 'name':
+        const nameA = a.caption || '';
+        const nameB = b.caption || '';
+        comparison = nameA.localeCompare(nameB);
+        break;
+      case 'location':
+        const locA = a.location?.name || '';
+        const locB = b.location?.name || '';
+        comparison = locA.localeCompare(locB);
+        break;
+    }
+
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
   if (photos.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -346,6 +375,74 @@ export default function PhotoGallery({
   return (
     <>
       <ConfirmDialogComponent />
+
+      {/* View Controls */}
+      <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-2">
+          {/* View Toggle */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-2 rounded-md transition-all duration-200 ${
+                viewMode === 'grid'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-sky shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+              title="Grid view"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 rounded-md transition-all duration-200 ${
+                viewMode === 'list'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-sky shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+              title="List view"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {/* Sort Dropdown */}
+          <select
+            value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => {
+              const [newSortBy, newSortOrder] = e.target.value.split('-') as [typeof sortBy, typeof sortOrder];
+              setSortBy(newSortBy);
+              setSortOrder(newSortOrder);
+            }}
+            className="px-3 py-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky transition-all"
+          >
+            <option value="date-desc">Latest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="name-asc">Caption A-Z</option>
+            <option value="name-desc">Caption Z-A</option>
+            <option value="location-asc">Location A-Z</option>
+            <option value="location-desc">Location Z-A</option>
+          </select>
+        </div>
+
+        {/* Photo Count */}
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {photos.length} photo{photos.length !== 1 ? 's' : ''}
+        </div>
+      </div>
       {/* Selection Toolbar */}
       {albums && albums.length > 0 && (
         <div className="mb-4 flex items-center gap-2 flex-wrap">
@@ -426,21 +523,26 @@ export default function PhotoGallery({
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {photos.map((photo) => {
-          const thumbnailUrl = getThumbnailUrl(photo);
-          const isSelected = selectedPhotoIds.has(photo.id);
-          return (
-            <div
-              key={photo.id}
-              className="relative group cursor-pointer aspect-square overflow-hidden rounded-xl bg-parchment dark:bg-navy-800 shadow-md hover:shadow-2xl transition-all duration-300"
-              onClick={(e) => selectionMode ? togglePhotoSelection(photo.id, e.shiftKey) : setSelectedPhoto(photo)}
-            >
+      {/* Grid View */}
+      {viewMode === 'grid' && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {sortedPhotos.map((photo) => {
+            const thumbnailUrl = getThumbnailUrl(photo);
+            const isSelected = selectedPhotoIds.has(photo.id);
+            return (
+              <div
+                key={photo.id}
+                className="relative group cursor-pointer aspect-square overflow-hidden rounded-xl bg-parchment dark:bg-navy-800 shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-100"
+                onClick={(e) => selectionMode ? togglePhotoSelection(photo.id, e.shiftKey) : setSelectedPhoto(photo)}
+              >
               {thumbnailUrl ? (
-                <img
+                <ProgressiveImage
                   src={thumbnailUrl}
                   alt={photo.caption || 'Photo'}
-                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                  aspectRatio="1/1"
+                  imgClassName="transform group-hover:scale-110 transition-transform duration-500"
+                  lazy={true}
+                  rootMargin="400px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate/40 dark:text-warm-gray/40">
@@ -492,7 +594,107 @@ export default function PhotoGallery({
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <div className="space-y-3">
+          {sortedPhotos.map((photo) => {
+            const thumbnailUrl = getThumbnailUrl(photo);
+            const isSelected = selectedPhotoIds.has(photo.id);
+            return (
+              <div
+                key={photo.id}
+                className="relative group cursor-pointer bg-white dark:bg-navy-800 rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-primary-200 dark:hover:border-sky/30"
+                onClick={(e) => selectionMode ? togglePhotoSelection(photo.id, e.shiftKey) : setSelectedPhoto(photo)}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Selection checkbox */}
+                  {selectionMode && (
+                    <div className="flex-shrink-0">
+                      <div className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shadow-lg transition-all ${
+                        isSelected
+                          ? 'bg-primary-600 dark:bg-accent-500 border-primary-600 dark:border-accent-500 scale-110'
+                          : 'bg-white/90 dark:bg-navy-800/90 border-primary-200 dark:border-navy-700 backdrop-blur-sm hover:border-primary-400 dark:hover:border-accent-400'
+                      }`}>
+                        {isSelected && (
+                          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Thumbnail */}
+                  <div className="flex-shrink-0 w-24 h-24 overflow-hidden rounded-lg">
+                    {thumbnailUrl ? (
+                      <ProgressiveImage
+                        src={thumbnailUrl}
+                        alt={photo.caption || 'Photo'}
+                        aspectRatio="1/1"
+                        imgClassName="transform group-hover:scale-110 transition-transform duration-500"
+                        lazy={true}
+                        rootMargin="400px"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-400">
+                        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        {photo.caption && (
+                          <p className="font-medium text-gray-900 dark:text-white line-clamp-2 mb-1">
+                            {photo.caption}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                          {photo.takenAt && (
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              {new Date(photo.takenAt).toLocaleDateString()}
+                            </span>
+                          )}
+                          {photo.location && (
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              </svg>
+                              {photo.location.name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Badges */}
+                      <div className="flex-shrink-0 flex items-center gap-2">
+                        {coverPhotoId === photo.id && (
+                          <span className="bg-gradient-to-r from-accent-500 to-accent-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-lg">
+                            Cover
+                          </span>
+                        )}
+                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
+                          {photo.source === 'local' ? 'Uploaded' : 'Immich'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Photo Lightbox */}
       {selectedPhoto && (

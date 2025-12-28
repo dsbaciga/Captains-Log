@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Photo } from "../types/photo";
+import { useSwipeGesture } from "../hooks/useSwipeGesture";
 
 interface PhotoLightboxProps {
   photo: Photo;
@@ -66,6 +67,16 @@ export default function PhotoLightbox({
       onNavigate(photos[currentIndex + 1]);
     }
   }, [hasNext, currentIndex, photos, onNavigate, resetZoom]);
+
+  // Swipe gesture support for mobile
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: handleNext,
+    onSwipeRight: handlePrev,
+    onSwipeDown: onClose,
+  }, {
+    minSwipeDistance: 50,
+    maxSwipeTime: 300,
+  });
 
   const handleZoomIn = useCallback(() => {
     setZoom((prev) => Math.min(prev + 0.5, 4));
@@ -215,6 +226,7 @@ export default function PhotoLightbox({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        {...swipeHandlers}
       >
         {photoUrl ? (
           <img
@@ -271,7 +283,7 @@ export default function PhotoLightbox({
           <button
             type="button"
             onClick={onClose}
-            className="text-white bg-black/50 hover:bg-black/75 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+            className="text-white bg-black/50 hover:bg-black/75 rounded-full w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors"
             aria-label="Close lightbox"
           >
             <svg

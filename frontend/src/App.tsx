@@ -14,6 +14,7 @@ import ChecklistsPage from './pages/ChecklistsPage';
 import ChecklistDetailPage from './pages/ChecklistDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+import MobileBottomNav from './components/MobileBottomNav';
 
 function App() {
   return (
@@ -24,7 +25,7 @@ function App() {
         Skip to main content
       </a>
       <Navbar />
-      <main id="main-content" className="pt-16 sm:pt-20" tabIndex={-1}>
+      <main id="main-content" className="pt-16 sm:pt-20 pb-16 md:pb-0" tabIndex={-1}>
         <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<LoginPage />} />
@@ -119,6 +120,7 @@ function App() {
         />
         </Routes>
       </main>
+      <MobileBottomNav />
     </BrowserRouter>
   );
 }
