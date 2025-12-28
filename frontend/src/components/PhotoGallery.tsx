@@ -4,6 +4,7 @@ import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import PhotoLightbox from './PhotoLightbox';
+import ProgressiveImage from './ProgressiveImage';
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -437,10 +438,13 @@ export default function PhotoGallery({
               onClick={(e) => selectionMode ? togglePhotoSelection(photo.id, e.shiftKey) : setSelectedPhoto(photo)}
             >
               {thumbnailUrl ? (
-                <img
+                <ProgressiveImage
                   src={thumbnailUrl}
                   alt={photo.caption || 'Photo'}
-                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                  aspectRatio="1/1"
+                  imgClassName="transform group-hover:scale-110 transition-transform duration-500"
+                  lazy={true}
+                  rootMargin="400px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate/40 dark:text-warm-gray/40">
