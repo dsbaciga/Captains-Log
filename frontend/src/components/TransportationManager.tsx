@@ -201,7 +201,6 @@ export default function TransportationManager({
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
-        toast.success("Transportation updated");
         resetForm();
         manager.closeForm();
       }
@@ -227,7 +226,6 @@ export default function TransportationManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        toast.success("Transportation added");
         resetForm();
         manager.closeForm();
       }

@@ -140,7 +140,6 @@ export default function JournalManager({
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
-        toast.success("Journal entry updated");
         resetForm();
         manager.closeForm();
       }
@@ -158,7 +157,6 @@ export default function JournalManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        toast.success("Journal entry added");
         resetForm();
         manager.closeForm();
       }

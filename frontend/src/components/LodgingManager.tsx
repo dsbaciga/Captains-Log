@@ -202,7 +202,6 @@ export default function LodgingManager({
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
-        toast.success("Lodging updated");
         resetForm();
         manager.closeForm();
       }
@@ -225,7 +224,6 @@ export default function LodgingManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        toast.success("Lodging added");
         resetForm();
         manager.closeForm();
       }
