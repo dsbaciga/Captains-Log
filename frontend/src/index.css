@@ -17,34 +17,40 @@
   }
 
   .btn-primary {
-    @apply px-6 py-3 rounded-lg font-semibold tracking-wide font-body
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-lg font-semibold tracking-wide font-body
            bg-gradient-to-r from-primary-500 to-primary-600
            dark:from-accent-400 dark:to-accent-600
            text-white shadow-lg shadow-primary-500/20 dark:shadow-accent-400/20
            hover:shadow-xl hover:shadow-primary-500/30 dark:hover:shadow-accent-400/30
            transform hover:-translate-y-0.5 active:translate-y-0
            transition-all duration-200
+           whitespace-nowrap
            disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
 
   .btn-secondary {
-    @apply px-6 py-3 rounded-lg font-semibold tracking-wide font-body
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-lg font-semibold tracking-wide font-body
            bg-parchment dark:bg-navy-800
            text-primary-600 dark:text-sky
            border-2 border-primary-100 dark:border-navy-700
            hover:bg-primary-50 dark:hover:bg-navy-700
            transform hover:-translate-y-0.5 active:translate-y-0
            transition-all duration-200
+           whitespace-nowrap
            disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
 
   .btn-danger {
-    @apply px-6 py-3 rounded-lg font-semibold tracking-wide font-body
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-lg font-semibold tracking-wide font-body
            bg-gradient-to-r from-red-600 to-red-700
            text-white shadow-lg shadow-red-600/20
            hover:shadow-xl hover:shadow-red-600/30
            transform hover:-translate-y-0.5 active:translate-y-0
            transition-all duration-200
+           whitespace-nowrap
            disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
 
