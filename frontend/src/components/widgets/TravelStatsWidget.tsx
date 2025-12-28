@@ -1,0 +1,201 @@
+/**
+ * TravelStatsWidget - Shows travel statistics at a glance
+ */
+
+import { useState, useEffect } from 'react';
+import tripService from '../../services/trip.service';
+import photoService from '../../services/photo.service';
+import locationService from '../../services/location.service';
+
+interface Stats {
+  totalTrips: number;
+  totalPhotos: number;
+  totalLocations: number;
+  countriesVisited: number;
+  inProgressTrips: number;
+  plannedTrips: number;
+}
+
+export default function TravelStatsWidget() {
+  const [stats, setStats] = useState<Stats>({
+    totalTrips: 0,
+    totalPhotos: 0,
+    totalLocations: 0,
+    countriesVisited: 0,
+    inProgressTrips: 0,
+    plannedTrips: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      // Load trips
+      const tripsResponse = await tripService.getTrips();
+      const trips = tripsResponse.trips;
+
+      // Count unique countries (basic - from destination field)
+      const countries = new Set(
+        trips
+          .map((trip) => trip.destination)
+          .filter((dest) => dest && dest.length > 0)
+          .map((dest) => dest.split(',').pop()?.trim() || '')
+          .filter((country) => country.length > 0)
+      );
+
+      // Count photos across all trips
+      let photoCount = 0;
+      for (const trip of trips) {
+        try {
+          const photosResponse = await photoService.getPhotosByTrip(trip.id);
+          photoCount += photosResponse.photos.length;
+        } catch {
+          // Skip if fails
+        }
+      }
+
+      // Count locations
+      let locationCount = 0;
+      for (const trip of trips) {
+        try {
+          const locationsResponse = await locationService.getLocationsByTrip(trip.id);
+          locationCount += locationsResponse.locations.length;
+        } catch {
+          // Skip if fails
+        }
+      }
+
+      setStats({
+        totalTrips: trips.length,
+        totalPhotos: photoCount,
+        totalLocations: locationCount,
+        countriesVisited: countries.size,
+        inProgressTrips: trips.filter((t) => t.status === 'In Progress').length,
+        plannedTrips: trips.filter((t) => t.status === 'Planned' || t.status === 'Planning').length,
+      });
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const statItems = [
+    {
+      label: 'Total Trips',
+      value: stats.totalTrips,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: 'from-blue-500 to-blue-600',
+    },
+    {
+      label: 'Photos Captured',
+      value: stats.totalPhotos,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+      color: 'from-purple-500 to-purple-600',
+    },
+    {
+      label: 'Places Visited',
+      value: stats.totalLocations,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        </svg>
+      ),
+      color: 'from-green-500 to-green-600',
+    },
+    {
+      label: 'Countries',
+      value: stats.countriesVisited,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: 'from-orange-500 to-orange-600',
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10">
+        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-6 animate-pulse" />
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center">
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-display font-bold text-gray-900 dark:text-white">
+          Travel Stats
+        </h3>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        {statItems.map((stat, index) => (
+          <div
+            key={index}
+            className="p-4 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-navy-900/50 dark:to-navy-900/30 hover:scale-105 transition-transform duration-200"
+          >
+            <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3 shadow-md`}>
+              <div className="text-white">{stat.icon}</div>
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+              {stat.value.toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Active Trips Summary */}
+      {(stats.inProgressTrips > 0 || stats.plannedTrips > 0) && (
+        <div className="mt-4 p-4 rounded-xl bg-primary-50 dark:bg-primary-900/10 border-2 border-primary-100 dark:border-primary-900/30">
+          <div className="flex items-center justify-between text-sm">
+            {stats.inProgressTrips > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold">{stats.inProgressTrips}</span> in progress
+                </span>
+              </div>
+            )}
+            {stats.plannedTrips > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold">{stats.plannedTrips}</span> planned
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
