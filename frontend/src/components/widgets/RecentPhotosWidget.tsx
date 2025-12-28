@@ -291,12 +291,12 @@ export default function RecentPhotosWidget() {
 
       {/* Dots indicator */}
       {photos.length > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
+        <div className="flex justify-center gap-2 mt-4 px-2 flex-wrap">
           {photos.map((_, index) => (
             <button
               key={index}
               onClick={() => goToPhoto(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
+              className={`w-2 h-2 rounded-full transition-all flex-shrink-0 ${
                 index === currentIndex
                   ? "bg-primary-600 dark:bg-sky w-6"
                   : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
@@ -310,7 +310,7 @@ export default function RecentPhotosWidget() {
       {/* View all link */}
       <Link
         to="/trips"
-        className="block text-center mt-4 text-sm text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-sky/80 font-medium transition-colors"
+        className="block text-center mt-4 text-sm text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-sky/80 font-medium transition-colors pb-1"
       >
         View All Photos →
       </Link>
