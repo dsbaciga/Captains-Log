@@ -181,9 +181,9 @@ export default function RecentPhotosWidget() {
   return (
     <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center flex-shrink-0">
             <svg
               className="w-6 h-6 text-white"
               fill="none"
@@ -198,11 +198,11 @@ export default function RecentPhotosWidget() {
               />
             </svg>
           </div>
-          <h3 className="text-xl font-display font-bold text-gray-900 dark:text-white">
+          <h3 className="text-xl font-display font-bold text-gray-900 dark:text-white truncate">
             Recent Photos
           </h3>
         </div>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
+        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0">
           {currentIndex + 1} / {photos.length}
         </span>
       </div>
