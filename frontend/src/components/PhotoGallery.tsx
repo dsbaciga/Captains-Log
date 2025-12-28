@@ -255,18 +255,20 @@ export default function PhotoGallery({
     setSelectedPhotoIds(allPhotoIds);
   };
 
-  // Effect to select all photos after they're loaded
-  const [shouldSelectAll, setShouldSelectAll] = useState(false);
+  // Effect to select all photos after loading completes (handles the case where
+  // photos state updates after the onLoadAllPhotos promise resolves)
+  // Using a ref instead of state to avoid triggering re-renders during loading
+  const pendingSelectAll = useRef(false);
 
   useEffect(() => {
-    if (shouldSelectAll && photos.length === totalPhotosInView) {
+    if (pendingSelectAll.current && photos.length > 0 && photos.length >= totalPhotosInView) {
+      pendingSelectAll.current = false;
       const allPhotoIds = new Set(photos.map((p) => p.id));
       setSelectedPhotoIds(allPhotoIds);
-      setShouldSelectAll(false);
     }
-  }, [photos.length, totalPhotosInView, shouldSelectAll]);
+  }, [photos.length, totalPhotosInView]);
 
-  // Update selectAllPhotosInFolder to trigger the effect
+  // Load all photos and select them once complete
   const selectAllPhotosInFolderWithEffect = async () => {
     if (!onLoadAllPhotos) {
       selectAllLoadedPhotos();
@@ -274,10 +276,11 @@ export default function PhotoGallery({
     }
 
     try {
-      setShouldSelectAll(true);
+      pendingSelectAll.current = true;
       await onLoadAllPhotos();
+      // The effect will handle selection once photos.length >= totalPhotosInView
     } catch {
-      setShouldSelectAll(false);
+      pendingSelectAll.current = false;
       alert("Failed to load all photos");
     }
   };
