@@ -1192,9 +1192,9 @@ export default function TripDetailPage() {
 
               {/* Right: Photo Gallery */}
               <div className="flex-1 p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
                       {selectedAlbumId === null
                         ? `All Photos (${totalPhotosCount})`
                         : selectedAlbumId === -1
@@ -1237,7 +1237,7 @@ export default function TripDetailPage() {
                           toast.error("Failed to remove cover photo");
                         }
                       }}
-                      className="px-3 py-2 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
+                      className="px-3 py-2 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap flex-shrink-0"
                     >
                       Remove Cover Photo
                     </button>
