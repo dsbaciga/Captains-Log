@@ -37,32 +37,38 @@ export default function TravelStatsWidget() {
       const tripsResponse = await tripService.getTrips();
       const trips = tripsResponse.trips;
 
-      // Count unique countries (basic - from destination field)
-      const countries = new Set(
-        trips
-          .map((trip) => trip.destination)
-          .filter((dest) => dest && dest.length > 0)
-          .map((dest) => dest.split(',').pop()?.trim() || '')
-          .filter((country) => country.length > 0)
-      );
-
       // Count photos across all trips
       let photoCount = 0;
       for (const trip of trips) {
         try {
-          const photosResponse = await photoService.getPhotosByTrip(trip.id);
-          photoCount += photosResponse.photos.length;
+          const photosResponse = await photoService.getPhotosByTrip(trip.id, { skip: 0, take: 1 });
+          photoCount += photosResponse.total;
         } catch {
           // Skip if fails
         }
       }
 
-      // Count locations
+      // Count locations across all trips
       let locationCount = 0;
+      const uniqueCountries = new Set<string>();
       for (const trip of trips) {
         try {
-          const locationsResponse = await locationService.getLocationsByTrip(trip.id);
-          locationCount += locationsResponse.locations.length;
+          const locations = await locationService.getLocationsByTrip(trip.id);
+          locationCount += locations.length;
+
+          // Extract countries from location addresses
+          locations.forEach(location => {
+            if (location.address) {
+              // Try to get country from address (typically last part after comma)
+              const parts = location.address.split(',').map(p => p.trim());
+              if (parts.length > 0) {
+                const potentialCountry = parts[parts.length - 1];
+                if (potentialCountry.length > 0 && potentialCountry.length < 50) {
+                  uniqueCountries.add(potentialCountry);
+                }
+              }
+            }
+          });
         } catch {
           // Skip if fails
         }
@@ -72,7 +78,7 @@ export default function TravelStatsWidget() {
         totalTrips: trips.length,
         totalPhotos: photoCount,
         totalLocations: locationCount,
-        countriesVisited: countries.size,
+        countriesVisited: uniqueCountries.size,
         inProgressTrips: trips.filter((t) => t.status === 'In Progress').length,
         plannedTrips: trips.filter((t) => t.status === 'Planned' || t.status === 'Planning').length,
       });

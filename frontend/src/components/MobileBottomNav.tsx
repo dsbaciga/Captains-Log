@@ -82,9 +82,6 @@ export default function MobileBottomNav() {
               <span className={`text-xs font-medium mt-1 ${active ? 'font-semibold' : ''}`}>
                 {item.label}
               </span>
-              {active && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary-600 dark:bg-sky rounded-b-full" />
-              )}
             </Link>
           );
         })}
