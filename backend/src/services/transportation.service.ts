@@ -5,6 +5,45 @@ import {
 } from '../types/transportation.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
 
+// Helper to map database fields to frontend field names
+const mapTransportationToFrontend = (t: any): Record<string, any> => {
+  return {
+    id: t.id,
+    tripId: t.tripId,
+    type: t.type,
+    fromLocationId: t.startLocationId,
+    toLocationId: t.endLocationId,
+    fromLocationName: t.startLocationText,
+    toLocationName: t.endLocationText,
+    departureTime: t.scheduledStart,
+    arrivalTime: t.scheduledEnd,
+    startTimezone: t.startTimezone,
+    endTimezone: t.endTimezone,
+    carrier: t.company,
+    vehicleNumber: t.referenceNumber,
+    confirmationNumber: t.bookingReference,
+    cost: t.cost ? Number(t.cost) : null,
+    currency: t.currency,
+    notes: t.notes,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+    fromLocation: t.startLocation ? {
+      id: t.startLocation.id,
+      name: t.startLocation.name,
+      latitude: t.startLocation.latitude ? Number(t.startLocation.latitude) : null,
+      longitude: t.startLocation.longitude ? Number(t.startLocation.longitude) : null,
+    } : null,
+    toLocation: t.endLocation ? {
+      id: t.endLocation.id,
+      name: t.endLocation.name,
+      latitude: t.endLocation.latitude ? Number(t.endLocation.latitude) : null,
+      longitude: t.endLocation.longitude ? Number(t.endLocation.longitude) : null,
+    } : null,
+    journalAssignments: t.journalAssignments,
+    flightTracking: t.flightTracking,
+  };
+};
+
 class TransportationService {
   async createTransportation(userId: number, data: CreateTransportationInput) {
     // Verify user owns the trip
@@ -41,18 +80,37 @@ class TransportationService {
           select: {
             id: true,
             name: true,
+            latitude: true,
+            longitude: true,
           },
         },
         endLocation: {
           select: {
             id: true,
             name: true,
+            latitude: true,
+            longitude: true,
           },
         },
+        journalAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
+            },
+          },
+        },
+        flightTracking: true,
       },
     });
 
-    return transportation;
+    return mapTransportationToFrontend(transportation);
   }
 
   async getTransportationByTrip(userId: number, tripId: number) {
@@ -97,10 +155,10 @@ class TransportationService {
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
     });
 
-    // Enhance with computed fields
+    // Enhance with computed fields and map to frontend format
     const now = new Date();
     const enhancedTransportations = transportations.map((t) => {
-      const enhanced: any = { ...t };
+      const mapped = mapTransportationToFrontend(t);
 
       // Calculate route if we have coordinates
       if (
@@ -109,7 +167,7 @@ class TransportationService {
         t.endLocation?.latitude &&
         t.endLocation?.longitude
       ) {
-        enhanced.route = {
+        mapped.route = {
           from: {
             name: t.startLocation.name,
             latitude: Number(t.startLocation.latitude),
@@ -127,23 +185,23 @@ class TransportationService {
       if (t.scheduledStart && t.scheduledEnd) {
         const start = new Date(t.scheduledStart);
         const end = new Date(t.scheduledEnd);
-        enhanced.durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+        mapped.durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
       }
 
       // Calculate status flags
       if (t.scheduledStart) {
         const departureTime = new Date(t.scheduledStart);
-        enhanced.isUpcoming = departureTime > now;
+        mapped.isUpcoming = departureTime > now;
 
         if (t.scheduledEnd) {
           const arrivalTime = new Date(t.scheduledEnd);
-          enhanced.isInProgress = departureTime <= now && arrivalTime > now;
+          mapped.isInProgress = departureTime <= now && arrivalTime > now;
         } else {
-          enhanced.isInProgress = false;
+          mapped.isInProgress = false;
         }
       }
 
-      return enhanced;
+      return mapped;
     });
 
     return enhancedTransportations;
@@ -154,8 +212,22 @@ class TransportationService {
       where: { id: transportationId },
       include: {
         trip: true,
-        startLocation: true,
-        endLocation: true,
+        startLocation: {
+          select: {
+            id: true,
+            name: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+        endLocation: {
+          select: {
+            id: true,
+            name: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
         journalAssignments: {
           select: {
             id: true,
@@ -170,13 +242,14 @@ class TransportationService {
             },
           },
         },
+        flightTracking: true,
       },
     });
 
     // Verify access
     await verifyEntityAccess(transportation, userId, 'Transportation');
 
-    return transportation;
+    return mapTransportationToFrontend(transportation);
   }
 
   async updateTransportation(
@@ -233,18 +306,37 @@ class TransportationService {
           select: {
             id: true,
             name: true,
+            latitude: true,
+            longitude: true,
           },
         },
         endLocation: {
           select: {
             id: true,
             name: true,
+            latitude: true,
+            longitude: true,
           },
         },
+        journalAssignments: {
+          select: {
+            id: true,
+            journal: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                date: true,
+                entryType: true,
+              },
+            },
+          },
+        },
+        flightTracking: true,
       },
     });
 
-    return updatedTransportation;
+    return mapTransportationToFrontend(updatedTransportation);
   }
 
   async deleteTransportation(userId: number, transportationId: number) {
