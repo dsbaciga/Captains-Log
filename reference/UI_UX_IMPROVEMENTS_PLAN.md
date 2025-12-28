@@ -308,19 +308,40 @@ This document tracks the comprehensive UI/UX improvement initiative for Captain'
 - [ ] Photo metadata editor
 - [ ] Batch EXIF operations
 
-### 15. Mobile-First Optimizations ⏳
-**Status**: Not Started
+### 15. Mobile-First Optimizations ✅
+**Status**: ✅ Complete
 **Effort**: 8-10 hours
 **Impact**: Very High
 
-**Optimizations**:
-- [ ] Bottom navigation on mobile
-- [ ] Swipe gestures (photo gallery, delete actions)
-- [ ] Pull-to-refresh
-- [ ] Camera integration for direct photo capture
-- [ ] Touch-friendly targets (min 44px)
-- [ ] Mobile-specific layouts
-- [ ] Haptic feedback
+**Completed**:
+- ✅ Bottom navigation on mobile (hidden on desktop)
+- ✅ Swipe gestures for photo lightbox (left/right/down)
+- ✅ Pull-to-refresh on Dashboard with visual indicator
+- ✅ Camera integration for direct photo capture
+- ✅ Touch-friendly targets (min 44px) - all buttons audited and fixed
+- ✅ Mobile-specific layouts (PhotoSourcePicker)
+- ⏸️ Haptic feedback (deferred - requires device API)
+
+**Files Created**:
+- `frontend/src/components/MobileBottomNav.tsx`
+- `frontend/src/components/CameraCapture.tsx`
+- `frontend/src/hooks/usePullToRefresh.tsx`
+- `frontend/src/hooks/useSwipeGesture.ts`
+
+**Files Updated**:
+- `frontend/src/App.tsx`
+- `frontend/src/components/PhotoLightbox.tsx`
+- `frontend/src/components/PhotoUpload.tsx`
+- `frontend/src/components/Navbar.tsx`
+- `frontend/src/pages/DashboardPage.tsx`
+
+**Features**:
+- Fixed bottom navigation with 5 items (Home, Trips, Places, People, Lists)
+- Swipe left/right to navigate photos, swipe down to close lightbox
+- Pull-down to refresh dashboard with rotating arrow indicator
+- PhotoSourcePicker for mobile (camera vs gallery selection)
+- All touch targets meet WCAG 44px minimum requirement
+- Dark mode support across all mobile components
 
 ---
 
@@ -401,12 +422,12 @@ This document tracks the comprehensive UI/UX improvement initiative for Captain'
 
 ## 📊 Progress Tracking
 
-**Overall Progress**: 11/20 features completed (55%) 🎉
+**Overall Progress**: 12/20 features completed (60%) 🎉
 
 ### By Phase
 - **Phase 1 (Quick Wins)**: ✅ 5/5 (100%) **COMPLETE**
 - **Phase 2 (Visual Polish)**: ✅ 5/5 (100%) **COMPLETE** 🎊
-- **Phase 3 (Feature Enhancements)**: ✅ 1/5 (20%) **IN PROGRESS** 🚀
+- **Phase 3 (Feature Enhancements)**: ✅ 2/5 (40%) **IN PROGRESS** 🚀
 - **Phase 4 (Premium Features)**: 0/5 (0%)
 
 ---
@@ -432,20 +453,43 @@ This document tracks the comprehensive UI/UX improvement initiative for Captain'
 - 844ec56: Add keyboard shortcuts system
 - ba00db2: Add inline editing component
 
+### Sprint 2: Phase 2 - Visual Polish ✅
+**Duration**: 2025-12-28 (1 day)
+**Status**: ✅ Complete
+
+**Completed**:
+1. ✅ Implement Image Optimization (ProgressiveImage)
+2. ✅ Implement Drag & Drop (DragDropUpload + global overlay)
+3. ✅ Implement Search & Filter Enhancements (GlobalSearch)
+4. ✅ Implement Photo Gallery Grid Improvements (view toggle + sorting)
+
+**Commits**:
+- [various]: Progressive image loading, drag & drop, global search, photo gallery improvements
+
+### Sprint 3: Phase 3 - Dashboard & Mobile ✅
+**Duration**: 2025-12-28 (1 day)
+**Status**: ✅ Complete
+
+**Completed**:
+1. ✅ Implement Dashboard Widgets (#12)
+2. ✅ Implement Mobile-First Optimizations (#15)
+
+**Commits**:
+- 1443cad: Add dynamic dashboard widgets with live data (Phase 3 #12)
+- 8a527bf: Add mobile-first optimizations (Phase 3 #15)
+
 ---
 
 ## 🎯 Next Sprint
 
-**Focus**: Phase 2 - Visual Polish
-**Target Start**: 2025-12-29
-**Estimated Duration**: 3-5 days
+**Focus**: Phase 3 - Remaining Feature Enhancements
+**Target Start**: TBD
+**Estimated Duration**: 1-2 weeks
 
-**Upcoming Features**:
-1. Micro-interactions & Animations
-2. Image Optimization
-3. Drag & Drop
-4. Search & Filter Enhancements
-5. Photo Gallery Grid Improvements
+**Remaining Phase 3 Features**:
+1. Trip Timeline Enhancements (#11) - Visual timeline with connecting lines
+2. Map Improvements (#13) - Cluster markers, route lines, custom icons
+3. Smart Photo Features (#14) - Auto-create albums, duplicate detection, EXIF suggestions
 
 ---
 
