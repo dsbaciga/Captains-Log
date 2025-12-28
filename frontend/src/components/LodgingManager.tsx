@@ -158,6 +158,9 @@ export default function LodgingManager({
     handleChange("currency", lodging.currency || "USD");
     handleChange("notes", lodging.notes || "");
     manager.openEditForm(lodging.id);
+
+    // Scroll to top to show the edit form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

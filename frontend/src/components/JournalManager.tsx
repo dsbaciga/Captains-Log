@@ -114,6 +114,9 @@ export default function JournalManager({
     });
     manager.openEditForm(entry.id);
     setExpandedId(null);
+
+    // Scroll to top to show the edit form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

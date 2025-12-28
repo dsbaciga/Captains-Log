@@ -210,6 +210,9 @@ export default function ActivityManager({
     }
 
     manager.openEditForm(activity.id);
+
+    // Scroll to top to show the edit form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

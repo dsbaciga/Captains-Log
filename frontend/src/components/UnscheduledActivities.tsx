@@ -147,6 +147,9 @@ export default function UnscheduledActivities({
       handleChange("endDate", endDateTime.slice(0, 10));
       handleChange("endTime", endDateTime.slice(11));
     }
+
+    // Scroll to top to show the edit form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -161,6 +161,9 @@ export default function TransportationManager({
     handleChange("currency", transportation.currency || "USD");
     handleChange("notes", transportation.notes || "");
     manager.openEditForm(transportation.id);
+
+    // Scroll to top to show the edit form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
