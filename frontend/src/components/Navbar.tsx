@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
   const location = useLocation();
@@ -139,6 +140,11 @@ export default function Navbar() {
             {navLinks.map((link) => (
               <NavLink key={link.path} path={link.path} label={link.label} />
             ))}
+          </div>
+
+          {/* Global Search */}
+          <div className="hidden md:block flex-1 max-w-md mx-4">
+            <GlobalSearch compact />
           </div>
 
           {/* Right Side: User Menu + Mobile Toggle */}
