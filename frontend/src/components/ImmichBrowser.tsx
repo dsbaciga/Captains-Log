@@ -291,10 +291,10 @@ export default function ImmichBrowser({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl h-5/6 flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl h-full sm:h-5/6 flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               Browse Immich Photos
@@ -359,31 +359,33 @@ export default function ImmichBrowser({
 
           {/* Search and Filters */}
           {view === "assets" && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Search photos..."
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-              <button
-                onClick={handleSearch}
-                type="button"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                Search
-              </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex gap-2 flex-1">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder="Search photos..."
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <button
+                  onClick={handleSearch}
+                  type="button"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Search
+                </button>
+              </div>
               {tripStartDate && tripEndDate && (
-                <label className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg cursor-pointer">
+                <label className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={filterByTripDates}
                     onChange={(e) => setFilterByTripDates(e.target.checked)}
                     className="rounded"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
                     {filterByTripDates ? "Trip dates only" : "Show all photos"}
                   </span>
                 </label>
@@ -404,7 +406,7 @@ export default function ImmichBrowser({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
               <p className="text-gray-600 dark:text-gray-400">Loading...</p>
@@ -575,20 +577,20 @@ export default function ImmichBrowser({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
             {selectedAssetsMap.size > 0
               ? `${selectedAssetsMap.size} ${
                   selectedAssetsMap.size === 1 ? "photo" : "photos"
                 } selected`
               : "Select photos to continue"}
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={onClose}
               disabled={isLinking}
               type="button"
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               Cancel
             </button>
@@ -596,7 +598,7 @@ export default function ImmichBrowser({
               onClick={handleConfirmSelection}
               disabled={selectedAssetsMap.size === 0 || isLinking}
               type="button"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed whitespace-nowrap"
             >
               {isLinking ? (
                 "Linking..."
