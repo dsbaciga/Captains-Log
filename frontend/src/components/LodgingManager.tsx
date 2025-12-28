@@ -14,6 +14,7 @@ import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
+import { ListItemSkeleton } from "./SkeletonLoader";
 
 interface LodgingManagerProps {
   tripId: number;
@@ -494,7 +495,9 @@ export default function LodgingManager({
 
       {/* Lodging List */}
       <div className="space-y-4">
-        {manager.items.length === 0 ? (
+        {manager.loading ? (
+          <ListItemSkeleton count={3} />
+        ) : manager.items.length === 0 ? (
           <EmptyState
             icon="🏨"
             message="No lodging added yet"

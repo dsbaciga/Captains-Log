@@ -11,6 +11,13 @@ export default {
         'display': ['Crimson Pro', 'serif'],
         'body': ['Manrope', 'sans-serif'],
       },
+      keyframes: {
+        shimmer: {
+          '100%': {
+            transform: 'translateX(100%)',
+          },
+        },
+      },
       colors: {
         // Primary - Deep Ocean
         primary: {
