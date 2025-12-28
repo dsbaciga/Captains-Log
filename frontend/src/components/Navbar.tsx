@@ -206,7 +206,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="lg:hidden p-2 rounded-lg text-primary-600 dark:text-sky hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors"
+              className="lg:hidden p-3 min-w-[44px] min-h-[44px] rounded-lg text-primary-600 dark:text-sky hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors flex items-center justify-center"
               aria-label={showMobileMenu ? "Close menu" : "Open menu"}
               {...(mobileMenuExpanded === "true"
                 ? { "aria-expanded": "true" }
@@ -273,7 +273,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setShowMobileMenu(false)}
-              className="p-2 rounded-lg text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors"
+              className="p-3 min-w-[44px] min-h-[44px] rounded-lg text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors flex items-center justify-center"
               aria-label="Close menu"
             >
               <svg

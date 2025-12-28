@@ -1,15 +1,33 @@
 import { useAuthStore } from '../store/authStore';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import UpcomingTripsWidget from '../components/widgets/UpcomingTripsWidget';
 import TravelStatsWidget from '../components/widgets/TravelStatsWidget';
 import RecentPhotosWidget from '../components/widgets/RecentPhotosWidget';
 import QuickActionsWidget from '../components/widgets/QuickActionsWidget';
+import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = async () => {
+    // Trigger refresh by updating key (causes widgets to reload)
+    await new Promise(resolve => setTimeout(resolve, 500)); // Minimum refresh time for better UX
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const [containerRef, { pullDistance, isRefreshing }] = usePullToRefresh<HTMLDivElement>({
+    onRefresh: handleRefresh,
+    threshold: 80,
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream to-parchment dark:from-navy-900 dark:to-navy-800">
+    <div
+      ref={containerRef}
+      className="min-h-screen bg-gradient-to-br from-cream to-parchment dark:from-navy-900 dark:to-navy-800 overflow-y-auto"
+    >
+      <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
       <main className="max-w-7xl mx-auto px-6 py-16 pt-24">
         {/* Hero Section */}
         <div className="mb-12 animate-fade-in">
@@ -23,7 +41,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Widgets Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+        <div key={refreshKey} className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
           {/* Upcoming Trips - Takes 2 columns on xl screens */}
           <div className="xl:col-span-2 animate-fade-in">
             <UpcomingTripsWidget />

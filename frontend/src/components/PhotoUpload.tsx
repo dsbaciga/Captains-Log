@@ -5,6 +5,7 @@ import photoService from "../services/photo.service";
 import immichService from "../services/immich.service";
 import ImmichBrowser from "./ImmichBrowser";
 import DragDropUpload, { useDragDropOverlay } from "./DragDropUpload";
+import { PhotoSourcePicker } from "./CameraCapture";
 import toast from "react-hot-toast";
 
 interface PhotoUploadProps {
@@ -205,15 +206,26 @@ export default function PhotoUpload({
         </div>
 
         <div className="space-y-4">
-          {/* Drag and Drop Upload */}
-          <DragDropUpload
-            onFilesSelected={handleFilesDropped}
-            accept="image/*"
-            multiple
-            disabled={isUploading}
-            text="Drag and drop photos here"
-            subtext="or click to browse from your computer"
-          />
+          {/* Mobile Photo Source Picker - Shows on small screens */}
+          <div className="md:hidden">
+            <PhotoSourcePicker
+              onFilesSelected={handleFilesDropped}
+              multiple={true}
+              disabled={isUploading}
+            />
+          </div>
+
+          {/* Desktop Drag and Drop Upload - Shows on medium+ screens */}
+          <div className="hidden md:block">
+            <DragDropUpload
+              onFilesSelected={handleFilesDropped}
+              accept="image/*"
+              multiple
+              disabled={isUploading}
+              text="Drag and drop photos here"
+              subtext="or click to browse from your computer"
+            />
+          </div>
 
           {selectedFiles.length > 0 && (
             <div className="text-center">
@@ -241,7 +253,7 @@ export default function PhotoUpload({
                     }
                     type="button"
                     aria-label={`Remove photo ${index + 1}`}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-8 h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
                     disabled={isUploading}
                   >
                     ✕
