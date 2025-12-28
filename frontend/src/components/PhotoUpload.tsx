@@ -4,6 +4,7 @@ import type { ImmichAsset, ImmichAlbum } from "../types/immich";
 import photoService from "../services/photo.service";
 import immichService from "../services/immich.service";
 import ImmichBrowser from "./ImmichBrowser";
+import DragDropUpload, { useDragDropOverlay } from "./DragDropUpload";
 import toast from "react-hot-toast";
 
 interface PhotoUploadProps {
@@ -30,9 +31,16 @@ export default function PhotoUpload({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showImmichBrowser, setShowImmichBrowser] = useState(false);
   const [immichConfigured, setImmichConfigured] = useState(false);
+  const { isDraggingFiles, setupListeners } = useDragDropOverlay();
 
   useEffect(() => {
     checkImmichSettings();
+  }, []);
+
+  useEffect(() => {
+    // Setup global drag-and-drop overlay
+    const cleanup = setupListeners();
+    return cleanup;
   }, []);
 
   const checkImmichSettings = async () => {
@@ -48,6 +56,10 @@ export default function PhotoUpload({
     if (e.target.files) {
       setSelectedFiles(Array.from(e.target.files));
     }
+  };
+
+  const handleFilesDropped = (files: File[]) => {
+    setSelectedFiles((prev) => [...prev, ...files]);
   };
 
   const handleImmichSelect = async (assets: ImmichAsset[]) => {
@@ -193,35 +205,23 @@ export default function PhotoUpload({
         </div>
 
         <div className="space-y-4">
-          {/* File Input */}
-          <div>
-            <label
-              htmlFor="photo-upload-file-input"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              Upload from Computer
-            </label>
-            <input
-              type="file"
-              id="photo-upload-file-input"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              className="block w-full text-sm text-gray-500 dark:text-gray-400
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-lg file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300
-                hover:file:bg-blue-100 dark:hover:file:bg-blue-800
-                cursor-pointer"
-              disabled={isUploading}
-            />
-            {selectedFiles.length > 0 && (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {selectedFiles.length} file(s) selected
+          {/* Drag and Drop Upload */}
+          <DragDropUpload
+            onFilesSelected={handleFilesDropped}
+            accept="image/*"
+            multiple
+            disabled={isUploading}
+            text="Drag and drop photos here"
+            subtext="or click to browse from your computer"
+          />
+
+          {selectedFiles.length > 0 && (
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {selectedFiles.length} file(s) ready to upload
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Preview */}
           {selectedFiles.length > 0 && (
@@ -340,6 +340,16 @@ export default function PhotoUpload({
           tripStartDate={tripStartDate}
           tripEndDate={tripEndDate}
           excludeAssetIds={existingImmichAssetIds}
+        />
+      )}
+
+      {/* Global drag-and-drop overlay */}
+      {isDraggingFiles && (
+        <DragDropUpload
+          onFilesSelected={handleFilesDropped}
+          accept="image/*"
+          multiple
+          overlay
         />
       )}
     </>
