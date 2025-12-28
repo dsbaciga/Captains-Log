@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import tagService from '../services/tag.service';
@@ -24,6 +24,8 @@ export default function TripsPage() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  // Use ref to track blob URLs for proper cleanup (avoids stale closure issues)
+  const blobUrlsRef = useRef<string[]>([]);
 
   useEffect(() => {
     loadTrips();
@@ -46,6 +48,7 @@ export default function TripsPage() {
       if (!token) return;
 
       const urls: { [key: number]: string } = {};
+      const newBlobUrls: string[] = [];
 
       const baseUrl = getAssetBaseUrl();
 
@@ -67,7 +70,9 @@ export default function TripsPage() {
 
             if (response.ok) {
               const blob = await response.blob();
-              urls[trip.id] = URL.createObjectURL(blob);
+              const blobUrl = URL.createObjectURL(blob);
+              urls[trip.id] = blobUrl;
+              newBlobUrls.push(blobUrl);
             }
           } catch (error) {
             console.error(`Failed to load cover photo for trip ${trip.id}:`, error);
@@ -75,6 +80,8 @@ export default function TripsPage() {
         }
       }
 
+      // Store blob URLs in ref for cleanup
+      blobUrlsRef.current = newBlobUrls;
       setCoverPhotoUrls(urls);
     };
 
@@ -82,13 +89,10 @@ export default function TripsPage() {
       loadCoverPhotos();
     }
 
-    // Cleanup blob URLs
+    // Cleanup blob URLs using ref (avoids stale closure)
     return () => {
-      Object.values(coverPhotoUrls).forEach(url => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
-      });
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
     };
   }, [trips]);
 

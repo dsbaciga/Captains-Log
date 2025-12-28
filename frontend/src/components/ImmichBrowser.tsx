@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import immichService from "../services/immich.service";
 import type { ImmichAsset, ImmichAlbum } from "../types/immich";
 import { getAssetBaseUrl } from "../lib/config";
@@ -32,13 +32,13 @@ export default function ImmichBrowser({
   const [searchTerm, setSearchTerm] = useState("");
   const [albumSearchTerm, setAlbumSearchTerm] = useState("");
   const [filterByTripDates, setFilterByTripDates] = useState(true);
-  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(
-    new Set()
-  );
+  // Use only Map for selection (stores both ID and data, avoiding redundant Set)
   const [selectedAssetsMap, setSelectedAssetsMap] = useState<Map<string, ImmichAsset>>(
     new Map()
   );
   const [thumbnailCache, setThumbnailCache] = useState<ThumbnailCache>({});
+  // Track blob URLs for cleanup (avoids stale closure issues)
+  const blobUrlsRef = useRef<string[]>([]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -110,6 +110,9 @@ export default function ImmichBrowser({
           const blob = await response.blob();
           const blobUrl = URL.createObjectURL(blob);
 
+          // Track blob URL for cleanup
+          blobUrlsRef.current.push(blobUrl);
+
           setThumbnailCache((prev) => ({
             ...prev,
             [asset.id]: blobUrl,
@@ -126,12 +129,15 @@ export default function ImmichBrowser({
     if (assets.length > 0) {
       loadThumbnails();
     }
-
-    // Cleanup blob URLs when component unmounts
-    return () => {
-      Object.values(thumbnailCache).forEach((url) => URL.revokeObjectURL(url));
-    };
   }, [assets]);
+
+  // Cleanup blob URLs on unmount (separate effect to avoid stale closure)
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
+    };
+  }, []);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -212,15 +218,6 @@ export default function ImmichBrowser({
   };
 
   const handleSelectAsset = (asset: ImmichAsset) => {
-    setSelectedAssetIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(asset.id)) {
-        newSet.delete(asset.id);
-      } else {
-        newSet.add(asset.id);
-      }
-      return newSet;
-    });
     setSelectedAssetsMap((prev) => {
       const newMap = new Map(prev);
       if (newMap.has(asset.id)) {
@@ -241,11 +238,6 @@ export default function ImmichBrowser({
   };
 
   const handleSelectAllOnPage = () => {
-    setSelectedAssetIds((prev) => {
-      const newSet = new Set(prev);
-      displayAssets.forEach((asset) => newSet.add(asset.id));
-      return newSet;
-    });
     setSelectedAssetsMap((prev) => {
       const newMap = new Map(prev);
       displayAssets.forEach((asset) => newMap.set(asset.id, asset));
@@ -254,11 +246,6 @@ export default function ImmichBrowser({
   };
 
   const handleDeselectAllOnPage = () => {
-    setSelectedAssetIds((prev) => {
-      const newSet = new Set(prev);
-      displayAssets.forEach((asset) => newSet.delete(asset.id));
-      return newSet;
-    });
     setSelectedAssetsMap((prev) => {
       const newMap = new Map(prev);
       displayAssets.forEach((asset) => newMap.delete(asset.id));
@@ -268,7 +255,7 @@ export default function ImmichBrowser({
 
   const allPageAssetsSelected =
     displayAssets.length > 0 &&
-    displayAssets.every((asset) => selectedAssetIds.has(asset.id));
+    displayAssets.every((asset) => selectedAssetsMap.has(asset.id));
 
   const handleAlbumClick = (albumId: string) => {
     setSelectedAlbum(albumId);
@@ -487,7 +474,7 @@ export default function ImmichBrowser({
                       onClick={() => handleSelectAsset(asset)}
                       type="button"
                       className={`relative aspect-square rounded-lg overflow-hidden border-4 transition-all ${
-                        selectedAssetIds.has(asset.id)
+                        selectedAssetsMap.has(asset.id)
                           ? "border-blue-600 shadow-lg scale-105"
                           : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
                       }`}
@@ -514,7 +501,7 @@ export default function ImmichBrowser({
                           VIDEO
                         </div>
                       )}
-                      {selectedAssetIds.has(asset.id) && (
+                      {selectedAssetsMap.has(asset.id) && (
                         <div className="absolute inset-0 bg-blue-600 bg-opacity-25 flex items-center justify-center">
                           <svg
                             className="w-12 h-12 text-white"
@@ -590,9 +577,9 @@ export default function ImmichBrowser({
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {selectedAssetIds.size > 0
-              ? `${selectedAssetIds.size} ${
-                  selectedAssetIds.size === 1 ? "photo" : "photos"
+            {selectedAssetsMap.size > 0
+              ? `${selectedAssetsMap.size} ${
+                  selectedAssetsMap.size === 1 ? "photo" : "photos"
                 } selected`
               : "Select photos to continue"}
           </p>
@@ -607,7 +594,7 @@ export default function ImmichBrowser({
             </button>
             <button
               onClick={handleConfirmSelection}
-              disabled={selectedAssetIds.size === 0 || isLinking}
+              disabled={selectedAssetsMap.size === 0 || isLinking}
               type="button"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
             >
@@ -616,8 +603,8 @@ export default function ImmichBrowser({
               ) : (
                 <>
                   Link{" "}
-                  {selectedAssetIds.size > 0 ? `${selectedAssetIds.size} ` : ""}
-                  Photo{selectedAssetIds.size !== 1 ? "s" : ""}
+                  {selectedAssetsMap.size > 0 ? `${selectedAssetsMap.size} ` : ""}
+                  Photo{selectedAssetsMap.size !== 1 ? "s" : ""}
                 </>
               )}
             </button>

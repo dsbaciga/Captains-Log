@@ -2,24 +2,31 @@
  * RecentPhotosWidget - Carousel of recently uploaded photos
  */
 
-import { useState, useEffect, useRef } from 'react';
-import type { Photo } from '../../types/photo';
-import tripService from '../../services/trip.service';
-import photoService from '../../services/photo.service';
-import { getAssetBaseUrl } from '../../lib/config';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from "react";
+import type { Photo } from "../../types/photo";
+import tripService from "../../services/trip.service";
+import photoService from "../../services/photo.service";
+import { getAssetBaseUrl } from "../../lib/config";
+import { Link } from "react-router-dom";
 
 export default function RecentPhotosWidget() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [thumbnailCache, setThumbnailCache] = useState<{ [id: number]: string }>({});
-  const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
+  const [thumbnailCache, setThumbnailCache] = useState<{
+    [id: number]: string;
+  }>({});
+  const autoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Track blob URLs for cleanup (avoids stale closure issues)
+  const blobUrlsRef = useRef<string[]>([]);
 
   useEffect(() => {
     loadRecentPhotos();
     return () => {
       if (autoScrollRef.current) clearInterval(autoScrollRef.current);
+      // Clean up blob URLs on unmount
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
     };
   }, []);
 
@@ -65,10 +72,12 @@ export default function RecentPhotosWidget() {
       setPhotos(recentPhotos);
 
       // Load thumbnails for Immich photos
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       if (token) {
         const baseUrl = getAssetBaseUrl();
-        for (const photo of recentPhotos.filter((p) => p.source === 'immich' && p.thumbnailPath)) {
+        for (const photo of recentPhotos.filter(
+          (p) => p.source === "immich" && p.thumbnailPath
+        )) {
           try {
             const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
               headers: { Authorization: `Bearer ${token}` },
@@ -76,6 +85,8 @@ export default function RecentPhotosWidget() {
             if (response.ok) {
               const blob = await response.blob();
               const blobUrl = URL.createObjectURL(blob);
+              // Track blob URL for cleanup
+              blobUrlsRef.current.push(blobUrl);
               setThumbnailCache((prev) => ({ ...prev, [photo.id]: blobUrl }));
             }
           } catch {
@@ -84,7 +95,7 @@ export default function RecentPhotosWidget() {
         }
       }
     } catch (error) {
-      console.error('Failed to load recent photos:', error);
+      console.error("Failed to load recent photos:", error);
     } finally {
       setIsLoading(false);
     }
@@ -92,10 +103,10 @@ export default function RecentPhotosWidget() {
 
   const getPhotoUrl = (photo: Photo): string | null => {
     const baseUrl = getAssetBaseUrl();
-    if (photo.source === 'local' && photo.thumbnailPath) {
+    if (photo.source === "local" && photo.thumbnailPath) {
       return `${baseUrl}${photo.thumbnailPath}`;
     }
-    if (photo.source === 'immich') {
+    if (photo.source === "immich") {
       return thumbnailCache[photo.id] || null;
     }
     return null;
@@ -126,8 +137,18 @@ export default function RecentPhotosWidget() {
       <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
           </div>
           <h3 className="text-xl font-display font-bold text-gray-900 dark:text-white">
@@ -135,8 +156,18 @@ export default function RecentPhotosWidget() {
           </h3>
         </div>
         <div className="text-center py-12">
-          <svg className="w-16 h-16 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg
+            className="w-16 h-16 mx-auto mb-3 text-gray-300 dark:text-gray-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
           <p className="text-gray-500 dark:text-gray-400">No photos yet</p>
         </div>
@@ -153,8 +184,18 @@ export default function RecentPhotosWidget() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
           </div>
           <h3 className="text-xl font-display font-bold text-gray-900 dark:text-white">
@@ -171,13 +212,23 @@ export default function RecentPhotosWidget() {
         {photoUrl ? (
           <img
             src={photoUrl}
-            alt={currentPhoto.caption || 'Photo'}
+            alt={currentPhoto.caption || "Photo"}
             className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="w-16 h-16 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
           </div>
         )}
@@ -195,19 +246,43 @@ export default function RecentPhotosWidget() {
         {photos.length > 1 && (
           <>
             <button
-              onClick={() => goToPhoto((currentIndex - 1 + photos.length) % photos.length)}
+              onClick={() =>
+                goToPhoto((currentIndex - 1 + photos.length) % photos.length)
+              }
               className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Previous photo"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <button
               onClick={() => goToPhoto((currentIndex + 1) % photos.length)}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Next photo"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </button>
           </>
@@ -223,9 +298,10 @@ export default function RecentPhotosWidget() {
               onClick={() => goToPhoto(index)}
               className={`w-2 h-2 rounded-full transition-all ${
                 index === currentIndex
-                  ? 'bg-primary-600 dark:bg-sky w-6'
-                  : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                  ? "bg-primary-600 dark:bg-sky w-6"
+                  : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
               }`}
+              aria-label={`Go to photo ${index + 1}`}
             />
           ))}
         </div>

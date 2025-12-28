@@ -22,7 +22,7 @@
  * ```
  */
 
-import { useRef, useState, DragEvent } from 'react';
+import { useRef, useState, type DragEvent } from "react";
 
 interface DragDropUploadProps {
   /** Callback when files are selected */
@@ -47,14 +47,14 @@ interface DragDropUploadProps {
 
 export default function DragDropUpload({
   onFilesSelected,
-  accept = 'image/*',
+  accept = "image/*",
   multiple = true,
   maxSize,
-  className = '',
+  className = "",
   overlay = false,
   disabled = false,
-  text = 'Drag and drop files here',
-  subtext = 'or click to browse',
+  text = "Drag and drop files here",
+  subtext = "or click to browse",
 }: DragDropUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,25 +68,31 @@ export default function DragDropUpload({
     if (maxSize) {
       const oversizedFile = fileArray.find((file) => file.size > maxSize);
       if (oversizedFile) {
-        setError(`File "${oversizedFile.name}" is too large. Max size: ${(maxSize / 1024 / 1024).toFixed(1)}MB`);
+        setError(
+          `File "${oversizedFile.name}" is too large. Max size: ${(
+            maxSize /
+            1024 /
+            1024
+          ).toFixed(1)}MB`
+        );
         return null;
       }
     }
 
     // Check file type
-    if (accept && accept !== '*') {
-      const acceptTypes = accept.split(',').map((t) => t.trim().toLowerCase());
+    if (accept && accept !== "*") {
+      const acceptTypes = accept.split(",").map((t) => t.trim().toLowerCase());
       const invalidFile = fileArray.find((file) => {
         const fileName = file.name.toLowerCase();
         const fileType = file.type.toLowerCase();
 
         return !acceptTypes.some((acceptType) => {
-          if (acceptType.startsWith('.')) {
+          if (acceptType.startsWith(".")) {
             // Extension check
             return fileName.endsWith(acceptType);
-          } else if (acceptType.includes('*')) {
+          } else if (acceptType.includes("*")) {
             // MIME type wildcard check (e.g., "image/*")
-            const baseType = acceptType.split('/')[0];
+            const baseType = acceptType.split("/")[0];
             return fileType.startsWith(baseType);
           } else {
             // Exact MIME type check
@@ -96,7 +102,9 @@ export default function DragDropUpload({
       });
 
       if (invalidFile) {
-        setError(`File "${invalidFile.name}" is not an accepted type. Accepted: ${accept}`);
+        setError(
+          `File "${invalidFile.name}" is not an accepted type. Accepted: ${accept}`
+        );
         return null;
       }
     }
@@ -163,7 +171,7 @@ export default function DragDropUpload({
 
     // Reset input so same file can be selected again
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -198,7 +206,9 @@ export default function DragDropUpload({
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
             />
           </svg>
-          <h2 className="text-4xl font-display font-bold mb-2">Drop to Upload</h2>
+          <h2 className="text-4xl font-display font-bold mb-2">
+            Drop to Upload
+          </h2>
           <p className="text-xl opacity-90">Release to upload your files</p>
         </div>
       </div>
@@ -216,6 +226,7 @@ export default function DragDropUpload({
         onChange={handleFileInputChange}
         className="hidden"
         disabled={disabled}
+        aria-label="Upload files"
       />
 
       <div
@@ -227,11 +238,12 @@ export default function DragDropUpload({
         className={`
           relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer
           transition-all duration-300
-          ${isDragging
-            ? 'border-primary-500 dark:border-accent-400 bg-primary-50 dark:bg-accent-900/20 scale-105'
-            : 'border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-accent-500 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+          ${
+            isDragging
+              ? "border-primary-500 dark:border-accent-400 bg-primary-50 dark:bg-accent-900/20 scale-105"
+              : "border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-accent-500 hover:bg-gray-50 dark:hover:bg-gray-800/50"
           }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
         `}
       >
         {isDragging ? (
@@ -301,7 +313,7 @@ export function useDragDropOverlay() {
 
   const handleWindowDragEnter = (e: globalThis.DragEvent) => {
     // Only show overlay if dragging files (not text or other data)
-    if (e.dataTransfer?.types.includes('Files')) {
+    if (e.dataTransfer?.types.includes("Files")) {
       dragCounterRef.current++;
       setIsDraggingFiles(true);
     }
@@ -321,16 +333,16 @@ export function useDragDropOverlay() {
 
   // Setup global drag listeners
   const setupListeners = () => {
-    window.addEventListener('dragenter', handleWindowDragEnter);
-    window.addEventListener('dragleave', handleWindowDragLeave);
-    window.addEventListener('drop', handleWindowDrop);
-    window.addEventListener('dragover', (e) => e.preventDefault()); // Prevent default to allow drop
+    window.addEventListener("dragenter", handleWindowDragEnter);
+    window.addEventListener("dragleave", handleWindowDragLeave);
+    window.addEventListener("drop", handleWindowDrop);
+    window.addEventListener("dragover", (e) => e.preventDefault()); // Prevent default to allow drop
 
     return () => {
-      window.removeEventListener('dragenter', handleWindowDragEnter);
-      window.removeEventListener('dragleave', handleWindowDragLeave);
-      window.removeEventListener('drop', handleWindowDrop);
-      window.removeEventListener('dragover', (e) => e.preventDefault());
+      window.removeEventListener("dragenter", handleWindowDragEnter);
+      window.removeEventListener("dragleave", handleWindowDragLeave);
+      window.removeEventListener("drop", handleWindowDrop);
+      window.removeEventListener("dragover", (e) => e.preventDefault());
     };
   };
 
