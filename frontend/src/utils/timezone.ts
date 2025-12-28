@@ -228,3 +228,103 @@ export function calculateDuration(
     return `${hours}h ${minutes}m`;
   }
 }
+
+/**
+ * Convert a datetime-local input value to an ISO string that preserves
+ * the wall-clock time in the specified timezone.
+ *
+ * Example: "2025-01-15T14:00" in "America/New_York" timezone
+ * -> Returns an ISO string representing 2:00 PM Eastern Time
+ *
+ * @param dateTimeLocal Value from datetime-local input (YYYY-MM-DDTHH:mm)
+ * @param timezone IANA timezone string
+ * @returns ISO 8601 string in UTC that represents the local time
+ */
+export function convertDateTimeLocalToISO(
+  dateTimeLocal: string,
+  timezone: string
+): string {
+  // Parse the datetime-local value (format: YYYY-MM-DDTHH:mm)
+  const [datePart, timePart] = dateTimeLocal.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute] = timePart.split(':').map(Number);
+
+  // Create a date string in the target timezone
+  // Use the ISO format but interpret it in the target timezone
+  const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+
+  // Create a formatter for the target timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+
+  // We need to find the UTC timestamp that, when displayed in the target timezone, shows our desired time
+  // Strategy: Create a date assuming UTC, then adjust for the timezone offset
+
+  // First, parse as if it's in the target timezone
+  // We'll use a clever trick: format a known UTC time in the target timezone to find the offset
+  const testDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+
+  // Format this test date in the target timezone
+  const parts = formatter.formatToParts(testDate);
+  const tzYear = parseInt(parts.find(p => p.type === 'year')!.value);
+  const tzMonth = parseInt(parts.find(p => p.type === 'month')!.value);
+  const tzDay = parseInt(parts.find(p => p.type === 'day')!.value);
+  const tzHour = parseInt(parts.find(p => p.type === 'hour')!.value);
+  const tzMinute = parseInt(parts.find(p => p.type === 'minute')!.value);
+
+  // Calculate the difference in minutes between what we want and what we got
+  const wantedMinutes = year * 525600 + (month - 1) * 43200 + day * 1440 + hour * 60 + minute;
+  const gotMinutes = tzYear * 525600 + (tzMonth - 1) * 43200 + tzDay * 1440 + tzHour * 60 + tzMinute;
+  const diffMinutes = wantedMinutes - gotMinutes;
+
+  // Adjust the test date by the difference
+  const adjustedDate = new Date(testDate.getTime() + diffMinutes * 60 * 1000);
+
+  return adjustedDate.toISOString();
+}
+
+/**
+ * Convert an ISO timestamp to a datetime-local input value,
+ * showing the wall-clock time in the specified timezone.
+ *
+ * Example: ISO string representing 7:00 PM UTC with "America/New_York" timezone
+ * -> Returns "2025-01-15T14:00" (2:00 PM Eastern)
+ *
+ * @param isoString ISO 8601 string (typically in UTC)
+ * @param timezone IANA timezone string
+ * @returns datetime-local format string (YYYY-MM-DDTHH:mm)
+ */
+export function convertISOToDateTimeLocal(
+  isoString: string,
+  timezone: string
+): string {
+  const date = new Date(isoString);
+
+  // Format the date in the target timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  const parts = formatter.formatToParts(date);
+  const year = parts.find(p => p.type === 'year')!.value;
+  const month = parts.find(p => p.type === 'month')!.value;
+  const day = parts.find(p => p.type === 'day')!.value;
+  const hour = parts.find(p => p.type === 'hour')!.value;
+  const minute = parts.find(p => p.type === 'minute')!.value;
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}

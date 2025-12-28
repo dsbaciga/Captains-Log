@@ -11,6 +11,8 @@ import LocationQuickAdd from "./LocationQuickAdd";
 import {
   formatDateTimeInTimezone,
   formatDateInTimezone,
+  convertISOToDateTimeLocal,
+  convertDateTimeLocalToISO,
 } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
@@ -167,36 +169,44 @@ export default function ActivityManager({
     handleChange("bookingReference", activity.bookingReference || "");
     handleChange("notes", activity.notes || "");
 
+    // Determine effective timezone
+    const effectiveTz = activity.timezone || tripTimezone || 'UTC';
+
     // Handle date/time fields based on allDay flag
     if (activity.allDay) {
-      // For all-day events, populate just the date fields
-      handleChange(
-        "startDate",
-        activity.startTime
-          ? new Date(activity.startTime).toISOString().slice(0, 10)
-          : ""
-      );
-      handleChange(
-        "endDate",
-        activity.endTime
-          ? new Date(activity.endTime).toISOString().slice(0, 10)
-          : ""
-      );
+      // For all-day events, populate just the date fields (convert to local time in timezone)
+      if (activity.startTime) {
+        const startDateTime = convertISOToDateTimeLocal(activity.startTime, effectiveTz);
+        handleChange("startDate", startDateTime.slice(0, 10));
+      } else {
+        handleChange("startDate", "");
+      }
+      if (activity.endTime) {
+        const endDateTime = convertISOToDateTimeLocal(activity.endTime, effectiveTz);
+        handleChange("endDate", endDateTime.slice(0, 10));
+      } else {
+        handleChange("endDate", "");
+      }
       handleChange("startTime", "");
       handleChange("endTime", "");
     } else {
-      // For timed events, populate date-time fields
-      const startDateTime = activity.startTime
-        ? new Date(activity.startTime).toISOString().slice(0, 16)
-        : "";
-      const endDateTime = activity.endTime
-        ? new Date(activity.endTime).toISOString().slice(0, 16)
-        : "";
-
-      handleChange("startDate", startDateTime.slice(0, 10));
-      handleChange("startTime", startDateTime.slice(11));
-      handleChange("endDate", endDateTime.slice(0, 10));
-      handleChange("endTime", endDateTime.slice(11));
+      // For timed events, populate date-time fields (convert to local time in timezone)
+      if (activity.startTime) {
+        const startDateTime = convertISOToDateTimeLocal(activity.startTime, effectiveTz);
+        handleChange("startDate", startDateTime.slice(0, 10));
+        handleChange("startTime", startDateTime.slice(11));
+      } else {
+        handleChange("startDate", "");
+        handleChange("startTime", "");
+      }
+      if (activity.endTime) {
+        const endDateTime = convertISOToDateTimeLocal(activity.endTime, effectiveTz);
+        handleChange("endDate", endDateTime.slice(0, 10));
+        handleChange("endTime", endDateTime.slice(11));
+      } else {
+        handleChange("endDate", "");
+        handleChange("endTime", "");
+      }
     }
 
     manager.openEditForm(activity.id);
@@ -210,25 +220,32 @@ export default function ActivityManager({
       return;
     }
 
-    // Combine date and time fields into ISO strings
+    // Determine effective timezone
+    const effectiveTz = values.timezone || tripTimezone || 'UTC';
+
+    // Combine date and time fields into ISO strings, converting from timezone to UTC
     let startTimeISO: string | null = null;
     let endTimeISO: string | null = null;
 
     if (values.allDay) {
-      // For all-day events, use just the date (set time to 00:00)
+      // For all-day events, use just the date (set time to 00:00 and 23:59:59 in the timezone)
       if (values.startDate) {
-        startTimeISO = `${values.startDate}T00:00:00`;
+        const dateTimeLocal = `${values.startDate}T00:00`;
+        startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
       }
       if (values.endDate) {
-        endTimeISO = `${values.endDate}T23:59:59`;
+        const dateTimeLocal = `${values.endDate}T23:59`;
+        endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
       }
     } else {
-      // For timed events, combine date and time
+      // For timed events, combine date and time and convert to UTC
       if (values.startDate && values.startTime) {
-        startTimeISO = `${values.startDate}T${values.startTime}:00`;
+        const dateTimeLocal = `${values.startDate}T${values.startTime}`;
+        startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
       }
       if (values.endDate && values.endTime) {
-        endTimeISO = `${values.endDate}T${values.endTime}:00`;
+        const dateTimeLocal = `${values.endDate}T${values.endTime}`;
+        endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
       }
     }
 
