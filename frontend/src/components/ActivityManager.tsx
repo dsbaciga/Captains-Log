@@ -347,7 +347,7 @@ export default function ActivityManager({
             : ""
         }`}
       >
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               {activity.category && (
@@ -454,7 +454,7 @@ export default function ActivityManager({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 ml-4">
+          <div className="flex flex-wrap items-center gap-2 md:ml-4">
             <AssociatedAlbums albums={activity.photoAlbums} tripId={tripId} />
             <JournalEntriesButton
               journalEntries={activity.journalAssignments}
@@ -462,13 +462,13 @@ export default function ActivityManager({
             />
             <button
               onClick={() => handleEdit(activity)}
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap"
             >
               Edit
             </button>
             <button
               onClick={() => handleDelete(activity.id)}
-              className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap"
             >
               Delete
             </button>
