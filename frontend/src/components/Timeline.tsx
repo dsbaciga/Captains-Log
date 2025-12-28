@@ -224,58 +224,22 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
     return acc;
   }, {} as Record<string, TimelineItem[]>);
 
-  const formatTime = (date: Date, displayTimezone?: string, isTripTimezone?: boolean) => {
-    if (displayTimezone && showDualTimezone) {
-      if (isTripTimezone) {
-        // For trip timezone, show the time as entered (stored UTC represents local time)
-        return date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      } else {
-        // For user timezone, calculate the offset between trip and user timezone
-        // Get offset for trip timezone
-        const tripFormatter = new Intl.DateTimeFormat('en-US', {
-          timeZone: tripTimezone,
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: false
-        });
-
-        // Get offset for user timezone
-        const userFormatter = new Intl.DateTimeFormat('en-US', {
-          timeZone: displayTimezone,
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: false
-        });
-
-        // Get the displayed time parts
-        const tripParts = tripFormatter.formatToParts(date);
-        const userParts = userFormatter.formatToParts(date);
-
-        const getTotalMinutes = (parts: Intl.DateTimeFormatPart[]) => {
-          const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-          const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
-          return hour * 60 + minute;
-        };
-
-        const tripMinutes = getTotalMinutes(tripParts);
-        const userMinutes = getTotalMinutes(userParts);
-        const offsetMinutes = userMinutes - tripMinutes;
-
-        // Apply offset to the original date
-        const adjustedDate = new Date(date.getTime() + offsetMinutes * 60 * 1000);
-
-        return adjustedDate.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      }
+  const formatTime = (date: Date, displayTimezone?: string) => {
+    // If a timezone is specified, format the time in that timezone
+    if (displayTimezone) {
+      return date.toLocaleTimeString('en-US', {
+        timeZone: displayTimezone,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
     }
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    // Otherwise use default formatting
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   const getTimezoneAbbr = (timezone: string): string => {
@@ -318,7 +282,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
     };
   };
 
-  const renderTimelineColumn = (items: TimelineItem[], timezone?: string, isTripTimezone?: boolean) => {
+  const renderTimelineColumn = (items: TimelineItem[], timezone?: string) => {
     return (
       <div className="flex-1">
         <div className="relative">
@@ -341,13 +305,13 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
                         {item.isAllDay ? (
                           'All Day'
                         ) : item.showCheckInTime ? (
-                          `Check-in: ${formatTime(item.dateTime, timezone, isTripTimezone)}`
+                          `Check-in: ${formatTime(item.dateTime, timezone)}`
                         ) : item.showCheckOutTime ? (
-                          `Check-out: ${formatTime(item.endDateTime!, timezone, isTripTimezone)}`
+                          `Check-out: ${formatTime(item.endDateTime!, timezone)}`
                         ) : (
                           <>
-                            {formatTime(item.dateTime, timezone, isTripTimezone)}
-                            {item.endDateTime && ` - ${formatTime(item.endDateTime, timezone, isTripTimezone)}`}
+                            {formatTime(item.dateTime, timezone)}
+                            {item.endDateTime && ` - ${formatTime(item.endDateTime, timezone)}`}
                           </>
                         )}
                       </div>
@@ -548,16 +512,16 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
                 <>
                   {/* Desktop: Side-by-side columns */}
                   <div className="hidden md:flex gap-8">
-                    {renderTimelineColumn(items, tripTimezone, true)}
+                    {renderTimelineColumn(items, tripTimezone)}
                     <div className="w-px bg-gray-300 dark:bg-gray-600"></div>
-                    {renderTimelineColumn(items, userTimezone, false)}
+                    {renderTimelineColumn(items, userTimezone)}
                   </div>
 
                   {/* Mobile: Single column based on active timezone */}
                   <div className="md:hidden">
                     {mobileActiveTimezone === 'trip'
-                      ? renderTimelineColumn(items, tripTimezone, true)
-                      : renderTimelineColumn(items, userTimezone, false)
+                      ? renderTimelineColumn(items, tripTimezone)
+                      : renderTimelineColumn(items, userTimezone)
                     }
                   </div>
                 </>

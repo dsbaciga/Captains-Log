@@ -7,7 +7,7 @@ import type { Location } from "../types/location";
 import transportationService from "../services/transportation.service";
 import toast from "react-hot-toast";
 import JournalEntriesButton from "./JournalEntriesButton";
-import { formatDateTimeInTimezone } from "../utils/timezone";
+import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -135,16 +135,21 @@ export default function TransportationManager({
     handleChange("toLocationId", transportation.toLocationId || undefined);
     handleChange("fromLocationName", transportation.fromLocationName || "");
     handleChange("toLocationName", transportation.toLocationName || "");
+
+    // Convert stored UTC times to local times in their respective timezones
+    const effectiveStartTz = transportation.startTimezone || tripTimezone || 'UTC';
+    const effectiveEndTz = transportation.endTimezone || tripTimezone || 'UTC';
+
     handleChange(
       "departureTime",
       transportation.departureTime
-        ? new Date(transportation.departureTime).toISOString().slice(0, 16)
+        ? convertISOToDateTimeLocal(transportation.departureTime, effectiveStartTz)
         : ""
     );
     handleChange(
       "arrivalTime",
       transportation.arrivalTime
-        ? new Date(transportation.arrivalTime).toISOString().slice(0, 16)
+        ? convertISOToDateTimeLocal(transportation.arrivalTime, effectiveEndTz)
         : ""
     );
     handleChange("startTimezone", transportation.startTimezone || "");
@@ -161,6 +166,17 @@ export default function TransportationManager({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Convert datetime-local values to ISO strings using the specified timezones
+    const effectiveStartTz = values.startTimezone || tripTimezone || 'UTC';
+    const effectiveEndTz = values.endTimezone || tripTimezone || 'UTC';
+
+    const departureTimeISO = values.departureTime
+      ? convertDateTimeLocalToISO(values.departureTime, effectiveStartTz)
+      : null;
+    const arrivalTimeISO = values.arrivalTime
+      ? convertDateTimeLocalToISO(values.arrivalTime, effectiveEndTz)
+      : null;
+
     if (manager.editingId) {
       // For updates, send null to clear empty fields
       const updateData = {
@@ -169,8 +185,8 @@ export default function TransportationManager({
         toLocationId: values.toLocationId || null,
         fromLocationName: values.fromLocationName || null,
         toLocationName: values.toLocationName || null,
-        departureTime: values.departureTime || null,
-        arrivalTime: values.arrivalTime || null,
+        departureTime: departureTimeISO,
+        arrivalTime: arrivalTimeISO,
         startTimezone: values.startTimezone || null,
         endTimezone: values.endTimezone || null,
         carrier: values.carrier || null,
@@ -195,8 +211,8 @@ export default function TransportationManager({
         toLocationId: values.toLocationId,
         fromLocationName: values.fromLocationName || undefined,
         toLocationName: values.toLocationName || undefined,
-        departureTime: values.departureTime || undefined,
-        arrivalTime: values.arrivalTime || undefined,
+        departureTime: departureTimeISO || undefined,
+        arrivalTime: arrivalTimeISO || undefined,
         startTimezone: values.startTimezone || undefined,
         endTimezone: values.endTimezone || undefined,
         carrier: values.carrier || undefined,

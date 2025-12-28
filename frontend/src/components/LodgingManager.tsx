@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
 import JournalEntriesButton from "./JournalEntriesButton";
 import LocationQuickAdd from "./LocationQuickAdd";
-import { formatDateTimeInTimezone } from "../utils/timezone";
+import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -135,16 +135,20 @@ export default function LodgingManager({
     handleChange("name", lodging.name);
     handleChange("locationId", lodging.locationId || undefined);
     handleChange("address", lodging.address || "");
+
+    // Convert stored UTC times to local times in the specified timezone
+    const effectiveTz = lodging.timezone || tripTimezone || 'UTC';
+
     handleChange(
       "checkInDate",
       lodging.checkInDate
-        ? new Date(lodging.checkInDate).toISOString().slice(0, 16)
+        ? convertISOToDateTimeLocal(lodging.checkInDate, effectiveTz)
         : ""
     );
     handleChange(
       "checkOutDate",
       lodging.checkOutDate
-        ? new Date(lodging.checkOutDate).toISOString().slice(0, 16)
+        ? convertISOToDateTimeLocal(lodging.checkOutDate, effectiveTz)
         : ""
     );
     handleChange("timezone", lodging.timezone || "");
@@ -172,6 +176,11 @@ export default function LodgingManager({
       return;
     }
 
+    // Convert datetime-local values to ISO strings using the specified timezone
+    const effectiveTz = values.timezone || tripTimezone || 'UTC';
+    const checkInDateISO = convertDateTimeLocalToISO(values.checkInDate, effectiveTz);
+    const checkOutDateISO = convertDateTimeLocalToISO(values.checkOutDate, effectiveTz);
+
     if (manager.editingId) {
       // For updates, send null to clear empty fields
       const updateData = {
@@ -179,8 +188,8 @@ export default function LodgingManager({
         name: values.name,
         locationId: values.locationId || null,
         address: values.address || null,
-        checkInDate: values.checkInDate,
-        checkOutDate: values.checkOutDate,
+        checkInDate: checkInDateISO,
+        checkOutDate: checkOutDateISO,
         timezone: values.timezone || null,
         confirmationNumber: values.confirmationNumber || null,
         bookingUrl: values.bookingUrl || null,
@@ -202,8 +211,8 @@ export default function LodgingManager({
         name: values.name,
         locationId: values.locationId,
         address: values.address || undefined,
-        checkInDate: values.checkInDate,
-        checkOutDate: values.checkOutDate,
+        checkInDate: checkInDateISO,
+        checkOutDate: checkOutDateISO,
         timezone: values.timezone || undefined,
         confirmationNumber: values.confirmationNumber || undefined,
         bookingUrl: values.bookingUrl || undefined,
