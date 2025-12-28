@@ -608,8 +608,8 @@ export default function TripDetailPage() {
             >
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70"></div>
               <div className="relative h-full p-6 flex flex-col justify-between text-white">
-                <div className="flex justify-between items-start">
-                  <div>
+                <div className="flex flex-wrap justify-between items-start gap-4">
+                  <div className="min-w-0 flex-1">
                     <h1 className="text-4xl font-bold drop-shadow-lg">
                       {trip.title}
                     </h1>
@@ -621,13 +621,13 @@ export default function TripDetailPage() {
                       {trip.status}
                     </span>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                     <button
                       onClick={() => setShowTagsModal(true)}
-                      className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2"
+                      className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
                     >
                       <svg
-                        className="w-4 h-4"
+                        className="w-4 h-4 flex-shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -644,7 +644,7 @@ export default function TripDetailPage() {
                     </button>
                     <Link
                       to={`/trips/${trip.id}/edit`}
-                      className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2"
+                      className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
                     >
                       Edit Trip
                     </Link>
@@ -699,8 +699,8 @@ export default function TripDetailPage() {
             </div>
           ) : (
             <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
+              <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+                <div className="min-w-0 flex-1">
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     {trip.title}
                   </h1>
@@ -712,13 +712,13 @@ export default function TripDetailPage() {
                     {trip.status}
                   </span>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                   <button
                     onClick={() => setShowTagsModal(true)}
-                    className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2"
+                    className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
                   >
                     <svg
-                      className="w-4 h-4"
+                      className="w-4 h-4 flex-shrink-0"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -735,7 +735,7 @@ export default function TripDetailPage() {
                   </button>
                   <Link
                     to={`/trips/${trip.id}/edit`}
-                    className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2"
+                    className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
                   >
                     Edit Trip
                   </Link>
