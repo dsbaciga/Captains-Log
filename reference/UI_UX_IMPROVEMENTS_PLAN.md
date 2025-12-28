@@ -255,19 +255,31 @@ This document tracks the comprehensive UI/UX improvement initiative for Captain'
 - [ ] Timeline zoom levels (hour/day/week)
 - [ ] Current time indicator
 
-### 12. Dashboard Widgets ⏳
-**Status**: Not Started
-**Effort**: 8-10 hours
+### 12. Dashboard Widgets ✅
+**Status**: ✅ Complete
+**Effort**: 3 hours
 **Impact**: Very High
 
-**Widgets to create**:
-- [ ] Upcoming trips widget
-- [ ] Recent photos carousel
-- [ ] Travel statistics widget
-- [ ] Quick actions panel
-- [ ] Recent activity feed
-- [ ] Weather for next trip
-- [ ] Customizable widget layout
+**Completed**:
+- ✅ Upcoming trips widget (next 3 trips with status/dates/destination)
+- ✅ Recent photos carousel (auto-scrolling with 10 latest photos)
+- ✅ Travel statistics widget (trips/photos/locations/countries)
+- ✅ Quick actions panel (6 common actions with shortcuts)
+- ✅ Responsive widget grid layout (1/2/3 columns)
+- ✅ Loading states with skeletons
+- ✅ Empty states with helpful messages
+- ✅ Dark mode support
+
+**Files Created**:
+- `frontend/src/components/widgets/UpcomingTripsWidget.tsx`
+- `frontend/src/components/widgets/TravelStatsWidget.tsx`
+- `frontend/src/components/widgets/RecentPhotosWidget.tsx`
+- `frontend/src/components/widgets/QuickActionsWidget.tsx`
+
+**Files Updated**:
+- `frontend/src/pages/DashboardPage.tsx`
+
+**Note**: Recent activity feed and weather deferred - not critical for MVP. Widget layout is responsive but not drag-and-drop customizable (would require library).
 
 ### 13. Map Improvements ⏳
 **Status**: Not Started
@@ -389,12 +401,12 @@ This document tracks the comprehensive UI/UX improvement initiative for Captain'
 
 ## 📊 Progress Tracking
 
-**Overall Progress**: 10/20 features completed (50%) 🎉
+**Overall Progress**: 11/20 features completed (55%) 🎉
 
 ### By Phase
 - **Phase 1 (Quick Wins)**: ✅ 5/5 (100%) **COMPLETE**
 - **Phase 2 (Visual Polish)**: ✅ 5/5 (100%) **COMPLETE** 🎊
-- **Phase 3 (Feature Enhancements)**: 0/5 (0%)
+- **Phase 3 (Feature Enhancements)**: ✅ 1/5 (20%) **IN PROGRESS** 🚀
 - **Phase 4 (Premium Features)**: 0/5 (0%)
 
 ---
