@@ -260,7 +260,7 @@ export default function Navbar() {
       {/* Mobile Menu Drawer */}
       <div
         ref={mobileMenuRef}
-        className={`fixed top-0 right-0 h-full w-72 bg-white/100 dark:bg-navy-900/100 shadow-2xl z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed top-0 right-0 h-full w-72 bg-white dark:bg-navy-900 shadow-2xl z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
           showMobileMenu ? "translate-x-0" : "translate-x-full"
         }`}
       >
