@@ -176,7 +176,6 @@ export function getTimezoneAbbreviation(
  * Common timezone options for select dropdowns
  */
 export const commonTimezones = [
-  { value: "", label: "Use trip timezone" },
   { value: "UTC", label: "UTC (Coordinated Universal Time)" },
   { value: "America/New_York", label: "Eastern Time (US & Canada)" },
   { value: "America/Chicago", label: "Central Time (US & Canada)" },
@@ -249,9 +248,6 @@ export function convertDateTimeLocalToISO(
   const [year, month, day] = datePart.split('-').map(Number);
   const [hour, minute] = timePart.split(':').map(Number);
 
-  // Create a date string in the target timezone
-  // Use the ISO format but interpret it in the target timezone
-  const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
 
   // Create a formatter for the target timezone
   const formatter = new Intl.DateTimeFormat('en-US', {

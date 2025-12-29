@@ -449,21 +449,24 @@ export default function PhotoGallery({
     let comparison = 0;
 
     switch (sortBy) {
-      case "date":
+      case "date": {
         const dateA = a.takenAt ? new Date(a.takenAt).getTime() : 0;
         const dateB = b.takenAt ? new Date(b.takenAt).getTime() : 0;
         comparison = dateB - dateA; // Most recent first by default
         break;
-      case "name":
+      }
+      case "name": {
         const nameA = a.caption || "";
         const nameB = b.caption || "";
         comparison = nameA.localeCompare(nameB);
         break;
-      case "location":
+      }
+      case "location": {
         const locA = a.location?.name || "";
         const locB = b.location?.name || "";
         comparison = locA.localeCompare(locB);
         break;
+      }
     }
 
     return sortOrder === "asc" ? comparison : -comparison;

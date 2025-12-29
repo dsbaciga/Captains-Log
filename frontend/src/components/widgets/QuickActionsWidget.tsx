@@ -2,7 +2,7 @@
  * QuickActionsWidget - Quick access to common actions
  */
 
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function QuickActionsWidget() {
   const navigate = useNavigate();

@@ -5,7 +5,7 @@
  * Detects pull-down gesture and triggers refresh callback
  */
 
-import { useRef, useEffect, useState, RefObject, TouchEvent } from 'react';
+import { useRef, useEffect, useState, RefObject } from 'react';
 
 interface PullToRefreshOptions {
   onRefresh: () => Promise<void> | void;
@@ -20,6 +20,7 @@ interface PullToRefreshState {
   canPull: boolean;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePullToRefresh<T extends HTMLElement>(
   options: PullToRefreshOptions
 ): [RefObject<T>, PullToRefreshState] {

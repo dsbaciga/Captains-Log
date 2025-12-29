@@ -128,6 +128,7 @@ EmptyState.Compact = function CompactEmptyState({
  * SVG Illustrations for common empty states
  */
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const EmptyIllustrations = {
   NoTrips: () => (
     <svg className="w-24 h-24 mx-auto mb-4 text-primary-300 dark:text-sky/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

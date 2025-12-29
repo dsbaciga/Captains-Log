@@ -5,7 +5,6 @@ import type {
 } from "../types/transportation";
 import type { Location } from "../types/location";
 import transportationService from "../services/transportation.service";
-import toast from "react-hot-toast";
 import JournalEntriesButton from "./JournalEntriesButton";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";

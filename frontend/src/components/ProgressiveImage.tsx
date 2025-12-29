@@ -211,6 +211,7 @@ export default function ProgressiveImage({
  * Hook to detect WebP support
  * Returns true if browser supports WebP format
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useWebPSupport(): boolean {
   const [supportsWebP, setSupportsWebP] = useState(false);
 
@@ -227,14 +228,13 @@ export function useWebPSupport(): boolean {
 /**
  * Get optimized image source with WebP fallback
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getImageSource(src: string, supportsWebP: boolean): string {
   if (!supportsWebP || !src) return src;
 
   // If source already has WebP, return as-is
   if (src.endsWith('.webp')) return src;
 
-  // Try to get WebP version by replacing extension
-  const webpSrc = src.replace(/\.(jpg|jpeg|png)$/i, '.webp');
 
   // In production, you'd check if WebP version exists
   // For now, just return original
@@ -246,6 +246,7 @@ export function getImageSource(src: string, supportsWebP: boolean): string {
  * @param baseSrc Base image source (should be largest size)
  * @param sizes Array of width sizes (e.g., [400, 800, 1200])
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function generateSrcSet(baseSrc: string, sizes: number[]): string {
   // Extract file extension and base path
   const match = baseSrc.match(/^(.+)\.([^.]+)$/);

@@ -4,7 +4,8 @@ import type { ImmichAsset, ImmichAlbum } from "../types/immich";
 import photoService from "../services/photo.service";
 import immichService from "../services/immich.service";
 import ImmichBrowser from "./ImmichBrowser";
-import DragDropUpload, { useDragDropOverlay } from "./DragDropUpload";
+import DragDropUpload from "./DragDropUpload";
+import { useDragDropOverlay } from "../hooks/useDragDropOverlay";
 import { PhotoSourcePicker } from "./CameraCapture";
 import toast from "react-hot-toast";
 
@@ -53,11 +54,6 @@ export default function PhotoUpload({
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFiles(Array.from(e.target.files));
-    }
-  };
 
   const handleFilesDropped = (files: File[]) => {
     setSelectedFiles((prev) => [...prev, ...files]);

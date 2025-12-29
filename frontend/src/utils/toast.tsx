@@ -76,7 +76,8 @@ export function toastWithUndo({ message, onUndo, duration = 5000 }: UndoToastOpt
  */
 export function toastProgress({ message, progress = 0 }: ProgressToastOptions) {
   return toast(
-    (t: Toast) => (
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (_: Toast) => (
       <div className="w-full">
         <div className="flex items-center gap-2 mb-2">
           <div className="animate-spin h-4 w-4 border-2 border-primary-500 dark:border-sky border-t-transparent rounded-full" />
@@ -105,7 +106,8 @@ export function toastProgress({ message, progress = 0 }: ProgressToastOptions) {
  */
 export function updateProgressToast(toastId: string, message: string, progress: number) {
   toast(
-    (t: Toast) => (
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (_: Toast) => (
       <div className="w-full">
         <div className="flex items-center gap-2 mb-2">
           <div className="animate-spin h-4 w-4 border-2 border-primary-500 dark:border-sky border-t-transparent rounded-full" />
