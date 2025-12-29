@@ -23,6 +23,8 @@ export interface Transportation {
   toLocationName: string | null;
   departureTime: Date | null;
   arrivalTime: Date | null;
+  startTimezone: string | null;
+  endTimezone: string | null;
   carrier: string | null;
   vehicleNumber: string | null;
   confirmationNumber: string | null;
@@ -85,6 +87,8 @@ export const createTransportationSchema = z.object({
   toLocationName: z.string().max(500).optional(),
   departureTime: z.string().optional(),
   arrivalTime: z.string().optional(),
+  startTimezone: z.string().max(100).optional(),
+  endTimezone: z.string().max(100).optional(),
   carrier: z.string().max(200).optional(),
   vehicleNumber: z.string().max(100).optional(),
   confirmationNumber: z.string().max(100).optional(),
@@ -110,6 +114,8 @@ export const updateTransportationSchema = z.object({
   toLocationName: z.string().max(500).optional().nullable(),
   departureTime: z.string().optional().nullable(),
   arrivalTime: z.string().optional().nullable(),
+  startTimezone: z.string().max(100).optional().nullable(),
+  endTimezone: z.string().max(100).optional().nullable(),
   carrier: z.string().max(200).optional().nullable(),
   vehicleNumber: z.string().max(100).optional().nullable(),
   confirmationNumber: z.string().max(100).optional().nullable(),

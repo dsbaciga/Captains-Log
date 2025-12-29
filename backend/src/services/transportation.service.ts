@@ -68,6 +68,8 @@ class TransportationService {
         endLocationText: data.toLocationName || null,
         scheduledStart: data.departureTime ? new Date(data.departureTime) : null,
         scheduledEnd: data.arrivalTime ? new Date(data.arrivalTime) : null,
+        startTimezone: data.startTimezone || null,
+        endTimezone: data.endTimezone || null,
         company: data.carrier || null,
         referenceNumber: data.vehicleNumber || null,
         bookingReference: data.confirmationNumber || null,
@@ -294,6 +296,8 @@ class TransportationService {
               ? new Date(data.arrivalTime)
               : null
             : undefined,
+        startTimezone: data.startTimezone !== undefined ? data.startTimezone : undefined,
+        endTimezone: data.endTimezone !== undefined ? data.endTimezone : undefined,
         company: data.carrier !== undefined ? data.carrier : undefined,
         referenceNumber: data.vehicleNumber !== undefined ? data.vehicleNumber : undefined,
         bookingReference: data.confirmationNumber !== undefined ? data.confirmationNumber : undefined,

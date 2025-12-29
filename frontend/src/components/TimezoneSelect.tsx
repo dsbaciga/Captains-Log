@@ -36,6 +36,7 @@ export default function TimezoneSelect({
         onChange={(e) => onChange(e.target.value)}
         className="input"
       >
+        <option value="">-- Use Trip Timezone --</option>
         {commonTimezones.map(({ value: tzValue, label: tzLabel }) => (
           <option key={tzValue} value={tzValue}>
             {tzLabel}
