@@ -77,6 +77,24 @@ class TransportationController {
       next(error);
     }
   }
+
+  async recalculateDistances(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tripId = parseInt(req.params.tripId);
+      const count = await transportationService.recalculateDistancesForTrip(
+        req.user!.userId,
+        tripId
+      );
+
+      res.json({
+        status: 'success',
+        message: `Recalculated distances for ${count} transportation records`,
+        count,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new TransportationController();

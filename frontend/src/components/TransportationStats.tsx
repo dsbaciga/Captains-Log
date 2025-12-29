@@ -21,9 +21,13 @@ export default function TransportationStats({
     carriers: new Set<string>(),
   };
 
-  // Calculate total distance (using Haversine formula for flights with routes)
+  // Calculate total distance (prefer calculated route distance, fallback to Haversine)
   transportation.forEach((t) => {
-    if (t.route) {
+    // Use calculated distance if available (from backend routing service)
+    if (t.calculatedDistance) {
+      stats.totalDistance += t.calculatedDistance;
+    } else if (t.route) {
+      // Fallback to Haversine formula if no calculated distance
       const distance = calculateDistance(
         t.route.from.latitude,
         t.route.from.longitude,
@@ -126,6 +130,11 @@ export default function TransportationStats({
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
               {Math.round(stats.totalDistance * 0.621371).toLocaleString()} miles
+              {transportation.some(t => t.distanceSource === 'route') && (
+                <span className="ml-2 text-green-600 dark:text-green-400">
+                  • Route-based
+                </span>
+              )}
             </div>
           </div>
 
