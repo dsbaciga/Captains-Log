@@ -65,6 +65,9 @@ export type Transportation = {
   }[];
   route?: TransportationRoute | null;
   durationMinutes?: number | null;
+  calculatedDistance?: number | null; // Route distance in kilometers
+  calculatedDuration?: number | null; // Route duration in minutes
+  distanceSource?: 'route' | 'haversine' | null; // Source of distance calculation
   isUpcoming?: boolean;
   isInProgress?: boolean;
   flightTracking?: {

@@ -4,6 +4,7 @@ import {
   UpdateTransportationInput,
 } from '../types/transportation.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
+import routingService from './routing.service';
 
 // Helper to map database fields to frontend field names
 const mapTransportationToFrontend = (t: any): Record<string, any> => {
@@ -25,6 +26,9 @@ const mapTransportationToFrontend = (t: any): Record<string, any> => {
     cost: t.cost ? Number(t.cost) : null,
     currency: t.currency,
     notes: t.notes,
+    calculatedDistance: t.calculatedDistance ? Number(t.calculatedDistance) : null,
+    calculatedDuration: t.calculatedDuration ? Number(t.calculatedDuration) : null,
+    distanceSource: t.distanceSource,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
     fromLocation: t.startLocation ? {
@@ -111,6 +115,11 @@ class TransportationService {
         flightTracking: true,
       },
     });
+
+    // Calculate route distance asynchronously (don't block the response)
+    this.calculateAndStoreRouteDistance(transportation.id).catch(err =>
+      console.error('Background route calculation failed:', err)
+    );
 
     return mapTransportationToFrontend(transportation);
   }
@@ -340,7 +349,119 @@ class TransportationService {
       },
     });
 
+    // Recalculate route distance if locations changed
+    if (
+      data.fromLocationId !== undefined ||
+      data.toLocationId !== undefined
+    ) {
+      this.calculateAndStoreRouteDistance(transportationId).catch(err =>
+        console.error('Background route calculation failed:', err)
+      );
+    }
+
     return mapTransportationToFrontend(updatedTransportation);
+  }
+
+  /**
+   * Calculate route distance and duration for a transportation
+   * Updates the database with the calculated values
+   */
+  private async calculateAndStoreRouteDistance(
+    transportationId: number
+  ): Promise<void> {
+    // Get the transportation with location data
+    const transportation = await prisma.transportation.findUnique({
+      where: { id: transportationId },
+      include: {
+        startLocation: {
+          select: {
+            latitude: true,
+            longitude: true,
+          },
+        },
+        endLocation: {
+          select: {
+            latitude: true,
+            longitude: true,
+          },
+        },
+      },
+    });
+
+    if (!transportation) {
+      return;
+    }
+
+    // Only calculate if we have both locations with coordinates
+    if (
+      !transportation.startLocation?.latitude ||
+      !transportation.startLocation?.longitude ||
+      !transportation.endLocation?.latitude ||
+      !transportation.endLocation?.longitude
+    ) {
+      return;
+    }
+
+    const from = {
+      latitude: Number(transportation.startLocation.latitude),
+      longitude: Number(transportation.startLocation.longitude),
+    };
+
+    const to = {
+      latitude: Number(transportation.endLocation.latitude),
+      longitude: Number(transportation.endLocation.longitude),
+    };
+
+    // Determine routing profile based on transportation type
+    let profile: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car';
+    if (transportation.type === 'bicycle' || transportation.type === 'bike') {
+      profile = 'cycling-regular';
+    } else if (transportation.type === 'walk' || transportation.type === 'walking') {
+      profile = 'foot-walking';
+    }
+
+    try {
+      // Calculate route (will fallback to Haversine if API unavailable)
+      const route = await routingService.calculateRoute(from, to, profile);
+
+      // Update the transportation with calculated values
+      await prisma.transportation.update({
+        where: { id: transportationId },
+        data: {
+          calculatedDistance: route.distance,
+          calculatedDuration: route.duration,
+          distanceSource: route.source,
+        },
+      });
+
+      console.log(
+        `[Transportation Service] Calculated ${route.source} distance for transportation ${transportationId}: ${route.distance.toFixed(2)} km`
+      );
+    } catch (error) {
+      console.error('[Transportation Service] Failed to calculate route distance:', error);
+      // Don't throw - route calculation failure shouldn't break the request
+    }
+  }
+
+  /**
+   * Recalculate distances for all transportation in a trip
+   */
+  async recalculateDistancesForTrip(userId: number, tripId: number): Promise<number> {
+    // Verify user has access to trip
+    await verifyTripAccess(userId, tripId);
+
+    const transportations = await prisma.transportation.findMany({
+      where: { tripId },
+      select: { id: true },
+    });
+
+    let count = 0;
+    for (const t of transportations) {
+      await this.calculateAndStoreRouteDistance(t.id);
+      count++;
+    }
+
+    return count;
   }
 
   async deleteTransportation(userId: number, transportationId: number) {

@@ -13,6 +13,9 @@ router.post('/', transportationController.createTransportation);
 // Get transportation by trip
 router.get('/trip/:tripId', transportationController.getTransportationByTrip);
 
+// Recalculate route distances for all transportation in a trip
+router.post('/trip/:tripId/recalculate-distances', transportationController.recalculateDistances);
+
 // Get transportation by ID
 router.get('/:id', transportationController.getTransportationById);
 
