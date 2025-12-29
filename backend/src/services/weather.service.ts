@@ -41,6 +41,7 @@ class WeatherService {
 
   /**
    * Get weather data for a trip's date range
+   * Uses per-day location selection to support trips spanning multiple regions
    */
   async getWeatherForTrip(tripId: number, userId: number) {
     // Verify user owns the trip
@@ -75,19 +76,23 @@ class WeatherService {
       return []; // No API key available
     }
 
-    // Get coordinates for the trip
-    const coordinates = await this.getTripCoordinates(tripId);
-
-    if (!coordinates) {
-      return []; // No coordinates available, can't fetch weather
-    }
-
     // Generate array of dates in the trip range
     const dates = this.getDateRange(trip.startDate, trip.endDate);
 
     // Fetch or retrieve weather for each date
+    // Each day gets its own coordinates based on locations/activities/lodging for that day
     const weatherData = await Promise.all(
-      dates.map((date) => this.getWeatherForDate(tripId, coordinates, date, apiKey))
+      dates.map(async (date) => {
+        // Get coordinates for this specific day
+        const coordinates = await this.getTripCoordinates(tripId, date);
+
+        if (!coordinates) {
+          console.warn(`No coordinates available for ${date.toISOString().split('T')[0]}`);
+          return null;
+        }
+
+        return this.getWeatherForDate(tripId, coordinates, date, apiKey);
+      })
     );
 
     return weatherData.filter((w) => w !== null);
@@ -401,9 +406,111 @@ class WeatherService {
   }
 
   /**
-   * Get coordinates for a trip using fallback strategy
+   * Get coordinates for a trip on a specific date using fallback strategy
+   *
+   * Priority for selecting location on a given day:
+   * 1. First location visited on that day (by visitDatetime)
+   * 2. First activity's location on that day (by startTime)
+   * 3. Lodging location where user is staying that day (by check-in/check-out range)
+   * 4. First location in the entire trip (fallback for days without specific locations)
+   *
+   * This enables accurate weather for multi-region trips (e.g., Paris → Rome → Barcelona)
    */
   private async getTripCoordinates(
+    tripId: number,
+    date?: Date
+  ): Promise<{ lat: number; lon: number } | null> {
+    // If no date provided, use trip-wide fallback (backwards compatibility)
+    if (!date) {
+      return this.getTripWideFallbackCoordinates(tripId);
+    }
+
+    // Normalize date to start of day for comparison
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // 1. Try to get first location visited on this specific day
+    const location = await prisma.location.findFirst({
+      where: {
+        tripId,
+        latitude: { not: null },
+        longitude: { not: null },
+        visitDatetime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      orderBy: { visitDatetime: 'asc' },
+    });
+
+    if (location?.latitude && location?.longitude) {
+      return {
+        lat: parseFloat(location.latitude.toString()),
+        lon: parseFloat(location.longitude.toString()),
+      };
+    }
+
+    // 2. Fallback: check activities on this day with locations
+    const activity = await prisma.activity.findFirst({
+      where: {
+        tripId,
+        startTime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      include: {
+        location: true,
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    if (
+      activity?.location?.latitude &&
+      activity.location?.longitude
+    ) {
+      return {
+        lat: parseFloat(activity.location.latitude.toString()),
+        lon: parseFloat(activity.location.longitude.toString()),
+      };
+    }
+
+    // 3. Fallback: check lodging where user is staying on this day
+    // Lodging overlaps with target day if:
+    // - Check-in is before or during target day (checkInDate <= end of day)
+    // - Check-out is during or after target day (checkOutDate >= start of day)
+    const lodging = await prisma.lodging.findFirst({
+      where: {
+        tripId,
+        checkInDate: { lte: endOfDay },
+        checkOutDate: { gte: startOfDay },
+      },
+      include: {
+        location: true,
+      },
+      orderBy: { checkInDate: 'asc' },
+    });
+
+    if (
+      lodging?.location?.latitude &&
+      lodging.location?.longitude
+    ) {
+      return {
+        lat: parseFloat(lodging.location.latitude.toString()),
+        lon: parseFloat(lodging.location.longitude.toString()),
+      };
+    }
+
+    // 4. Final fallback: use first location in entire trip
+    return this.getTripWideFallbackCoordinates(tripId);
+  }
+
+  /**
+   * Get trip-wide fallback coordinates (first location/activity/lodging in entire trip)
+   */
+  private async getTripWideFallbackCoordinates(
     tripId: number
   ): Promise<{ lat: number; lon: number } | null> {
     // 1. Try to get first location with coordinates
@@ -514,11 +621,12 @@ class WeatherService {
       throw new AppError('No weather API key configured', 400);
     }
 
-    // Get coordinates
-    const coordinates = await this.getTripCoordinates(tripId);
+    // Get coordinates for this specific date
+    const targetDate = new Date(dateString);
+    const coordinates = await this.getTripCoordinates(tripId, targetDate);
 
     if (!coordinates) {
-      throw new AppError('No coordinates available for this trip', 400);
+      throw new AppError('No coordinates available for this date', 400);
     }
 
     // Delete existing weather data to force refresh
@@ -530,7 +638,6 @@ class WeatherService {
     });
 
     // Fetch fresh data
-    const targetDate = new Date(dateString);
     return await this.getWeatherForDate(tripId, coordinates, targetDate, apiKey);
   }
 }

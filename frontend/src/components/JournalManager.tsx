@@ -430,7 +430,7 @@ Tell your story!"
                 className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow"
               >
                 <div className="p-6">
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
                         {entry.title || "Untitled Entry"}
@@ -439,16 +439,16 @@ Tell your story!"
                         {entry.date && <span>📅 {formatDate(entry.date)}</span>}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0 self-start">
                       <button
                         onClick={() => handleEdit(entry)}
-                        className="btn btn-secondary text-sm"
+                        className="btn btn-secondary text-xs sm:text-sm"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(entry.id)}
-                        className="btn btn-danger text-sm"
+                        className="btn btn-danger text-xs sm:text-sm"
                       >
                         Delete
                       </button>

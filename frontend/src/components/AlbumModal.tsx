@@ -50,7 +50,7 @@ export default function AlbumModal({
       setSaving(true);
       await onSave({
         name: name.trim(),
-        description: description.trim(),
+        description: description.trim() || undefined,
         locationId,
         activityId,
         lodgingId,

@@ -244,9 +244,9 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
                     ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
                     : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
                 }`}>
-                  <div className="flex flex-wrap justify-between items-start gap-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <CompanionAvatar companion={companion} size="md" />
                         <h4 className="font-semibold text-lg text-gray-900 dark:text-white">{companion.name}</h4>
                         {companion.isMyself && (
@@ -290,16 +290,16 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2 flex-shrink-0">
+                    <div className="flex gap-2 flex-shrink-0 self-start">
                       <button
                         onClick={() => startEdit(companion)}
-                        className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                        className="px-3 py-1 text-xs sm:text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleUnlinkCompanion(companion.id)}
-                        className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                        className="px-3 py-1 text-xs sm:text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
                       >
                         Remove
                       </button>

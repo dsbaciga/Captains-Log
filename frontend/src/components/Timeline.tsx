@@ -312,15 +312,15 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
                           `Check-in: ${formatTime(item.dateTime, timezone)}`
                         ) : item.showCheckOutTime ? (
                           `Check-out: ${formatTime(item.endDateTime!, timezone)}`
-                        ) : item.type === 'transportation' && (item.startTimezone || item.endTimezone) ? (
+                        ) : item.type === 'transportation' ? (
                           <>
                             {formatTime(item.dateTime, item.startTimezone || timezone)}
-                            {item.startTimezone && ` ${getTimezoneAbbr(item.startTimezone)}`}
+                            {` ${getTimezoneAbbr(item.startTimezone || timezone || 'UTC')}`}
                             {item.endDateTime && (
                               <>
                                 {' - '}
                                 {formatTime(item.endDateTime, item.endTimezone || timezone)}
-                                {item.endTimezone && ` ${getTimezoneAbbr(item.endTimezone)}`}
+                                {` ${getTimezoneAbbr(item.endTimezone || timezone || 'UTC')}`}
                               </>
                             )}
                           </>
