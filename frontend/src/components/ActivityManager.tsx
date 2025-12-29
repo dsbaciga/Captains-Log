@@ -420,12 +420,12 @@ export default function ActivityManager({
               {/* Booking URL */}
               {activity.bookingUrl && (
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">Booking:</span>
+                  <span className="font-medium whitespace-nowrap">Booking:</span>
                   <a
                     href={activity.bookingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline dark:text-blue-400"
+                    className="text-blue-600 hover:underline dark:text-blue-400 whitespace-nowrap truncate"
                   >
                     View Booking
                   </a>
