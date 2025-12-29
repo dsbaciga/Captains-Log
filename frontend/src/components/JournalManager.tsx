@@ -200,8 +200,8 @@ export default function JournalManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
           Journal
         </h2>
         <button
@@ -209,7 +209,7 @@ export default function JournalManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary"
+          className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           {manager.showForm ? "Cancel" : "+ New Entry"}
         </button>

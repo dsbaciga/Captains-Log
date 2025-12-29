@@ -455,7 +455,7 @@ export default function ActivityManager({
           </div>
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center gap-2 md:ml-4">
+          <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
             <AssociatedAlbums albums={activity.photoAlbums} tripId={tripId} />
             <JournalEntriesButton
               journalEntries={activity.journalAssignments}
@@ -489,8 +489,8 @@ export default function ActivityManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
           Activities
         </h2>
         <button
@@ -498,7 +498,7 @@ export default function ActivityManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary"
+          className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           {manager.showForm ? "Cancel" : "+ Add Activity"}
         </button>

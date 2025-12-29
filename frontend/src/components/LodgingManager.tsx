@@ -271,8 +271,8 @@ export default function LodgingManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
           Lodging
         </h2>
         <button
@@ -280,7 +280,7 @@ export default function LodgingManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary"
+          className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           {manager.showForm ? "Cancel" : "+ Add Lodging"}
         </button>
@@ -519,8 +519,8 @@ export default function LodgingManager({
               key={lodging.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
             >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
+              <div className="flex flex-wrap justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">
                       {getTypeIcon(lodging.type)}
@@ -612,7 +612,7 @@ export default function LodgingManager({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <AssociatedAlbums
                     albums={lodging.photoAlbums}
                     tripId={tripId}
@@ -623,13 +623,13 @@ export default function LodgingManager({
                   />
                   <button
                     onClick={() => handleEdit(lodging)}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(lodging.id)}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap"
                   >
                     Delete
                   </button>
