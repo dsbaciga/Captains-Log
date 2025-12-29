@@ -14,6 +14,8 @@ import PhotoGallery from "../components/PhotoGallery";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { usePagination } from "../hooks/usePagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { getAssetBaseUrl } from "../lib/config";
+import toast from "react-hot-toast";
 
 export default function AlbumDetailPage() {
   const { tripId, albumId } = useParams<{ tripId: string; albumId: string }>();
@@ -30,6 +32,10 @@ export default function AlbumDetailPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [lodgings, setLodgings] = useState<Lodging[]>([]);
   const [trip, setTrip] = useState<Trip | null>(null);
+  const [showPhotoSelector, setShowPhotoSelector] = useState(false);
+  const [availablePhotos, setAvailablePhotos] = useState<Photo[]>([]);
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(new Set());
+  const [isAddingPhotos, setIsAddingPhotos] = useState(false);
   const albumNameId = useId();
   const albumDescriptionId = useId();
   const locationSelectId = useId();
@@ -135,6 +141,67 @@ export default function AlbumDetailPage() {
       loadAlbum();
     } catch {
       alert("Failed to update album");
+    }
+  };
+
+  const loadAvailablePhotos = async () => {
+    if (!tripId || !albumId) return;
+
+    try {
+      // Get all photos for the trip
+      const allPhotos = await photoService.getPhotosByTrip(parseInt(tripId));
+
+      // Get current album photo IDs
+      const currentPhotoIds = new Set(
+        photosPagination.items.map(p => p.id)
+      );
+
+      // Filter out photos already in the album
+      const available = allPhotos.filter(p => !currentPhotoIds.has(p.id));
+      setAvailablePhotos(available);
+    } catch (err) {
+      console.error("Failed to load available photos:", err);
+      toast.error("Failed to load photos");
+    }
+  };
+
+  const handleOpenPhotoSelector = () => {
+    setShowPhotoSelector(true);
+    setSelectedPhotoIds(new Set());
+    loadAvailablePhotos();
+  };
+
+  const togglePhotoSelection = (photoId: number) => {
+    const newSelection = new Set(selectedPhotoIds);
+    if (newSelection.has(photoId)) {
+      newSelection.delete(photoId);
+    } else {
+      newSelection.add(photoId);
+    }
+    setSelectedPhotoIds(newSelection);
+  };
+
+  const handleAddSelectedPhotos = async () => {
+    if (!albumId || selectedPhotoIds.size === 0) return;
+
+    try {
+      setIsAddingPhotos(true);
+      await photoService.addPhotosToAlbum(parseInt(albumId), {
+        photoIds: Array.from(selectedPhotoIds),
+      });
+
+      toast.success(`Added ${selectedPhotoIds.size} photo(s) to album`);
+      setShowPhotoSelector(false);
+      setSelectedPhotoIds(new Set());
+
+      // Reload album to show new photos
+      photosPagination.clear();
+      await loadAlbum();
+    } catch (err) {
+      console.error("Failed to add photos:", err);
+      toast.error("Failed to add photos to album");
+    } finally {
+      setIsAddingPhotos(false);
     }
   };
 
@@ -335,27 +402,43 @@ export default function AlbumDetailPage() {
                   </div>
                 )}
               </div>
-              <button
-                onClick={() => setIsEditMode(true)}
-                className="btn btn-secondary"
-              >
-                Edit Album
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleOpenPhotoSelector}
+                  className="btn btn-primary"
+                >
+                  + Add Photos
+                </button>
+                <button
+                  onClick={() => setIsEditMode(true)}
+                  className="btn btn-secondary"
+                >
+                  Edit Album
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {photosPagination.items.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <p className="text-gray-500 dark:text-gray-400">
-              No photos in this album yet. Add photos from your trip gallery!
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
+              No photos in this album yet.
             </p>
-            <Link
-              to={`/trips/${tripId}`}
-              className="btn btn-primary inline-block mt-4"
-            >
-              Go to Trip Gallery
-            </Link>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={handleOpenPhotoSelector}
+                className="btn btn-primary"
+              >
+                + Add Photos
+              </button>
+              <Link
+                to={`/trips/${tripId}`}
+                className="btn btn-secondary"
+              >
+                Go to Trip Gallery
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -383,6 +466,137 @@ export default function AlbumDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Photo Selector Modal */}
+        {showPhotoSelector && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Add Photos to Album
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {selectedPhotoIds.size} photo{selectedPhotoIds.size !== 1 ? 's' : ''} selected
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPhotoSelector(false)}
+                  type="button"
+                  aria-label="Close"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Photo Grid */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {availablePhotos.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No more photos available to add to this album.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {availablePhotos.map((photo) => {
+                      const isSelected = selectedPhotoIds.has(photo.id);
+                      const photoUrl =
+                        photo.source === "immich"
+                          ? `${getAssetBaseUrl()}/immich/thumbnail/${photo.immichAssetId}`
+                          : `${getAssetBaseUrl()}/${photo.thumbnailPath}`;
+
+                      return (
+                        <button
+                          key={photo.id}
+                          type="button"
+                          onClick={() => togglePhotoSelection(photo.id)}
+                          className={`relative aspect-square rounded-lg overflow-hidden border-4 transition-all ${
+                            isSelected
+                              ? "border-blue-500 ring-2 ring-blue-500"
+                              : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                          }`}
+                        >
+                          <img
+                            src={photoUrl}
+                            alt={photo.caption || "Photo"}
+                            className="w-full h-full object-cover"
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-blue-500 bg-opacity-30 flex items-center justify-center">
+                              <svg
+                                className="w-8 h-8 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-between items-center p-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedPhotoIds.size === availablePhotos.length) {
+                      setSelectedPhotoIds(new Set());
+                    } else {
+                      setSelectedPhotoIds(new Set(availablePhotos.map(p => p.id)));
+                    }
+                  }}
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                >
+                  {selectedPhotoIds.size === availablePhotos.length ? "Deselect All" : "Select All"}
+                </button>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoSelector(false)}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddSelectedPhotos}
+                    disabled={selectedPhotoIds.size === 0 || isAddingPhotos}
+                    className="btn btn-primary"
+                  >
+                    {isAddingPhotos
+                      ? "Adding..."
+                      : `Add ${selectedPhotoIds.size} Photo${selectedPhotoIds.size !== 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <ConfirmDialogComponent />
       </div>
     </div>
