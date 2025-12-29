@@ -674,26 +674,30 @@ export default function TransportationManager({
                 </div>
               )}
 
-              <div className="flex flex-wrap justify-between items-start gap-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">
-                      {getTypeIcon(transportation.type)}
-                    </span>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
-                      {transportation.type}
-                    </h3>
-                    {transportation.carrier && (
-                      <span className="text-gray-600 dark:text-gray-400">
-                        - {transportation.carrier}
+                  <div className="flex items-start gap-2 mb-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-2xl">
+                        {getTypeIcon(transportation.type)}
                       </span>
-                    )}
-                    {transportation.vehicleNumber && (
-                      <span className="text-sm text-gray-500 dark:text-gray-500">
-                        #{transportation.vehicleNumber}
-                      </span>
-                    )}
-                    {getStatusBadge(transportation)}
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                        {transportation.type}
+                      </h3>
+                      {transportation.carrier && (
+                        <span className="text-gray-600 dark:text-gray-400">
+                          - {transportation.carrier}
+                        </span>
+                      )}
+                      {transportation.vehicleNumber && (
+                        <span className="text-sm text-gray-500 dark:text-gray-500">
+                          #{transportation.vehicleNumber}
+                        </span>
+                      )}
+                    </div>
+                    <div className="w-full sm:w-auto">
+                      {getStatusBadge(transportation)}
+                    </div>
                   </div>
 
                   <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
@@ -800,20 +804,20 @@ export default function TransportationManager({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0 self-start">
                   <JournalEntriesButton
                     journalEntries={transportation.journalAssignments}
                     tripId={tripId}
                   />
                   <button
                     onClick={() => handleEdit(transportation)}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap"
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap text-sm sm:text-base"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(transportation.id)}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap"
+                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap text-sm sm:text-base"
                   >
                     Delete
                   </button>
