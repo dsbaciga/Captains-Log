@@ -315,12 +315,12 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
                         ) : item.type === 'transportation' && (item.startTimezone || item.endTimezone) ? (
                           <>
                             {formatTime(item.dateTime, item.startTimezone || timezone)}
-                            {item.startTimezone && item.startTimezone !== timezone && ` ${getTimezoneAbbr(item.startTimezone)}`}
+                            {item.startTimezone && ` ${getTimezoneAbbr(item.startTimezone)}`}
                             {item.endDateTime && (
                               <>
                                 {' - '}
                                 {formatTime(item.endDateTime, item.endTimezone || timezone)}
-                                {item.endTimezone && item.endTimezone !== timezone && ` ${getTimezoneAbbr(item.endTimezone)}`}
+                                {item.endTimezone && ` ${getTimezoneAbbr(item.endTimezone)}`}
                               </>
                             )}
                           </>
