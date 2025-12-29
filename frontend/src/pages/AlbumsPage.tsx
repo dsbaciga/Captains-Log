@@ -186,13 +186,13 @@ export default function AlbumsPage() {
 
               <div className="p-4">
                 <h3
-                  className="font-semibold text-lg text-gray-900 dark:text-white mb-1 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                  className="font-semibold text-lg text-gray-900 dark:text-white mb-1 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 break-words line-clamp-2"
                   onClick={() => navigate(`/trips/${tripId}/albums/${album.id}`)}
                 >
                   {album.name}
                 </h3>
                 {album.description && (
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2 break-words">
                     {album.description}
                   </p>
                 )}
