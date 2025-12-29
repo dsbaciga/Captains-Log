@@ -162,13 +162,13 @@ export default function TagManager({ tripId }: TagManagerProps) {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
           Tags
         </h2>
         <button
           onClick={() => manager.toggleForm()}
-          className="btn btn-primary"
+          className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           {manager.showForm ? "Cancel" : "+ Create Tag"}
         </button>

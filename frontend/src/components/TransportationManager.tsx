@@ -161,6 +161,9 @@ export default function TransportationManager({
     handleChange("currency", transportation.currency || "USD");
     handleChange("notes", transportation.notes || "");
     manager.openEditForm(transportation.id);
+
+    // Scroll to top to show the edit form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -198,7 +201,6 @@ export default function TransportationManager({
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
-        toast.success("Transportation updated");
         resetForm();
         manager.closeForm();
       }
@@ -224,7 +226,6 @@ export default function TransportationManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        toast.success("Transportation added");
         resetForm();
         manager.closeForm();
       }
@@ -310,8 +311,8 @@ export default function TransportationManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
           Transportation
         </h2>
         <button
@@ -319,7 +320,7 @@ export default function TransportationManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary"
+          className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           {manager.showForm ? "Cancel" : "+ Add Transportation"}
         </button>
@@ -673,8 +674,8 @@ export default function TransportationManager({
                 </div>
               )}
 
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
+              <div className="flex flex-wrap justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">
                       {getTypeIcon(transportation.type)}
@@ -799,20 +800,20 @@ export default function TransportationManager({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <JournalEntriesButton
                     journalEntries={transportation.journalAssignments}
                     tripId={tripId}
                   />
                   <button
                     onClick={() => handleEdit(transportation)}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(transportation.id)}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap"
                   >
                     Delete
                   </button>

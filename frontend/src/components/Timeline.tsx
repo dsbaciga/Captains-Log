@@ -35,6 +35,8 @@ interface TimelineItem {
   isAllDay?: boolean; // Flag for multi-day lodging entries
   showCheckInTime?: boolean; // Show check-in time
   showCheckOutTime?: boolean; // Show check-out time
+  startTimezone?: string; // Timezone for departure/start time (for transportation)
+  endTimezone?: string; // Timezone for arrival/end time (for transportation)
   data: Activity | Transportation | Lodging | JournalEntry;
 }
 
@@ -96,6 +98,8 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
             description: `${trans.fromLocationName || 'Unknown'} → ${trans.toLocationName || 'Unknown'}`,
             cost: trans.cost || undefined,
             currency: trans.currency || undefined,
+            startTimezone: trans.startTimezone || undefined,
+            endTimezone: trans.endTimezone || undefined,
             data: trans,
           });
         }
@@ -308,6 +312,18 @@ const Timeline = ({ tripId, tripTimezone, userTimezone }: TimelineProps) => {
                           `Check-in: ${formatTime(item.dateTime, timezone)}`
                         ) : item.showCheckOutTime ? (
                           `Check-out: ${formatTime(item.endDateTime!, timezone)}`
+                        ) : item.type === 'transportation' && (item.startTimezone || item.endTimezone) ? (
+                          <>
+                            {formatTime(item.dateTime, item.startTimezone || timezone)}
+                            {item.startTimezone && ` ${getTimezoneAbbr(item.startTimezone)}`}
+                            {item.endDateTime && (
+                              <>
+                                {' - '}
+                                {formatTime(item.endDateTime, item.endTimezone || timezone)}
+                                {item.endTimezone && ` ${getTimezoneAbbr(item.endTimezone)}`}
+                              </>
+                            )}
+                          </>
                         ) : (
                           <>
                             {formatTime(item.dateTime, timezone)}

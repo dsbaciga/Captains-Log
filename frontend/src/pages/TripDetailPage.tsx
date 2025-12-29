@@ -608,8 +608,8 @@ export default function TripDetailPage() {
             >
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70"></div>
               <div className="relative h-full p-6 flex flex-col justify-between text-white">
-                <div className="flex justify-between items-start">
-                  <div>
+                <div className="flex flex-wrap justify-between items-start gap-4">
+                  <div className="min-w-0 flex-1">
                     <h1 className="text-4xl font-bold drop-shadow-lg">
                       {trip.title}
                     </h1>
@@ -621,13 +621,13 @@ export default function TripDetailPage() {
                       {trip.status}
                     </span>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                     <button
                       onClick={() => setShowTagsModal(true)}
-                      className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2"
+                      className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
                     >
                       <svg
-                        className="w-4 h-4"
+                        className="w-4 h-4 flex-shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -644,7 +644,7 @@ export default function TripDetailPage() {
                     </button>
                     <Link
                       to={`/trips/${trip.id}/edit`}
-                      className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2"
+                      className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
                     >
                       Edit Trip
                     </Link>
@@ -699,8 +699,8 @@ export default function TripDetailPage() {
             </div>
           ) : (
             <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
+              <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+                <div className="min-w-0 flex-1">
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     {trip.title}
                   </h1>
@@ -712,13 +712,13 @@ export default function TripDetailPage() {
                     {trip.status}
                   </span>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                   <button
                     onClick={() => setShowTagsModal(true)}
-                    className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2"
+                    className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
                   >
                     <svg
-                      className="w-4 h-4"
+                      className="w-4 h-4 flex-shrink-0"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -735,7 +735,7 @@ export default function TripDetailPage() {
                   </button>
                   <Link
                     to={`/trips/${trip.id}/edit`}
-                    className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2"
+                    className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
                   >
                     Edit Trip
                   </Link>
@@ -1156,7 +1156,7 @@ export default function TripDetailPage() {
             {/* Mobile Albums Drawer Toggle Button */}
             <button
               onClick={() => setShowAlbumsMobileDrawer(true)}
-              className="md:hidden fixed bottom-6 left-6 z-30 p-4 bg-blue-600 dark:bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+              className="md:hidden fixed bottom-24 left-6 z-30 p-4 bg-blue-600 dark:bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
               aria-label="Open albums"
             >
               <svg
@@ -1192,9 +1192,9 @@ export default function TripDetailPage() {
 
               {/* Right: Photo Gallery */}
               <div className="flex-1 p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
                       {selectedAlbumId === null
                         ? `All Photos (${totalPhotosCount})`
                         : selectedAlbumId === -1
@@ -1237,7 +1237,7 @@ export default function TripDetailPage() {
                           toast.error("Failed to remove cover photo");
                         }
                       }}
-                      className="px-3 py-2 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
+                      className="px-3 py-2 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap flex-shrink-0"
                     >
                       Remove Cover Photo
                     </button>

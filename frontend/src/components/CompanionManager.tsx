@@ -142,11 +142,11 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Travel Companions</h2>
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">Travel Companions</h2>
         <button
           onClick={() => manager.toggleForm()}
-          className="btn btn-primary"
+          className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           {manager.showForm ? 'Cancel' : '+ Add New Companion'}
         </button>
@@ -244,8 +244,8 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
                     ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
                     : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
                 }`}>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
+                  <div className="flex flex-wrap justify-between items-start gap-4">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <CompanionAvatar companion={companion} size="md" />
                         <h4 className="font-semibold text-lg text-gray-900 dark:text-white">{companion.name}</h4>
@@ -290,16 +290,16 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex gap-2 flex-shrink-0">
                       <button
                         onClick={() => startEdit(companion)}
-                        className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                        className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleUnlinkCompanion(companion.id)}
-                        className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
+                        className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
                       >
                         Remove
                       </button>

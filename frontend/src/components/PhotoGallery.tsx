@@ -47,6 +47,10 @@ export default function PhotoGallery({
   );
   const [showAlbumSelectModal, setShowAlbumSelectModal] = useState(false);
   const [isAddingToAlbum, setIsAddingToAlbum] = useState(false);
+  const [showCreateAlbumForm, setShowCreateAlbumForm] = useState(false);
+  const [newAlbumName, setNewAlbumName] = useState("");
+  const [newAlbumDescription, setNewAlbumDescription] = useState("");
+  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(
     null
   );
@@ -299,6 +303,7 @@ export default function PhotoGallery({
         photoIds: Array.from(selectedPhotoIds),
       });
       setShowAlbumSelectModal(false);
+      setShowCreateAlbumForm(false);
       setSelectionMode(false);
       setSelectedPhotoIds(new Set());
       setLastSelectedIndex(null);
@@ -308,6 +313,47 @@ export default function PhotoGallery({
       alert("Failed to add photos to album");
     } finally {
       setIsAddingToAlbum(false);
+    }
+  };
+
+  const handleCreateAlbum = async () => {
+    if (!newAlbumName.trim() || selectedPhotoIds.size === 0) return;
+
+    // Get tripId from the first selected photo
+    const firstPhotoId = Array.from(selectedPhotoIds)[0];
+    const firstPhoto = photos.find((p) => p.id === firstPhotoId);
+    if (!firstPhoto) return;
+
+    try {
+      setIsCreatingAlbum(true);
+      // Create the album
+      const newAlbum = await photoService.createAlbum({
+        tripId: firstPhoto.tripId,
+        name: newAlbumName,
+        description: newAlbumDescription || undefined,
+      });
+
+      // Add selected photos to the new album
+      await photoService.addPhotosToAlbum(newAlbum.id, {
+        photoIds: Array.from(selectedPhotoIds),
+      });
+
+      // Reset form and close modals
+      setNewAlbumName("");
+      setNewAlbumDescription("");
+      setShowCreateAlbumForm(false);
+      setShowAlbumSelectModal(false);
+      setSelectionMode(false);
+      setSelectedPhotoIds(new Set());
+      setLastSelectedIndex(null);
+      onPhotosAddedToAlbum?.();
+      alert(
+        `Successfully created album "${newAlbum.name}" with ${selectedPhotoIds.size} photo(s)`
+      );
+    } catch {
+      alert("Failed to create album");
+    } finally {
+      setIsCreatingAlbum(false);
     }
   };
 
@@ -882,47 +928,145 @@ export default function PhotoGallery({
       {showAlbumSelectModal && albums && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowAlbumSelectModal(false)}
+          onClick={() => {
+            setShowAlbumSelectModal(false);
+            setShowCreateAlbumForm(false);
+            setNewAlbumName("");
+            setNewAlbumDescription("");
+          }}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full"
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              Select Album
+              {showCreateAlbumForm ? "Create New Album" : "Select Album"}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Add {selectedPhotoIds.size} selected photo
-              {selectedPhotoIds.size !== 1 ? "s" : ""} to:
-            </p>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {albums.map((album) => (
+
+            {!showCreateAlbumForm ? (
+              <>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Add {selectedPhotoIds.size} selected photo
+                  {selectedPhotoIds.size !== 1 ? "s" : ""} to:
+                </p>
+
+                {/* Create New Album Button */}
                 <button
-                  key={album.id}
-                  onClick={() => handleAddToAlbum(album.id)}
-                  disabled={isAddingToAlbum}
-                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setShowCreateAlbumForm(true)}
+                  className="w-full p-4 mb-4 rounded-lg border-2 border-dashed border-blue-500 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-2"
                 >
-                  <div className="font-medium text-gray-900 dark:text-white">
-                    {album.name}
-                  </div>
-                  {album.description && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {album.description}
-                    </div>
-                  )}
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {album._count?.photoAssignments || 0} photos
-                  </div>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Create New Album
                 </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowAlbumSelectModal(false)}
-              className="mt-4 w-full btn btn-secondary"
-            >
-              Cancel
-            </button>
+
+                {/* Existing Albums List */}
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {albums.map((album) => (
+                    <button
+                      key={album.id}
+                      onClick={() => handleAddToAlbum(album.id)}
+                      disabled={isAddingToAlbum}
+                      className="w-full text-left p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {album.name}
+                      </div>
+                      {album.description && (
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {album.description}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        {album._count?.photoAssignments || 0} photos
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Create Album Form */}
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Create a new album with {selectedPhotoIds.size} selected
+                  photo
+                  {selectedPhotoIds.size !== 1 ? "s" : ""}
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Album Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newAlbumName}
+                      onChange={(e) => setNewAlbumName(e.target.value)}
+                      placeholder="Enter album name"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Description (Optional)
+                    </label>
+                    <textarea
+                      value={newAlbumDescription}
+                      onChange={(e) => setNewAlbumDescription(e.target.value)}
+                      placeholder="Enter album description"
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowCreateAlbumForm(false);
+                      setNewAlbumName("");
+                      setNewAlbumDescription("");
+                    }}
+                    className="flex-1 btn btn-secondary"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleCreateAlbum}
+                    disabled={
+                      !newAlbumName.trim() || isCreatingAlbum || isAddingToAlbum
+                    }
+                    className="flex-1 btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCreatingAlbum ? "Creating..." : "Create Album"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {!showCreateAlbumForm && (
+              <button
+                onClick={() => {
+                  setShowAlbumSelectModal(false);
+                  setShowCreateAlbumForm(false);
+                  setNewAlbumName("");
+                  setNewAlbumDescription("");
+                }}
+                className="mt-4 w-full btn btn-secondary"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </div>
       )}
