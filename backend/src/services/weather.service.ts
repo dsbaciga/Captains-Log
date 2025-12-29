@@ -478,11 +478,14 @@ class WeatherService {
     }
 
     // 3. Fallback: check lodging where user is staying on this day
+    // Lodging overlaps with target day if:
+    // - Check-in is before or during target day (checkInDate <= end of day)
+    // - Check-out is during or after target day (checkOutDate >= start of day)
     const lodging = await prisma.lodging.findFirst({
       where: {
         tripId,
-        checkInDate: { lte: startOfDay },
-        checkOutDate: { gte: endOfDay },
+        checkInDate: { lte: endOfDay },
+        checkOutDate: { gte: startOfDay },
       },
       include: {
         location: true,
