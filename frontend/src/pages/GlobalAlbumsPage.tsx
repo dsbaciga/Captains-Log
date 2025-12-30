@@ -208,7 +208,8 @@ export default function GlobalAlbumsPage() {
     // Tag filter (client-side safety, server already filters)
     if (selectedTagIds.length > 0) {
       result = result.filter((album) => {
-        const tags = album.trip.tagAssignments?.map((t) => t.tag?.id ?? t.id) || [];
+        const tags =
+          album.trip.tagAssignments?.map((t) => t.tag?.id ?? t.id) || [];
         return selectedTagIds.every((id) => tags.includes(id));
       });
     }
@@ -602,15 +603,13 @@ export default function GlobalAlbumsPage() {
                               </div>
 
                               {/* Album Info */}
-                              <div className="mt-2 px-1">
+                              <div className="mt-2 px-1 h-12">
                                 <h3 className="font-medium text-charcoal dark:text-warm-gray truncate group-hover:text-primary-600 dark:group-hover:text-sky group-focus-visible:text-primary-600 dark:group-focus-visible:text-sky transition-colors">
                                   {album.name}
                                 </h3>
-                                {album.description && (
-                                  <p className="text-sm text-slate dark:text-warm-gray/70 line-clamp-1">
-                                    {album.description}
-                                  </p>
-                                )}
+                                <p className="text-sm text-slate dark:text-warm-gray/70 line-clamp-1 h-5">
+                                  {album.description || "\u00A0"}
+                                </p>
                               </div>
                               <span className="sr-only">
                                 {album.name}, {photoCount} photo
