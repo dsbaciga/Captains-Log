@@ -39,6 +39,7 @@ export type Transportation = {
   cost: number | null;
   currency: string | null;
   notes: string | null;
+  connectionGroupId: string | null; // For grouping multi-leg journeys
   createdAt: string;
   updatedAt: string;
   fromLocation?: {

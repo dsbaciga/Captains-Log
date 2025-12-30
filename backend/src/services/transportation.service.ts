@@ -26,6 +26,7 @@ const mapTransportationToFrontend = (t: any): Record<string, any> => {
     cost: t.cost ? Number(t.cost) : null,
     currency: t.currency,
     notes: t.notes,
+    connectionGroupId: t.connectionGroupId,
     calculatedDistance: t.calculatedDistance ? Number(t.calculatedDistance) : null,
     calculatedDuration: t.calculatedDuration ? Number(t.calculatedDuration) : null,
     distanceSource: t.distanceSource,

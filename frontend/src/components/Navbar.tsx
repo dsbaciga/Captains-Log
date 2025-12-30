@@ -67,8 +67,8 @@ export default function Navbar() {
     : "false";
 
   const navLinks = [
-    { path: "/trips", label: "Trips" },
     { path: "/dashboard", label: "Dashboard" },
+    { path: "/trips", label: "Trips" },
     { path: "/companions", label: "Companions" },
     { path: "/places-visited", label: "Places" },
     { path: "/checklists", label: "Checklists" },
@@ -136,7 +136,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center space-x-1 ml-8">
             {navLinks.map((link) => (
               <NavLink key={link.path} path={link.path} label={link.label} />
             ))}
