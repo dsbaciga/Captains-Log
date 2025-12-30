@@ -5,7 +5,8 @@
  * Supports left, right, up, down swipes with configurable thresholds
  */
 
-import { useRef, TouchEvent as ReactTouchEvent } from 'react';
+import { useRef } from 'react';
+import type { TouchEvent as ReactTouchEvent } from 'react';
 
 interface SwipeCallbacks {
   onSwipeLeft?: () => void;
@@ -31,8 +32,8 @@ export function useSwipeGesture(
 
   const touchStart = useRef<{ x: number; y: number; time: number } | null>(null);
 
-  const handleTouchStart = (e: TouchEvent | ReactTouchEvent) => {
-    const touch = 'touches' in e ? e.touches[0] : e.touches[0];
+  const handleTouchStart = (e: ReactTouchEvent) => {
+    const touch = e.touches[0];
     touchStart.current = {
       x: touch.clientX,
       y: touch.clientY,
@@ -40,10 +41,10 @@ export function useSwipeGesture(
     };
   };
 
-  const handleTouchEnd = (e: TouchEvent | ReactTouchEvent) => {
+  const handleTouchEnd = (e: ReactTouchEvent) => {
     if (!touchStart.current) return;
 
-    const touch = 'changedTouches' in e ? e.changedTouches[0] : e.changedTouches[0];
+    const touch = e.changedTouches[0];
     const deltaX = touch.clientX - touchStart.current.x;
     const deltaY = touch.clientY - touchStart.current.y;
     const deltaTime = Date.now() - touchStart.current.time;

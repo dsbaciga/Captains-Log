@@ -12,6 +12,12 @@ export type Location = {
   createdAt: string;
   updatedAt: string;
   category?: LocationCategory | null;
+  trip?: {
+    id: number;
+    title: string;
+    startDate: string | null;
+    endDate: string | null;
+  } | null;
   photoAlbums?: {
     id: number;
     name: string;

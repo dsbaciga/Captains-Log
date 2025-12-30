@@ -8,7 +8,8 @@
  * - Consistent styling
  */
 
-import toast, { Toast } from 'react-hot-toast';
+import toast from 'react-hot-toast';
+import type { Toast } from 'react-hot-toast';
 
 interface UndoToastOptions {
   message: string;

@@ -5,7 +5,8 @@
  * Detects pull-down gesture and triggers refresh callback
  */
 
-import { useRef, useEffect, useState, RefObject } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import type { RefObject } from 'react';
 
 interface PullToRefreshOptions {
   onRefresh: () => Promise<void> | void;

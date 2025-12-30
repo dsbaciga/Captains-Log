@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import ConfirmDialog, { ConfirmDialogProps } from '../components/ConfirmDialog';
+import ConfirmDialog from '../components/ConfirmDialog';
+import type { ConfirmDialogProps } from '../components/ConfirmDialog';
 
 type ConfirmOptions = Omit<ConfirmDialogProps, 'isOpen' | 'onClose' | 'onConfirm' | 'isLoading'>;
 
