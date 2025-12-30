@@ -13,7 +13,7 @@ class PhotoAlbumService {
    */
   async getAllAlbums(
     userId: number,
-    options?: { skip?: number; take?: number }
+    options?: { skip?: number; take?: number; tagIds?: number[] }
   ) {
     const skip = options?.skip ?? 0;
     const take = options?.take ?? 30;

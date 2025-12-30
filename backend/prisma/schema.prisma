@@ -207,6 +207,7 @@ model Photo {
   location               Location?               @relation(fields: [locationId], references: [id], onDelete: SetNull)
   tripCoverPhoto         Trip[]                  @relation("TripCoverPhoto")
   tripBannerPhoto        Trip[]                  @relation("TripBannerPhoto")
+  albumCoverPhoto        PhotoAlbum[]            @relation("AlbumCoverPhoto")
   albumAssignments       PhotoAlbumAssignment[]
   journalPhotoAssignments JournalPhoto[]
 
@@ -221,6 +222,7 @@ model PhotoAlbum {
   locationId  Int?     @map("location_id")
   activityId  Int?     @map("activity_id")
   lodgingId   Int?     @map("lodging_id")
+  coverPhotoId Int?    @map("cover_photo_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -228,6 +230,7 @@ model PhotoAlbum {
   location     Location?              @relation(fields: [locationId], references: [id], onDelete: SetNull)
   activity     Activity?              @relation(fields: [activityId], references: [id], onDelete: SetNull)
   lodging      Lodging?               @relation(fields: [lodgingId], references: [id], onDelete: SetNull)
+  coverPhoto   Photo?                 @relation("AlbumCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
   photoAssignments PhotoAlbumAssignment[]
 
   @@map("photo_albums")
