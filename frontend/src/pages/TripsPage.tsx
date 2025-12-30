@@ -9,6 +9,15 @@ import toast from 'react-hot-toast';
 import { getAssetBaseUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
+// Import shared utilities
+import { formatDate } from '../utils/dateFormat';
+import { getTripStatusColor } from '../utils/statusColors';
+
+// Import reusable components
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
+import { SearchIcon, FilterIcon, CloseIcon } from '../components/icons';
+
 type SortOption = 'startDate-desc' | 'startDate-asc' | 'title-asc' | 'title-desc' | 'status';
 
 export default function TripsPage() {
@@ -128,39 +137,6 @@ export default function TripsPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case TripStatus.DREAM:
-        return 'bg-purple-100 text-purple-800';
-      case TripStatus.PLANNING:
-        return 'bg-yellow-100 text-yellow-800';
-      case TripStatus.PLANNED:
-        return 'bg-blue-100 text-blue-800';
-      case TripStatus.IN_PROGRESS:
-        return 'bg-green-100 text-green-800';
-      case TripStatus.COMPLETED:
-        return 'bg-gray-100 text-gray-800';
-      case TripStatus.CANCELLED:
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatDate = (date: string | null) => {
-    if (!date) return 'Not set';
-    // Parse date string directly to avoid timezone shifts
-    // Date strings from backend are in YYYY-MM-DD format
-    const dateStr = date.split('T')[0]; // Get just the date part
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const dateObj = new Date(year, month - 1, day); // month is 0-indexed
-    return dateObj.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   // Filter and sort trips
   const filteredTrips = useMemo(() => {
     let result = [...trips];
@@ -264,15 +240,7 @@ export default function TripsPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate/50 dark:text-warm-gray/50"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate/50 dark:text-warm-gray/50" />
               <input
                 type="text"
                 placeholder="Search trips..."
@@ -306,9 +274,7 @@ export default function TripsPage() {
                   : 'bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
+              <FilterIcon className="w-5 h-5" />
               Filters
               {hasActiveFilters && (
                 <span className="w-2 h-2 rounded-full bg-accent-400 dark:bg-gold" />
@@ -388,15 +354,17 @@ export default function TripsPage() {
                         type="button"
                         key={tag.id}
                         onClick={() => toggleTagFilter(tag.id)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all tag-colored ${
                           selectedTags.includes(tag.id)
                             ? 'ring-2 ring-offset-2 ring-primary-500 dark:ring-sky'
                             : 'opacity-70 hover:opacity-100'
                         }`}
+                        // Dynamic tag colors require CSS variables - cannot be moved to static CSS
+                        // eslint-disable-next-line react/forbid-dom-props
                         style={{
-                          backgroundColor: tag.color,
-                          color: tag.textColor,
-                        }}
+                          '--tag-bg-color': tag.color,
+                          '--tag-text-color': tag.textColor,
+                        } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
                       >
                         {tag.name}
                       </button>
@@ -412,9 +380,7 @@ export default function TripsPage() {
                   onClick={clearFilters}
                   className="text-sm text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-sky/80 font-medium flex items-center gap-1"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <CloseIcon className="w-4 h-4" />
                   Clear all filters
                 </button>
               )}
@@ -432,33 +398,16 @@ export default function TripsPage() {
 
         {/* Trips Grid */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-sky mx-auto"></div>
-            <p className="mt-4 text-slate dark:text-warm-gray">Loading trips...</p>
-          </div>
+          <LoadingSpinner.FullPage message="Loading trips..." />
         ) : filteredTrips.length === 0 ? (
-          <div className="text-center py-12 px-6 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl border-2 border-primary-500/10 dark:border-sky/10">
-            <div className="text-6xl mb-4">✈️</div>
-            <p className="text-charcoal dark:text-warm-gray text-lg font-medium mb-2">
-              {trips.length === 0 ? 'No trips found' : 'No trips match your filters'}
-            </p>
-            <p className="text-slate dark:text-warm-gray/70 text-sm mb-4">
-              {trips.length === 0 ? 'Start planning your next adventure' : 'Try adjusting your search or filters'}
-            </p>
-            {trips.length === 0 ? (
-              <Link to="/trips/new" className="btn btn-primary inline-block">
-                Create your first trip
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="btn btn-secondary"
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon="✈️"
+            message={trips.length === 0 ? 'No trips found' : 'No trips match your filters'}
+            subMessage={trips.length === 0 ? 'Start planning your next adventure' : 'Try adjusting your search or filters'}
+            actionLabel={trips.length === 0 ? 'Create your first trip' : 'Clear all filters'}
+            onAction={trips.length === 0 ? undefined : clearFilters}
+            actionHref={trips.length === 0 ? '/trips/new' : undefined}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTrips.map((trip) => {
@@ -471,9 +420,11 @@ export default function TripsPage() {
                 >
                   {/* Background Image */}
                   {coverPhotoUrl ? (
+                    // Dynamic background image requires CSS variable - cannot be moved to static CSS
+                    // eslint-disable-next-line react/forbid-dom-props
                     <div
-                      className="absolute inset-0 bg-cover bg-center"
-                      style={{ backgroundImage: `url(${coverPhotoUrl})` }}
+                      className="absolute inset-0 bg-cover bg-center cover-photo-bg"
+                      style={{ '--cover-photo-url': `url(${coverPhotoUrl})` } as React.CSSProperties & { '--cover-photo-url': string }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/80"></div>
                     </div>
@@ -489,7 +440,7 @@ export default function TripsPage() {
                         {trip.title}
                       </h3>
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-lg ${getStatusColor(trip.status)}`}
+                        className={`px-2 py-1 text-xs font-medium rounded-lg ${getTripStatusColor(trip.status)}`}
                       >
                         {trip.status}
                       </span>
@@ -506,13 +457,15 @@ export default function TripsPage() {
                     {trip.tagAssignments && trip.tagAssignments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-4">
                         {trip.tagAssignments.map(({ tag }) => (
+                          // Dynamic tag colors require CSS variables - cannot be moved to static CSS
+                          // eslint-disable-next-line react/forbid-dom-props
                           <span
                             key={tag.id}
-                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            className="px-2 py-1 rounded-full text-xs font-medium tag-colored"
                             style={{
-                              backgroundColor: tag.color,
-                              color: tag.textColor,
-                            }}
+                              '--tag-bg-color': tag.color,
+                              '--tag-text-color': tag.textColor,
+                            } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
                           >
                             {tag.name}
                           </span>

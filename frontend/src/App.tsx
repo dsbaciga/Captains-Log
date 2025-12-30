@@ -7,6 +7,7 @@ import TripsPage from './pages/TripsPage';
 import TripFormPage from './pages/TripFormPage';
 import TripDetailPage from './pages/TripDetailPage';
 import AlbumDetailPage from './pages/AlbumDetailPage';
+import GlobalAlbumsPage from './pages/GlobalAlbumsPage';
 import CompanionsPage from './pages/CompanionsPage';
 import PlacesVisitedPage from './pages/PlacesVisitedPage';
 import SettingsPage from './pages/SettingsPage';
@@ -75,6 +76,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AlbumDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/albums"
+          element={
+            <ProtectedRoute>
+              <GlobalAlbumsPage />
             </ProtectedRoute>
           }
         />

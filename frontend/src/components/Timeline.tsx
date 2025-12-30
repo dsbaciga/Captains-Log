@@ -3,14 +3,17 @@ import type { Activity } from '../types/activity';
 import type { Transportation } from '../types/transportation';
 import type { Lodging } from '../types/lodging';
 import type { JournalEntry } from '../types/journalEntry';
+import type { Location } from '../types/location';
 import type { WeatherData, WeatherDisplay } from '../types/weather';
 import activityService from '../services/activity.service';
 import transportationService from '../services/transportation.service';
 import lodgingService from '../services/lodging.service';
 import journalService from '../services/journalEntry.service';
 import weatherService from '../services/weather.service';
+import locationService from '../services/location.service';
 import WeatherCard from './WeatherCard';
 import DayMiniMap from './DayMiniMap';
+import TimelineEditModal from './TimelineEditModal';
 import { getWeatherIcon } from '../utils/weatherIcons';
 import toast from 'react-hot-toast';
 
@@ -74,6 +77,14 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
   );
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
 
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [allActivities, setAllActivities] = useState<Activity[]>([]);
+  const [allLodgings, setAllLodgings] = useState<Lodging[]>([]);
+  const [allTransportations, setAllTransportations] = useState<Transportation[]>([]);
+
   // Check if we should show dual timezones
   const showDualTimezone = tripTimezone && userTimezone && tripTimezone !== userTimezone;
 
@@ -103,27 +114,48 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
     });
   };
 
-  // Handle edit - navigate to appropriate tab
-  const handleEdit = (item: TimelineItem) => {
-    if (!onNavigateToTab) return;
-
-    // Get the actual ID from the original data
-    const itemId = item.data.id;
-
-    switch (item.type) {
-      case 'activity':
-        onNavigateToTab('activities', itemId);
-        break;
-      case 'transportation':
-        onNavigateToTab('transportation', itemId);
-        break;
-      case 'lodging':
-        onNavigateToTab('lodging', itemId);
-        break;
-      case 'journal':
-        onNavigateToTab('journal', itemId);
-        break;
+  // Handle edit - open modal instead of navigating to tab
+  const handleEdit = async (item: TimelineItem) => {
+    // Load locations if not already loaded
+    if (locations.length === 0) {
+      try {
+        const locs = await locationService.getLocationsByTrip(tripId);
+        setLocations(locs);
+      } catch (error) {
+        console.error('Failed to load locations:', error);
+      }
     }
+
+    // For journal entries, load all entities for linking
+    if (item.type === 'journal') {
+      try {
+        const [activities, lodgings, transportations] = await Promise.all([
+          activityService.getActivitiesByTrip(tripId),
+          lodgingService.getLodgingByTrip(tripId),
+          transportationService.getTransportationByTrip(tripId),
+        ]);
+        setAllActivities(activities);
+        setAllLodgings(lodgings);
+        setAllTransportations(transportations);
+      } catch (error) {
+        console.error('Failed to load trip entities:', error);
+      }
+    }
+
+    setEditingItem(item);
+    setEditModalOpen(true);
+  };
+
+  // Handle modal save - refresh timeline data
+  const handleEditSave = () => {
+    loadTimelineData();
+    onRefresh?.();
+  };
+
+  // Handle modal close
+  const handleEditClose = () => {
+    setEditModalOpen(false);
+    setEditingItem(null);
   };
 
   // Handle delete
@@ -160,6 +192,30 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
     } catch (error) {
       console.error('Error deleting item:', error);
       toast.error(`Failed to delete ${item.type}`);
+    }
+  };
+
+  // Helper function to get date string in a specific timezone
+  // Returns a string like "Mon Nov 22 2024" but in the specified timezone
+  const getDateStringInTimezone = (date: Date, timezone?: string): string => {
+    if (!timezone) {
+      return date.toDateString();
+    }
+
+    try {
+      // Format the date in the specified timezone to get year, month, day
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      
+      return formatter.format(date);
+    } catch (error) {
+      console.warn(`Invalid timezone: ${timezone}`, error);
+      return date.toDateString();
     }
   };
 
@@ -371,9 +427,9 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
       setTimelineItems(items);
 
-      // Process weather data into a map by date
+      // Process weather data into a map by date (using trip timezone)
       const weatherByDate = weather.reduce((acc, w) => {
-        const dateKey = new Date(w.date).toDateString();
+        const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
         acc[dateKey] = w;
         return acc;
       }, {} as Record<string, WeatherData>);
@@ -391,28 +447,64 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
   // Filter items by visible types
   const filteredItems = timelineItems.filter(item => visibleTypes.has(item.type));
 
-  // Generate all dates from trip start to end (if available)
+  // Generate all dates from trip start to end (if available) in trip timezone
   const generateAllTripDates = (): string[] => {
-    if (!tripStartDate || !tripEndDate) return [];
+    if (!tripStartDate || !tripEndDate || !tripTimezone) return [];
 
-    const dates: string[] = [];
+    const dates: Set<string> = new Set();
     const start = new Date(tripStartDate);
     const end = new Date(tripEndDate);
-    start.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-
+    
+    // Get the date strings in the trip timezone for start and end
+    const startDateStr = getDateStringInTimezone(start, tripTimezone);
+    const endDateStr = getDateStringInTimezone(end, tripTimezone);
+    
+    // Iterate through dates, formatting each in trip timezone
+    // We'll iterate in UTC days but format each in the trip timezone
     const current = new Date(start);
-    while (current <= end) {
-      dates.push(current.toDateString());
-      current.setDate(current.getDate() + 1);
+    const endTime = end.getTime();
+    
+    // Use a Set to track unique date strings (in case of DST transitions)
+    while (current.getTime() <= endTime) {
+      const dateStr = getDateStringInTimezone(current, tripTimezone);
+      dates.add(dateStr);
+      
+      // Move forward by 24 hours
+      current.setTime(current.getTime() + 24 * 60 * 60 * 1000);
+      
+      // Safety check: if we've added too many dates, break
+      if (dates.size > 1000) break;
     }
-    return dates;
+    
+    // Also ensure start and end dates are included
+    dates.add(startDateStr);
+    dates.add(endDateStr);
+    
+    // Convert to array and sort chronologically
+    // Since date strings are in format "Mon Nov 22 2024", we can parse them for sorting
+    return Array.from(dates).sort((a, b) => {
+      // Try to parse as dates for comparison
+      const dateA = new Date(a);
+      const dateB = new Date(b);
+      // If parsing fails, compare strings
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+        return a.localeCompare(b);
+      }
+      return dateA.getTime() - dateB.getTime();
+    });
   };
 
   const allTripDates = generateAllTripDates();
 
   const groupedItems = filteredItems.reduce((acc, item) => {
-    const dateKey = item.dateTime.toDateString();
+    // Determine which timezone to use for grouping:
+    // - For transportation items, use startTimezone if available
+    // - Otherwise, use tripTimezone
+    const itemTimezone = item.type === 'transportation' && item.startTimezone 
+      ? item.startTimezone 
+      : tripTimezone;
+    
+    const dateKey = getDateStringInTimezone(item.dateTime, itemTimezone);
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
@@ -571,6 +663,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
               <div key={`${item.type}-${item.id}`} className="timeline-item relative flex gap-4">
                 {/* Connection line to next item */}
                 {showConnectionLine && (
+                  // eslint-disable-next-line react/forbid-dom-props
                   <div className="absolute left-6 top-12 h-full w-0.5 border-l-2 border-dashed border-green-400 dark:border-green-500 z-0" style={{ transform: 'translateX(-1px)' }}></div>
                 )}
 
@@ -1199,6 +1292,23 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
           );
         })}
       </div>
+
+      {/* Edit Modal */}
+      {editingItem && (
+        <TimelineEditModal
+          isOpen={editModalOpen}
+          onClose={handleEditClose}
+          onSave={handleEditSave}
+          itemType={editingItem.type}
+          itemData={editingItem.data}
+          tripId={tripId}
+          locations={locations}
+          tripTimezone={tripTimezone}
+          activities={allActivities}
+          lodgings={allLodgings}
+          transportations={allTransportations}
+        />
+      )}
     </div>
   );
 };

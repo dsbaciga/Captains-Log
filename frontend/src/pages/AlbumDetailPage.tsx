@@ -205,6 +205,20 @@ export default function AlbumDetailPage() {
     }
   };
 
+  const handleSetCoverPhoto = async (photoId: number) => {
+    if (!albumId) return;
+    try {
+      await photoService.updateAlbum(parseInt(albumId), {
+        coverPhotoId: photoId,
+      });
+      toast.success("Cover photo updated");
+      await loadAlbum();
+    } catch (err) {
+      console.error("Failed to set cover photo", err);
+      toast.error("Failed to set cover photo");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -446,6 +460,8 @@ export default function AlbumDetailPage() {
               photos={photosPagination.items}
               onPhotoDeleted={() => loadAlbum()}
               onPhotoUpdated={() => loadAlbum()}
+              coverPhotoId={album.coverPhotoId}
+              onSetCoverPhoto={handleSetCoverPhoto}
             />
 
             {photosPagination.hasMore && (

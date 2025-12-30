@@ -423,3 +423,40 @@ textarea:focus-visible {
     min-height: 44px;
   }
 }
+
+/* Dynamic height utility using CSS variable */
+.map-container-dynamic {
+  height: var(--map-height, 300px);
+}
+
+/* Cover photo background using CSS variable */
+.cover-photo-bg {
+  background-image: var(--cover-photo-url);
+}
+
+/* Tag colors using CSS variables */
+.tag-colored {
+  background-color: var(--tag-bg-color, #3B82F6);
+  color: var(--tag-text-color, #FFFFFF);
+}
+
+/* Progress bar width using CSS variable */
+.progress-bar {
+  width: var(--progress-width, 0%);
+}
+
+/* Pull to refresh container using CSS variables */
+.pull-refresh-container {
+  height: var(--pull-height, 0px);
+  opacity: var(--pull-opacity, 0);
+}
+
+/* Pull to refresh arrow rotation using CSS variable */
+.pull-refresh-arrow {
+  transform: rotate(var(--arrow-rotation, 0deg));
+}
+
+/* Progressive image aspect ratio using CSS variable */
+.progressive-image-container {
+  aspect-ratio: var(--aspect-ratio);
+}

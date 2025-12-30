@@ -5,20 +5,15 @@ import locationService from "../services/location.service";
 import type { Location } from "../types/location";
 import toast from "react-hot-toast";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 
-// Fix for default marker icons in React-Leaflet
-import icon from "leaflet/dist/images/marker-icon.png";
-import iconShadow from "leaflet/dist/images/marker-shadow.png";
+// Import shared utilities
+import { calculateMapCenter, filterValidCoordinates } from "../utils/mapUtils";
+import "../utils/mapUtils"; // This import runs the leaflet icon setup
 
-const DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
+// Import reusable components
+import LoadingSpinner from "../components/LoadingSpinner";
+import EmptyState from "../components/EmptyState";
+import { CloseIcon } from "../components/icons";
 
 export default function PlacesVisitedPage() {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -46,12 +41,7 @@ export default function PlacesVisitedPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="text-4xl mb-4">🗺️</div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Loading your visited places...
-          </p>
-        </div>
+        <LoadingSpinner.FullPage message="Loading your visited places..." />
       </div>
     );
   }
@@ -62,34 +52,20 @@ export default function PlacesVisitedPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
           Places Visited
         </h1>
-        <div className="text-center py-16 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="text-6xl mb-4">🌍</div>
-          <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-            No places visited yet
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Start adding locations to your trips and mark them as "Add to Places
-            Visited"
-          </p>
-          <Link to="/trips" className="btn btn-primary">
-            Go to Trips
-          </Link>
-        </div>
+        <EmptyState
+          icon="🌍"
+          message="No places visited yet"
+          subMessage='Start adding locations to your trips and mark them as "Add to Places Visited"'
+          actionLabel="Go to Trips"
+          actionHref="/trips"
+        />
       </div>
     );
   }
 
-  // Calculate center of map based on all locations
-  const centerLat =
-    locations.reduce(
-      (sum, loc) => sum + (loc.latitude ? Number(loc.latitude) : 0),
-      0
-    ) / locations.length;
-  const centerLng =
-    locations.reduce(
-      (sum, loc) => sum + (loc.longitude ? Number(loc.longitude) : 0),
-      0
-    ) / locations.length;
+  // Calculate center of map based on all locations using shared utility
+  const validLocations = filterValidCoordinates(locations);
+  const center = calculateMapCenter(validLocations);
 
   return (
     <div className="h-screen flex flex-col">
@@ -122,7 +98,7 @@ export default function PlacesVisitedPage() {
         {/* Map */}
         <div className="flex-1 relative">
           <MapContainer
-            center={[centerLat, centerLng]}
+            center={[center.lat, center.lng]}
             zoom={4}
             className="h-full w-full"
           >
@@ -132,55 +108,52 @@ export default function PlacesVisitedPage() {
               subdomains="abcd"
               maxZoom={20}
             />
-            {locations.map((location) => {
-              if (!location.latitude || !location.longitude) return null;
-              return (
-                <Marker
-                  key={location.id}
-                  position={[
-                    Number(location.latitude),
-                    Number(location.longitude),
-                  ]}
-                  eventHandlers={{
-                    click: () => setSelectedLocation(location),
-                  }}
-                >
-                  <Popup>
-                    <div className="min-w-[200px]">
-                      <h3 className="font-semibold text-lg mb-1">
-                        {location.name}
-                      </h3>
-                      {location.category && (
-                        <p className="text-sm text-gray-600 mb-2">
-                          {location.category.icon} {location.category.name}
-                        </p>
-                      )}
-                      {location.trip && (
-                        <p className="text-sm text-gray-600 mb-2">
-                          Trip:{" "}
-                          <Link
-                            to={`/trips/${location.trip.id}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {location.trip.title}
-                          </Link>
-                        </p>
-                      )}
-                      {location.address && (
-                        <p className="text-sm text-gray-600 mb-2">
-                          {location.address}
-                        </p>
-                      )}
-                      {location.notes && (
-                        <p className="text-sm text-gray-700 mt-2 border-t pt-2">
-                          {location.notes}
-                        </p>
-                      )}
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })}
+            {validLocations.map((location) => (
+              <Marker
+                key={location.id}
+                position={[
+                  Number(location.latitude),
+                  Number(location.longitude),
+                ]}
+                eventHandlers={{
+                  click: () => setSelectedLocation(location),
+                }}
+              >
+                <Popup>
+                  <div className="min-w-[200px]">
+                    <h3 className="font-semibold text-lg mb-1">
+                      {location.name}
+                    </h3>
+                    {location.category && (
+                      <p className="text-sm text-gray-600 mb-2">
+                        {location.category.icon} {location.category.name}
+                      </p>
+                    )}
+                    {location.trip && (
+                      <p className="text-sm text-gray-600 mb-2">
+                        Trip:{" "}
+                        <Link
+                          to={`/trips/${location.trip.id}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {location.trip.title}
+                        </Link>
+                      </p>
+                    )}
+                    {location.address && (
+                      <p className="text-sm text-gray-600 mb-2">
+                        {location.address}
+                      </p>
+                    )}
+                    {location.notes && (
+                      <p className="text-sm text-gray-700 mt-2 border-t pt-2">
+                        {location.notes}
+                      </p>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
           </MapContainer>
         </div>
 
@@ -196,19 +169,7 @@ export default function PlacesVisitedPage() {
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                 aria-label="Close location details"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <CloseIcon />
               </button>
             </div>
 

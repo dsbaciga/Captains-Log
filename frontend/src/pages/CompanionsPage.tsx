@@ -11,6 +11,17 @@ import CompanionAvatar from "../components/CompanionAvatar";
 import ImmichBrowser from "../components/ImmichBrowser";
 import type { ImmichAsset } from "../types/immich";
 
+// Import shared utilities
+import { getTripStatusColor } from "../utils/statusColors";
+import { formatDate } from "../utils/dateFormat";
+
+// Import reusable components
+import LoadingSpinner from "../components/LoadingSpinner";
+import EmptyState from "../components/EmptyState";
+import PageHeader from "../components/PageHeader";
+import Modal from "../components/Modal";
+import { CloseIcon, TrashIcon, ChevronRightIcon, PlusIcon } from "../components/icons";
+
 interface CompanionWithTrips extends Companion {
   tripAssignments?: Array<{
     trip: {
@@ -304,12 +315,7 @@ export default function CompanionsPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="text-4xl mb-4">👥</div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Loading companions...
-          </p>
-        </div>
+        <LoadingSpinner.FullPage message="Loading companions..." />
       </div>
     );
   }
@@ -317,22 +323,15 @@ export default function CompanionsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <ConfirmDialogComponent />
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Travel Companions
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage your travel companions and add them to trips
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="btn btn-primary"
-        >
-          {showForm ? "Cancel" : "+ Add Companion"}
-        </button>
-      </div>
+      
+      <PageHeader
+        title="Travel Companions"
+        subtitle="Manage your travel companions and add them to trips"
+        action={{
+          label: showForm ? "Cancel" : "+ Add Companion",
+          onClick: () => setShowForm(!showForm),
+        }}
+      />
 
       {/* Create/Edit Companion Form */}
       {showForm && (
@@ -411,21 +410,13 @@ export default function CompanionsPage() {
       {/* Companions List */}
       <div>
         {companions.length === 0 ? (
-          <div className="text-center py-16 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="text-6xl mb-4">👥</div>
-            <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-              No companions yet
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Add your first travel companion to get started
-            </p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="btn btn-primary"
-            >
-              + Add Your First Companion
-            </button>
-          </div>
+          <EmptyState
+            icon="👥"
+            message="No companions yet"
+            subMessage="Add your first travel companion to get started"
+            actionLabel="+ Add Your First Companion"
+            onAction={() => setShowForm(true)}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Sort companions to show "Myself" first */}
@@ -575,307 +566,156 @@ export default function CompanionsPage() {
       </div>
 
       {/* Trips Modal */}
-      {showTripsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {selectedCompanionTrips?.name}'s Trips
-              </h3>
-              <button
-                onClick={closeTripsModal}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                aria-label="Close trips modal"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto flex-1">
-              {loadingTrips ? (
-                <div className="text-center py-8">
-                  <div className="text-gray-600 dark:text-gray-400">
-                    Loading trips...
-                  </div>
-                </div>
-              ) : selectedCompanionTrips?.tripAssignments &&
-                selectedCompanionTrips.tripAssignments.length > 0 ? (
-                <div className="space-y-3">
-                  {selectedCompanionTrips.tripAssignments.map((assignment) => (
-                    <div
-                      key={assignment.trip.id}
-                      className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
-                    >
-                      {/* Trash icon button on left */}
-                      <button
-                        onClick={(e) =>
-                          handleRemoveFromTrip(
-                            assignment.trip.id,
-                            selectedCompanionTrips.id,
-                            e
-                          )
-                        }
-                        className="flex-shrink-0 p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
-                        title="Remove companion from this trip"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
-
-                      <Link
-                        to={`/trips/${assignment.trip.id}`}
-                        onClick={closeTripsModal}
-                        className="flex-1 hover:opacity-80 transition-opacity"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-                              {assignment.trip.title}
-                            </h4>
-                            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                              <span
-                                className={`px-2 py-1 rounded text-xs font-medium ${
-                                  assignment.trip.status === "Completed"
-                                    ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
-                                    : assignment.trip.status === "In Progress"
-                                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                                    : assignment.trip.status === "Planned"
-                                    ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300"
-                                    : assignment.trip.status === "Planning"
-                                    ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
-                                    : "bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                                }`}
-                              >
-                                {assignment.trip.status}
-                              </span>
-                              {assignment.trip.startDate && (
-                                <span>
-                                  {new Date(
-                                    assignment.trip.startDate
-                                  ).toLocaleDateString()}
-                                  {assignment.trip.endDate &&
-                                    ` - ${new Date(
-                                      assignment.trip.endDate
-                                    ).toLocaleDateString()}`}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <svg
-                            className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-2">🏝️</div>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    No trips found
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={closeTripsModal}
-                className="w-full btn btn-secondary"
-              >
-                Close
-              </button>
-            </div>
+      <Modal
+        isOpen={showTripsModal}
+        onClose={closeTripsModal}
+        title={`${selectedCompanionTrips?.name}'s Trips`}
+        maxWidth="2xl"
+        footer={
+          <button onClick={closeTripsModal} className="w-full btn btn-secondary">
+            Close
+          </button>
+        }
+      >
+        {loadingTrips ? (
+          <div className="text-center py-8">
+            <LoadingSpinner label="Loading trips..." />
           </div>
-        </div>
-      )}
+        ) : selectedCompanionTrips?.tripAssignments &&
+          selectedCompanionTrips.tripAssignments.length > 0 ? (
+          <div className="space-y-3">
+            {selectedCompanionTrips.tripAssignments.map((assignment) => (
+              <div
+                key={assignment.trip.id}
+                className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
+              >
+                {/* Trash icon button on left */}
+                <button
+                  onClick={(e) =>
+                    handleRemoveFromTrip(
+                      assignment.trip.id,
+                      selectedCompanionTrips.id,
+                      e
+                    )
+                  }
+                  className="flex-shrink-0 p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+                  title="Remove companion from this trip"
+                >
+                  <TrashIcon />
+                </button>
+
+                <Link
+                  to={`/trips/${assignment.trip.id}`}
+                  onClick={closeTripsModal}
+                  className="flex-1 hover:opacity-80 transition-opacity"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                        {assignment.trip.title}
+                      </h4>
+                      <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getTripStatusColor(assignment.trip.status)}`}>
+                          {assignment.trip.status}
+                        </span>
+                        {assignment.trip.startDate && (
+                          <span>
+                            {formatDate(assignment.trip.startDate)}
+                            {assignment.trip.endDate &&
+                              ` - ${formatDate(assignment.trip.endDate)}`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRightIcon className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState.Compact icon="🏝️" message="No trips found" />
+        )}
+      </Modal>
 
       {/* Add to Trip Modal */}
-      {showAddToTripModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Add {selectedCompanionForTrip?.name} to Trip
-              </h3>
-              <button
-                onClick={closeAddToTripModal}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                aria-label="Close add to trip modal"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto flex-1">
-              {loadingAllTrips ? (
-                <div className="text-center py-8">
-                  <div className="text-gray-600 dark:text-gray-400">
-                    Loading available trips...
-                  </div>
-                </div>
-              ) : allTrips.length > 0 ? (
-                <div className="space-y-3">
-                  {allTrips.map((trip) => (
-                    <button
-                      key={trip.id}
-                      onClick={() => handleAddToTrip(trip.id)}
-                      className="w-full text-left p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-                            {trip.title}
-                          </h4>
-                          <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                            <span
-                              className={`px-2 py-1 rounded text-xs font-medium ${
-                                trip.status === "Completed"
-                                  ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
-                                  : trip.status === "In Progress"
-                                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                                  : trip.status === "Planned"
-                                  ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300"
-                                  : trip.status === "Planning"
-                                  ? "bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300"
-                                  : "bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                              }`}
-                            >
-                              {trip.status}
-                            </span>
-                            {trip.startDate && (
-                              <span>
-                                {new Date(trip.startDate).toLocaleDateString()}
-                                {trip.endDate &&
-                                  ` - ${new Date(
-                                    trip.endDate
-                                  ).toLocaleDateString()}`}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <svg
-                          className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 ml-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4v16m8-8H4"
-                          />
-                        </svg>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-2">✅</div>
-                  <p className="text-gray-900 dark:text-white font-semibold mb-1">
-                    All caught up!
-                  </p>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {selectedCompanionForTrip?.name} is already added to all
-                    your trips
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={closeAddToTripModal}
-                className="w-full btn btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
+      <Modal
+        isOpen={showAddToTripModal}
+        onClose={closeAddToTripModal}
+        title={`Add ${selectedCompanionForTrip?.name} to Trip`}
+        maxWidth="2xl"
+        footer={
+          <button onClick={closeAddToTripModal} className="w-full btn btn-secondary">
+            Cancel
+          </button>
+        }
+      >
+        {loadingAllTrips ? (
+          <div className="text-center py-8">
+            <LoadingSpinner label="Loading available trips..." />
           </div>
-        </div>
-      )}
+        ) : allTrips.length > 0 ? (
+          <div className="space-y-3">
+            {allTrips.map((trip) => (
+              <button
+                key={trip.id}
+                onClick={() => handleAddToTrip(trip.id)}
+                className="w-full text-left p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      {trip.title}
+                    </h4>
+                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getTripStatusColor(trip.status)}`}>
+                        {trip.status}
+                      </span>
+                      {trip.startDate && (
+                        <span>
+                          {formatDate(trip.startDate)}
+                          {trip.endDate && ` - ${formatDate(trip.endDate)}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <PlusIcon className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 ml-2" />
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-2">✅</div>
+            <p className="text-gray-900 dark:text-white font-semibold mb-1">
+              All caught up!
+            </p>
+            <p className="text-gray-600 dark:text-gray-400">
+              {selectedCompanionForTrip?.name} is already added to all
+              your trips
+            </p>
+          </div>
+        )}
+      </Modal>
 
       {/* Immich Browser Modal for Avatar Selection */}
-      {showImmichBrowser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Choose Avatar from Immich
-              </h3>
-              <button
-                onClick={() => {
-                  setShowImmichBrowser(false);
-                  setImmichTargetCompanion(null);
-                }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                title="Close"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <ImmichBrowser
-                onSelect={handleImmichSelect}
-                onClose={() => {
-                  setShowImmichBrowser(false);
-                  setImmichTargetCompanion(null);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showImmichBrowser}
+        onClose={() => {
+          setShowImmichBrowser(false);
+          setImmichTargetCompanion(null);
+        }}
+        title="Choose Avatar from Immich"
+        maxWidth="6xl"
+      >
+        <ImmichBrowser
+          onSelect={handleImmichSelect}
+          onClose={() => {
+            setShowImmichBrowser(false);
+            setImmichTargetCompanion(null);
+          }}
+        />
+      </Modal>
     </div>
   );
 }

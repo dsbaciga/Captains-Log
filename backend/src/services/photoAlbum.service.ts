@@ -8,6 +8,112 @@ import {
 import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
 
 class PhotoAlbumService {
+  /**
+   * Get all albums across all trips for a user with pagination
+   */
+  async getAllAlbums(
+    userId: number,
+    options?: { skip?: number; take?: number }
+  ) {
+    const skip = options?.skip ?? 0;
+    const take = options?.take ?? 30;
+
+    const where = {
+      trip: {
+        userId: userId,
+        ...(options?.tagIds && options.tagIds.length > 0
+          ? {
+              tagAssignments: {
+                some: {
+                  tagId: {
+                    in: options.tagIds,
+                  },
+                },
+              },
+            }
+          : {}),
+      },
+    };
+
+    const [albums, totalAlbums] = await Promise.all([
+      prisma.photoAlbum.findMany({
+        where,
+        include: {
+          trip: {
+            select: {
+              id: true,
+              title: true,
+              startDate: true,
+              endDate: true,
+              tagAssignments: {
+                select: {
+                  tag: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true,
+                      textColor: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          coverPhoto: true,
+          _count: {
+            select: { photoAssignments: true },
+          },
+          location: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          activity: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          lodging: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [
+          { trip: { startDate: 'desc' } },
+          { createdAt: 'desc' },
+        ],
+        skip,
+        take,
+      }),
+      prisma.photoAlbum.count({ where }),
+    ]);
+
+    // Calculate total stats
+    const totalPhotos = await prisma.photoAlbumAssignment.count({
+      where: {
+        album: where,
+      },
+    });
+
+    // Group albums by trip (for tripCount)
+    const tripIds = [...new Set(albums.map((a) => a.trip.id))];
+
+    const loadedCount = skip + albums.length;
+    const hasMore = loadedCount < totalAlbums;
+
+    return {
+      albums,
+      totalAlbums,
+      totalPhotos,
+      tripCount: tripIds.length,
+      hasMore,
+    };
+  }
+
   async createAlbum(userId: number, data: CreateAlbumInput) {
     // Verify user owns the trip
     await verifyTripAccess(userId, data.tripId);
@@ -250,6 +356,20 @@ class PhotoAlbumService {
       }
     }
 
+    // Validate cover photo belongs to the same trip if provided
+    if (data.coverPhotoId !== undefined && data.coverPhotoId !== null) {
+      const coverPhoto = await prisma.photo.findFirst({
+        where: {
+          id: data.coverPhotoId,
+          tripId: verifiedAlbum.tripId,
+        },
+      });
+
+      if (!coverPhoto) {
+        throw new AppError('Cover photo not found or does not belong to trip', 404);
+      }
+    }
+
     const updatedAlbum = await prisma.photoAlbum.update({
       where: { id: albumId },
       data: {
@@ -258,6 +378,8 @@ class PhotoAlbumService {
         locationId: data.locationId !== undefined ? data.locationId : undefined,
         activityId: data.activityId !== undefined ? data.activityId : undefined,
         lodgingId: data.lodgingId !== undefined ? data.lodgingId : undefined,
+        coverPhotoId:
+          data.coverPhotoId !== undefined ? data.coverPhotoId : undefined,
       },
       include: {
         _count: {
@@ -281,6 +403,7 @@ class PhotoAlbumService {
             name: true,
           },
         },
+        coverPhoto: true,
       },
     });
 

@@ -1,20 +1,15 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { Icon, LatLngBounds } from 'leaflet';
+import { LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Location } from '../types/location';
 
-// Fix for default marker icon
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+// Import shared map utilities (this also sets up leaflet icons)
+import { calculateMapCenter, filterValidCoordinates } from '../utils/mapUtils';
+import '../utils/mapUtils'; // Ensure leaflet icons are set up
 
-delete (Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-Icon.Default.mergeOptions({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-});
+// Import reusable components
+import EmptyState from './EmptyState';
 
 interface TripLocationsMapProps {
   locations: Location[];
@@ -27,9 +22,7 @@ function MapBounds({ locations }: { locations: Location[] }) {
   useEffect(() => {
     if (locations.length === 0) return;
 
-    const validLocations = locations.filter(
-      (loc) => loc.latitude !== null && loc.longitude !== null
-    );
+    const validLocations = filterValidCoordinates(locations);
 
     if (validLocations.length === 0) return;
 
@@ -50,30 +43,24 @@ function MapBounds({ locations }: { locations: Location[] }) {
 }
 
 export default function TripLocationsMap({ locations }: TripLocationsMapProps) {
-  const validLocations = locations.filter(
-    (loc) => loc.latitude !== null && loc.longitude !== null
-  );
+  const validLocations = filterValidCoordinates(locations);
 
   if (validLocations.length === 0) {
     return (
-      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center">
-        <p className="text-gray-600 dark:text-gray-400">
-          No locations with coordinates to display on the map.
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8">
+        <EmptyState.Compact
+          icon="🗺️"
+          message="No locations with coordinates to display on the map."
+        />
+        <p className="text-sm text-gray-500 dark:text-gray-500 mt-2 text-center">
           Add coordinates to your locations to see them on the map.
         </p>
       </div>
     );
   }
 
-  // Calculate center point (average of all coordinates)
-  const centerLat =
-    validLocations.reduce((sum, loc) => sum + Number(loc.latitude), 0) /
-    validLocations.length;
-  const centerLng =
-    validLocations.reduce((sum, loc) => sum + Number(loc.longitude), 0) /
-    validLocations.length;
+  // Calculate center point using shared utility
+  const center = calculateMapCenter(validLocations);
 
   return (
     <div className="space-y-4">
@@ -88,7 +75,7 @@ export default function TripLocationsMap({ locations }: TripLocationsMapProps) {
 
       <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg">
         <MapContainer
-          center={[centerLat, centerLng]}
+          center={[center.lat, center.lng]}
           zoom={13}
           scrollWheelZoom={true}
           style={{ height: '100%', width: '100%' }}

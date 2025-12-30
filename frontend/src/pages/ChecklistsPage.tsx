@@ -5,6 +5,11 @@ import checklistService from '../services/checklist.service';
 import ChecklistSelectorModal from '../components/ChecklistSelectorModal';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
+// Import reusable components
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
+
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -162,11 +167,46 @@ export default function ChecklistsPage() {
     }
   };
 
+  // Build secondary actions for the header
+  const secondaryActions = [];
+  
+  if (checklists.length === 0) {
+    secondaryActions.push({
+      label: isInitializing ? 'Initializing...' : 'Initialize All Defaults',
+      onClick: handleInitializeDefaults,
+      disabled: isInitializing,
+      variant: 'secondary' as const,
+    });
+  }
+  
+  if (defaultChecklistsStatus.some(c => !c.exists)) {
+    secondaryActions.push({
+      label: '+ Add Defaults',
+      onClick: handleOpenAddModal,
+      variant: 'secondary' as const,
+    });
+  }
+  
+  if (checklists.some(c => c.isDefault)) {
+    secondaryActions.push({
+      label: '- Remove Defaults',
+      onClick: handleOpenRemoveModal,
+      variant: 'secondary' as const,
+    });
+  }
+  
+  secondaryActions.push({
+    label: isAutoChecking ? 'Auto-checking...' : 'Auto-check from Trips',
+    onClick: handleAutoCheck,
+    disabled: isAutoChecking || checklists.length === 0,
+    variant: 'secondary' as const,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-6 py-8 text-gray-900 dark:text-white">
-          Loading...
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <LoadingSpinner.FullPage message="Loading checklists..." />
         </div>
       </div>
     );
@@ -175,54 +215,15 @@ export default function ChecklistsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Checklists</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Track your travel achievements
-            </p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {checklists.length === 0 && (
-              <button
-                onClick={handleInitializeDefaults}
-                disabled={isInitializing}
-                className="btn btn-secondary"
-              >
-                {isInitializing ? 'Initializing...' : 'Initialize All Defaults'}
-              </button>
-            )}
-            {defaultChecklistsStatus.some(c => !c.exists) && (
-              <button
-                onClick={handleOpenAddModal}
-                className="btn btn-secondary text-green-600 dark:text-green-400"
-              >
-                + Add Defaults
-              </button>
-            )}
-            {checklists.some(c => c.isDefault) && (
-              <button
-                onClick={handleOpenRemoveModal}
-                className="btn btn-secondary text-red-600 dark:text-red-400"
-              >
-                - Remove Defaults
-              </button>
-            )}
-            <button
-              onClick={handleAutoCheck}
-              disabled={isAutoChecking || checklists.length === 0}
-              className="btn btn-secondary"
-            >
-              {isAutoChecking ? 'Auto-checking...' : 'Auto-check from Trips'}
-            </button>
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="btn btn-primary"
-            >
-              {showCreateForm ? 'Cancel' : '+ Create Custom List'}
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Checklists"
+          subtitle="Track your travel achievements"
+          action={{
+            label: showCreateForm ? 'Cancel' : '+ Create Custom List',
+            onClick: () => setShowCreateForm(!showCreateForm),
+          }}
+          secondaryActions={secondaryActions}
+        />
 
         {showCreateForm && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
@@ -272,22 +273,13 @@ export default function ChecklistsPage() {
         )}
 
         {checklists.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="text-6xl mb-4">📋</div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              No Checklists Yet
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Get started by initializing default lists or creating your own custom checklist
-            </p>
-            <button
-              onClick={handleInitializeDefaults}
-              disabled={isInitializing}
-              className="btn btn-primary"
-            >
-              {isInitializing ? 'Initializing...' : 'Initialize Default Lists'}
-            </button>
-          </div>
+          <EmptyState
+            icon="📋"
+            message="No Checklists Yet"
+            subMessage="Get started by initializing default lists or creating your own custom checklist"
+            actionLabel={isInitializing ? 'Initializing...' : 'Initialize Default Lists'}
+            onAction={handleInitializeDefaults}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {checklists.map((checklist) => (
@@ -334,9 +326,11 @@ export default function ChecklistsPage() {
                         <span>{checklist.stats.percentage}%</span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        {/* Dynamic progress width requires CSS variable - cannot be moved to static CSS */}
+                        {/* eslint-disable-next-line react/forbid-dom-props */}
                         <div
-                          className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all"
-                          style={{ width: `${checklist.stats.percentage}%` }}
+                          className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all progress-bar"
+                          style={{ '--progress-width': `${checklist.stats.percentage}%` } as React.CSSProperties & { '--progress-width': string }}
                         />
                       </div>
                     </div>

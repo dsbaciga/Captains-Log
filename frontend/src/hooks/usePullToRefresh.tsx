@@ -153,12 +153,14 @@ export function PullToRefreshIndicator({
   if (pullDistance === 0 && !isRefreshing) return null;
 
   return (
+    // Dynamic pull refresh dimensions require CSS variables - cannot be moved to static CSS
+    // eslint-disable-next-line react/forbid-dom-props
     <div
-      className="absolute top-0 left-0 right-0 flex items-center justify-center transition-opacity"
+      className="absolute top-0 left-0 right-0 flex items-center justify-center transition-opacity pull-refresh-container"
       style={{
-        height: `${Math.max(pullDistance, isRefreshing ? threshold : 0)}px`,
-        opacity: pullDistance > 10 || isRefreshing ? 1 : 0,
-      }}
+        '--pull-height': `${Math.max(pullDistance, isRefreshing ? threshold : 0)}px`,
+        '--pull-opacity': pullDistance > 10 || isRefreshing ? 1 : 0,
+      } as React.CSSProperties & { '--pull-height': string; '--pull-opacity': number }}
     >
       <div className="relative">
         {isRefreshing ? (
@@ -166,9 +168,11 @@ export function PullToRefreshIndicator({
           <div className="w-8 h-8 border-4 border-primary-200 dark:border-sky/30 border-t-primary-600 dark:border-t-sky rounded-full animate-spin" />
         ) : (
           // Rotating arrow when pulling
+          // Dynamic rotation requires CSS variable - cannot be moved to static CSS
+          // eslint-disable-next-line react/forbid-dom-props
           <svg
-            className="w-8 h-8 text-primary-600 dark:text-sky transition-transform"
-            style={{ transform: `rotate(${rotation}deg)` }}
+            className="w-8 h-8 text-primary-600 dark:text-sky transition-transform pull-refresh-arrow"
+            style={{ '--arrow-rotation': `${rotation}deg` } as React.CSSProperties & { '--arrow-rotation': string }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

@@ -6,6 +6,7 @@ import type {
 import type { Location } from "../types/location";
 import transportationService from "../services/transportation.service";
 import JournalEntriesButton from "./JournalEntriesButton";
+import FormModal from "./FormModal";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
@@ -160,9 +161,6 @@ export default function TransportationManager({
     handleChange("currency", transportation.currency || "USD");
     handleChange("notes", transportation.notes || "");
     manager.openEditForm(transportation.id);
-
-    // Scroll to top to show the edit form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -307,6 +305,11 @@ export default function TransportationManager({
     );
   };
 
+  const handleCloseForm = () => {
+    resetForm();
+    manager.closeForm();
+  };
+
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
@@ -321,7 +324,7 @@ export default function TransportationManager({
           }}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
-          {manager.showForm ? "Cancel" : "+ Add Transportation"}
+          + Add Transportation
         </button>
       </div>
 
@@ -366,19 +369,39 @@ export default function TransportationManager({
         </div>
       )}
 
-      {manager.showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {manager.editingId ? "Edit Transportation" : "Add Transportation"}
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Type Selection */}
-              <div>
-                <label
-                  htmlFor="transportation-type"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
+      {/* Form Modal */}
+      <FormModal
+        isOpen={manager.showForm}
+        onClose={handleCloseForm}
+        title={manager.editingId ? "Edit Transportation" : "Add Transportation"}
+        icon="🚀"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={handleCloseForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="transportation-form"
+              className="btn btn-primary"
+            >
+              {manager.editingId ? "Update" : "Add"} Transportation
+            </button>
+          </>
+        }
+      >
+        <form id="transportation-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Type Selection */}
+            <div>
+              <label
+                htmlFor="transportation-type"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                   Type *
                 </label>
                 <select
@@ -625,26 +648,8 @@ export default function TransportationManager({
                 placeholder="Additional notes..."
               />
             </div>
-
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  manager.closeForm();
-                }}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                {manager.editingId ? "Update" : "Add"} Transportation
-              </button>
-            </div>
           </form>
-        </div>
-      )}
+        </FormModal>
 
       {/* Transportation List */}
       <div className="space-y-4">

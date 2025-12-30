@@ -28,6 +28,45 @@ function transformPhoto(photo: any) {
 }
 
 class PhotoAlbumController {
+  async getAllAlbums(req: Request, res: Response, next: NextFunction) {
+    try {
+      const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
+      const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+
+      const tagIds =
+        typeof req.query.tagIds === 'string'
+          ? req.query.tagIds
+              .split(',')
+              .map((id) => parseInt(id))
+              .filter((id) => !isNaN(id))
+          : undefined;
+
+      const result = await photoAlbumService.getAllAlbums(req.user!.userId, {
+        skip,
+        take,
+        tagIds,
+      });
+
+      // Transform cover photos for Immich compatibility
+      const transformedAlbums = result.albums.map((album: any) => {
+        if (album.coverPhoto) {
+          return {
+            ...album,
+            coverPhoto: transformPhoto(album.coverPhoto),
+          };
+        }
+        return album;
+      });
+
+      res.json({
+        ...result,
+        albums: transformedAlbums,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async createAlbum(req: Request, res: Response, next: NextFunction) {
     try {
       const validatedData = createAlbumSchema.parse(req.body);

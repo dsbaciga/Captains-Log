@@ -7,6 +7,9 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
+// Get all albums across all trips (must be before /:id route)
+router.get('/', photoAlbumController.getAllAlbums);
+
 // Create album
 router.post('/', photoAlbumController.createAlbum);
 

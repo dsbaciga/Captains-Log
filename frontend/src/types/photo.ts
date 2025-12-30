@@ -114,3 +114,28 @@ export type UpdateAlbumInput = {
 export type AddPhotosToAlbumInput = {
   photoIds: number[];
 };
+
+export type AlbumWithTrip = PhotoAlbum & {
+  trip: {
+    id: number;
+    title: string;
+    startDate: string | null;
+    endDate: string | null;
+    tagAssignments?: {
+      tag: {
+        id: number;
+        name: string;
+        color: string;
+        textColor: string;
+      };
+    }[];
+  };
+};
+
+export type AllAlbumsResponse = {
+  albums: AlbumWithTrip[];
+  totalAlbums: number;
+  totalPhotos: number;
+  tripCount: number;
+  hasMore: boolean;
+};

@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
 import JournalEntriesButton from "./JournalEntriesButton";
 import LocationQuickAdd from "./LocationQuickAdd";
+import FormModal from "./FormModal";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
@@ -158,9 +159,6 @@ export default function LodgingManager({
     handleChange("currency", lodging.currency || "USD");
     handleChange("notes", lodging.notes || "");
     manager.openEditForm(lodging.id);
-
-    // Scroll to top to show the edit form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -268,6 +266,11 @@ export default function LodgingManager({
     });
   };
 
+  const handleCloseForm = () => {
+    resetForm();
+    manager.closeForm();
+  };
+
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
@@ -282,23 +285,43 @@ export default function LodgingManager({
           }}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
-          {manager.showForm ? "Cancel" : "+ Add Lodging"}
+          + Add Lodging
         </button>
       </div>
 
-      {manager.showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {manager.editingId ? "Edit Lodging" : "Add Lodging"}
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Type Selection */}
-              <div>
-                <label
-                  htmlFor="lodging-type"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
+      {/* Form Modal */}
+      <FormModal
+        isOpen={manager.showForm}
+        onClose={handleCloseForm}
+        title={manager.editingId ? "Edit Lodging" : "Add Lodging"}
+        icon="🏨"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={handleCloseForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="lodging-form"
+              className="btn btn-primary"
+            >
+              {manager.editingId ? "Update" : "Add"} Lodging
+            </button>
+          </>
+        }
+      >
+        <form id="lodging-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Type Selection */}
+            <div>
+              <label
+                htmlFor="lodging-type"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                   Type *
                 </label>
                 <select
@@ -482,26 +505,8 @@ export default function LodgingManager({
                 placeholder="Additional notes..."
               />
             </div>
-
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  manager.closeForm();
-                }}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                {manager.editingId ? "Update" : "Add"} Lodging
-              </button>
-            </div>
           </form>
-        </div>
-      )}
+        </FormModal>
 
       {/* Lodging List */}
       <div className="space-y-4">

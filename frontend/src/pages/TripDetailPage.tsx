@@ -602,11 +602,13 @@ export default function TripDetailPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mb-6">
           {/* Cover Photo Background */}
           {coverPhotoUrl ? (
+            // Dynamic background image requires CSS variable - cannot be moved to static CSS
+            // eslint-disable-next-line react/forbid-dom-props
             <div
-              className="relative h-64 bg-cover bg-center"
+              className="relative h-64 bg-cover bg-center cover-photo-bg"
               style={{
-                backgroundImage: `url(${coverPhotoUrl})`,
-              }}
+                '--cover-photo-url': `url(${coverPhotoUrl})`,
+              } as React.CSSProperties & { '--cover-photo-url': string }}
             >
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70"></div>
               <div className="relative h-full p-6 flex flex-col justify-between text-white">
@@ -683,13 +685,15 @@ export default function TripDetailPage() {
                   {tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {tags.map((tag) => (
+                        // Dynamic tag colors require CSS variables - cannot be moved to static CSS
+                        // eslint-disable-next-line react/forbid-dom-props
                         <span
                           key={tag.id}
-                          className="px-3 py-1 rounded-full text-sm font-medium shadow-md"
+                          className="px-3 py-1 rounded-full text-sm font-medium shadow-md tag-colored"
                           style={{
-                            backgroundColor: tag.color || "#3B82F6",
-                            color: tag.textColor || "#FFFFFF",
-                          }}
+                            '--tag-bg-color': tag.color || "#3B82F6",
+                            '--tag-text-color': tag.textColor || "#FFFFFF",
+                          } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
                         >
                           {tag.name}
                         </span>
@@ -774,13 +778,15 @@ export default function TripDetailPage() {
                 <div className="mt-4">
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag) => (
+                      // Dynamic tag colors require CSS variables - cannot be moved to static CSS
+                      // eslint-disable-next-line react/forbid-dom-props
                       <span
                         key={tag.id}
-                        className="px-3 py-1 rounded-full text-sm font-medium"
+                        className="px-3 py-1 rounded-full text-sm font-medium tag-colored"
                         style={{
-                          backgroundColor: tag.color || "#3B82F6",
-                          color: tag.textColor || "#FFFFFF",
-                        }}
+                          '--tag-bg-color': tag.color || "#3B82F6",
+                          '--tag-text-color': tag.textColor || "#FFFFFF",
+                        } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
                       >
                         {tag.name}
                       </span>

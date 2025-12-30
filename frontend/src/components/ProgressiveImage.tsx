@@ -122,16 +122,18 @@ export default function ProgressiveImage({
   }, [isInView, src, srcSet, sizes, onLoad, onError]);
 
   // Container style with aspect ratio
-  const containerStyle: React.CSSProperties = aspectRatio
-    ? { aspectRatio }
+  const containerStyle: React.CSSProperties & { '--aspect-ratio'?: string } = aspectRatio
+    ? { '--aspect-ratio': aspectRatio }
     : {};
 
   // Error state
   if (hasError) {
     return (
+      // Dynamic aspect ratio requires CSS variable - cannot be moved to static CSS
+      // eslint-disable-next-line react/forbid-dom-props
       <div
         ref={containerRef}
-        className={`relative overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}
+        className={`relative overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center progressive-image-container ${className}`}
         style={containerStyle}
       >
         <div className="text-center p-4">
@@ -155,9 +157,11 @@ export default function ProgressiveImage({
   }
 
   return (
+    // Dynamic aspect ratio requires CSS variable - cannot be moved to static CSS
+    // eslint-disable-next-line react/forbid-dom-props
     <div
       ref={containerRef}
-      className={`relative overflow-hidden ${className}`}
+      className={`relative overflow-hidden progressive-image-container ${className}`}
       style={containerStyle}
     >
       {/* Blurred placeholder or loading skeleton */}

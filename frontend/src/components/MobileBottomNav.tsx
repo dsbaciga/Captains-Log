@@ -32,6 +32,15 @@ export default function MobileBottomNav() {
       label: 'Trips',
     },
     {
+      path: '/albums',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+      label: 'Albums',
+    },
+    {
       path: '/places-visited',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,15 +49,6 @@ export default function MobileBottomNav() {
         </svg>
       ),
       label: 'Places',
-    },
-    {
-      path: '/companions',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ),
-      label: 'People',
     },
     {
       path: '/checklists',
@@ -62,7 +62,10 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-navy-900 border-t-2 border-primary-200 dark:border-sky/20 z-50 safe-area-inset-bottom">
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-navy-900 border-t-2 border-primary-200 dark:border-sky/20 z-50 safe-area-inset-bottom"
+      aria-label="Main navigation"
+    >
       <div className="flex justify-around items-center h-16">
         {navItems.map((item) => {
           const active = isActive(item.path);
@@ -70,13 +73,14 @@ export default function MobileBottomNav() {
             <Link
               key={item.path}
               to={item.path}
+              aria-current={active ? 'page' : undefined}
               className={`flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-all duration-200 ${
                 active
                   ? 'text-primary-600 dark:text-sky'
                   : 'text-gray-600 dark:text-gray-400 active:scale-95'
               }`}
             >
-              <div className={`transition-transform duration-200 ${active ? 'scale-110' : ''}`}>
+              <div className={`transition-transform duration-200 ${active ? 'scale-110' : ''}`} aria-hidden="true">
                 {item.icon}
               </div>
               <span className={`text-xs font-medium mt-1 ${active ? 'font-semibold' : ''}`}>

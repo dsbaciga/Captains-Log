@@ -72,12 +72,17 @@ export default function FlightRouteMap({
   );
 
   return (
-    <div style={{ height, width: "100%" }} className="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+    // Dynamic height requires CSS variable - cannot be moved to static CSS
+    // eslint-disable-next-line
+    <div 
+      className="map-container-dynamic rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 w-full"
+      style={{ '--map-height': height } as React.CSSProperties & { '--map-height': string }}
+    >
       <MapContainer
         center={[centerLat, centerLon]}
         zoom={zoom}
         scrollWheelZoom={false}
-        style={{ height: "100%", width: "100%" }}
+        className="h-full w-full"
         zoomControl={true}
       >
         <TileLayer

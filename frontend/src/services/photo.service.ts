@@ -9,6 +9,7 @@ import type {
   CreateAlbumInput,
   UpdateAlbumInput,
   AddPhotosToAlbumInput,
+  AllAlbumsResponse,
 } from '../types/photo';
 
 class PhotoService {
@@ -90,6 +91,18 @@ class PhotoService {
   }
 
   // Album methods
+  async getAllAlbums(options?: { skip?: number; take?: number; tagIds?: number[] }): Promise<AllAlbumsResponse> {
+    const params: Record<string, any> = {};
+    if (options?.skip !== undefined) params.skip = options.skip;
+    if (options?.take !== undefined) params.take = options.take;
+    if (options?.tagIds && options.tagIds.length > 0) {
+      params.tagIds = options.tagIds.join(',');
+    }
+
+    const response = await api.get('/albums', { params });
+    return response.data;
+  }
+
   async createAlbum(data: CreateAlbumInput): Promise<PhotoAlbum> {
     const response = await api.post('/albums', data);
     return response.data;

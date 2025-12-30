@@ -10,6 +10,7 @@ import lodgingService from "../services/lodging.service";
 import transportationService from "../services/transportation.service";
 import toast from "react-hot-toast";
 import EmptyState from "./EmptyState";
+import FormModal from "./FormModal";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -114,9 +115,6 @@ export default function JournalManager({
     });
     manager.openEditForm(entry.id);
     setExpandedId(null);
-
-    // Scroll to top to show the edit form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -197,6 +195,12 @@ export default function JournalManager({
     setField(fieldName, selectedIds);
   };
 
+  const handleCloseForm = () => {
+    resetFields();
+    manager.setEditingId(null);
+    manager.closeForm();
+  };
+
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
@@ -211,33 +215,53 @@ export default function JournalManager({
           }}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
-          {manager.showForm ? "Cancel" : "+ New Entry"}
+          + New Entry
         </button>
       </div>
 
-      {manager.showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {manager.editingId ? "Edit Entry" : "New Journal Entry"}
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor={titleFieldId}
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Title *
-              </label>
-              <input
-                type="text"
-                id={titleFieldId}
-                value={formValues.title}
-                onChange={(e) => setField('title', e.target.value)}
-                className="input"
-                placeholder="Day 1 in Paris"
-                required
-              />
-            </div>
+      {/* Form Modal */}
+      <FormModal
+        isOpen={manager.showForm}
+        onClose={handleCloseForm}
+        title={manager.editingId ? "Edit Entry" : "New Journal Entry"}
+        icon="📔"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={handleCloseForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="journal-form"
+              className="btn btn-primary"
+            >
+              {manager.editingId ? "Update" : "Create"} Entry
+            </button>
+          </>
+        }
+      >
+        <form id="journal-form" onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor={titleFieldId}
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Title *
+            </label>
+            <input
+              type="text"
+              id={titleFieldId}
+              value={formValues.title}
+              onChange={(e) => setField('title', e.target.value)}
+              className="input"
+              placeholder="Day 1 in Paris"
+              required
+            />
+          </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -400,13 +424,8 @@ Tell your story!"
                 )}
               </div>
             </div>
-
-            <button type="submit" className="btn btn-primary">
-              {manager.editingId ? "Update" : "Create"} Entry
-            </button>
           </form>
-        </div>
-      )}
+        </FormModal>
 
       {manager.items.length === 0 ? (
         <EmptyState

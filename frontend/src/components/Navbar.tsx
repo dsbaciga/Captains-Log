@@ -69,6 +69,7 @@ export default function Navbar() {
   const navLinks = [
     { path: "/dashboard", label: "Dashboard" },
     { path: "/trips", label: "Trips" },
+    { path: "/albums", label: "Albums" },
     { path: "/companions", label: "Companions" },
     { path: "/places-visited", label: "Places" },
     { path: "/checklists", label: "Checklists" },
