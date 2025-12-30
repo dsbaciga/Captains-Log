@@ -32,6 +32,8 @@ export type Lodging = {
     id: number;
     name: string;
     address: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   photoAlbums?: {
     id: number;

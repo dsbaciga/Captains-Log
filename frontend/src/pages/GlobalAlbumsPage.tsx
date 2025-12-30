@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useId, useCallback } from "react";
+import { useState, useEffect, useMemo, useId, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import photoService from "../services/photo.service";
 import type { AlbumWithTrip } from "../types/photo";
@@ -8,7 +8,13 @@ import { usePagination } from "../hooks/usePagination";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
 
-type SortOption = "tripDate-desc" | "tripDate-asc" | "name-asc" | "name-desc" | "photos-desc" | "photos-asc";
+type SortOption =
+  | "tripDate-desc"
+  | "tripDate-asc"
+  | "name-asc"
+  | "name-desc"
+  | "photos-desc"
+  | "photos-asc";
 
 // Cache cover URLs to avoid refetching across navigations
 const coverUrlCache = new Map<number, string>();
@@ -20,13 +26,14 @@ export default function GlobalAlbumsPage() {
   const [totalPhotos, setTotalPhotos] = useState(0);
   const [tripCount, setTripCount] = useState(0);
   const [totalAlbums, setTotalAlbums] = useState(0);
-  const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
+  const [coverPhotoUrls, setCoverPhotoUrls] = useState<{
+    [key: number]: string;
+  }>({});
   const [collapsedTrips, setCollapsedTrips] = useState<Set<number>>(new Set());
   const [loadingCovers, setLoadingCovers] = useState(true);
   const tripSectionIdPrefix = useId();
   const [allTags, setAllTags] = useState<TripTag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
-  const albums = albumPagination.items;
 
   const loadAlbumsPage = useCallback(
     async (skip: number, take: number) => {
@@ -54,6 +61,8 @@ export default function GlobalAlbumsPage() {
     enabled: true,
     onError: () => toast.error("Failed to load albums"),
   });
+
+  const albums = albumPagination.items;
 
   // Load tags for filters
   useEffect(() => {
@@ -121,10 +130,13 @@ export default function GlobalAlbumsPage() {
                 urls[album.id] = blobUrl;
               }
             } catch (error) {
-              console.error(`Failed to load cover photo for album ${album.id}:`, error);
+              console.error(
+                `Failed to load cover photo for album ${album.id}:`,
+                error
+              );
             }
           }
-        }),
+        })
       );
 
       if (!cancelled) {
@@ -156,7 +168,10 @@ export default function GlobalAlbumsPage() {
     });
   };
 
-  const formatDateRange = (startDate: string | null, endDate: string | null) => {
+  const formatDateRange = (
+    startDate: string | null,
+    endDate: string | null
+  ) => {
     if (!startDate && !endDate) return "No dates set";
     if (!startDate) return `Until ${formatDate(endDate)}`;
     if (!endDate) return `From ${formatDate(startDate)}`;
@@ -183,7 +198,8 @@ export default function GlobalAlbumsPage() {
       result = result.filter(
         (album) =>
           album.name.toLowerCase().includes(query) ||
-          (album.description && album.description.toLowerCase().includes(query)) ||
+          (album.description &&
+            album.description.toLowerCase().includes(query)) ||
           album.trip.title.toLowerCase().includes(query)
       );
     }
@@ -214,9 +230,15 @@ export default function GlobalAlbumsPage() {
         case "name-desc":
           return b.name.localeCompare(a.name);
         case "photos-desc":
-          return (b._count?.photoAssignments || 0) - (a._count?.photoAssignments || 0);
+          return (
+            (b._count?.photoAssignments || 0) -
+            (a._count?.photoAssignments || 0)
+          );
         case "photos-asc":
-          return (a._count?.photoAssignments || 0) - (b._count?.photoAssignments || 0);
+          return (
+            (a._count?.photoAssignments || 0) -
+            (b._count?.photoAssignments || 0)
+          );
         default:
           return 0;
       }
@@ -227,7 +249,10 @@ export default function GlobalAlbumsPage() {
 
   // Group albums by trip
   const albumsByTrip = useMemo(() => {
-    const groups: Map<number, { trip: AlbumWithTrip["trip"]; albums: AlbumWithTrip[] }> = new Map();
+    const groups: Map<
+      number,
+      { trip: AlbumWithTrip["trip"]; albums: AlbumWithTrip[] }
+    > = new Map();
 
     for (const album of filteredAlbums) {
       const tripId = album.trip.id;
@@ -244,7 +269,7 @@ export default function GlobalAlbumsPage() {
       if (!a.trip.startDate && !b.trip.startDate) return 0;
       if (!a.trip.startDate) return 1;
       if (!b.trip.startDate) return -1;
-      
+
       // Only reverse for explicit date ascending sort
       const isDateAscending = sortOption === "tripDate-asc";
       return isDateAscending
@@ -297,8 +322,9 @@ export default function GlobalAlbumsPage() {
               {!isInitialLoading && (
                 <p className="text-slate dark:text-warm-gray/70">
                   {totalAlbums} album{totalAlbums !== 1 ? "s" : ""} •{" "}
-                  {totalPhotos.toLocaleString()} photo{totalPhotos !== 1 ? "s" : ""} •{" "}
-                  {tripCount} trip{tripCount !== 1 ? "s" : ""}
+                  {totalPhotos.toLocaleString()} photo
+                  {totalPhotos !== 1 ? "s" : ""} • {tripCount} trip
+                  {tripCount !== 1 ? "s" : ""}
                 </p>
               )}
             </div>
@@ -349,45 +375,45 @@ export default function GlobalAlbumsPage() {
             </select>
           </div>
 
-            {/* Tag Filter */}
-            {allTags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {allTags.map(({ tag }) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
-                      selectedTagIds.includes(tag.id)
-                        ? "ring-2 ring-offset-2 ring-primary-500 dark:ring-sky border-transparent"
-                        : "border-transparent opacity-80 hover:opacity-100"
-                    }`}
-                    style={{
-                      backgroundColor: tag.color,
-                      color: tag.textColor,
-                    }}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-                {selectedTagIds.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTagIds([])}
-                    className="px-3 py-1.5 rounded-full text-sm font-medium bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600 transition-colors border border-primary-500/20 dark:border-sky/20"
-                  >
-                    Clear tags
-                  </button>
-                )}
-              </div>
-            )}
+          {/* Tag Filter */}
+          {allTags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {allTags.map(({ tag }) => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => toggleTag(tag.id)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
+                    selectedTagIds.includes(tag.id)
+                      ? "ring-2 ring-offset-2 ring-primary-500 dark:ring-sky border-transparent"
+                      : "border-transparent opacity-80 hover:opacity-100"
+                  }`}
+                  style={{
+                    backgroundColor: tag.color,
+                    color: tag.textColor,
+                  }}
+                >
+                  {tag.name}
+                </button>
+              ))}
+              {selectedTagIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagIds([])}
+                  className="px-3 py-1.5 rounded-full text-sm font-medium bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600 transition-colors border border-primary-500/20 dark:border-sky/20"
+                >
+                  Clear tags
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Results Count */}
         {!isInitialLoading && searchQuery && (
           <div className="mb-4 text-sm text-slate dark:text-warm-gray/70">
-            Found {filteredAlbums.length} album{filteredAlbums.length !== 1 ? "s" : ""}{" "}
-            matching "{searchQuery}"
+            Found {filteredAlbums.length} album
+            {filteredAlbums.length !== 1 ? "s" : ""} matching "{searchQuery}"
           </div>
         )}
 
@@ -395,7 +421,9 @@ export default function GlobalAlbumsPage() {
         {isInitialLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-sky mx-auto"></div>
-            <p className="mt-4 text-slate dark:text-warm-gray">Loading albums...</p>
+            <p className="mt-4 text-slate dark:text-warm-gray">
+              Loading albums...
+            </p>
           </div>
         ) : totalAlbums === 0 ? (
           <div className="text-center py-16 px-6 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl border-2 border-primary-500/10 dark:border-sky/10">
@@ -404,8 +432,8 @@ export default function GlobalAlbumsPage() {
               No albums yet
             </h3>
             <p className="text-slate dark:text-warm-gray/70 mb-6 max-w-md mx-auto">
-              Create albums within your trips to organize your photos. Albums help you
-              group photos by location, activity, or theme.
+              Create albums within your trips to organize your photos. Albums
+              help you group photos by location, activity, or theme.
             </p>
             <div className="flex gap-3 justify-center flex-wrap">
               <Link to="/trips" className="btn btn-primary">
@@ -479,8 +507,10 @@ export default function GlobalAlbumsPage() {
                         </h2>
                         <p className="text-sm text-slate dark:text-warm-gray/70">
                           {formatDateRange(trip.startDate, trip.endDate)} •{" "}
-                          {tripAlbums.length} album{tripAlbums.length !== 1 ? "s" : ""} •{" "}
-                          {tripPhotoCount} photo{tripPhotoCount !== 1 ? "s" : ""}
+                          {tripAlbums.length} album
+                          {tripAlbums.length !== 1 ? "s" : ""} •{" "}
+                          {tripPhotoCount} photo
+                          {tripPhotoCount !== 1 ? "s" : ""}
                         </p>
                       </div>
                     </div>
@@ -519,7 +549,8 @@ export default function GlobalAlbumsPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         {tripAlbums.map((album) => {
                           const coverUrl = coverPhotoUrls[album.id];
-                          const photoCount = album._count?.photoAssignments || 0;
+                          const photoCount =
+                            album._count?.photoAssignments || 0;
 
                           return (
                             <button
@@ -564,7 +595,8 @@ export default function GlobalAlbumsPage() {
 
                                 {/* Photo Count Badge */}
                                 <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-md text-white text-xs font-medium">
-                                  {photoCount} photo{photoCount !== 1 ? "s" : ""}
+                                  {photoCount} photo
+                                  {photoCount !== 1 ? "s" : ""}
                                 </div>
                               </div>
 
@@ -580,7 +612,8 @@ export default function GlobalAlbumsPage() {
                                 )}
                               </div>
                               <span className="sr-only">
-                                {album.name}, {photoCount} photo{photoCount !== 1 ? "s" : ""}
+                                {album.name}, {photoCount} photo
+                                {photoCount !== 1 ? "s" : ""}
                               </span>
                             </button>
                           );
@@ -600,7 +633,9 @@ export default function GlobalAlbumsPage() {
                   disabled={albumPagination.loadingMore}
                   className="px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
                 >
-                  {albumPagination.loadingMore ? "Loading..." : "Load More Albums"}
+                  {albumPagination.loadingMore
+                    ? "Loading..."
+                    : "Load More Albums"}
                 </button>
               </div>
             )}
@@ -610,4 +645,3 @@ export default function GlobalAlbumsPage() {
     </div>
   );
 }
-

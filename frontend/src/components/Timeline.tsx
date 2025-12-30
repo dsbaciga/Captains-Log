@@ -1,21 +1,21 @@
-import { useState, useEffect } from 'react';
-import type { Activity } from '../types/activity';
-import type { Transportation } from '../types/transportation';
-import type { Lodging } from '../types/lodging';
-import type { JournalEntry } from '../types/journalEntry';
-import type { Location } from '../types/location';
-import type { WeatherData, WeatherDisplay } from '../types/weather';
-import activityService from '../services/activity.service';
-import transportationService from '../services/transportation.service';
-import lodgingService from '../services/lodging.service';
-import journalService from '../services/journalEntry.service';
-import weatherService from '../services/weather.service';
-import locationService from '../services/location.service';
-import WeatherCard from './WeatherCard';
-import DayMiniMap from './DayMiniMap';
-import TimelineEditModal from './TimelineEditModal';
-import { getWeatherIcon } from '../utils/weatherIcons';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import type { Activity } from "../types/activity";
+import type { Transportation } from "../types/transportation";
+import type { Lodging } from "../types/lodging";
+import type { JournalEntry } from "../types/journalEntry";
+import type { Location } from "../types/location";
+import type { WeatherData, WeatherDisplay } from "../types/weather";
+import activityService from "../services/activity.service";
+import transportationService from "../services/transportation.service";
+import lodgingService from "../services/lodging.service";
+import journalService from "../services/journalEntry.service";
+import weatherService from "../services/weather.service";
+import locationService from "../services/location.service";
+import WeatherCard from "./WeatherCard";
+import DayMiniMap from "./DayMiniMap";
+import TimelineEditModal from "./TimelineEditModal";
+import { getWeatherIcon } from "../utils/weatherIcons";
+import toast from "react-hot-toast";
 
 interface TimelineProps {
   tripId: number;
@@ -24,12 +24,23 @@ interface TimelineProps {
   tripStartDate?: string;
   tripEndDate?: string;
   tripStatus?: string;
-  onNavigateToTab?: (tab: 'activities' | 'transportation' | 'lodging' | 'journal', itemId?: number) => void;
+  onNavigateToTab?: (
+    tab: "activities" | "transportation" | "lodging" | "journal",
+    itemId?: number
+  ) => void;
   onRefresh?: () => void;
 }
 
-type TimelineItemType = 'activity' | 'transportation' | 'lodging' | 'journal';
-type TransportationType = 'flight' | 'train' | 'bus' | 'car' | 'ferry' | 'bicycle' | 'walk' | 'other';
+type TimelineItemType = "activity" | "transportation" | "lodging" | "journal";
+type TransportationType =
+  | "flight"
+  | "train"
+  | "bus"
+  | "car"
+  | "ferry"
+  | "bicycle"
+  | "walk"
+  | "other";
 
 interface PhotoAlbumInfo {
   id: number;
@@ -67,13 +78,26 @@ interface TimelineItem {
   data: Activity | Transportation | Lodging | JournalEntry;
 }
 
-const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDate, tripStatus, onNavigateToTab, onRefresh }: TimelineProps) => {
+const Timeline = ({
+  tripId,
+  tripTimezone,
+  userTimezone,
+  tripStartDate,
+  tripEndDate,
+  tripStatus,
+  onNavigateToTab,
+  onRefresh,
+}: TimelineProps) => {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
-  const [weatherData, setWeatherData] = useState<Record<string, WeatherData>>({});
+  const [weatherData, setWeatherData] = useState<Record<string, WeatherData>>(
+    {}
+  );
   const [loading, setLoading] = useState(true);
-  const [mobileActiveTimezone, setMobileActiveTimezone] = useState<'trip' | 'user'>('trip');
+  const [mobileActiveTimezone, setMobileActiveTimezone] = useState<
+    "trip" | "user"
+  >("trip");
   const [visibleTypes, setVisibleTypes] = useState<Set<TimelineItemType>>(
-    new Set(['activity', 'transportation', 'lodging', 'journal'])
+    new Set(["activity", "transportation", "lodging", "journal"])
   );
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
 
@@ -83,14 +107,17 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
   const [locations, setLocations] = useState<Location[]>([]);
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
   const [allLodgings, setAllLodgings] = useState<Lodging[]>([]);
-  const [allTransportations, setAllTransportations] = useState<Transportation[]>([]);
+  const [allTransportations, setAllTransportations] = useState<
+    Transportation[]
+  >([]);
 
   // Check if we should show dual timezones
-  const showDualTimezone = tripTimezone && userTimezone && tripTimezone !== userTimezone;
+  const showDualTimezone =
+    tripTimezone && userTimezone && tripTimezone !== userTimezone;
 
   // Toggle filter type
   const toggleType = (type: TimelineItemType) => {
-    setVisibleTypes(prev => {
+    setVisibleTypes((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(type)) {
         newSet.delete(type);
@@ -103,7 +130,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
   // Toggle day collapse
   const toggleDay = (dateKey: string) => {
-    setCollapsedDays(prev => {
+    setCollapsedDays((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(dateKey)) {
         newSet.delete(dateKey);
@@ -122,12 +149,12 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
         const locs = await locationService.getLocationsByTrip(tripId);
         setLocations(locs);
       } catch (error) {
-        console.error('Failed to load locations:', error);
+        console.error("Failed to load locations:", error);
       }
     }
 
     // For journal entries, load all entities for linking
-    if (item.type === 'journal') {
+    if (item.type === "journal") {
       try {
         const [activities, lodgings, transportations] = await Promise.all([
           activityService.getActivitiesByTrip(tripId),
@@ -138,7 +165,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
         setAllLodgings(lodgings);
         setAllTransportations(transportations);
       } catch (error) {
-        console.error('Failed to load trip entities:', error);
+        console.error("Failed to load trip entities:", error);
       }
     }
 
@@ -170,27 +197,29 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
     try {
       switch (item.type) {
-        case 'activity':
+        case "activity":
           await activityService.deleteActivity(itemId);
           break;
-        case 'transportation':
+        case "transportation":
           await transportationService.deleteTransportation(itemId);
           break;
-        case 'lodging':
+        case "lodging":
           await lodgingService.deleteLodging(itemId);
           break;
-        case 'journal':
+        case "journal":
           await journalService.deleteJournalEntry(itemId);
           break;
       }
 
-      toast.success(`${item.type.charAt(0).toUpperCase() + item.type.slice(1)} deleted`);
+      toast.success(
+        `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} deleted`
+      );
 
       // Refresh timeline
       loadTimelineData();
       onRefresh?.();
     } catch (error) {
-      console.error('Error deleting item:', error);
+      console.error("Error deleting item:", error);
       toast.error(`Failed to delete ${item.type}`);
     }
   };
@@ -204,14 +233,14 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
     try {
       // Format the date in the specified timezone to get year, month, day
-      const formatter = new Intl.DateTimeFormat('en-US', {
+      const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: timezone,
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
-      
+
       return formatter.format(date);
     } catch (error) {
       console.warn(`Invalid timezone: ${timezone}`, error);
@@ -221,18 +250,20 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
   useEffect(() => {
     loadTimelineData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
   const loadTimelineData = async () => {
     setLoading(true);
     try {
-      const [activities, transportation, lodging, journal, weather] = await Promise.all([
-        activityService.getActivitiesByTrip(tripId),
-        transportationService.getTransportationByTrip(tripId),
-        lodgingService.getLodgingByTrip(tripId),
-        journalService.getJournalEntriesByTrip(tripId),
-        weatherService.getWeatherForTrip(tripId).catch(() => []), // Don't fail if weather unavailable
-      ]);
+      const [activities, transportation, lodging, journal, weather] =
+        await Promise.all([
+          activityService.getActivitiesByTrip(tripId),
+          transportationService.getTransportationByTrip(tripId),
+          lodgingService.getLodgingByTrip(tripId),
+          journalService.getJournalEntriesByTrip(tripId),
+          weatherService.getWeatherForTrip(tripId).catch(() => []), // Don't fail if weather unavailable
+        ]);
 
       const items: TimelineItem[] = [];
 
@@ -244,26 +275,34 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
           if (activity.startTime && activity.endTime) {
             const start = new Date(activity.startTime);
             const end = new Date(activity.endTime);
-            durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+            durationMinutes = Math.round(
+              (end.getTime() - start.getTime()) / (1000 * 60)
+            );
           }
 
           items.push({
             id: activity.id,
-            type: 'activity',
+            type: "activity",
             dateTime: new Date(activity.startTime),
-            endDateTime: activity.endTime ? new Date(activity.endTime) : undefined,
+            endDateTime: activity.endTime
+              ? new Date(activity.endTime)
+              : undefined,
             title: activity.name,
             subtitle: activity.category || undefined,
             description: activity.description || undefined,
             location: activity.location?.name,
-            locationCoords: activity.location?.latitude && activity.location?.longitude
-              ? { latitude: Number(activity.location.latitude), longitude: Number(activity.location.longitude) }
-              : undefined,
+            locationCoords:
+              activity.location?.latitude && activity.location?.longitude
+                ? {
+                    latitude: Number(activity.location.latitude),
+                    longitude: Number(activity.location.longitude),
+                  }
+                : undefined,
             cost: activity.cost || undefined,
             currency: activity.currency || undefined,
             confirmationNumber: activity.bookingReference || undefined,
             durationMinutes,
-            photoAlbums: activity.photoAlbums?.map(album => ({
+            photoAlbums: activity.photoAlbums?.map((album) => ({
               id: album.id,
               name: album.name,
               _count: album._count,
@@ -281,17 +320,25 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
           if (!durationMinutes && trans.departureTime && trans.arrivalTime) {
             const start = new Date(trans.departureTime);
             const end = new Date(trans.arrivalTime);
-            durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+            durationMinutes = Math.round(
+              (end.getTime() - start.getTime()) / (1000 * 60)
+            );
           }
 
           items.push({
             id: trans.id,
-            type: 'transportation',
+            type: "transportation",
             dateTime: new Date(trans.departureTime),
-            endDateTime: trans.arrivalTime ? new Date(trans.arrivalTime) : undefined,
-            title: `${trans.type.charAt(0).toUpperCase() + trans.type.slice(1)}`,
+            endDateTime: trans.arrivalTime
+              ? new Date(trans.arrivalTime)
+              : undefined,
+            title: `${
+              trans.type.charAt(0).toUpperCase() + trans.type.slice(1)
+            }`,
             subtitle: trans.carrier || undefined,
-            description: `${trans.fromLocationName || 'Unknown'} → ${trans.toLocationName || 'Unknown'}`,
+            description: `${trans.fromLocationName || "Unknown"} → ${
+              trans.toLocationName || "Unknown"
+            }`,
             cost: trans.cost || undefined,
             currency: trans.currency || undefined,
             startTimezone: trans.startTimezone || undefined,
@@ -300,12 +347,20 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
             vehicleNumber: trans.vehicleNumber || undefined,
             confirmationNumber: trans.confirmationNumber || undefined,
             durationMinutes,
-            fromCoords: trans.fromLocation?.latitude && trans.fromLocation?.longitude
-              ? { latitude: Number(trans.fromLocation.latitude), longitude: Number(trans.fromLocation.longitude) }
-              : undefined,
-            toCoords: trans.toLocation?.latitude && trans.toLocation?.longitude
-              ? { latitude: Number(trans.toLocation.latitude), longitude: Number(trans.toLocation.longitude) }
-              : undefined,
+            fromCoords:
+              trans.fromLocation?.latitude && trans.fromLocation?.longitude
+                ? {
+                    latitude: Number(trans.fromLocation.latitude),
+                    longitude: Number(trans.fromLocation.longitude),
+                  }
+                : undefined,
+            toCoords:
+              trans.toLocation?.latitude && trans.toLocation?.longitude
+                ? {
+                    latitude: Number(trans.toLocation.latitude),
+                    longitude: Number(trans.toLocation.longitude),
+                  }
+                : undefined,
             connectionGroupId: trans.connectionGroupId || undefined,
             data: trans,
           });
@@ -326,8 +381,10 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
           const currentDate = new Date(checkInDateOnly);
 
           while (currentDate <= checkOutDateOnly) {
-            const isCheckInDay = currentDate.getTime() === checkInDateOnly.getTime();
-            const isCheckOutDay = currentDate.getTime() === checkOutDateOnly.getTime();
+            const isCheckInDay =
+              currentDate.getTime() === checkInDateOnly.getTime();
+            const isCheckOutDay =
+              currentDate.getTime() === checkOutDateOnly.getTime();
 
             // Set the time to check-in time on first day, midnight on other days
             let itemDateTime = new Date(currentDate);
@@ -335,37 +392,47 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
               itemDateTime = new Date(checkIn);
             }
 
-            let subtitle = lodge.type.charAt(0).toUpperCase() + lodge.type.slice(1).replace(/_/g, ' ');
+            let subtitle =
+              lodge.type.charAt(0).toUpperCase() +
+              lodge.type.slice(1).replace(/_/g, " ");
 
             if (isCheckInDay) {
-              subtitle += ' (Check-in)';
+              subtitle += " (Check-in)";
             } else if (isCheckOutDay) {
-              subtitle += ' (Check-out)';
+              subtitle += " (Check-out)";
             }
 
             items.push({
               id: lodge.id + currentDate.getTime(), // Unique ID for each day
-              type: 'lodging',
+              type: "lodging",
               dateTime: itemDateTime,
               endDateTime: isCheckOutDay ? new Date(checkOut) : undefined,
               title: lodge.name,
               subtitle: subtitle,
               description: lodge.address || undefined,
               location: lodge.location?.name,
-              locationCoords: lodge.location?.latitude && lodge.location?.longitude
-                ? { latitude: Number(lodge.location.latitude), longitude: Number(lodge.location.longitude) }
-                : undefined,
+              locationCoords:
+                lodge.location?.latitude && lodge.location?.longitude
+                  ? {
+                      latitude: Number(lodge.location.latitude),
+                      longitude: Number(lodge.location.longitude),
+                    }
+                  : undefined,
               cost: isCheckInDay ? lodge.cost || undefined : undefined, // Only show cost on check-in day
-              currency: isCheckInDay ? lodge.currency : undefined,
+              currency: isCheckInDay ? lodge.currency || undefined : undefined,
               isAllDay: !isCheckInDay && !isCheckOutDay, // Middle days are all-day
               showCheckInTime: isCheckInDay,
               showCheckOutTime: isCheckOutDay,
-              confirmationNumber: isCheckInDay ? lodge.confirmationNumber || undefined : undefined,
-              photoAlbums: isCheckInDay ? lodge.photoAlbums?.map(album => ({
-                id: album.id,
-                name: album.name,
-                _count: album._count,
-              })) : undefined,
+              confirmationNumber: isCheckInDay
+                ? lodge.confirmationNumber || undefined
+                : undefined,
+              photoAlbums: isCheckInDay
+                ? lodge.photoAlbums?.map((album) => ({
+                    id: album.id,
+                    name: album.name,
+                    _count: album._count,
+                  }))
+                : undefined,
               data: lodge,
             });
 
@@ -376,20 +443,28 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
           // Fallback for lodging without check-out date
           items.push({
             id: lodge.id,
-            type: 'lodging',
+            type: "lodging",
             dateTime: new Date(lodge.checkInDate),
-            endDateTime: lodge.checkOutDate ? new Date(lodge.checkOutDate) : undefined,
+            endDateTime: lodge.checkOutDate
+              ? new Date(lodge.checkOutDate)
+              : undefined,
             title: lodge.name,
-            subtitle: lodge.type.charAt(0).toUpperCase() + lodge.type.slice(1).replace(/_/g, ' '),
+            subtitle:
+              lodge.type.charAt(0).toUpperCase() +
+              lodge.type.slice(1).replace(/_/g, " "),
             description: lodge.address || undefined,
             location: lodge.location?.name,
-            locationCoords: lodge.location?.latitude && lodge.location?.longitude
-              ? { latitude: Number(lodge.location.latitude), longitude: Number(lodge.location.longitude) }
-              : undefined,
+            locationCoords:
+              lodge.location?.latitude && lodge.location?.longitude
+                ? {
+                    latitude: Number(lodge.location.latitude),
+                    longitude: Number(lodge.location.longitude),
+                  }
+                : undefined,
             cost: lodge.cost || undefined,
             currency: lodge.currency || undefined,
             confirmationNumber: lodge.confirmationNumber || undefined,
-            photoAlbums: lodge.photoAlbums?.map(album => ({
+            photoAlbums: lodge.photoAlbums?.map((album) => ({
               id: album.id,
               name: album.name,
               _count: album._count,
@@ -405,16 +480,23 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
           // Check if this journal entry is linked to any activities, lodging, or transportation
           const hasActivityLinks = (entry.activityAssignments?.length || 0) > 0;
           const hasLodgingLinks = (entry.lodgingAssignments?.length || 0) > 0;
-          const hasTransportationLinks = (entry.transportationAssignments?.length || 0) > 0;
+          const hasTransportationLinks =
+            (entry.transportationAssignments?.length || 0) > 0;
 
           // Only add to timeline if it's a standalone journal entry
-          if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
+          if (
+            !hasActivityLinks &&
+            !hasLodgingLinks &&
+            !hasTransportationLinks
+          ) {
             items.push({
               id: entry.id,
-              type: 'journal',
+              type: "journal",
               dateTime: new Date(entry.date),
-              title: entry.title || 'Untitled Entry',
-              description: entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : ''),
+              title: entry.title || "Untitled Entry",
+              description:
+                entry.content.substring(0, 150) +
+                (entry.content.length > 150 ? "..." : ""),
               location: entry.locationAssignments?.[0]?.location?.name,
               data: entry,
             });
@@ -436,8 +518,8 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
       setWeatherData(weatherByDate);
     } catch (error) {
-      toast.error('Failed to load timeline data');
-      console.error('Error loading timeline:', error);
+      toast.error("Failed to load timeline data");
+      console.error("Error loading timeline:", error);
     } finally {
       setLoading(false);
     }
@@ -445,53 +527,69 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
   // Group items by day
   // Filter items by visible types
-  const filteredItems = timelineItems.filter(item => visibleTypes.has(item.type));
+  const filteredItems = timelineItems.filter((item) =>
+    visibleTypes.has(item.type)
+  );
 
   // Generate all dates from trip start to end (if available) in trip timezone
   const generateAllTripDates = (): string[] => {
     if (!tripStartDate || !tripEndDate || !tripTimezone) return [];
 
-    const dates: Set<string> = new Set();
-    const start = new Date(tripStartDate);
-    const end = new Date(tripEndDate);
-    
-    // Get the date strings in the trip timezone for start and end
-    const startDateStr = getDateStringInTimezone(start, tripTimezone);
-    const endDateStr = getDateStringInTimezone(end, tripTimezone);
-    
-    // Iterate through dates, formatting each in trip timezone
-    // We'll iterate in UTC days but format each in the trip timezone
-    const current = new Date(start);
-    const endTime = end.getTime();
-    
-    // Use a Set to track unique date strings (in case of DST transitions)
-    while (current.getTime() <= endTime) {
-      const dateStr = getDateStringInTimezone(current, tripTimezone);
-      dates.add(dateStr);
-      
-      // Move forward by 24 hours
-      current.setTime(current.getTime() + 24 * 60 * 60 * 1000);
-      
-      // Safety check: if we've added too many dates, break
-      if (dates.size > 1000) break;
-    }
-    
-    // Also ensure start and end dates are included
-    dates.add(startDateStr);
-    dates.add(endDateStr);
-    
-    // Convert to array and sort chronologically
-    // Since date strings are in format "Mon Nov 22 2024", we can parse them for sorting
-    return Array.from(dates).sort((a, b) => {
-      // Try to parse as dates for comparison
-      const dateA = new Date(a);
-      const dateB = new Date(b);
-      // If parsing fails, compare strings
-      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-        return a.localeCompare(b);
+    // Parse date-only strings (YYYY-MM-DD) to extract year, month, day
+    // tripStartDate and tripEndDate are date-only strings like "2025-11-22"
+    // These represent calendar dates in the TRIP timezone, not UTC.
+    const parseLocalDate = (
+      dateStr: string
+    ): { year: number; month: number; day: number } => {
+      const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        return {
+          year: parseInt(match[1], 10),
+          month: parseInt(match[2], 10) - 1, // 0-indexed
+          day: parseInt(match[3], 10),
+        };
       }
-      return dateA.getTime() - dateB.getTime();
+      const d = new Date(dateStr);
+      return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
+    };
+
+    const startParts = parseLocalDate(tripStartDate);
+    const endParts = parseLocalDate(tripEndDate);
+
+    // Generate dates by iterating through calendar days
+    // Use noon to avoid any DST edge cases
+    const dates: string[] = [];
+    const current = new Date(
+      startParts.year,
+      startParts.month,
+      startParts.day,
+      12,
+      0,
+      0
+    );
+    const endDate = new Date(
+      endParts.year,
+      endParts.month,
+      endParts.day,
+      12,
+      0,
+      0
+    );
+
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
+
+    while (current <= endDate) {
+      dates.push(formatter.format(current));
+      current.setDate(current.getDate() + 1);
+      if (dates.length > 1000) break;
+    }
+
+    return dates;
   };
 
   const allTripDates = generateAllTripDates();
@@ -500,10 +598,11 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
     // Determine which timezone to use for grouping:
     // - For transportation items, use startTimezone if available
     // - Otherwise, use tripTimezone
-    const itemTimezone = item.type === 'transportation' && item.startTimezone 
-      ? item.startTimezone 
-      : tripTimezone;
-    
+    const itemTimezone =
+      item.type === "transportation" && item.startTimezone
+        ? item.startTimezone
+        : tripTimezone;
+
     const dateKey = getDateStringInTimezone(item.dateTime, itemTimezone);
     if (!acc[dateKey]) {
       acc[dateKey] = [];
@@ -516,11 +615,11 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
   const allGroupedItems: Record<string, TimelineItem[]> = {};
   if (allTripDates.length > 0) {
     // Include all trip dates
-    allTripDates.forEach(dateKey => {
+    allTripDates.forEach((dateKey) => {
       allGroupedItems[dateKey] = groupedItems[dateKey] || [];
     });
     // Also include any dates outside the trip range that have items
-    Object.keys(groupedItems).forEach(dateKey => {
+    Object.keys(groupedItems).forEach((dateKey) => {
       if (!allGroupedItems[dateKey]) {
         allGroupedItems[dateKey] = groupedItems[dateKey];
       }
@@ -531,52 +630,52 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
   }
 
   // Sort dates chronologically
-  const sortedDateKeys = Object.keys(allGroupedItems).sort((a, b) =>
-    new Date(a).getTime() - new Date(b).getTime()
+  const sortedDateKeys = Object.keys(allGroupedItems).sort(
+    (a, b) => new Date(a).getTime() - new Date(b).getTime()
   );
 
   const formatTime = (date: Date, displayTimezone?: string) => {
     // If a timezone is specified, format the time in that timezone
     if (displayTimezone) {
-      return date.toLocaleTimeString('en-US', {
+      return date.toLocaleTimeString("en-US", {
         timeZone: displayTimezone,
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
       });
     }
     // Otherwise use default formatting
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
     });
   };
 
   const getTimezoneAbbr = (timezone: string): string => {
     // Simple mapping for common timezones
     const abbrs: Record<string, string> = {
-      'UTC': 'UTC',
-      'America/New_York': 'EST/EDT',
-      'America/Chicago': 'CST/CDT',
-      'America/Denver': 'MST/MDT',
-      'America/Los_Angeles': 'PST/PDT',
-      'America/Anchorage': 'AKST/AKDT',
-      'Pacific/Honolulu': 'HST',
-      'Europe/London': 'GMT/BST',
-      'Europe/Paris': 'CET/CEST',
-      'Europe/Berlin': 'CET/CEST',
-      'Asia/Tokyo': 'JST',
-      'Asia/Shanghai': 'CST',
-      'Asia/Dubai': 'GST',
-      'Australia/Sydney': 'AEST/AEDT',
-      'Pacific/Auckland': 'NZST/NZDT'
+      UTC: "UTC",
+      "America/New_York": "EST/EDT",
+      "America/Chicago": "CST/CDT",
+      "America/Denver": "MST/MDT",
+      "America/Los_Angeles": "PST/PDT",
+      "America/Anchorage": "AKST/AKDT",
+      "Pacific/Honolulu": "HST",
+      "Europe/London": "GMT/BST",
+      "Europe/Paris": "CET/CEST",
+      "Europe/Berlin": "CET/CEST",
+      "Asia/Tokyo": "JST",
+      "Asia/Shanghai": "CST",
+      "Asia/Dubai": "GST",
+      "Australia/Sydney": "AEST/AEDT",
+      "Pacific/Auckland": "NZST/NZDT",
     };
-    return abbrs[timezone] || timezone.split('/').pop() || timezone;
+    return abbrs[timezone] || timezone.split("/").pop() || timezone;
   };
 
   const formatDuration = (minutes: number): string => {
-    if (minutes < 0) return '';
+    if (minutes < 0) return "";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     if (hours === 0) return `${mins}m`;
@@ -599,8 +698,15 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const dayNumber = getDayNumber(dateString);
-    const formattedDate = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    return dayNumber && dayNumber > 0 ? `Day ${dayNumber} - ${formattedDate}` : formattedDate;
+    const formattedDate = date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    return dayNumber && dayNumber > 0
+      ? `Day ${dayNumber} - ${formattedDate}`
+      : formattedDate;
   };
 
   const transformWeatherData = (weather: WeatherData): WeatherDisplay => {
@@ -619,7 +725,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
   const renderTimelineColumn = (items: TimelineItem[], timezone?: string) => {
     // Pre-compute connection groups for this day's items
     const connectionGroups = new Map<string, TimelineItem[]>();
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.connectionGroupId) {
         const group = connectionGroups.get(item.connectionGroupId) || [];
         group.push(item);
@@ -634,8 +740,10 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
       if (!group || group.length < 2) return null;
 
       // Sort by departure time
-      const sortedGroup = [...group].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
-      const index = sortedGroup.findIndex(i => i.id === item.id);
+      const sortedGroup = [...group].sort(
+        (a, b) => a.dateTime.getTime() - b.dateTime.getTime()
+      );
+      const index = sortedGroup.findIndex((i) => i.id === item.id);
 
       return {
         legNumber: index + 1,
@@ -656,202 +764,350 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
             {items.map((item, itemIndex) => {
               const connectionInfo = getConnectionInfo(item);
               const nextItem = items[itemIndex + 1];
-              const showConnectionLine = connectionInfo && !connectionInfo.isLast &&
+              const showConnectionLine =
+                connectionInfo &&
+                !connectionInfo.isLast &&
                 nextItem?.connectionGroupId === item.connectionGroupId;
 
               return (
-              <div key={`${item.type}-${item.id}`} className="timeline-item relative flex gap-4">
-                {/* Connection line to next item */}
-                {showConnectionLine && (
-                  // eslint-disable-next-line react/forbid-dom-props
-                  <div className="absolute left-6 top-12 h-full w-0.5 border-l-2 border-dashed border-green-400 dark:border-green-500 z-0" style={{ transform: 'translateX(-1px)' }}></div>
-                )}
+                <div
+                  key={`${item.type}-${item.id}`}
+                  className="timeline-item relative flex gap-4"
+                >
+                  {/* Connection line to next item */}
+                  {showConnectionLine && (
+                    <div className="absolute left-6 top-12 h-full w-0.5 border-l-2 border-dashed border-green-400 dark:border-green-500 z-0 -translate-x-px"></div>
+                  )}
 
-                {/* Icon */}
-                <div className={`flex-shrink-0 w-12 h-12 rounded-full ${getTypeColor(item.type)} text-white flex items-center justify-center z-10 ${connectionInfo ? 'ring-2 ring-green-400 dark:ring-green-500' : ''}`}>
-                  {getIcon(item.type, item)}
-                </div>
+                  {/* Icon */}
+                  <div
+                    className={`flex-shrink-0 w-12 h-12 rounded-full ${getTypeColor(
+                      item.type
+                    )} text-white flex items-center justify-center z-10 ${
+                      connectionInfo
+                        ? "ring-2 ring-green-400 dark:ring-green-500"
+                        : ""
+                    }`}
+                  >
+                    {getIcon(item.type, item)}
+                  </div>
 
-                {/* Content */}
-                <div className={`group flex-1 bg-white dark:bg-gray-800 border rounded-lg p-4 shadow-sm relative ${connectionInfo ? 'border-green-300 dark:border-green-600' : 'border-gray-200 dark:border-gray-700'}`}>
-                  {/* Quick Action Buttons - appear on hover */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 print:hidden">
-                    {onNavigateToTab && (
+                  {/* Content */}
+                  <div
+                    className={`group flex-1 bg-white dark:bg-gray-800 border rounded-lg p-4 shadow-sm relative ${
+                      connectionInfo
+                        ? "border-green-300 dark:border-green-600"
+                        : "border-gray-200 dark:border-gray-700"
+                    }`}
+                  >
+                    {/* Quick Action Buttons - appear on hover */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 print:hidden">
+                      {onNavigateToTab && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(item);
+                          }}
+                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                          title="Edit"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEdit(item);
+                          handleDelete(item);
                         }}
-                        className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-                        title="Edit"
+                        className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                        title="Delete"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(item);
-                      }}
-                      className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
-                      title="Delete"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div className="flex items-start justify-between mb-2 pr-16">
-                    <div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                        {item.isAllDay ? (
-                          'All Day'
-                        ) : item.showCheckInTime ? (
-                          `Check-in: ${formatTime(item.dateTime, timezone)}`
-                        ) : item.showCheckOutTime ? (
-                          `Check-out: ${formatTime(item.endDateTime!, timezone)}`
-                        ) : item.type === 'transportation' ? (
-                          <>
-                            {formatTime(item.dateTime, timezone)}
-                            {item.endDateTime && ` - ${formatTime(item.endDateTime, timezone)}`}
-                            {timezone && ` ${getTimezoneAbbr(timezone)}`}
-                            {item.durationMinutes && item.durationMinutes > 0 && (
-                              <span className="text-gray-400 dark:text-gray-500"> ({formatDuration(item.durationMinutes)})</span>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {formatTime(item.dateTime, timezone)}
-                            {item.endDateTime && ` - ${formatTime(item.endDateTime, timezone)}`}
-                            {item.durationMinutes && item.durationMinutes > 0 && (
-                              <span className="text-gray-400 dark:text-gray-500"> ({formatDuration(item.durationMinutes)})</span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white">{item.title}</h4>
-                      {item.subtitle && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{item.subtitle}</p>
-                      )}
-                      {/* Flight/booking numbers */}
-                      {(item.vehicleNumber || item.confirmationNumber) && (
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-mono">
-                          {item.vehicleNumber && (
-                            <span className="inline-flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                              </svg>
-                              {item.vehicleNumber}
-                            </span>
-                          )}
-                          {item.vehicleNumber && item.confirmationNumber && <span className="mx-2">|</span>}
-                          {item.confirmationNumber && (
-                            <span className="inline-flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {item.confirmationNumber}
-                            </span>
-                          )}
-                        </p>
-                      )}
                     </div>
-                    {item.cost && item.currency && (
-                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {item.currency} {item.cost.toFixed(2)}
-                      </div>
-                    )}
-                  </div>
 
-                  {item.location && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {item.location}
-                    </div>
-                  )}
-
-                  {item.description && (
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{item.description}</p>
-                  )}
-
-                  {/* Connection Badge */}
-                  {connectionInfo && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-100 dark:bg-green-900/30 text-xs font-medium text-green-700 dark:text-green-300">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Connection: Leg {connectionInfo.legNumber} of {connectionInfo.totalLegs}
-                    </div>
-                  )}
-
-                  {/* Photo Albums */}
-                  {item.photoAlbums && item.photoAlbums.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {item.photoAlbums.slice(0, 3).map(album => (
-                        <div
-                          key={album.id}
-                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="truncate max-w-[100px]">{album.name}</span>
-                          {album._count?.photoAssignments !== undefined && (
-                            <span className="text-gray-400 dark:text-gray-500">
-                              ({album._count.photoAssignments})
-                            </span>
+                    <div className="flex items-start justify-between mb-2 pr-16">
+                      <div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                          {item.isAllDay ? (
+                            "All Day"
+                          ) : item.showCheckInTime ? (
+                            `Check-in: ${formatTime(item.dateTime, timezone)}`
+                          ) : item.showCheckOutTime ? (
+                            `Check-out: ${formatTime(
+                              item.endDateTime!,
+                              timezone
+                            )}`
+                          ) : item.type === "transportation" ? (
+                            <>
+                              {formatTime(item.dateTime, timezone)}
+                              {item.endDateTime &&
+                                ` - ${formatTime(item.endDateTime, timezone)}`}
+                              {timezone && ` ${getTimezoneAbbr(timezone)}`}
+                              {item.durationMinutes &&
+                                item.durationMinutes > 0 && (
+                                  <span className="text-gray-400 dark:text-gray-500">
+                                    {" "}
+                                    ({formatDuration(item.durationMinutes)})
+                                  </span>
+                                )}
+                            </>
+                          ) : (
+                            <>
+                              {formatTime(item.dateTime, timezone)}
+                              {item.endDateTime &&
+                                ` - ${formatTime(item.endDateTime, timezone)}`}
+                              {item.durationMinutes &&
+                                item.durationMinutes > 0 && (
+                                  <span className="text-gray-400 dark:text-gray-500">
+                                    {" "}
+                                    ({formatDuration(item.durationMinutes)})
+                                  </span>
+                                )}
+                            </>
                           )}
                         </div>
-                      ))}
-                      {item.photoAlbums.length > 3 && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 self-center">
-                          +{item.photoAlbums.length - 3} more
-                        </span>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                          {item.title}
+                        </h4>
+                        {item.subtitle && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {item.subtitle}
+                          </p>
+                        )}
+                        {/* Flight/booking numbers */}
+                        {(item.vehicleNumber || item.confirmationNumber) && (
+                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-mono">
+                            {item.vehicleNumber && (
+                              <span className="inline-flex items-center gap-1">
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+                                  />
+                                </svg>
+                                {item.vehicleNumber}
+                              </span>
+                            )}
+                            {item.vehicleNumber && item.confirmationNumber && (
+                              <span className="mx-2">|</span>
+                            )}
+                            {item.confirmationNumber && (
+                              <span className="inline-flex items-center gap-1">
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                {item.confirmationNumber}
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                      {item.cost && item.currency && (
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {item.currency} {item.cost.toFixed(2)}
+                        </div>
                       )}
                     </div>
-                  )}
 
-                  {/* Show associated journal entries for activities, lodging, and transportation */}
-                  {item.type !== 'journal' && 'journalAssignments' in item.data && item.data.journalAssignments && item.data.journalAssignments.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    {item.location && (
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-1">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
                         </svg>
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          Journal {item.data.journalAssignments.length === 1 ? 'Entry' : 'Entries'}:
-                        </span>
+                        {item.location}
                       </div>
-                      <div className="space-y-2">
-                        {item.data.journalAssignments.map((assignment: { id: number; journal: { title?: string; content?: string } }) => (
+                    )}
+
+                    {item.description && (
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {item.description}
+                      </p>
+                    )}
+
+                    {/* Connection Badge */}
+                    {connectionInfo && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-100 dark:bg-green-900/30 text-xs font-medium text-green-700 dark:text-green-300">
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
+                        </svg>
+                        Connection: Leg {connectionInfo.legNumber} of{" "}
+                        {connectionInfo.totalLegs}
+                      </div>
+                    )}
+
+                    {/* Photo Albums */}
+                    {item.photoAlbums && item.photoAlbums.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {item.photoAlbums.slice(0, 3).map((album) => (
                           <div
-                            key={assignment.id}
-                            className="w-full text-left text-sm bg-orange-50 dark:bg-orange-900/20 rounded p-2"
+                            key={album.id}
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300"
                           >
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              {assignment.journal.title || 'Untitled Entry'}
-                            </div>
-                            {assignment.journal.content && (
-                              <div className="text-gray-600 dark:text-gray-400 mt-1">
-                                {assignment.journal.content.substring(0, 100)}
-                                {assignment.journal.content.length > 100 ? '...' : ''}
-                              </div>
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                            <span className="truncate max-w-[100px]">
+                              {album.name}
+                            </span>
+                            {album._count?.photoAssignments !== undefined && (
+                              <span className="text-gray-400 dark:text-gray-500">
+                                ({album._count.photoAssignments})
+                              </span>
                             )}
                           </div>
                         ))}
+                        {item.photoAlbums.length > 3 && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 self-center">
+                            +{item.photoAlbums.length - 3} more
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    {/* Show associated journal entries for activities, lodging, and transportation */}
+                    {item.type !== "journal" &&
+                      "journalAssignments" in item.data &&
+                      item.data.journalAssignments &&
+                      item.data.journalAssignments.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center gap-2 mb-2">
+                            <svg
+                              className="w-4 h-4 text-orange-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                              />
+                            </svg>
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              Journal{" "}
+                              {item.data.journalAssignments.length === 1
+                                ? "Entry"
+                                : "Entries"}
+                              :
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {item.data.journalAssignments.map(
+                              (assignment: {
+                                id: number;
+                                journal: {
+                                  title?: string | null;
+                                  content?: string;
+                                };
+                              }) => (
+                                <div
+                                  key={assignment.id}
+                                  className="w-full text-left text-sm bg-orange-50 dark:bg-orange-900/20 rounded p-2"
+                                >
+                                  <div className="font-medium text-gray-900 dark:text-white">
+                                    {assignment.journal.title ||
+                                      "Untitled Entry"}
+                                  </div>
+                                  {assignment.journal.content && (
+                                    <div className="text-gray-600 dark:text-gray-400 mt-1">
+                                      {assignment.journal.content.substring(
+                                        0,
+                                        100
+                                      )}
+                                      {assignment.journal.content.length > 100
+                                        ? "..."
+                                        : ""}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
                 </div>
-              </div>
               );
             })}
           </div>
@@ -862,52 +1118,132 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
   const getTransportIcon = (transportType?: TransportationType) => {
     switch (transportType) {
-      case 'flight':
+      case "flight":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+            />
           </svg>
         );
-      case 'train':
+      case "train":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 18h8M8 6h8m-8 6h8M6 6v12a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2z" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 18h8M8 6h8m-8 6h8M6 6v12a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2z"
+            />
           </svg>
         );
-      case 'bus':
+      case "bus":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 18h.01M16 18h.01M6 6h12a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2zM6 10h12" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 18h.01M16 18h.01M6 6h12a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2zM6 10h12"
+            />
           </svg>
         );
-      case 'car':
+      case "car":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17h.01M16 17h.01M5 11l2-6h10l2 6M5 11v6a1 1 0 001 1h1m12-7v6a1 1 0 01-1 1h-1M5 11h14" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 17h.01M16 17h.01M5 11l2-6h10l2 6M5 11v6a1 1 0 001 1h1m12-7v6a1 1 0 01-1 1h-1M5 11h14"
+            />
           </svg>
         );
-      case 'ferry':
+      case "ferry":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17c1.5 0 3-1 3-1s1.5 1 3 1 3-1 3-1 1.5 1 3 1 3-1 3-1 1.5 1 3 1M5 12l2-7h10l2 7M8 12v2m8-2v2" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 17c1.5 0 3-1 3-1s1.5 1 3 1 3-1 3-1 1.5 1 3 1 3-1 3-1 1.5 1 3 1M5 12l2-7h10l2 7M8 12v2m8-2v2"
+            />
           </svg>
         );
-      case 'bicycle':
+      case "bicycle":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 17a3 3 0 100-6 3 3 0 000 6zm14 0a3 3 0 100-6 3 3 0 000 6zM5 14l4-7h4l2 4h4" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 17a3 3 0 100-6 3 3 0 000 6zm14 0a3 3 0 100-6 3 3 0 000 6zM5 14l4-7h4l2 4h4"
+            />
           </svg>
         );
-      case 'walk':
+      case "walk":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a2 2 0 11-4 0 2 2 0 014 0zm-2 3v4m0 0l-2 4m2-4l2 4m-4-8l-2 2m6-2l2 2" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 7a2 2 0 11-4 0 2 2 0 014 0zm-2 3v4m0 0l-2 4m2-4l2 4m-4-8l-2 2m6-2l2 2"
+            />
           </svg>
         );
       default:
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+            />
           </svg>
         );
     }
@@ -915,24 +1251,54 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
   const getIcon = (type: TimelineItemType, item?: TimelineItem) => {
     switch (type) {
-      case 'activity':
+      case "activity":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         );
-      case 'transportation':
+      case "transportation":
         return getTransportIcon(item?.transportationType);
-      case 'lodging':
+      case "lodging":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            />
           </svg>
         );
-      case 'journal':
+      case "journal":
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+            />
           </svg>
         );
     }
@@ -940,35 +1306,45 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
   const getTypeColor = (type: TimelineItemType) => {
     switch (type) {
-      case 'activity':
-        return 'bg-blue-500';
-      case 'transportation':
-        return 'bg-green-500';
-      case 'lodging':
-        return 'bg-purple-500';
-      case 'journal':
-        return 'bg-orange-500';
+      case "activity":
+        return "bg-blue-500";
+      case "transportation":
+        return "bg-green-500";
+      case "lodging":
+        return "bg-purple-500";
+      case "journal":
+        return "bg-orange-500";
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-gray-900 dark:text-white">Loading timeline...</div>;
+    return (
+      <div className="text-center py-8 text-gray-900 dark:text-white">
+        Loading timeline...
+      </div>
+    );
   }
 
   if (timelineItems.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-        No timeline items yet. Add activities, transportation, lodging, or journal entries to see them here.
+        No timeline items yet. Add activities, transportation, lodging, or
+        journal entries to see them here.
       </div>
     );
   }
 
   // Helper to extract locations from day's items for mini-map
   const getDayLocations = (items: TimelineItem[]) => {
-    const locations: Array<{ name: string; latitude: number; longitude: number; type?: 'activity' | 'transportation' | 'lodging' }> = [];
+    const locations: Array<{
+      name: string;
+      latitude: number;
+      longitude: number;
+      type?: "activity" | "transportation" | "lodging";
+    }> = [];
     const seenCoords = new Set<string>();
 
-    items.forEach(item => {
+    items.forEach((item) => {
       // Activity/lodging locations
       if (item.locationCoords && item.location) {
         const key = `${item.locationCoords.latitude},${item.locationCoords.longitude}`;
@@ -978,13 +1354,18 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
             name: item.location,
             latitude: item.locationCoords.latitude,
             longitude: item.locationCoords.longitude,
-            type: item.type === 'activity' ? 'activity' : item.type === 'lodging' ? 'lodging' : undefined,
+            type:
+              item.type === "activity"
+                ? "activity"
+                : item.type === "lodging"
+                ? "lodging"
+                : undefined,
           });
         }
       }
 
       // Transportation from/to locations
-      if (item.type === 'transportation') {
+      if (item.type === "transportation") {
         const trans = item.data as Transportation;
         if (item.fromCoords && trans.fromLocationName) {
           const key = `${item.fromCoords.latitude},${item.fromCoords.longitude}`;
@@ -994,7 +1375,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
               name: trans.fromLocationName,
               latitude: item.fromCoords.latitude,
               longitude: item.fromCoords.longitude,
-              type: 'transportation',
+              type: "transportation",
             });
           }
         }
@@ -1006,7 +1387,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
               name: trans.toLocationName,
               latitude: item.toCoords.latitude,
               longitude: item.toCoords.longitude,
-              type: 'transportation',
+              type: "transportation",
             });
           }
         }
@@ -1018,18 +1399,19 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
   // Helper to get filter button styles
   const getFilterButtonClass = (type: TimelineItemType) => {
-    const baseClass = 'px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5';
+    const baseClass =
+      "px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5";
     const isActive = visibleTypes.has(type);
 
     if (isActive) {
       switch (type) {
-        case 'activity':
+        case "activity":
           return `${baseClass} bg-blue-500 text-white`;
-        case 'transportation':
+        case "transportation":
           return `${baseClass} bg-green-500 text-white`;
-        case 'lodging':
+        case "lodging":
           return `${baseClass} bg-purple-500 text-white`;
-        case 'journal':
+        case "journal":
           return `${baseClass} bg-orange-500 text-white`;
       }
     }
@@ -1037,10 +1419,10 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
   };
 
   const filterLabels: Record<TimelineItemType, string> = {
-    activity: 'Activities',
-    transportation: 'Transport',
-    lodging: 'Lodging',
-    journal: 'Journal',
+    activity: "Activities",
+    transportation: "Transport",
+    lodging: "Lodging",
+    journal: "Journal",
   };
 
   const handlePrint = () => {
@@ -1108,8 +1490,17 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
       {/* Filter Bar */}
       <div className="timeline-filter-bar flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700 print:hidden">
-        <span className="text-sm text-gray-500 dark:text-gray-400 self-center mr-2">Filter:</span>
-        {(['activity', 'transportation', 'lodging', 'journal'] as TimelineItemType[]).map(type => (
+        <span className="text-sm text-gray-500 dark:text-gray-400 self-center mr-2">
+          Filter:
+        </span>
+        {(
+          [
+            "activity",
+            "transportation",
+            "lodging",
+            "journal",
+          ] as TimelineItemType[]
+        ).map((type) => (
           <button
             type="button"
             key={type}
@@ -1120,7 +1511,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
             <span>{filterLabels[type]}</span>
             {visibleTypes.has(type) && (
               <span className="ml-1 w-4 h-4 rounded-full bg-white/30 text-xs flex items-center justify-center">
-                {timelineItems.filter(i => i.type === type).length}
+                {timelineItems.filter((i) => i.type === type).length}
               </span>
             )}
           </button>
@@ -1134,8 +1525,18 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
             className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex items-center gap-1.5"
             title="Print timeline"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+              />
             </svg>
             <span>Print</span>
           </button>
@@ -1150,27 +1551,31 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setMobileActiveTimezone('trip')}
+                onClick={() => setMobileActiveTimezone("trip")}
                 className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors ${
-                  mobileActiveTimezone === 'trip'
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  mobileActiveTimezone === "trip"
+                    ? "bg-blue-600 dark:bg-blue-500 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                 }`}
               >
                 <div className="text-sm">Trip Timezone</div>
-                <div className="text-xs opacity-75">{getTimezoneAbbr(tripTimezone!)}</div>
+                <div className="text-xs opacity-75">
+                  {getTimezoneAbbr(tripTimezone!)}
+                </div>
               </button>
               <button
                 type="button"
-                onClick={() => setMobileActiveTimezone('user')}
+                onClick={() => setMobileActiveTimezone("user")}
                 className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors ${
-                  mobileActiveTimezone === 'user'
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  mobileActiveTimezone === "user"
+                    ? "bg-blue-600 dark:bg-blue-500 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                 }`}
               >
                 <div className="text-sm">Your Timezone</div>
-                <div className="text-xs opacity-75">{getTimezoneAbbr(userTimezone!)}</div>
+                <div className="text-xs opacity-75">
+                  {getTimezoneAbbr(userTimezone!)}
+                </div>
               </button>
             </div>
           </div>
@@ -1199,7 +1604,7 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
           const items = allGroupedItems[dateKey];
           const dayWeather = weatherData[dateKey];
           const isToday = dateKey === new Date().toDateString();
-          const isTripInProgress = tripStatus === 'In Progress';
+          const isTripInProgress = tripStatus === "In Progress";
           const showTodayHighlight = isToday && isTripInProgress;
           const isEmpty = items.length === 0;
 
@@ -1210,10 +1615,10 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
                 onClick={() => toggleDay(dateKey)}
                 className={`w-full text-left text-lg font-semibold mb-4 sticky top-16 py-2 pl-4 pr-4 border-b z-10 flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity ${
                   showTodayHighlight
-                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-100'
+                    ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-100"
                     : isEmpty
-                    ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
-                    : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'
+                    ? "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400"
+                    : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                 }`}
               >
                 <span className="flex items-center">
@@ -1224,16 +1629,27 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
                   )}
                   {formatDate(dateKey)}
                   <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                    {isEmpty ? '(No activities)' : `(${items.length} ${items.length === 1 ? 'item' : 'items'})`}
+                    {isEmpty
+                      ? "(No activities)"
+                      : `(${items.length} ${
+                          items.length === 1 ? "item" : "items"
+                        })`}
                   </span>
                 </span>
                 <svg
-                  className={`w-5 h-5 transform transition-transform ${collapsedDays.has(dateKey) ? '' : 'rotate-180'}`}
+                  className={`w-5 h-5 transform transition-transform ${
+                    collapsedDays.has(dateKey) ? "" : "rotate-180"
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
 
@@ -1261,10 +1677,22 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
                   {isEmpty ? (
                     /* Empty Day Placeholder */
                     <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30">
-                      <svg className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <svg
+                        className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
                       </svg>
-                      <p className="text-gray-400 dark:text-gray-500 text-sm">No activities scheduled for this day</p>
+                      <p className="text-gray-400 dark:text-gray-500 text-sm">
+                        No activities scheduled for this day
+                      </p>
                     </div>
                   ) : showDualTimezone ? (
                     <>
@@ -1277,10 +1705,9 @@ const Timeline = ({ tripId, tripTimezone, userTimezone, tripStartDate, tripEndDa
 
                       {/* Mobile: Single column based on active timezone */}
                       <div className="md:hidden">
-                        {mobileActiveTimezone === 'trip'
+                        {mobileActiveTimezone === "trip"
                           ? renderTimelineColumn(items, tripTimezone)
-                          : renderTimelineColumn(items, userTimezone)
-                        }
+                          : renderTimelineColumn(items, userTimezone)}
                       </div>
                     </>
                   ) : (
