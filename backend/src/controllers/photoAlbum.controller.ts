@@ -5,6 +5,7 @@ import {
   updateAlbumSchema,
   addPhotosToAlbumSchema,
 } from '../types/photo.types';
+import { AppError } from '../utils/errors';
 
 // Helper function to add Immich URLs for photos and transform album assignments
 function transformPhoto(photo: any) {
@@ -83,14 +84,29 @@ class PhotoAlbumController {
 
   async getAlbumsByTrip(req: Request, res: Response, next: NextFunction) {
     try {
+      if (!req.user || !req.user.userId) {
+        throw new AppError('Unauthorized', 401);
+      }
+
       const tripId = parseInt(req.params.tripId);
+      if (isNaN(tripId)) {
+        throw new AppError('Invalid trip ID', 400);
+      }
+
+      console.log('[PhotoAlbumController] getAlbumsByTrip called:', {
+        userId: req.user.userId,
+        tripId,
+        params: req.params,
+      });
+
       const albums = await photoAlbumService.getAlbumsByTrip(
-        req.user!.userId,
+        req.user.userId,
         tripId
       );
 
       res.json(albums);
     } catch (error) {
+      console.error('[PhotoAlbumController] getAlbumsByTrip error:', error);
       next(error);
     }
   }

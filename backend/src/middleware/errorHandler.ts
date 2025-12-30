@@ -1,19 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import logger from '../config/logger';
+import { AppError as UtilsAppError } from '../utils/errors';
 
-export class AppError extends Error {
-  statusCode: number;
-  isOperational: boolean;
-
-  constructor(message: string, statusCode: number) {
-    super(message);
-    this.statusCode = statusCode;
-    this.isOperational = true;
-
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
+// Re-export AppError from utils/errors for backwards compatibility
+export { AppError } from '../utils/errors';
 
 export const errorHandler = (
   err: Error,
@@ -78,9 +69,10 @@ export const errorHandler = (
     });
   }
 
-  // Operational errors (expected)
-  if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
+  // Operational errors (expected) - check for AppError from both locations
+  if (err instanceof UtilsAppError || (err as any).isOperational) {
+    const statusCode = (err as any).statusCode || 500;
+    return res.status(statusCode).json({
       status: 'error',
       message: err.message,
     });

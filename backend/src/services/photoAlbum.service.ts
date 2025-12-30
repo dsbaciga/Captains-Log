@@ -184,8 +184,11 @@ class PhotoAlbumService {
   }
 
   async getAlbumsByTrip(userId: number, tripId: number) {
+    console.log('[PhotoAlbumService] getAlbumsByTrip called:', { userId, tripId });
+    
     // Verify user has access to trip
     await verifyTripAccess(userId, tripId);
+    console.log('[PhotoAlbumService] verifyTripAccess passed');
 
     const albums = await prisma.photoAlbum.findMany({
       where: { tripId },
