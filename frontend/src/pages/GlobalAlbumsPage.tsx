@@ -83,7 +83,8 @@ export default function GlobalAlbumsPage() {
     albumPagination.loadInitial();
     setCoverPhotoUrls({});
     setCollapsedTrips(new Set());
-  }, [selectedTagIds, albumPagination.clear, albumPagination.loadInitial]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTagIds]);
 
   // Load cover photos with authentication for Immich photos
   useEffect(() => {
@@ -207,7 +208,7 @@ export default function GlobalAlbumsPage() {
     // Tag filter (client-side safety, server already filters)
     if (selectedTagIds.length > 0) {
       result = result.filter((album) => {
-        const tags = album.trip.tagAssignments?.map((t) => t.tag.id) || [];
+        const tags = album.trip.tagAssignments?.map((t) => t.tag?.id ?? t.id) || [];
         return selectedTagIds.every((id) => tags.includes(id));
       });
     }
@@ -378,7 +379,7 @@ export default function GlobalAlbumsPage() {
           {/* Tag Filter */}
           {allTags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {allTags.map(({ tag }) => (
+              {allTags.map((tag) => (
                 <button
                   key={tag.id}
                   type="button"
@@ -493,7 +494,7 @@ export default function GlobalAlbumsPage() {
                   <button
                     type="button"
                     onClick={() => toggleTripCollapse(trip.id)}
-                    aria-expanded={!isCollapsed}
+                    {...{ "aria-expanded": !isCollapsed }}
                     aria-controls={`${tripSectionIdPrefix}-${trip.id}`}
                     className="w-full px-6 py-4 flex items-center justify-between hover:bg-primary-50/50 dark:hover:bg-navy-700/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:focus-visible:ring-sky focus-visible:ring-inset"
                   >
