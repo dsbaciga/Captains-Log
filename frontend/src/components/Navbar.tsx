@@ -265,7 +265,7 @@ export default function Navbar() {
           showMobileMenu ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="relative flex flex-col h-full">
+        <div className="relative flex flex-col h-full bg-white dark:bg-navy-900">
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-sky/10">
             <span className="text-lg font-display font-bold text-primary-600 dark:text-sky">

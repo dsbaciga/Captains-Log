@@ -208,8 +208,7 @@ export default function GlobalAlbumsPage() {
     // Tag filter (client-side safety, server already filters)
     if (selectedTagIds.length > 0) {
       result = result.filter((album) => {
-        const tags =
-          album.trip.tagAssignments?.map((t) => t.tag?.id ?? t.id) || [];
+        const tags = album.trip.tagAssignments?.map((t) => t.tag.id) || [];
         return selectedTagIds.every((id) => tags.includes(id));
       });
     }

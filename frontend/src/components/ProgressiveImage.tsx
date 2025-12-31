@@ -19,7 +19,8 @@
  * ```
  */
 
-import { useState, useEffect, useRef, ImgHTMLAttributes } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type { ImgHTMLAttributes } from 'react';
 
 interface ProgressiveImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'srcSet'> {
   /** Full resolution image source */

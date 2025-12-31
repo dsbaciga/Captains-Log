@@ -5,7 +5,8 @@
  * Triggered by pressing `?` key.
  */
 
-import { useKeyboardShortcuts, getShortcutDisplay, KeyboardShortcut } from '../hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts, getShortcutDisplay } from '../hooks/useKeyboardShortcuts';
+import type { KeyboardShortcut } from '../hooks/useKeyboardShortcuts';
 
 export default function KeyboardShortcutsHelp() {
   const { showHelp, setShowHelp, shortcuts } = useKeyboardShortcuts();
