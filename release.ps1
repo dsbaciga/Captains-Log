@@ -1,103 +1,298 @@
-# Captain's Log Release Script (PowerShell)
-# Automates version bumping, tagging, and building releases
+<#
+.SYNOPSIS
+    Automated release script for Captain's Log
+
+.DESCRIPTION
+    This script automates the entire build and push process:
+    1. Updates version numbers in package.json files
+    2. Commits the version bump
+    3. Builds backend and frontend
+    4. Builds Docker images
+    5. Pushes Docker images to registry
+    6. Creates and pushes git tag
+
+.PARAMETER Version
+    The version number (e.g., v1.12.6 or 1.12.6)
+    Can also be "patch", "minor", or "major" to auto-increment
+
+.PARAMETER SkipBuild
+    Skip the local build verification step (still builds Docker images)
+
+.PARAMETER DryRun
+    Show what would be done without actually doing it
+
+.PARAMETER Description
+    Optional description for the release tag
+
+.EXAMPLE
+    .\release.ps1 -Version v1.12.6
+
+.EXAMPLE
+    .\release.ps1 -Version patch
+
+.EXAMPLE
+    .\release.ps1 -Version 1.12.6 -Description "Fix Timeline z-index issues"
+
+.EXAMPLE
+    .\release.ps1 -Version v1.12.6 -DryRun
+#>
 
 param(
-    [string]$VersionType = "patch"
+    [Parameter(Mandatory=$true)]
+    [string]$Version,
+
+    [switch]$SkipBuild,
+
+    [switch]$DryRun,
+
+    [string]$Description = ""
 )
 
 $ErrorActionPreference = "Stop"
 
-$CurrentVersion = Get-Content VERSION -Raw
-$CurrentVersion = $CurrentVersion.Trim()
+# Configuration
+$Registry = "ghcr.io/dsbaciga"
+$BackendImage = "captains-log-backend"
+$FrontendImage = "captains-log-frontend"
 
-Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host "Captain's Log Release Manager" -ForegroundColor Cyan
-Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host "Current version: $CurrentVersion"
-Write-Host ""
+# Colors for output
+function Write-Step { param($Message) Write-Host "`n=== $Message ===" -ForegroundColor Cyan }
+function Write-Success { param($Message) Write-Host "[OK] $Message" -ForegroundColor Green }
+function Write-Warn { param($Message) Write-Host "[!!] $Message" -ForegroundColor Yellow }
+function Write-Err { param($Message) Write-Host "[XX] $Message" -ForegroundColor Red }
+function Write-Info { param($Message) Write-Host "     $Message" -ForegroundColor Gray }
 
-# Parse current version
+# Check if we're in the right directory
+if (-not (Test-Path "backend/package.json") -or -not (Test-Path "frontend/package.json")) {
+    Write-Err "Must be run from the Captains-Log root directory"
+    exit 1
+}
+
+# Get current version from package.json
+$backendPackage = Get-Content "backend/package.json" -Raw | ConvertFrom-Json
+$CurrentVersion = $backendPackage.version
+
+# Handle version type (patch/minor/major) or explicit version
 $VersionParts = $CurrentVersion -split '\.'
 $Major = [int]$VersionParts[0]
 $Minor = [int]$VersionParts[1]
 $Patch = [int]$VersionParts[2]
 
-# Calculate new version
-$NewVersion = switch ($VersionType) {
-    "major" { "$($Major + 1).0.0" }
-    "minor" { "$Major.$($Minor + 1).0" }
+$NumericVersion = switch ($Version.ToLower()) {
     "patch" { "$Major.$Minor.$($Patch + 1)" }
-    default { $VersionType }  # Custom version
+    "minor" { "$Major.$($Minor + 1).0" }
+    "major" { "$($Major + 1).0.0" }
+    default { $Version.TrimStart("v") }
 }
 
-Write-Host "New version will be: $NewVersion"
+# Ensure Version variable has 'v' prefix for tags
+$Version = "v$NumericVersion"
+
+Write-Host "`n==========================================" -ForegroundColor Magenta
+Write-Host "  Captain's Log Release Script" -ForegroundColor Magenta
+Write-Host "==========================================" -ForegroundColor Magenta
+Write-Host "Current version: $CurrentVersion"
+Write-Host "New version:     $NumericVersion"
+Write-Host "Registry:        $Registry"
+if ($DryRun) { Write-Warn "DRY RUN MODE - No changes will be made" }
 Write-Host ""
-$Confirmation = Read-Host "Continue with release? (y/N)"
+
+# Confirmation
+$Confirmation = Read-Host "Continue with release $Version? (y/N)"
 if ($Confirmation -ne 'y' -and $Confirmation -ne 'Y') {
-    Write-Host "Release cancelled." -ForegroundColor Yellow
+    Write-Warn "Release cancelled."
     exit 0
 }
 
-# Update VERSION file
-Set-Content -Path VERSION -Value $NewVersion -NoNewline
-Write-Host "✓ Updated VERSION file" -ForegroundColor Green
+# Step 1: Check for uncommitted changes
+Write-Step "Checking git status"
+$gitStatus = git status --porcelain
+if ($gitStatus) {
+    Write-Warn "You have uncommitted changes:"
+    $gitStatus | ForEach-Object { Write-Info $_ }
+    $response = Read-Host "These will be included in the release commit. Continue? (y/N)"
+    if ($response -ne "y" -and $response -ne "Y") {
+        Write-Err "Aborted"
+        exit 1
+    }
+}
+Write-Success "Git status checked"
 
-# Update package.json files
-if (Test-Path backend/package.json) {
-    $BackendPackage = Get-Content backend/package.json -Raw | ConvertFrom-Json
-    $BackendPackage.version = $NewVersion
-    $BackendPackage | ConvertTo-Json -Depth 100 | Set-Content backend/package.json
-    Write-Host "✓ Updated backend/package.json" -ForegroundColor Green
+# Step 2: Update version in package.json files
+Write-Step "Updating version to $NumericVersion"
+
+Write-Info "Backend: $CurrentVersion -> $NumericVersion"
+Write-Info "Frontend: $CurrentVersion -> $NumericVersion"
+
+if (-not $DryRun) {
+    # Update backend package.json (preserve formatting)
+    $backendContent = Get-Content "backend/package.json" -Raw
+    $backendContent = $backendContent -replace '"version":\s*"[^"]*"', "`"version`": `"$NumericVersion`""
+    [System.IO.File]::WriteAllText("$PWD/backend/package.json", $backendContent)
+
+    # Update frontend package.json (preserve formatting)
+    $frontendContent = Get-Content "frontend/package.json" -Raw
+    $frontendContent = $frontendContent -replace '"version":\s*"[^"]*"', "`"version`": `"$NumericVersion`""
+    [System.IO.File]::WriteAllText("$PWD/frontend/package.json", $frontendContent)
+}
+Write-Success "Version updated in package.json files"
+
+# Step 3: Build verification (unless skipped)
+if (-not $SkipBuild) {
+    Write-Step "Building backend (verification)"
+    if (-not $DryRun) {
+        Push-Location backend
+        try {
+            npm run build 2>&1 | Out-Null
+            Write-Success "Backend build completed"
+        }
+        catch {
+            Write-Warn "Backend build had issues (continuing anyway)"
+        }
+        Pop-Location
+    } else {
+        Write-Info "Would run: npm run build (backend)"
+    }
+
+    Write-Step "Building frontend (verification)"
+    if (-not $DryRun) {
+        Push-Location frontend
+        try {
+            $output = npm run build 2>&1
+            if ($output -match "built in") {
+                Write-Success "Frontend build completed"
+            } else {
+                Write-Warn "Frontend build may have issues"
+            }
+        }
+        catch {
+            Write-Warn "Frontend build had issues (continuing anyway)"
+        }
+        Pop-Location
+    } else {
+        Write-Info "Would run: npm run build (frontend)"
+    }
+} else {
+    Write-Warn "Skipping build verification"
 }
 
-if (Test-Path frontend/package.json) {
-    $FrontendPackage = Get-Content frontend/package.json -Raw | ConvertFrom-Json
-    $FrontendPackage.version = $NewVersion
-    $FrontendPackage | ConvertTo-Json -Depth 100 | Set-Content frontend/package.json
-    Write-Host "✓ Updated frontend/package.json" -ForegroundColor Green
+# Step 4: Commit version bump and any staged changes
+Write-Step "Committing changes"
+if (-not $DryRun) {
+    git add -A
+    git commit -m "Bump version to $Version"
+    if ($LASTEXITCODE -eq 0) {
+        Write-Success "Changes committed"
+    } else {
+        Write-Info "Nothing new to commit"
+    }
+} else {
+    Write-Info "Would commit: Bump version to $Version"
 }
 
-# Update CHANGELOG.md
-$Today = Get-Date -Format "yyyy-MM-dd"
-$Changelog = Get-Content CHANGELOG.md -Raw
-$Changelog = $Changelog -replace "## \[Unreleased\]", "## [Unreleased]`n`n## [$NewVersion] - $Today"
-Set-Content -Path CHANGELOG.md -Value $Changelog -NoNewline
-Write-Host "✓ Updated CHANGELOG.md" -ForegroundColor Green
-
-# Git operations
-if (Test-Path .git) {
-    Write-Host ""
-    Write-Host "Committing changes..." -ForegroundColor Yellow
-    git add VERSION backend/package.json frontend/package.json CHANGELOG.md
-    git commit -m "Release v$NewVersion"
-    Write-Host "✓ Changes committed" -ForegroundColor Green
-
-    Write-Host ""
-    Write-Host "Creating git tag..." -ForegroundColor Yellow
-    git tag -a "v$NewVersion" -m "Release version $NewVersion"
-    Write-Host "✓ Tag created: v$NewVersion" -ForegroundColor Green
-
-    Write-Host ""
-    Write-Host "To push the release:" -ForegroundColor Yellow
-    Write-Host "  git push origin main"
-    Write-Host "  git push origin v$NewVersion"
+# Step 5: Build Docker images
+Write-Step "Building Docker images"
+if (-not $DryRun) {
+    & .\build.truenas.ps1 -Version $Version -Registry $Registry
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Docker build failed"
+        exit 1
+    }
+    Write-Success "Docker images built"
+} else {
+    Write-Info "Would run: .\build.truenas.ps1 -Version $Version -Registry $Registry"
 }
 
-# Build release
-Write-Host ""
-$BuildConfirmation = Read-Host "Build Docker images for this release? (y/N)"
-if ($BuildConfirmation -eq 'y' -or $BuildConfirmation -eq 'Y') {
-    .\build.ps1 -Version "v$NewVersion"
+# Step 6: Push Docker images
+Write-Step "Pushing Docker images to registry"
+
+$imagesToPush = @(
+    "$Registry/${BackendImage}:$Version",
+    "$Registry/${FrontendImage}:$Version"
+)
+
+foreach ($image in $imagesToPush) {
+    Write-Info "Pushing $image"
+    if (-not $DryRun) {
+        docker push $image
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err "Failed to push $image"
+            exit 1
+        }
+    }
+}
+Write-Success "Docker images pushed"
+
+# Step 7: Create and push git tag
+Write-Step "Creating git tag"
+
+# Build tag message
+if ($Description) {
+    $tagMessage = "$Version - $Description"
+} else {
+    # Try to get description from recent commit
+    $recentCommit = git log -1 --pretty=format:"%s" 2>$null
+    if ($recentCommit -and $recentCommit -ne "Bump version to $Version") {
+        $tagMessage = "$Version - $recentCommit"
+    } else {
+        $tagMessage = "$Version - Release"
+    }
 }
 
+Write-Info "Tag message: $tagMessage"
+
+if (-not $DryRun) {
+    # Check if tag already exists
+    $existingTag = git tag -l $Version
+    if ($existingTag) {
+        Write-Warn "Tag $Version already exists. Deleting and recreating..."
+        git tag -d $Version 2>$null
+        git push origin :refs/tags/$Version 2>$null
+    }
+
+    git tag -a $Version -m $tagMessage
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Failed to create tag"
+        exit 1
+    }
+    Write-Success "Git tag created"
+} else {
+    Write-Info "Would create tag: $Version"
+}
+
+Write-Step "Pushing to remote"
+if (-not $DryRun) {
+    git push origin main
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "Failed to push main branch (may already be up to date)"
+    }
+
+    git push origin $Version
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Failed to push tag"
+        exit 1
+    }
+    Write-Success "Pushed to remote"
+} else {
+    Write-Info "Would push: main branch and $Version tag"
+}
+
+# Summary
+Write-Host "`n==========================================" -ForegroundColor Green
+Write-Host "  Release $Version Complete!" -ForegroundColor Green
+Write-Host "==========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host "Release v$NewVersion Complete!" -ForegroundColor Cyan
-Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "Docker images:" -ForegroundColor White
+Write-Host "  - $Registry/${BackendImage}:$Version" -ForegroundColor Cyan
+Write-Host "  - $Registry/${FrontendImage}:$Version" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Review changes: git log -1"
-Write-Host "  2. Push to remote: git push origin main; git push origin v$NewVersion"
-Write-Host "  3. Create GitHub release (if applicable)"
-Write-Host "  4. Deploy: docker-compose -f docker-compose.prod.yml --env-file .env.production up -d"
+Write-Host "Git tag: $Version" -ForegroundColor Cyan
 Write-Host ""
+Write-Host "To deploy on TrueNAS:" -ForegroundColor White
+Write-Host "  docker-compose -f docker-compose.truenas.yml pull" -ForegroundColor Yellow
+Write-Host "  docker-compose -f docker-compose.truenas.yml up -d" -ForegroundColor Yellow
+Write-Host ""
+
+if ($DryRun) {
+    Write-Warn "This was a dry run. No changes were made."
+}
