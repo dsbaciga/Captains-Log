@@ -376,12 +376,25 @@ const Timeline = ({
           const checkInStr = lodge.checkInDate.split('T')[0];
           const checkOutStr = lodge.checkOutDate.split('T')[0];
 
+          // Debug: log the raw and parsed dates
+          console.log(`Lodging "${lodge.name}" date parsing:`, {
+            rawCheckIn: lodge.checkInDate,
+            rawCheckOut: lodge.checkOutDate,
+            checkInStr,
+            checkOutStr,
+          });
+
           const [checkInYear, checkInMonth, checkInDay] = checkInStr.split('-').map(Number);
           const [checkOutYear, checkOutMonth, checkOutDay] = checkOutStr.split('-').map(Number);
 
           // Create local dates at midnight for day comparison
           const checkInDateOnly = new Date(checkInYear, checkInMonth - 1, checkInDay);
           const checkOutDateOnly = new Date(checkOutYear, checkOutMonth - 1, checkOutDay);
+
+          console.log(`Lodging "${lodge.name}" parsed dates:`, {
+            checkInDateOnly: checkInDateOnly.toDateString(),
+            checkOutDateOnly: checkOutDateOnly.toDateString(),
+          });
 
           // Keep original Date objects for time display
           const checkIn = new Date(lodge.checkInDate);

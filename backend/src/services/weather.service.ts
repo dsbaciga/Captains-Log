@@ -34,6 +34,12 @@ interface OpenWeatherHistoricalResponse {
       description: string;
       main: string;
     }[];
+    rain?: {
+      '1h'?: number; // Rain volume for last hour, mm
+    };
+    snow?: {
+      '1h'?: number; // Snow volume for last hour, mm
+    };
   }[];
 }
 
@@ -296,7 +302,19 @@ class WeatherService {
 
       const dayData = data.daily[dayIndex];
 
+      // Debug: log what the API returns for precipitation
+      console.log(`Weather API response for day ${dayIndex}:`, {
+        date: targetDate.toISOString().split('T')[0],
+        conditions: dayData.weather[0]?.description,
+        pop: dayData.pop,
+        rain: dayData.rain,
+        snow: dayData.snow,
+        hasRainField: 'rain' in dayData,
+        hasSnowField: 'snow' in dayData,
+      });
+
       // Calculate total precipitation (rain + snow) in mm
+      // Note: rain/snow fields are only present when there's measurable precipitation
       const rainAmount = dayData.rain || 0;
       const snowAmount = dayData.snow || 0;
       const totalPrecipitation = rainAmount + snowAmount;
@@ -359,6 +377,26 @@ class WeatherService {
       const humidities = hourlyData.map(h => h.humidity);
       const windSpeeds = hourlyData.map(h => h.wind_speed);
 
+      // Calculate total precipitation from hourly rain/snow data
+      // Sum up all hourly precipitation amounts
+      let totalPrecipitation = 0;
+      for (const h of hourlyData) {
+        if (h.rain?.['1h']) {
+          totalPrecipitation += h.rain['1h'];
+        }
+        if (h.snow?.['1h']) {
+          totalPrecipitation += h.snow['1h'];
+        }
+      }
+
+      // Debug: log historical precipitation calculation
+      console.log(`Historical weather for ${targetDate.toISOString().split('T')[0]}:`, {
+        hourlyRecords: hourlyData.length,
+        recordsWithRain: hourlyData.filter(h => h.rain?.['1h']).length,
+        recordsWithSnow: hourlyData.filter(h => h.snow?.['1h']).length,
+        totalPrecipitation,
+      });
+
       // Get the most common weather condition
       const weatherDescriptions = hourlyData
         .map(h => h.weather[0]?.description)
@@ -371,7 +409,7 @@ class WeatherService {
         temperatureHigh: Math.round(Math.max(...temps)),
         temperatureLow: Math.round(Math.min(...temps)),
         conditions: mostCommonCondition,
-        precipitation: null, // Historical API doesn't provide precipitation probability
+        precipitation: totalPrecipitation > 0 ? Math.round(totalPrecipitation * 10) / 10 : null,
         humidity: Math.round(humidities.reduce((a, b) => a + b, 0) / humidities.length),
         windSpeed: Math.round((windSpeeds.reduce((a, b) => a + b, 0) / windSpeeds.length) * 10) / 10,
       };

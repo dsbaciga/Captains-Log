@@ -1,6 +1,6 @@
 {
   "name": "captains-log-backend",
-  "version": "1.12.6",
+  "version": "1.12.7",
   "description": "Captain's Log Travel Documentation API",
   "main": "dist/index.js",
   "scripts": {
