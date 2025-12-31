@@ -2,6 +2,7 @@ export type WeatherData = {
   id: number;
   tripId: number;
   locationId: number | null;
+  locationName?: string | null; // Name of the location used for weather data
   date: string; // ISO date string
   temperatureHigh: number | null;
   temperatureLow: number | null;
@@ -22,4 +23,5 @@ export type WeatherDisplay = {
   precipitation: number | null;
   humidity: number | null;
   windSpeed: number | null;
+  locationName?: string | null;
 };

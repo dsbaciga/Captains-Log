@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import type { Activity } from "../types/activity";
 import type { Transportation } from "../types/transportation";
 import type { Lodging } from "../types/lodging";
@@ -370,12 +371,21 @@ const Timeline = ({
       // Add lodging - create an entry for each day from check-in to check-out
       lodging.forEach((lodge) => {
         if (lodge.checkInDate && lodge.checkOutDate) {
+          // Parse date portions directly to avoid timezone shifts
+          // Date strings from backend are in ISO format (YYYY-MM-DDTHH:mm:ss.sssZ)
+          const checkInStr = lodge.checkInDate.split('T')[0];
+          const checkOutStr = lodge.checkOutDate.split('T')[0];
+
+          const [checkInYear, checkInMonth, checkInDay] = checkInStr.split('-').map(Number);
+          const [checkOutYear, checkOutMonth, checkOutDay] = checkOutStr.split('-').map(Number);
+
+          // Create local dates at midnight for day comparison
+          const checkInDateOnly = new Date(checkInYear, checkInMonth - 1, checkInDay);
+          const checkOutDateOnly = new Date(checkOutYear, checkOutMonth - 1, checkOutDay);
+
+          // Keep original Date objects for time display
           const checkIn = new Date(lodge.checkInDate);
           const checkOut = new Date(lodge.checkOutDate);
-
-          // Get date only (without time) for comparison
-          const checkInDateOnly = new Date(checkIn.toDateString());
-          const checkOutDateOnly = new Date(checkOut.toDateString());
 
           // Create an entry for each day of the stay
           const currentDate = new Date(checkInDateOnly);
@@ -719,6 +729,7 @@ const Timeline = ({
       precipitation: weather.precipitation,
       humidity: weather.humidity,
       windSpeed: weather.windSpeed,
+      locationName: weather.locationName,
     };
   };
 
@@ -1009,9 +1020,10 @@ const Timeline = ({
                     {item.photoAlbums && item.photoAlbums.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {item.photoAlbums.slice(0, 3).map((album) => (
-                          <div
+                          <Link
                             key={album.id}
-                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300"
+                            to={`/trips/${tripId}/albums/${album.id}`}
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
                             <svg
                               className="w-3.5 h-3.5"
@@ -1034,7 +1046,7 @@ const Timeline = ({
                                 ({album._count.photoAssignments})
                               </span>
                             )}
-                          </div>
+                          </Link>
                         ))}
                         {item.photoAlbums.length > 3 && (
                           <span className="text-xs text-gray-500 dark:text-gray-400 self-center">
@@ -1547,7 +1559,7 @@ const Timeline = ({
       {showDualTimezone && (
         <div className="timeline-timezone-tabs print:hidden">
           {/* Mobile: Tab Switcher */}
-          <div className="md:hidden mb-6 sticky top-0 bg-white dark:bg-gray-900 z-30 py-4 border-b-2 border-gray-300 dark:border-gray-600">
+          <div className="md:hidden mb-6 sticky top-16 bg-white dark:bg-gray-900 z-20 py-4 border-b-2 border-gray-300 dark:border-gray-600">
             <div className="flex gap-2">
               <button
                 type="button"
@@ -1581,7 +1593,7 @@ const Timeline = ({
           </div>
 
           {/* Desktop: Side-by-side Headers */}
-          <div className="hidden md:flex gap-8 mb-6 sticky top-0 bg-white dark:bg-gray-900 z-30 py-4 border-b-2 border-gray-300 dark:border-gray-600">
+          <div className="hidden md:flex gap-8 mb-6 sticky top-16 bg-white dark:bg-gray-900 z-20 py-4 border-b-2 border-gray-300 dark:border-gray-600">
             <div className="flex-1 text-center">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
                 {getTimezoneAbbr(tripTimezone!)} (Trip Timezone)
@@ -1613,7 +1625,7 @@ const Timeline = ({
               <button
                 type="button"
                 onClick={() => toggleDay(dateKey)}
-                className={`w-full text-left text-lg font-semibold mb-4 sticky top-16 py-2 pl-4 pr-4 border-b z-10 flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity ${
+                className={`w-full text-left text-lg font-semibold mb-4 sticky top-16 py-2 pl-4 pr-4 border-b z-20 flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity ${
                   showTodayHighlight
                     ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-100"
                     : isEmpty

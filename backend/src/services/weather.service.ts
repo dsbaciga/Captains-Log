@@ -103,23 +103,32 @@ class WeatherService {
    */
   private async getWeatherForDate(
     tripId: number,
-    coordinates: { lat: number; lon: number },
+    coordinates: { lat: number; lon: number; locationId?: number; locationName?: string },
     date: Date,
     apiKey: string
   ) {
     const dateString = date.toISOString().split('T')[0];
 
-    // Check if we have cached weather data
+    // Check if we have cached weather data (include location for name)
     const cached = await prisma.weatherData.findFirst({
       where: {
         tripId,
         date: new Date(dateString),
       },
+      include: {
+        location: {
+          select: { name: true },
+        },
+      },
     });
 
     // Determine if we should use the cache
     if (cached && !this.shouldRefreshWeather(cached, date)) {
-      return cached;
+      // Return with locationName added
+      return {
+        ...cached,
+        locationName: cached.location?.name || coordinates.locationName || null,
+      };
     }
 
     // Fetch fresh weather data from API
@@ -134,13 +143,19 @@ class WeatherService {
       // If API returned null (e.g., historical data unavailable), return cached or null
       if (!weatherData) {
         console.warn(`Weather data not available for date ${dateString}`);
-        return cached || null;
+        if (cached) {
+          return {
+            ...cached,
+            locationName: cached.location?.name || coordinates.locationName || null,
+          };
+        }
+        return null;
       }
 
       // Save to database
       if (cached) {
-        // Update existing record
-        return await prisma.weatherData.update({
+        // Update existing record (also update locationId if changed)
+        const updated = await prisma.weatherData.update({
           where: { id: cached.id },
           data: {
             temperatureHigh: weatherData.temperatureHigh,
@@ -149,12 +164,22 @@ class WeatherService {
             precipitation: weatherData.precipitation,
             humidity: weatherData.humidity,
             windSpeed: weatherData.windSpeed,
+            locationId: coordinates.locationId || null,
             fetchedAt: new Date(),
           },
+          include: {
+            location: {
+              select: { name: true },
+            },
+          },
         });
+        return {
+          ...updated,
+          locationName: updated.location?.name || coordinates.locationName || null,
+        };
       } else {
         // Create new record
-        return await prisma.weatherData.create({
+        const created = await prisma.weatherData.create({
           data: {
             tripId,
             date: new Date(dateString),
@@ -164,14 +189,30 @@ class WeatherService {
             precipitation: weatherData.precipitation,
             humidity: weatherData.humidity,
             windSpeed: weatherData.windSpeed,
+            locationId: coordinates.locationId || null,
             fetchedAt: new Date(),
           },
+          include: {
+            location: {
+              select: { name: true },
+            },
+          },
         });
+        return {
+          ...created,
+          locationName: created.location?.name || coordinates.locationName || null,
+        };
       }
     } catch (error) {
       console.error('Failed to fetch weather from API:', error);
       // Return cached data if available, even if stale
-      return cached || null;
+      if (cached) {
+        return {
+          ...cached,
+          locationName: cached.location?.name || coordinates.locationName || null,
+        };
+      }
+      return null;
     }
   }
 
@@ -419,7 +460,7 @@ class WeatherService {
   private async getTripCoordinates(
     tripId: number,
     date?: Date
-  ): Promise<{ lat: number; lon: number } | null> {
+  ): Promise<{ lat: number; lon: number; locationId?: number; locationName?: string } | null> {
     // If no date provided, use trip-wide fallback (backwards compatibility)
     if (!date) {
       return this.getTripWideFallbackCoordinates(tripId);
@@ -449,6 +490,8 @@ class WeatherService {
       return {
         lat: parseFloat(location.latitude.toString()),
         lon: parseFloat(location.longitude.toString()),
+        locationId: location.id,
+        locationName: location.name,
       };
     }
 
@@ -474,6 +517,8 @@ class WeatherService {
       return {
         lat: parseFloat(activity.location.latitude.toString()),
         lon: parseFloat(activity.location.longitude.toString()),
+        locationId: activity.location.id,
+        locationName: activity.location.name,
       };
     }
 
@@ -500,6 +545,8 @@ class WeatherService {
       return {
         lat: parseFloat(lodging.location.latitude.toString()),
         lon: parseFloat(lodging.location.longitude.toString()),
+        locationId: lodging.location.id,
+        locationName: lodging.location.name,
       };
     }
 
@@ -512,7 +559,7 @@ class WeatherService {
    */
   private async getTripWideFallbackCoordinates(
     tripId: number
-  ): Promise<{ lat: number; lon: number } | null> {
+  ): Promise<{ lat: number; lon: number; locationId?: number; locationName?: string } | null> {
     // 1. Try to get first location with coordinates
     const location = await prisma.location.findFirst({
       where: {
@@ -527,6 +574,8 @@ class WeatherService {
       return {
         lat: parseFloat(location.latitude.toString()),
         lon: parseFloat(location.longitude.toString()),
+        locationId: location.id,
+        locationName: location.name,
       };
     }
 
@@ -546,6 +595,8 @@ class WeatherService {
       return {
         lat: parseFloat(activity.location.latitude.toString()),
         lon: parseFloat(activity.location.longitude.toString()),
+        locationId: activity.location.id,
+        locationName: activity.location.name,
       };
     }
 
@@ -565,6 +616,8 @@ class WeatherService {
       return {
         lat: parseFloat(lodging.location.latitude.toString()),
         lon: parseFloat(lodging.location.longitude.toString()),
+        locationId: lodging.location.id,
+        locationName: lodging.location.name,
       };
     }
 

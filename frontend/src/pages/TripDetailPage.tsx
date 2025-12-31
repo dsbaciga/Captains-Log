@@ -209,9 +209,10 @@ export default function TripDetailPage() {
 
     // Clear non-active pagination states when switching views
     if (selectedAlbumId === null) {
-      // All Photos - clear other paginations
+      // All Photos - clear other paginations and reload
       unsortedPagination.clear();
       albumPhotosPagination.clear();
+      photosPagination.loadInitial();
     } else if (selectedAlbumId === -1) {
       // Unsorted photos - clear others and load
       photosPagination.clear();
