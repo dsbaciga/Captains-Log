@@ -8,12 +8,6 @@ interface IconProps {
   'aria-hidden'?: boolean;
 }
 
-// Default icon props for external use
-const defaultIconProps: IconProps = {
-  className: 'w-5 h-5',
-  'aria-hidden': true,
-};
-
 /**
  * Close/X icon - used for closing modals, dialogs, sidebars
  */
@@ -290,6 +284,6 @@ export function CalendarIcon({ className = 'w-5 h-5', ...props }: IconProps) {
   );
 }
 
-// Re-export default props for external use
-export { defaultIconProps };
+// Default props are available as a reference:
+// { className: 'w-5 h-5', 'aria-hidden': true }
 

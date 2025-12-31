@@ -154,7 +154,6 @@ export function PullToRefreshIndicator({
 
   return (
     // Dynamic pull refresh dimensions require CSS variables - cannot be moved to static CSS
-    // eslint-disable-next-line react/forbid-dom-props
     <div
       className="absolute top-0 left-0 right-0 flex items-center justify-center transition-opacity pull-refresh-container"
       style={{
@@ -169,7 +168,6 @@ export function PullToRefreshIndicator({
         ) : (
           // Rotating arrow when pulling
           // Dynamic rotation requires CSS variable - cannot be moved to static CSS
-          // eslint-disable-next-line react/forbid-dom-props
           <svg
             className="w-8 h-8 text-primary-600 dark:text-sky transition-transform pull-refresh-arrow"
             style={{ '--arrow-rotation': `${rotation}deg` } as React.CSSProperties & { '--arrow-rotation': string }}

@@ -20,7 +20,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
-import { CloseIcon, TrashIcon, ChevronRightIcon, PlusIcon } from "../components/icons";
+import { TrashIcon, ChevronRightIcon, PlusIcon } from "../components/icons";
 
 interface CompanionWithTrips extends Companion {
   tripAssignments?: Array<{

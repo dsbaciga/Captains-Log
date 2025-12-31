@@ -327,7 +327,6 @@ export default function ChecklistsPage() {
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         {/* Dynamic progress width requires CSS variable - cannot be moved to static CSS */}
-                        {/* eslint-disable-next-line react/forbid-dom-props */}
                         <div
                           className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all progress-bar"
                           style={{ '--progress-width': `${checklist.stats.percentage}%` } as React.CSSProperties & { '--progress-width': string }}

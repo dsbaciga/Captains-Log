@@ -360,7 +360,6 @@ export default function TripsPage() {
                             : 'opacity-70 hover:opacity-100'
                         }`}
                         // Dynamic tag colors require CSS variables - cannot be moved to static CSS
-                        // eslint-disable-next-line react/forbid-dom-props
                         style={{
                           '--tag-bg-color': tag.color,
                           '--tag-text-color': tag.textColor,
@@ -421,7 +420,6 @@ export default function TripsPage() {
                   {/* Background Image */}
                   {coverPhotoUrl ? (
                     // Dynamic background image requires CSS variable - cannot be moved to static CSS
-                    // eslint-disable-next-line react/forbid-dom-props
                     <div
                       className="absolute inset-0 bg-cover bg-center cover-photo-bg"
                       style={{ '--cover-photo-url': `url(${coverPhotoUrl})` } as React.CSSProperties & { '--cover-photo-url': string }}
@@ -458,7 +456,6 @@ export default function TripsPage() {
                       <div className="flex flex-wrap gap-2 mb-4">
                         {trip.tagAssignments.map(({ tag }) => (
                           // Dynamic tag colors require CSS variables - cannot be moved to static CSS
-                          // eslint-disable-next-line react/forbid-dom-props
                           <span
                             key={tag.id}
                             className="px-2 py-1 rounded-full text-xs font-medium tag-colored"

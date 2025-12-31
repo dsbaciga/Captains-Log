@@ -50,8 +50,8 @@ function MapBounds({ locations }: { locations: MapLocation[] }) {
   return null;
 }
 
-// Get marker color based on type
-const getMarkerIcon = (type?: 'activity' | 'transportation' | 'lodging') => {
+// Get marker icon (could be customized by type in the future)
+const getMarkerIcon = () => {
   // Using default markers for now, could customize with colored markers later
   return new Icon.Default();
 };
@@ -130,7 +130,7 @@ export default function DayMiniMap({ locations, defaultExpanded = false }: DayMi
                 <Marker
                   key={`${location.name}-${index}`}
                   position={[location.latitude, location.longitude]}
-                  icon={getMarkerIcon(location.type)}
+                  icon={getMarkerIcon()}
                 >
                   <Popup>
                     <div className="text-sm">

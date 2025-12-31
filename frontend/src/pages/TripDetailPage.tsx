@@ -604,7 +604,6 @@ export default function TripDetailPage() {
           {/* Cover Photo Background */}
           {coverPhotoUrl ? (
             // Dynamic background image requires CSS variable - cannot be moved to static CSS
-            // eslint-disable-next-line react/forbid-dom-props
             <div
               className="relative h-64 bg-cover bg-center cover-photo-bg"
               style={{
@@ -687,7 +686,6 @@ export default function TripDetailPage() {
                     <div className="flex flex-wrap gap-2">
                       {tags.map((tag) => (
                         // Dynamic tag colors require CSS variables - cannot be moved to static CSS
-                        // eslint-disable-next-line react/forbid-dom-props
                         <span
                           key={tag.id}
                           className="px-3 py-1 rounded-full text-sm font-medium shadow-md tag-colored"
@@ -780,7 +778,6 @@ export default function TripDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag) => (
                       // Dynamic tag colors require CSS variables - cannot be moved to static CSS
-                      // eslint-disable-next-line react/forbid-dom-props
                       <span
                         key={tag.id}
                         className="px-3 py-1 rounded-full text-sm font-medium tag-colored"

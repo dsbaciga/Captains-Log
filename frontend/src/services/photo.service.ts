@@ -92,7 +92,7 @@ class PhotoService {
 
   // Album methods
   async getAllAlbums(options?: { skip?: number; take?: number; tagIds?: number[] }): Promise<AllAlbumsResponse> {
-    const params: Record<string, any> = {};
+    const params: Record<string, string | number> = {};
     if (options?.skip !== undefined) params.skip = options.skip;
     if (options?.take !== undefined) params.take = options.take;
     if (options?.tagIds && options.tagIds.length > 0) {

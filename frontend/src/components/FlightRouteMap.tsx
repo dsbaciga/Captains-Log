@@ -73,8 +73,7 @@ export default function FlightRouteMap({
 
   return (
     // Dynamic height requires CSS variable - cannot be moved to static CSS
-    // eslint-disable-next-line
-    <div 
+    <div
       className="map-container-dynamic rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 w-full"
       style={{ '--map-height': height } as React.CSSProperties & { '--map-height': string }}
     >

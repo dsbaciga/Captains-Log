@@ -408,13 +408,28 @@ const Timeline = ({
               currentDate.getTime() === checkOutDateOnly.getTime();
 
             // Set the time to check-in time on first day, check-out time on last day
-            // Using actual times ensures correct day grouping across timezones
-            let itemDateTime = new Date(currentDate);
+            // For intermediate days, use noon to avoid timezone edge cases where
+            // midnight could shift to the previous day when converting timezones
+            let itemDateTime: Date;
             if (isCheckInDay) {
               itemDateTime = new Date(checkIn);
             } else if (isCheckOutDay) {
               itemDateTime = new Date(checkOut);
+            } else {
+              // Intermediate days: use noon to stay safely within the calendar date
+              itemDateTime = new Date(currentDate);
+              itemDateTime.setHours(12, 0, 0, 0);
             }
+
+            // DEBUG: Log the datetime being created for each lodging entry
+            console.log(`[Lodging Debug] ${lodge.name}:`, {
+              isCheckInDay,
+              isCheckOutDay,
+              currentDate: currentDate.toISOString(),
+              itemDateTime: itemDateTime.toISOString(),
+              nightNumber,
+              totalNights,
+            });
 
             let subtitle =
               lodge.type.charAt(0).toUpperCase() +

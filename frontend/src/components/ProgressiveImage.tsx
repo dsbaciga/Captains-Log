@@ -131,7 +131,6 @@ export default function ProgressiveImage({
   if (hasError) {
     return (
       // Dynamic aspect ratio requires CSS variable - cannot be moved to static CSS
-      // eslint-disable-next-line react/forbid-dom-props
       <div
         ref={containerRef}
         className={`relative overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center progressive-image-container ${className}`}
@@ -159,7 +158,6 @@ export default function ProgressiveImage({
 
   return (
     // Dynamic aspect ratio requires CSS variable - cannot be moved to static CSS
-    // eslint-disable-next-line react/forbid-dom-props
     <div
       ref={containerRef}
       className={`relative overflow-hidden progressive-image-container ${className}`}

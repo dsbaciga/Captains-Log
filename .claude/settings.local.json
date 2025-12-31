@@ -39,7 +39,10 @@
       "Bash(npx prisma migrate:*)",
       "Bash(npx prisma:*)",
       "Bash(git tag:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(xxd:*)",
+      "Bash(npm run lint:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File ./build.truenas.ps1 -Version v1.12.9 -Registry ghcr.io/dsbaciga)"
     ],
     "deny": [],
     "ask": []
