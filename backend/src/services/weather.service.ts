@@ -19,6 +19,8 @@ interface OpenWeatherResponse {
     pop: number; // Probability of precipitation (0-1)
     humidity: number;
     wind_speed: number;
+    rain?: number; // Rain volume in mm
+    snow?: number; // Snow volume in mm
   }[];
 }
 
@@ -294,13 +296,18 @@ class WeatherService {
 
       const dayData = data.daily[dayIndex];
 
+      // Calculate total precipitation (rain + snow) in mm
+      const rainAmount = dayData.rain || 0;
+      const snowAmount = dayData.snow || 0;
+      const totalPrecipitation = rainAmount + snowAmount;
+
       return {
         tripId: 0, // Will be set by caller
         date: targetDate.toISOString().split('T')[0],
         temperatureHigh: Math.round(dayData.temp.max),
         temperatureLow: Math.round(dayData.temp.min),
         conditions: dayData.weather[0]?.description || null,
-        precipitation: Math.round(dayData.pop * 100), // Convert to percentage
+        precipitation: totalPrecipitation > 0 ? Math.round(totalPrecipitation * 10) / 10 : null, // mm, rounded to 1 decimal
         humidity: dayData.humidity,
         windSpeed: Math.round(dayData.wind_speed * 10) / 10, // Round to 1 decimal
       };

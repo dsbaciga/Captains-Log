@@ -76,11 +76,13 @@ export const formatTemperatureRange = (
 };
 
 /**
- * Format precipitation percentage
+ * Format precipitation amount (shows both mm and inches)
  */
 export const formatPrecipitation = (precipitation: number | null): string => {
   if (precipitation === null) return '--';
-  return `${Math.round(precipitation)}%`;
+  // Convert mm to inches (1mm = 0.0394 inches)
+  const inches = precipitation * 0.0394;
+  return `${precipitation.toFixed(1)}mm (${inches.toFixed(2)}")`;
 };
 
 /**
