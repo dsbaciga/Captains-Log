@@ -76,6 +76,11 @@ interface TimelineItem {
   fromCoords?: { latitude: number; longitude: number }; // For transportation departure
   toCoords?: { latitude: number; longitude: number }; // For transportation arrival
   connectionGroupId?: string; // For multi-leg transport connections
+  multiDayInfo?: {
+    originalId: number; // Original lodging ID
+    nightNumber: number; // Which night of the stay (1, 2, 3...)
+    totalNights: number; // Total nights
+  };
   data: Activity | Transportation | Lodging | JournalEntry;
 }
 
@@ -376,32 +381,25 @@ const Timeline = ({
           const checkInStr = lodge.checkInDate.split('T')[0];
           const checkOutStr = lodge.checkOutDate.split('T')[0];
 
-          // Debug: log the raw and parsed dates
-          console.log(`Lodging "${lodge.name}" date parsing:`, {
-            rawCheckIn: lodge.checkInDate,
-            rawCheckOut: lodge.checkOutDate,
-            checkInStr,
-            checkOutStr,
-          });
-
           const [checkInYear, checkInMonth, checkInDay] = checkInStr.split('-').map(Number);
           const [checkOutYear, checkOutMonth, checkOutDay] = checkOutStr.split('-').map(Number);
 
-          // Create local dates at midnight for day comparison
+          // Create local dates at midnight for day comparison (used for loop iteration)
           const checkInDateOnly = new Date(checkInYear, checkInMonth - 1, checkInDay);
           const checkOutDateOnly = new Date(checkOutYear, checkOutMonth - 1, checkOutDay);
-
-          console.log(`Lodging "${lodge.name}" parsed dates:`, {
-            checkInDateOnly: checkInDateOnly.toDateString(),
-            checkOutDateOnly: checkOutDateOnly.toDateString(),
-          });
 
           // Keep original Date objects for time display
           const checkIn = new Date(lodge.checkInDate);
           const checkOut = new Date(lodge.checkOutDate);
 
+          // Calculate total nights (check-out day minus check-in day)
+          const totalNights = Math.round(
+            (checkOutDateOnly.getTime() - checkInDateOnly.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
           // Create an entry for each day of the stay
           const currentDate = new Date(checkInDateOnly);
+          let nightNumber = 1;
 
           while (currentDate <= checkOutDateOnly) {
             const isCheckInDay =
@@ -409,10 +407,13 @@ const Timeline = ({
             const isCheckOutDay =
               currentDate.getTime() === checkOutDateOnly.getTime();
 
-            // Set the time to check-in time on first day, midnight on other days
+            // Set the time to check-in time on first day, check-out time on last day
+            // Using actual times ensures correct day grouping across timezones
             let itemDateTime = new Date(currentDate);
             if (isCheckInDay) {
               itemDateTime = new Date(checkIn);
+            } else if (isCheckOutDay) {
+              itemDateTime = new Date(checkOut);
             }
 
             let subtitle =
@@ -424,6 +425,15 @@ const Timeline = ({
             } else if (isCheckOutDay) {
               subtitle += " (Check-out)";
             }
+
+            // Only add multiDayInfo for stays longer than 1 night
+            const multiDayInfo = totalNights > 1 && !isCheckOutDay
+              ? {
+                  originalId: lodge.id,
+                  nightNumber: nightNumber,
+                  totalNights: totalNights,
+                }
+              : undefined;
 
             items.push({
               id: lodge.id + currentDate.getTime(), // Unique ID for each day
@@ -456,10 +466,14 @@ const Timeline = ({
                     _count: album._count,
                   }))
                 : undefined,
+              multiDayInfo,
               data: lodge,
             });
 
-            // Move to next day
+            // Move to next day and increment night number (but not on checkout day)
+            if (!isCheckOutDay) {
+              nightNumber++;
+            }
             currentDate.setDate(currentDate.getDate() + 1);
           }
         } else if (lodge.checkInDate) {
@@ -1026,6 +1040,27 @@ const Timeline = ({
                         </svg>
                         Connection: Leg {connectionInfo.legNumber} of{" "}
                         {connectionInfo.totalLegs}
+                      </div>
+                    )}
+
+                    {/* Multi-Day Stay Badge */}
+                    {item.multiDayInfo && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-purple-100 dark:bg-purple-900/30 text-xs font-medium text-purple-700 dark:text-purple-300">
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                          />
+                        </svg>
+                        Night {item.multiDayInfo.nightNumber} of{" "}
+                        {item.multiDayInfo.totalNights}
                       </div>
                     )}
 
