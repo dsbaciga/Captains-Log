@@ -2,14 +2,50 @@
 
 This checklist outlines the proper steps to build, push, and tag a new version of Captain's Log.
 
-## Pre-Release Checklist
+## Quick Start (Automated)
+
+The easiest way to release a new version is using the automated release script:
+
+```powershell
+# Release with explicit version
+.\release.ps1 -Version v1.12.6
+
+# Auto-increment patch version (1.12.5 -> 1.12.6)
+.\release.ps1 -Version patch
+
+# Auto-increment minor version (1.12.5 -> 1.13.0)
+.\release.ps1 -Version minor
+
+# Add a custom description for the tag
+.\release.ps1 -Version v1.12.6 -Description "Fix Timeline issues"
+
+# Preview what would happen without making changes
+.\release.ps1 -Version v1.12.6 -DryRun
+```
+
+The script automatically:
+
+1. Updates version in `backend/package.json` and `frontend/package.json`
+2. Commits the version bump
+3. Builds and verifies backend and frontend
+4. Builds Docker images via `build.truenas.ps1`
+5. Pushes images to `ghcr.io/dsbaciga`
+6. Creates annotated git tag
+7. Pushes commits and tag to GitHub
+
+---
+
+## Manual Process
+
+If you need to run steps manually, follow the sections below.
+
+### Pre-Release Checklist
 
 - [ ] All changes have been tested locally
 - [ ] All code changes are committed
-- [ ] Release notes document is created (RELEASE_NOTES_vX.X.X.md)
 - [ ] Version number decided (patch/minor/major)
 
-## Version Update
+### Version Update
 
 - [ ] **Update backend/package.json version**
 
@@ -17,10 +53,11 @@ This checklist outlines the proper steps to build, push, and tag a new version o
   - Update `"version": "X.X.X"` field
 
 - [ ] **Update frontend/package.json version**
+
   - File: `frontend/package.json`
   - Update `"version": "X.X.X"` field
 
-## Build Verification
+### Build Verification
 
 - [ ] **Test backend build**
 
@@ -38,7 +75,7 @@ This checklist outlines the proper steps to build, push, and tag a new version o
 
   - Verify build completes with no blocking errors
 
-## Docker Build
+### Docker Build
 
 - [ ] **Build Docker images**
 
@@ -53,7 +90,7 @@ This checklist outlines the proper steps to build, push, and tag a new version o
   - Verify both backend and frontend images build successfully
   - Look for confirmation messages
 
-## Push to Registry
+### Push to Registry
 
 - [ ] **Push backend image**
 
@@ -68,10 +105,11 @@ This checklist outlines the proper steps to build, push, and tag a new version o
   ```
 
 - [ ] **Verify images on GHCR**
+
   - Check https://github.com/dsbaciga?tab=packages
   - Confirm new version appears in package list
 
-## Git Tagging
+### Git Tagging
 
 - [ ] **Create annotated git tag**
 
@@ -86,8 +124,11 @@ This checklist outlines the proper steps to build, push, and tag a new version o
   ```
 
 - [ ] **Verify tag on GitHub**
+
   - Check https://github.com/dsbaciga/Captains-Log/tags
   - Confirm new tag appears
+
+---
 
 ## Post-Release
 
@@ -101,9 +142,7 @@ This checklist outlines the proper steps to build, push, and tag a new version o
   - Deploy to test environment if available
   - Verify basic functionality
 
-- [ ] **Announce release** (optional)
-  - Update documentation
-  - Notify users if needed
+---
 
 ## Common Issues and Solutions
 
@@ -150,6 +189,8 @@ git tag -a vX.X.X -m "vX.X.X - Description"
 git push origin vX.X.X
 ```
 
+---
+
 ## Version Numbering Guide
 
 Follow semantic versioning (MAJOR.MINOR.PATCH):
@@ -158,7 +199,27 @@ Follow semantic versioning (MAJOR.MINOR.PATCH):
 - **MINOR** (X.1.0): New features, backwards compatible
 - **MAJOR** (1.0.0): Breaking changes, major refactors
 
+---
+
 ## Quick Reference Commands
+
+### Using the Release Script (Recommended)
+
+```powershell
+# Full automated release
+.\release.ps1 -Version vX.X.X
+
+# With custom description
+.\release.ps1 -Version vX.X.X -Description "Description here"
+
+# Skip local build verification (faster)
+.\release.ps1 -Version vX.X.X -SkipBuild
+
+# Dry run to preview
+.\release.ps1 -Version vX.X.X -DryRun
+```
+
+### Manual Commands
 
 ```bash
 # Full release sequence (replace X.X.X with version)
@@ -172,11 +233,13 @@ git tag -a vX.X.X -m "vX.X.X - Description"
 git push origin vX.X.X
 ```
 
-## Deployment Commands (for reference)
+---
+
+## Deployment Commands
 
 ### TrueNAS
 
-docker and docker-compose commands are not supported on TrueNAS
+Docker and docker-compose commands are not supported directly on TrueNAS. Use the TrueNAS Apps UI to update containers.
 
 ### Standard Production
 
@@ -185,8 +248,12 @@ docker-compose -f docker-compose.prod.yml pull
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
+---
+
 ## Related Files
 
+- [release.ps1](../release.ps1) - Automated release script
+- [build.truenas.ps1](../build.truenas.ps1) - Docker build script
 - [RELEASE_CHECKLIST.md](../RELEASE_CHECKLIST.md) - More comprehensive release process
 - [DEPLOYMENT.md](../DEPLOYMENT.md) - Production deployment guide
 - [CLAUDE.md](../CLAUDE.md) - Project instructions for AI assistants
