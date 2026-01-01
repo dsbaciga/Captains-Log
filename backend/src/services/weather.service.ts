@@ -19,8 +19,8 @@ interface OpenWeatherResponse {
     pop: number; // Probability of precipitation (0-1)
     humidity: number;
     wind_speed: number;
-    rain?: number; // Rain volume in mm
-    snow?: number; // Snow volume in mm
+    rain?: number | { '1h'?: number }; // Rain volume in mm (can be number or nested object)
+    snow?: number | { '1h'?: number }; // Snow volume in mm (can be number or nested object)
   }[];
 }
 
@@ -315,8 +315,9 @@ class WeatherService {
 
       // Calculate total precipitation (rain + snow) in mm
       // Note: rain/snow fields are only present when there's measurable precipitation
-      const rainAmount = dayData.rain || 0;
-      const snowAmount = dayData.snow || 0;
+      // The API returns these as numbers (daily totals) for One Call API 3.0
+      const rainAmount = (typeof dayData.rain === 'number' ? dayData.rain : (dayData.rain as any)?.['1h'] || 0);
+      const snowAmount = (typeof dayData.snow === 'number' ? dayData.snow : (dayData.snow as any)?.['1h'] || 0);
       const totalPrecipitation = rainAmount + snowAmount;
 
       return {
