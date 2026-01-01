@@ -737,11 +737,24 @@ const Timeline = ({
 
   const getDayNumber = (dateString: string): number | null => {
     if (!tripStartDate) return null;
+
+    // Parse tripStartDate as a local date (not UTC) to avoid timezone issues
+    // ISO format dates (YYYY-MM-DD) are interpreted as UTC midnight by default
+    const match = tripStartDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    let startDate: Date;
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1; // 0-indexed
+      const day = parseInt(match[3], 10);
+      startDate = new Date(year, month, day, 0, 0, 0, 0);
+    } else {
+      startDate = new Date(tripStartDate);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
     const itemDate = new Date(dateString);
-    const startDate = new Date(tripStartDate);
-    // Reset times to midnight for accurate day calculation
     itemDate.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
+
     const diffTime = itemDate.getTime() - startDate.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return diffDays + 1; // Day 1 is the first day
