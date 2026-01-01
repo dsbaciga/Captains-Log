@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { useThemeStore } from "../store/themeStore";
 import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { theme } = useThemeStore();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -265,7 +267,12 @@ export default function Navbar() {
           showMobileMenu ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="relative flex flex-col h-full bg-white dark:bg-navy-900">
+        <div
+          className="relative flex flex-col h-full bg-white dark:bg-navy-900"
+          style={{
+            backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff'
+          }}
+        >
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-sky/10">
             <span className="text-lg font-display font-bold text-primary-600 dark:text-sky">
