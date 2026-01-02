@@ -45,6 +45,8 @@ param(
 
     [switch]$DryRun,
 
+    [switch]$NoConfirm,
+
     [string]$Description = ""
 )
 
@@ -98,10 +100,14 @@ if ($DryRun) { Write-Warn "DRY RUN MODE - No changes will be made" }
 Write-Host ""
 
 # Confirmation
-$Confirmation = Read-Host "Continue with release $Version? (y/N)"
-if ($Confirmation -ne 'y' -and $Confirmation -ne 'Y') {
-    Write-Warn "Release cancelled."
-    exit 0
+if (-not $NoConfirm) {
+    $Confirmation = Read-Host "Continue with release $Version? (y/N)"
+    if ($Confirmation -ne 'y' -and $Confirmation -ne 'Y') {
+        Write-Warn "Release cancelled."
+        exit 0
+    }
+} else {
+    Write-Info "Skipping confirmation (NoConfirm mode)"
 }
 
 # Step 1: Check for uncommitted changes
@@ -110,10 +116,14 @@ $gitStatus = git status --porcelain
 if ($gitStatus) {
     Write-Warn "You have uncommitted changes:"
     $gitStatus | ForEach-Object { Write-Info $_ }
-    $response = Read-Host "These will be included in the release commit. Continue? (y/N)"
-    if ($response -ne "y" -and $response -ne "Y") {
-        Write-Err "Aborted"
-        exit 1
+    if (-not $NoConfirm) {
+        $response = Read-Host "These will be included in the release commit. Continue? (y/N)"
+        if ($response -ne "y" -and $response -ne "Y") {
+            Write-Err "Aborted"
+            exit 1
+        }
+    } else {
+        Write-Info "Proceeding with uncommitted changes (NoConfirm mode)"
     }
 }
 Write-Success "Git status checked"
