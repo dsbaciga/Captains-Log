@@ -400,17 +400,35 @@ export default function AlbumDetailPage() {
                   <div className="mt-4 space-y-2">
                     {album.location && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Location:</span> {album.location.name}
+                        <span className="font-medium">Location:</span>{' '}
+                        <Link
+                          to={`/trips/${tripId}#location-${album.location.id}`}
+                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
+                        >
+                          {album.location.name}
+                        </Link>
                       </div>
                     )}
                     {album.activity && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Activity:</span> {album.activity.name}
+                        <span className="font-medium">Activity:</span>{' '}
+                        <Link
+                          to={`/trips/${tripId}#activity-${album.activity.id}`}
+                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
+                        >
+                          {album.activity.name}
+                        </Link>
                       </div>
                     )}
                     {album.lodging && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Lodging:</span> {album.lodging.name}
+                        <span className="font-medium">Lodging:</span>{' '}
+                        <Link
+                          to={`/trips/${tripId}#lodging-${album.lodging.id}`}
+                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
+                        >
+                          {album.lodging.name}
+                        </Link>
                       </div>
                     )}
                   </div>
