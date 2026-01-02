@@ -283,6 +283,11 @@ export default function TransportationManager({
     }
   };
 
+  const formatDistance = (kilometers: number): string => {
+    const miles = kilometers * 0.621371;
+    return `${kilometers.toFixed(1)} km (${miles.toFixed(1)} mi)`;
+  };
+
   const getStatusBadge = (transportation: Transportation) => {
     if (transportation.isInProgress) {
       return (
@@ -750,6 +755,14 @@ export default function TransportationManager({
                       <div className="flex items-center gap-2">
                         <span className="font-medium">Duration:</span>
                         <span>{formatDuration(transportation.durationMinutes)}</span>
+                      </div>
+                    )}
+
+                    {/* Distance */}
+                    {transportation.calculatedDistance && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Distance:</span>
+                        <span>{formatDistance(transportation.calculatedDistance)}</span>
                       </div>
                     )}
 
