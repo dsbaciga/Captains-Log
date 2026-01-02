@@ -4,7 +4,7 @@ import {
   CreateJournalEntryInput,
   UpdateJournalEntryInput,
 } from '../types/journalEntry.types';
-import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData } from '../utils/serviceHelpers';
 import { fromZonedTime } from 'date-fns-tz';
 import { parseISO } from 'date-fns';
 
@@ -369,32 +369,33 @@ class JournalEntryService {
     // Update journal entry and sync all associations in a transaction
     const updatedEntry = await prisma.$transaction(async (tx) => {
       // Update the journal entry itself
-      const updateData: any = {};
+      // Create date transformer that handles timezone conversion
+      const entryDateTransformer = (dateStr: string | null) => {
+        if (!dateStr) return null;
 
-      if (data.title !== undefined) {
-        updateData.title = data.title || null;
-      }
-      if (data.content !== undefined) {
-        updateData.content = data.content;
-      }
-      if (data.entryDate !== undefined) {
-        if (data.entryDate) {
-          // Parse date with trip timezone if available
-          if (entry?.trip?.timezone) {
-            try {
-              const parsedDate = parseISO(data.entryDate);
-              updateData.date = fromZonedTime(parsedDate, entry.trip.timezone);
-            } catch (error) {
-              console.error('Error parsing date with timezone:', error);
-              updateData.date = new Date(data.entryDate);
-            }
-          } else {
-            updateData.date = new Date(data.entryDate);
+        // Parse date with trip timezone if available
+        if (entry?.trip?.timezone) {
+          try {
+            const parsedDate = parseISO(dateStr);
+            return fromZonedTime(parsedDate, entry.trip.timezone);
+          } catch (error) {
+            console.error('Error parsing date with timezone:', error);
+            return new Date(dateStr);
           }
         } else {
-          updateData.date = null;
+          return new Date(dateStr);
         }
-      }
+      };
+
+      const updateData = buildConditionalUpdateData(
+        { ...data, date: data.entryDate },
+        {
+          transformers: {
+            title: (val) => val || null,
+            date: entryDateTransformer,
+          },
+        }
+      );
 
       await tx.journalEntry.update({
         where: { id: entryId },

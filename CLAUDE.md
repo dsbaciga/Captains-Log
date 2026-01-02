@@ -20,6 +20,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Travel Life is a full-stack travel documentation application built with a React frontend and Express backend. The application enables users to track trips with rich features including locations, photos, transportation, lodging, journal entries, and more.
 
+### Naming Convention
+
+**IMPORTANT**: The application has two different names used in different contexts:
+
+- **Travel Life** - The user-facing application name used in the UI, branding, and user documentation
+- **Captain's Log** - The technical infrastructure name used for:
+  - Top-level folder name (`Captains-Log/`)
+  - Docker container names (`captains-log-backend`, `captains-log-frontend`, `captains-log-db`)
+  - Database name (`captains_log`)
+  - Docker image names (`ghcr.io/dsbaciga/captains-log-backend`, `ghcr.io/dsbaciga/captains-log-frontend`)
+  - Git repository references
+  - Environment variables and configuration files
+  - Build scripts and deployment commands
+
+**DO NOT change any technical infrastructure names** when updating the application. The "Captain's Log" naming in containers, databases, usernames, passwords, and folder structure remains unchanged for compatibility and deployment stability.
+
 ### Current Implementation Status
 
 **The application is ~75% complete and production-ready for personal use.** See [reference/IMPLEMENTATION_STATUS.md](reference/IMPLEMENTATION_STATUS.md) for detailed progress tracking.

@@ -10,7 +10,6 @@ export type PhotoSourceType = typeof PhotoSource[keyof typeof PhotoSource];
 export interface Photo {
   id: number;
   tripId: number;
-  locationId: number | null;
   source: PhotoSourceType;
   immichAssetId: string | null;
   localPath: string | null;
@@ -50,7 +49,6 @@ export interface AlbumWithPhotos extends PhotoAlbum {
 // Validation schemas
 export const uploadPhotoSchema = z.object({
   tripId: z.number(),
-  locationId: z.number().optional(),
   caption: z.string().max(1000).optional(),
   takenAt: z.string().optional(),
   latitude: z.number().min(-90).max(90).optional(),
@@ -59,7 +57,6 @@ export const uploadPhotoSchema = z.object({
 
 export const linkImmichPhotoSchema = z.object({
   tripId: z.number(),
-  locationId: z.number().optional(),
   immichAssetId: z.string().min(1),
   caption: z.string().max(1000).optional(),
   takenAt: z.string().optional().nullable(),
@@ -68,7 +65,6 @@ export const linkImmichPhotoSchema = z.object({
 });
 
 export const updatePhotoSchema = z.object({
-  locationId: z.number().optional().nullable(),
   caption: z.string().max(1000).optional().nullable(),
   takenAt: z.string().optional().nullable(),
   latitude: z.number().min(-90).max(90).optional().nullable(),

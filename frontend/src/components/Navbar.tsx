@@ -302,7 +302,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Navigation Links */}
-          <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto bg-white dark:bg-navy-900 min-h-0">
+          <nav className="flex-1 py-4 px-2 space-y-1 bg-white dark:bg-navy-900">
             {navLinks.map((link) => (
               <NavLink
                 key={link.path}

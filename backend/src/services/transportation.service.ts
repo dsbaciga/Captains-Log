@@ -4,6 +4,7 @@ import {
   UpdateTransportationInput,
 } from '../types/transportation.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
+import { journalAssignmentsInclude, locationSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
 // Helper to map database fields to frontend field names
@@ -84,35 +85,12 @@ class TransportationService {
       },
       include: {
         startLocation: {
-          select: {
-            id: true,
-            name: true,
-            latitude: true,
-            longitude: true,
-          },
+          select: locationSelect,
         },
         endLocation: {
-          select: {
-            id: true,
-            name: true,
-            latitude: true,
-            longitude: true,
-          },
+          select: locationSelect,
         },
-        journalAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
+        journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
       },
     });
@@ -133,35 +111,12 @@ class TransportationService {
       where: { tripId },
       include: {
         startLocation: {
-          select: {
-            id: true,
-            name: true,
-            latitude: true,
-            longitude: true,
-          },
+          select: locationSelect,
         },
         endLocation: {
-          select: {
-            id: true,
-            name: true,
-            latitude: true,
-            longitude: true,
-          },
+          select: locationSelect,
         },
-        journalAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
+        journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
       },
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
@@ -317,35 +272,12 @@ class TransportationService {
       },
       include: {
         startLocation: {
-          select: {
-            id: true,
-            name: true,
-            latitude: true,
-            longitude: true,
-          },
+          select: locationSelect,
         },
         endLocation: {
-          select: {
-            id: true,
-            name: true,
-            latitude: true,
-            longitude: true,
-          },
+          select: locationSelect,
         },
-        journalAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
+        journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
       },
     });

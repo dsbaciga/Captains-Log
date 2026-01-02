@@ -17,9 +17,6 @@ class PhotoService {
     const formData = new FormData();
     formData.append('photo', file);
     formData.append('tripId', data.tripId.toString());
-    if (data.locationId) {
-      formData.append('locationId', data.locationId.toString());
-    }
     if (data.caption) {
       formData.append('caption', data.caption);
     }
@@ -69,11 +66,6 @@ class PhotoService {
   async getImmichAssetIdsByTrip(tripId: number): Promise<string[]> {
     const response = await api.get(`/photos/trip/${tripId}/immich-asset-ids`);
     return response.data.assetIds;
-  }
-
-  async getPhotosByLocation(locationId: number): Promise<Photo[]> {
-    const response = await api.get(`/photos/location/${locationId}`);
-    return response.data;
   }
 
   async getPhotoById(photoId: number): Promise<Photo> {

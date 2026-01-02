@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Location } from "../types/location";
 import type { ImmichAsset, ImmichAlbum } from "../types/immich";
 import photoService from "../services/photo.service";
@@ -28,12 +28,12 @@ export default function PhotoUpload({
 }: PhotoUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [caption, setCaption] = useState("");
-  const [locationId, setLocationId] = useState<number | undefined>();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showImmichBrowser, setShowImmichBrowser] = useState(false);
   const [immichConfigured, setImmichConfigured] = useState(false);
   const { isDraggingFiles, setupListeners } = useDragDropOverlay();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     checkImmichSettings();
@@ -59,6 +59,25 @@ export default function PhotoUpload({
     setSelectedFiles((prev) => [...prev, ...files]);
   };
 
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      handleFilesDropped(files);
+      // Reset input so the same file can be selected again
+      e.target.value = "";
+    }
+  };
+
+  const handleSelectPhotosClick = () => {
+    if (selectedFiles.length === 0) {
+      // No files selected - open file picker
+      fileInputRef.current?.click();
+    } else {
+      // Files selected - upload them
+      handleUpload();
+    }
+  };
+
   const handleImmichSelect = async (assets: ImmichAsset[]) => {
     setIsUploading(true);
     setUploadProgress(0);
@@ -70,7 +89,6 @@ export default function PhotoUpload({
 
         await photoService.linkImmichPhoto({
           tripId,
-          locationId,
           immichAssetId: asset.id,
           caption: assets.length === 1 ? caption || undefined : undefined,
           takenAt: takenAt ?? undefined,
@@ -81,7 +99,6 @@ export default function PhotoUpload({
       }
 
       setCaption("");
-      setLocationId(undefined);
       setUploadProgress(0);
       setShowImmichBrowser(false);
       onPhotoUploaded();
@@ -120,7 +137,6 @@ export default function PhotoUpload({
 
         const photo = await photoService.linkImmichPhoto({
           tripId,
-          locationId: undefined,
           immichAssetId: asset.id,
           caption: undefined,
           takenAt: takenAt ?? undefined,
@@ -164,7 +180,6 @@ export default function PhotoUpload({
         const file = selectedFiles[i];
         await photoService.uploadPhoto(file, {
           tripId,
-          locationId,
           caption: selectedFiles.length === 1 ? caption : undefined,
         });
         setUploadProgress(((i + 1) / selectedFiles.length) * 100);
@@ -173,7 +188,6 @@ export default function PhotoUpload({
       // Reset form
       setSelectedFiles([]);
       setCaption("");
-      setLocationId(undefined);
       setUploadProgress(0);
       onPhotoUploaded();
     } catch {
@@ -200,6 +214,17 @@ export default function PhotoUpload({
             </button>
           )}
         </div>
+
+        {/* Hidden file input for manual selection */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileInputChange}
+          className="hidden"
+          aria-label="Select photos to upload"
+        />
 
         <div className="space-y-4">
           {/* Mobile Photo Source Picker - Shows on small screens */}
@@ -280,34 +305,6 @@ export default function PhotoUpload({
             </div>
           )}
 
-          {/* Location */}
-          <div>
-            <label
-              htmlFor="photo-upload-location"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Location (Optional)
-            </label>
-            <select
-              id="photo-upload-location"
-              value={locationId || ""}
-              onChange={(e) =>
-                setLocationId(
-                  e.target.value ? parseInt(e.target.value) : undefined
-                )
-              }
-              className="input"
-              disabled={isUploading}
-            >
-              <option value="">No specific location</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Upload Progress */}
           {isUploading && (
             <div>
@@ -325,8 +322,8 @@ export default function PhotoUpload({
 
           {/* Upload Button */}
           <button
-            onClick={handleUpload}
-            disabled={selectedFiles.length === 0 || isUploading}
+            onClick={handleSelectPhotosClick}
+            disabled={isUploading}
             className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors disabled:cursor-not-allowed"
           >
             {isUploading

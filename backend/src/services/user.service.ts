@@ -3,6 +3,7 @@ import { AppError } from '../utils/errors';
 import { UpdateUserSettingsInput } from '../types/userSettings.types';
 import bcrypt from 'bcrypt';
 import { companionService } from './companion.service';
+import { buildConditionalUpdateData } from '../utils/serviceHelpers';
 
 class UserService {
   async getUserById(userId: number) {
@@ -28,13 +29,7 @@ class UserService {
   }
 
   async updateUserSettings(userId: number, data: UpdateUserSettingsInput) {
-    const updateData: any = {};
-    if (data.activityCategories !== undefined) {
-      updateData.activityCategories = data.activityCategories;
-    }
-    if (data.timezone !== undefined) {
-      updateData.timezone = data.timezone;
-    }
+    const updateData = buildConditionalUpdateData(data);
 
     const user = await prisma.user.update({
       where: { id: userId },
@@ -58,12 +53,11 @@ class UserService {
     userId: number,
     data: { immichApiUrl?: string | null; immichApiKey?: string | null }
   ) {
+    const updateData = buildConditionalUpdateData(data);
+
     const user = await prisma.user.update({
       where: { id: userId },
-      data: {
-        immichApiUrl: data.immichApiUrl !== undefined ? data.immichApiUrl : undefined,
-        immichApiKey: data.immichApiKey !== undefined ? data.immichApiKey : undefined,
-      },
+      data: updateData,
       select: {
         id: true,
         username: true,
@@ -101,11 +95,11 @@ class UserService {
     userId: number,
     data: { weatherApiKey?: string | null }
   ) {
+    const updateData = buildConditionalUpdateData(data);
+
     const user = await prisma.user.update({
       where: { id: userId },
-      data: {
-        weatherApiKey: data.weatherApiKey !== undefined ? data.weatherApiKey : undefined,
-      },
+      data: updateData,
       select: {
         id: true,
         username: true,

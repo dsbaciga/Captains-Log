@@ -2,6 +2,28 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateTripInput, UpdateTripInput, GetTripQuery, TripStatus } from '../types/trip.types';
 import { companionService } from './companion.service';
+import { buildConditionalUpdateData, tripDateTransformer } from '../utils/serviceHelpers';
+
+// Helper function to convert Decimal fields in photo objects
+function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(
+  photo: T | null | undefined
+): T | null | undefined {
+  if (!photo) return photo;
+  return {
+    ...photo,
+    latitude: photo.latitude ? Number(photo.latitude) : photo.latitude,
+    longitude: photo.longitude ? Number(photo.longitude) : photo.longitude,
+  };
+}
+
+// Helper to convert photos in trip objects
+function convertTripPhotoDecimals<T extends { coverPhoto?: any; bannerPhoto?: any }>(trip: T): T {
+  return {
+    ...trip,
+    coverPhoto: convertPhotoDecimals(trip.coverPhoto),
+    bannerPhoto: convertPhotoDecimals(trip.bannerPhoto),
+  };
+}
 
 export class TripService {
   async createTrip(userId: number, data: CreateTripInput) {
@@ -90,7 +112,7 @@ export class TripService {
     ]);
 
     return {
-      trips,
+      trips: trips.map(convertTripPhotoDecimals),
       total,
       page,
       limit,
@@ -220,7 +242,7 @@ export class TripService {
       },
     });
 
-    return updatedTrip || trip;
+    return convertTripPhotoDecimals(updatedTrip || trip);
   }
 
   /**
@@ -308,15 +330,15 @@ export class TripService {
       addToPlacesVisited = true;
     }
 
-    const updateData: any = {};
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate + 'T00:00:00.000Z') : null;
-    if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate + 'T00:00:00.000Z') : null;
-    if (data.timezone !== undefined) updateData.timezone = data.timezone;
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.privacyLevel !== undefined) updateData.privacyLevel = data.privacyLevel;
-    if (addToPlacesVisited !== undefined) updateData.addToPlacesVisited = addToPlacesVisited;
+    const updateData = buildConditionalUpdateData(
+      { ...data, addToPlacesVisited },
+      {
+        transformers: {
+          startDate: tripDateTransformer,
+          endDate: tripDateTransformer,
+        },
+      }
+    );
 
     const trip = await prisma.trip.update({
       where: { id: tripId },
@@ -372,7 +394,7 @@ export class TripService {
       },
     });
 
-    return updatedTrip;
+    return convertTripPhotoDecimals(updatedTrip);
   }
 }
 

@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
+import { photoAlbumsInclude, journalAssignmentsInclude } from '../utils/prismaIncludes';
 
 class ActivityService {
   async createActivity(userId: number, data: CreateActivityInput) {
@@ -90,30 +91,8 @@ class ActivityService {
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
-        photoAlbums: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            _count: {
-              select: { photoAssignments: true },
-            },
-          },
-        },
-        journalAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
+        photoAlbums: photoAlbumsInclude,
+        journalAssignments: journalAssignmentsInclude,
       },
       orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
     });
@@ -148,30 +127,8 @@ class ActivityService {
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
-        photoAlbums: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            _count: {
-              select: { photoAssignments: true },
-            },
-          },
-        },
-        journalAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
+        photoAlbums: photoAlbumsInclude,
+        journalAssignments: journalAssignmentsInclude,
       },
     });
 

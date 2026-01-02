@@ -3,7 +3,6 @@ export type PhotoSource = 'local' | 'immich';
 export type Photo = {
   id: number;
   tripId: number;
-  locationId: number | null;
   source: PhotoSource;
   immichAssetId: string | null;
   localPath: string | null;
@@ -14,10 +13,6 @@ export type Photo = {
   longitude: number | null;
   createdAt: string;
   updatedAt: string;
-  location?: {
-    id: number;
-    name: string;
-  };
   albums?: {
     album: {
       id: number;
@@ -67,7 +62,6 @@ export type AlbumWithPhotos = PhotoAlbum & {
 
 export type UploadPhotoInput = {
   tripId: number;
-  locationId?: number;
   caption?: string;
   takenAt?: string;
   latitude?: number;
@@ -76,7 +70,6 @@ export type UploadPhotoInput = {
 
 export type LinkImmichPhotoInput = {
   tripId: number;
-  locationId?: number;
   immichAssetId: string;
   caption?: string;
   takenAt?: string;
@@ -85,7 +78,6 @@ export type LinkImmichPhotoInput = {
 };
 
 export type UpdatePhotoInput = {
-  locationId?: number | null;
   caption?: string | null;
   takenAt?: string | null;
   latitude?: number | null;

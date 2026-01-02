@@ -38,9 +38,6 @@ class PhotoController {
       const validatedData = uploadPhotoSchema.parse({
         ...req.body,
         tripId: parseInt(req.body.tripId),
-        locationId: req.body.locationId
-          ? parseInt(req.body.locationId)
-          : undefined,
         latitude: req.body.latitude ? parseFloat(req.body.latitude) : undefined,
         longitude: req.body.longitude
           ? parseFloat(req.body.longitude)
@@ -126,20 +123,6 @@ class PhotoController {
         total: result.total,
         hasMore: result.hasMore,
       });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getPhotosByLocation(req: Request, res: Response, next: NextFunction) {
-    try {
-      const locationId = parseInt(req.params.locationId);
-      const photos = await photoService.getPhotosByLocation(
-        req.user!.userId,
-        locationId
-      );
-
-      res.json(photos.map(transformPhoto));
     } catch (error) {
       next(error);
     }

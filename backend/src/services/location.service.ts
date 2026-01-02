@@ -1,7 +1,8 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput } from '../types/location.types';
-import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData } from '../utils/serviceHelpers';
+import { photoAlbumsInclude } from '../utils/prismaIncludes';
 
 export class LocationService {
   async createLocation(userId: number, data: CreateLocationInput) {
@@ -58,16 +59,7 @@ export class LocationService {
       where: { tripId },
       include: {
         category: true,
-        photoAlbums: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            _count: {
-              select: { photoAssignments: true },
-            },
-          },
-        },
+        photoAlbums: photoAlbumsInclude,
         journalLocationAssignments: {
           select: {
             id: true,
@@ -134,16 +126,7 @@ export class LocationService {
       where: { id: locationId },
       include: {
         category: true,
-        photoAlbums: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            _count: {
-              select: { photoAssignments: true },
-            },
-          },
-        },
+        photoAlbums: photoAlbumsInclude,
         journalLocationAssignments: {
           select: {
             id: true,
@@ -193,15 +176,11 @@ export class LocationService {
     // Verify access
     await verifyEntityAccess(location, userId, 'Location');
 
-    const updateData: any = {};
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.address !== undefined) updateData.address = data.address;
-    if (data.latitude !== undefined) updateData.latitude = data.latitude;
-    if (data.longitude !== undefined) updateData.longitude = data.longitude;
-    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
-    if (data.visitDatetime !== undefined) updateData.visitDatetime = data.visitDatetime ? new Date(data.visitDatetime) : null;
-    if (data.visitDurationMinutes !== undefined) updateData.visitDurationMinutes = data.visitDurationMinutes;
-    if (data.notes !== undefined) updateData.notes = data.notes;
+    const updateData = buildConditionalUpdateData(data, {
+      transformers: {
+        visitDatetime: (val) => val ? new Date(val) : null,
+      },
+    });
 
     const updatedLocation = await prisma.location.update({
       where: { id: locationId },

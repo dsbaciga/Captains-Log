@@ -4,6 +4,7 @@ import {
   UpdateLodgingInput,
 } from '../types/lodging.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
+import { photoAlbumsInclude, journalAssignmentsInclude } from '../utils/prismaIncludes';
 
 class LodgingService {
   async createLodging(userId: number, data: CreateLodgingInput) {
@@ -57,30 +58,8 @@ class LodgingService {
             name: true,
           },
         },
-        photoAlbums: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            _count: {
-              select: { photoAssignments: true },
-            },
-          },
-        },
-        journalAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
+        photoAlbums: photoAlbumsInclude,
+        journalAssignments: journalAssignmentsInclude,
       },
       orderBy: [{ checkInDate: 'asc' }, { createdAt: 'asc' }],
     });
@@ -94,30 +73,8 @@ class LodgingService {
       include: {
         trip: true,
         location: true,
-        photoAlbums: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            _count: {
-              select: { photoAssignments: true },
-            },
-          },
-        },
-        journalAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
+        photoAlbums: photoAlbumsInclude,
+        journalAssignments: journalAssignmentsInclude,
       },
     });
 

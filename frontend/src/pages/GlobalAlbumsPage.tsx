@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useId, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import photoService from "../services/photo.service";
+import tripService from "../services/trip.service";
 import type { AlbumWithTrip } from "../types/photo";
+import type { Trip } from "../types/trip";
 import toast from "react-hot-toast";
 import { getAssetBaseUrl } from "../lib/config";
 import { usePagination } from "../hooks/usePagination";
@@ -22,7 +24,7 @@ const coverUrlCache = new Map<number, string>();
 export default function GlobalAlbumsPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOption, setSortOption] = useState<SortOption>("tripDate-desc");
+  const [sortOption, setSortOption] = useState<SortOption>("tripDate-asc");
   const [totalPhotos, setTotalPhotos] = useState(0);
   const [tripCount, setTripCount] = useState(0);
   const [totalAlbums, setTotalAlbums] = useState(0);
@@ -34,6 +36,11 @@ export default function GlobalAlbumsPage() {
   const tripSectionIdPrefix = useId();
   const [allTags, setAllTags] = useState<TripTag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [albumName, setAlbumName] = useState("");
+  const [albumDescription, setAlbumDescription] = useState("");
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
 
   const loadAlbumsPage = useCallback(
     async (skip: number, take: number) => {
@@ -64,7 +71,7 @@ export default function GlobalAlbumsPage() {
 
   const albums = albumPagination.items;
 
-  // Load tags for filters
+  // Load tags and trips for filters
   useEffect(() => {
     const loadTags = async () => {
       try {
@@ -74,7 +81,16 @@ export default function GlobalAlbumsPage() {
         console.error("Failed to load tags", err);
       }
     };
+    const loadTrips = async () => {
+      try {
+        const response = await tripService.getTrips({ limit: 1000 });
+        setAvailableTrips(response.trips);
+      } catch (err) {
+        console.error("Failed to load trips", err);
+      }
+    };
     loadTags();
+    loadTrips();
   }, []);
 
   // Reload albums when tag filter changes
@@ -295,42 +311,165 @@ export default function GlobalAlbumsPage() {
     navigate(`/trips/${album.trip.id}/albums/${album.id}`);
   };
 
+  const handleCreateAlbum = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTripId || !albumName.trim()) {
+      toast.error("Please select a trip and enter an album name");
+      return;
+    }
+
+    try {
+      const newAlbum = await photoService.createAlbum({
+        tripId: selectedTripId,
+        name: albumName,
+        description: albumDescription || undefined,
+      });
+
+      toast.success("Album created successfully!");
+      setAlbumName("");
+      setAlbumDescription("");
+      setSelectedTripId(null);
+      setShowCreateForm(false);
+
+      // Refresh albums list
+      albumPagination.clear();
+      albumPagination.loadInitial();
+
+      // Navigate to the new album
+      navigate(`/trips/${selectedTripId}/albums/${newAlbum.id}`);
+    } catch (err) {
+      console.error("Failed to create album:", err);
+      toast.error("Failed to create album");
+    }
+  };
+
   return (
     <div className="bg-cream dark:bg-navy-900 min-h-screen">
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 dark:from-sky dark:to-primary-500 flex items-center justify-center shadow-lg">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 dark:from-sky dark:to-primary-500 flex items-center justify-center shadow-lg">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-charcoal dark:text-warm-gray font-display">
+                  Photo Albums
+                </h1>
+                {!isInitialLoading && (
+                  <p className="text-slate dark:text-warm-gray/70">
+                    {totalAlbums} album{totalAlbums !== 1 ? "s" : ""} •{" "}
+                    {totalPhotos.toLocaleString()} photo
+                    {totalPhotos !== 1 ? "s" : ""} • {tripCount} trip
+                    {tripCount !== 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-charcoal dark:text-warm-gray font-display">
-                Photo Albums
-              </h1>
-              {!isInitialLoading && (
-                <p className="text-slate dark:text-warm-gray/70">
-                  {totalAlbums} album{totalAlbums !== 1 ? "s" : ""} •{" "}
-                  {totalPhotos.toLocaleString()} photo
-                  {totalPhotos !== 1 ? "s" : ""} • {tripCount} trip
-                  {tripCount !== 1 ? "s" : ""}
-                </p>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="btn btn-primary whitespace-nowrap"
+            >
+              {showCreateForm ? "Cancel" : "+ Create Album"}
+            </button>
           </div>
         </div>
+
+        {/* Create Album Form */}
+        {showCreateForm && (
+          <div className="bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-xl border-2 border-primary-500/10 dark:border-sky/10 p-6 mb-6">
+            <h2 className="text-xl font-semibold text-charcoal dark:text-warm-gray mb-4">
+              Create New Album
+            </h2>
+            <form onSubmit={handleCreateAlbum} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="trip-select"
+                  className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1"
+                >
+                  Select Trip *
+                </label>
+                <select
+                  id="trip-select"
+                  value={selectedTripId || ""}
+                  onChange={(e) =>
+                    setSelectedTripId(
+                      e.target.value ? parseInt(e.target.value) : null
+                    )
+                  }
+                  className="w-full px-4 py-2.5 rounded-lg bg-parchment dark:bg-navy-700 text-charcoal dark:text-warm-gray border-2 border-transparent focus:border-primary-500 dark:focus:border-sky focus:outline-none transition-colors"
+                  required
+                >
+                  <option value="">Choose a trip...</option>
+                  {availableTrips.map((trip) => (
+                    <option key={trip.id} value={trip.id}>
+                      {trip.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1">
+                  Album Name *
+                </label>
+                <input
+                  type="text"
+                  value={albumName}
+                  onChange={(e) => setAlbumName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg bg-parchment dark:bg-navy-700 text-charcoal dark:text-warm-gray placeholder-slate/50 dark:placeholder-warm-gray/50 border-2 border-transparent focus:border-primary-500 dark:focus:border-sky focus:outline-none transition-colors"
+                  placeholder="Summer Adventures"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={albumDescription}
+                  onChange={(e) => setAlbumDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2.5 rounded-lg bg-parchment dark:bg-navy-700 text-charcoal dark:text-warm-gray placeholder-slate/50 dark:placeholder-warm-gray/50 border-2 border-transparent focus:border-primary-500 dark:focus:border-sky focus:outline-none transition-colors resize-none"
+                  placeholder="A collection of our best summer moments..."
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="btn btn-primary">
+                  Create Album
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setAlbumName("");
+                    setAlbumDescription("");
+                    setSelectedTripId(null);
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Search and Sort Bar */}
         <div className="bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm p-4 rounded-xl border-2 border-primary-500/10 dark:border-sky/10 mb-6">

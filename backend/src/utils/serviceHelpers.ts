@@ -190,6 +190,85 @@ export function buildUpdateData<T extends Record<string, any>>(
 }
 
 /**
+ * Enhanced update data builder with conditional field inclusion and transformers
+ * Eliminates the pattern: if (data.field !== undefined) updateData.field = data.field
+ *
+ * This function only includes fields that are explicitly defined (not undefined),
+ * allowing partial updates where omitted fields remain unchanged in the database.
+ *
+ * @template T - The data type (typically a Partial<EntityInput>)
+ * @param data - Partial data object with fields to update
+ * @param options - Configuration options
+ * @param options.emptyStringToNull - Convert empty strings to null (default: true)
+ * @param options.transformers - Custom field transformers (e.g., date conversion)
+ *
+ * @returns Update data object with only defined fields, optionally transformed
+ *
+ * @example
+ * ```typescript
+ * // Simple usage (converts empty strings to null)
+ * const updateData = buildConditionalUpdateData(data);
+ *
+ * // With date transformers
+ * const updateData = buildConditionalUpdateData(data, {
+ *   transformers: {
+ *     startDate: tripDateTransformer,
+ *     endDate: tripDateTransformer,
+ *   }
+ * });
+ * ```
+ */
+export function buildConditionalUpdateData<T extends Record<string, any>>(
+  data: Partial<T>,
+  options: {
+    emptyStringToNull?: boolean;
+    transformers?: Record<string, (value: any) => any>;
+  } = {}
+): Partial<T> {
+  const { emptyStringToNull = true, transformers = {} } = options;
+  const updateData: Partial<T> = {};
+
+  for (const key in data) {
+    const value = data[key];
+
+    // Only include defined values (skip undefined to preserve existing values)
+    if (value !== undefined) {
+      // Apply custom transformer if exists
+      if (transformers[key]) {
+        updateData[key] = transformers[key](value);
+      }
+      // Convert empty strings to null
+      else if (emptyStringToNull && value === '') {
+        updateData[key] = null as any;
+      }
+      // Include as-is
+      else {
+        updateData[key] = value;
+      }
+    }
+  }
+
+  return updateData;
+}
+
+/**
+ * Transformer for trip date fields (common pattern)
+ * Converts date strings to UTC Date objects with T00:00:00.000Z
+ *
+ * @param dateStr - Date string (YYYY-MM-DD) or null
+ * @returns Date object in UTC or null
+ *
+ * @example
+ * ```typescript
+ * tripDateTransformer("2025-01-15") // Date("2025-01-15T00:00:00.000Z")
+ * tripDateTransformer(null) // null
+ * ```
+ */
+export function tripDateTransformer(dateStr: string | null): Date | null {
+  return dateStr ? new Date(dateStr + 'T00:00:00.000Z') : null;
+}
+
+/**
  * Generic function to verify entity ownership through trip relationship
  * More flexible version that works with any entity type
  */

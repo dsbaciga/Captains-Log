@@ -39,9 +39,6 @@ router.get('/trip/:tripId/immich-asset-ids', photoController.getImmichAssetIdsBy
 // Get unsorted photos by trip (photos not in any album)
 router.get('/trip/:tripId/unsorted', photoController.getUnsortedPhotosByTrip);
 
-// Get photos by location
-router.get('/location/:locationId', photoController.getPhotosByLocation);
-
 // Get photo by ID
 router.get('/:id', photoController.getPhotoById);
 

@@ -7,6 +7,26 @@ import {
 } from '../types/photo.types';
 import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
 
+// Helper function to convert Decimal fields in photo objects
+function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(
+  photo: T | null | undefined
+): T | null | undefined {
+  if (!photo) return photo;
+  return {
+    ...photo,
+    latitude: photo.latitude ? Number(photo.latitude) : photo.latitude,
+    longitude: photo.longitude ? Number(photo.longitude) : photo.longitude,
+  };
+}
+
+// Helper to convert photos in album objects
+function convertAlbumPhotoDecimals<T extends { coverPhoto?: any }>(album: T): T {
+  return {
+    ...album,
+    coverPhoto: convertPhotoDecimals(album.coverPhoto),
+  };
+}
+
 class PhotoAlbumService {
   /**
    * Get all albums across all trips for a user with pagination
@@ -106,7 +126,7 @@ class PhotoAlbumService {
     const hasMore = loadedCount < totalAlbums;
 
     return {
-      albums,
+      albums: albums.map(convertAlbumPhotoDecimals),
       totalAlbums,
       totalPhotos,
       tripCount: tripIds.length,
@@ -257,7 +277,11 @@ class PhotoAlbumService {
     const album = await prisma.photoAlbum.findUnique({
       where: { id: albumId },
       include: {
-        trip: true,
+        trip: {
+          select: {
+            userId: true,
+          },
+        },
         location: {
           select: {
             id: true,
@@ -278,16 +302,7 @@ class PhotoAlbumService {
         },
         photoAssignments: {
           include: {
-            photo: {
-              include: {
-                location: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
+            photo: true,
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -300,23 +315,31 @@ class PhotoAlbumService {
     });
 
     // Verify access
-    const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
+    await verifyEntityAccess(album, userId, 'Album');
 
-    const loadedCount = skip + verifiedAlbum.photoAssignments.length;
-    const totalCount = verifiedAlbum._count.photoAssignments;
+    if (!album) {
+      throw new AppError('Album not found', 404);
+    }
+
+    const loadedCount = skip + album.photoAssignments.length;
+    const totalCount = album._count.photoAssignments;
 
     console.log('[PhotoAlbumService] getAlbumById pagination:', {
       albumId,
       skip,
       take,
-      returnedPhotos: verifiedAlbum.photoAssignments.length,
+      returnedPhotos: album.photoAssignments.length,
       loadedCount,
       totalCount,
       hasMore: loadedCount < totalCount,
     });
 
     return {
-      ...verifiedAlbum,
+      ...album,
+      photoAssignments: album.photoAssignments.map((assignment: any) => ({
+        ...assignment,
+        photo: convertPhotoDecimals(assignment.photo),
+      })),
       hasMore: loadedCount < totalCount,
       total: totalCount,
     };
@@ -410,7 +433,7 @@ class PhotoAlbumService {
       },
     });
 
-    return updatedAlbum;
+    return convertAlbumPhotoDecimals(updatedAlbum);
   }
 
   async deleteAlbum(userId: number, albumId: number) {

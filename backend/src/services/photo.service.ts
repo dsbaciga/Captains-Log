@@ -10,7 +10,7 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
-import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
 const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
@@ -21,6 +21,15 @@ async function ensureUploadDirs() {
   await fs.mkdir(THUMBNAIL_DIR, { recursive: true });
 }
 
+// Helper function to convert Decimal fields to numbers
+function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(photo: T): T {
+  return {
+    ...photo,
+    latitude: photo.latitude ? Number(photo.latitude) : photo.latitude,
+    longitude: photo.longitude ? Number(photo.longitude) : photo.longitude,
+  };
+}
+
 class PhotoService {
   async uploadPhoto(
     userId: number,
@@ -29,11 +38,6 @@ class PhotoService {
   ) {
     // Verify user owns the trip
     await verifyTripAccess(userId, data.tripId);
-
-    // Verify location belongs to trip if provided
-    if (data.locationId) {
-      await verifyLocationInTrip(data.locationId, data.tripId);
-    }
 
     await ensureUploadDirs();
 
@@ -75,7 +79,6 @@ class PhotoService {
     const photo = await prisma.photo.create({
       data: {
         tripId: data.tripId,
-        locationId: data.locationId || null,
         source: PhotoSource.LOCAL,
         localPath: `/uploads/photos/${filename}`,
         thumbnailPath: `/uploads/thumbnails/${thumbnailFilename}`,
@@ -86,17 +89,12 @@ class PhotoService {
       },
     });
 
-    return photo;
+    return convertPhotoDecimals(photo);
   }
 
   async linkImmichPhoto(userId: number, data: LinkImmichPhotoInput) {
     // Verify user owns the trip
     await verifyTripAccess(userId, data.tripId);
-
-    // Verify location belongs to trip if provided
-    if (data.locationId) {
-      await verifyLocationInTrip(data.locationId, data.tripId);
-    }
 
     // Get user's Immich settings
     const user = await prisma.user.findUnique({
@@ -142,7 +140,6 @@ class PhotoService {
     const photo = await prisma.photo.create({
       data: {
         tripId: data.tripId,
-        locationId: data.locationId || null,
         source: PhotoSource.IMMICH,
         immichAssetId: data.immichAssetId,
         thumbnailPath: `/api/immich/assets/${data.immichAssetId}/thumbnail`,
@@ -153,7 +150,7 @@ class PhotoService {
       },
     });
 
-    return photo;
+    return convertPhotoDecimals(photo);
   }
 
   async getPhotosByTrip(
@@ -171,12 +168,6 @@ class PhotoService {
       prisma.photo.findMany({
         where: { tripId },
         include: {
-          location: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
           albumAssignments: {
             include: {
               album: {
@@ -196,7 +187,7 @@ class PhotoService {
     ]);
 
     return {
-      photos,
+      photos: photos.map(convertPhotoDecimals),
       total,
       hasMore: skip + photos.length < total,
     };
@@ -258,12 +249,6 @@ class PhotoService {
           },
         },
         include: {
-          location: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
           albumAssignments: {
             include: {
               album: {
@@ -290,44 +275,10 @@ class PhotoService {
     ]);
 
     return {
-      photos,
+      photos: photos.map(convertPhotoDecimals),
       total,
       hasMore: skip + photos.length < total,
     };
-  }
-
-  async getPhotosByLocation(userId: number, locationId: number) {
-    // Verify user has access to location's trip
-    const location = await prisma.location.findUnique({
-      where: { id: locationId },
-      include: {
-        trip: true,
-      },
-    });
-
-    if (!location) {
-      throw new AppError('Location not found', 404);
-    }
-
-    // Check trip access
-    const hasAccess =
-      location.trip.userId === userId ||
-      location.trip.privacyLevel === 'Public' ||
-      (location.trip.privacyLevel === 'Shared' &&
-        (await prisma.tripCollaborator.count({
-          where: { tripId: location.trip.id, userId },
-        })) > 0);
-
-    if (!hasAccess) {
-      throw new AppError('Access denied', 403);
-    }
-
-    const photos = await prisma.photo.findMany({
-      where: { locationId },
-      orderBy: [{ takenAt: 'desc' }, { createdAt: 'desc' }],
-    });
-
-    return photos;
   }
 
   async getPhotoById(userId: number, photoId: number) {
@@ -335,7 +286,6 @@ class PhotoService {
       where: { id: photoId },
       include: {
         trip: true,
-        location: true,
         albumAssignments: {
           include: {
             album: true,
@@ -361,7 +311,7 @@ class PhotoService {
       throw new AppError('Access denied', 403);
     }
 
-    return photo;
+    return convertPhotoDecimals(photo);
   }
 
   async updatePhoto(userId: number, photoId: number, data: UpdatePhotoInput) {
@@ -371,17 +321,11 @@ class PhotoService {
     });
 
     // Verify access
-    const verifiedPhoto = await verifyEntityAccess(photo, userId, 'Photo');
-
-    // Verify location belongs to trip if provided
-    if (data.locationId !== undefined && data.locationId !== null) {
-      await verifyLocationInTrip(data.locationId, verifiedPhoto.tripId);
-    }
+    await verifyEntityAccess(photo, userId, 'Photo');
 
     const updatedPhoto = await prisma.photo.update({
       where: { id: photoId },
       data: {
-        locationId: data.locationId !== undefined ? data.locationId : undefined,
         caption: data.caption !== undefined ? data.caption : undefined,
         takenAt:
           data.takenAt !== undefined
@@ -394,7 +338,7 @@ class PhotoService {
       },
     });
 
-    return updatedPhoto;
+    return convertPhotoDecimals(updatedPhoto);
   }
 
   async deletePhoto(userId: number, photoId: number) {

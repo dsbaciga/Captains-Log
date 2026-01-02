@@ -56,7 +56,7 @@ export default function PhotoGallery({
   );
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"date" | "name" | "location">("date");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   // Track which photos we're currently fetching to avoid duplicate requests

@@ -342,8 +342,12 @@ const Timeline = ({
               trans.type.charAt(0).toUpperCase() + trans.type.slice(1)
             }`,
             subtitle: trans.carrier || undefined,
-            description: `${trans.fromLocationName || "Unknown"} → ${
-              trans.toLocationName || "Unknown"
+            description: `${
+              trans.fromLocation?.name ||
+              trans.fromLocationName ||
+              "Unknown"
+            } → ${
+              trans.toLocation?.name || trans.toLocationName || "Unknown"
             }`,
             cost: trans.cost || undefined,
             currency: trans.currency || undefined,

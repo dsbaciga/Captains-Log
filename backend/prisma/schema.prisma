@@ -160,7 +160,6 @@ model Location {
 
   trip                     Trip                  @relation(fields: [tripId], references: [id], onDelete: Cascade)
   category                 LocationCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  photos                   Photo[]
   activities               Activity[]
   lodging                  Lodging[]
   transportationStarts     Transportation[]      @relation("StartLocation")
@@ -190,7 +189,6 @@ model LocationCategory {
 model Photo {
   id             Int       @id @default(autoincrement())
   tripId         Int       @map("trip_id")
-  locationId     Int?      @map("location_id")
   source         String    @default("local") @db.VarChar(50) // 'local' or 'immich'
   immichAssetId  String?   @map("immich_asset_id") @db.VarChar(255)
   localPath      String?   @map("local_path") @db.VarChar(500)
@@ -204,7 +202,6 @@ model Photo {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   trip                   Trip                    @relation("TripPhotos", fields: [tripId], references: [id], onDelete: Cascade)
-  location               Location?               @relation(fields: [locationId], references: [id], onDelete: SetNull)
   tripCoverPhoto         Trip[]                  @relation("TripCoverPhoto")
   tripBannerPhoto        Trip[]                  @relation("TripBannerPhoto")
   albumCoverPhoto        PhotoAlbum[]            @relation("AlbumCoverPhoto")

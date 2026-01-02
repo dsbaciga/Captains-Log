@@ -1219,7 +1219,7 @@ export default function TimelineEditModal({
               >
                 {transportations.map((trans) => (
                   <option key={trans.id} value={trans.id}>
-                    {trans.type}: {trans.fromLocationName || "Unknown"} → {trans.toLocationName || "Unknown"}
+                    {trans.type}: {trans.fromLocation?.name || trans.fromLocationName || "Unknown"} → {trans.toLocation?.name || trans.toLocationName || "Unknown"}
                   </option>
                 ))}
               </select>
