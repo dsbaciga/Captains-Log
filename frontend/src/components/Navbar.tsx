@@ -89,7 +89,7 @@ export default function Navbar() {
     <Link
       to={path}
       className={`${
-        mobile ? "block w-full px-4 py-3 text-lg" : "px-4 py-2.5"
+        mobile ? "block w-full px-4 py-2.5 text-base" : "px-4 py-2.5"
       } rounded-lg font-body font-medium relative group transition-colors ${
         isActive(path)
           ? "text-primary-600 dark:text-sky bg-primary-50 dark:bg-navy-800"
@@ -302,7 +302,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Navigation Links */}
-          <nav className="flex-1 py-8 px-2 space-y-3 overflow-y-auto bg-white dark:bg-navy-900 min-h-0">
+          <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto bg-white dark:bg-navy-900 min-h-0">
             {navLinks.map((link) => (
               <NavLink
                 key={link.path}
