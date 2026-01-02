@@ -47,6 +47,8 @@ class ActivityService {
             id: true,
             name: true,
             address: true,
+            latitude: true,
+            longitude: true,
           },
         },
         parent: {
@@ -73,6 +75,8 @@ class ActivityService {
             id: true,
             name: true,
             address: true,
+            latitude: true,
+            longitude: true,
           },
         },
         parent: {
@@ -109,6 +113,9 @@ class ActivityService {
           select: {
             id: true,
             name: true,
+            address: true,
+            latitude: true,
+            longitude: true,
           },
         },
         parent: {
@@ -205,6 +212,8 @@ class ActivityService {
             id: true,
             name: true,
             address: true,
+            latitude: true,
+            longitude: true,
           },
         },
         parent: {

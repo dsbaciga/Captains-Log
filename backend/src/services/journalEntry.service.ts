@@ -200,6 +200,9 @@ class JournalEntryService {
               select: {
                 id: true,
                 name: true,
+                address: true,
+                latitude: true,
+                longitude: true,
               },
             },
           },
@@ -259,6 +262,9 @@ class JournalEntryService {
               select: {
                 id: true,
                 name: true,
+                address: true,
+                latitude: true,
+                longitude: true,
               },
             },
           },

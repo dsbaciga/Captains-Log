@@ -87,6 +87,9 @@ class PhotoAlbumService {
             select: {
               id: true,
               name: true,
+              address: true,
+              latitude: true,
+              longitude: true,
             },
           },
           activity: {
