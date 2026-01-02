@@ -380,8 +380,8 @@ export default function AlbumDetailPage() {
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-            <div className="flex justify-between items-start">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+              <div className="flex-1 min-w-0">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   {album.name}
                 </h1>
@@ -400,32 +400,50 @@ export default function AlbumDetailPage() {
                   <div className="mt-4 space-y-2">
                     {album.location && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Location:</span> {album.location.name}
+                        <span className="font-medium">Location:</span>{' '}
+                        <Link
+                          to={`/trips/${tripId}#location-${album.location.id}`}
+                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
+                        >
+                          {album.location.name}
+                        </Link>
                       </div>
                     )}
                     {album.activity && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Activity:</span> {album.activity.name}
+                        <span className="font-medium">Activity:</span>{' '}
+                        <Link
+                          to={`/trips/${tripId}#activity-${album.activity.id}`}
+                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
+                        >
+                          {album.activity.name}
+                        </Link>
                       </div>
                     )}
                     {album.lodging && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Lodging:</span> {album.lodging.name}
+                        <span className="font-medium">Lodging:</span>{' '}
+                        <Link
+                          to={`/trips/${tripId}#lodging-${album.lodging.id}`}
+                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
+                        >
+                          {album.lodging.name}
+                        </Link>
                       </div>
                     )}
                   </div>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:flex-shrink-0">
                 <button
                   onClick={handleOpenPhotoSelector}
-                  className="btn btn-primary"
+                  className="btn btn-primary w-full sm:w-auto"
                 >
                   + Add Photos
                 </button>
                 <button
                   onClick={() => setIsEditMode(true)}
-                  className="btn btn-secondary"
+                  className="btn btn-secondary w-full sm:w-auto"
                 >
                   Edit Album
                 </button>

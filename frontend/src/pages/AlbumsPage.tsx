@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { PhotoAlbum } from '../types/photo';
+import type { PhotoAlbum, Photo, AlbumWithPhotos } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getAssetBaseUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import toast from 'react-hot-toast';
 
 // Import reusable components
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -20,6 +21,9 @@ export default function AlbumsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [albumName, setAlbumName] = useState('');
   const [albumDescription, setAlbumDescription] = useState('');
+  const [showCoverSelector, setShowCoverSelector] = useState(false);
+  const [selectedAlbum, setSelectedAlbum] = useState<AlbumWithPhotos | null>(null);
+  const [albumPhotos, setAlbumPhotos] = useState<Photo[]>([]);
 
   const getCoverPhotoUrl = (album: PhotoAlbum): string | null => {
     if (!album.coverPhoto) return null;
@@ -82,6 +86,37 @@ export default function AlbumsPage() {
       loadAlbums();
     } catch {
       alert('Failed to delete album');
+    }
+  };
+
+  const handleOpenCoverSelector = async (album: PhotoAlbum) => {
+    try {
+      // Load full album data with photos
+      const fullAlbum = await photoService.getAlbumById(album.id, { skip: 0, take: 100 });
+      setSelectedAlbum(fullAlbum);
+      setAlbumPhotos(fullAlbum.photos.map(p => p.photo));
+      setShowCoverSelector(true);
+    } catch (err) {
+      console.error('Failed to load album photos:', err);
+      toast.error('Failed to load album photos');
+    }
+  };
+
+  const handleSetCoverPhoto = async (photoId: number) => {
+    if (!selectedAlbum) return;
+
+    try {
+      await photoService.updateAlbum(selectedAlbum.id, {
+        coverPhotoId: photoId,
+      });
+      toast.success('Cover photo updated');
+      setShowCoverSelector(false);
+      setSelectedAlbum(null);
+      setAlbumPhotos([]);
+      loadAlbums();
+    } catch (err) {
+      console.error('Failed to set cover photo:', err);
+      toast.error('Failed to set cover photo');
     }
   };
 
@@ -193,25 +228,140 @@ export default function AlbumsPage() {
                   {album._count?.photoAssignments || 0} photos
                 </p>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
                   <button
                     onClick={() => navigate(`/trips/${tripId}/albums/${album.id}`)}
-                    className="btn btn-secondary flex-1"
+                    className="btn btn-secondary w-full"
                   >
-                    View
+                    View Album
                   </button>
-                  <button
-                    onClick={() => handleDeleteAlbum(album.id)}
-                    className="btn btn-danger"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleOpenCoverSelector(album)}
+                      className="btn btn-secondary flex-1 text-sm"
+                      disabled={!album._count?.photoAssignments || album._count.photoAssignments === 0}
+                    >
+                      Set Cover
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAlbum(album.id)}
+                      className="btn btn-danger"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Cover Photo Selector Modal */}
+      {showCoverSelector && selectedAlbum && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Set Cover Photo
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Select a photo to use as the album cover
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowCoverSelector(false);
+                  setSelectedAlbum(null);
+                  setAlbumPhotos([]);
+                }}
+                type="button"
+                aria-label="Close"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Photo Grid */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {albumPhotos.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    No photos in this album.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {albumPhotos.map((photo) => {
+                    const isCurrentCover = selectedAlbum.coverPhotoId === photo.id;
+                    const photoUrl =
+                      photo.source === "immich"
+                        ? `${getAssetBaseUrl()}/immich/thumbnail/${photo.immichAssetId}`
+                        : `${getAssetBaseUrl()}/${photo.thumbnailPath}`;
+
+                    return (
+                      <button
+                        key={photo.id}
+                        type="button"
+                        onClick={() => handleSetCoverPhoto(photo.id)}
+                        className={`relative aspect-square rounded-lg overflow-hidden border-4 transition-all ${
+                          isCurrentCover
+                            ? "border-green-500 ring-2 ring-green-500"
+                            : "border-transparent hover:border-blue-300 dark:hover:border-blue-600"
+                        }`}
+                      >
+                        <img
+                          src={photoUrl}
+                          alt={photo.caption || "Photo"}
+                          className="w-full h-full object-cover"
+                        />
+                        {isCurrentCover && (
+                          <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center">
+                            <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                              Current Cover
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end items-center p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCoverSelector(false);
+                  setSelectedAlbum(null);
+                  setAlbumPhotos([]);
+                }}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
         <ConfirmDialogComponent />
       </div>
     </div>

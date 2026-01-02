@@ -89,7 +89,7 @@ export default function Navbar() {
     <Link
       to={path}
       className={`${
-        mobile ? "block w-full px-4 py-3 text-lg" : "px-4 py-2.5"
+        mobile ? "block w-full px-4 py-2.5 text-base" : "px-4 py-2.5"
       } rounded-lg font-body font-medium relative group transition-colors ${
         isActive(path)
           ? "text-primary-600 dark:text-sky bg-primary-50 dark:bg-navy-800"
@@ -263,7 +263,7 @@ export default function Navbar() {
       {/* Mobile Menu Drawer */}
       <div
         ref={mobileMenuRef}
-        className={`fixed top-0 right-0 h-full w-72 bg-white dark:bg-navy-900 shadow-2xl z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed top-0 right-0 bottom-0 w-72 bg-white dark:bg-navy-900 shadow-2xl z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
           showMobileMenu ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -302,7 +302,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Navigation Links */}
-          <nav className="flex-1 py-8 px-2 space-y-3 overflow-y-auto bg-white dark:bg-navy-900 min-h-0">
+          <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto bg-white dark:bg-navy-900 min-h-0">
             {navLinks.map((link) => (
               <NavLink
                 key={link.path}
