@@ -380,8 +380,8 @@ export default function AlbumDetailPage() {
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-            <div className="flex justify-between items-start">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+              <div className="flex-1 min-w-0">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   {album.name}
                 </h1>
@@ -416,16 +416,16 @@ export default function AlbumDetailPage() {
                   </div>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:flex-shrink-0">
                 <button
                   onClick={handleOpenPhotoSelector}
-                  className="btn btn-primary"
+                  className="btn btn-primary w-full sm:w-auto"
                 >
                   + Add Photos
                 </button>
                 <button
                   onClick={() => setIsEditMode(true)}
-                  className="btn btn-secondary"
+                  className="btn btn-secondary w-full sm:w-auto"
                 >
                   Edit Album
                 </button>
