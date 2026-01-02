@@ -274,7 +274,7 @@ export default function Navbar() {
           }}
         >
           {/* Mobile Menu Header */}
-          <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-sky/10">
+          <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-sky/10 bg-white dark:bg-navy-900">
             <span className="text-lg font-display font-bold text-primary-600 dark:text-sky">
               Menu
             </span>
@@ -302,7 +302,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Navigation Links */}
-          <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+          <nav className="flex-1 py-8 px-2 space-y-3 overflow-y-auto bg-white dark:bg-navy-900 min-h-0">
             {navLinks.map((link) => (
               <NavLink
                 key={link.path}
@@ -314,8 +314,8 @@ export default function Navbar() {
           </nav>
 
           {/* Mobile User Section */}
-          <div className="border-t border-primary-500/10 dark:border-sky/10 p-4">
-            <div className="flex items-center space-x-3 mb-4 px-2">
+          <div className="flex-shrink-0 border-t border-primary-500/10 dark:border-sky/10 p-4 bg-white dark:bg-navy-900">
+            <div className="flex items-center space-x-3 mb-3 px-2">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 dark:from-accent-400 dark:to-accent-600 flex items-center justify-center">
                 <span className="text-white font-medium text-sm">
                   {user.username.charAt(0).toUpperCase()}
