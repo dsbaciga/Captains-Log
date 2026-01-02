@@ -44,7 +44,7 @@ export default function LoginPage() {
           {/* Title with embossed effect */}
           <div className="text-center mb-8">
             <h1 className="text-6xl md:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight mb-3 drop-shadow-sm">
-              Captain's Log
+              Travel Life
             </h1>
             <p className="text-slate dark:text-warm-gray font-body text-sm italic tracking-wide">
               Your journey begins here

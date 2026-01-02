@@ -21,6 +21,9 @@
 .PARAMETER DryRun
     Show what would be done without actually doing it
 
+.PARAMETER NoConfirm
+    Skip all interactive confirmations (for automated releases)
+
 .PARAMETER Description
     Optional description for the release tag
 
@@ -29,6 +32,9 @@
 
 .EXAMPLE
     .\release.ps1 -Version patch
+
+.EXAMPLE
+    .\release.ps1 -Version patch -NoConfirm
 
 .EXAMPLE
     .\release.ps1 -Version 1.12.6 -Description "Fix Timeline z-index issues"

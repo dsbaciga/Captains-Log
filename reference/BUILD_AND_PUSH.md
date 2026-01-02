@@ -16,6 +16,9 @@ The easiest way to release a new version is using the automated release script:
 # Auto-increment minor version (1.12.5 -> 1.13.0)
 .\release.ps1 -Version minor
 
+# Non-interactive release (skip all confirmations)
+.\release.ps1 -Version patch -NoConfirm
+
 # Add a custom description for the tag
 .\release.ps1 -Version v1.12.6 -Description "Fix Timeline issues"
 
@@ -209,6 +212,9 @@ Follow semantic versioning (MAJOR.MINOR.PATCH):
 # Full automated release
 .\release.ps1 -Version vX.X.X
 
+# Non-interactive release (skip confirmations)
+.\release.ps1 -Version vX.X.X -NoConfirm
+
 # With custom description
 .\release.ps1 -Version vX.X.X -Description "Description here"
 
@@ -217,6 +223,9 @@ Follow semantic versioning (MAJOR.MINOR.PATCH):
 
 # Dry run to preview
 .\release.ps1 -Version vX.X.X -DryRun
+
+# Combine options
+.\release.ps1 -Version patch -NoConfirm -SkipBuild
 ```
 
 ### Manual Commands

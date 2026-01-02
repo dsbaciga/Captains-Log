@@ -1,7 +1,7 @@
 {
-  "name": "captains-log-backend",
-  "version": "1.12.11",
-  "description": "Captain's Log Travel Documentation API",
+  "name": "travel-life-backend",
+  "version": "2.0.0",
+  "description": "Travel Life Travel Documentation API",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

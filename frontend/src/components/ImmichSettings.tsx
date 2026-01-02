@@ -221,7 +221,7 @@ export default function ImmichSettings() {
           <li>Go to Account Settings (click your profile picture)</li>
           <li>Navigate to the "API Keys" section</li>
           <li>Click "New API Key"</li>
-          <li>Give it a name (e.g., "Captain's Log")</li>
+          <li>Give it a name (e.g., "Travel Life")</li>
           <li>Copy the generated API key and paste it above</li>
         </ol>
       </div>

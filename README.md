@@ -1,4 +1,4 @@
-# Captain's Log
+# Travel Life
 
 A comprehensive travel documentation application for tracking trips, locations, photos, transportation, lodging, and journal entries.
 
@@ -55,7 +55,7 @@ A comprehensive travel documentation application for tracking trips, locations, 
 
 ```bash
 git clone <repository-url>
-cd "Captain's Log"
+cd "Travel-Life"
 ```
 
 ### 2. Set Up Environment Variables
@@ -163,7 +163,7 @@ Frontend will run on http://localhost:3000
 ## Project Structure
 
 ```
-Captain's Log/
+Travel-Life/
 ├── backend/
 │   ├── prisma/
 │   │   └── schema.prisma          # Database schema

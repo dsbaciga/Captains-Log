@@ -134,7 +134,7 @@ export default function Navbar() {
               </svg>
             </div>
             <span className="text-xl sm:text-2xl font-display font-bold text-primary-600 dark:text-sky tracking-tight">
-              Captain's Log
+              Travel Life
             </span>
           </Link>
 

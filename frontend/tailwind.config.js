@@ -81,28 +81,28 @@ export default {
         'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
       },
       colors: {
-        // Primary - Deep Ocean
+        // Primary - Compass Gold (Warm amber tones for adventure & exploration)
         primary: {
-          50: '#f0f4f8',
-          100: '#d9e6f2',
-          200: '#b3cde5',
-          300: '#8db4d8',
-          400: '#679bcb',
-          500: '#2b5a7f',
-          600: '#1e4158',
-          700: '#163347',
-          800: '#0f2535',
-          900: '#081623',
+          50: '#fef3c7',
+          100: '#fde68a',
+          200: '#fcd34d',
+          300: '#fbbf24',
+          400: '#f59e0b',
+          500: '#D97706',
+          600: '#B45309',
+          700: '#92400e',
+          800: '#78350f',
+          900: '#451a03',
         },
-        // Accent - Light Blue
+        // Accent - Warm Gold/Orange tones
         accent: {
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+          300: '#fcd34d',
+          400: '#fbbf24',
+          500: '#f59e0b',
+          600: '#D97706',
+          700: '#B45309',
         },
-        // Cool Neutrals
+        // Neutrals
         cream: '#f8fafc',
         parchment: '#f1f5f9',
         'warm-gray': '#e2e8f0',
@@ -114,7 +114,8 @@ export default {
           800: '#1e293b',
           700: '#334155',
         },
-        sky: '#7dd3fc',
+        // Gold accent for dark mode
+        gold: '#fbbf24',
       },
     },
   },

@@ -1,11 +1,11 @@
-# Captain's Log - Travel Documentation Application
+# Travel Life - Travel Documentation Application
 ## Complete Planning Document
 
 ---
 
 ## Project Overview
 
-**Captain's Log** is a comprehensive multi-user web application for documenting travels with rich location data, media integration, transportation tracking, and journal capabilities.
+**Travel Life** is a comprehensive multi-user web application for documenting travels with rich location data, media integration, transportation tracking, and journal capabilities.
 
 ### Tech Stack
 - **Frontend**: React with TypeScript, Material-UI/Tailwind CSS

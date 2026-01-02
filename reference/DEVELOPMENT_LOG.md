@@ -1,6 +1,6 @@
-# Captain's Log - Feature List & Development Log
+# Travel Life - Feature List & Development Log
 
-This document provides a comprehensive list of all features in Captain's Log, organized by functional area. **Update this file whenever new features are added or existing features are modified.**
+This document provides a comprehensive list of all features in Travel Life, organized by functional area. **Update this file whenever new features are added or existing features are modified.**
 
 Last Updated: 2025-12-21 | Current Version: v1.8.0 (Comprehensive Design System)
 
