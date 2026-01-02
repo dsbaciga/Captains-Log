@@ -307,8 +307,15 @@ export default function TripDetailPage() {
   const loadTripData = async (tripId: number) => {
     try {
       setLoading(true);
+
+      // Load trip data first - this is critical
+      const tripData = await tripService.getTripById(tripId);
+      console.log("Trip data loaded:", tripData);
+      console.log("Cover photo:", tripData.coverPhoto);
+      setTrip(tripData);
+
+      // Load other data in parallel with individual error handling
       const [
-        tripData,
         locationsData,
         activitiesData,
         transportationData,
@@ -317,8 +324,7 @@ export default function TripDetailPage() {
         tagsData,
         companionsData,
         albumsData,
-      ] = await Promise.all([
-        tripService.getTripById(tripId),
+      ] = await Promise.allSettled([
         locationService.getLocationsByTrip(tripId),
         activityService.getActivitiesByTrip(tripId),
         transportationService.getTransportationByTrip(tripId),
@@ -328,36 +334,59 @@ export default function TripDetailPage() {
         companionService.getCompanionsByTrip(tripId),
         photoService.getAlbumsByTrip(tripId),
       ]);
-      console.log("Trip data loaded:", tripData);
-      console.log("Cover photo:", tripData.coverPhoto);
-      setTrip(tripData);
-      setLocations(locationsData);
+
+      // Extract data from settled promises, using empty arrays as fallbacks
+      const locations = locationsData.status === 'fulfilled' ? locationsData.value : [];
+      const activities = activitiesData.status === 'fulfilled' ? activitiesData.value : [];
+      const transportation = transportationData.status === 'fulfilled' ? transportationData.value : [];
+      const lodging = lodgingData.status === 'fulfilled' ? lodgingData.value : [];
+      const journal = journalData.status === 'fulfilled' ? journalData.value : [];
+      const tags = tagsData.status === 'fulfilled' ? tagsData.value : [];
+      const companions = companionsData.status === 'fulfilled' ? companionsData.value : [];
+      const albums = albumsData.status === 'fulfilled' ? albumsData.value : { albums: [], unsortedCount: 0, totalCount: 0 };
+
+      // Log any failures
+      if (locationsData.status === 'rejected') console.error("Failed to load locations:", locationsData.reason);
+      if (activitiesData.status === 'rejected') console.error("Failed to load activities:", activitiesData.reason);
+      if (transportationData.status === 'rejected') console.error("Failed to load transportation:", transportationData.reason);
+      if (lodgingData.status === 'rejected') console.error("Failed to load lodging:", lodgingData.reason);
+      if (journalData.status === 'rejected') console.error("Failed to load journal entries:", journalData.reason);
+      if (tagsData.status === 'rejected') console.error("Failed to load tags:", tagsData.reason);
+      if (companionsData.status === 'rejected') console.error("Failed to load companions:", companionsData.reason);
+      if (albumsData.status === 'rejected') console.error("Failed to load albums:", albumsData.reason);
+
+      setLocations(locations);
 
       // Store activities and lodgings for album modal
-      setActivities(activitiesData);
-      setLodgings(lodgingData);
+      setActivities(activities);
+      setLodgings(lodging);
 
       // Separate scheduled and unscheduled activities
-      const scheduledActivities = activitiesData.filter(
+      const scheduledActivities = activities.filter(
         (a) => a.startTime || a.allDay
       );
-      const unscheduledActivities = activitiesData.filter(
+      const unscheduledActivities = activities.filter(
         (a) => !a.startTime && !a.allDay
       );
       setActivitiesCount(scheduledActivities.length);
       setUnscheduledCount(unscheduledActivities.length);
 
-      setTransportationCount(transportationData.length);
-      setLodgingCount(lodgingData.length);
-      setJournalCount(journalData.length);
-      setTags(tagsData);
-      setTagsCount(tagsData.length);
-      setCompanionsCount(companionsData.length);
-      setAlbums(albumsData.albums);
-      setUnsortedPhotosCount(albumsData.unsortedCount);
-      setTotalPhotosCount(albumsData.totalCount || 0);
-    } catch {
-      toast.error("Failed to load trip");
+      setTransportationCount(transportation.length);
+      setLodgingCount(lodging.length);
+      setJournalCount(journal.length);
+      setTags(tags);
+      setTagsCount(tags.length);
+      setCompanionsCount(companions.length);
+      setAlbums(albums.albums);
+      setUnsortedPhotosCount(albums.unsortedCount);
+      setTotalPhotosCount(albums.totalCount || 0);
+    } catch (error) {
+      console.error("Failed to load trip data:", error);
+      // Log which specific API call might have failed
+      if (error instanceof Error) {
+        console.error("Error details:", error.message, error.stack);
+      }
+      toast.error("Failed to load trip. Check console for details.");
       navigate("/trips");
     } finally {
       setLoading(false);
