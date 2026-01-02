@@ -60,14 +60,14 @@ export default function Breadcrumbs({ items, className = '' }: BreadcrumbsProps)
               {item.href && !isLast ? (
                 <Link
                   to={item.href}
-                  className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors truncate inline-block max-w-full"
+                  className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors overflow-hidden text-ellipsis whitespace-nowrap"
                   title={item.label}
                 >
                   {item.label}
                 </Link>
               ) : (
                 <span
-                  className="text-slate dark:text-warm-gray truncate inline-block max-w-full"
+                  className="text-slate dark:text-warm-gray overflow-hidden text-ellipsis whitespace-nowrap"
                   aria-current={isLast ? 'page' : undefined}
                   title={item.label}
                 >
