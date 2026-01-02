@@ -33,12 +33,12 @@ export default function Breadcrumbs({ items, className = '' }: BreadcrumbsProps)
       aria-label="Breadcrumb"
       className={`mb-4 ${className}`}
     >
-      <ol className="flex items-center text-sm font-body overflow-x-auto whitespace-nowrap">
+      <ol className="flex items-center text-sm font-body overflow-x-auto whitespace-nowrap leading-none">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
 
           return (
-            <li key={index} className="flex items-center flex-shrink-0">
+            <li key={index} className="flex items-center flex-shrink-0 leading-none">
               {index > 0 && (
                 <svg
                   className="w-4 h-4 mx-2 text-slate/50 dark:text-warm-gray/50 flex-shrink-0"
@@ -59,14 +59,14 @@ export default function Breadcrumbs({ items, className = '' }: BreadcrumbsProps)
               {item.href && !isLast ? (
                 <Link
                   to={item.href}
-                  className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
+                  className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors leading-none"
                   title={item.label}
                 >
                   {item.label}
                 </Link>
               ) : (
                 <span
-                  className="text-slate dark:text-warm-gray"
+                  className="text-slate dark:text-warm-gray leading-none"
                   aria-current={isLast ? 'page' : undefined}
                   title={item.label}
                 >
