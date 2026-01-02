@@ -72,6 +72,7 @@ interface TimelineItem {
   vehicleNumber?: string; // Flight number, train number, etc.
   confirmationNumber?: string; // Booking confirmation code
   durationMinutes?: number; // Duration in minutes
+  distanceKm?: number; // Distance in kilometers
   photoAlbums?: PhotoAlbumInfo[]; // Associated photo albums
   fromCoords?: { latitude: number; longitude: number }; // For transportation departure
   toCoords?: { latitude: number; longitude: number }; // For transportation arrival
@@ -357,6 +358,7 @@ const Timeline = ({
             vehicleNumber: trans.vehicleNumber || undefined,
             confirmationNumber: trans.confirmationNumber || undefined,
             durationMinutes,
+            distanceKm: trans.calculatedDistance || undefined,
             fromCoords:
               trans.fromLocation?.latitude && trans.fromLocation?.longitude
                 ? {
@@ -739,6 +741,11 @@ const Timeline = ({
     return `${hours}h ${mins}m`;
   };
 
+  const formatDistance = (kilometers: number): string => {
+    const miles = kilometers * 0.621371;
+    return `${kilometers.toFixed(1)} km (${miles.toFixed(1)} mi)`;
+  };
+
   const getDayNumber = (dateString: string): number | null => {
     if (!tripStartDate) return null;
 
@@ -944,9 +951,16 @@ const Timeline = ({
                                 item.durationMinutes > 0 && (
                                   <span className="text-gray-400 dark:text-gray-500">
                                     {" "}
-                                    ({formatDuration(item.durationMinutes)})
+                                    ({formatDuration(item.durationMinutes)}
+                                    {item.distanceKm && `, ${formatDistance(item.distanceKm)}`})
                                   </span>
                                 )}
+                              {!item.durationMinutes && item.distanceKm && (
+                                <span className="text-gray-400 dark:text-gray-500">
+                                  {" "}
+                                  ({formatDistance(item.distanceKm)})
+                                </span>
+                              )}
                             </>
                           ) : (
                             <>

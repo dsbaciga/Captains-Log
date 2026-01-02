@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import tripService from '../../services/trip.service';
 import photoService from '../../services/photo.service';
 import locationService from '../../services/location.service';
+import transportationService from '../../services/transportation.service';
 
 interface Stats {
   totalTrips: number;
@@ -14,6 +15,7 @@ interface Stats {
   countriesVisited: number;
   inProgressTrips: number;
   plannedTrips: number;
+  totalDistanceKm: number;
 }
 
 export default function TravelStatsWidget() {
@@ -24,6 +26,7 @@ export default function TravelStatsWidget() {
     countriesVisited: 0,
     inProgressTrips: 0,
     plannedTrips: 0,
+    totalDistanceKm: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -74,6 +77,21 @@ export default function TravelStatsWidget() {
         }
       }
 
+      // Calculate total distance traveled across all trips
+      let totalDistanceKm = 0;
+      for (const trip of trips) {
+        try {
+          const transportation = await transportationService.getTransportationByTrip(trip.id);
+          transportation.forEach(trans => {
+            if (trans.calculatedDistance) {
+              totalDistanceKm += Number(trans.calculatedDistance);
+            }
+          });
+        } catch {
+          // Skip if fails
+        }
+      }
+
       setStats({
         totalTrips: trips.length,
         totalPhotos: photoCount,
@@ -81,12 +99,29 @@ export default function TravelStatsWidget() {
         countriesVisited: uniqueCountries.size,
         inProgressTrips: trips.filter((t) => t.status === 'In Progress').length,
         plannedTrips: trips.filter((t) => t.status === 'Planned' || t.status === 'Planning').length,
+        totalDistanceKm: totalDistanceKm,
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatDistance = (km: number): string => {
+    const miles = km * 0.621371;
+    if (km < 1000) {
+      return `${km.toFixed(0)} km`;
+    }
+    return `${(km / 1000).toFixed(1)}K km`;
+  };
+
+  const formatDistanceSubtext = (km: number): string => {
+    const miles = km * 0.621371;
+    if (miles < 1000) {
+      return `${miles.toFixed(0)} mi`;
+    }
+    return `${(miles / 1000).toFixed(1)}K mi`;
   };
 
   const statItems = [
@@ -99,6 +134,7 @@ export default function TravelStatsWidget() {
         </svg>
       ),
       color: 'from-blue-500 to-blue-600',
+      valueDisplay: stats.totalTrips.toLocaleString(),
     },
     {
       label: 'Photos Captured',
@@ -109,6 +145,7 @@ export default function TravelStatsWidget() {
         </svg>
       ),
       color: 'from-purple-500 to-purple-600',
+      valueDisplay: stats.totalPhotos.toLocaleString(),
     },
     {
       label: 'Places Visited',
@@ -119,6 +156,7 @@ export default function TravelStatsWidget() {
         </svg>
       ),
       color: 'from-green-500 to-green-600',
+      valueDisplay: stats.totalLocations.toLocaleString(),
     },
     {
       label: 'Countries',
@@ -129,6 +167,19 @@ export default function TravelStatsWidget() {
         </svg>
       ),
       color: 'from-orange-500 to-orange-600',
+      valueDisplay: stats.countriesVisited.toLocaleString(),
+    },
+    {
+      label: 'Distance Traveled',
+      value: stats.totalDistanceKm,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      color: 'from-cyan-500 to-cyan-600',
+      valueDisplay: formatDistance(stats.totalDistanceKm),
+      subtext: formatDistanceSubtext(stats.totalDistanceKm),
     },
   ];
 
@@ -137,7 +188,7 @@ export default function TravelStatsWidget() {
       <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10">
         <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-6 animate-pulse" />
         <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-24 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
           ))}
         </div>
@@ -170,8 +221,13 @@ export default function TravelStatsWidget() {
               <div className="text-white">{stat.icon}</div>
             </div>
             <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-              {stat.value.toLocaleString()}
+              {stat.valueDisplay}
             </div>
+            {stat.subtext && (
+              <div className="text-xs text-gray-500 dark:text-gray-500 mb-1">
+                {stat.subtext}
+              </div>
+            )}
             <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
               {stat.label}
             </div>
