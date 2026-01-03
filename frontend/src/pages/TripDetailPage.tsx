@@ -1111,8 +1111,8 @@ export default function TripDetailPage() {
                     key={location.id}
                     className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                           {location.name}
                         </h3>
@@ -1131,31 +1131,32 @@ export default function TripDetailPage() {
                             {location.category.name}
                           </span>
                         )}
-
-                        <AssociatedAlbums
-                          albums={location.photoAlbums}
-                          tripId={trip.id}
-                        />
                       </div>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-2 items-center flex-shrink-0">
                         <JournalEntriesButton
                           journalEntries={location.journalLocationAssignments}
                           tripId={trip.id}
                         />
                         <button
                           onClick={() => handleEditLocation(location)}
-                          className="ml-4 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                          className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteLocation(location.id)}
-                          className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
+                          className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
                         >
                           Delete
                         </button>
                       </div>
                     </div>
+
+                    {/* Associated Albums - Full Width */}
+                    <AssociatedAlbums
+                      albums={location.photoAlbums}
+                      tripId={trip.id}
+                    />
                   </div>
                 ))}
               </div>
@@ -1231,9 +1232,9 @@ export default function TripDetailPage() {
               />
 
               {/* Right: Photo Gallery */}
-              <div className="flex-1 p-6">
-                <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="flex-1 min-w-0 p-6">
+                <div className="flex flex-wrap justify-between items-start mb-6 gap-3">
+                  <div className="flex flex-col gap-1 min-w-0 flex-1 max-w-full">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
                       {selectedAlbumId === null
                         ? `All Photos (${totalPhotosCount})`
@@ -1251,22 +1252,21 @@ export default function TripDetailPage() {
                       selectedAlbumId !== -1 &&
                       albums.find((a) => a.id === selectedAlbumId)
                         ?.description && (
-                        <span
-                          className="text-sm text-gray-600 dark:text-gray-400 truncate"
+                        <p
+                          className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
                           title={
                             albums.find((a) => a.id === selectedAlbumId)
                               ?.description || ""
                           }
                         >
-                          —{" "}
                           {
                             albums.find((a) => a.id === selectedAlbumId)
                               ?.description
                           }
-                        </span>
+                        </p>
                       )}
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     {/* Add Photos button - only show when viewing a specific album */}
                     {selectedAlbumId !== null && selectedAlbumId > 0 && (
                       <button

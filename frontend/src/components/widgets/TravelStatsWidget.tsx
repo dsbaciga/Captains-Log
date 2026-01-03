@@ -7,6 +7,7 @@ import tripService from '../../services/trip.service';
 import photoService from '../../services/photo.service';
 import locationService from '../../services/location.service';
 import transportationService from '../../services/transportation.service';
+import toast from 'react-hot-toast';
 
 interface Stats {
   totalTrips: number;
@@ -29,6 +30,7 @@ export default function TravelStatsWidget() {
     totalDistanceKm: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -122,6 +124,34 @@ export default function TravelStatsWidget() {
       return `${miles.toFixed(0)} mi`;
     }
     return `${(miles / 1000).toFixed(1)}K mi`;
+  };
+
+  const handleRecalculateDistances = async () => {
+    setIsRecalculating(true);
+    try {
+      const tripsResponse = await tripService.getTrips();
+      const trips = tripsResponse.trips;
+
+      let totalRecalculated = 0;
+      for (const trip of trips) {
+        try {
+          const result = await transportationService.recalculateDistancesForTrip(trip.id);
+          totalRecalculated += result.count;
+        } catch (error) {
+          console.error(`Failed to recalculate distances for trip ${trip.id}:`, error);
+        }
+      }
+
+      toast.success(`Recalculated distances for ${totalRecalculated} transportation entries`);
+
+      // Reload stats to show updated distances
+      await loadStats();
+    } catch (error) {
+      toast.error('Failed to recalculate distances');
+      console.error('Recalculation error:', error);
+    } finally {
+      setIsRecalculating(false);
+    }
   };
 
   const statItems = [
@@ -234,6 +264,30 @@ export default function TravelStatsWidget() {
           </div>
         ))}
       </div>
+
+      {/* Recalculate Distances Button */}
+      <button
+        onClick={handleRecalculateDistances}
+        disabled={isRecalculating}
+        className="mt-4 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        {isRecalculating ? (
+          <>
+            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            Recalculating...
+          </>
+        ) : (
+          <>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Recalculate Distances
+          </>
+        )}
+      </button>
 
       {/* Active Trips Summary */}
       {(stats.inProgressTrips > 0 || stats.plannedTrips > 0) && (
