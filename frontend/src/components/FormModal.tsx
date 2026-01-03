@@ -49,8 +49,14 @@ export default function FormModal({
       document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
 
-      // Focus the modal for accessibility
-      modalRef.current?.focus();
+      // Focus the first focusable element in the modal (input, textarea, button)
+      // This provides better UX than focusing the modal container itself
+      setTimeout(() => {
+        const firstInput = modalRef.current?.querySelector<HTMLElement>(
+          'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])'
+        );
+        firstInput?.focus();
+      }, 0);
 
       return () => {
         document.removeEventListener("keydown", handleKeyDown);
@@ -78,7 +84,6 @@ export default function FormModal({
       {/* Modal */}
       <div
         ref={modalRef}
-        tabIndex={-1}
         className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200`}
       >
         {/* Header */}
