@@ -41,7 +41,7 @@ export default function AlbumsSidebar({
 
   const getAlbumThumbnail = (album: PhotoAlbum) => {
     if (album.coverPhoto?.thumbnailPath) {
-      return `${uploadUrl}/${album.coverPhoto.thumbnailPath}`;
+      return `${uploadUrl}${album.coverPhoto.thumbnailPath}`;
     }
     return null;
   };
