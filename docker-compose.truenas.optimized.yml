@@ -5,6 +5,10 @@
 # 2. Lowering memory limits for backend
 # 3. Optimizing PostgreSQL settings
 #
+# Migrations:
+#   Migrations run automatically on startup. To run them manually:
+#   docker exec captains-log-backend npx prisma migrate deploy
+#
 # For self-hosted Nominatim option, see docker-compose.truenas.yml
 
 version: "3.8"

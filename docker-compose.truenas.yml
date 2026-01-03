@@ -9,7 +9,8 @@
 # 2. Deploy using TrueNAS Scale UI or CLI:
 #    docker-compose -f docker-compose.truenas.yml up -d
 #
-# 3. Run database migrations:
+# 3. Database migrations:
+#    Migrations run automatically on startup. To run them manually:
 #    docker exec captains-log-backend npx prisma migrate deploy
 #
 # Configuration:

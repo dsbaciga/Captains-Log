@@ -14,11 +14,17 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Make startup script executable
+RUN chmod +x scripts/migrate-and-start.sh
+
 # Generate Prisma Client
 RUN npx prisma generate
 
 # Expose port
 EXPOSE 5000
 
-# Start command (overridden in docker-compose for dev)
+# Set entrypoint
+ENTRYPOINT ["scripts/migrate-and-start.sh"]
+
+# Start command
 CMD ["npm", "run", "dev"]

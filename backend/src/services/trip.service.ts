@@ -46,7 +46,7 @@ export class TripService {
       });
     }
 
-    return trip;
+    return convertDecimals(trip);
   }
 
   async getTrips(userId: number, query: GetTripQuery) {
@@ -230,7 +230,7 @@ export class TripService {
       data: updateData,
     });
 
-    return trip;
+    return convertDecimals(trip);
   }
 
   async deleteTrip(userId: number, tripId: number) {

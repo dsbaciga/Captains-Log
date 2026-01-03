@@ -5,26 +5,18 @@ import {
   UpdateAlbumInput,
   AddPhotosToAlbumInput,
 } from '../types/photo.types';
-import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
 
 // Helper function to convert Decimal fields in photo objects
 function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(
   photo: T | null | undefined
 ): T | null | undefined {
-  if (!photo) return photo;
-  return {
-    ...photo,
-    latitude: photo.latitude ? Number(photo.latitude) : photo.latitude,
-    longitude: photo.longitude ? Number(photo.longitude) : photo.longitude,
-  };
+  return convertDecimals(photo);
 }
 
 // Helper to convert photos in album objects
 function convertAlbumPhotoDecimals<T extends { coverPhoto?: any }>(album: T): T {
-  return {
-    ...album,
-    coverPhoto: convertPhotoDecimals(album.coverPhoto),
-  };
+  return convertDecimals(album);
 }
 
 class PhotoAlbumService {
@@ -221,7 +213,7 @@ class PhotoAlbumService {
       },
     });
 
-    return album;
+    return convertDecimals(album);
   }
 
   async getAlbumsByTrip(userId: number, tripId: number) {

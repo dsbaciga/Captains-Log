@@ -4,7 +4,7 @@ import {
   CreateJournalEntryInput,
   UpdateJournalEntryInput,
 } from '../types/journalEntry.types';
-import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals } from '../utils/serviceHelpers';
 import { fromZonedTime } from 'date-fns-tz';
 import { parseISO } from 'date-fns';
 
@@ -184,7 +184,7 @@ class JournalEntryService {
       });
     });
 
-    return journalEntry;
+    return convertDecimals(journalEntry);
   }
 
   async getJournalEntriesByTrip(userId: number, tripId: number) {
@@ -248,7 +248,7 @@ class JournalEntryService {
       orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
     });
 
-    return entries;
+    return convertDecimals(entries);
   }
 
   async getJournalEntryById(userId: number, entryId: number) {
@@ -312,7 +312,7 @@ class JournalEntryService {
     // Verify access
     await verifyEntityAccess(entry, userId, 'Journal entry');
 
-    return entry;
+    return convertDecimals(entry);
   }
 
   async updateJournalEntry(
@@ -527,7 +527,7 @@ class JournalEntryService {
       });
     });
 
-    return updatedEntry;
+    return convertDecimals(updatedEntry);
   }
 
   async deleteJournalEntry(userId: number, entryId: number) {
