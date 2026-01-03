@@ -1232,9 +1232,9 @@ export default function TripDetailPage() {
               />
 
               {/* Right: Photo Gallery */}
-              <div className="flex-1 p-6">
+              <div className="flex-1 min-w-0 p-6">
                 <div className="flex flex-wrap justify-between items-start mb-6 gap-3">
-                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  <div className="flex flex-col gap-1 min-w-0 flex-1 max-w-full">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
                       {selectedAlbumId === null
                         ? `All Photos (${totalPhotosCount})`
@@ -1266,7 +1266,7 @@ export default function TripDetailPage() {
                         </p>
                       )}
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     {/* Add Photos button - only show when viewing a specific album */}
                     {selectedAlbumId !== null && selectedAlbumId > 0 && (
                       <button
