@@ -1131,11 +1131,6 @@ export default function TripDetailPage() {
                             {location.category.name}
                           </span>
                         )}
-
-                        <AssociatedAlbums
-                          albums={location.photoAlbums}
-                          tripId={trip.id}
-                        />
                       </div>
                       <div className="flex gap-2 items-center flex-shrink-0">
                         <JournalEntriesButton
@@ -1156,6 +1151,12 @@ export default function TripDetailPage() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Associated Albums - Full Width */}
+                    <AssociatedAlbums
+                      albums={location.photoAlbums}
+                      tripId={trip.id}
+                    />
                   </div>
                 ))}
               </div>
@@ -1232,8 +1233,8 @@ export default function TripDetailPage() {
 
               {/* Right: Photo Gallery */}
               <div className="flex-1 p-6">
-                <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="flex flex-wrap justify-between items-start mb-6 gap-3">
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
                       {selectedAlbumId === null
                         ? `All Photos (${totalPhotosCount})`
@@ -1251,19 +1252,18 @@ export default function TripDetailPage() {
                       selectedAlbumId !== -1 &&
                       albums.find((a) => a.id === selectedAlbumId)
                         ?.description && (
-                        <span
-                          className="text-sm text-gray-600 dark:text-gray-400 truncate"
+                        <p
+                          className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
                           title={
                             albums.find((a) => a.id === selectedAlbumId)
                               ?.description || ""
                           }
                         >
-                          —{" "}
                           {
                             albums.find((a) => a.id === selectedAlbumId)
                               ?.description
                           }
-                        </span>
+                        </p>
                       )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
