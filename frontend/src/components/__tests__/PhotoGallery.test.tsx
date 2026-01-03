@@ -3,13 +3,35 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PhotoGallery from '../PhotoGallery';
 
-vi.mock('../../services/photo.service', () => ({
-  photoService: {
+// Mock IntersectionObserver
+class MockIntersectionObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+window.IntersectionObserver = MockIntersectionObserver as any;
+
+// Mock ProgressiveImage to render a simple img tag for testing
+vi.mock('../ProgressiveImage', () => ({
+  default: ({ src, alt, imgClassName, lazy }: any) => {
+    if (lazy) {
+      return <div className="progressive-image-placeholder" />;
+    }
+    return <img src={src} alt={alt} className={imgClassName} />;
+  }
+}));
+
+vi.mock('../../services/photo.service', () => {
+  const mockService = {
     getPhotosByTrip: vi.fn(),
     getPhotosByLocation: vi.fn(),
     getPhotosByAlbum: vi.fn(),
-  },
-}));
+  };
+  return {
+    photoService: mockService,
+    default: mockService,
+  };
+});
 
 describe('PhotoGallery', () => {
   beforeEach(() => {
@@ -22,6 +44,8 @@ describe('PhotoGallery', () => {
       id: i + 1,
       filename: `photo${i + 1}.jpg`,
       tripId: 1,
+      source: 'local',
+      thumbnailPath: `/thumbnails/photo${i + 1}.jpg`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }));
@@ -71,6 +95,8 @@ describe('PhotoGallery', () => {
       id: i + 1,
       filename: `photo${i + 1}.jpg`,
       tripId: 1,
+      source: 'local',
+      thumbnailPath: `/thumbnails/photo${i + 1}.jpg`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }));

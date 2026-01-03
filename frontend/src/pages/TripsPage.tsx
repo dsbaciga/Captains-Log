@@ -182,12 +182,12 @@ export default function TripsPage() {
           if (!a.startDate && !b.startDate) return 0;
           if (!a.startDate) return 1;
           if (!b.startDate) return -1;
-          return b.startDate.localeCompare(a.startDate);
+          return String(b.startDate).localeCompare(String(a.startDate));
         case 'startDate-asc':
           if (!a.startDate && !b.startDate) return 0;
           if (!a.startDate) return 1;
           if (!b.startDate) return -1;
-          return a.startDate.localeCompare(b.startDate);
+          return String(a.startDate).localeCompare(String(b.startDate));
         case 'title-asc':
           return a.title.localeCompare(b.title);
         case 'title-desc':

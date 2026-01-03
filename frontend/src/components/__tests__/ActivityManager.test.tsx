@@ -1,20 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import ActivityManager from '../ActivityManager';
-import { activityService } from '../../services/activity.service';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, waitFor } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import ActivityManager from "../ActivityManager";
+import { activityService } from "../../services/activity.service";
 
 // Mock the activity service
-vi.mock('../../services/activity.service', () => ({
-  activityService: {
+vi.mock("../../services/activity.service", () => {
+  const mockService = {
     getActivitiesByTrip: vi.fn(),
     createActivity: vi.fn(),
     updateActivity: vi.fn(),
     deleteActivity: vi.fn(),
-  },
-}));
+  };
+  return {
+    activityService: mockService,
+    default: mockService,
+  };
+});
 
-describe('ActivityManager', () => {
+describe("ActivityManager", () => {
   const tripId = 1;
 
   beforeEach(() => {
@@ -23,7 +27,7 @@ describe('ActivityManager', () => {
     vi.mocked(activityService.getActivitiesByTrip).mockResolvedValue([]);
   });
 
-  it('should not cause infinite loop on mount', async () => {
+  it("should not cause infinite loop on mount", async () => {
     const getActivitiesSpy = vi.mocked(activityService.getActivitiesByTrip);
 
     render(
@@ -38,13 +42,13 @@ describe('ActivityManager', () => {
     });
 
     // Wait a bit longer to ensure no additional calls
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Should still only be called once
     expect(getActivitiesSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('should not reload when switching to tab and back', async () => {
+  it("should not reload when switching to tab and back", async () => {
     const getActivitiesSpy = vi.mocked(activityService.getActivitiesByTrip);
 
     const { rerender } = render(
@@ -76,7 +80,7 @@ describe('ActivityManager', () => {
     });
 
     // Wait to ensure no infinite loop
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     expect(getActivitiesSpy).toHaveBeenCalledTimes(2);
   });
 });

@@ -481,7 +481,7 @@ export default function PhotoGallery({
   }
 
   return (
-    <>
+    <div data-testid="photo-gallery">
       <ConfirmDialogComponent />
 
       {/* View Controls */}
@@ -654,7 +654,7 @@ export default function PhotoGallery({
       {/* Grid View */}
       {viewMode === "grid" && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {sortedPhotos.map((photo) => {
+          {sortedPhotos.map((photo, index) => {
             const thumbnailUrl = getThumbnailUrl(photo);
             const isSelected = selectedPhotoIds.has(photo.id);
             return (
@@ -673,7 +673,7 @@ export default function PhotoGallery({
                     alt={photo.caption || "Photo"}
                     aspectRatio="1/1"
                     imgClassName="transform group-hover:scale-110 transition-transform duration-500"
-                    lazy={true}
+                    lazy={index > 20}
                     rootMargin="400px"
                   />
                 ) : (
@@ -1073,6 +1073,6 @@ export default function PhotoGallery({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

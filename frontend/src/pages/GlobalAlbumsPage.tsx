@@ -236,12 +236,12 @@ export default function GlobalAlbumsPage() {
           if (!a.trip.startDate && !b.trip.startDate) return 0;
           if (!a.trip.startDate) return 1;
           if (!b.trip.startDate) return -1;
-          return b.trip.startDate.localeCompare(a.trip.startDate);
+          return String(b.trip.startDate).localeCompare(String(a.trip.startDate));
         case "tripDate-asc":
           if (!a.trip.startDate && !b.trip.startDate) return 0;
           if (!a.trip.startDate) return 1;
           if (!b.trip.startDate) return -1;
-          return a.trip.startDate.localeCompare(b.trip.startDate);
+          return String(a.trip.startDate).localeCompare(String(b.trip.startDate));
         case "name-asc":
           return a.name.localeCompare(b.name);
         case "name-desc":
@@ -290,8 +290,8 @@ export default function GlobalAlbumsPage() {
       // Only reverse for explicit date ascending sort
       const isDateAscending = sortOption === "tripDate-asc";
       return isDateAscending
-        ? a.trip.startDate.localeCompare(b.trip.startDate)
-        : b.trip.startDate.localeCompare(a.trip.startDate);
+        ? String(a.trip.startDate).localeCompare(String(b.trip.startDate))
+        : String(b.trip.startDate).localeCompare(String(a.trip.startDate));
     });
   }, [filteredAlbums, sortOption]);
 
