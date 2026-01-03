@@ -231,33 +231,38 @@ export default function GlobalAlbumsPage() {
 
     // Sort
     result.sort((a, b) => {
-      switch (sortOption) {
-        case "tripDate-desc":
-          if (!a.trip.startDate && !b.trip.startDate) return 0;
-          if (!a.trip.startDate) return 1;
-          if (!b.trip.startDate) return -1;
-          return String(b.trip.startDate).localeCompare(String(a.trip.startDate));
-        case "tripDate-asc":
-          if (!a.trip.startDate && !b.trip.startDate) return 0;
-          if (!a.trip.startDate) return 1;
-          if (!b.trip.startDate) return -1;
-          return String(a.trip.startDate).localeCompare(String(b.trip.startDate));
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        case "photos-desc":
-          return (
-            (b._count?.photoAssignments || 0) -
-            (a._count?.photoAssignments || 0)
-          );
-        case "photos-asc":
-          return (
-            (a._count?.photoAssignments || 0) -
-            (b._count?.photoAssignments || 0)
-          );
-        default:
-          return 0;
+      try {
+        switch (sortOption) {
+          case "tripDate-desc":
+            if (!a.trip.startDate && !b.trip.startDate) return 0;
+            if (!a.trip.startDate) return 1;
+            if (!b.trip.startDate) return -1;
+            return String(b.trip.startDate).localeCompare(String(a.trip.startDate));
+          case "tripDate-asc":
+            if (!a.trip.startDate && !b.trip.startDate) return 0;
+            if (!a.trip.startDate) return 1;
+            if (!b.trip.startDate) return -1;
+            return String(a.trip.startDate).localeCompare(String(b.trip.startDate));
+          case "name-asc":
+            return (a.name || '').localeCompare(b.name || '');
+          case "name-desc":
+            return (b.name || '').localeCompare(a.name || '');
+          case "photos-desc":
+            return (
+              (b._count?.photoAssignments || 0) -
+              (a._count?.photoAssignments || 0)
+            );
+          case "photos-asc":
+            return (
+              (a._count?.photoAssignments || 0) -
+              (b._count?.photoAssignments || 0)
+            );
+          default:
+            return 0;
+        }
+      } catch (error) {
+        console.error('Error sorting albums:', error);
+        return 0;
       }
     });
 
@@ -283,15 +288,20 @@ export default function GlobalAlbumsPage() {
     // For name/photo sorts, still group by trip but sort trips by date
     // For date sorts, respect the asc/desc direction
     return Array.from(groups.values()).sort((a, b) => {
-      if (!a.trip.startDate && !b.trip.startDate) return 0;
-      if (!a.trip.startDate) return 1;
-      if (!b.trip.startDate) return -1;
+      try {
+        if (!a.trip.startDate && !b.trip.startDate) return 0;
+        if (!a.trip.startDate) return 1;
+        if (!b.trip.startDate) return -1;
 
-      // Only reverse for explicit date ascending sort
-      const isDateAscending = sortOption === "tripDate-asc";
-      return isDateAscending
-        ? String(a.trip.startDate).localeCompare(String(b.trip.startDate))
-        : String(b.trip.startDate).localeCompare(String(a.trip.startDate));
+        // Only reverse for explicit date ascending sort
+        const isDateAscending = sortOption === "tripDate-asc";
+        return isDateAscending
+          ? String(a.trip.startDate).localeCompare(String(b.trip.startDate))
+          : String(b.trip.startDate).localeCompare(String(a.trip.startDate));
+      } catch (error) {
+        console.error('Error sorting trip groups:', error);
+        return 0;
+      }
     });
   }, [filteredAlbums, sortOption]);
 
