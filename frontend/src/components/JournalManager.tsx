@@ -414,11 +414,15 @@ Tell your story!"
                       className="input h-24"
                       size={4}
                     >
-                      {transportations.map((transport) => (
-                        <option key={transport.id} value={transport.id}>
-                          {transport.type}: {transport.fromLocationName || 'Start'} → {transport.toLocationName || 'End'}
-                        </option>
-                      ))}
+                      {transportations.map((transport) => {
+                        const fromName = transport.fromLocation?.name || transport.fromLocationName || 'Start';
+                        const toName = transport.toLocation?.name || transport.toLocationName || 'End';
+                        return (
+                          <option key={transport.id} value={transport.id}>
+                            {transport.type}: {fromName} → {toName}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 )}

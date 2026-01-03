@@ -25,6 +25,7 @@ export default function FormModal({
   maxWidth = "4xl",
 }: FormModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const hasFocusedRef = useRef(false);
 
   const maxWidthClasses = {
     sm: "max-w-sm",
@@ -46,19 +47,11 @@ export default function FormModal({
     [onClose]
   );
 
+  // Handle modal opening/closing and body scroll
   useEffect(() => {
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
-
-      // Focus the first focusable element in the modal (input, textarea, button)
-      // This provides better UX than focusing the modal container itself
-      setTimeout(() => {
-        const firstInput = modalRef.current?.querySelector<HTMLElement>(
-          'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])'
-        );
-        firstInput?.focus();
-      }, 0);
 
       return () => {
         document.removeEventListener("keydown", handleKeyDown);
@@ -66,6 +59,24 @@ export default function FormModal({
       };
     }
   }, [isOpen, handleKeyDown]);
+
+  // Handle initial focus - separate effect to avoid re-running on handleKeyDown changes
+  useEffect(() => {
+    if (isOpen && !hasFocusedRef.current) {
+      // Focus the first focusable element in the modal (input, textarea, button)
+      // This provides better UX than focusing the modal container itself
+      setTimeout(() => {
+        const firstInput = modalRef.current?.querySelector<HTMLElement>(
+          'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])'
+        );
+        firstInput?.focus();
+        hasFocusedRef.current = true;
+      }, 0);
+    } else if (!isOpen) {
+      // Reset the flag when modal closes
+      hasFocusedRef.current = false;
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
