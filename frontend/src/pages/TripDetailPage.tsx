@@ -1111,8 +1111,8 @@ export default function TripDetailPage() {
                     key={location.id}
                     className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                           {location.name}
                         </h3>
@@ -1137,20 +1137,20 @@ export default function TripDetailPage() {
                           tripId={trip.id}
                         />
                       </div>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-2 items-center flex-shrink-0">
                         <JournalEntriesButton
                           journalEntries={location.journalLocationAssignments}
                           tripId={trip.id}
                         />
                         <button
                           onClick={() => handleEditLocation(location)}
-                          className="ml-4 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                          className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteLocation(location.id)}
-                          className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
+                          className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
                         >
                           Delete
                         </button>
