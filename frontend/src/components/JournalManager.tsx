@@ -28,9 +28,12 @@ export default function JournalManager({
   tripStartDate,
   onUpdate,
 }: JournalManagerProps) {
-  // Compute default entry date from trip start date
+  // Compute default entry date from trip start date (set to noon)
   const defaultEntryDate = useMemo(() => {
-    return tripStartDate ? tripStartDate.slice(0, 10) : "";
+    if (!tripStartDate) return "";
+    // Extract just the date portion (YYYY-MM-DD) and append time of noon (12:00)
+    const dateOnly = tripStartDate.slice(0, 10);
+    return `${dateOnly}T12:00`;
   }, [tripStartDate]);
 
   // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)

@@ -832,7 +832,7 @@ const Timeline = ({
     };
   };
 
-  const renderTimelineColumn = (items: TimelineItem[], timezone?: string) => {
+  const renderTimelineColumn = (items: TimelineItem[], timezone?: string, currentDayKey?: string) => {
     // Pre-compute connection groups for this day's items
     const connectionGroups = new Map<string, TimelineItem[]>();
     items.forEach((item) => {
@@ -862,6 +862,22 @@ const Timeline = ({
         isLast: index === sortedGroup.length - 1,
         groupId: item.connectionGroupId,
       };
+    };
+
+    // Helper to filter journal entries to only show those matching the current day
+    const filterJournalEntriesForDay = (assignments: { id: number; journal: { date: string | null; title?: string | null; content?: string; } }[] | undefined) => {
+      if (!assignments || !currentDayKey) return assignments;
+
+      return assignments.filter(assignment => {
+        if (!assignment.journal.date) return false;
+
+        // Get the date string for the journal entry in the same format as currentDayKey
+        const journalDate = new Date(assignment.journal.date);
+        const journalDateKey = getDateStringInTimezone(journalDate, timezone);
+
+        // Only show journal entry if its date matches the current day
+        return journalDateKey === currentDayKey;
+      });
     };
 
     return (
@@ -1184,10 +1200,16 @@ const Timeline = ({
                     )}
 
                     {/* Show associated journal entries for activities, lodging, and transportation */}
-                    {item.type !== "journal" &&
-                      "journalAssignments" in item.data &&
-                      item.data.journalAssignments &&
-                      item.data.journalAssignments.length > 0 && (
+                    {(() => {
+                      if (item.type === "journal") return null;
+                      if (!("journalAssignments" in item.data)) return null;
+                      if (!item.data.journalAssignments || item.data.journalAssignments.length === 0) return null;
+
+                      // Filter to only show journal entries that match the current day
+                      const filteredAssignments = filterJournalEntriesForDay(item.data.journalAssignments);
+                      if (!filteredAssignments || filteredAssignments.length === 0) return null;
+
+                      return (
                         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                           <div className="flex items-center gap-2 mb-2">
                             <svg
@@ -1205,14 +1227,14 @@ const Timeline = ({
                             </svg>
                             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                               Journal{" "}
-                              {item.data.journalAssignments.length === 1
+                              {filteredAssignments.length === 1
                                 ? "Entry"
                                 : "Entries"}
                               :
                             </span>
                           </div>
                           <div className="space-y-2">
-                            {item.data.journalAssignments.map(
+                            {filteredAssignments.map(
                               (assignment: {
                                 id: number;
                                 journal: {
@@ -1244,7 +1266,8 @@ const Timeline = ({
                             )}
                           </div>
                         </div>
-                      )}
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -1837,20 +1860,20 @@ const Timeline = ({
                     <>
                       {/* Desktop: Side-by-side columns */}
                       <div className="timeline-dual-column hidden md:flex gap-8">
-                        {renderTimelineColumn(items, tripTimezone)}
+                        {renderTimelineColumn(items, tripTimezone, dateKey)}
                         <div className="w-px bg-gray-300 dark:bg-gray-600"></div>
-                        {renderTimelineColumn(items, userTimezone)}
+                        {renderTimelineColumn(items, userTimezone, dateKey)}
                       </div>
 
                       {/* Mobile: Single column based on active timezone */}
                       <div className="md:hidden">
                         {mobileActiveTimezone === "trip"
-                          ? renderTimelineColumn(items, tripTimezone)
-                          : renderTimelineColumn(items, userTimezone)}
+                          ? renderTimelineColumn(items, tripTimezone, dateKey)
+                          : renderTimelineColumn(items, userTimezone, dateKey)}
                       </div>
                     </>
                   ) : (
-                    renderTimelineColumn(items)
+                    renderTimelineColumn(items, undefined, dateKey)
                   )}
                 </>
               )}
