@@ -3,50 +3,51 @@ import {
   CreateTransportationInput,
   UpdateTransportationInput,
 } from '../types/transportation.types';
-import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
 import { journalAssignmentsInclude, locationSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
 // Helper to map database fields to frontend field names
 const mapTransportationToFrontend = (t: any): Record<string, any> => {
+  const converted = convertDecimals(t);
   return {
-    id: t.id,
-    tripId: t.tripId,
-    type: t.type,
-    fromLocationId: t.startLocationId,
-    toLocationId: t.endLocationId,
-    fromLocationName: t.startLocationText,
-    toLocationName: t.endLocationText,
-    departureTime: t.scheduledStart,
-    arrivalTime: t.scheduledEnd,
-    startTimezone: t.startTimezone,
-    endTimezone: t.endTimezone,
-    carrier: t.company,
-    vehicleNumber: t.referenceNumber,
-    confirmationNumber: t.bookingReference,
-    cost: t.cost ? Number(t.cost) : null,
-    currency: t.currency,
-    notes: t.notes,
-    connectionGroupId: t.connectionGroupId,
-    calculatedDistance: t.calculatedDistance ? Number(t.calculatedDistance) : null,
-    calculatedDuration: t.calculatedDuration ? Number(t.calculatedDuration) : null,
-    distanceSource: t.distanceSource,
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt,
-    fromLocation: t.startLocation ? {
-      id: t.startLocation.id,
-      name: t.startLocation.name,
-      latitude: t.startLocation.latitude ? Number(t.startLocation.latitude) : null,
-      longitude: t.startLocation.longitude ? Number(t.startLocation.longitude) : null,
+    id: converted.id,
+    tripId: converted.tripId,
+    type: converted.type,
+    fromLocationId: converted.startLocationId,
+    toLocationId: converted.endLocationId,
+    fromLocationName: converted.startLocationText,
+    toLocationName: converted.endLocationText,
+    departureTime: converted.scheduledStart,
+    arrivalTime: converted.scheduledEnd,
+    startTimezone: converted.startTimezone,
+    endTimezone: converted.endTimezone,
+    carrier: converted.company,
+    vehicleNumber: converted.referenceNumber,
+    confirmationNumber: converted.bookingReference,
+    cost: converted.cost,
+    currency: converted.currency,
+    notes: converted.notes,
+    connectionGroupId: converted.connectionGroupId,
+    calculatedDistance: converted.calculatedDistance,
+    calculatedDuration: converted.calculatedDuration,
+    distanceSource: converted.distanceSource,
+    createdAt: converted.createdAt,
+    updatedAt: converted.updatedAt,
+    fromLocation: converted.startLocation ? {
+      id: converted.startLocation.id,
+      name: converted.startLocation.name,
+      latitude: converted.startLocation.latitude,
+      longitude: converted.startLocation.longitude,
     } : null,
-    toLocation: t.endLocation ? {
-      id: t.endLocation.id,
-      name: t.endLocation.name,
-      latitude: t.endLocation.latitude ? Number(t.endLocation.latitude) : null,
-      longitude: t.endLocation.longitude ? Number(t.endLocation.longitude) : null,
+    toLocation: converted.endLocation ? {
+      id: converted.endLocation.id,
+      name: converted.endLocation.name,
+      latitude: converted.endLocation.latitude,
+      longitude: converted.endLocation.longitude,
     } : null,
-    journalAssignments: t.journalAssignments,
-    flightTracking: t.flightTracking,
+    journalAssignments: converted.journalAssignments,
+    flightTracking: converted.flightTracking,
   };
 };
 

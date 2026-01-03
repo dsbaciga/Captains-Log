@@ -6,6 +6,8 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { config } from './config';
 import logger from './config/logger';
+import { initCronJobs } from './config/cron';
+import { setupSwagger } from './config/swagger';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -22,6 +24,7 @@ import companionRoutes from './routes/companion.routes';
 import immichRoutes from './routes/immich.routes';
 import weatherRoutes from './routes/weather.routes';
 import checklistRoutes from './routes/checklist.routes';
+import searchRoutes from './routes/search.routes';
 
 // Read version from package.json
 const packageJson = JSON.parse(
@@ -97,9 +100,16 @@ app.use('/api/companions', companionRoutes);
 app.use('/api/immich', immichRoutes);
 app.use('/api', weatherRoutes);
 app.use('/api/checklists', checklistRoutes);
+app.use('/api/search', searchRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
+
+// Initialize cron jobs
+initCronJobs();
+
+// Setup Swagger documentation
+setupSwagger(app);
 
 // Start server
 const PORT = config.port;

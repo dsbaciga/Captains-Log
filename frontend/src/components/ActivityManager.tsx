@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import type { Activity } from "../types/activity";
+import type { Activity, CreateActivityInput, UpdateActivityInput } from "../types/activity";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
 import activityService from "../services/activity.service";
@@ -96,7 +96,7 @@ export default function ActivityManager({
   }), []);
 
   // Initialize CRUD hook
-  const manager = useManagerCRUD<Activity>(activityServiceAdapter, tripId, {
+  const manager = useManagerCRUD<Activity, CreateActivityInput, UpdateActivityInput>(activityServiceAdapter, tripId, {
     itemName: "activity",
     onUpdate,
   });

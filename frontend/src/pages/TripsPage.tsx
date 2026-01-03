@@ -14,8 +14,8 @@ import { formatDate } from '../utils/dateFormat';
 import { getTripStatusColor } from '../utils/statusColors';
 
 // Import reusable components
-import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
+import { SkeletonGrid } from '../components/Skeleton';
 import { SearchIcon, FilterIcon, CloseIcon } from '../components/icons';
 
 type SortOption = 'startDate-desc' | 'startDate-asc' | 'title-asc' | 'title-desc' | 'status';
@@ -397,7 +397,7 @@ export default function TripsPage() {
 
         {/* Trips Grid */}
         {loading ? (
-          <LoadingSpinner.FullPage message="Loading trips..." />
+          <SkeletonGrid count={6} columns={3} hasImage />
         ) : filteredTrips.length === 0 ? (
           <EmptyState
             icon="✈️"

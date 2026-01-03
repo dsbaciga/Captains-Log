@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from './errors';
+import { Decimal } from '@prisma/client/runtime/library';
 
 /**
  * Service helper utilities to reduce duplication across service files
@@ -279,4 +280,37 @@ export async function verifyEntityOwnership<T extends { trip: { userId: number }
 ): Promise<T> {
   const entity = await findQuery();
   return verifyEntityAccess(entity, userId, entityName);
+}
+
+/**
+ * Recursively converts Decimal objects (from Prisma) to numbers
+ * Useful for ensuring JSON responses have numbers instead of Decimal objects
+ *
+ * @param obj - The object or array containing Decimal fields
+ * @returns The object with Decimals converted to numbers
+ */
+export function convertDecimals<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (obj instanceof Decimal) {
+    return Number(obj) as any;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertDecimals(item)) as any;
+  }
+
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        result[key] = convertDecimals(obj[key]);
+      }
+    }
+    return result as T;
+  }
+
+  return obj;
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useId } from "react";
 import tagService from "../services/tag.service";
-import type { Tag } from "../types/tag";
+import type { Tag, TripTag } from "../types/tag";
 import toast from "react-hot-toast";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -30,7 +30,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
   };
 
   // Initialize CRUD hook for trip tags
-  const manager = useManagerCRUD<Tag>(tripTagServiceAdapter, tripId, {
+  const manager = useManagerCRUD<TripTag>(tripTagServiceAdapter, tripId, {
     itemName: "tag",
   });
 
@@ -38,7 +38,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState(DEFAULT_COLORS[0]);
-  const [editingTag, setEditingTag] = useState<Tag | null>(null);
+  const [editingTag, setEditingTag] = useState<Tag | TripTag | null>(null);
   const tagNameId = useId();
   const tagColorId = useId();
 
@@ -138,7 +138,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     }
   };
 
-  const startEdit = (tag: Tag) => {
+  const startEdit = (tag: Tag | TripTag) => {
     setEditingTag(tag);
     setTagName(tag.name);
     setTagColor(tag.color || DEFAULT_COLORS[0]);

@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PhotoGallery from '../PhotoGallery';
-import { photoService } from '../../services/photo.service';
 
 vi.mock('../../services/photo.service', () => ({
   photoService: {
@@ -27,11 +26,9 @@ describe('PhotoGallery', () => {
       updatedAt: new Date().toISOString(),
     }));
 
-    vi.mocked(photoService.getPhotosByTrip).mockResolvedValue(mockPhotos);
-
     render(
       <BrowserRouter>
-        <PhotoGallery tripId={1} />
+        <PhotoGallery photos={mockPhotos as any[]} />
       </BrowserRouter>
     );
 
@@ -55,11 +52,9 @@ describe('PhotoGallery', () => {
       updatedAt: new Date().toISOString(),
     }));
 
-    vi.mocked(photoService.getPhotosByAlbum).mockResolvedValue(mockPhotos);
-
     render(
       <BrowserRouter>
-        <PhotoGallery albumId={1} />
+        <PhotoGallery photos={mockPhotos as any[]} />
       </BrowserRouter>
     );
 
@@ -69,9 +64,6 @@ describe('PhotoGallery', () => {
       // Component should render without errors
       expect(screen.queryByTestId('photo-gallery')).toBeTruthy();
     }, { timeout: 3000 });
-
-    // Verify the service was called appropriately
-    expect(photoService.getPhotosByAlbum).toHaveBeenCalled();
   });
 
   it('should not cause race conditions when loading thumbnails', async () => {
@@ -83,11 +75,9 @@ describe('PhotoGallery', () => {
       updatedAt: new Date().toISOString(),
     }));
 
-    vi.mocked(photoService.getPhotosByTrip).mockResolvedValue(mockPhotos);
-
     const { container } = render(
       <BrowserRouter>
-        <PhotoGallery tripId={1} />
+        <PhotoGallery photos={mockPhotos as any[]} />
       </BrowserRouter>
     );
 
@@ -96,8 +86,5 @@ describe('PhotoGallery', () => {
       const images = container.querySelectorAll('img');
       expect(images.length).toBeGreaterThan(0);
     });
-
-    // Service should be called only once (no race conditions causing multiple calls)
-    expect(photoService.getPhotosByTrip).toHaveBeenCalledTimes(1);
   });
 });

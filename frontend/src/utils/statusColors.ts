@@ -1,10 +1,10 @@
-import { TripStatus } from '../types/trip';
+import { TripStatus, type TripStatusType } from '../types/trip';
 
 /**
  * Color mappings for trip statuses
  * Each status has a background and text color class
  */
-export const tripStatusColors: Record<TripStatus, string> = {
+export const tripStatusColors: Record<TripStatusType, string> = {
   [TripStatus.DREAM]: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
   [TripStatus.PLANNING]: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
   [TripStatus.PLANNED]: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -19,7 +19,7 @@ export const tripStatusColors: Record<TripStatus, string> = {
  * @returns Tailwind CSS classes for background and text color
  */
 export function getTripStatusColor(status: string): string {
-  return tripStatusColors[status as TripStatus] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  return tripStatusColors[status as TripStatusType] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
 }
 
 /**

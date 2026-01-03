@@ -594,11 +594,11 @@ const Timeline = ({
       setTimelineItems(items);
 
       // Process weather data into a map by date (using trip timezone)
-      const weatherByDate = weather.reduce((acc, w) => {
+      const weatherByDate: Record<string, WeatherData> = {};
+      weather.forEach((w) => {
         const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
-        acc[dateKey] = w;
-        return acc;
-      }, {} as Record<string, WeatherData>);
+        weatherByDate[dateKey] = w;
+      });
 
       setWeatherData(weatherByDate);
     } catch (error) {
@@ -767,7 +767,10 @@ const Timeline = ({
     return `${hours}h ${mins}m`;
   };
 
-  const formatDistance = (kilometers: number): string => {
+  const formatDistance = (kilometers: number | null | undefined): string => {
+    if (kilometers == null || typeof kilometers !== 'number' || isNaN(kilometers)) {
+      return 'Unknown distance';
+    }
     const miles = kilometers * 0.621371;
     return `${kilometers.toFixed(1)} km (${miles.toFixed(1)} mi)`;
   };

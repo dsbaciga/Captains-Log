@@ -149,7 +149,7 @@ export default function AlbumDetailPage() {
 
     try {
       // Get all photos for the trip
-      const allPhotos = await photoService.getPhotosByTrip(parseInt(tripId));
+      const result = await photoService.getPhotosByTrip(parseInt(tripId));
 
       // Get current album photo IDs
       const currentPhotoIds = new Set(
@@ -157,7 +157,7 @@ export default function AlbumDetailPage() {
       );
 
       // Filter out photos already in the album
-      const available = allPhotos.filter(p => !currentPhotoIds.has(p.id));
+      const available = result.photos.filter(p => !currentPhotoIds.has(p.id));
       setAvailablePhotos(available);
     } catch (err) {
       console.error("Failed to load available photos:", err);

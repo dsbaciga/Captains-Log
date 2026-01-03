@@ -3,7 +3,7 @@ import {
   CreateLodgingInput,
   UpdateLodgingInput,
 } from '../types/lodging.types';
-import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
 import { photoAlbumsInclude, journalAssignmentsInclude } from '../utils/prismaIncludes';
 
 class LodgingService {
@@ -44,7 +44,7 @@ class LodgingService {
       },
     });
 
-    return lodging;
+    return convertDecimals(lodging);
   }
 
   async getLodgingByTrip(userId: number, tripId: number) {
@@ -69,7 +69,7 @@ class LodgingService {
       orderBy: [{ checkInDate: 'asc' }, { createdAt: 'asc' }],
     });
 
-    return lodgings;
+    return convertDecimals(lodgings);
   }
 
   async getLodgingById(userId: number, lodgingId: number) {
@@ -85,7 +85,7 @@ class LodgingService {
 
     await verifyEntityAccess(lodging, userId, 'Lodging');
 
-    return lodging;
+    return convertDecimals(lodging);
   }
 
   async updateLodging(
@@ -137,7 +137,7 @@ class LodgingService {
       },
     });
 
-    return updatedLodging;
+    return convertDecimals(updatedLodging);
   }
 
   async deleteLodging(userId: number, lodgingId: number) {

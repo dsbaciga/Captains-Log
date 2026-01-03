@@ -22,6 +22,35 @@ export const PrivacyLevel = {
 export const PrivacyLevelValues = Object.values(PrivacyLevel);
 
 // Validation schemas
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     CreateTripInput:
+ *       type: object
+ *       required: [title]
+ *       properties:
+ *         title:
+ *           type: string
+ *         description:
+ *           type: string
+ *         startDate:
+ *           type: string
+ *           format: date
+ *         endDate:
+ *           type: string
+ *           format: date
+ *         timezone:
+ *           type: string
+ *         status:
+ *           type: string
+ *           enum: [Dream, Planning, Planned, In Progress, Completed, Cancelled]
+ *         privacyLevel:
+ *           type: string
+ *           enum: [Private, Shared, Public]
+ *         addToPlacesVisited:
+ *           type: boolean
+ */
 export const createTripSchema = z.object({
   title: z.string().min(1).max(500),
   description: z.string().optional(),

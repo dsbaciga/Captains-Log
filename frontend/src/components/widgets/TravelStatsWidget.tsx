@@ -8,6 +8,7 @@ import photoService from '../../services/photo.service';
 import locationService from '../../services/location.service';
 import transportationService from '../../services/transportation.service';
 import toast from 'react-hot-toast';
+import { Skeleton } from '../Skeleton';
 
 interface Stats {
   totalTrips: number;
@@ -111,7 +112,6 @@ export default function TravelStatsWidget() {
   };
 
   const formatDistance = (km: number): string => {
-    const miles = km * 0.621371;
     if (km < 1000) {
       return `${km.toFixed(0)} km`;
     }
@@ -216,10 +216,13 @@ export default function TravelStatsWidget() {
   if (isLoading) {
     return (
       <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-6 animate-pulse" />
+        <div className="flex items-center gap-3 mb-6">
+          <Skeleton className="w-10 h-10 rounded-lg" />
+          <Skeleton className="h-6 w-32 rounded" />
+        </div>
         <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-24 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-xl" />
           ))}
         </div>
       </div>

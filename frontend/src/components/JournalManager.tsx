@@ -1,5 +1,5 @@
 import { useState, useEffect, useId, useMemo } from "react";
-import type { JournalEntry } from "../types/journalEntry";
+import type { JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput } from "../types/journalEntry";
 import type { Location } from "../types/location";
 import type { Activity } from "../types/activity";
 import type { Lodging } from "../types/lodging";
@@ -42,7 +42,7 @@ export default function JournalManager({
   }), []);
 
   // Initialize CRUD hook
-  const manager = useManagerCRUD<JournalEntry>(journalServiceAdapter, tripId, {
+  const manager = useManagerCRUD<JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput>(journalServiceAdapter, tripId, {
     itemName: "journal entry",
     onUpdate,
   });

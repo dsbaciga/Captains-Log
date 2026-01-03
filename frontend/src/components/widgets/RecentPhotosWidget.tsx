@@ -8,6 +8,7 @@ import tripService from "../../services/trip.service";
 import photoService from "../../services/photo.service";
 import { getAssetBaseUrl } from "../../lib/config";
 import { Link } from "react-router-dom";
+import { Skeleton } from "../Skeleton";
 
 export default function RecentPhotosWidget() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -126,8 +127,8 @@ export default function RecentPhotosWidget() {
   if (isLoading) {
     return (
       <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4 animate-pulse" />
-        <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
+        <Skeleton className="h-6 w-32 rounded mb-4" />
+        <Skeleton className="aspect-video w-full rounded-xl" />
       </div>
     );
   }

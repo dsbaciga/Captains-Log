@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
-import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
 import { photoAlbumsInclude, journalAssignmentsInclude } from '../utils/prismaIncludes';
 
 class ActivityService {
@@ -60,7 +60,7 @@ class ActivityService {
       },
     });
 
-    return activity;
+    return convertDecimals(activity);
   }
 
   async getActivitiesByTrip(userId: number, tripId: number) {
@@ -101,7 +101,7 @@ class ActivityService {
       orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
     });
 
-    return activities;
+    return convertDecimals(activities);
   }
 
   async getActivityById(userId: number, activityId: number) {
@@ -141,7 +141,7 @@ class ActivityService {
 
     await verifyEntityAccess(activity, userId, 'Activity');
 
-    return activity;
+    return convertDecimals(activity);
   }
 
   async updateActivity(
@@ -225,7 +225,7 @@ class ActivityService {
       },
     });
 
-    return updatedActivity;
+    return convertDecimals(updatedActivity);
   }
 
   async deleteActivity(userId: number, activityId: number) {

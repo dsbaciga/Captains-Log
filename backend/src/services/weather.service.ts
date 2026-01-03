@@ -3,7 +3,7 @@ import { AppError } from '../utils/errors';
 import { WeatherDataInput } from '../types/weather.types';
 import config from '../config';
 import axios from 'axios';
-import { verifyTripAccess } from '../utils/serviceHelpers';
+import { verifyTripAccess, convertDecimals } from '../utils/serviceHelpers';
 
 interface OpenWeatherResponse {
   daily: {
@@ -103,7 +103,7 @@ class WeatherService {
       })
     );
 
-    return weatherData.filter((w) => w !== null);
+    return convertDecimals(weatherData.filter((w) => w !== null));
   }
 
   /**
@@ -737,7 +737,7 @@ class WeatherService {
     });
 
     // Fetch fresh data
-    return await this.getWeatherForDate(tripId, coordinates, targetDate, apiKey);
+    return convertDecimals(await this.getWeatherForDate(tripId, coordinates, targetDate, apiKey));
   }
 }
 

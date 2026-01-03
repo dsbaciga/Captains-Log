@@ -21,15 +21,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-
-interface SearchResult {
-  id: number | string;
-  type: 'trip' | 'location' | 'photo' | 'journal';
-  title: string;
-  subtitle?: string;
-  url: string;
-  thumbnail?: string;
-}
+import searchService, { type SearchResult } from '../services/search.service';
 
 interface GlobalSearchProps {
   /** Show as compact mode (for navbar) */
@@ -82,38 +74,8 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await searchService.globalSearch(searchQuery);
-      // setResults(response.results);
-
-      // Mock results for demonstration
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const mockResults: SearchResult[] = [
-        {
-          id: 1,
-          type: 'trip',
-          title: `Trip matching "${searchQuery}"`,
-          subtitle: 'June 2024 • Completed',
-          url: '/trips/1',
-        },
-        {
-          id: 2,
-          type: 'location',
-          title: `Location: ${searchQuery} Beach`,
-          subtitle: 'San Francisco Trip',
-          url: '/trips/1#locations',
-        },
-        {
-          id: 3,
-          type: 'photo',
-          title: 'Sunset photo',
-          subtitle: `Caption contains "${searchQuery}"`,
-          url: '/trips/1/photos/123',
-        },
-      ];
-
-      setResults(mockResults);
+      const response = await searchService.globalSearch(searchQuery);
+      setResults(response.data.results);
     } catch (error) {
       console.error('Search failed:', error);
       setResults([]);
@@ -174,8 +136,10 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
   };
 
   // Register keyboard shortcut (Ctrl+K or Cmd+K)
-  useKeyboardShortcuts([
-    {
+  const { registerShortcut } = useKeyboardShortcuts();
+
+  useEffect(() => {
+    const cleanup = registerShortcut({
       key: 'k',
       ctrl: true,
       description: 'Open global search',
@@ -184,8 +148,9 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
         setShowResults(true);
       },
       category: 'Navigation',
-    },
-  ]);
+    });
+    return cleanup;
+  }, [registerShortcut]);
 
   // Get icon for result type
   const getTypeIcon = (type: SearchResult['type']) => {

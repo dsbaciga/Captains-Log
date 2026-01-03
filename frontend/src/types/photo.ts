@@ -19,6 +19,10 @@ export type Photo = {
       name: string;
     };
   }[];
+  location?: {
+    id: number;
+    name: string;
+  } | null;
 };
 
 export type PhotoAlbum = {

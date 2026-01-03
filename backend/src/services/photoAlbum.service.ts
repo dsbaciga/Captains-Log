@@ -104,6 +104,13 @@ class PhotoAlbumService {
               name: true,
             },
           },
+          photoAssignments: {
+            take: 1,
+            orderBy: { createdAt: 'asc' },
+            include: {
+              photo: true,
+            },
+          },
         },
         orderBy: [
           { trip: { startDate: 'desc' } },
@@ -128,8 +135,19 @@ class PhotoAlbumService {
     const loadedCount = skip + albums.length;
     const hasMore = loadedCount < totalAlbums;
 
+    // Use first photo as cover if no explicit cover photo is set
+    const albumsWithCovers = albums.map((album) => {
+      const albumCopy = { ...album };
+      if (!albumCopy.coverPhoto && albumCopy.photoAssignments.length > 0) {
+        albumCopy.coverPhoto = albumCopy.photoAssignments[0].photo;
+      }
+      // Remove photoAssignments from the response as it was only needed for the cover
+      delete (albumCopy as any).photoAssignments;
+      return albumCopy;
+    });
+
     return {
-      albums: albums.map(convertAlbumPhotoDecimals),
+      albums: albumsWithCovers.map(convertAlbumPhotoDecimals),
       totalAlbums,
       totalPhotos,
       tripCount: tripIds.length,
@@ -208,7 +226,7 @@ class PhotoAlbumService {
 
   async getAlbumsByTrip(userId: number, tripId: number) {
     console.log('[PhotoAlbumService] getAlbumsByTrip called:', { userId, tripId });
-    
+
     // Verify user has access to trip
     await verifyTripAccess(userId, tripId);
     console.log('[PhotoAlbumService] verifyTripAccess passed');
@@ -219,6 +237,7 @@ class PhotoAlbumService {
         _count: {
           select: { photoAssignments: true },
         },
+        coverPhoto: true,
         location: {
           select: {
             id: true,
@@ -235,6 +254,13 @@ class PhotoAlbumService {
           select: {
             id: true,
             name: true,
+          },
+        },
+        photoAssignments: {
+          take: 1,
+          orderBy: { createdAt: 'asc' },
+          include: {
+            photo: true,
           },
         },
       },
@@ -262,8 +288,19 @@ class PhotoAlbumService {
 
     const unsortedCount = totalPhotosCount - photosInAlbums.length;
 
+    // Use first photo as cover if no explicit cover photo is set
+    const albumsWithCovers = albums.map((album) => {
+      const albumCopy = { ...album };
+      if (!albumCopy.coverPhoto && albumCopy.photoAssignments.length > 0) {
+        albumCopy.coverPhoto = albumCopy.photoAssignments[0].photo;
+      }
+      // Remove photoAssignments from the response as it was only needed for the cover
+      delete (albumCopy as any).photoAssignments;
+      return albumCopy;
+    });
+
     return {
-      albums,
+      albums: albumsWithCovers.map(convertAlbumPhotoDecimals),
       unsortedCount,
       totalCount: totalPhotosCount,
     };

@@ -68,6 +68,8 @@ model Trip {
   companionAssignments TripCompanion[]
   collaborators      TripCollaborator[]
 
+  @@index([userId, status])
+  @@index([startDate, endDate])
   @@map("trips")
 }
 
@@ -168,6 +170,7 @@ model Location {
   weatherData              WeatherData[]
   photoAlbums              PhotoAlbum[]
 
+  @@index([tripId])
   @@map("locations")
 }
 
@@ -208,6 +211,7 @@ model Photo {
   albumAssignments       PhotoAlbumAssignment[]
   journalPhotoAssignments JournalPhoto[]
 
+  @@index([tripId, takenAt])
   @@map("photos")
 }
 
@@ -363,6 +367,7 @@ model JournalEntry {
   lodgingAssignments        JournalLodging[]
   transportationAssignments JournalTransportation[]
 
+  @@index([tripId, date])
   @@map("journal_entries")
 }
 

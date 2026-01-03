@@ -60,8 +60,6 @@ const initialFormState: ActivityFormFields = {
 export default function UnscheduledActivities({
   tripId,
   locations,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  tripTimezone,
   onActivityUpdated,
 }: UnscheduledActivitiesProps) {
   const [activities, setActivities] = useState<Activity[]>([]);

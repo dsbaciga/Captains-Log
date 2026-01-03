@@ -5,7 +5,7 @@ import type {
   UpdateActivityInput,
 } from '../types/activity';
 
-const activityService = {
+export const activityService = {
   async createActivity(data: CreateActivityInput): Promise<Activity> {
     const response = await axios.post('/activities', data);
     return response.data;

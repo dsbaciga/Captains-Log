@@ -47,7 +47,7 @@ const LocationSearchMap = ({ onLocationSelect, initialPosition }: LocationSearch
   );
   const [selectedName, setSelectedName] = useState('');
   const [selectedAddress, setSelectedAddress] = useState('');
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<number | null>(null);
 
   // Default center (world view)
   const defaultCenter = { lat: 20, lng: 0 };

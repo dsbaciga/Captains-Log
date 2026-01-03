@@ -10,7 +10,7 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
-import { verifyTripAccess, verifyEntityAccess } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
 const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
@@ -19,15 +19,6 @@ const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
 async function ensureUploadDirs() {
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
   await fs.mkdir(THUMBNAIL_DIR, { recursive: true });
-}
-
-// Helper function to convert Decimal fields to numbers
-function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(photo: T): T {
-  return {
-    ...photo,
-    latitude: photo.latitude ? Number(photo.latitude) : photo.latitude,
-    longitude: photo.longitude ? Number(photo.longitude) : photo.longitude,
-  };
 }
 
 class PhotoService {
@@ -89,7 +80,7 @@ class PhotoService {
       },
     });
 
-    return convertPhotoDecimals(photo);
+    return convertDecimals(photo);
   }
 
   async linkImmichPhoto(userId: number, data: LinkImmichPhotoInput) {
@@ -150,7 +141,7 @@ class PhotoService {
       },
     });
 
-    return convertPhotoDecimals(photo);
+    return convertDecimals(photo);
   }
 
   async getPhotosByTrip(
@@ -187,7 +178,7 @@ class PhotoService {
     ]);
 
     return {
-      photos: photos.map(convertPhotoDecimals),
+      photos: photos.map((photo) => convertDecimals(photo)),
       total,
       hasMore: skip + photos.length < total,
     };
@@ -275,7 +266,7 @@ class PhotoService {
     ]);
 
     return {
-      photos: photos.map(convertPhotoDecimals),
+      photos: photos.map((photo) => convertDecimals(photo)),
       total,
       hasMore: skip + photos.length < total,
     };
@@ -311,7 +302,7 @@ class PhotoService {
       throw new AppError('Access denied', 403);
     }
 
-    return convertPhotoDecimals(photo);
+    return convertDecimals(photo);
   }
 
   async updatePhoto(userId: number, photoId: number, data: UpdatePhotoInput) {
@@ -338,7 +329,7 @@ class PhotoService {
       },
     });
 
-    return convertPhotoDecimals(updatedPhoto);
+    return convertDecimals(updatedPhoto);
   }
 
   async deletePhoto(userId: number, photoId: number) {

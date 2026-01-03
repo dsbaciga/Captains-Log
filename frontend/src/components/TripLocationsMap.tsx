@@ -101,7 +101,7 @@ export default function TripLocationsMap({ locations }: TripLocationsMapProps) {
                   )}
                   {location.category && (
                     <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                      {location.category}
+                      {location.category.name}
                     </span>
                   )}
                 </div>

@@ -24,7 +24,7 @@ interface PullToRefreshState {
 // eslint-disable-next-line react-refresh/only-export-components
 export function usePullToRefresh<T extends HTMLElement>(
   options: PullToRefreshOptions
-): [RefObject<T>, PullToRefreshState] {
+): [RefObject<T | null>, PullToRefreshState] {
   const {
     onRefresh,
     threshold = 80,

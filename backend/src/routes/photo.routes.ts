@@ -24,28 +24,193 @@ const upload = multer({
 // All routes require authentication
 router.use(authenticate);
 
-// Upload photo
+/**
+ * @openapi
+ * /api/photos/upload:
+ *   post:
+ *     summary: Upload a new photo
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
+ *               tripId:
+ *                 type: integer
+ *               caption:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *               takenAt:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       201:
+ *         description: Photo uploaded
+ */
 router.post('/upload', upload.single('photo'), photoController.uploadPhoto);
 
-// Link Immich photo
+/**
+ * @openapi
+ * /api/photos/immich:
+ *   post:
+ *     summary: Link a photo from Immich
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tripId, immichAssetId]
+ *             properties:
+ *               tripId:
+ *                 type: integer
+ *               immichAssetId:
+ *                 type: string
+ *               caption:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Photo linked
+ */
 router.post('/immich', photoController.linkImmichPhoto);
 
-// Get photos by trip
+/**
+ * @openapi
+ * /api/photos/trip/{tripId}:
+ *   get:
+ *     summary: Get all photos for a specific trip
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of photos
+ */
 router.get('/trip/:tripId', photoController.getPhotosByTrip);
 
-// Get Immich asset IDs by trip (for excluding already-linked photos)
+/**
+ * @openapi
+ * /api/photos/trip/{tripId}/immich-asset-ids:
+ *   get:
+ *     summary: Get all Immich asset IDs for a specific trip
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of Immich asset IDs
+ */
 router.get('/trip/:tripId/immich-asset-ids', photoController.getImmichAssetIdsByTrip);
 
-// Get unsorted photos by trip (photos not in any album)
+/**
+ * @openapi
+ * /api/photos/trip/{tripId}/unsorted:
+ *   get:
+ *     summary: Get photos not assigned to any album in a trip
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of unsorted photos
+ */
 router.get('/trip/:tripId/unsorted', photoController.getUnsortedPhotosByTrip);
 
-// Get photo by ID
+/**
+ * @openapi
+ * /api/photos/{id}:
+ *   get:
+ *     summary: Get a photo by ID
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Photo details
+ *   put:
+ *     summary: Update photo metadata
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               caption:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *               takenAt:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Photo updated
+ *   delete:
+ *     summary: Delete a photo
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Photo deleted
+ */
 router.get('/:id', photoController.getPhotoById);
-
-// Update photo
 router.put('/:id', photoController.updatePhoto);
-
-// Delete photo
 router.delete('/:id', photoController.deletePhoto);
 
 export default router;

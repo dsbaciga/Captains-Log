@@ -2,6 +2,8 @@ import { useMemo, useState, useEffect } from "react";
 import type {
   Transportation,
   TransportationType,
+  CreateTransportationInput,
+  UpdateTransportationInput,
 } from "../types/transportation";
 import type { Location } from "../types/location";
 import transportationService from "../services/transportation.service";
@@ -96,7 +98,7 @@ export default function TransportationManager({
   }), []);
 
   // Initialize CRUD hook
-  const manager = useManagerCRUD<Transportation>(transportationServiceAdapter, tripId, {
+  const manager = useManagerCRUD<Transportation, CreateTransportationInput, UpdateTransportationInput>(transportationServiceAdapter, tripId, {
     itemName: "transportation",
     onUpdate,
   });
@@ -335,7 +337,10 @@ export default function TransportationManager({
     }
   };
 
-  const formatDistance = (kilometers: number): string => {
+  const formatDistance = (kilometers: number | null | undefined): string => {
+    if (kilometers == null || typeof kilometers !== 'number' || isNaN(kilometers)) {
+      return 'Unknown distance';
+    }
     const miles = kilometers * 0.621371;
     return `${kilometers.toFixed(1)} km (${miles.toFixed(1)} mi)`;
   };

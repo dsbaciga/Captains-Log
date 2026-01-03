@@ -2,28 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateTripInput, UpdateTripInput, GetTripQuery, TripStatus } from '../types/trip.types';
 import { companionService } from './companion.service';
-import { buildConditionalUpdateData, tripDateTransformer } from '../utils/serviceHelpers';
-
-// Helper function to convert Decimal fields in photo objects
-function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(
-  photo: T | null | undefined
-): T | null | undefined {
-  if (!photo) return photo;
-  return {
-    ...photo,
-    latitude: photo.latitude ? Number(photo.latitude) : photo.latitude,
-    longitude: photo.longitude ? Number(photo.longitude) : photo.longitude,
-  };
-}
-
-// Helper to convert photos in trip objects
-function convertTripPhotoDecimals<T extends { coverPhoto?: any; bannerPhoto?: any }>(trip: T): T {
-  return {
-    ...trip,
-    coverPhoto: convertPhotoDecimals(trip.coverPhoto),
-    bannerPhoto: convertPhotoDecimals(trip.bannerPhoto),
-  };
-}
+import { buildConditionalUpdateData, tripDateTransformer, convertDecimals } from '../utils/serviceHelpers';
 
 export class TripService {
   async createTrip(userId: number, data: CreateTripInput) {
@@ -90,9 +69,6 @@ export class TripService {
       ];
     }
 
-    // Auto-update trip statuses before fetching
-    await this.autoUpdateAllTripStatuses(userId);
-
     const [trips, total] = await Promise.all([
       prisma.trip.findMany({
         where,
@@ -112,7 +88,7 @@ export class TripService {
     ]);
 
     return {
-      trips: trips.map(convertTripPhotoDecimals),
+      trips: trips.map((trip) => convertDecimals(trip)),
       total,
       page,
       limit,
@@ -121,13 +97,12 @@ export class TripService {
   }
 
   /**
-   * Auto-update status for all user's trips that have dates
+   * Auto-update status for all trips in the system that have dates
    * Does not update trips that are Completed or Cancelled
    */
-  async autoUpdateAllTripStatuses(userId: number) {
+  async autoUpdateGlobalTripStatuses() {
     const trips = await prisma.trip.findMany({
       where: {
-        userId,
         startDate: { not: null },
         endDate: { not: null },
         status: {
@@ -136,7 +111,6 @@ export class TripService {
       },
       select: {
         id: true,
-        userId: true,
         status: true,
         startDate: true,
         endDate: true,
@@ -183,7 +157,9 @@ export class TripService {
 
     if (updates.length > 0) {
       await Promise.all(updates);
+      return updates.length;
     }
+    return 0;
   }
 
   async getTripById(userId: number, tripId: number) {
@@ -220,98 +196,7 @@ export class TripService {
       throw new AppError('Trip not found', 404);
     }
 
-    // Auto-update status based on dates
-    await this.autoUpdateTripStatus(trip.id, trip.userId);
-
-    // Fetch updated trip
-    const updatedTrip = await prisma.trip.findUnique({
-      where: { id: tripId },
-      include: {
-        coverPhoto: true,
-        bannerPhoto: true,
-        tagAssignments: {
-          include: {
-            tag: true,
-          },
-        },
-        companionAssignments: {
-          include: {
-            companion: true,
-          },
-        },
-      },
-    });
-
-    return convertTripPhotoDecimals(updatedTrip || trip);
-  }
-
-  /**
-   * Automatically update trip status based on start and end dates
-   * - If today >= startDate and today <= endDate, set to "In Progress"
-   * - If today > endDate, set to "Completed"
-   * - Only updates if trip has both startDate and endDate
-   * - Does not override manually set Completed or Cancelled status
-   */
-  async autoUpdateTripStatus(tripId: number, ownerId: number) {
-    const trip = await prisma.trip.findUnique({
-      where: { id: tripId },
-      select: {
-        id: true,
-        userId: true,
-        status: true,
-        startDate: true,
-        endDate: true,
-      },
-    });
-
-    if (!trip || trip.userId !== ownerId) {
-      return; // Trip not found or not owned by user
-    }
-
-    // Don't auto-update Completed or Cancelled trips
-    if (trip.status === TripStatus.COMPLETED || trip.status === TripStatus.CANCELLED) {
-      return;
-    }
-
-    // Need both dates to auto-update
-    if (!trip.startDate || !trip.endDate) {
-      return;
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
-
-    const startDate = new Date(trip.startDate);
-    startDate.setHours(0, 0, 0, 0);
-
-    const endDate = new Date(trip.endDate);
-    endDate.setHours(0, 0, 0, 0);
-
-    let newStatus: string | null = null;
-
-    // If today is after end date, mark as Completed
-    if (today > endDate) {
-      if (trip.status !== TripStatus.COMPLETED) {
-        newStatus = TripStatus.COMPLETED;
-      }
-    }
-    // If today is within trip dates (inclusive), mark as In Progress
-    else if (today >= startDate && today <= endDate) {
-      if (trip.status !== TripStatus.IN_PROGRESS) {
-        newStatus = TripStatus.IN_PROGRESS;
-      }
-    }
-
-    // Update if status changed
-    if (newStatus) {
-      await prisma.trip.update({
-        where: { id: tripId },
-        data: {
-          status: newStatus,
-          addToPlacesVisited: newStatus === TripStatus.COMPLETED ? true : undefined,
-        },
-      });
-    }
+    return convertDecimals(trip);
   }
 
   async updateTrip(userId: number, tripId: number, data: UpdateTripInput) {
@@ -394,7 +279,7 @@ export class TripService {
       },
     });
 
-    return convertTripPhotoDecimals(updatedTrip);
+    return convertDecimals(updatedTrip);
   }
 }
 

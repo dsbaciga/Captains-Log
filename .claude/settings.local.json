@@ -44,7 +44,8 @@
       "Bash(npm run lint:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File ./build.truenas.ps1 -Version v1.12.9 -Registry ghcr.io/dsbaciga)",
       "Bash(powershell -ExecutionPolicy Bypass -File ./build.truenas.ps1:*)",
-      "Bash(docker version:*)"
+      "Bash(docker version:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput } from '../types/location.types';
-import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals } from '../utils/serviceHelpers';
 import { photoAlbumsInclude } from '../utils/prismaIncludes';
 
 export class LocationService {
@@ -26,12 +26,7 @@ export class LocationService {
       },
     });
 
-    // Convert Decimal to number for latitude and longitude
-    return {
-      ...location,
-      latitude: location.latitude ? Number(location.latitude) : null,
-      longitude: location.longitude ? Number(location.longitude) : null,
-    };
+    return convertDecimals(location);
   }
 
   async getLocationsByTrip(userId: number, tripId: number) {
@@ -78,12 +73,7 @@ export class LocationService {
       orderBy: { createdAt: 'asc' },
     });
 
-    // Convert Decimal to number for latitude and longitude
-    return locations.map(location => ({
-      ...location,
-      latitude: location.latitude ? Number(location.latitude) : null,
-      longitude: location.longitude ? Number(location.longitude) : null,
-    }));
+    return convertDecimals(locations);
   }
 
   async getAllVisitedLocations(userId: number) {
@@ -113,12 +103,7 @@ export class LocationService {
       orderBy: { visitDatetime: 'desc' },
     });
 
-    // Convert Decimal to number for latitude and longitude
-    return locations.map(location => ({
-      ...location,
-      latitude: location.latitude ? Number(location.latitude) : null,
-      longitude: location.longitude ? Number(location.longitude) : null,
-    }));
+    return convertDecimals(locations);
   }
 
   async getLocationById(userId: number, locationId: number) {
@@ -162,7 +147,7 @@ export class LocationService {
       throw new AppError('You do not have permission to view this location', 403);
     }
 
-    return location;
+    return convertDecimals(location);
   }
 
   async updateLocation(userId: number, locationId: number, data: UpdateLocationInput) {
@@ -190,12 +175,7 @@ export class LocationService {
       },
     });
 
-    // Convert Decimal to number for latitude and longitude
-    return {
-      ...updatedLocation,
-      latitude: updatedLocation.latitude ? Number(updatedLocation.latitude) : null,
-      longitude: updatedLocation.longitude ? Number(updatedLocation.longitude) : null,
-    };
+    return convertDecimals(updatedLocation);
   }
 
   async deleteLocation(userId: number, locationId: number) {

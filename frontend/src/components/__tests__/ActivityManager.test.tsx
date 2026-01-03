@@ -28,7 +28,7 @@ describe('ActivityManager', () => {
 
     render(
       <BrowserRouter>
-        <ActivityManager tripId={tripId} />
+        <ActivityManager tripId={tripId} locations={[]} />
       </BrowserRouter>
     );
 
@@ -49,7 +49,7 @@ describe('ActivityManager', () => {
 
     const { rerender } = render(
       <BrowserRouter>
-        <ActivityManager tripId={tripId} />
+        <ActivityManager tripId={tripId} locations={[]} />
       </BrowserRouter>
     );
 
@@ -66,7 +66,7 @@ describe('ActivityManager', () => {
 
     rerender(
       <BrowserRouter>
-        <ActivityManager tripId={tripId} />
+        <ActivityManager tripId={tripId} locations={[]} />
       </BrowserRouter>
     );
 

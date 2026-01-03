@@ -20,7 +20,6 @@ interface PhotoUploadProps {
 
 export default function PhotoUpload({
   tripId,
-  locations,
   onPhotoUploaded,
   tripStartDate,
   tripEndDate,

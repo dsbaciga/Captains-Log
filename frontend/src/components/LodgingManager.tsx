@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import type { Lodging, LodgingType } from "../types/lodging";
+import type { Lodging, LodgingType, CreateLodgingInput, UpdateLodgingInput } from "../types/lodging";
 import type { Location } from "../types/location";
 import lodgingService from "../services/lodging.service";
 import toast from "react-hot-toast";
@@ -87,7 +87,7 @@ export default function LodgingManager({
   }), []);
 
   // Initialize CRUD hook
-  const manager = useManagerCRUD<Lodging>(lodgingServiceAdapter, tripId, {
+  const manager = useManagerCRUD<Lodging, CreateLodgingInput, UpdateLodgingInput>(lodgingServiceAdapter, tripId, {
     itemName: "lodging",
     onUpdate,
   });

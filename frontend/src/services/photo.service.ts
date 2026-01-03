@@ -143,4 +143,5 @@ class PhotoService {
   }
 }
 
-export default new PhotoService();
+export const photoService = new PhotoService();
+export default photoService;
