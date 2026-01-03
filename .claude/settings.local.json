@@ -45,7 +45,8 @@
       "Bash(powershell -ExecutionPolicy Bypass -File ./build.truenas.ps1 -Version v1.12.9 -Registry ghcr.io/dsbaciga)",
       "Bash(powershell -ExecutionPolicy Bypass -File ./build.truenas.ps1:*)",
       "Bash(docker version:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File ./release.ps1 -Version patch -NoConfirm)"
     ],
     "deny": [],
     "ask": []
