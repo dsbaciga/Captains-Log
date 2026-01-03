@@ -67,7 +67,7 @@ export default function Modal({
   icon,
   children,
   footer,
-  maxWidth = '2xl',
+  maxWidth = '4xl',
   showCloseButton = true,
   className = '',
   closeOnBackdropClick = true,

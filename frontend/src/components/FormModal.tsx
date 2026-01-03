@@ -8,7 +8,7 @@ interface FormModalProps {
   icon?: string;
   children: ReactNode;
   footer?: ReactNode;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl";
 }
 
 /**
@@ -22,7 +22,7 @@ export default function FormModal({
   icon,
   children,
   footer,
-  maxWidth = "2xl",
+  maxWidth = "4xl",
 }: FormModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -32,6 +32,8 @@ export default function FormModal({
     lg: "max-w-lg",
     xl: "max-w-xl",
     "2xl": "max-w-2xl",
+    "4xl": "max-w-4xl",
+    "6xl": "max-w-6xl",
   };
 
   // Handle keyboard events
