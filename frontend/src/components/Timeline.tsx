@@ -322,6 +322,30 @@ const Timeline = ({
       // Add transportation
       transportation.forEach((trans) => {
         if (trans.departureTime) {
+          // DEBUG: Log transportation data to see what we're getting
+          console.log('[Timeline Debug] Transportation entry:', {
+            id: trans.id,
+            type: trans.type,
+            fromLocationId: trans.fromLocationId,
+            fromLocation: trans.fromLocation,
+            fromLocationName: trans.fromLocationName,
+            toLocationId: trans.toLocationId,
+            toLocation: trans.toLocation,
+            toLocationName: trans.toLocationName,
+          });
+
+          // Helper to get location display name with fallback
+          const getLocationDisplay = (
+            location: typeof trans.fromLocation,
+            locationId: number | null,
+            locationName: string | null
+          ): string => {
+            if (location?.name) return location.name;
+            if (locationName) return locationName;
+            if (locationId) return `Location #${locationId} (deleted?)`;
+            return "Unknown";
+          };
+
           // Calculate duration from times if not provided
           let durationMinutes = trans.durationMinutes || undefined;
           if (!durationMinutes && trans.departureTime && trans.arrivalTime) {
@@ -343,13 +367,15 @@ const Timeline = ({
               trans.type.charAt(0).toUpperCase() + trans.type.slice(1)
             }`,
             subtitle: trans.carrier || undefined,
-            description: `${
-              trans.fromLocation?.name ||
-              trans.fromLocationName ||
-              "Unknown"
-            } → ${
-              trans.toLocation?.name || trans.toLocationName || "Unknown"
-            }`,
+            description: `${getLocationDisplay(
+              trans.fromLocation,
+              trans.fromLocationId,
+              trans.fromLocationName
+            )} → ${getLocationDisplay(
+              trans.toLocation,
+              trans.toLocationId,
+              trans.toLocationName
+            )}`,
             cost: trans.cost || undefined,
             currency: trans.currency || undefined,
             startTimezone: trans.startTimezone || undefined,

@@ -806,11 +806,11 @@ export default function TransportationManager({
                       <span>
                         {transportation.fromLocation?.name ||
                           transportation.fromLocationName ||
-                          "Unknown"}{" "}
+                          (transportation.fromLocationId ? `Location #${transportation.fromLocationId} (deleted?)` : "Unknown")}{" "}
                         →{" "}
                         {transportation.toLocation?.name ||
                           transportation.toLocationName ||
-                          "Unknown"}
+                          (transportation.toLocationId ? `Location #${transportation.toLocationId} (deleted?)` : "Unknown")}
                       </span>
                     </div>
 
