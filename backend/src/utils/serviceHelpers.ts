@@ -298,6 +298,10 @@ export function convertDecimals<T>(obj: T): T {
     return Number(obj) as any;
   }
 
+  if (obj instanceof Date) {
+    return obj as any;
+  }
+
   if (Array.isArray(obj)) {
     return obj.map((item) => convertDecimals(item)) as any;
   }

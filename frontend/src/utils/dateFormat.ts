@@ -20,7 +20,7 @@ export type DateFormatStyle = 'short' | 'medium' | 'long' | 'full';
  * formatDate(null) // "Not set"
  */
 export function formatDate(
-  date: string | null | undefined,
+  date: string | Date | null | undefined,
   style: DateFormatStyle = 'medium',
   fallback: string = 'Not set'
 ): string {
@@ -29,7 +29,17 @@ export function formatDate(
   try {
     // Parse date string directly to avoid timezone shifts
     // Date strings from backend are typically in YYYY-MM-DD format
-    const dateStr = date.split('T')[0];
+    
+    let dateStr = '';
+    if (typeof date === 'string') {
+      dateStr = date.split('T')[0];
+    } else if (date instanceof Date) {
+      dateStr = (date as Date).toISOString().split('T')[0];
+    } else {
+      console.error(`Invalid date type: ${typeof date}`, date);
+      return fallback;
+    }
+
     const [year, month, day] = dateStr.split('-').map(Number);
 
     // Validate that we got valid numbers
@@ -73,8 +83,8 @@ export function formatDate(
  * formatDateRange('2024-03-15', null) // "Mar 15, 2024 - TBD"
  */
 export function formatDateRange(
-  startDate: string | null | undefined,
-  endDate: string | null | undefined,
+  startDate: string | Date | null | undefined,
+  endDate: string | Date | null | undefined,
   style: DateFormatStyle = 'medium'
 ): string {
   const start = formatDate(startDate, style, 'TBD');
@@ -86,8 +96,11 @@ export function formatDateRange(
 
   // If same year, omit year from start date for cleaner display
   if (startDate && endDate) {
-    const startYear = startDate.split('-')[0];
-    const endYear = endDate.split('-')[0];
+    let startStr = typeof startDate === 'string' ? startDate : (startDate as any).toISOString();
+    let endStr = typeof endDate === 'string' ? endDate : (endDate as any).toISOString();
+    
+    const startYear = startStr.split('-')[0];
+    const endYear = endStr.split('-')[0];
     if (startYear === endYear && style === 'medium') {
       const startNoYear = formatDate(startDate, 'medium').replace(`, ${startYear}`, '');
       return `${startNoYear} - ${end}`;
@@ -103,11 +116,19 @@ export function formatDateRange(
  * @param date - Date string to compare
  * @returns Relative time string
  */
-export function getRelativeTime(date: string | null | undefined): string {
+export function getRelativeTime(date: string | Date | null | undefined): string {
   if (!date) return '';
 
   try {
-    const dateStr = date.split('T')[0];
+    let dateStr = '';
+    if (typeof date === 'string') {
+      dateStr = date.split('T')[0];
+    } else if (date instanceof Date) {
+      dateStr = (date as Date).toISOString().split('T')[0];
+    } else {
+      return formatDate(date, 'medium');
+    }
+
     const [year, month, day] = dateStr.split('-').map(Number);
 
     // Validate date components

@@ -157,7 +157,10 @@ export default function TripsPage() {
         result = result.filter(trip => {
           if (!trip.startDate) return false;
           try {
-            const tripDate = trip.startDate.split('T')[0];
+            const dateValue = trip.startDate;
+            const tripDate = typeof dateValue === 'string' 
+              ? dateValue.split('T')[0] 
+              : (dateValue as any).toISOString().split('T')[0];
             return tripDate >= startDateFrom;
           } catch {
             return false;
@@ -168,7 +171,10 @@ export default function TripsPage() {
         result = result.filter(trip => {
           if (!trip.startDate) return false;
           try {
-            const tripDate = trip.startDate.split('T')[0];
+            const dateValue = trip.startDate;
+            const tripDate = typeof dateValue === 'string' 
+              ? dateValue.split('T')[0] 
+              : (dateValue as any).toISOString().split('T')[0];
             return tripDate <= startDateTo;
           } catch {
             return false;

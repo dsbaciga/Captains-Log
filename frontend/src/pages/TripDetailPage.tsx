@@ -590,11 +590,11 @@ export default function TripDetailPage() {
     }
   };
 
-  const formatDate = (date: string | null) => {
+  const formatDate = (date: string | Date | null) => {
     if (!date) return "Not set";
     // Parse date string directly to avoid timezone shifts
     // Date strings from backend are in YYYY-MM-DD format
-    const dateStr = date.split("T")[0]; // Get just the date part
+    const dateStr = typeof date === 'string' ? date.split("T")[0] : date.toISOString().split("T")[0]; // Get just the date part
     const [year, month, day] = dateStr.split("-").map(Number);
     const dateObj = new Date(year, month - 1, day); // month is 0-indexed
     return dateObj.toLocaleDateString("en-US", {

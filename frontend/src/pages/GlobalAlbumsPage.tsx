@@ -173,9 +173,9 @@ export default function GlobalAlbumsPage() {
     };
   }, [albums]);
 
-  const formatDate = (date: string | null) => {
+  const formatDate = (date: string | Date | null) => {
     if (!date) return "";
-    const dateStr = date.split("T")[0];
+    const dateStr = typeof date === 'string' ? date.split("T")[0] : date.toISOString().split("T")[0];
     const [year, month, day] = dateStr.split("-").map(Number);
     const dateObj = new Date(year, month - 1, day);
     return dateObj.toLocaleDateString("en-US", {

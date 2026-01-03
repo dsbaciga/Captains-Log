@@ -32,8 +32,9 @@ export default function TripFormPage() {
       const trip = await tripService.getTripById(tripId);
 
       // Extract just the date part (YYYY-MM-DD) from datetime strings
-      const extractDate = (dateStr: string | null) => {
-        if (!dateStr) return '';
+      const extractDate = (dateVal: string | Date | null) => {
+        if (!dateVal) return '';
+        const dateStr = typeof dateVal === 'string' ? dateVal : dateVal.toISOString();
         return dateStr.split('T')[0]; // Get just YYYY-MM-DD part
       };
 
