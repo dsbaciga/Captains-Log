@@ -26,20 +26,38 @@ export function formatDate(
 ): string {
   if (!date) return fallback;
 
-  // Parse date string directly to avoid timezone shifts
-  // Date strings from backend are typically in YYYY-MM-DD format
-  const dateStr = date.split('T')[0];
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const dateObj = new Date(year, month - 1, day); // month is 0-indexed
+  try {
+    // Parse date string directly to avoid timezone shifts
+    // Date strings from backend are typically in YYYY-MM-DD format
+    const dateStr = date.split('T')[0];
+    const [year, month, day] = dateStr.split('-').map(Number);
 
-  const options: Record<DateFormatStyle, Intl.DateTimeFormatOptions> = {
-    short: { year: '2-digit', month: 'numeric', day: 'numeric' },
-    medium: { year: 'numeric', month: 'short', day: 'numeric' },
-    long: { year: 'numeric', month: 'long', day: 'numeric' },
-    full: { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' },
-  };
+    // Validate that we got valid numbers
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      console.error(`Invalid date format: ${date}`);
+      return fallback;
+    }
 
-  return dateObj.toLocaleDateString('en-US', options[style]);
+    const dateObj = new Date(year, month - 1, day); // month is 0-indexed
+
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      console.error(`Invalid date: ${date}`);
+      return fallback;
+    }
+
+    const options: Record<DateFormatStyle, Intl.DateTimeFormatOptions> = {
+      short: { year: '2-digit', month: 'numeric', day: 'numeric' },
+      medium: { year: 'numeric', month: 'short', day: 'numeric' },
+      long: { year: 'numeric', month: 'long', day: 'numeric' },
+      full: { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' },
+    };
+
+    return dateObj.toLocaleDateString('en-US', options[style]);
+  } catch (error) {
+    console.error(`Error formatting date: ${date}`, error);
+    return fallback;
+  }
 }
 
 /**
@@ -88,24 +106,41 @@ export function formatDateRange(
 export function getRelativeTime(date: string | null | undefined): string {
   if (!date) return '';
 
-  const dateStr = date.split('T')[0];
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const dateObj = new Date(year, month - 1, day);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  try {
+    const dateStr = date.split('T')[0];
+    const [year, month, day] = dateStr.split('-').map(Number);
 
-  const diffTime = dateObj.getTime() - now.getTime();
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    // Validate date components
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      return formatDate(date, 'medium');
+    }
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  if (diffDays === -1) return 'Yesterday';
-  if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
-  if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
-  if (diffDays > 7 && diffDays <= 30) return `In ${Math.ceil(diffDays / 7)} weeks`;
-  if (diffDays < -7 && diffDays >= -30) return `${Math.ceil(Math.abs(diffDays) / 7)} weeks ago`;
+    const dateObj = new Date(year, month - 1, day);
 
-  return formatDate(date, 'medium');
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return formatDate(date, 'medium');
+    }
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const diffTime = dateObj.getTime() - now.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
+    if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
+    if (diffDays > 7 && diffDays <= 30) return `In ${Math.ceil(diffDays / 7)} weeks`;
+    if (diffDays < -7 && diffDays >= -30) return `${Math.ceil(Math.abs(diffDays) / 7)} weeks ago`;
+
+    return formatDate(date, 'medium');
+  } catch (error) {
+    console.error(`Error calculating relative time: ${date}`, error);
+    return formatDate(date, 'medium');
+  }
 }
 
 /**

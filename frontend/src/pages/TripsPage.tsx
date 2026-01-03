@@ -111,7 +111,8 @@ export default function TripsPage() {
       const params = statusFilter ? { status: statusFilter } : {};
       const response = await tripService.getTrips(params);
       setTrips(response.trips);
-    } catch {
+    } catch (error) {
+      console.error('Error loading trips:', error);
       toast.error('Failed to load trips');
     } finally {
       setLoading(false);
@@ -139,67 +140,85 @@ export default function TripsPage() {
 
   // Filter and sort trips
   const filteredTrips = useMemo(() => {
-    let result = [...trips];
+    try {
+      let result = [...trips];
 
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(trip =>
-        trip.title.toLowerCase().includes(query) ||
-        (trip.description && trip.description.toLowerCase().includes(query))
-      );
-    }
-
-    // Date range filter
-    if (startDateFrom) {
-      result = result.filter(trip => {
-        if (!trip.startDate) return false;
-        const tripDate = trip.startDate.split('T')[0];
-        return tripDate >= startDateFrom;
-      });
-    }
-    if (startDateTo) {
-      result = result.filter(trip => {
-        if (!trip.startDate) return false;
-        const tripDate = trip.startDate.split('T')[0];
-        return tripDate <= startDateTo;
-      });
-    }
-
-    // Tag filter
-    if (selectedTags.length > 0) {
-      result = result.filter(trip => {
-        if (!trip.tagAssignments || trip.tagAssignments.length === 0) return false;
-        const tripTagIds = trip.tagAssignments.map(ta => ta.tag.id);
-        return selectedTags.some(tagId => tripTagIds.includes(tagId));
-      });
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      switch (sortOption) {
-        case 'startDate-desc':
-          if (!a.startDate && !b.startDate) return 0;
-          if (!a.startDate) return 1;
-          if (!b.startDate) return -1;
-          return String(b.startDate).localeCompare(String(a.startDate));
-        case 'startDate-asc':
-          if (!a.startDate && !b.startDate) return 0;
-          if (!a.startDate) return 1;
-          if (!b.startDate) return -1;
-          return String(a.startDate).localeCompare(String(b.startDate));
-        case 'title-asc':
-          return a.title.localeCompare(b.title);
-        case 'title-desc':
-          return b.title.localeCompare(a.title);
-        case 'status':
-          return a.status.localeCompare(b.status);
-        default:
-          return 0;
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        result = result.filter(trip =>
+          trip.title?.toLowerCase().includes(query) ||
+          (trip.description && trip.description.toLowerCase().includes(query))
+        );
       }
-    });
 
-    return result;
+      // Date range filter
+      if (startDateFrom) {
+        result = result.filter(trip => {
+          if (!trip.startDate) return false;
+          try {
+            const tripDate = trip.startDate.split('T')[0];
+            return tripDate >= startDateFrom;
+          } catch {
+            return false;
+          }
+        });
+      }
+      if (startDateTo) {
+        result = result.filter(trip => {
+          if (!trip.startDate) return false;
+          try {
+            const tripDate = trip.startDate.split('T')[0];
+            return tripDate <= startDateTo;
+          } catch {
+            return false;
+          }
+        });
+      }
+
+      // Tag filter
+      if (selectedTags.length > 0) {
+        result = result.filter(trip => {
+          if (!trip.tagAssignments || trip.tagAssignments.length === 0) return false;
+          const tripTagIds = trip.tagAssignments.map(ta => ta.tag.id);
+          return selectedTags.some(tagId => tripTagIds.includes(tagId));
+        });
+      }
+
+      // Sort
+      result.sort((a, b) => {
+        try {
+          switch (sortOption) {
+            case 'startDate-desc':
+              if (!a.startDate && !b.startDate) return 0;
+              if (!a.startDate) return 1;
+              if (!b.startDate) return -1;
+              return String(b.startDate).localeCompare(String(a.startDate));
+            case 'startDate-asc':
+              if (!a.startDate && !b.startDate) return 0;
+              if (!a.startDate) return 1;
+              if (!b.startDate) return -1;
+              return String(a.startDate).localeCompare(String(b.startDate));
+            case 'title-asc':
+              return (a.title || '').localeCompare(b.title || '');
+            case 'title-desc':
+              return (b.title || '').localeCompare(a.title || '');
+            case 'status':
+              return (a.status || '').localeCompare(b.status || '');
+            default:
+              return 0;
+          }
+        } catch (error) {
+          console.error('Error sorting trips:', error);
+          return 0;
+        }
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error filtering trips:', error);
+      return trips;
+    }
   }, [trips, searchQuery, startDateFrom, startDateTo, selectedTags, sortOption]);
 
   const toggleTagFilter = (tagId: number) => {
