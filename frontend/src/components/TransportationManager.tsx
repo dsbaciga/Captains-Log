@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type {
   Transportation,
   TransportationType,
@@ -17,6 +17,7 @@ import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import FlightRouteMap from "./FlightRouteMap";
 import TransportationStats from "./TransportationStats";
+import LocationQuickAdd from "./LocationQuickAdd";
 
 interface TransportationManagerProps {
   tripId: number;
@@ -105,6 +106,15 @@ export default function TransportationManager({
   const { values, handleChange, reset } =
     useFormFields<TransportationFormFields>(getInitialFormState);
 
+  const [showFromLocationQuickAdd, setShowFromLocationQuickAdd] = useState(false);
+  const [showToLocationQuickAdd, setShowToLocationQuickAdd] = useState(false);
+  const [localLocations, setLocalLocations] = useState<Location[]>(locations);
+
+  // Sync localLocations with locations prop
+  useEffect(() => {
+    setLocalLocations(locations);
+  }, [locations]);
+
   // Filter transportation based on active tab
   const filteredItems = useMemo(() => {
     if (activeTab === "all") return manager.items;
@@ -127,6 +137,48 @@ export default function TransportationManager({
   const resetForm = () => {
     reset();
     manager.setEditingId(null);
+  };
+
+  const handleFromLocationCreated = (locationId: number, locationName: string) => {
+    // Add the new location to local state
+    const newLocation: Location = {
+      id: locationId,
+      name: locationName,
+      tripId,
+      address: null,
+      latitude: null,
+      longitude: null,
+      categoryId: null,
+      visitDatetime: null,
+      visitDurationMinutes: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalLocations([...localLocations, newLocation]);
+    handleChange("fromLocationId", locationId);
+    setShowFromLocationQuickAdd(false);
+  };
+
+  const handleToLocationCreated = (locationId: number, locationName: string) => {
+    // Add the new location to local state
+    const newLocation: Location = {
+      id: locationId,
+      name: locationName,
+      tripId,
+      address: null,
+      latitude: null,
+      longitude: null,
+      categoryId: null,
+      visitDatetime: null,
+      visitDurationMinutes: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalLocations([...localLocations, newLocation]);
+    handleChange("toLocationId", locationId);
+    setShowToLocationQuickAdd(false);
   };
 
   const handleEdit = (transportation: Transportation) => {
@@ -455,7 +507,7 @@ export default function TransportationManager({
                   htmlFor="transportation-from-location"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  From Location
+                  From Location (e.g., Airport)
                 </label>
                 <select
                   id="transportation-from-location"
@@ -469,12 +521,28 @@ export default function TransportationManager({
                   className="input"
                 >
                   <option value="">-- Select Location --</option>
-                  {locations.map((loc) => (
+                  {localLocations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {loc.name}
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => setShowFromLocationQuickAdd(!showFromLocationQuickAdd)}
+                  className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {showFromLocationQuickAdd ? "Cancel" : "🔍 Search for Airport/Location"}
+                </button>
+                {showFromLocationQuickAdd && (
+                  <div className="mt-2">
+                    <LocationQuickAdd
+                      tripId={tripId}
+                      onLocationCreated={handleFromLocationCreated}
+                      onCancel={() => setShowFromLocationQuickAdd(false)}
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -482,7 +550,7 @@ export default function TransportationManager({
                   htmlFor="transportation-from-custom"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Or Custom From Location
+                  Or Custom Text (not recommended)
                 </label>
                 <input
                   type="text"
@@ -492,8 +560,11 @@ export default function TransportationManager({
                     handleChange("fromLocationName", e.target.value)
                   }
                   className="input"
-                  placeholder="e.g., JFK Airport"
+                  placeholder="e.g., JFK Airport (no distance tracking)"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  ⚠️ Custom text won't calculate distance. Use search instead.
+                </p>
               </div>
             </div>
 
@@ -504,7 +575,7 @@ export default function TransportationManager({
                   htmlFor="transportation-to-location"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  To Location
+                  To Location (e.g., Airport)
                 </label>
                 <select
                   id="transportation-to-location"
@@ -518,12 +589,28 @@ export default function TransportationManager({
                   className="input"
                 >
                   <option value="">-- Select Location --</option>
-                  {locations.map((loc) => (
+                  {localLocations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {loc.name}
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => setShowToLocationQuickAdd(!showToLocationQuickAdd)}
+                  className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {showToLocationQuickAdd ? "Cancel" : "🔍 Search for Airport/Location"}
+                </button>
+                {showToLocationQuickAdd && (
+                  <div className="mt-2">
+                    <LocationQuickAdd
+                      tripId={tripId}
+                      onLocationCreated={handleToLocationCreated}
+                      onCancel={() => setShowToLocationQuickAdd(false)}
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -531,7 +618,7 @@ export default function TransportationManager({
                   htmlFor="transportation-to-custom"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Or Custom To Location
+                  Or Custom Text (not recommended)
                 </label>
                 <input
                   type="text"
@@ -541,8 +628,11 @@ export default function TransportationManager({
                     handleChange("toLocationName", e.target.value)
                   }
                   className="input"
-                  placeholder="e.g., LAX Airport"
+                  placeholder="e.g., LAX Airport (no distance tracking)"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  ⚠️ Custom text won't calculate distance. Use search instead.
+                </p>
               </div>
             </div>
 
