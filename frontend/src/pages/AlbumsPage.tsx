@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { PhotoAlbum, Photo, AlbumWithPhotos } from '../types/photo';
 import photoService from '../services/photo.service';
-import { getAssetBaseUrl } from '../lib/config';
+import { getAssetBaseUrl, getFullAssetUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import toast from 'react-hot-toast';
 
@@ -24,14 +24,78 @@ export default function AlbumsPage() {
   const [showCoverSelector, setShowCoverSelector] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState<AlbumWithPhotos | null>(null);
   const [albumPhotos, setAlbumPhotos] = useState<Photo[]>([]);
+  const [thumbnailCache, setThumbnailCache] = useState<{ [key: number]: string }>({});
+  const blobUrlsRef = useRef<string[]>([]);
 
   const getCoverPhotoUrl = (album: PhotoAlbum): string | null => {
     if (!album.coverPhoto) return null;
+    
+    // For Immich photos, use blob URL from cache if available
+    if (album.coverPhoto.source === "immich") {
+      return thumbnailCache[album.coverPhoto.id] || null;
+    }
+
     const path = album.coverPhoto.thumbnailPath || album.coverPhoto.localPath;
     if (!path || path === '') return null;
-    const baseUrl = getAssetBaseUrl();
-    return `${baseUrl}${path}`;
+    return getFullAssetUrl(path);
   };
+
+  // Load thumbnails for album covers
+  useEffect(() => {
+    const loadCoverThumbnails = async () => {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const newUrls: { [key: number]: string } = {};
+      const newBlobUrls: string[] = [];
+
+      for (const album of albums) {
+        const photo = album.coverPhoto;
+        if (!photo || photo.source !== "immich" || !photo.thumbnailPath || thumbnailCache[photo.id]) {
+          continue;
+        }
+
+        try {
+          const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+          if (!fullUrl) continue;
+
+          const response = await fetch(fullUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            newUrls[photo.id] = blobUrl;
+            newBlobUrls.push(blobUrl);
+          }
+        } catch (error) {
+          console.error(`Failed to load cover for album ${album.id}:`, error);
+        }
+      }
+
+      if (Object.keys(newUrls).length > 0) {
+        blobUrlsRef.current = [...blobUrlsRef.current, ...newBlobUrls];
+        setThumbnailCache(prev => ({ ...prev, ...newUrls }));
+      }
+    };
+
+    if (albums.length > 0) {
+      loadCoverThumbnails();
+    }
+
+    return () => {
+      // Cleanup is handled by separate effect to avoid revoking active URLs
+    };
+  }, [albums]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     loadAlbums();
@@ -96,6 +160,42 @@ export default function AlbumsPage() {
       setSelectedAlbum(fullAlbum);
       setAlbumPhotos(fullAlbum.photos.map(p => p.photo));
       setShowCoverSelector(true);
+
+      // Load thumbnails for selector
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        const newUrls: { [key: number]: string } = {};
+        const newBlobUrls: string[] = [];
+
+        for (const { photo } of fullAlbum.photos) {
+          if (photo.source !== "immich" || !photo.thumbnailPath || thumbnailCache[photo.id]) {
+            continue;
+          }
+
+          try {
+            const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+            if (!fullUrl) continue;
+
+            const response = await fetch(fullUrl, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+              const blob = await response.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              newUrls[photo.id] = blobUrl;
+              newBlobUrls.push(blobUrl);
+            }
+          } catch (err) {
+            console.error(`Failed to load selection thumbnail for photo ${photo.id}:`, err);
+          }
+        }
+
+        if (Object.keys(newUrls).length > 0) {
+          blobUrlsRef.current = [...blobUrlsRef.current, ...newBlobUrls];
+          setThumbnailCache(prev => ({ ...prev, ...newUrls }));
+        }
+      }
     } catch (err) {
       console.error('Failed to load album photos:', err);
       toast.error('Failed to load album photos');
@@ -309,10 +409,13 @@ export default function AlbumsPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {albumPhotos.map((photo) => {
                     const isCurrentCover = selectedAlbum.coverPhotoId === photo.id;
-                    const photoUrl =
-                      photo.source === "immich"
-                        ? `${getAssetBaseUrl()}/immich/thumbnail/${photo.immichAssetId}`
-                        : `${getAssetBaseUrl()}/${photo.thumbnailPath}`;
+                    let photoUrl: string | null = null;
+                    
+                    if (photo.source === "immich") {
+                      photoUrl = thumbnailCache[photo.id] || null;
+                    } else {
+                      photoUrl = getFullAssetUrl(photo.thumbnailPath);
+                    }
 
                     return (
                       <button
@@ -325,11 +428,17 @@ export default function AlbumsPage() {
                             : "border-transparent hover:border-blue-300 dark:hover:border-blue-600"
                         }`}
                       >
-                        <img
-                          src={photoUrl}
-                          alt={photo.caption || "Photo"}
-                          className="w-full h-full object-cover"
-                        />
+                        {photoUrl ? (
+                          <img
+                            src={photoUrl}
+                            alt={photo.caption || "Photo"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <LoadingSpinner size="sm" />
+                          </div>
+                        )}
                         {isCurrentCover && (
                           <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center">
                             <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">

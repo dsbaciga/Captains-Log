@@ -35,7 +35,7 @@ import JournalManager from "../components/JournalManager";
 import CompanionManager from "../components/CompanionManager";
 import LocationSearchMap from "../components/LocationSearchMap";
 import TripLocationsMap from "../components/TripLocationsMap";
-import { getAssetBaseUrl } from "../lib/config";
+import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
 import TagsModal from "../components/TagsModal";
 import AlbumsSidebar from "../components/AlbumsSidebar";
 import AlbumModal from "../components/AlbumModal";
@@ -166,7 +166,9 @@ export default function TripDetailPage() {
   );
 
   // State for existing Immich asset IDs to exclude from Immich browser
-  const [existingImmichAssetIds, setExistingImmichAssetIds] = useState<Set<string>>(new Set());
+  const [existingImmichAssetIds, setExistingImmichAssetIds] = useState<
+    Set<string>
+  >(new Set());
 
   // Fetch all existing Immich asset IDs for this trip
   const loadImmichAssetIds = async (tripId: number) => {
@@ -255,7 +257,7 @@ export default function TripDetailPage() {
 
       // If it's a local photo, use direct URL
       if (photo.source === "local" && photo.localPath) {
-        setCoverPhotoUrl(`${baseUrl}${photo.localPath}`);
+        setCoverPhotoUrl(getFullAssetUrl(photo.localPath));
         return;
       }
 
@@ -265,7 +267,10 @@ export default function TripDetailPage() {
           const token = localStorage.getItem("accessToken");
           if (!token) return;
 
-          const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
+          const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+          if (!fullUrl) return;
+
+          const response = await fetch(fullUrl, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -336,24 +341,46 @@ export default function TripDetailPage() {
       ]);
 
       // Extract data from settled promises, using empty arrays as fallbacks
-      const locations = locationsData.status === 'fulfilled' ? locationsData.value : [];
-      const activities = activitiesData.status === 'fulfilled' ? activitiesData.value : [];
-      const transportation = transportationData.status === 'fulfilled' ? transportationData.value : [];
-      const lodging = lodgingData.status === 'fulfilled' ? lodgingData.value : [];
-      const journal = journalData.status === 'fulfilled' ? journalData.value : [];
-      const tags = tagsData.status === 'fulfilled' ? tagsData.value : [];
-      const companions = companionsData.status === 'fulfilled' ? companionsData.value : [];
-      const albums = albumsData.status === 'fulfilled' ? albumsData.value : { albums: [], unsortedCount: 0, totalCount: 0 };
+      const locations =
+        locationsData.status === "fulfilled" ? locationsData.value : [];
+      const activities =
+        activitiesData.status === "fulfilled" ? activitiesData.value : [];
+      const transportation =
+        transportationData.status === "fulfilled"
+          ? transportationData.value
+          : [];
+      const lodging =
+        lodgingData.status === "fulfilled" ? lodgingData.value : [];
+      const journal =
+        journalData.status === "fulfilled" ? journalData.value : [];
+      const tags = tagsData.status === "fulfilled" ? tagsData.value : [];
+      const companions =
+        companionsData.status === "fulfilled" ? companionsData.value : [];
+      const albums =
+        albumsData.status === "fulfilled"
+          ? albumsData.value
+          : { albums: [], unsortedCount: 0, totalCount: 0 };
 
       // Log any failures
-      if (locationsData.status === 'rejected') console.error("Failed to load locations:", locationsData.reason);
-      if (activitiesData.status === 'rejected') console.error("Failed to load activities:", activitiesData.reason);
-      if (transportationData.status === 'rejected') console.error("Failed to load transportation:", transportationData.reason);
-      if (lodgingData.status === 'rejected') console.error("Failed to load lodging:", lodgingData.reason);
-      if (journalData.status === 'rejected') console.error("Failed to load journal entries:", journalData.reason);
-      if (tagsData.status === 'rejected') console.error("Failed to load tags:", tagsData.reason);
-      if (companionsData.status === 'rejected') console.error("Failed to load companions:", companionsData.reason);
-      if (albumsData.status === 'rejected') console.error("Failed to load albums:", albumsData.reason);
+      if (locationsData.status === "rejected")
+        console.error("Failed to load locations:", locationsData.reason);
+      if (activitiesData.status === "rejected")
+        console.error("Failed to load activities:", activitiesData.reason);
+      if (transportationData.status === "rejected")
+        console.error(
+          "Failed to load transportation:",
+          transportationData.reason
+        );
+      if (lodgingData.status === "rejected")
+        console.error("Failed to load lodging:", lodgingData.reason);
+      if (journalData.status === "rejected")
+        console.error("Failed to load journal entries:", journalData.reason);
+      if (tagsData.status === "rejected")
+        console.error("Failed to load tags:", tagsData.reason);
+      if (companionsData.status === "rejected")
+        console.error("Failed to load companions:", companionsData.reason);
+      if (albumsData.status === "rejected")
+        console.error("Failed to load albums:", albumsData.reason);
 
       setLocations(locations);
 
@@ -594,7 +621,10 @@ export default function TripDetailPage() {
     if (!date) return "Not set";
     // Parse date string directly to avoid timezone shifts
     // Date strings from backend are in YYYY-MM-DD format
-    const dateStr = typeof date === 'string' ? date.split("T")[0] : date.toISOString().split("T")[0]; // Get just the date part
+    const dateStr =
+      typeof date === "string"
+        ? date.split("T")[0]
+        : date.toISOString().split("T")[0]; // Get just the date part
     const [year, month, day] = dateStr.split("-").map(Number);
     const dateObj = new Date(year, month - 1, day); // month is 0-indexed
     return dateObj.toLocaleDateString("en-US", {
@@ -635,9 +665,11 @@ export default function TripDetailPage() {
             // Dynamic background image requires CSS variable - cannot be moved to static CSS
             <div
               className="relative h-64 bg-cover bg-center cover-photo-bg"
-              style={{
-                '--cover-photo-url': `url(${coverPhotoUrl})`,
-              } as React.CSSProperties & { '--cover-photo-url': string }}
+              style={
+                {
+                  "--cover-photo-url": `url(${coverPhotoUrl})`,
+                } as React.CSSProperties & { "--cover-photo-url": string }
+              }
             >
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70"></div>
               <div className="relative h-full p-6 flex flex-col justify-between text-white">
@@ -672,7 +704,9 @@ export default function TripDetailPage() {
                           d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
                         />
                       </svg>
-                      <span className="hidden sm:inline">Manage Tags ({tagsCount})</span>
+                      <span className="hidden sm:inline">
+                        Manage Tags ({tagsCount})
+                      </span>
                       <span className="sm:hidden">Tags ({tagsCount})</span>
                     </button>
                     <Link
@@ -718,10 +752,15 @@ export default function TripDetailPage() {
                         <span
                           key={tag.id}
                           className="px-3 py-1 rounded-full text-sm font-medium shadow-md tag-colored"
-                          style={{
-                            '--tag-bg-color': tag.color || "#3B82F6",
-                            '--tag-text-color': tag.textColor || "#FFFFFF",
-                          } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
+                          style={
+                            {
+                              "--tag-bg-color": tag.color || "#3B82F6",
+                              "--tag-text-color": tag.textColor || "#FFFFFF",
+                            } as React.CSSProperties & {
+                              "--tag-bg-color": string;
+                              "--tag-text-color": string;
+                            }
+                          }
                         >
                           {tag.name}
                         </span>
@@ -764,7 +803,9 @@ export default function TripDetailPage() {
                         d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
                       />
                     </svg>
-                    <span className="hidden sm:inline">Manage Tags ({tagsCount})</span>
+                    <span className="hidden sm:inline">
+                      Manage Tags ({tagsCount})
+                    </span>
                     <span className="sm:hidden">Tags ({tagsCount})</span>
                   </button>
                   <Link
@@ -810,10 +851,15 @@ export default function TripDetailPage() {
                       <span
                         key={tag.id}
                         className="px-3 py-1 rounded-full text-sm font-medium tag-colored"
-                        style={{
-                          '--tag-bg-color': tag.color || "#3B82F6",
-                          '--tag-text-color': tag.textColor || "#FFFFFF",
-                        } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
+                        style={
+                          {
+                            "--tag-bg-color": tag.color || "#3B82F6",
+                            "--tag-text-color": tag.textColor || "#FFFFFF",
+                          } as React.CSSProperties & {
+                            "--tag-bg-color": string;
+                            "--tag-text-color": string;
+                          }
+                        }
                       >
                         {tag.name}
                       </span>
@@ -1182,11 +1228,13 @@ export default function TripDetailPage() {
                 await loadTripData(trip.id);
                 // Refresh Immich asset IDs to update the exclude list
                 await loadImmichAssetIds(trip.id);
-                // Refresh all photos pagination
-                photosPagination.loadInitial();
-                // Refresh filtered photos if viewing an album
-                if (selectedAlbumId !== null) {
-                  handleSelectAlbum(selectedAlbumId);
+                // Refresh the current view
+                if (selectedAlbumId === null) {
+                  photosPagination.loadInitial();
+                } else if (selectedAlbumId === -1) {
+                  unsortedPagination.loadInitial();
+                } else {
+                  albumPhotosPagination.loadInitial();
                 }
               }}
               tripStartDate={trip.startDate || undefined}
@@ -1316,23 +1364,35 @@ export default function TripDetailPage() {
                   onPhotoDeleted={() => {
                     loadTripData(trip.id);
                     loadAlbums(trip.id);
-                    // Refresh filtered photos if viewing an album
-                    if (selectedAlbumId !== null) {
-                      handleSelectAlbum(selectedAlbumId);
+                    // Refresh the current view
+                    if (selectedAlbumId === null) {
+                      photosPagination.loadInitial();
+                    } else if (selectedAlbumId === -1) {
+                      unsortedPagination.loadInitial();
+                    } else {
+                      albumPhotosPagination.loadInitial();
                     }
                   }}
                   onPhotoUpdated={() => {
                     loadTripData(trip.id);
-                    // Refresh filtered photos if viewing an album
-                    if (selectedAlbumId !== null) {
-                      handleSelectAlbum(selectedAlbumId);
+                    // Refresh the current view
+                    if (selectedAlbumId === null) {
+                      photosPagination.loadInitial();
+                    } else if (selectedAlbumId === -1) {
+                      unsortedPagination.loadInitial();
+                    } else {
+                      albumPhotosPagination.loadInitial();
                     }
                   }}
                   onPhotosAddedToAlbum={() => {
                     loadAlbums(trip.id);
-                    // Refresh filtered photos if viewing an album
-                    if (selectedAlbumId !== null) {
-                      handleSelectAlbum(selectedAlbumId);
+                    // Refresh the current view
+                    if (selectedAlbumId === null) {
+                      photosPagination.loadInitial();
+                    } else if (selectedAlbumId === -1) {
+                      unsortedPagination.loadInitial();
+                    } else {
+                      albumPhotosPagination.loadInitial();
                     }
                     toast.success("Photos added to album");
                   }}
@@ -1372,9 +1432,13 @@ export default function TripDetailPage() {
                   currentAlbumId={selectedAlbumId}
                   onPhotosRemovedFromAlbum={() => {
                     loadAlbums(trip.id);
-                    // Refresh the current album view
-                    if (selectedAlbumId && selectedAlbumId > 0) {
-                      albumPhotosPagination.reset();
+                    // Refresh the current view
+                    if (selectedAlbumId === null) {
+                      photosPagination.loadInitial();
+                    } else if (selectedAlbumId === -1) {
+                      unsortedPagination.loadInitial();
+                    } else {
+                      albumPhotosPagination.loadInitial();
                     }
                     toast.success("Photos removed from album");
                   }}
@@ -1461,8 +1525,14 @@ export default function TripDetailPage() {
                 onClose={() => setShowAddPhotosModal(false)}
                 onPhotosAdded={() => {
                   loadAlbums(trip.id);
-                  // Refresh the current album view
-                  albumPhotosPagination.reset();
+                  // Refresh the current view
+                  if (selectedAlbumId === null) {
+                    photosPagination.loadInitial();
+                  } else if (selectedAlbumId === -1) {
+                    unsortedPagination.loadInitial();
+                  } else {
+                    albumPhotosPagination.loadInitial();
+                  }
                   toast.success("Photos added to album");
                 }}
               />

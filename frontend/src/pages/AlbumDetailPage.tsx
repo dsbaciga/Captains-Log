@@ -1,4 +1,4 @@
-import { useEffect, useState, useId } from "react";
+import { useEffect, useState, useId, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { AlbumWithPhotos, Photo } from "../types/photo";
 import type { Location } from "../types/location";
@@ -14,7 +14,7 @@ import PhotoGallery from "../components/PhotoGallery";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { usePagination } from "../hooks/usePagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import { getAssetBaseUrl } from "../lib/config";
+import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
 import toast from "react-hot-toast";
 
 export default function AlbumDetailPage() {
@@ -36,6 +36,60 @@ export default function AlbumDetailPage() {
   const [availablePhotos, setAvailablePhotos] = useState<Photo[]>([]);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(new Set());
   const [isAddingPhotos, setIsAddingPhotos] = useState(false);
+  const [thumbnailCache, setThumbnailCache] = useState<{ [key: number]: string }>({});
+  const blobUrlsRef = useRef<string[]>([]);
+
+  // Load thumbnails for selector photos
+  useEffect(() => {
+    const loadThumbnails = async () => {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const newUrls: { [key: number]: string } = {};
+      const newBlobUrls: string[] = [];
+
+      for (const photo of availablePhotos) {
+        if (photo.source !== "immich" || !photo.thumbnailPath || thumbnailCache[photo.id]) {
+          continue;
+        }
+
+        try {
+          const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+          if (!fullUrl) continue;
+
+          const response = await fetch(fullUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            newUrls[photo.id] = blobUrl;
+            newBlobUrls.push(blobUrl);
+          }
+        } catch (error) {
+          console.error(`Failed to load selection thumbnail for photo ${photo.id}:`, error);
+        }
+      }
+
+      if (Object.keys(newUrls).length > 0) {
+        blobUrlsRef.current = [...blobUrlsRef.current, ...newBlobUrls];
+        setThumbnailCache(prev => ({ ...prev, ...newUrls }));
+      }
+    };
+
+    if (showPhotoSelector && availablePhotos.length > 0) {
+      loadThumbnails();
+    }
+  }, [availablePhotos, showPhotoSelector]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
+    };
+  }, []);
   const albumNameId = useId();
   const albumDescriptionId = useId();
   const locationSelectId = useId();
@@ -549,10 +603,13 @@ export default function AlbumDetailPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {availablePhotos.map((photo) => {
                       const isSelected = selectedPhotoIds.has(photo.id);
-                      const photoUrl =
-                        photo.source === "immich"
-                          ? `${getAssetBaseUrl()}/immich/thumbnail/${photo.immichAssetId}`
-                          : `${getAssetBaseUrl()}/${photo.thumbnailPath}`;
+                      let photoUrl: string | null = null;
+                      
+                      if (photo.source === "immich") {
+                        photoUrl = thumbnailCache[photo.id] || null;
+                      } else {
+                        photoUrl = getFullAssetUrl(photo.thumbnailPath);
+                      }
 
                       return (
                         <button
@@ -565,11 +622,17 @@ export default function AlbumDetailPage() {
                               : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
                           }`}
                         >
-                          <img
-                            src={photoUrl}
-                            alt={photo.caption || "Photo"}
-                            className="w-full h-full object-cover"
-                          />
+                          {photoUrl ? (
+                            <img
+                              src={photoUrl}
+                              alt={photo.caption || "Photo"}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                            </div>
+                          )}
                           {isSelected && (
                             <div className="absolute inset-0 bg-blue-500 bg-opacity-30 flex items-center justify-center">
                               <svg

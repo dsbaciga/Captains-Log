@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import immichService from "../services/immich.service";
 import type { ImmichAsset, ImmichAlbum } from "../types/immich";
-import { getAssetBaseUrl } from "../lib/config";
+import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
 
 interface ImmichBrowserProps {
   onSelect: (assets: ImmichAsset[]) => void;
@@ -92,7 +92,10 @@ export default function ImmichBrowser({
         }
 
         try {
-          const response = await fetch(`${baseUrl}${asset.thumbnailUrl}`, {
+          const fullUrl = getFullAssetUrl(asset.thumbnailUrl);
+          if (!fullUrl) continue;
+
+          const response = await fetch(fullUrl, {
             headers: {
               Authorization: `Bearer ${token}`,
             },

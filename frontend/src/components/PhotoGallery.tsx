@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Photo, PhotoAlbum } from "../types/photo";
 import photoService from "../services/photo.service";
-import { getAssetBaseUrl } from "../lib/config";
+import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import PhotoLightbox from "./PhotoLightbox";
 import ProgressiveImage from "./ProgressiveImage";
@@ -132,12 +132,15 @@ export default function PhotoGallery({
         fetchingPhotos.current.add(photo.id);
 
         try {
+          const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+          if (!fullUrl) continue;
+
           console.log(
             `[PhotoGallery] Fetching thumbnail for photo ${photo.id}:`,
-            `${baseUrl}${photo.thumbnailPath}`
+            fullUrl
           );
 
-          const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
+          const response = await fetch(fullUrl, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -416,9 +419,8 @@ export default function PhotoGallery({
   };
 
   const getPhotoUrl = (photo: Photo): string | null => {
-    const baseUrl = getAssetBaseUrl();
     if (photo.source === "local" && photo.localPath && photo.localPath !== "") {
-      return `${baseUrl}${photo.localPath}`;
+      return getFullAssetUrl(photo.localPath);
     }
     // For Immich photos, use blob URL from cache
     if (photo.source === "immich") {
@@ -428,13 +430,12 @@ export default function PhotoGallery({
   };
 
   const getThumbnailUrl = (photo: Photo): string | null => {
-    const baseUrl = getAssetBaseUrl();
     if (
       photo.source === "local" &&
       photo.thumbnailPath &&
       photo.thumbnailPath !== ""
     ) {
-      return `${baseUrl}${photo.thumbnailPath}`;
+      return getFullAssetUrl(photo.thumbnailPath);
     }
     // For Immich photos, use blob URL from cache
     if (photo.source === "immich") {

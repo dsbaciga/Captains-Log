@@ -11,12 +11,29 @@ export function getApiBaseUrl(): string {
 
 /**
  * Get the base URL for uploads and assets
- * Strips /api suffix if present
+ * Strips /api suffix if present and ensures no trailing slash
  */
 export function getAssetBaseUrl(): string {
   const apiUrl = getApiBaseUrl();
   // Remove /api suffix since asset paths already include it
-  return apiUrl.replace(/\/api$/, '');
+  // Also remove trailing slash if present
+  return apiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+}
+
+/**
+ * Get the full URL for an asset path
+ * Ensures correct slash handling
+ */
+export function getFullAssetUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith('blob:') || path.startsWith('data:') || path.startsWith('http')) {
+    return path;
+  }
+
+  const baseUrl = getAssetBaseUrl();
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  
+  return `${baseUrl}${cleanPath}`;
 }
 
 /**

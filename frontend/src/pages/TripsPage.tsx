@@ -6,7 +6,7 @@ import type { Trip } from '../types/trip';
 import type { TripTag } from '../types/tag';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
-import { getAssetBaseUrl } from '../lib/config';
+import { getAssetBaseUrl, getFullAssetUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 // Import shared utilities
@@ -68,12 +68,15 @@ export default function TripsPage() {
 
         // Local photo - use direct URL
         if (photo.source === 'local' && photo.thumbnailPath) {
-          urls[trip.id] = `${baseUrl}${photo.thumbnailPath}`;
+          urls[trip.id] = getFullAssetUrl(photo.thumbnailPath) || "";
         }
         // Immich photo - fetch with auth
         else if (photo.source === 'immich' && photo.thumbnailPath) {
           try {
-            const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
+            const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+            if (!fullUrl) continue;
+
+            const response = await fetch(fullUrl, {
               headers: { 'Authorization': `Bearer ${token}` },
             });
 

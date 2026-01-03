@@ -5,7 +5,7 @@ import tripService from "../services/trip.service";
 import type { AlbumWithTrip } from "../types/photo";
 import type { Trip } from "../types/trip";
 import toast from "react-hot-toast";
-import { getAssetBaseUrl } from "../lib/config";
+import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
 import { usePagination } from "../hooks/usePagination";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
@@ -126,7 +126,7 @@ export default function GlobalAlbumsPage() {
 
           // Local photo - use direct URL
           if (photo.source === "local" && photo.thumbnailPath) {
-            const url = `${baseUrl}${photo.thumbnailPath}`;
+            const url = getFullAssetUrl(photo.thumbnailPath) || "";
             coverUrlCache.set(album.id, url);
             urls[album.id] = url;
           }
@@ -136,7 +136,10 @@ export default function GlobalAlbumsPage() {
               return;
             }
             try {
-              const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
+              const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+              if (!fullUrl) return;
+
+              const response = await fetch(fullUrl, {
                 headers: { Authorization: `Bearer ${token}` },
               });
 

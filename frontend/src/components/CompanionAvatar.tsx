@@ -3,6 +3,7 @@ import companionService from "../services/companion.service";
 import { useAuthStore } from "../store/authStore";
 import toast from "react-hot-toast";
 import type { Companion } from "../types/companion";
+import { getFullAssetUrl } from "../lib/config";
 
 interface CompanionAvatarProps {
   companion: Companion;
@@ -47,14 +48,14 @@ export default function CompanionAvatar({
       // If it's an Immich URL, fetch with auth
       if (companion.avatarUrl.includes("/api/immich/")) {
         try {
-          const response = await fetch(
-            `${API_URL}${companion.avatarUrl.replace("/api", "")}`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }
-          );
+          const fullUrl = getFullAssetUrl(companion.avatarUrl);
+          if (!fullUrl) return;
+
+          const response = await fetch(fullUrl, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
           if (response.ok) {
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
@@ -65,9 +66,7 @@ export default function CompanionAvatar({
         }
       } else {
         // Local upload - use direct URL
-        setAvatarBlobUrl(
-          `${API_URL.replace("/api", "")}${companion.avatarUrl}`
-        );
+        setAvatarBlobUrl(getFullAssetUrl(companion.avatarUrl));
       }
     };
 

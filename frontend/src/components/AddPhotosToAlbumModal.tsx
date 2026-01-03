@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Photo } from "../types/photo";
 import photoService from "../services/photo.service";
-import { getAssetBaseUrl } from "../lib/config";
+import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
 import ProgressiveImage from "./ProgressiveImage";
 
 interface AddPhotosToAlbumModalProps {
@@ -90,7 +90,10 @@ export default function AddPhotosToAlbumModal({
         fetchingPhotos.current.add(photo.id);
 
         try {
-          const response = await fetch(`${baseUrl}${photo.thumbnailPath}`, {
+          const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+          if (!fullUrl) continue;
+
+          const response = await fetch(fullUrl, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -133,9 +136,8 @@ export default function AddPhotosToAlbumModal({
   }, []);
 
   const getThumbnailUrl = (photo: Photo): string | null => {
-    const baseUrl = getAssetBaseUrl();
     if (photo.source === "local" && photo.thumbnailPath) {
-      return `${baseUrl}${photo.thumbnailPath}`;
+      return getFullAssetUrl(photo.thumbnailPath);
     }
     if (photo.source === "immich") {
       return thumbnailCache[photo.id] || null;

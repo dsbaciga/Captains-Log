@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { PhotoAlbum } from '../types/photo';
+import { getFullAssetUrl } from '../lib/config';
 
 interface AlbumsSidebarProps {
   albums: PhotoAlbum[];
@@ -10,7 +11,6 @@ interface AlbumsSidebarProps {
   onCreateAlbum: () => void;
   onEditAlbum: (album: PhotoAlbum) => void;
   onDeleteAlbum: (albumId: number) => void;
-  uploadUrl?: string;
   // Mobile drawer props
   isMobileDrawerOpen?: boolean;
   onCloseMobileDrawer?: () => void;
@@ -25,11 +25,12 @@ export default function AlbumsSidebar({
   onCreateAlbum,
   onEditAlbum,
   onDeleteAlbum,
-  uploadUrl = import.meta.env.VITE_UPLOAD_URL,
   isMobileDrawerOpen = false,
   onCloseMobileDrawer,
 }: AlbumsSidebarProps) {
   const [hoveredAlbumId, setHoveredAlbumId] = useState<number | null>(null);
+  const [thumbnailCache, setThumbnailCache] = useState<{ [key: number]: string }>({});
+  const blobUrlsRef = useRef<string[]>([]);
 
   const handleSelectAlbum = (albumId: number | null) => {
     onSelectAlbum(albumId);
@@ -40,11 +41,72 @@ export default function AlbumsSidebar({
   };
 
   const getAlbumThumbnail = (album: PhotoAlbum) => {
-    if (album.coverPhoto?.thumbnailPath) {
-      return `${uploadUrl}${album.coverPhoto.thumbnailPath}`;
+    const photo = album.coverPhoto;
+    if (!photo) return null;
+
+    if (photo.source === "immich") {
+      return thumbnailCache[photo.id] || null;
     }
+
+    if (photo.thumbnailPath) {
+      return getFullAssetUrl(photo.thumbnailPath);
+    }
+    
     return null;
   };
+
+  // Load thumbnails for Immich album covers
+  useEffect(() => {
+    const loadThumbnails = async () => {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const newUrls: { [key: number]: string } = {};
+      const newBlobUrls: string[] = [];
+
+      for (const album of albums) {
+        const photo = album.coverPhoto;
+        if (!photo || photo.source !== "immich" || !photo.thumbnailPath || thumbnailCache[photo.id]) {
+          continue;
+        }
+
+        try {
+          const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+          if (!fullUrl) continue;
+
+          const response = await fetch(fullUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            newUrls[photo.id] = blobUrl;
+            newBlobUrls.push(blobUrl);
+          }
+        } catch (error) {
+          console.error(`Failed to load sidebar thumbnail for photo ${photo.id}:`, error);
+        }
+      }
+
+      if (Object.keys(newUrls).length > 0) {
+        blobUrlsRef.current = [...blobUrlsRef.current, ...newBlobUrls];
+        setThumbnailCache(prev => ({ ...prev, ...newUrls }));
+      }
+    };
+
+    if (albums.length > 0) {
+      loadThumbnails();
+    }
+  }, [albums]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
+    };
+  }, []);
 
   const sidebarContent = (
     <>
