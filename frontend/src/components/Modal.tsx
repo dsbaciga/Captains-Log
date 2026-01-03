@@ -86,13 +86,23 @@ export default function Modal({
     [onClose, closeOnEscape]
   );
 
+  // Focus modal when it first opens (only on isOpen change)
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to ensure modal is rendered
+      const timeoutId = setTimeout(() => {
+        modalRef.current?.focus();
+      }, 0);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isOpen]);
+
+  // Handle keyboard events
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
-
-      // Focus the modal for accessibility
-      modalRef.current?.focus();
 
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
