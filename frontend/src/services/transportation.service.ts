@@ -34,6 +34,11 @@ class TransportationService {
   async deleteTransportation(id: number): Promise<void> {
     await api.delete(`/transportation/${id}`);
   }
+
+  async recalculateDistancesForTrip(tripId: number): Promise<{ count: number }> {
+    const response = await api.post(`/transportation/trip/${tripId}/recalculate-distances`);
+    return response.data;
+  }
 }
 
 export default new TransportationService();
