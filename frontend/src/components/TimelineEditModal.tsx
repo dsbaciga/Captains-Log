@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import type { Activity } from "../types/activity";
-import type { Transportation, TransportationType } from "../types/transportation";
+import type {
+  Transportation,
+  TransportationType,
+} from "../types/transportation";
 import type { Lodging, LodgingType } from "../types/lodging";
 import type { JournalEntry } from "../types/journalEntry";
 import type { Location } from "../types/location";
@@ -51,7 +54,9 @@ export default function TimelineEditModal({
   transportations = [],
 }: TimelineEditModalProps) {
   const [saving, setSaving] = useState(false);
-  const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
+  const [activityCategories, setActivityCategories] = useState<
+    ActivityCategory[]
+  >([]);
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
@@ -172,21 +177,33 @@ export default function TimelineEditModal({
 
     if (activity.allDay) {
       if (activity.startTime) {
-        const startDateTime = convertISOToDateTimeLocal(activity.startTime, effectiveTz);
+        const startDateTime = convertISOToDateTimeLocal(
+          activity.startTime,
+          effectiveTz
+        );
         startDate = startDateTime.slice(0, 10);
       }
       if (activity.endTime) {
-        const endDateTime = convertISOToDateTimeLocal(activity.endTime, effectiveTz);
+        const endDateTime = convertISOToDateTimeLocal(
+          activity.endTime,
+          effectiveTz
+        );
         endDate = endDateTime.slice(0, 10);
       }
     } else {
       if (activity.startTime) {
-        const startDateTime = convertISOToDateTimeLocal(activity.startTime, effectiveTz);
+        const startDateTime = convertISOToDateTimeLocal(
+          activity.startTime,
+          effectiveTz
+        );
         startDate = startDateTime.slice(0, 10);
         startTime = startDateTime.slice(11);
       }
       if (activity.endTime) {
-        const endDateTime = convertISOToDateTimeLocal(activity.endTime, effectiveTz);
+        const endDateTime = convertISOToDateTimeLocal(
+          activity.endTime,
+          effectiveTz
+        );
         endDate = endDateTime.slice(0, 10);
         endTime = endDateTime.slice(11);
       }
@@ -213,7 +230,8 @@ export default function TimelineEditModal({
   };
 
   const initTransportationForm = (transportation: Transportation) => {
-    const effectiveStartTz = transportation.startTimezone || tripTimezone || "UTC";
+    const effectiveStartTz =
+      transportation.startTimezone || tripTimezone || "UTC";
     const effectiveEndTz = transportation.endTimezone || tripTimezone || "UTC";
 
     setTransportationForm({
@@ -223,7 +241,10 @@ export default function TimelineEditModal({
       fromLocationName: transportation.fromLocationName || "",
       toLocationName: transportation.toLocationName || "",
       departureTime: transportation.departureTime
-        ? convertISOToDateTimeLocal(transportation.departureTime, effectiveStartTz)
+        ? convertISOToDateTimeLocal(
+            transportation.departureTime,
+            effectiveStartTz
+          )
         : "",
       arrivalTime: transportation.arrivalTime
         ? convertISOToDateTimeLocal(transportation.arrivalTime, effectiveEndTz)
@@ -269,8 +290,12 @@ export default function TimelineEditModal({
       locationIds: entry.locationAssignments?.map((la) => la.location.id) || [],
       activityIds: entry.activityAssignments?.map((aa) => aa.activity.id) || [],
       lodgingIds: entry.lodgingAssignments?.map((la) => la.lodging.id) || [],
-      transportationIds: entry.transportationAssignments?.map((ta) => ta.transportation.id) || [],
-      entryDate: entry.date ? new Date(entry.date).toISOString().slice(0, 16) : "",
+      transportationIds:
+        entry.transportationAssignments?.map((ta) => ta.transportation.id) ||
+        [],
+      entryDate: entry.date
+        ? new Date(entry.date).toISOString().slice(0, 16)
+        : "",
     });
   };
 
@@ -379,14 +404,22 @@ export default function TimelineEditModal({
   };
 
   const submitTransportation = async () => {
-    const effectiveStartTz = transportationForm.startTimezone || tripTimezone || "UTC";
-    const effectiveEndTz = transportationForm.endTimezone || tripTimezone || "UTC";
+    const effectiveStartTz =
+      transportationForm.startTimezone || tripTimezone || "UTC";
+    const effectiveEndTz =
+      transportationForm.endTimezone || tripTimezone || "UTC";
 
     const departureTimeISO = transportationForm.departureTime
-      ? convertDateTimeLocalToISO(transportationForm.departureTime, effectiveStartTz)
+      ? convertDateTimeLocalToISO(
+          transportationForm.departureTime,
+          effectiveStartTz
+        )
       : null;
     const arrivalTimeISO = transportationForm.arrivalTime
-      ? convertDateTimeLocalToISO(transportationForm.arrivalTime, effectiveEndTz)
+      ? convertDateTimeLocalToISO(
+          transportationForm.arrivalTime,
+          effectiveEndTz
+        )
       : null;
 
     const updateData = {
@@ -402,7 +435,9 @@ export default function TimelineEditModal({
       carrier: transportationForm.carrier || null,
       vehicleNumber: transportationForm.vehicleNumber || null,
       confirmationNumber: transportationForm.confirmationNumber || null,
-      cost: transportationForm.cost ? parseFloat(transportationForm.cost) : null,
+      cost: transportationForm.cost
+        ? parseFloat(transportationForm.cost)
+        : null,
       currency: transportationForm.currency || null,
       notes: transportationForm.notes || null,
     };
@@ -422,8 +457,14 @@ export default function TimelineEditModal({
     }
 
     const effectiveTz = lodgingForm.timezone || tripTimezone || "UTC";
-    const checkInDateISO = convertDateTimeLocalToISO(lodgingForm.checkInDate, effectiveTz);
-    const checkOutDateISO = convertDateTimeLocalToISO(lodgingForm.checkOutDate, effectiveTz);
+    const checkInDateISO = convertDateTimeLocalToISO(
+      lodgingForm.checkInDate,
+      effectiveTz
+    );
+    const checkOutDateISO = convertDateTimeLocalToISO(
+      lodgingForm.checkOutDate,
+      effectiveTz
+    );
 
     const updateData = {
       type: lodgingForm.type,
@@ -498,7 +539,9 @@ export default function TimelineEditModal({
           <input
             type="text"
             value={activityForm.name}
-            onChange={(e) => setActivityForm((prev) => ({ ...prev, name: e.target.value }))}
+            onChange={(e) =>
+              setActivityForm((prev) => ({ ...prev, name: e.target.value }))
+            }
             className="input"
             required
             placeholder="Activity name"
@@ -506,12 +549,18 @@ export default function TimelineEditModal({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="activity-category"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             Category
           </label>
           <select
+            id="activity-category"
             value={activityForm.category}
-            onChange={(e) => setActivityForm((prev) => ({ ...prev, category: e.target.value }))}
+            onChange={(e) =>
+              setActivityForm((prev) => ({ ...prev, category: e.target.value }))
+            }
             className="input"
           >
             <option value="">-- Select Category --</option>
@@ -531,7 +580,12 @@ export default function TimelineEditModal({
         </label>
         <textarea
           value={activityForm.description}
-          onChange={(e) => setActivityForm((prev) => ({ ...prev, description: e.target.value }))}
+          onChange={(e) =>
+            setActivityForm((prev) => ({
+              ...prev,
+              description: e.target.value,
+            }))
+          }
           className="input"
           rows={2}
           placeholder="Activity description"
@@ -540,7 +594,10 @@ export default function TimelineEditModal({
 
       {/* Location */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label
+          htmlFor="activity-location"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        >
           Location
         </label>
         {showLocationQuickAdd ? (
@@ -552,11 +609,14 @@ export default function TimelineEditModal({
         ) : (
           <div className="flex gap-2">
             <select
+              id="activity-location"
               value={activityForm.locationId || ""}
               onChange={(e) =>
                 setActivityForm((prev) => ({
                   ...prev,
-                  locationId: e.target.value ? parseInt(e.target.value) : undefined,
+                  locationId: e.target.value
+                    ? parseInt(e.target.value)
+                    : undefined,
                 }))
               }
               className="input flex-1"
@@ -585,10 +645,15 @@ export default function TimelineEditModal({
           type="checkbox"
           id="allDay"
           checked={activityForm.allDay}
-          onChange={(e) => setActivityForm((prev) => ({ ...prev, allDay: e.target.checked }))}
+          onChange={(e) =>
+            setActivityForm((prev) => ({ ...prev, allDay: e.target.checked }))
+          }
           className="rounded"
         />
-        <label htmlFor="allDay" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label
+          htmlFor="allDay"
+          className="text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
           All-day activity
         </label>
       </div>
@@ -597,24 +662,42 @@ export default function TimelineEditModal({
       {activityForm.allDay ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="activity-start-date-allday"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Start Date
             </label>
             <input
+              id="activity-start-date-allday"
               type="date"
               value={activityForm.startDate}
-              onChange={(e) => setActivityForm((prev) => ({ ...prev, startDate: e.target.value }))}
+              onChange={(e) =>
+                setActivityForm((prev) => ({
+                  ...prev,
+                  startDate: e.target.value,
+                }))
+              }
               className="input"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="activity-end-date-allday"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               End Date
             </label>
             <input
+              id="activity-end-date-allday"
               type="date"
               value={activityForm.endDate}
-              onChange={(e) => setActivityForm((prev) => ({ ...prev, endDate: e.target.value }))}
+              onChange={(e) =>
+                setActivityForm((prev) => ({
+                  ...prev,
+                  endDate: e.target.value,
+                }))
+              }
               className="input"
             />
           </div>
@@ -628,14 +711,26 @@ export default function TimelineEditModal({
             <div className="flex gap-2">
               <input
                 type="date"
+                aria-label="Start date"
                 value={activityForm.startDate}
-                onChange={(e) => setActivityForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                onChange={(e) =>
+                  setActivityForm((prev) => ({
+                    ...prev,
+                    startDate: e.target.value,
+                  }))
+                }
                 className="input flex-1"
               />
               <input
                 type="time"
+                aria-label="Start time"
                 value={activityForm.startTime}
-                onChange={(e) => setActivityForm((prev) => ({ ...prev, startTime: e.target.value }))}
+                onChange={(e) =>
+                  setActivityForm((prev) => ({
+                    ...prev,
+                    startTime: e.target.value,
+                  }))
+                }
                 className="input flex-1"
               />
             </div>
@@ -647,14 +742,26 @@ export default function TimelineEditModal({
             <div className="flex gap-2">
               <input
                 type="date"
+                aria-label="End date"
                 value={activityForm.endDate}
-                onChange={(e) => setActivityForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                onChange={(e) =>
+                  setActivityForm((prev) => ({
+                    ...prev,
+                    endDate: e.target.value,
+                  }))
+                }
                 className="input flex-1"
               />
               <input
                 type="time"
+                aria-label="End time"
                 value={activityForm.endTime}
-                onChange={(e) => setActivityForm((prev) => ({ ...prev, endTime: e.target.value }))}
+                onChange={(e) =>
+                  setActivityForm((prev) => ({
+                    ...prev,
+                    endTime: e.target.value,
+                  }))
+                }
                 className="input flex-1"
               />
             </div>
@@ -665,7 +772,9 @@ export default function TimelineEditModal({
       {/* Timezone */}
       <TimezoneSelect
         value={activityForm.timezone}
-        onChange={(value) => setActivityForm((prev) => ({ ...prev, timezone: value }))}
+        onChange={(value) =>
+          setActivityForm((prev) => ({ ...prev, timezone: value }))
+        }
         label="Timezone"
       />
 
@@ -676,7 +785,9 @@ export default function TimelineEditModal({
         onConfirmationNumberChange={(value) =>
           setActivityForm((prev) => ({ ...prev, bookingReference: value }))
         }
-        onBookingUrlChange={(value) => setActivityForm((prev) => ({ ...prev, bookingUrl: value }))}
+        onBookingUrlChange={(value) =>
+          setActivityForm((prev) => ({ ...prev, bookingUrl: value }))
+        }
         confirmationLabel="Booking Reference"
       />
 
@@ -684,8 +795,12 @@ export default function TimelineEditModal({
       <CostCurrencyFields
         cost={activityForm.cost}
         currency={activityForm.currency}
-        onCostChange={(value) => setActivityForm((prev) => ({ ...prev, cost: value }))}
-        onCurrencyChange={(value) => setActivityForm((prev) => ({ ...prev, currency: value }))}
+        onCostChange={(value) =>
+          setActivityForm((prev) => ({ ...prev, cost: value }))
+        }
+        onCurrencyChange={(value) =>
+          setActivityForm((prev) => ({ ...prev, currency: value }))
+        }
       />
 
       {/* Notes */}
@@ -695,7 +810,9 @@ export default function TimelineEditModal({
         </label>
         <textarea
           value={activityForm.notes}
-          onChange={(e) => setActivityForm((prev) => ({ ...prev, notes: e.target.value }))}
+          onChange={(e) =>
+            setActivityForm((prev) => ({ ...prev, notes: e.target.value }))
+          }
           className="input"
           rows={3}
           placeholder="Additional notes..."
@@ -708,13 +825,20 @@ export default function TimelineEditModal({
     <>
       {/* Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label
+          htmlFor="transportation-type"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        >
           Type *
         </label>
         <select
+          id="transportation-type"
           value={transportationForm.type}
           onChange={(e) =>
-            setTransportationForm((prev) => ({ ...prev, type: e.target.value as TransportationType }))
+            setTransportationForm((prev) => ({
+              ...prev,
+              type: e.target.value as TransportationType,
+            }))
           }
           className="input"
         >
@@ -732,15 +856,21 @@ export default function TimelineEditModal({
       {/* From/To Locations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="transportation-from-location"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             From Location
           </label>
           <select
+            id="transportation-from-location"
             value={transportationForm.fromLocationId || ""}
             onChange={(e) =>
               setTransportationForm((prev) => ({
                 ...prev,
-                fromLocationId: e.target.value ? parseInt(e.target.value) : undefined,
+                fromLocationId: e.target.value
+                  ? parseInt(e.target.value)
+                  : undefined,
               }))
             }
             className="input"
@@ -756,22 +886,31 @@ export default function TimelineEditModal({
             type="text"
             value={transportationForm.fromLocationName}
             onChange={(e) =>
-              setTransportationForm((prev) => ({ ...prev, fromLocationName: e.target.value }))
+              setTransportationForm((prev) => ({
+                ...prev,
+                fromLocationName: e.target.value,
+              }))
             }
             className="input mt-2"
             placeholder="Or enter name (e.g., JFK Airport)"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="transportation-to-location"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             To Location
           </label>
           <select
+            id="transportation-to-location"
             value={transportationForm.toLocationId || ""}
             onChange={(e) =>
               setTransportationForm((prev) => ({
                 ...prev,
-                toLocationId: e.target.value ? parseInt(e.target.value) : undefined,
+                toLocationId: e.target.value
+                  ? parseInt(e.target.value)
+                  : undefined,
               }))
             }
             className="input"
@@ -787,7 +926,10 @@ export default function TimelineEditModal({
             type="text"
             value={transportationForm.toLocationName}
             onChange={(e) =>
-              setTransportationForm((prev) => ({ ...prev, toLocationName: e.target.value }))
+              setTransportationForm((prev) => ({
+                ...prev,
+                toLocationName: e.target.value,
+              }))
             }
             className="input mt-2"
             placeholder="Or enter name (e.g., LAX Airport)"
@@ -798,40 +940,59 @@ export default function TimelineEditModal({
       {/* Departure/Arrival Times */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="transportation-departure-time"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             Departure Time
           </label>
           <input
+            id="transportation-departure-time"
             type="datetime-local"
             value={transportationForm.departureTime}
             onChange={(e) =>
-              setTransportationForm((prev) => ({ ...prev, departureTime: e.target.value }))
+              setTransportationForm((prev) => ({
+                ...prev,
+                departureTime: e.target.value,
+              }))
             }
             className="input"
           />
           <TimezoneSelect
             value={transportationForm.startTimezone}
             onChange={(value) =>
-              setTransportationForm((prev) => ({ ...prev, startTimezone: value }))
+              setTransportationForm((prev) => ({
+                ...prev,
+                startTimezone: value,
+              }))
             }
             label="Departure Timezone"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="transportation-arrival-time"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             Arrival Time
           </label>
           <input
+            id="transportation-arrival-time"
             type="datetime-local"
             value={transportationForm.arrivalTime}
             onChange={(e) =>
-              setTransportationForm((prev) => ({ ...prev, arrivalTime: e.target.value }))
+              setTransportationForm((prev) => ({
+                ...prev,
+                arrivalTime: e.target.value,
+              }))
             }
             className="input"
           />
           <TimezoneSelect
             value={transportationForm.endTimezone}
-            onChange={(value) => setTransportationForm((prev) => ({ ...prev, endTimezone: value }))}
+            onChange={(value) =>
+              setTransportationForm((prev) => ({ ...prev, endTimezone: value }))
+            }
             label="Arrival Timezone"
           />
         </div>
@@ -846,7 +1007,12 @@ export default function TimelineEditModal({
           <input
             type="text"
             value={transportationForm.carrier}
-            onChange={(e) => setTransportationForm((prev) => ({ ...prev, carrier: e.target.value }))}
+            onChange={(e) =>
+              setTransportationForm((prev) => ({
+                ...prev,
+                carrier: e.target.value,
+              }))
+            }
             className="input"
             placeholder="e.g., United Airlines"
           />
@@ -859,7 +1025,10 @@ export default function TimelineEditModal({
             type="text"
             value={transportationForm.vehicleNumber}
             onChange={(e) =>
-              setTransportationForm((prev) => ({ ...prev, vehicleNumber: e.target.value }))
+              setTransportationForm((prev) => ({
+                ...prev,
+                vehicleNumber: e.target.value,
+              }))
             }
             className="input"
             placeholder="e.g., UA123"
@@ -872,7 +1041,10 @@ export default function TimelineEditModal({
         confirmationNumber={transportationForm.confirmationNumber}
         bookingUrl=""
         onConfirmationNumberChange={(value) =>
-          setTransportationForm((prev) => ({ ...prev, confirmationNumber: value }))
+          setTransportationForm((prev) => ({
+            ...prev,
+            confirmationNumber: value,
+          }))
         }
         onBookingUrlChange={() => {}}
         confirmationLabel="Confirmation Number"
@@ -883,8 +1055,12 @@ export default function TimelineEditModal({
       <CostCurrencyFields
         cost={transportationForm.cost}
         currency={transportationForm.currency}
-        onCostChange={(value) => setTransportationForm((prev) => ({ ...prev, cost: value }))}
-        onCurrencyChange={(value) => setTransportationForm((prev) => ({ ...prev, currency: value }))}
+        onCostChange={(value) =>
+          setTransportationForm((prev) => ({ ...prev, cost: value }))
+        }
+        onCurrencyChange={(value) =>
+          setTransportationForm((prev) => ({ ...prev, currency: value }))
+        }
       />
 
       {/* Notes */}
@@ -894,7 +1070,12 @@ export default function TimelineEditModal({
         </label>
         <textarea
           value={transportationForm.notes}
-          onChange={(e) => setTransportationForm((prev) => ({ ...prev, notes: e.target.value }))}
+          onChange={(e) =>
+            setTransportationForm((prev) => ({
+              ...prev,
+              notes: e.target.value,
+            }))
+          }
           className="input"
           rows={3}
           placeholder="Additional notes..."
@@ -908,12 +1089,21 @@ export default function TimelineEditModal({
       {/* Type and Name */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="lodging-type"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             Type *
           </label>
           <select
+            id="lodging-type"
             value={lodgingForm.type}
-            onChange={(e) => setLodgingForm((prev) => ({ ...prev, type: e.target.value as LodgingType }))}
+            onChange={(e) =>
+              setLodgingForm((prev) => ({
+                ...prev,
+                type: e.target.value as LodgingType,
+              }))
+            }
             className="input"
           >
             <option value="hotel">🏨 Hotel</option>
@@ -931,7 +1121,9 @@ export default function TimelineEditModal({
           <input
             type="text"
             value={lodgingForm.name}
-            onChange={(e) => setLodgingForm((prev) => ({ ...prev, name: e.target.value }))}
+            onChange={(e) =>
+              setLodgingForm((prev) => ({ ...prev, name: e.target.value }))
+            }
             className="input"
             required
             placeholder="Hotel name"
@@ -941,7 +1133,10 @@ export default function TimelineEditModal({
 
       {/* Location */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label
+          htmlFor="lodging-location"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        >
           Location
         </label>
         {showLocationQuickAdd ? (
@@ -953,11 +1148,14 @@ export default function TimelineEditModal({
         ) : (
           <div className="flex gap-2">
             <select
+              id="lodging-location"
               value={lodgingForm.locationId || ""}
               onChange={(e) =>
                 setLodgingForm((prev) => ({
                   ...prev,
-                  locationId: e.target.value ? parseInt(e.target.value) : undefined,
+                  locationId: e.target.value
+                    ? parseInt(e.target.value)
+                    : undefined,
                 }))
               }
               className="input flex-1"
@@ -988,7 +1186,9 @@ export default function TimelineEditModal({
         <input
           type="text"
           value={lodgingForm.address}
-          onChange={(e) => setLodgingForm((prev) => ({ ...prev, address: e.target.value }))}
+          onChange={(e) =>
+            setLodgingForm((prev) => ({ ...prev, address: e.target.value }))
+          }
           className="input"
           placeholder="Street address"
         />
@@ -997,25 +1197,43 @@ export default function TimelineEditModal({
       {/* Check-in/Check-out */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="lodging-checkin"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             Check-in *
           </label>
           <input
+            id="lodging-checkin"
             type="datetime-local"
             value={lodgingForm.checkInDate}
-            onChange={(e) => setLodgingForm((prev) => ({ ...prev, checkInDate: e.target.value }))}
+            onChange={(e) =>
+              setLodgingForm((prev) => ({
+                ...prev,
+                checkInDate: e.target.value,
+              }))
+            }
             className="input"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="lodging-checkout"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             Check-out *
           </label>
           <input
+            id="lodging-checkout"
             type="datetime-local"
             value={lodgingForm.checkOutDate}
-            onChange={(e) => setLodgingForm((prev) => ({ ...prev, checkOutDate: e.target.value }))}
+            onChange={(e) =>
+              setLodgingForm((prev) => ({
+                ...prev,
+                checkOutDate: e.target.value,
+              }))
+            }
             className="input"
             required
           />
@@ -1025,7 +1243,9 @@ export default function TimelineEditModal({
       {/* Timezone */}
       <TimezoneSelect
         value={lodgingForm.timezone}
-        onChange={(value) => setLodgingForm((prev) => ({ ...prev, timezone: value }))}
+        onChange={(value) =>
+          setLodgingForm((prev) => ({ ...prev, timezone: value }))
+        }
         label="Timezone"
       />
 
@@ -1036,7 +1256,9 @@ export default function TimelineEditModal({
         onConfirmationNumberChange={(value) =>
           setLodgingForm((prev) => ({ ...prev, confirmationNumber: value }))
         }
-        onBookingUrlChange={(value) => setLodgingForm((prev) => ({ ...prev, bookingUrl: value }))}
+        onBookingUrlChange={(value) =>
+          setLodgingForm((prev) => ({ ...prev, bookingUrl: value }))
+        }
         confirmationLabel="Confirmation Number"
       />
 
@@ -1044,8 +1266,12 @@ export default function TimelineEditModal({
       <CostCurrencyFields
         cost={lodgingForm.cost}
         currency={lodgingForm.currency}
-        onCostChange={(value) => setLodgingForm((prev) => ({ ...prev, cost: value }))}
-        onCurrencyChange={(value) => setLodgingForm((prev) => ({ ...prev, currency: value }))}
+        onCostChange={(value) =>
+          setLodgingForm((prev) => ({ ...prev, cost: value }))
+        }
+        onCurrencyChange={(value) =>
+          setLodgingForm((prev) => ({ ...prev, currency: value }))
+        }
       />
 
       {/* Notes */}
@@ -1055,7 +1281,9 @@ export default function TimelineEditModal({
         </label>
         <textarea
           value={lodgingForm.notes}
-          onChange={(e) => setLodgingForm((prev) => ({ ...prev, notes: e.target.value }))}
+          onChange={(e) =>
+            setLodgingForm((prev) => ({ ...prev, notes: e.target.value }))
+          }
           className="input"
           rows={3}
           placeholder="Additional notes..."
@@ -1074,7 +1302,9 @@ export default function TimelineEditModal({
         <input
           type="text"
           value={journalForm.title}
-          onChange={(e) => setJournalForm((prev) => ({ ...prev, title: e.target.value }))}
+          onChange={(e) =>
+            setJournalForm((prev) => ({ ...prev, title: e.target.value }))
+          }
           className="input"
           placeholder="Day 1 in Paris"
           required
@@ -1083,13 +1313,19 @@ export default function TimelineEditModal({
 
       {/* Entry Date */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label
+          htmlFor="journal-entry-date"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        >
           Entry Date
         </label>
         <input
+          id="journal-entry-date"
           type="datetime-local"
           value={journalForm.entryDate}
-          onChange={(e) => setJournalForm((prev) => ({ ...prev, entryDate: e.target.value }))}
+          onChange={(e) =>
+            setJournalForm((prev) => ({ ...prev, entryDate: e.target.value }))
+          }
           className="input"
         />
       </div>
@@ -1101,7 +1337,9 @@ export default function TimelineEditModal({
         </label>
         <textarea
           value={journalForm.content}
-          onChange={(e) => setJournalForm((prev) => ({ ...prev, content: e.target.value }))}
+          onChange={(e) =>
+            setJournalForm((prev) => ({ ...prev, content: e.target.value }))
+          }
           rows={8}
           className="input font-mono text-sm"
           placeholder="Write your journal entry here..."
@@ -1125,17 +1363,24 @@ export default function TimelineEditModal({
           {/* Locations */}
           {localLocations.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="journal-locations"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Locations
               </label>
               <select
+                id="journal-locations"
                 multiple
                 value={journalForm.locationIds.map(String)}
                 onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions).map((opt) =>
-                    parseInt(opt.value)
+                  const selectedIds = Array.from(e.target.selectedOptions).map(
+                    (opt) => parseInt(opt.value)
                   );
-                  setJournalForm((prev) => ({ ...prev, locationIds: selectedIds }));
+                  setJournalForm((prev) => ({
+                    ...prev,
+                    locationIds: selectedIds,
+                  }));
                 }}
                 className="input h-24"
               >
@@ -1151,17 +1396,24 @@ export default function TimelineEditModal({
           {/* Activities */}
           {activities.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="journal-activities"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Activities
               </label>
               <select
+                id="journal-activities"
                 multiple
                 value={journalForm.activityIds.map(String)}
                 onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions).map((opt) =>
-                    parseInt(opt.value)
+                  const selectedIds = Array.from(e.target.selectedOptions).map(
+                    (opt) => parseInt(opt.value)
                   );
-                  setJournalForm((prev) => ({ ...prev, activityIds: selectedIds }));
+                  setJournalForm((prev) => ({
+                    ...prev,
+                    activityIds: selectedIds,
+                  }));
                 }}
                 className="input h-24"
               >
@@ -1177,17 +1429,24 @@ export default function TimelineEditModal({
           {/* Lodgings */}
           {lodgings.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="journal-lodgings"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Lodgings
               </label>
               <select
+                id="journal-lodgings"
                 multiple
                 value={journalForm.lodgingIds.map(String)}
                 onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions).map((opt) =>
-                    parseInt(opt.value)
+                  const selectedIds = Array.from(e.target.selectedOptions).map(
+                    (opt) => parseInt(opt.value)
                   );
-                  setJournalForm((prev) => ({ ...prev, lodgingIds: selectedIds }));
+                  setJournalForm((prev) => ({
+                    ...prev,
+                    lodgingIds: selectedIds,
+                  }));
                 }}
                 className="input h-24"
               >
@@ -1203,23 +1462,37 @@ export default function TimelineEditModal({
           {/* Transportations */}
           {transportations.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="journal-transportations"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Transportation
               </label>
               <select
+                id="journal-transportations"
                 multiple
                 value={journalForm.transportationIds.map(String)}
                 onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions).map((opt) =>
-                    parseInt(opt.value)
+                  const selectedIds = Array.from(e.target.selectedOptions).map(
+                    (opt) => parseInt(opt.value)
                   );
-                  setJournalForm((prev) => ({ ...prev, transportationIds: selectedIds }));
+                  setJournalForm((prev) => ({
+                    ...prev,
+                    transportationIds: selectedIds,
+                  }));
                 }}
                 className="input h-24"
               >
                 {transportations.map((trans) => (
                   <option key={trans.id} value={trans.id}>
-                    {trans.type}: {trans.fromLocation?.name || trans.fromLocationName || "Unknown"} → {trans.toLocation?.name || trans.toLocationName || "Unknown"}
+                    {trans.type}:{" "}
+                    {trans.fromLocation?.name ||
+                      trans.fromLocationName ||
+                      "Unknown"}{" "}
+                    →{" "}
+                    {trans.toLocation?.name ||
+                      trans.toLocationName ||
+                      "Unknown"}
                   </option>
                 ))}
               </select>
@@ -1270,10 +1543,13 @@ export default function TimelineEditModal({
         </>
       }
     >
-      <form id="timeline-edit-form" onSubmit={handleSubmit} className="space-y-4">
+      <form
+        id="timeline-edit-form"
+        onSubmit={handleSubmit}
+        className="space-y-4"
+      >
         {renderForm()}
       </form>
     </FormModal>
   );
 }
-
