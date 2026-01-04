@@ -41,9 +41,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Widgets Grid */}
-        <div key={refreshKey} className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-          {/* Upcoming Trips - Takes 2 columns on xl screens */}
-          <div className="xl:col-span-2 animate-fade-in">
+        <div key={refreshKey} className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Upcoming Trips */}
+          <div className="animate-fade-in">
             <UpcomingTripsWidget />
           </div>
 
@@ -52,8 +52,8 @@ export default function DashboardPage() {
             <TravelStatsWidget />
           </div>
 
-          {/* Recent Photos - Takes 2 columns on xl screens */}
-          <div className="xl:col-span-2 animate-fade-in stagger-2">
+          {/* Recent Photos */}
+          <div className="animate-fade-in stagger-2">
             <RecentPhotosWidget />
           </div>
 

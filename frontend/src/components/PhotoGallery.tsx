@@ -51,6 +51,7 @@ export default function PhotoGallery({
   const [newAlbumName, setNewAlbumName] = useState("");
   const [newAlbumDescription, setNewAlbumDescription] = useState("");
   const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
+  const [isDeletingPhotos, setIsDeletingPhotos] = useState(false);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(
     null
   );
@@ -402,7 +403,7 @@ export default function PhotoGallery({
     if (!confirmed) return;
 
     try {
-      setIsAddingToAlbum(true);
+      setIsDeletingPhotos(true);
       const photoIds = Array.from(selectedPhotoIds);
       for (const photoId of photoIds) {
         await photoService.deletePhoto(photoId);
@@ -414,7 +415,7 @@ export default function PhotoGallery({
     } catch {
       alert("Failed to delete photos");
     } finally {
-      setIsAddingToAlbum(false);
+      setIsDeletingPhotos(false);
     }
   };
 
@@ -635,12 +636,12 @@ export default function PhotoGallery({
                 <button
                   type="button"
                   onClick={handleDeleteSelected}
-                  disabled={selectedPhotoIds.size === 0 || isAddingToAlbum}
+                  disabled={selectedPhotoIds.size === 0}
                   className="btn btn-danger"
                 >
-                  Delete{" "}
+                  {isDeletingPhotos ? "Deleting..." : "Delete"}{" "}
                   {selectedPhotoIds.size > 0 ? `${selectedPhotoIds.size} ` : ""}
-                  Photo{selectedPhotoIds.size !== 1 ? "s" : ""}
+                  {!isDeletingPhotos && `Photo${selectedPhotoIds.size !== 1 ? "s" : ""}`}
                 </button>
               </>
             )}

@@ -240,12 +240,15 @@ export default function ActivityManager({
       }
     } else {
       // For timed events, combine date and time and convert to UTC
-      if (values.startDate && values.startTime) {
-        const dateTimeLocal = `${values.startDate}T${values.startTime}`;
+      // If only date is provided without time, default to noon (12:00) to ensure it appears on timeline
+      if (values.startDate) {
+        const startTime = values.startTime || "12:00";
+        const dateTimeLocal = `${values.startDate}T${startTime}`;
         startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
       }
-      if (values.endDate && values.endTime) {
-        const dateTimeLocal = `${values.endDate}T${values.endTime}`;
+      if (values.endDate) {
+        const endTime = values.endTime || "12:00";
+        const dateTimeLocal = `${values.endDate}T${endTime}`;
         endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
       }
     }
@@ -724,62 +727,69 @@ export default function ActivityManager({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="activity-start-date-time"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Start Time
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    id="activity-start-date-time"
-                    value={values.startDate}
-                    onChange={(e) =>
-                      handleChange("startDate", e.target.value)
-                    }
-                    className="input flex-1"
-                  />
-                  <input
-                    type="time"
-                    id="activity-start-time"
-                    aria-label="Start time"
-                    value={values.startTime}
-                    onChange={(e) =>
-                      handleChange("startTime", e.target.value)
-                    }
-                    className="input flex-1"
-                  />
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="activity-start-date-time"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Start Time
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      id="activity-start-date-time"
+                      value={values.startDate}
+                      onChange={(e) =>
+                        handleChange("startDate", e.target.value)
+                      }
+                      className="input flex-1"
+                    />
+                    <input
+                      type="time"
+                      id="activity-start-time"
+                      aria-label="Start time"
+                      value={values.startTime}
+                      onChange={(e) =>
+                        handleChange("startTime", e.target.value)
+                      }
+                      className="input flex-1"
+                      placeholder="12:00"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label
+                    htmlFor="activity-end-date-time"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    End Time
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      id="activity-end-date-time"
+                      value={values.endDate}
+                      onChange={(e) => handleChange("endDate", e.target.value)}
+                      className="input flex-1"
+                    />
+                    <input
+                      type="time"
+                      id="activity-end-time"
+                      aria-label="End time"
+                      value={values.endTime}
+                      onChange={(e) => handleChange("endTime", e.target.value)}
+                      className="input flex-1"
+                      placeholder="12:00"
+                    />
+                  </div>
                 </div>
               </div>
-              <div>
-                <label
-                  htmlFor="activity-end-date-time"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  End Time
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    id="activity-end-date-time"
-                    value={values.endDate}
-                    onChange={(e) => handleChange("endDate", e.target.value)}
-                    className="input flex-1"
-                  />
-                  <input
-                    type="time"
-                    id="activity-end-time"
-                    aria-label="End time"
-                    value={values.endTime}
-                    onChange={(e) => handleChange("endTime", e.target.value)}
-                    className="input flex-1"
-                  />
-                </div>
-              </div>
-            </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+                Time defaults to 12:00 PM if not specified
+              </p>
+            </>
           )}
 
           {/* Timezone Component */}

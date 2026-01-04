@@ -1556,13 +1556,6 @@ export default function TripDetailPage() {
         {/* Unscheduled Tab */}
         {activeTab === "unscheduled" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Unscheduled Activities
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Activities with dates but no specific times. These won't appear in
-              the timeline until times are added.
-            </p>
             <UnscheduledActivities
               tripId={trip.id}
               locations={locations}
