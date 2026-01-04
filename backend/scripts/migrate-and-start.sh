@@ -5,39 +5,18 @@ echo "========================================="
 echo "Database Migration & Startup Script"
 echo "========================================="
 
-# Create Prisma config file in /tmp with the database URL
-echo "Setting up Prisma environment..."
-cat > /tmp/prisma.config.ts <<'CONFIGEOF'
-import { defineConfig, env } from "prisma/config";
-
-export default defineConfig({
-  schema: '/app/prisma/schema.prisma',
-  migrations: {
-    path: '/app/prisma/migrations',
-  },
-  datasource: {
-    url: env("DATABASE_URL")
-  }
-});
-CONFIGEOF
-
-# Wait for database to be ready
+# Wait for database to be ready using pg_isready
 echo "Waiting for database to be ready..."
-until cd /app && DATABASE_URL="${DATABASE_URL}" npx prisma db execute --config=/tmp/prisma.config.ts --stdin <<EOF2
-SELECT 1;
-EOF2
-do
+until pg_isready -h db -U captains_log_user -d captains_log > /dev/null 2>&1; do
   echo "Database is unavailable - sleeping"
   sleep 2
 done
 
 echo "Database is ready!"
 
-# Check if PostGIS extension is installed
+# Check if PostGIS extension is installed using psql
 echo "Checking for PostGIS extension..."
-cd /app && DATABASE_URL="${DATABASE_URL}" npx prisma db execute --config=/tmp/prisma.config.ts --stdin <<EOF
-CREATE EXTENSION IF NOT EXISTS postgis;
-EOF
+PGPASSWORD=captains_log_password psql -h db -U captains_log_user -d captains_log -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
 
 # Run Prisma migrations
 echo "Running prisma migrate deploy..."
