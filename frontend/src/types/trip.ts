@@ -69,3 +69,18 @@ export type TripListResponse = {
   limit: number;
   totalPages: number;
 };
+
+export interface ValidationIssue {
+  severity: 'critical' | 'warning' | 'info';
+  type: string;
+  message: string;
+  affectedItems?: any[];
+  suggestion?: string;
+}
+
+export interface ValidationResult {
+  tripId: number;
+  isValid: boolean;
+  issues: ValidationIssue[];
+  score: number;
+}

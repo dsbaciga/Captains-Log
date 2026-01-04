@@ -15,6 +15,7 @@ export type Activity = {
   bookingUrl: string | null;
   bookingReference: string | null;
   notes: string | null;
+  manualOrder: number | null;
   createdAt: string;
   updatedAt: string;
   location?: {
@@ -31,10 +32,40 @@ export type Activity = {
   children?: {
     id: number;
     name: string;
+    description: string | null;
     startTime: string | null;
     endTime: string | null;
     timezone: string | null;
     category: string | null;
+    cost: number | null;
+    currency: string | null;
+    bookingReference: string | null;
+    notes: string | null;
+    location?: {
+      id: number;
+      name: string;
+      address: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    };
+    photoAlbums?: {
+      id: number;
+      name: string;
+      description: string | null;
+      _count?: {
+        photoAssignments: number;
+      };
+    }[];
+    journalAssignments?: {
+      id: number;
+      journal: {
+        id: number;
+        title: string | null;
+        content: string;
+        date: string | null;
+        entryType: string;
+      };
+    }[];
   }[];
   photoAlbums?: {
     id: number;

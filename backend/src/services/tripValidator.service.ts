@@ -1,0 +1,306 @@
+import prisma from '../config/database';
+import travelTimeService from './travelTime.service';
+
+export interface ValidationIssue {
+  severity: 'critical' | 'warning' | 'info';
+  type: string;
+  message: string;
+  affectedItems?: any[];
+  suggestion?: string;
+}
+
+export interface ValidationResult {
+  tripId: number;
+  isValid: boolean;
+  issues: ValidationIssue[];
+  score: number; // 0-100 health score
+}
+
+class TripValidatorService {
+  async validateTrip(tripId: number): Promise<ValidationResult> {
+    const trip = await prisma.trip.findUnique({
+      where: { id: tripId },
+      include: {
+        activities: true,
+        lodging: true,
+        transportation: true,
+        locations: true,
+        journalEntries: true,
+      },
+    });
+
+    if (!trip) {
+      throw new Error('Trip not found');
+    }
+
+    const issues: ValidationIssue[] = [];
+
+    // Run all validation checks
+    issues.push(...this.checkMissingLodging(trip));
+    issues.push(...this.checkMissingTransportation(trip));
+    issues.push(...this.checkTimelineConflicts(trip));
+    issues.push(...this.checkInvalidDates(trip));
+    issues.push(...this.checkMissingInformation(trip));
+    issues.push(...this.checkEmptyDays(trip));
+    issues.push(...await this.checkTravelTimeAlerts(trip));
+
+    // Calculate health score
+    const score = this.calculateHealthScore(issues);
+    const isValid = issues.filter(i => i.severity === 'critical').length === 0;
+
+    return {
+      tripId,
+      isValid,
+      issues,
+      score,
+    };
+  }
+
+  private checkMissingLodging(trip: any): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+
+    if (!trip.startDate || !trip.endDate) {
+      return issues;
+    }
+
+    const start = new Date(trip.startDate);
+    const end = new Date(trip.endDate);
+    const tripDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Get all days covered by lodging
+    const lodgingDays = new Set<string>();
+    trip.lodging.forEach((lodging: any) => {
+      if (lodging.checkInDate && lodging.checkOutDate) {
+        const checkIn = new Date(lodging.checkInDate);
+        const checkOut = new Date(lodging.checkOutDate);
+        let current = new Date(checkIn);
+        while (current < checkOut) {
+          lodgingDays.add(current.toDateString());
+          current.setDate(current.getDate() + 1);
+        }
+      }
+    });
+
+    // Check for missing lodging days
+    const missingDays: string[] = [];
+    let current = new Date(start);
+    for (let i = 0; i < tripDays; i++) {
+      if (!lodgingDays.has(current.toDateString())) {
+        missingDays.push(current.toDateString());
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (missingDays.length > 0) {
+      issues.push({
+        severity: 'warning',
+        type: 'missing_lodging',
+        message: `${missingDays.length} day(s) without lodging`,
+        affectedItems: missingDays,
+        suggestion: 'Add lodging for all days in your trip',
+      });
+    }
+
+    return issues;
+  }
+
+  private checkMissingTransportation(trip: any): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+
+    // If trip has multiple locations but no transportation
+    if (trip.locations.length > 1 && trip.transportation.length === 0) {
+      issues.push({
+        severity: 'warning',
+        type: 'missing_transportation',
+        message: 'Multiple locations but no transportation recorded',
+        suggestion: 'Add transportation details between locations',
+      });
+    }
+
+    return issues;
+  }
+
+  private checkTimelineConflicts(trip: any): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+
+    // Check for overlapping activities
+    const timedActivities = trip.activities
+      .filter((a: any) => a.startTime && a.endTime && !a.allDay)
+      .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+    for (let i = 0; i < timedActivities.length - 1; i++) {
+      const current = timedActivities[i];
+      const next = timedActivities[i + 1];
+
+      if (new Date(current.endTime) > new Date(next.startTime)) {
+        issues.push({
+          severity: 'warning',
+          type: 'timeline_conflict',
+          message: `Activities "${current.name}" and "${next.name}" overlap`,
+          affectedItems: [current.id, next.id],
+          suggestion: 'Adjust activity times to prevent overlap',
+        });
+      }
+    }
+
+    return issues;
+  }
+
+  private checkInvalidDates(trip: any): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+
+    if (!trip.startDate || !trip.endDate) {
+      return issues;
+    }
+
+    const start = new Date(trip.startDate);
+    const end = new Date(trip.endDate);
+
+    // Check activities outside trip dates
+    trip.activities.forEach((activity: any) => {
+      if (activity.startTime) {
+        const activityDate = new Date(activity.startTime);
+        if (activityDate < start || activityDate > end) {
+          issues.push({
+            severity: 'critical',
+            type: 'invalid_date',
+            message: `Activity "${activity.name}" is outside trip dates`,
+            affectedItems: [activity.id],
+            suggestion: 'Move activity within trip dates or adjust trip dates',
+          });
+        }
+      }
+    });
+
+    return issues;
+  }
+
+  private checkMissingInformation(trip: any): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+
+    // Activities without locations
+    const activitiesWithoutLocation = trip.activities.filter((a: any) => !a.locationId);
+    if (activitiesWithoutLocation.length > 0) {
+      issues.push({
+        severity: 'info',
+        type: 'missing_info',
+        message: `${activitiesWithoutLocation.length} activities without location`,
+        suggestion: 'Add location information to activities',
+      });
+    }
+
+    // Activities without times
+    const activitiesWithoutTime = trip.activities.filter((a: any) => !a.startTime && !a.allDay);
+    if (activitiesWithoutTime.length > 0) {
+      issues.push({
+        severity: 'info',
+        type: 'missing_info',
+        message: `${activitiesWithoutTime.length} activities without time`,
+        suggestion: 'Add start time or mark as all-day',
+      });
+    }
+
+    return issues;
+  }
+
+  private checkEmptyDays(trip: any): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+
+    if (!trip.startDate || !trip.endDate) {
+      return issues;
+    }
+
+    const start = new Date(trip.startDate);
+    const end = new Date(trip.endDate);
+
+    // Get all days with activities
+    const daysWithActivities = new Set<string>();
+    trip.activities.forEach((activity: any) => {
+      if (activity.startTime) {
+        const activityDate = new Date(activity.startTime);
+        daysWithActivities.add(activityDate.toDateString());
+      }
+    });
+
+    // Count empty days
+    let emptyDays = 0;
+    let current = new Date(start);
+    while (current <= end) {
+      if (!daysWithActivities.has(current.toDateString())) {
+        emptyDays++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (emptyDays > 0) {
+      issues.push({
+        severity: 'info',
+        type: 'empty_days',
+        message: `${emptyDays} day(s) without planned activities`,
+        suggestion: 'Consider adding activities for free days',
+      });
+    }
+
+    return issues;
+  }
+
+  private calculateHealthScore(issues: ValidationIssue[]): number {
+    let score = 100;
+
+    issues.forEach((issue) => {
+      switch (issue.severity) {
+        case 'critical':
+          score -= 20;
+          break;
+        case 'warning':
+          score -= 10;
+          break;
+        case 'info':
+          score -= 5;
+          break;
+      }
+    });
+
+    return Math.max(0, score);
+  }
+
+  private async checkTravelTimeAlerts(trip: any): Promise<ValidationIssue[]> {
+    const issues: ValidationIssue[] = [];
+
+    // Get activities with locations, sorted by time
+    const activitiesWithLocations = trip.activities
+      .filter((a: any) => a.startTime && a.endTime && a.locationId)
+      .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+    // Fetch location details for activities
+    const activityIds = activitiesWithLocations.map((a: any) => a.id);
+    const activitiesWithFullLocation = await prisma.activity.findMany({
+      where: { id: { in: activityIds } },
+      include: {
+        location: true,
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    // Analyze travel time between consecutive activities
+    const alerts = travelTimeService.analyzeActivityTransitions(activitiesWithFullLocation);
+
+    // Convert alerts to validation issues
+    alerts.forEach((alert) => {
+      issues.push({
+        severity: alert.severity,
+        type: 'travel_time',
+        message: alert.message,
+        affectedItems: [alert.fromActivity, alert.toActivity],
+        suggestion:
+          alert.type === 'impossible'
+            ? `Allow ${alert.requiredMinutes} minutes for travel or adjust activity times`
+            : `Consider adding ${30 - alert.bufferMinutes} more minutes buffer`,
+      });
+    });
+
+    return issues;
+  }
+}
+
+export default new TripValidatorService();

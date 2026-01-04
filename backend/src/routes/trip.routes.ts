@@ -104,4 +104,7 @@ router.delete('/:id', tripController.deleteTrip);
 // Cover photo route
 router.put('/:id/cover-photo', tripController.updateCoverPhoto);
 
+// Trip validation route
+router.get('/:id/validate', tripController.validateTrip);
+
 export default router;

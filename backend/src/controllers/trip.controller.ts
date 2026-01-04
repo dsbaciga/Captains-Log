@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import tripService from '../services/trip.service';
+import tripValidatorService from '../services/tripValidator.service';
 import { createTripSchema, updateTripSchema, getTripQuerySchema } from '../types/trip.types';
 import { z } from 'zod';
 import logger from '../config/logger';
@@ -127,6 +128,27 @@ export class TripController {
       res.status(200).json({
         status: 'success',
         data: trip,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async validateTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ status: 'error', message: 'Unauthorized' });
+        return;
+      }
+
+      const tripId = parseInt(req.params.id);
+      const validation = await tripValidatorService.validateTrip(tripId);
+
+      logger.info(`Trip validation performed for trip ${tripId}`);
+
+      res.status(200).json({
+        status: 'success',
+        data: validation,
       });
     } catch (error) {
       next(error);

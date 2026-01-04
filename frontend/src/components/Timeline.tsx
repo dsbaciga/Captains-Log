@@ -17,6 +17,23 @@ import DayMiniMap from "./DayMiniMap";
 import TimelineEditModal from "./TimelineEditModal";
 import { getWeatherIcon } from "../utils/weatherIcons";
 import toast from "react-hot-toast";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TimelineProps {
   tripId: number;
@@ -108,6 +125,23 @@ const Timeline = ({
   );
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
 
+  // View mode state - defaults to 'standard', persists in localStorage
+  const [viewMode, setViewMode] = useState<'standard' | 'compact'>(() => {
+    const saved = localStorage.getItem('timeline-view-mode');
+    return (saved === 'compact' || saved === 'standard') ? saved : 'standard';
+  });
+
+  // Reorder mode state - enables drag-and-drop for activities
+  const [reorderMode, setReorderMode] = useState(false);
+
+  // Drag-and-drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
@@ -135,6 +169,12 @@ const Timeline = ({
     });
   };
 
+  // Toggle view mode
+  const toggleViewMode = (mode: 'standard' | 'compact') => {
+    setViewMode(mode);
+    localStorage.setItem('timeline-view-mode', mode);
+  };
+
   // Toggle day collapse
   const toggleDay = (dateKey: string) => {
     setCollapsedDays((prev) => {
@@ -146,6 +186,49 @@ const Timeline = ({
       }
       return newSet;
     });
+  };
+
+  // Handle drag end for activities reordering
+  const handleDragEnd = async (event: DragEndEvent, dateKey: string) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    // Get all activity items for this day
+    const dayItems = timelineItems.filter(
+      item => getDateStringInTimezone(item.dateTime, tripTimezone) === dateKey && item.type === 'activity'
+    );
+
+    const oldIndex = dayItems.findIndex(item => `activity-${item.id}` === active.id);
+    const newIndex = dayItems.findIndex(item => `activity-${item.id}` === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Reorder locally for immediate feedback
+    const reorderedItems = arrayMove(dayItems, oldIndex, newIndex);
+
+    // Extract activity IDs in new order
+    const activityIds = reorderedItems.map(item => item.id);
+
+    try {
+      // Update backend
+      await activityService.reorderActivities(tripId, activityIds);
+
+      // Refresh timeline to get updated order
+      if (onRefresh) {
+        onRefresh();
+      }
+
+      toast.success('Activities reordered successfully');
+    } catch (error) {
+      console.error('Failed to reorder activities:', error);
+      toast.error('Failed to reorder activities');
+
+      // Refresh to revert to server state
+      if (onRefresh) {
+        onRefresh();
+      }
+    }
   };
 
   // Handle edit - open modal instead of navigating to tab
@@ -832,6 +915,41 @@ const Timeline = ({
     };
   };
 
+  // Sortable wrapper component for drag-and-drop
+  const SortableItem = ({ id, children }: { id: string; children: React.ReactNode }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <div ref={setNodeRef} style={style} {...attributes}>
+        {reorderMode && (
+          <div
+            {...listeners}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 cursor-grab active:cursor-grabbing p-2 bg-gray-100 dark:bg-gray-700 rounded-l hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            title="Drag to reorder"
+          >
+            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+          </div>
+        )}
+        {children}
+      </div>
+    );
+  };
+
   const renderTimelineColumn = (items: TimelineItem[], timezone?: string, currentDayKey?: string) => {
     // Pre-compute connection groups for this day's items
     const connectionGroups = new Map<string, TimelineItem[]>();
@@ -880,14 +998,24 @@ const Timeline = ({
       });
     };
 
-    return (
-      <div className="flex-1">
-        <div className="relative">
-          {/* Timeline line */}
-          <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+    // Get only activity items for sortable context
+    const activityItems = items.filter(item => item.type === 'activity');
+    const activityIds = activityItems.map(item => `activity-${item.id}`);
 
-          <div className="space-y-6">
-            {items.map((item, itemIndex) => {
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={(event) => handleDragEnd(event, currentDayKey || '')}
+      >
+        <SortableContext items={activityIds} strategy={verticalListSortingStrategy}>
+          <div className="flex-1">
+            <div className="relative">
+              {/* Timeline line */}
+              <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+
+              <div className={viewMode === 'compact' ? 'space-y-3' : 'space-y-6'}>
+                {items.map((item, itemIndex) => {
               const connectionInfo = getConnectionInfo(item);
               const nextItem = items[itemIndex + 1];
               const showConnectionLine =
@@ -895,7 +1023,7 @@ const Timeline = ({
                 !connectionInfo.isLast &&
                 nextItem?.connectionGroupId === item.connectionGroupId;
 
-              return (
+              const itemContent = (
                 <div
                   key={`${item.type}-${item.id}`}
                   className="timeline-item relative flex gap-4"
@@ -907,7 +1035,7 @@ const Timeline = ({
 
                   {/* Icon */}
                   <div
-                    className={`flex-shrink-0 w-12 h-12 rounded-full ${getTypeColor(
+                    className={`flex-shrink-0 ${viewMode === 'compact' ? 'w-10 h-10' : 'w-12 h-12'} rounded-full ${getTypeColor(
                       item.type
                     )} text-white flex items-center justify-center z-10 ${
                       connectionInfo
@@ -920,7 +1048,7 @@ const Timeline = ({
 
                   {/* Content */}
                   <div
-                    className={`group flex-1 bg-white dark:bg-gray-800 border rounded-lg p-4 shadow-sm relative ${
+                    className={`group flex-1 bg-white dark:bg-gray-800 border rounded-lg ${viewMode === 'compact' ? 'p-2 text-sm' : 'p-4'} shadow-sm relative ${
                       connectionInfo
                         ? "border-green-300 dark:border-green-600"
                         : "border-gray-200 dark:border-gray-700"
@@ -1225,7 +1353,7 @@ const Timeline = ({
                               Child Activities ({activity.children.length}):
                             </span>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             {activity.children.map((child) => {
                               // Calculate duration if both start and end times exist
                               let childDuration: string | null = null;
@@ -1241,9 +1369,10 @@ const Timeline = ({
                               return (
                                 <div
                                   key={child.id}
-                                  className="w-full text-left text-sm bg-blue-50 dark:bg-blue-900/20 rounded p-2 border-l-4 border-blue-400 dark:border-blue-500"
+                                  className="w-full text-left text-sm bg-blue-50 dark:bg-blue-900/20 rounded p-3 border-l-4 border-blue-400 dark:border-blue-500 space-y-2"
                                 >
-                                  <div className="flex items-start justify-between">
+                                  {/* Name and Category */}
+                                  <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1">
                                       <div className="font-medium text-gray-900 dark:text-white">
                                         {child.name}
@@ -1253,19 +1382,135 @@ const Timeline = ({
                                           {child.category}
                                         </div>
                                       )}
-                                      {child.startTime && (
-                                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                          {formatTime(new Date(child.startTime), timezone)}
-                                          {child.endTime && ` - ${formatTime(new Date(child.endTime), timezone)}`}
-                                          {childDuration && (
-                                            <span className="text-gray-400 dark:text-gray-500">
-                                              {" "}({childDuration})
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
+
+                                  {/* Description */}
+                                  {child.description && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                                      {child.description}
+                                    </div>
+                                  )}
+
+                                  {/* Time */}
+                                  {child.startTime && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                                      <span className="font-medium">Time:</span>{" "}
+                                      {formatTime(new Date(child.startTime), timezone)}
+                                      {child.endTime && ` - ${formatTime(new Date(child.endTime), timezone)}`}
+                                      {childDuration && (
+                                        <span className="text-gray-400 dark:text-gray-500">
+                                          {" "}({childDuration})
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Location */}
+                                  {child.location && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                                      <span className="font-medium">Location:</span>{" "}
+                                      {child.location.name}
+                                      {child.location.address && (
+                                        <span className="text-gray-500 dark:text-gray-500">
+                                          {" "}({child.location.address})
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Cost */}
+                                  {child.cost && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                                      <span className="font-medium">Cost:</span>{" "}
+                                      {child.currency} {child.cost}
+                                    </div>
+                                  )}
+
+                                  {/* Booking Reference */}
+                                  {child.bookingReference && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                                      <span className="font-medium">Reference:</span>{" "}
+                                      {child.bookingReference}
+                                    </div>
+                                  )}
+
+                                  {/* Notes */}
+                                  {child.notes && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                                      <span className="font-medium">Notes:</span>{" "}
+                                      {child.notes}
+                                    </div>
+                                  )}
+
+                                  {/* Photo Albums */}
+                                  {child.photoAlbums && child.photoAlbums.length > 0 && (
+                                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        Albums:
+                                      </span>
+                                      {child.photoAlbums.slice(0, 3).map((album) => (
+                                        <span
+                                          key={album.id}
+                                          className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded"
+                                        >
+                                          {album.name}
+                                          {album._count?.photoAssignments && (
+                                            <span className="ml-1 text-purple-500 dark:text-purple-400">
+                                              ({album._count.photoAssignments})
+                                            </span>
+                                          )}
+                                        </span>
+                                      ))}
+                                      {child.photoAlbums.length > 3 && (
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                          +{child.photoAlbums.length - 3} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Journal Entries */}
+                                  {child.journalAssignments && child.journalAssignments.length > 0 && (
+                                    <div className="pt-1 border-t border-blue-200 dark:border-blue-800">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <svg
+                                          className="w-3 h-3 text-orange-500"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                                          />
+                                        </svg>
+                                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                          Journal {child.journalAssignments.length === 1 ? "Entry" : "Entries"}:
+                                        </span>
+                                      </div>
+                                      <div className="space-y-1">
+                                        {child.journalAssignments.map((assignment) => (
+                                          <div
+                                            key={assignment.id}
+                                            className="text-xs bg-orange-50 dark:bg-orange-900/20 rounded p-2"
+                                          >
+                                            <div className="font-medium text-gray-900 dark:text-white">
+                                              {assignment.journal.title || "Untitled Entry"}
+                                            </div>
+                                            {assignment.journal.content && (
+                                              <div className="text-gray-600 dark:text-gray-400 mt-0.5">
+                                                {assignment.journal.content.substring(0, 80)}
+                                                {assignment.journal.content.length > 80 ? "..." : ""}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -1346,10 +1591,23 @@ const Timeline = ({
                   </div>
                 </div>
               );
+
+              // Wrap activities in SortableItem when reorder mode is enabled
+              if (item.type === 'activity' && reorderMode) {
+                return (
+                  <SortableItem key={`activity-${item.id}`} id={`activity-${item.id}`}>
+                    {itemContent}
+                  </SortableItem>
+                );
+              }
+
+              return itemContent;
             })}
           </div>
         </div>
       </div>
+    </SortableContext>
+  </DndContext>
     );
   };
 
@@ -1754,6 +2012,57 @@ const Timeline = ({
           </button>
         ))}
 
+        {/* View Mode Toggle */}
+        <div className="flex gap-1 ml-4">
+          <button
+            type="button"
+            onClick={() => toggleViewMode('standard')}
+            className={`px-3 py-1.5 rounded-l-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+              viewMode === 'standard'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+            title="Standard view"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span className="hidden sm:inline">Standard</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleViewMode('compact')}
+            className={`px-3 py-1.5 rounded-r-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+              viewMode === 'compact'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+            title="Compact view"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+            <span className="hidden sm:inline">Compact</span>
+          </button>
+        </div>
+
+        {/* Reorder Mode Toggle */}
+        <button
+          type="button"
+          onClick={() => setReorderMode(!reorderMode)}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+            reorderMode
+              ? 'bg-purple-500 text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+          title={reorderMode ? "Exit reorder mode" : "Enable drag-and-drop to reorder activities"}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+          </svg>
+          <span className="hidden sm:inline">{reorderMode ? 'Reordering' : 'Reorder'}</span>
+        </button>
+
         {/* Print Button */}
         <div className="ml-auto">
           <button
@@ -1836,7 +2145,7 @@ const Timeline = ({
         </div>
       )}
 
-      <div className="timeline-content space-y-8">
+      <div className={`timeline-content ${viewMode === 'compact' ? 'space-y-4' : 'space-y-8'}`}>
         {sortedDateKeys.map((dateKey) => {
           const items = allGroupedItems[dateKey];
           const dayWeather = weatherData[dateKey];

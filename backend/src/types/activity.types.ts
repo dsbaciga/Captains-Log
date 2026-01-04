@@ -35,5 +35,10 @@ export const updateActivitySchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
+export const reorderActivitiesSchema = z.object({
+  activityIds: z.array(z.number()).min(1),
+});
+
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
 export type UpdateActivityInput = z.infer<typeof updateActivitySchema>;
+export type ReorderActivitiesInput = z.infer<typeof reorderActivitiesSchema>;

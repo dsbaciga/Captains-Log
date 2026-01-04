@@ -89,16 +89,37 @@ class ActivityService {
           select: {
             id: true,
             name: true,
+            description: true,
             startTime: true,
             endTime: true,
+            timezone: true,
             category: true,
+            cost: true,
+            currency: true,
+            bookingReference: true,
+            notes: true,
+            location: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                latitude: true,
+                longitude: true,
+              },
+            },
+            photoAlbums: photoAlbumsInclude,
+            journalAssignments: journalAssignmentsInclude,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
         photoAlbums: photoAlbumsInclude,
         journalAssignments: journalAssignmentsInclude,
       },
-      orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [
+        { manualOrder: { sort: 'asc', nulls: 'last' } },
+        { startTime: { sort: 'asc', nulls: 'last' } },
+        { createdAt: 'asc' }
+      ],
     });
 
     return convertDecimals(activities);
@@ -128,9 +149,26 @@ class ActivityService {
           select: {
             id: true,
             name: true,
+            description: true,
             startTime: true,
             endTime: true,
+            timezone: true,
             category: true,
+            cost: true,
+            currency: true,
+            bookingReference: true,
+            notes: true,
+            location: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                latitude: true,
+                longitude: true,
+              },
+            },
+            photoAlbums: photoAlbumsInclude,
+            journalAssignments: journalAssignmentsInclude,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
@@ -239,6 +277,23 @@ class ActivityService {
     await prisma.activity.delete({
       where: { id: activityId },
     });
+
+    return { success: true };
+  }
+
+  async reorderActivities(userId: number, tripId: number, activityIds: number[]) {
+    // Verify user has access to trip
+    await verifyTripAccess(userId, tripId);
+
+    // Update manualOrder for each activity
+    const updatePromises = activityIds.map((activityId, index) =>
+      prisma.activity.update({
+        where: { id: activityId },
+        data: { manualOrder: index },
+      })
+    );
+
+    await Promise.all(updatePromises);
 
     return { success: true };
   }

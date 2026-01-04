@@ -3,6 +3,7 @@ import activityService from '../services/activity.service';
 import {
   createActivitySchema,
   updateActivitySchema,
+  reorderActivitiesSchema,
 } from '../types/activity.types';
 import { asyncHandler } from '../utils/asyncHandler';
 
@@ -45,5 +46,13 @@ export const activityController = {
     const activityId = parseInt(req.params.id);
     await activityService.deleteActivity(userId, activityId);
     res.status(204).send();
+  }),
+
+  reorderActivities: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const tripId = parseInt(req.params.tripId);
+    const { activityIds } = reorderActivitiesSchema.parse(req.body);
+    await activityService.reorderActivities(userId, tripId, activityIds);
+    res.json({ success: true });
   }),
 };

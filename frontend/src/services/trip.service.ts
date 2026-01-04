@@ -1,5 +1,5 @@
 import axios from '../lib/axios';
-import type { Trip, CreateTripInput, UpdateTripInput, TripListResponse } from '../types/trip';
+import type { Trip, CreateTripInput, UpdateTripInput, TripListResponse, ValidationResult } from '../types/trip';
 
 class TripService {
   async createTrip(data: CreateTripInput): Promise<Trip> {
@@ -33,6 +33,11 @@ class TripService {
 
   async updateCoverPhoto(tripId: number, photoId: number | null): Promise<Trip> {
     const response = await axios.put(`/trips/${tripId}/cover-photo`, { photoId });
+    return response.data.data;
+  }
+
+  async validateTrip(tripId: number): Promise<ValidationResult> {
+    const response = await axios.get(`/trips/${tripId}/validate`);
     return response.data.data;
   }
 }

@@ -272,6 +272,7 @@ model Activity {
   bookingUrl  String?   @map("booking_url") @db.VarChar(500)
   bookingReference String? @map("booking_reference") @db.VarChar(255)
   notes       String?   @db.Text
+  manualOrder Int?      @map("manual_order") // Manual sort order (null = use chronological)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
@@ -283,6 +284,10 @@ model Activity {
   journalAssignments JournalActivity[]
 
   @@map("activities")
+  @@index([tripId])
+  @@index([locationId])
+  @@index([parentId])
+  @@index([tripId, manualOrder])
 }
 
 model Transportation {
