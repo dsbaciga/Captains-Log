@@ -25,8 +25,8 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install OpenSSL libraries required by Prisma
-RUN apk add --no-cache openssl libc6-compat
+# Install OpenSSL libraries and PostgreSQL client required by Prisma and startup script
+RUN apk add --no-cache openssl libc6-compat postgresql-client
 
 WORKDIR /app
 

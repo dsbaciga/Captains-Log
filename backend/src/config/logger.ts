@@ -16,20 +16,18 @@ const logger = winston.createLogger({
   ],
 });
 
-// If not in production, log to console as well
-if (config.nodeEnv !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          return `${timestamp} [${level}]: ${message} ${
-            Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
-          }`;
-        })
-      ),
-    })
-  );
-}
+// Always log to console in production and development
+// Modern container environments (Docker, TrueNAS SCALE) expect logs on stdout/stderr
+logger.add(
+  new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
+        const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
+        return `${timestamp} [${level}] ${service ? `[${service}]` : ''}: ${message} ${metaStr}`;
+      })
+    ),
+  })
+);
 
 export default logger;

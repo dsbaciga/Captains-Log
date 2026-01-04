@@ -25,6 +25,33 @@ const prismaClient = new PrismaClient({
 // Apply extensions
 const prisma = prismaClient.$extends(postgisExtension);
 
+/**
+ * Checks the database connection and retries if it fails.
+ * Useful for Docker environments where the database might take time to start.
+ */
+export async function checkDatabaseConnection(retries = 5, interval = 5000): Promise<void> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      // Test the connection by running a simple query
+      await prisma.$queryRaw`SELECT 1`;
+      logger.info('Database connection successful');
+      return;
+    } catch (error) {
+      const isLastRetry = i === retries - 1;
+      const delay = interval;
+
+      logger.warn(`Database connection attempt ${i + 1} failed. ${isLastRetry ? 'Final attempt.' : `Retrying in ${delay / 1000}s...`}`);
+
+      if (isLastRetry) {
+        logger.error('Could not connect to the database after multiple attempts.');
+        throw error;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 // Log queries in development
 if (process.env.NODE_ENV === 'development') {
   (prismaClient as any).$on('query', (e: any) => {

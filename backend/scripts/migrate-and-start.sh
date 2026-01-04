@@ -7,16 +7,28 @@ echo "========================================="
 
 # Wait for database to be ready using pg_isready
 echo "Waiting for database to be ready..."
-until pg_isready -h db -U captains_log_user -d captains_log > /dev/null 2>&1; do
-  echo "Database is unavailable - sleeping"
-  sleep 2
-done
+# Use DATABASE_URL if available, otherwise fallback to defaults
+if [ -n "$DATABASE_URL" ]; then
+  until pg_isready -d "$DATABASE_URL" > /dev/null 2>&1; do
+    echo "Database is unavailable - sleeping"
+    sleep 2
+  done
+else
+  until pg_isready -h db -U captains_log_user -d captains_log > /dev/null 2>&1; do
+    echo "Database is unavailable - sleeping"
+    sleep 2
+  done
+fi
 
 echo "Database is ready!"
 
 # Check if PostGIS extension is installed using psql
 echo "Checking for PostGIS extension..."
-PGPASSWORD=captains_log_password psql -h db -U captains_log_user -d captains_log -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
+if [ -n "$DATABASE_URL" ]; then
+  psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
+else
+  PGPASSWORD=captains_log_password psql -h db -U captains_log_user -d captains_log -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
+fi
 
 # Run Prisma migrations
 echo "Running prisma migrate deploy..."

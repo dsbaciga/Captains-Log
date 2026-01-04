@@ -9,6 +9,7 @@ import logger from './config/logger';
 import { initCronJobs } from './config/cron';
 import { setupSwagger } from './config/swagger';
 import { errorHandler } from './middleware/errorHandler';
+import prisma, { checkDatabaseConnection } from './config/database';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import tripRoutes from './routes/trip.routes';
@@ -63,8 +64,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(config.upload.dir));
 
 // Health check endpoint
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (_req, res) => {
+  try {
+    // Also check database health
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ 
+      status: 'ok', 
+      database: 'connected',
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    res.status(503).json({ 
+      status: 'error', 
+      database: 'disconnected',
+      timestamp: new Date().toISOString() 
+    });
+  }
 });
 
 // API routes
@@ -112,11 +127,24 @@ initCronJobs();
 setupSwagger(app);
 
 // Start server
-const PORT = config.port;
+const startServer = async () => {
+  try {
+    const PORT = config.port;
 
-app.listen(PORT, () => {
-  logger.info(`Server running in ${config.nodeEnv} mode on port ${PORT}`);
-  logger.info(`Base URL: ${config.baseUrl}`);
-});
+    // Check database connection before starting the server
+    // Increased retries for TrueNAS environment
+    await checkDatabaseConnection(10, 5000);
+
+    app.listen(PORT, () => {
+      logger.info(`Server running in ${config.nodeEnv} mode on port ${PORT}`);
+      logger.info(`Base URL: ${config.baseUrl}`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 export default app;
