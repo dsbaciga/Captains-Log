@@ -54,14 +54,14 @@ fi
 # Run Prisma migrations
 echo "Running prisma migrate deploy..."
 cd /app
-if DATABASE_URL="${DATABASE_URL}" npx prisma migrate deploy; then
+if npx prisma migrate deploy --url "$DATABASE_URL"; then
   echo "✓ Migrations applied successfully."
 else
   echo "✗ Migration deployment failed. Attempting fallback..."
 
   # Try db push as a fallback to ensure schema matches
   echo "Attempting prisma db push as a fallback to ensure schema matches..."
-  if DATABASE_URL="${DATABASE_URL}" npx prisma db push --accept-data-loss --skip-generate; then
+  if npx prisma db push --accept-data-loss --url "$DATABASE_URL"; then
     echo "✓ Schema synchronized via db push."
 
     # Try to resolve migrations so they don't block future deploys
@@ -69,7 +69,7 @@ else
     for migration_dir in prisma/migrations/*/; do
       if [ -d "$migration_dir" ]; then
         migration_name=$(basename "$migration_dir")
-        DATABASE_URL="${DATABASE_URL}" npx prisma migrate resolve --applied "$migration_name" || true
+        npx prisma migrate resolve --applied "$migration_name" --url "$DATABASE_URL" || true
       fi
     done
   else
