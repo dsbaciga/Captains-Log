@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import type { CreateTagInput, UpdateTagInput, LinkTagToTripInput } from '../types/tag.types';
 import { verifyTripAccess } from '../utils/serviceHelpers';
-
-const prisma = new PrismaClient();
 
 export const tagService = {
   // Create a new tag

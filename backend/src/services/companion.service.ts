@@ -1,12 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import type { CreateCompanionInput, UpdateCompanionInput, LinkCompanionToTripInput } from '../types/companion.types';
 import { verifyTripAccess } from '../utils/serviceHelpers';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
-
-const prisma = new PrismaClient();
 
 const AVATAR_DIR = path.join(process.cwd(), 'uploads', 'avatars');
 
