@@ -11,6 +11,5 @@ router.get('/trip/:tripId', activityController.getActivitiesByTrip);
 router.get('/:id', activityController.getActivityById);
 router.put('/:id', activityController.updateActivity);
 router.delete('/:id', activityController.deleteActivity);
-router.patch('/trip/:tripId/reorder', activityController.reorderActivities);
 
 export default router;

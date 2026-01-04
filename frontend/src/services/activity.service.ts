@@ -32,11 +32,6 @@ export const activityService = {
   async deleteActivity(activityId: number): Promise<void> {
     await axios.delete(`/activities/${activityId}`);
   },
-
-  async reorderActivities(tripId: number, activityIds: number[]): Promise<{ success: boolean }> {
-    const response = await axios.patch(`/activities/trip/${tripId}/reorder`, { activityIds });
-    return response.data;
-  },
 };
 
 export default activityService;

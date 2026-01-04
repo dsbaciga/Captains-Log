@@ -180,12 +180,13 @@ const LocationSearchMap = ({ onLocationSelect, initialPosition }: LocationSearch
       )}
 
       {/* Map */}
-      <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200">
+      <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200 relative z-0">
         <MapContainer
           center={[mapCenter.lat, mapCenter.lng]}
           zoom={selectedPosition ? 13 : 2}
           scrollWheelZoom={true}
           style={{ height: '100%', width: '100%' }}
+          className="z-0"
           key={`${mapCenter.lat}-${mapCenter.lng}`}
         >
           <TileLayer

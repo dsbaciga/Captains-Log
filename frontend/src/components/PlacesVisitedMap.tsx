@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import MarkerClusterGroup from "@changey/react-leaflet-markercluster";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import type { Location } from "../types/location";
+import type { Transportation } from "../types/transportation";
 import locationService from "../services/location.service";
+import transportationService from "../services/transportation.service";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 
@@ -25,21 +27,27 @@ Icon.Default.mergeOptions({
 
 const PlacesVisitedMap = () => {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [transportation, setTransportation] = useState<Transportation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadVisitedLocations();
+    loadMapData();
   }, []);
 
-  const loadVisitedLocations = async () => {
+  const loadMapData = async () => {
     setLoading(true);
     try {
-      const data = await locationService.getAllVisitedLocations();
-      console.log("Loaded locations:", data);
-      setLocations(data);
+      const [locationData, transportationData] = await Promise.all([
+        locationService.getAllVisitedLocations(),
+        transportationService.getAllTransportation(),
+      ]);
+      console.log("Loaded locations:", locationData);
+      console.log("Loaded transportation:", transportationData);
+      setLocations(locationData);
+      setTransportation(transportationData);
     } catch (error) {
-      toast.error("Failed to load visited locations");
-      console.error("Error loading visited locations:", error);
+      toast.error("Failed to load map data");
+      console.error("Error loading map data:", error);
     } finally {
       setLoading(false);
     }
@@ -115,15 +123,21 @@ const PlacesVisitedMap = () => {
         </h2>
         <div className="text-sm text-gray-600 dark:text-gray-400">
           {locations.length} {locations.length === 1 ? "location" : "locations"}
+          {transportation.length > 0 && (
+            <span className="ml-3">
+              • {transportation.filter(t => t.route).length} routes
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 relative z-0">
         <MapContainer
           center={[centerLat, centerLng]}
           zoom={3}
           scrollWheelZoom={true}
           style={{ height: "100%", width: "100%" }}
+          className="z-0"
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -162,6 +176,59 @@ const PlacesVisitedMap = () => {
               );
             })}
           </MarkerClusterGroup>
+
+          {/* Transportation Routes */}
+          {transportation.map((t) => {
+            if (!t.route) return null;
+
+            // Color code by transportation type
+            const getRouteColor = (type: string) => {
+              switch (type) {
+                case 'flight': return '#3b82f6'; // blue
+                case 'train': return '#8b5cf6'; // purple
+                case 'bus': return '#f59e0b'; // amber
+                case 'car': return '#10b981'; // green
+                case 'ferry': return '#14b8a6'; // teal
+                case 'bicycle': return '#ec4899'; // pink
+                case 'walk': return '#eab308'; // yellow
+                default: return '#6b7280'; // gray
+              }
+            };
+
+            const pathOptions = {
+              color: getRouteColor(t.type),
+              weight: 2,
+              opacity: 0.6,
+              dashArray: t.type === 'flight' ? '10, 10' : undefined,
+            };
+
+            return (
+              <Polyline
+                key={`route-${t.id}`}
+                positions={[
+                  [t.route.from.latitude, t.route.from.longitude],
+                  [t.route.to.latitude, t.route.to.longitude],
+                ]}
+                pathOptions={pathOptions}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <h3 className="font-semibold text-gray-900 mb-1 capitalize">
+                      {t.type}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {t.route.from.name} → {t.route.to.name}
+                    </p>
+                    {t.carrier && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {t.carrier}
+                      </p>
+                    )}
+                  </div>
+                </Popup>
+              </Polyline>
+            );
+          })}
         </MapContainer>
       </div>
 

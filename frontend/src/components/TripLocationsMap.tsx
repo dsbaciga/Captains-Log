@@ -123,12 +123,13 @@ export default function TripLocationsMap({ locations, transportations = [], show
         </span>
       </div>
 
-      <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg">
+      <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg relative z-0">
         <MapContainer
           center={[center.lat, center.lng]}
           zoom={13}
           scrollWheelZoom={true}
           style={{ height: '100%', width: '100%' }}
+          className="z-0"
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

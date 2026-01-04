@@ -74,14 +74,14 @@ export default function FlightRouteMap({
   return (
     // Dynamic height requires CSS variable - cannot be moved to static CSS
     <div
-      className="map-container-dynamic rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 w-full"
+      className="map-container-dynamic rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 w-full relative z-0"
       style={{ '--map-height': height } as React.CSSProperties & { '--map-height': string }}
     >
       <MapContainer
         center={[centerLat, centerLon]}
         zoom={zoom}
         scrollWheelZoom={false}
-        className="h-full w-full"
+        className="h-full w-full z-0"
         zoomControl={true}
       >
         <TileLayer

@@ -123,6 +123,38 @@ class TransportationService {
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
     });
 
+    return this.enhanceTransportations(transportations);
+  }
+
+  async getAllTransportation(userId: number) {
+    // Get all trips user has access to
+    const trips = await prisma.trip.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+
+    const tripIds = trips.map(t => t.id);
+
+    // Get all transportation for user's trips
+    const transportations = await prisma.transportation.findMany({
+      where: { tripId: { in: tripIds } },
+      include: {
+        startLocation: {
+          select: locationSelect,
+        },
+        endLocation: {
+          select: locationSelect,
+        },
+        journalAssignments: journalAssignmentsInclude,
+        flightTracking: true,
+      },
+      orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return this.enhanceTransportations(transportations);
+  }
+
+  private enhanceTransportations(transportations: any[]) {
     // Enhance with computed fields and map to frontend format
     const now = new Date();
     const enhancedTransportations = transportations.map((t) => {

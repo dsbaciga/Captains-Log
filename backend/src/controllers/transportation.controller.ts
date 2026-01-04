@@ -20,6 +20,18 @@ class TransportationController {
     }
   }
 
+  async getAllTransportation(req: Request, res: Response, next: NextFunction) {
+    try {
+      const transportations = await transportationService.getAllTransportation(
+        req.user!.userId
+      );
+
+      res.json(transportations);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getTransportationByTrip(req: Request, res: Response, next: NextFunction) {
     try {
       const tripId = parseInt(req.params.tripId);

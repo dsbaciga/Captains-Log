@@ -1,4 +1,7 @@
-import type { Transportation, TransportationType } from "../types/transportation";
+import type {
+  Transportation,
+  TransportationType,
+} from "../types/transportation";
 
 interface TransportationStatsProps {
   transportation: Transportation[];
@@ -21,7 +24,11 @@ export default function TransportationStats({
   const statsByType = new Map<TransportationType, TypeStats>();
 
   transportation.forEach((t) => {
-    const existing = statsByType.get(t.type) || { count: 0, distance: 0, duration: 0 };
+    const existing = statsByType.get(t.type) || {
+      count: 0,
+      distance: 0,
+      duration: 0,
+    };
 
     existing.count++;
 
@@ -50,20 +57,9 @@ export default function TransportationStats({
   const flightStats = statsByType.get("flight");
   const upcomingFlights = flights.filter((t) => t.isUpcoming).length;
   const completedFlights = flights.filter((t) => !t.isUpcoming).length;
-  const carriers = new Set(flights.filter(t => t.carrier).map(t => t.carrier!));
-
-  // Find most frequent flight routes
-  const routeCount = new Map<string, number>();
-  flights.forEach((t) => {
-    if (t.route) {
-      const routeKey = `${t.route.from.name} → ${t.route.to.name}`;
-      routeCount.set(routeKey, (routeCount.get(routeKey) || 0) + 1);
-    }
-  });
-
-  const topRoutes = Array.from(routeCount.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
+  const carriers = new Set(
+    flights.filter((t) => t.carrier).map((t) => t.carrier!)
+  );
 
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
@@ -86,7 +82,7 @@ export default function TransportationStats({
       ferry: "Ferry",
       bicycle: "Bicycle",
       walk: "Walk",
-      other: "Other"
+      other: "Other",
     };
     return labels[type];
   };
@@ -100,7 +96,7 @@ export default function TransportationStats({
       ferry: "⛴️",
       bicycle: "🚴",
       walk: "🚶",
-      other: "🚊"
+      other: "🚊",
     };
     return icons[type];
   };
@@ -167,8 +163,9 @@ export default function TransportationStats({
                   {Math.round(flightStats.distance).toLocaleString()} km
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {Math.round(flightStats.distance * 0.621371).toLocaleString()} miles
-                  {flights.some(t => t.distanceSource === 'route') && (
+                  {Math.round(flightStats.distance * 0.621371).toLocaleString()}{" "}
+                  miles
+                  {flights.some((t) => t.distanceSource === "route") && (
                     <span className="ml-2 text-green-600 dark:text-green-400">
                       • Route-based
                     </span>
@@ -186,29 +183,6 @@ export default function TransportationStats({
                 <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                   {Math.round(flightStats.duration / 60)} hours
                 </div>
-              </div>
-            </div>
-          )}
-
-          {topRoutes.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                Most Frequent Routes
-              </h4>
-              <div className="space-y-2">
-                {topRoutes.map(([route, count], index) => (
-                  <div
-                    key={route}
-                    className="flex justify-between items-center text-sm"
-                  >
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {index + 1}. {route}
-                    </span>
-                    <span className="text-gray-600 dark:text-gray-400 font-medium">
-                      {count}x
-                    </span>
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -244,7 +218,8 @@ export default function TransportationStats({
                     {Math.round(stats.distance).toLocaleString()} km
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {Math.round(stats.distance * 0.621371).toLocaleString()} miles
+                    {Math.round(stats.distance * 0.621371).toLocaleString()}{" "}
+                    miles
                   </div>
                 </div>
               )}

@@ -65,6 +65,20 @@ router.post('/', transportationController.createTransportation);
 
 /**
  * @openapi
+ * /api/transportation:
+ *   get:
+ *     summary: Get all transportation for the authenticated user
+ *     tags: [Transportation]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all transportation
+ */
+router.get('/', transportationController.getAllTransportation);
+
+/**
+ * @openapi
  * /api/transportation/trip/{tripId}:
  *   get:
  *     summary: Get all transportation for a trip

@@ -280,23 +280,6 @@ class ActivityService {
 
     return { success: true };
   }
-
-  async reorderActivities(userId: number, tripId: number, activityIds: number[]) {
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
-
-    // Update manualOrder for each activity
-    const updatePromises = activityIds.map((activityId, index) =>
-      prisma.activity.update({
-        where: { id: activityId },
-        data: { manualOrder: index },
-      })
-    );
-
-    await Promise.all(updatePromises);
-
-    return { success: true };
-  }
 }
 
 export default new ActivityService();

@@ -17,23 +17,6 @@ import DayMiniMap from "./DayMiniMap";
 import TimelineEditModal from "./TimelineEditModal";
 import { getWeatherIcon } from "../utils/weatherIcons";
 import toast from "react-hot-toast";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 interface TimelineProps {
   tripId: number;
@@ -131,17 +114,6 @@ const Timeline = ({
     return (saved === 'compact' || saved === 'standard') ? saved : 'standard';
   });
 
-  // Reorder mode state - enables drag-and-drop for activities
-  const [reorderMode, setReorderMode] = useState(false);
-
-  // Drag-and-drop sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
@@ -186,49 +158,6 @@ const Timeline = ({
       }
       return newSet;
     });
-  };
-
-  // Handle drag end for activities reordering
-  const handleDragEnd = async (event: DragEndEvent, dateKey: string) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) return;
-
-    // Get all activity items for this day
-    const dayItems = timelineItems.filter(
-      item => getDateStringInTimezone(item.dateTime, tripTimezone) === dateKey && item.type === 'activity'
-    );
-
-    const oldIndex = dayItems.findIndex(item => `activity-${item.id}` === active.id);
-    const newIndex = dayItems.findIndex(item => `activity-${item.id}` === over.id);
-
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    // Reorder locally for immediate feedback
-    const reorderedItems = arrayMove(dayItems, oldIndex, newIndex);
-
-    // Extract activity IDs in new order
-    const activityIds = reorderedItems.map(item => item.id);
-
-    try {
-      // Update backend
-      await activityService.reorderActivities(tripId, activityIds);
-
-      // Refresh timeline to get updated order
-      if (onRefresh) {
-        onRefresh();
-      }
-
-      toast.success('Activities reordered successfully');
-    } catch (error) {
-      console.error('Failed to reorder activities:', error);
-      toast.error('Failed to reorder activities');
-
-      // Refresh to revert to server state
-      if (onRefresh) {
-        onRefresh();
-      }
-    }
   };
 
   // Handle edit - open modal instead of navigating to tab
@@ -698,9 +627,22 @@ const Timeline = ({
 
   // Group items by day
   // Filter items by visible types
-  const filteredItems = timelineItems.filter((item) =>
-    visibleTypes.has(item.type)
-  );
+  const filteredItems = timelineItems.filter((item) => {
+    // Always include items of their own type if that type is visible
+    if (visibleTypes.has(item.type)) {
+      return true;
+    }
+
+    // If journal filter is active, also include items that have associated journal entries
+    if (visibleTypes.has("journal")) {
+      // Check if this item has journal assignments
+      if ("journalAssignments" in item.data && item.data.journalAssignments && item.data.journalAssignments.length > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  });
 
   // Generate all dates from trip start to end (if available) in trip timezone
   const generateAllTripDates = (): string[] => {
@@ -915,41 +857,6 @@ const Timeline = ({
     };
   };
 
-  // Sortable wrapper component for drag-and-drop
-  const SortableItem = ({ id, children }: { id: string; children: React.ReactNode }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-    };
-
-    return (
-      <div ref={setNodeRef} style={style} {...attributes}>
-        {reorderMode && (
-          <div
-            {...listeners}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 cursor-grab active:cursor-grabbing p-2 bg-gray-100 dark:bg-gray-700 rounded-l hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Drag to reorder"
-          >
-            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-            </svg>
-          </div>
-        )}
-        {children}
-      </div>
-    );
-  };
-
   const renderTimelineColumn = (items: TimelineItem[], timezone?: string, currentDayKey?: string) => {
     // Pre-compute connection groups for this day's items
     const connectionGroups = new Map<string, TimelineItem[]>();
@@ -998,24 +905,14 @@ const Timeline = ({
       });
     };
 
-    // Get only activity items for sortable context
-    const activityItems = items.filter(item => item.type === 'activity');
-    const activityIds = activityItems.map(item => `activity-${item.id}`);
-
     return (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={(event) => handleDragEnd(event, currentDayKey || '')}
-      >
-        <SortableContext items={activityIds} strategy={verticalListSortingStrategy}>
-          <div className="flex-1">
-            <div className="relative">
-              {/* Timeline line */}
-              <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+        <div className="flex-1">
+          <div className="relative">
+            {/* Timeline line */}
+            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
 
-              <div className={viewMode === 'compact' ? 'space-y-3' : 'space-y-6'}>
-                {items.map((item, itemIndex) => {
+            <div className={viewMode === 'compact' ? 'space-y-3' : 'space-y-6'}>
+              {items.map((item, itemIndex) => {
               const connectionInfo = getConnectionInfo(item);
               const nextItem = items[itemIndex + 1];
               const showConnectionLine =
@@ -1592,22 +1489,11 @@ const Timeline = ({
                 </div>
               );
 
-              // Wrap activities in SortableItem when reorder mode is enabled
-              if (item.type === 'activity' && reorderMode) {
-                return (
-                  <SortableItem key={`activity-${item.id}`} id={`activity-${item.id}`}>
-                    {itemContent}
-                  </SortableItem>
-                );
-              }
-
               return itemContent;
             })}
           </div>
         </div>
       </div>
-    </SortableContext>
-  </DndContext>
     );
   };
 
@@ -2046,23 +1932,6 @@ const Timeline = ({
           </button>
         </div>
 
-        {/* Reorder Mode Toggle */}
-        <button
-          type="button"
-          onClick={() => setReorderMode(!reorderMode)}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
-            reorderMode
-              ? 'bg-purple-500 text-white'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-          title={reorderMode ? "Exit reorder mode" : "Enable drag-and-drop to reorder activities"}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-          </svg>
-          <span className="hidden sm:inline">{reorderMode ? 'Reordering' : 'Reorder'}</span>
-        </button>
-
         {/* Print Button */}
         <div className="ml-auto">
           <button
@@ -2216,7 +2085,7 @@ const Timeline = ({
                   {!isEmpty && (
                     <DayMiniMap
                       locations={getDayLocations(items)}
-                      defaultExpanded={false}
+                      defaultExpanded={viewMode === 'standard'}
                     />
                   )}
 

@@ -13,6 +13,11 @@ class TransportationService {
     return response.data;
   }
 
+  async getAllTransportation(): Promise<Transportation[]> {
+    const response = await api.get('/transportation');
+    return response.data;
+  }
+
   async getTransportationByTrip(tripId: number): Promise<Transportation[]> {
     const response = await api.get(`/transportation/trip/${tripId}`);
     return response.data;

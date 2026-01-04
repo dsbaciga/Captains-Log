@@ -114,12 +114,13 @@ export default function DayMiniMap({ locations, defaultExpanded = false }: DayMi
           </div>
 
           {/* Map */}
-          <div className="h-[200px]">
+          <div className="h-[200px] relative z-0">
             <MapContainer
               center={[centerLat, centerLng]}
               zoom={13}
               scrollWheelZoom={false}
               style={{ height: '100%', width: '100%' }}
+              className="z-0"
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

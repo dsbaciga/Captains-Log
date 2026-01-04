@@ -771,8 +771,8 @@ export default function TransportationManager({
               key={transportation.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
             >
-              {/* Route Map - Show for flights with route data */}
-              {transportation.type === "flight" && transportation.route && (
+              {/* Route Map - Show for all transportation with route data */}
+              {transportation.route && (
                 <div className="mb-4">
                   <FlightRouteMap route={transportation.route} height="250px" />
                 </div>

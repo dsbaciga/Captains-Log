@@ -5,6 +5,7 @@ import UpcomingTripsWidget from '../components/widgets/UpcomingTripsWidget';
 import TravelStatsWidget from '../components/widgets/TravelStatsWidget';
 import RecentPhotosWidget from '../components/widgets/RecentPhotosWidget';
 import QuickActionsWidget from '../components/widgets/QuickActionsWidget';
+import TravelCalendarHeatmap from '../components/widgets/TravelCalendarHeatmap';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 export default function DashboardPage() {
@@ -52,13 +53,18 @@ export default function DashboardPage() {
             <TravelStatsWidget />
           </div>
 
-          {/* Recent Photos */}
+          {/* Travel Calendar Heatmap */}
           <div className="animate-fade-in stagger-2">
+            <TravelCalendarHeatmap />
+          </div>
+
+          {/* Recent Photos */}
+          <div className="animate-fade-in stagger-3">
             <RecentPhotosWidget />
           </div>
 
           {/* Quick Actions */}
-          <div className="animate-fade-in stagger-3">
+          <div className="animate-fade-in stagger-4">
             <QuickActionsWidget />
           </div>
         </div>
