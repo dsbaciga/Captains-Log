@@ -54,7 +54,7 @@ fi
 # Run Prisma migrations
 echo "Running prisma migrate deploy..."
 cd /app
-if npx prisma migrate deploy --url "$DATABASE_URL"; then
+if npx prisma migrate deploy; then
   echo "✓ Migrations applied successfully."
 else
   echo "✗ Migration deployment failed. Attempting fallback..."
@@ -69,7 +69,7 @@ else
     for migration_dir in prisma/migrations/*/; do
       if [ -d "$migration_dir" ]; then
         migration_name=$(basename "$migration_dir")
-        npx prisma migrate resolve --applied "$migration_name" --url "$DATABASE_URL" || true
+        npx prisma migrate resolve --applied "$migration_name" || true
       fi
     done
   else
