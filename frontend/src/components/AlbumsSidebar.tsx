@@ -98,7 +98,8 @@ export default function AlbumsSidebar({
     if (albums.length > 0) {
       loadThumbnails();
     }
-  }, [albums]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [albums]); // thumbnailCache excluded to avoid infinite loop
 
   // Cleanup blob URLs on unmount
   useEffect(() => {

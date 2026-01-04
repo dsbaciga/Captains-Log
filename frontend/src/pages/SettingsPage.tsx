@@ -1,5 +1,5 @@
 import { useEffect, useState, useId } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import userService from "../services/user.service";
 import tagService from "../services/tag.service";
 import apiService from "../services/api.service";
@@ -12,9 +12,17 @@ import WeatherSettings from "../components/WeatherSettings";
 import EmojiPicker from "../components/EmojiPicker";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
+type TabType = "account" | "tags-categories" | "integrations";
+
 export default function SettingsPage() {
   const { updateUser } = useAuthStore();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get initial tab from URL or default to 'account'
+  const initialTab = (searchParams.get("tab") as TabType) || "account";
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
   const [categories, setCategories] = useState<ActivityCategory[]>([]);
   const [newCategory, setNewCategory] = useState("");
   const [newCategoryEmoji, setNewCategoryEmoji] = useState("😀");
@@ -47,6 +55,12 @@ export default function SettingsPage() {
     loadTags();
     loadBackendVersion();
   }, []);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   const loadSettings = async () => {
     try {
@@ -274,421 +288,485 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Name */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Name
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Change your name (must be 3-50 characters).
-            </p>
-            <form onSubmit={handleUpdateUsername} className="space-y-4">
-              <div>
-                <label className="label" htmlFor={currentUsernameId}>
-                  Current Name
-                </label>
-                <input
-                  type="text"
-                  id={currentUsernameId}
-                  value={username}
-                  disabled
-                  className="input w-full max-w-md bg-gray-100 dark:bg-gray-700"
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor={newUsernameId}>
-                  New Name
-                </label>
-                <input
-                  type="text"
-                  id={newUsernameId}
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  className="input w-full max-w-md"
-                  minLength={3}
-                  maxLength={50}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={!newUsername.trim() || newUsername === username}
-              >
-                Update Name
-              </button>
-            </form>
-          </div>
-
-          {/* Password */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Change Password
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Update your password (minimum 6 characters).
-            </p>
-            <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <div>
-                <label className="label" htmlFor={currentPasswordId}>
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  id={currentPasswordId}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="input w-full max-w-md"
-                  required
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor={newPasswordId}>
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  id={newPasswordId}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="input w-full max-w-md"
-                  minLength={6}
-                  required
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor={confirmPasswordId}>
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  id={confirmPasswordId}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input w-full max-w-md"
-                  minLength={6}
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-primary">
-                Update Password
-              </button>
-            </form>
-          </div>
-
-          {/* Immich Integration */}
-          <ImmichSettings />
-
-          {/* Weather Settings */}
-          <WeatherSettings />
-
-          {/* Timezone Setting */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Timezone
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Set your home timezone to ensure dates are displayed correctly.
-            </p>
-            <label htmlFor={timezoneSelectId} className="sr-only">
-              Timezone
-            </label>
-            <select
-              id={timezoneSelectId}
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="input w-full max-w-md"
+        {/* Tabs */}
+        <div className="mb-8 border-b border-gray-200 dark:border-gray-700">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              type="button"
+              onClick={() => handleTabChange("account")}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                ${
+                  activeTab === "account"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }
+              `}
             >
-              <option value="UTC">UTC (Coordinated Universal Time)</option>
-              <option value="America/New_York">
-                Eastern Time (US & Canada)
-              </option>
-              <option value="America/Chicago">
-                Central Time (US & Canada)
-              </option>
-              <option value="America/Denver">
-                Mountain Time (US & Canada)
-              </option>
-              <option value="America/Los_Angeles">
-                Pacific Time (US & Canada)
-              </option>
-              <option value="America/Anchorage">Alaska</option>
-              <option value="Pacific/Honolulu">Hawaii</option>
-              <option value="Europe/London">London</option>
-              <option value="Europe/Paris">Paris</option>
-              <option value="Europe/Berlin">Berlin</option>
-              <option value="Asia/Tokyo">Tokyo</option>
-              <option value="Asia/Shanghai">Shanghai</option>
-              <option value="Asia/Dubai">Dubai</option>
-              <option value="Australia/Sydney">Sydney</option>
-              <option value="Pacific/Auckland">Auckland</option>
-            </select>
-            <div className="mt-4">
-              <button onClick={handleSave} className="btn btn-primary">
-                Save Timezone
-              </button>
-            </div>
-          </div>
-
-          {/* Activity Categories */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Activity Categories
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Customize the activity categories available when creating
-              activities in your trips. Each category requires a name and an
-              emoji.
-            </p>
-
-            {/* Add New Category */}
-            <div className="flex gap-2 mb-4">
-              <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 rounded-lg px-3">
-                <EmojiPicker
-                  value={newCategoryEmoji}
-                  onChange={setNewCategoryEmoji}
-                />
-              </div>
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleAddCategory()}
-                placeholder="New category name"
-                className="input flex-1"
-              />
-              <button
-                onClick={handleAddCategory}
-                type="button"
-                className="btn btn-primary"
-              >
-                Add Category
-              </button>
-            </div>
-
-            {/* Categories List */}
-            <div className="space-y-2">
-              {categories.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                  No categories yet. Add your first category above.
-                </p>
-              ) : (
-                categories.map((category) => (
-                  <div
-                    key={category.name}
-                    className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <EmojiPicker
-                        value={category.emoji}
-                        onChange={(emoji) =>
-                          handleUpdateCategoryEmoji(category.name, emoji)
-                        }
-                      />
-                      <span className="text-gray-900 dark:text-white">
-                        {category.name}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveCategory(category.name)}
-                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Save Button */}
-            <div className="mt-6">
-              <button onClick={handleSave} className="btn btn-primary">
-                Save Settings
-              </button>
-            </div>
-          </div>
-
-          {/* Global Tag Management */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Trip Tags
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Create and manage tags that can be assigned to trips. Tags help
-              organize and categorize your trips.
-            </p>
-
-            {/* Create New Tag */}
-            <div className="space-y-3 mb-4">
-              <input
-                type="text"
-                value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleCreateTag()}
-                placeholder="New tag name"
-                className="input w-full"
-              />
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    htmlFor={newTagColorId}
-                  >
-                    Background Color
-                  </label>
-                  <input
-                    type="color"
-                    id={newTagColorId}
-                    value={newTagColor}
-                    onChange={(e) => setNewTagColor(e.target.value)}
-                    className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    htmlFor={newTagTextColorId}
-                  >
-                    Text Color
-                  </label>
-                  <input
-                    type="color"
-                    id={newTagTextColorId}
-                    value={newTagTextColor}
-                    onChange={(e) => setNewTagTextColor(e.target.value)}
-                    className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
-                  />
-                </div>
-              </div>
-              <button
-                onClick={handleCreateTag}
-                className="btn btn-primary w-full"
-              >
-                Create Tag
-              </button>
-            </div>
-
-            {/* Tags List */}
-            <div className="space-y-2">
-              {tags.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                  No tags yet. Create your first tag above.
-                </p>
-              ) : (
-                tags.map((tag) => (
-                  <div
-                    key={tag.id}
-                    className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3"
-                  >
-                    {editingTagId === tag.id ? (
-                      // Edit mode
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="px-3 py-1 rounded-full text-sm font-medium"
-                            style={{
-                              backgroundColor: editingTagColor,
-                              color: editingTagTextColor,
-                            }}
-                          >
-                            {tag.name}
-                          </span>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            (Preview)
-                          </span>
-                        </div>
-                        <div className="flex gap-4">
-                          <div className="flex-1">
-                            <label
-                              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                              htmlFor={`edit-tag-bg-${tag.id}`}
-                            >
-                              Background Color
-                            </label>
-                            <input
-                              type="color"
-                              id={`edit-tag-bg-${tag.id}`}
-                              value={editingTagColor}
-                              onChange={(e) =>
-                                setEditingTagColor(e.target.value)
-                              }
-                              className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <label
-                              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                              htmlFor={`edit-tag-text-${tag.id}`}
-                            >
-                              Text Color
-                            </label>
-                            <input
-                              type="color"
-                              id={`edit-tag-text-${tag.id}`}
-                              value={editingTagTextColor}
-                              onChange={(e) =>
-                                setEditingTagTextColor(e.target.value)
-                              }
-                              className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleSaveTagColors(tag.id)}
-                            type="button"
-                            className="btn btn-primary text-sm"
-                          >
-                            Save Colors
-                          </button>
-                          <button
-                            onClick={handleCancelEditTag}
-                            type="button"
-                            className="btn btn-secondary text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      // View mode
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="px-3 py-1 rounded-full text-sm font-medium"
-                            style={{
-                              backgroundColor: tag.color || "#3B82F6",
-                              color: tag.textColor || "#FFFFFF",
-                            }}
-                          >
-                            {tag.name}
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleStartEditTag(tag)}
-                            type="button"
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            Edit Colors
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTag(tag.id)}
-                            type="button"
-                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+              Account
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("tags-categories")}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                ${
+                  activeTab === "tags-categories"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }
+              `}
+            >
+              Tags & Categories
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("integrations")}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                ${
+                  activeTab === "integrations"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }
+              `}
+            >
+              Integrations
+            </button>
+          </nav>
         </div>
+
+        {/* Account Tab */}
+        {activeTab === "account" && (
+          <div className="space-y-6">
+            {/* Name */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Name
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Change your name (must be 3-50 characters).
+              </p>
+              <form onSubmit={handleUpdateUsername} className="space-y-4">
+                <div>
+                  <label className="label" htmlFor={currentUsernameId}>
+                    Current Name
+                  </label>
+                  <input
+                    type="text"
+                    id={currentUsernameId}
+                    value={username}
+                    disabled
+                    className="input w-full max-w-md bg-gray-100 dark:bg-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor={newUsernameId}>
+                    New Name
+                  </label>
+                  <input
+                    type="text"
+                    id={newUsernameId}
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    className="input w-full max-w-md"
+                    minLength={3}
+                    maxLength={50}
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!newUsername.trim() || newUsername === username}
+                >
+                  Update Name
+                </button>
+              </form>
+            </div>
+
+            {/* Password */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Change Password
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Update your password (minimum 6 characters).
+              </p>
+              <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div>
+                  <label className="label" htmlFor={currentPasswordId}>
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    id={currentPasswordId}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="input w-full max-w-md"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor={newPasswordId}>
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    id={newPasswordId}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="input w-full max-w-md"
+                    minLength={6}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor={confirmPasswordId}>
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    id={confirmPasswordId}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="input w-full max-w-md"
+                    minLength={6}
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary">
+                  Update Password
+                </button>
+              </form>
+            </div>
+
+            {/* Timezone Setting */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Timezone
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Set your home timezone to ensure dates are displayed correctly.
+              </p>
+              <label htmlFor={timezoneSelectId} className="sr-only">
+                Timezone
+              </label>
+              <select
+                id={timezoneSelectId}
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="input w-full max-w-md"
+              >
+                <option value="UTC">UTC (Coordinated Universal Time)</option>
+                <option value="America/New_York">
+                  Eastern Time (US & Canada)
+                </option>
+                <option value="America/Chicago">
+                  Central Time (US & Canada)
+                </option>
+                <option value="America/Denver">
+                  Mountain Time (US & Canada)
+                </option>
+                <option value="America/Los_Angeles">
+                  Pacific Time (US & Canada)
+                </option>
+                <option value="America/Anchorage">Alaska</option>
+                <option value="Pacific/Honolulu">Hawaii</option>
+                <option value="Europe/London">London</option>
+                <option value="Europe/Paris">Paris</option>
+                <option value="Europe/Berlin">Berlin</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+                <option value="Asia/Shanghai">Shanghai</option>
+                <option value="Asia/Dubai">Dubai</option>
+                <option value="Australia/Sydney">Sydney</option>
+                <option value="Pacific/Auckland">Auckland</option>
+              </select>
+              <div className="mt-4">
+                <button onClick={handleSave} type="button" className="btn btn-primary">
+                  Save Timezone
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tags & Categories Tab */}
+        {activeTab === "tags-categories" && (
+          <div className="space-y-6">
+            {/* Activity Categories */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Activity Categories
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Customize the activity categories available when creating
+                activities in your trips. Each category requires a name and an
+                emoji.
+              </p>
+
+              {/* Add New Category */}
+              <div className="flex gap-2 mb-4">
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 rounded-lg px-3">
+                  <EmojiPicker
+                    value={newCategoryEmoji}
+                    onChange={setNewCategoryEmoji}
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleAddCategory()}
+                  placeholder="New category name"
+                  className="input flex-1"
+                />
+                <button
+                  onClick={handleAddCategory}
+                  type="button"
+                  className="btn btn-primary"
+                >
+                  Add Category
+                </button>
+              </div>
+
+              {/* Categories List */}
+              <div className="space-y-2">
+                {categories.length === 0 ? (
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                    No categories yet. Add your first category above.
+                  </p>
+                ) : (
+                  categories.map((category) => (
+                    <div
+                      key={category.name}
+                      className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <EmojiPicker
+                          value={category.emoji}
+                          onChange={(emoji) =>
+                            handleUpdateCategoryEmoji(category.name, emoji)
+                          }
+                        />
+                        <span className="text-gray-900 dark:text-white">
+                          {category.name}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveCategory(category.name)}
+                        type="button"
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Save Button */}
+              <div className="mt-6">
+                <button onClick={handleSave} type="button" className="btn btn-primary">
+                  Save Settings
+                </button>
+              </div>
+            </div>
+
+            {/* Global Tag Management */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Trip Tags
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Create and manage tags that can be assigned to trips. Tags help
+                organize and categorize your trips.
+              </p>
+
+              {/* Create New Tag */}
+              <div className="space-y-3 mb-4">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleCreateTag()}
+                  placeholder="New tag name"
+                  className="input w-full"
+                />
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      htmlFor={newTagColorId}
+                    >
+                      Background Color
+                    </label>
+                    <input
+                      type="color"
+                      id={newTagColorId}
+                      value={newTagColor}
+                      onChange={(e) => setNewTagColor(e.target.value)}
+                      className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      htmlFor={newTagTextColorId}
+                    >
+                      Text Color
+                    </label>
+                    <input
+                      type="color"
+                      id={newTagTextColorId}
+                      value={newTagTextColor}
+                      onChange={(e) => setNewTagTextColor(e.target.value)}
+                      className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleCreateTag}
+                  type="button"
+                  className="btn btn-primary w-full"
+                >
+                  Create Tag
+                </button>
+              </div>
+
+              {/* Tags List */}
+              <div className="space-y-2">
+                {tags.length === 0 ? (
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                    No tags yet. Create your first tag above.
+                  </p>
+                ) : (
+                  tags.map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3"
+                    >
+                      {editingTagId === tag.id ? (
+                        // Edit mode
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="px-3 py-1 rounded-full text-sm font-medium"
+                              style={{
+                                backgroundColor: editingTagColor,
+                                color: editingTagTextColor,
+                              }}
+                            >
+                              {tag.name}
+                            </span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              (Preview)
+                            </span>
+                          </div>
+                          <div className="flex gap-4">
+                            <div className="flex-1">
+                              <label
+                                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                                htmlFor={`edit-tag-bg-${tag.id}`}
+                              >
+                                Background Color
+                              </label>
+                              <input
+                                type="color"
+                                id={`edit-tag-bg-${tag.id}`}
+                                value={editingTagColor}
+                                onChange={(e) =>
+                                  setEditingTagColor(e.target.value)
+                                }
+                                className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label
+                                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                                htmlFor={`edit-tag-text-${tag.id}`}
+                              >
+                                Text Color
+                              </label>
+                              <input
+                                type="color"
+                                id={`edit-tag-text-${tag.id}`}
+                                value={editingTagTextColor}
+                                onChange={(e) =>
+                                  setEditingTagTextColor(e.target.value)
+                                }
+                                className="h-10 w-full rounded border border-gray-300 dark:border-gray-600"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleSaveTagColors(tag.id)}
+                              type="button"
+                              className="btn btn-primary text-sm"
+                            >
+                              Save Colors
+                            </button>
+                            <button
+                              onClick={handleCancelEditTag}
+                              type="button"
+                              className="btn btn-secondary text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // View mode
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="px-3 py-1 rounded-full text-sm font-medium"
+                              style={{
+                                backgroundColor: tag.color || "#3B82F6",
+                                color: tag.textColor || "#FFFFFF",
+                              }}
+                            >
+                              {tag.name}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleStartEditTag(tag)}
+                              type="button"
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              Edit Colors
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTag(tag.id)}
+                              type="button"
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Integrations Tab */}
+        {activeTab === "integrations" && (
+          <div className="space-y-6">
+            {/* Immich Integration */}
+            <ImmichSettings />
+
+            {/* Weather Settings */}
+            <WeatherSettings />
+          </div>
+        )}
+
         <ConfirmDialogComponent />
       </main>
     </div>

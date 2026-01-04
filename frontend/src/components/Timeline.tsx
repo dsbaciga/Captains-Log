@@ -422,12 +422,12 @@ const Timeline = ({
         if (lodge.checkInDate && lodge.checkOutDate) {
           // Parse date portions directly to avoid timezone shifts
           // Date strings from backend are in ISO format (YYYY-MM-DDTHH:mm:ss.sssZ)
-          const checkInStr = typeof lodge.checkInDate === 'string' 
-            ? lodge.checkInDate.split('T')[0] 
-            : (lodge.checkInDate as any).toISOString().split('T')[0];
-          const checkOutStr = typeof lodge.checkOutDate === 'string' 
-            ? lodge.checkOutDate.split('T')[0] 
-            : (lodge.checkOutDate as any).toISOString().split('T')[0];
+          const checkInStr = typeof lodge.checkInDate === 'string'
+            ? lodge.checkInDate.split('T')[0]
+            : new Date(lodge.checkInDate).toISOString().split('T')[0];
+          const checkOutStr = typeof lodge.checkOutDate === 'string'
+            ? lodge.checkOutDate.split('T')[0]
+            : new Date(lodge.checkOutDate).toISOString().split('T')[0];
 
           const [checkInYear, checkInMonth, checkInDay] = checkInStr.split('-').map(Number);
           const [checkOutYear, checkOutMonth, checkOutDay] = checkOutStr.split('-').map(Number);

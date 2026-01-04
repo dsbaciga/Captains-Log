@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import type { Photo } from "../../types/photo";
 import tripService from "../../services/trip.service";
 import photoService from "../../services/photo.service";
-import { getAssetBaseUrl, getFullAssetUrl } from "../../lib/config";
+import { getFullAssetUrl } from "../../lib/config";
 import { Link } from "react-router-dom";
 import { Skeleton } from "../Skeleton";
 

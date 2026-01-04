@@ -42,30 +42,39 @@ export default function DashboardPage() {
         </div>
 
         {/* Widgets Grid */}
-        <div key={refreshKey} className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Upcoming Trips */}
-          <div className="animate-fade-in">
-            <UpcomingTripsWidget />
+        <div key={refreshKey} className="mb-8">
+          {/* Top Row - Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Left Column */}
+            <div className="flex flex-col">
+              {/* Upcoming Trips */}
+              <div className="animate-fade-in">
+                <UpcomingTripsWidget />
+              </div>
+
+              {/* Quick Actions */}
+              <div className="animate-fade-in stagger-4">
+                <QuickActionsWidget />
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="flex flex-col">
+              {/* Travel Stats */}
+              <div className="animate-fade-in stagger-1">
+                <TravelStatsWidget />
+              </div>
+
+              {/* Recent Photos */}
+              <div className="animate-fade-in stagger-3">
+                <RecentPhotosWidget />
+              </div>
+            </div>
           </div>
 
-          {/* Travel Stats */}
-          <div className="animate-fade-in stagger-1">
-            <TravelStatsWidget />
-          </div>
-
-          {/* Travel Calendar Heatmap */}
+          {/* Full Width Row - Heat Map */}
           <div className="animate-fade-in stagger-2">
             <TravelCalendarHeatmap />
-          </div>
-
-          {/* Recent Photos */}
-          <div className="animate-fade-in stagger-3">
-            <RecentPhotosWidget />
-          </div>
-
-          {/* Quick Actions */}
-          <div className="animate-fade-in stagger-4">
-            <QuickActionsWidget />
           </div>
         </div>
 

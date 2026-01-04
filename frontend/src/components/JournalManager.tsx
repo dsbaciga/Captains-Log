@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, useMemo } from "react";
+import { useState, useEffect, useId, useMemo, useCallback } from "react";
 import type { JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput } from "../types/journalEntry";
 import type { Location } from "../types/location";
 import type { Activity } from "../types/activity";
@@ -80,11 +80,7 @@ export default function JournalManager({
   const lodgingsFieldId = useId();
   const transportationsFieldId = useId();
 
-  useEffect(() => {
-    loadTripEntities();
-  }, [tripId]);
-
-  const loadTripEntities = async () => {
+  const loadTripEntities = useCallback(async () => {
     try {
       const [activitiesData, lodgingsData, transportationsData] = await Promise.all([
         activityService.getActivitiesByTrip(tripId),
@@ -97,7 +93,11 @@ export default function JournalManager({
     } catch (error) {
       console.error("Failed to load trip entities", error);
     }
-  };
+  }, [tripId]);
+
+  useEffect(() => {
+    loadTripEntities();
+  }, [loadTripEntities]);
 
   const resetForm = () => {
     resetFields();
@@ -453,7 +453,7 @@ Tell your story!"
             return (
               <div
                 key={entry.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow"
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow hover:shadow-lg transition-shadow"
               >
                 <div className="p-6">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">

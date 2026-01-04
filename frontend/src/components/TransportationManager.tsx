@@ -769,12 +769,16 @@ export default function TransportationManager({
           filteredItems.map((transportation) => (
             <div
               key={transportation.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-6 hover:shadow-md transition-shadow"
             >
               {/* Route Map - Show for all transportation with route data */}
               {transportation.route && (
                 <div className="mb-4">
-                  <FlightRouteMap route={transportation.route} height="250px" />
+                  <FlightRouteMap
+                    route={transportation.route}
+                    height="250px"
+                    transportationType={transportation.type as "flight" | "train" | "bus" | "car" | "ferry" | "bicycle" | "walk" | "other"}
+                  />
                 </div>
               )}
 

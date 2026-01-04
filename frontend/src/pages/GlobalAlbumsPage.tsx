@@ -5,7 +5,7 @@ import tripService from "../services/trip.service";
 import type { AlbumWithTrip } from "../types/photo";
 import type { Trip } from "../types/trip";
 import toast from "react-hot-toast";
-import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
+import { getFullAssetUrl } from "../lib/config";
 import { usePagination } from "../hooks/usePagination";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
@@ -24,7 +24,7 @@ const coverUrlCache = new Map<number, string>();
 export default function GlobalAlbumsPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOption, setSortOption] = useState<SortOption>("tripDate-asc");
+  const [sortOption, setSortOption] = useState<SortOption>("tripDate-desc");
   const [totalPhotos, setTotalPhotos] = useState(0);
   const [tripCount, setTripCount] = useState(0);
   const [totalAlbums, setTotalAlbums] = useState(0);
@@ -110,7 +110,6 @@ export default function GlobalAlbumsPage() {
 
       setLoadingCovers(true);
       const urls: { [key: number]: string } = {};
-      const baseUrl = getAssetBaseUrl();
 
       await Promise.all(
         albums.map(async (album) => {

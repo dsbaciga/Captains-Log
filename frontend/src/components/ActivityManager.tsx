@@ -343,7 +343,7 @@ export default function ActivityManager({
     return (
       <div
         key={activity.id}
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 ${
+        className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-6 hover:shadow-md transition-shadow ${
           isChild
             ? "ml-8 mt-3 border-l-4 border-blue-300 dark:border-blue-700"
             : ""

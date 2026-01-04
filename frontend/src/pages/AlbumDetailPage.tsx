@@ -14,7 +14,7 @@ import PhotoGallery from "../components/PhotoGallery";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { usePagination } from "../hooks/usePagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
+import { getFullAssetUrl } from "../lib/config";
 import toast from "react-hot-toast";
 
 export default function AlbumDetailPage() {

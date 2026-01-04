@@ -20,8 +20,6 @@ const sizeClasses = {
   lg: "w-20 h-20 text-2xl",
 };
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
 export default function CompanionAvatar({
   companion,
   size = "md",
@@ -71,13 +69,18 @@ export default function CompanionAvatar({
     };
 
     loadAvatar();
+    // Cleanup is handled in a separate effect to avoid stale closure
+  }, [companion.avatarUrl, accessToken]);
 
+  // Cleanup blob URL when component unmounts or avatar changes
+  useEffect(() => {
+    const currentBlobUrl = avatarBlobUrl;
     return () => {
-      if (avatarBlobUrl) {
-        URL.revokeObjectURL(avatarBlobUrl);
+      if (currentBlobUrl && currentBlobUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [companion.avatarUrl, accessToken]);
+  }, [avatarBlobUrl]);
 
   // Close menu when clicking outside
   useEffect(() => {

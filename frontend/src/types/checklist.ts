@@ -15,6 +15,7 @@ export interface ChecklistItem {
 export interface Checklist {
   id: number;
   userId: number;
+  tripId: number | null;
   name: string;
   description: string | null;
   type: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states';
@@ -34,6 +35,7 @@ export interface CreateChecklistDTO {
   name: string;
   description?: string | null;
   type: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states';
+  tripId?: number | null;
   isDefault?: boolean;
   sortOrder?: number;
   items?: Array<{
@@ -49,6 +51,7 @@ export interface UpdateChecklistDTO {
   name?: string | null;
   description?: string | null;
   type?: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states' | null;
+  tripId?: number | null;
   sortOrder?: number | null;
 }
 

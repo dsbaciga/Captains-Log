@@ -30,6 +30,16 @@ class ChecklistService {
   }
 
   /**
+   * Get all checklists for a specific trip
+   */
+  async getChecklistsByTripId(tripId: number): Promise<Checklist[]> {
+    const response = await axios.get(this.baseUrl, {
+      params: { tripId }
+    });
+    return response.data.data;
+  }
+
+  /**
    * Create a new checklist
    */
   async createChecklist(data: CreateChecklistDTO): Promise<Checklist> {

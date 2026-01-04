@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { PhotoAlbum, Photo, AlbumWithPhotos } from '../types/photo';
 import photoService from '../services/photo.service';
-import { getAssetBaseUrl, getFullAssetUrl } from '../lib/config';
+import { getFullAssetUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import toast from 'react-hot-toast';
 

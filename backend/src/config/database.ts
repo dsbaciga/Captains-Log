@@ -1,8 +1,20 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import logger from './logger';
 import { postgisExtension } from './prismaExtensions';
 
+// Create a PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// Create the adapter
+const adapter = new PrismaPg(pool);
+
+// Initialize Prisma Client with the adapter
 const prismaClient = new PrismaClient({
+  adapter,
   log: [
     { level: 'query', emit: 'event' },
     { level: 'error', emit: 'stdout' },

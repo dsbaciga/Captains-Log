@@ -9,7 +9,6 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  url        = env("DATABASE_URL")
   extensions = [postgis]
 }
 
@@ -67,6 +66,7 @@ model Trip {
   tagAssignments     TripTagAssignment[]
   companionAssignments TripCompanion[]
   collaborators      TripCollaborator[]
+  checklists         Checklist[]
 
   @@index([userId, status])
   @@index([startDate, endDate])
@@ -485,6 +485,7 @@ model FlightTracking {
 model Checklist {
   id          Int      @id @default(autoincrement())
   userId      Int      @map("user_id")
+  tripId      Int?     @map("trip_id")
   name        String   @db.VarChar(500)
   description String?  @db.Text
   type        String   @db.VarChar(50) // 'custom', 'airports', 'countries', 'cities'
@@ -494,6 +495,7 @@ model Checklist {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip  Trip?           @relation(fields: [tripId], references: [id], onDelete: Cascade)
   items ChecklistItem[]
 
   @@map("checklists")

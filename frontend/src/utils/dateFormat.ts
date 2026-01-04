@@ -96,9 +96,9 @@ export function formatDateRange(
 
   // If same year, omit year from start date for cleaner display
   if (startDate && endDate) {
-    let startStr = typeof startDate === 'string' ? startDate : (startDate as any).toISOString();
-    let endStr = typeof endDate === 'string' ? endDate : (endDate as any).toISOString();
-    
+    const startStr = typeof startDate === 'string' ? startDate : new Date(startDate).toISOString();
+    const endStr = typeof endDate === 'string' ? endDate : new Date(endDate).toISOString();
+
     const startYear = startStr.split('-')[0];
     const endYear = endStr.split('-')[0];
     if (startYear === endYear && style === 'medium') {

@@ -6,7 +6,7 @@ import type { Trip } from '../types/trip';
 import type { TripTag } from '../types/tag';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
-import { getAssetBaseUrl, getFullAssetUrl } from '../lib/config';
+import { getFullAssetUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 // Import shared utilities
@@ -58,8 +58,6 @@ export default function TripsPage() {
 
       const urls: { [key: number]: string } = {};
       const newBlobUrls: string[] = [];
-
-      const baseUrl = getAssetBaseUrl();
 
       for (const trip of trips) {
         if (!trip.coverPhoto) continue;
@@ -161,9 +159,9 @@ export default function TripsPage() {
           if (!trip.startDate) return false;
           try {
             const dateValue = trip.startDate;
-            const tripDate = typeof dateValue === 'string' 
-              ? dateValue.split('T')[0] 
-              : (dateValue as any).toISOString().split('T')[0];
+            const tripDate = typeof dateValue === 'string'
+              ? dateValue.split('T')[0]
+              : new Date(dateValue).toISOString().split('T')[0];
             return tripDate >= startDateFrom;
           } catch {
             return false;
@@ -175,9 +173,9 @@ export default function TripsPage() {
           if (!trip.startDate) return false;
           try {
             const dateValue = trip.startDate;
-            const tripDate = typeof dateValue === 'string' 
-              ? dateValue.split('T')[0] 
-              : (dateValue as any).toISOString().split('T')[0];
+            const tripDate = typeof dateValue === 'string'
+              ? dateValue.split('T')[0]
+              : new Date(dateValue).toISOString().split('T')[0];
             return tripDate <= startDateTo;
           } catch {
             return false;

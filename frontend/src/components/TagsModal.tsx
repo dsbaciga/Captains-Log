@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
@@ -22,11 +22,7 @@ export default function TagsModal({
   const [newTagTextColor, setNewTagTextColor] = useState("#FFFFFF");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadTags();
-  }, [tripId]);
-
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       setLoading(true);
       const [tripTagsData, allTagsData] = await Promise.all([
@@ -40,7 +36,11 @@ export default function TagsModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [tripId]);
+
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
 
   const handleCreateTag = async (e: React.FormEvent) => {
     e.preventDefault();

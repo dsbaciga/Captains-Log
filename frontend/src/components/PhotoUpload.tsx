@@ -42,7 +42,8 @@ export default function PhotoUpload({
     // Setup global drag-and-drop overlay
     const cleanup = setupListeners();
     return cleanup;
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // setupListeners is stable from custom hook
 
   const checkImmichSettings = async () => {
     try {

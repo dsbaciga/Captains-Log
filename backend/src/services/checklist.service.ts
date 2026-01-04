@@ -42,6 +42,45 @@ class ChecklistService {
   }
 
   /**
+   * Get all checklists for a specific trip
+   */
+  async getChecklistsByTripId(tripId: number, userId: number): Promise<ChecklistWithItems[]> {
+    const checklists = await prisma.checklist.findMany({
+      where: {
+        userId,
+        tripId
+      },
+      include: {
+        items: {
+          orderBy: [
+            { isChecked: 'asc' }, // Unchecked first
+            { sortOrder: 'asc' },
+            { name: 'asc' },
+          ],
+        },
+      },
+      orderBy: [
+        { sortOrder: 'asc' },
+        { name: 'asc' },
+      ],
+    });
+
+    // Add stats to each checklist
+    return checklists.map(checklist => {
+      const total = checklist.items.length;
+      const checked = checklist.items.filter(item => item.isChecked).length;
+      return {
+        ...checklist,
+        stats: {
+          total,
+          checked,
+          percentage: total > 0 ? Math.round((checked / total) * 100) : 0,
+        },
+      };
+    });
+  }
+
+  /**
    * Get a single checklist by ID
    */
   async getChecklistById(checklistId: number, userId: number): Promise<ChecklistWithItems> {
@@ -79,30 +118,37 @@ class ChecklistService {
    * Create a new checklist
    */
   async createChecklist(userId: number, data: CreateChecklist): Promise<ChecklistWithItems> {
-    const { items, ...checklistData } = data;
+    const { items, tripId, ...checklistData } = data;
+
+    const createData: any = {
+      name: checklistData.name,
+      description: checklistData.description,
+      type: checklistData.type,
+      isDefault: checklistData.isDefault,
+      sortOrder: checklistData.sortOrder,
+      user: {
+        connect: { id: userId },
+      },
+      items: items
+        ? {
+            create: items.map((item, index) => ({
+              name: item.name,
+              description: item.description ?? null,
+              isDefault: item.isDefault ?? false,
+              sortOrder: item.sortOrder ?? index,
+              metadata: item.metadata ?? undefined,
+            })),
+          }
+        : undefined,
+    };
+
+    // Only add tripId if it's defined and not null
+    if (tripId !== null && tripId !== undefined) {
+      createData.tripId = tripId;
+    }
 
     const checklist = await prisma.checklist.create({
-      data: {
-        name: checklistData.name,
-        description: checklistData.description,
-        type: checklistData.type,
-        isDefault: checklistData.isDefault,
-        sortOrder: checklistData.sortOrder,
-        user: {
-          connect: { id: userId },
-        },
-        items: items
-          ? {
-              create: items.map((item, index) => ({
-                name: item.name,
-                description: item.description ?? null,
-                isDefault: item.isDefault ?? false,
-                sortOrder: item.sortOrder ?? index,
-                metadata: item.metadata ?? undefined,
-              })),
-            }
-          : undefined,
-      },
+      data: createData,
       include: {
         items: {
           orderBy: [
@@ -136,6 +182,7 @@ class ChecklistService {
         name: data.name ?? undefined,
         description: data.description ?? undefined,
         type: data.type ?? undefined,
+        tripId: data.tripId ?? undefined,
         sortOrder: data.sortOrder ?? undefined,
         updatedAt: new Date(),
       },

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Photo } from "../types/photo";
 import photoService from "../services/photo.service";
-import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
+import { getFullAssetUrl } from "../lib/config";
 import ProgressiveImage from "./ProgressiveImage";
 
 interface AddPhotosToAlbumModalProps {
@@ -75,8 +75,6 @@ export default function AddPhotosToAlbumModal({
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      const baseUrl = getAssetBaseUrl();
-
       for (const photo of photos) {
         if (
           thumbnailCache[photo.id] ||
@@ -123,15 +121,17 @@ export default function AddPhotosToAlbumModal({
     if (photos.length > 0) {
       loadThumbnails();
     }
-  }, [photos]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photos]); // thumbnailCache excluded to avoid infinite loop
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
+    const currentFetchingPhotos = fetchingPhotos.current;
     return () => {
       Object.values(thumbnailCacheRef.current).forEach((url) =>
         URL.revokeObjectURL(url)
       );
-      fetchingPhotos.current.clear();
+      currentFetchingPhotos.clear();
     };
   }, []);
 

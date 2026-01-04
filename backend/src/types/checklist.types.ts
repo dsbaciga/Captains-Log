@@ -16,6 +16,7 @@ export const CreateChecklistSchema = z.object({
   name: z.string().min(1).max(500),
   description: z.string().nullable().optional(),
   type: z.enum(['custom', 'airports', 'countries', 'cities', 'us_states']),
+  tripId: z.number().nullable().optional(),
   isDefault: z.boolean().optional(),
   sortOrder: z.number().optional(),
   items: z.array(ChecklistItemSchema).optional(),
@@ -25,6 +26,7 @@ export const UpdateChecklistSchema = z.object({
   name: z.string().min(1).max(500).nullable().optional(),
   description: z.string().nullable().optional(),
   type: z.enum(['custom', 'airports', 'countries', 'cities', 'us_states']).nullable().optional(),
+  tripId: z.number().nullable().optional(),
   sortOrder: z.number().nullable().optional(),
 });
 
@@ -63,6 +65,7 @@ export type ChecklistType = 'airports' | 'countries' | 'cities' | 'us_states';
 export interface ChecklistWithItems {
   id: number;
   userId: number;
+  tripId: number | null;
   name: string;
   description: string | null;
   type: string;

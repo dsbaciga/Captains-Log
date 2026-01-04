@@ -12,11 +12,16 @@ class ChecklistController {
   /**
    * GET /api/checklists
    * Get all checklists for the authenticated user
+   * Optional query param: tripId - filter by trip
    */
   async getChecklists(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.userId;
-      const checklists = await checklistService.getChecklistsByUserId(userId);
+      const tripId = req.query.tripId ? parseInt(req.query.tripId as string) : undefined;
+
+      const checklists = tripId
+        ? await checklistService.getChecklistsByTripId(tripId, userId)
+        : await checklistService.getChecklistsByUserId(userId);
 
       res.json({
         status: 'success',

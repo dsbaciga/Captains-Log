@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Photo, PhotoAlbum } from "../types/photo";
 import photoService from "../services/photo.service";
-import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
+import { getFullAssetUrl } from "../lib/config";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import PhotoLightbox from "./PhotoLightbox";
 import ProgressiveImage from "./ProgressiveImage";
@@ -116,8 +116,6 @@ export default function PhotoGallery({
         return;
       }
 
-      const baseUrl = getAssetBaseUrl();
-
       for (const photo of photos) {
         // Skip if already cached, currently fetching, or not an Immich photo
         if (
@@ -182,17 +180,19 @@ export default function PhotoGallery({
     if (photos.length > 0) {
       loadThumbnails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photos]); // thumbnailCache removed - was causing infinite loop
 
   // Cleanup all blob URLs only when component unmounts
   useEffect(() => {
+    const currentFetchingPhotos = fetchingPhotos.current;
     return () => {
       console.log("[PhotoGallery] Component unmounting, revoking blob URLs");
       // Use the ref to access current cache (avoids stale closure)
       Object.values(thumbnailCacheRef.current).forEach((url) =>
         URL.revokeObjectURL(url)
       );
-      fetchingPhotos.current.clear();
+      currentFetchingPhotos.clear();
     };
   }, []); // Empty array - only run cleanup on unmount
 
@@ -274,7 +274,7 @@ export default function PhotoGallery({
       const allPhotoIds = new Set(photos.map((p) => p.id));
       setSelectedPhotoIds(allPhotoIds);
     }
-  }, [photos.length, totalPhotosInView]);
+  }, [photos, totalPhotosInView]);
 
   // Load all photos and select them once complete
   const selectAllPhotosInFolderWithEffect = async () => {

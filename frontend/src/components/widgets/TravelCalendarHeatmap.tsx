@@ -1,7 +1,7 @@
 /**
  * TravelCalendarHeatmap - GitHub-style calendar heatmap showing travel activity
  * Displays the past year with intensity based on number of active trips per day
- * Only includes Completed, In Progress, and Planning trips
+ * Only includes Completed, In Progress, Planned, and Planning trips
  */
 
 import { useState, useEffect } from 'react';
@@ -31,6 +31,7 @@ export default function TravelCalendarHeatmap() {
         (trip) =>
           trip.status === 'Completed' ||
           trip.status === 'In Progress' ||
+          trip.status === 'Planned' ||
           trip.status === 'Planning'
       );
 
@@ -127,18 +128,27 @@ export default function TravelCalendarHeatmap() {
     const weeks = groupByWeeks(heatmapData);
 
     let lastMonth = -1;
+    let lastWeekIndex = -1;
     weeks.forEach((week, weekIndex) => {
       // Check the first day of the week
       if (week.length > 0) {
         const firstDay = week[0].date;
         const month = firstDay.getMonth();
 
-        // Only add label if it's a new month
-        if (month !== lastMonth) {
+        // Skip the very first month label if it's at week 0 or 1 (partial month at start)
+        const isFirstWeeks = weekIndex <= 1;
+
+        // Only add label if it's a new month and there's enough space
+        // (at least 2 weeks between labels to prevent overlap)
+        if (month !== lastMonth && !isFirstWeeks && (weekIndex - lastWeekIndex >= 2 || lastWeekIndex === -1)) {
           labels.push({
             label: firstDay.toLocaleDateString('en-US', { month: 'short' }),
             weekIndex,
           });
+          lastMonth = month;
+          lastWeekIndex = weekIndex;
+        } else if (month !== lastMonth) {
+          // Month changed but not enough space or is first week, update lastMonth without adding label
           lastMonth = month;
         }
       }
@@ -191,14 +201,14 @@ export default function TravelCalendarHeatmap() {
         <div className="inline-block min-w-full">
           {/* Month Labels */}
           <div className="relative mb-2 h-5">
-            <div className="flex gap-[2px]" style={{ paddingLeft: '20px' }}>
+            <div className="flex gap-[2px]" style={{ paddingLeft: '32px' }}>
               {monthLabels.map((monthLabel, index) => (
                 <div
                   key={index}
-                  className="text-xs text-gray-500 dark:text-gray-400 font-medium"
+                  className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap"
                   style={{
                     position: 'absolute',
-                    left: `${20 + monthLabel.weekIndex * 14}px`,
+                    left: `${32 + monthLabel.weekIndex * 14}px`,
                   }}
                 >
                   {monthLabel.label}
@@ -210,13 +220,13 @@ export default function TravelCalendarHeatmap() {
           {/* Day Labels and Grid */}
           <div className="flex gap-1">
             {/* Day of week labels */}
-            <div className="flex flex-col gap-[2px] justify-start">
+            <div className="flex flex-col gap-[2px] justify-start w-7">
               <div className="h-3 text-xs text-gray-500 dark:text-gray-400" />
-              <div className="h-3 text-xs text-gray-500 dark:text-gray-400">Mon</div>
+              <div className="h-3 text-xs text-gray-500 dark:text-gray-400">M</div>
               <div className="h-3 text-xs text-gray-500 dark:text-gray-400" />
-              <div className="h-3 text-xs text-gray-500 dark:text-gray-400">Wed</div>
+              <div className="h-3 text-xs text-gray-500 dark:text-gray-400">W</div>
               <div className="h-3 text-xs text-gray-500 dark:text-gray-400" />
-              <div className="h-3 text-xs text-gray-500 dark:text-gray-400">Fri</div>
+              <div className="h-3 text-xs text-gray-500 dark:text-gray-400">F</div>
               <div className="h-3 text-xs text-gray-500 dark:text-gray-400" />
             </div>
 

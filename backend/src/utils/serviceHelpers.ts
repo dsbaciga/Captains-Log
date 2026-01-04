@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from './errors';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
 
 /**
  * Service helper utilities to reduce duplication across service files
@@ -294,7 +294,7 @@ export function convertDecimals<T>(obj: T): T {
     return obj;
   }
 
-  if (obj instanceof Decimal) {
+  if (obj instanceof Prisma.Decimal) {
     return Number(obj) as any;
   }
 

@@ -7,15 +7,48 @@ interface FlightRouteMapProps {
   route: TransportationRoute;
   height?: string;
   showLabels?: boolean;
+  transportationType?: "flight" | "train" | "bus" | "car" | "ferry" | "bicycle" | "walk" | "other";
 }
 
-// Custom airplane icon for markers
-const airplaneIcon = L.divIcon({
-  html: '<div style="font-size: 24px;">✈️</div>',
-  className: "custom-div-icon",
-  iconSize: [30, 30],
-  iconAnchor: [15, 15],
-});
+// Get icon based on transportation type
+const getTransportationIcon = (type?: string) => {
+  let emoji = "✈️"; // Default to airplane
+
+  switch (type) {
+    case "flight":
+      emoji = "✈️";
+      break;
+    case "train":
+      emoji = "🚆";
+      break;
+    case "bus":
+      emoji = "🚌";
+      break;
+    case "car":
+      emoji = "🚗";
+      break;
+    case "ferry":
+      emoji = "⛴️";
+      break;
+    case "bicycle":
+      emoji = "🚴";
+      break;
+    case "walk":
+      emoji = "🚶";
+      break;
+    case "other":
+    default:
+      emoji = "🚗"; // Default to car for "other"
+      break;
+  }
+
+  return L.divIcon({
+    html: `<div style="font-size: 24px;">${emoji}</div>`,
+    className: "custom-div-icon",
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+};
 
 // Calculate intermediate points for curved flight path
 const calculateCurvedPath = (
@@ -52,8 +85,12 @@ export default function FlightRouteMap({
   route,
   height = "300px",
   showLabels = true,
+  transportationType = "flight",
 }: FlightRouteMapProps) {
   const { from, to } = route;
+
+  // Get the appropriate icon for this transportation type
+  const transportIcon = getTransportationIcon(transportationType);
 
   // Calculate center and zoom
   const centerLat = (from.latitude + to.latitude) / 2;
@@ -90,7 +127,7 @@ export default function FlightRouteMap({
         />
 
         {/* Departure marker */}
-        <Marker position={[from.latitude, from.longitude]} icon={airplaneIcon}>
+        <Marker position={[from.latitude, from.longitude]} icon={transportIcon}>
           {showLabels && (
             <Popup>
               <div className="text-sm">
@@ -101,7 +138,7 @@ export default function FlightRouteMap({
         </Marker>
 
         {/* Arrival marker */}
-        <Marker position={[to.latitude, to.longitude]} icon={airplaneIcon}>
+        <Marker position={[to.latitude, to.longitude]} icon={transportIcon}>
           {showLabels && (
             <Popup>
               <div className="text-sm">

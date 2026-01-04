@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Checklist, DefaultChecklistStatus, ChecklistType } from '../types/checklist';
+import type { Trip } from '../types/trip';
 import checklistService from '../services/checklist.service';
+import tripService from '../services/trip.service';
 import ChecklistSelectorModal from '../components/ChecklistSelectorModal';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
@@ -12,10 +14,12 @@ import PageHeader from '../components/PageHeader';
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newChecklistName, setNewChecklistName] = useState('');
   const [newChecklistDescription, setNewChecklistDescription] = useState('');
+  const [newChecklistTripId, setNewChecklistTripId] = useState<number | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isAutoChecking, setIsAutoChecking] = useState(false);
   const [showSelectorModal, setShowSelectorModal] = useState(false);
@@ -26,6 +30,7 @@ export default function ChecklistsPage() {
   useEffect(() => {
     loadChecklists();
     loadDefaultsStatus();
+    loadTrips();
   }, []);
 
   const loadChecklists = async () => {
@@ -46,6 +51,15 @@ export default function ChecklistsPage() {
       setDefaultChecklistsStatus(status);
     } catch (err) {
       console.error('Failed to load defaults status:', err);
+    }
+  };
+
+  const loadTrips = async () => {
+    try {
+      const data = await tripService.getTrips();
+      setTrips(data.trips);
+    } catch (err) {
+      console.error('Failed to load trips:', err);
     }
   };
 
@@ -96,10 +110,12 @@ export default function ChecklistsPage() {
         name: newChecklistName,
         description: newChecklistDescription || null,
         type: 'custom',
+        tripId: newChecklistTripId,
       });
 
       setNewChecklistName('');
       setNewChecklistDescription('');
+      setNewChecklistTripId(null);
       setShowCreateForm(false);
       await loadChecklists();
     } catch (err) {
@@ -255,6 +271,27 @@ export default function ChecklistsPage() {
                   rows={3}
                   placeholder="Optional description..."
                 />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Associate with Trip (Optional)
+                </label>
+                <select
+                  value={newChecklistTripId ?? ''}
+                  onChange={(e) => setNewChecklistTripId(e.target.value ? parseInt(e.target.value) : null)}
+                  className="input"
+                  aria-label="Associate with Trip"
+                >
+                  <option value="">None (General checklist)</option>
+                  {trips.map((trip) => (
+                    <option key={trip.id} value={trip.id}>
+                      {trip.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Link this checklist to a specific trip. It will appear in the trip header.
+                </p>
               </div>
               <div className="flex gap-2">
                 <button type="submit" className="btn btn-primary">

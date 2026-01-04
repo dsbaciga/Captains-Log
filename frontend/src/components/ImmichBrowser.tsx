@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import immichService from "../services/immich.service";
 import type { ImmichAsset, ImmichAlbum } from "../types/immich";
-import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
+import { getFullAssetUrl } from "../lib/config";
 
 interface ImmichBrowserProps {
   onSelect: (assets: ImmichAsset[]) => void;
@@ -69,11 +69,6 @@ export default function ImmichBrowser({
     setCurrentPage(1);
   }, [view, selectedAlbum, filterByTripDates]);
 
-  // Load data when page or filters change
-  useEffect(() => {
-    loadData();
-  }, [currentPage, view, selectedAlbum, filterByTripDates]);
-
   // Load thumbnails with authentication
   useEffect(() => {
     const loadThumbnails = async () => {
@@ -82,8 +77,6 @@ export default function ImmichBrowser({
         console.error("[ImmichBrowser] No access token found");
         return;
       }
-
-      const baseUrl = getAssetBaseUrl();
 
       for (const asset of assets) {
         // Skip if already cached
@@ -132,7 +125,8 @@ export default function ImmichBrowser({
     if (assets.length > 0) {
       loadThumbnails();
     }
-  }, [assets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets]); // thumbnailCache excluded to avoid infinite loop
 
   // Cleanup blob URLs on unmount (separate effect to avoid stale closure)
   useEffect(() => {
@@ -142,7 +136,7 @@ export default function ImmichBrowser({
     };
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const skip = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -201,7 +195,12 @@ export default function ImmichBrowser({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, view, selectedAlbum, filterByTripDates, tripStartDate, tripEndDate]);
+
+  // Load data when page or filters change
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {

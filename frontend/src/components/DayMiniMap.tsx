@@ -59,6 +59,11 @@ const getMarkerIcon = () => {
 export default function DayMiniMap({ locations, defaultExpanded = false }: DayMiniMapProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
+  // Update expansion state when defaultExpanded prop changes
+  useEffect(() => {
+    setIsExpanded(defaultExpanded);
+  }, [defaultExpanded]);
+
   if (locations.length === 0) {
     return null;
   }

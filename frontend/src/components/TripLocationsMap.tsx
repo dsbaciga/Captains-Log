@@ -140,8 +140,8 @@ export default function TripLocationsMap({ locations, transportations = [], show
           {/* Transportation Routes */}
           {showRoutes && transportations.map((transport) => {
             // Get start and end locations
-            const startLoc = transport.startLocation || locations.find(l => l.id === transport.startLocationId);
-            const endLoc = transport.endLocation || locations.find(l => l.id === transport.endLocationId);
+            const startLoc = transport.fromLocation || locations.find(l => l.id === transport.fromLocationId);
+            const endLoc = transport.toLocation || locations.find(l => l.id === transport.toLocationId);
 
             // Skip if locations don't have coordinates
             if (!startLoc?.latitude || !startLoc?.longitude || !endLoc?.latitude || !endLoc?.longitude) {

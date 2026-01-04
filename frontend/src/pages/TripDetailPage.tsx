@@ -15,6 +15,7 @@ import journalService from "../services/journalEntry.service";
 import tagService from "../services/tag.service";
 import companionService from "../services/companion.service";
 import userService from "../services/user.service";
+import checklistService from "../services/checklist.service";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import type { Trip } from "../types/trip";
 import type { Location } from "../types/location";
@@ -22,6 +23,7 @@ import type { Photo } from "../types/photo";
 import type { TripTag } from "../types/tag";
 import type { Activity } from "../types/activity";
 import type { Lodging } from "../types/lodging";
+import type { Checklist } from "../types/checklist";
 import { TripStatus } from "../types/trip";
 import toast from "react-hot-toast";
 import PhotoGallery from "../components/PhotoGallery";
@@ -35,7 +37,7 @@ import JournalManager from "../components/JournalManager";
 import CompanionManager from "../components/CompanionManager";
 import LocationSearchMap from "../components/LocationSearchMap";
 import TripLocationsMap from "../components/TripLocationsMap";
-import { getAssetBaseUrl, getFullAssetUrl } from "../lib/config";
+import { getFullAssetUrl } from "../lib/config";
 import TagsModal from "../components/TagsModal";
 import AlbumsSidebar from "../components/AlbumsSidebar";
 import AlbumModal from "../components/AlbumModal";
@@ -63,6 +65,7 @@ export default function TripDetailPage() {
   const [journalCount, setJournalCount] = useState(0);
   const [tags, setTags] = useState<TripTag[]>([]);
   const [tagsCount, setTagsCount] = useState(0);
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [companionsCount, setCompanionsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   // Album management state
@@ -253,7 +256,6 @@ export default function TripDetailPage() {
       }
 
       const photo = trip.coverPhoto;
-      const baseUrl = getAssetBaseUrl();
 
       // If it's a local photo, use direct URL
       if (photo.source === "local" && photo.localPath) {
@@ -327,6 +329,7 @@ export default function TripDetailPage() {
         lodgingData,
         journalData,
         tagsData,
+        checklistsData,
         companionsData,
         albumsData,
       ] = await Promise.allSettled([
@@ -336,6 +339,7 @@ export default function TripDetailPage() {
         lodgingService.getLodgingByTrip(tripId),
         journalService.getJournalEntriesByTrip(tripId),
         tagService.getTagsByTrip(tripId),
+        checklistService.getChecklistsByTripId(tripId),
         companionService.getCompanionsByTrip(tripId),
         photoService.getAlbumsByTrip(tripId),
       ]);
@@ -354,6 +358,8 @@ export default function TripDetailPage() {
       const journal =
         journalData.status === "fulfilled" ? journalData.value : [];
       const tags = tagsData.status === "fulfilled" ? tagsData.value : [];
+      const checklistsList =
+        checklistsData.status === "fulfilled" ? checklistsData.value : [];
       const companions =
         companionsData.status === "fulfilled" ? companionsData.value : [];
       const albums =
@@ -377,6 +383,8 @@ export default function TripDetailPage() {
         console.error("Failed to load journal entries:", journalData.reason);
       if (tagsData.status === "rejected")
         console.error("Failed to load tags:", tagsData.reason);
+      if (checklistsData.status === "rejected")
+        console.error("Failed to load checklists:", checklistsData.reason);
       if (companionsData.status === "rejected")
         console.error("Failed to load companions:", companionsData.reason);
       if (albumsData.status === "rejected")
@@ -403,6 +411,7 @@ export default function TripDetailPage() {
       setJournalCount(journal.length);
       setTags(tags);
       setTagsCount(tags.length);
+      setChecklists(checklistsList);
       setCompanionsCount(companions.length);
       setAlbums(albums.albums);
       setUnsortedPhotosCount(albums.unsortedCount);
@@ -767,6 +776,26 @@ export default function TripDetailPage() {
                       ))}
                     </div>
                   )}
+
+                  {/* Checklists */}
+                  {checklists.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {checklists.map((checklist) => (
+                        <Link
+                          key={checklist.id}
+                          to={`/checklists/${checklist.id}`}
+                          className="px-3 py-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 rounded-lg text-sm font-medium text-white shadow-md transition-all hover:shadow-lg"
+                        >
+                          📋 {checklist.name}
+                          {checklist.stats && (
+                            <span className="ml-2 opacity-80">
+                              {checklist.stats.checked}/{checklist.stats.total}
+                            </span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -863,6 +892,28 @@ export default function TripDetailPage() {
                       >
                         {tag.name}
                       </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Checklists */}
+              {checklists.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex flex-wrap gap-2">
+                    {checklists.map((checklist) => (
+                      <Link
+                        key={checklist.id}
+                        to={`/checklists/${checklist.id}`}
+                        className="px-3 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg text-sm font-medium text-blue-700 dark:text-blue-300 transition-colors"
+                      >
+                        📋 {checklist.name}
+                        {checklist.stats && (
+                          <span className="ml-2 opacity-70">
+                            {checklist.stats.checked}/{checklist.stats.total}
+                          </span>
+                        )}
+                      </Link>
                     ))}
                   </div>
                 </div>

@@ -74,7 +74,7 @@ export interface ValidationIssue {
   severity: 'critical' | 'warning' | 'info';
   type: string;
   message: string;
-  affectedItems?: any[];
+  affectedItems?: unknown[];
   suggestion?: string;
 }
 

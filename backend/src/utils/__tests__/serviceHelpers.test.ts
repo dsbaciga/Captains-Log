@@ -1,4 +1,4 @@
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
 import {
   buildUpdateData,
   buildConditionalUpdateData,
@@ -178,8 +178,8 @@ describe('Service Helpers', () => {
   describe('convertDecimals', () => {
     it('should convert Decimal objects to numbers', () => {
       const obj = {
-        latitude: new Decimal('40.7128'),
-        longitude: new Decimal('-74.0060'),
+        latitude: new Prisma.Decimal('40.7128'),
+        longitude: new Prisma.Decimal('-74.0060'),
       };
 
       const result = convertDecimals(obj);
@@ -193,8 +193,8 @@ describe('Service Helpers', () => {
     it('should handle nested objects with Decimals', () => {
       const obj = {
         location: {
-          latitude: new Decimal('40.7128'),
-          longitude: new Decimal('-74.0060'),
+          latitude: new Prisma.Decimal('40.7128'),
+          longitude: new Prisma.Decimal('-74.0060'),
         },
         name: 'New York',
       };
@@ -208,8 +208,8 @@ describe('Service Helpers', () => {
 
     it('should handle arrays with Decimals', () => {
       const arr = [
-        { value: new Decimal('10.5') },
-        { value: new Decimal('20.7') },
+        { value: new Prisma.Decimal('10.5') },
+        { value: new Prisma.Decimal('20.7') },
       ];
 
       const result = convertDecimals(arr);
@@ -222,7 +222,7 @@ describe('Service Helpers', () => {
       const date = new Date('2025-01-15');
       const obj = {
         createdAt: date,
-        value: new Decimal('10.5'),
+        value: new Prisma.Decimal('10.5'),
       };
 
       const result = convertDecimals(obj);
