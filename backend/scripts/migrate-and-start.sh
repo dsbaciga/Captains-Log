@@ -7,18 +7,39 @@ echo "========================================="
 
 # Wait for database to be ready using pg_isready
 echo "Waiting for database to be ready..."
-# Use DATABASE_URL if available, otherwise fallback to defaults
+
+# Attempt to extract host and port for a more reliable check
+# Handle both standard hostnames and URIs
+DB_HOST="db"
+DB_PORT="5432"
+
 if [ -n "$DATABASE_URL" ]; then
-  until pg_isready -d "$DATABASE_URL" > /dev/null 2>&1; do
-    echo "Database is unavailable - sleeping"
-    sleep 2
-  done
-else
-  until pg_isready -h db -U captains_log_user -d captains_log > /dev/null 2>&1; do
-    echo "Database is unavailable - sleeping"
-    sleep 2
-  done
+  # Very basic extraction of host and port from postgresql://user:pass@host:port/db
+  EXTRACTED_HOST=$(echo "$DATABASE_URL" | sed -e 's|.*@||' -e 's|/.*||' -e 's|:.*||')
+  EXTRACTED_PORT=$(echo "$DATABASE_URL" | sed -e 's|.*@||' -e 's|/.*||' | grep ":" | cut -d: -f2)
+  
+  if [ -n "$EXTRACTED_HOST" ]; then DB_HOST="$EXTRACTED_HOST"; fi
+  if [ -n "$EXTRACTED_PORT" ]; then DB_PORT="$EXTRACTED_PORT"; fi
 fi
+
+echo "Checking connectivity to $DB_HOST on port $DB_PORT..."
+
+# Show more debug info if it fails
+ATTEMPT=0
+until pg_isready -h "$DB_HOST" -p "$DB_PORT"; do
+  ATTEMPT=$((ATTEMPT + 1))
+  echo "Database at $DB_HOST:$DB_PORT is unavailable (attempt $ATTEMPT) - sleeping"
+  
+  # On TrueNAS, sometimes the service name 'db' takes a moment to propagate in DNS
+  if [ $ATTEMPT -eq 5 ]; then
+    echo "Resolution check for '$DB_HOST':"
+    getent hosts "$DB_HOST" || echo "  ! Could not resolve '$DB_HOST'"
+    echo "Resolution check for 'captains-log-db':"
+    getent hosts captains-log-db || echo "  ! Could not resolve 'captains-log-db'"
+  fi
+  
+  sleep 2
+done
 
 echo "Database is ready!"
 
@@ -27,7 +48,7 @@ echo "Checking for PostGIS extension..."
 if [ -n "$DATABASE_URL" ]; then
   psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
 else
-  PGPASSWORD=captains_log_password psql -h db -U captains_log_user -d captains_log -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
+  PGPASSWORD=captains_log_password psql -h "$DB_HOST" -p "$DB_PORT" -U captains_log_user -d captains_log -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
 fi
 
 # Run Prisma migrations
