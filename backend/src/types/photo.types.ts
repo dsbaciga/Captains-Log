@@ -7,13 +7,22 @@ export const PhotoSource = {
 
 export type PhotoSourceType = typeof PhotoSource[keyof typeof PhotoSource];
 
+export const MediaType = {
+  PHOTO: 'photo',
+  VIDEO: 'video',
+} as const;
+
+export type MediaTypeType = typeof MediaType[keyof typeof MediaType];
+
 export interface Photo {
   id: number;
   tripId: number;
   source: PhotoSourceType;
+  mediaType: MediaTypeType;
   immichAssetId: string | null;
   localPath: string | null;
   thumbnailPath: string | null;
+  duration: number | null;
   caption: string | null;
   takenAt: Date | null;
   latitude: number | null;

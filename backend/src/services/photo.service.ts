@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import {
   PhotoSource,
+  MediaType,
   UploadPhotoInput,
   LinkImmichPhotoInput,
   UpdatePhotoInput,
@@ -10,6 +11,7 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
+import ffmpeg from 'fluent-ffmpeg';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
@@ -19,6 +21,38 @@ const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
 async function ensureUploadDirs() {
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
   await fs.mkdir(THUMBNAIL_DIR, { recursive: true });
+}
+
+// Generate thumbnail for video
+async function generateVideoThumbnail(
+  videoPath: string,
+  thumbnailPath: string
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    ffmpeg(videoPath)
+      .screenshots({
+        timestamps: ['00:00:01'],
+        filename: path.basename(thumbnailPath),
+        folder: path.dirname(thumbnailPath),
+        size: '400x?',
+      })
+      .on('end', () => resolve())
+      .on('error', (err) => reject(err));
+  });
+}
+
+// Get video duration
+async function getVideoDuration(videoPath: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(videoPath, (err, metadata) => {
+      if (err) {
+        reject(err);
+      } else {
+        const duration = metadata.format.duration || 0;
+        resolve(Math.round(duration));
+      }
+    });
+  });
 }
 
 class PhotoService {
@@ -32,47 +66,71 @@ class PhotoService {
 
     await ensureUploadDirs();
 
+    // Determine if file is video or photo
+    const isVideo = file.mimetype.startsWith('video/');
+    const mediaType = isVideo ? MediaType.VIDEO : MediaType.PHOTO;
+
     // Generate unique filename
     const timestamp = Date.now();
     const ext = path.extname(file.originalname);
     const filename = `${timestamp}-${Math.random().toString(36).substring(7)}${ext}`;
     const filepath = path.join(UPLOAD_DIR, filename);
-    const thumbnailFilename = `thumb-${filename}`;
+    const thumbnailFilename = `thumb-${filename.replace(ext, '.jpg')}`;
     const thumbnailPath = path.join(THUMBNAIL_DIR, thumbnailFilename);
 
     // Save original file
     await fs.writeFile(filepath, file.buffer);
 
-    // Create thumbnail
-    await sharp(file.buffer)
-      .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 80 })
-      .toFile(thumbnailPath);
+    let duration: number | null = null;
 
-    // Extract EXIF data for GPS coordinates if available
+    // Generate thumbnail based on media type
+    if (isVideo) {
+      // Generate video thumbnail and extract duration
+      try {
+        await generateVideoThumbnail(filepath, thumbnailPath);
+        duration = await getVideoDuration(filepath);
+      } catch (error) {
+        console.error('Failed to process video:', error);
+        // Clean up the uploaded file if video processing fails
+        await fs.unlink(filepath).catch(() => {});
+        throw new AppError('Failed to process video file', 500);
+      }
+    } else {
+      // Create image thumbnail
+      await sharp(file.buffer)
+        .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toFile(thumbnailPath);
+    }
+
+    // Extract EXIF data for GPS coordinates if available (photos only)
     let latitude = data.latitude;
     let longitude = data.longitude;
     let takenAt = data.takenAt ? new Date(data.takenAt) : null;
 
-    try {
-      const metadata = await sharp(file.buffer).metadata();
-      if (metadata.exif) {
-        // Parse EXIF data for GPS and date
-        // Note: More robust EXIF parsing could be added with exif-parser library
-        if (!takenAt && metadata.exif) {
-          // Extract date from EXIF if available
+    if (!isVideo) {
+      try {
+        const metadata = await sharp(file.buffer).metadata();
+        if (metadata.exif) {
+          // Parse EXIF data for GPS and date
+          // Note: More robust EXIF parsing could be added with exif-parser library
+          if (!takenAt && metadata.exif) {
+            // Extract date from EXIF if available
+          }
         }
+      } catch (error) {
+        // Continue without EXIF data if parsing fails
       }
-    } catch (error) {
-      // Continue without EXIF data if parsing fails
     }
 
     const photo = await prisma.photo.create({
       data: {
         tripId: data.tripId,
         source: PhotoSource.LOCAL,
+        mediaType,
         localPath: `/uploads/photos/${filename}`,
         thumbnailPath: `/uploads/thumbnails/${thumbnailFilename}`,
+        duration,
         caption: data.caption || null,
         takenAt,
         latitude,
@@ -96,6 +154,9 @@ class PhotoService {
       },
     });
 
+    let mediaType = MediaType.PHOTO;
+    let duration: number | null = null;
+
     // Verify Immich asset exists (if user has Immich configured)
     if (user?.immichApiUrl && user?.immichApiKey) {
       try {
@@ -111,6 +172,16 @@ class PhotoService {
         // Extract metadata from Immich asset if available
         if (response.data) {
           const asset = response.data;
+
+          // Determine media type from Immich asset type
+          if (asset.type === 'VIDEO') {
+            mediaType = MediaType.VIDEO;
+            // Extract duration from Immich metadata if available
+            if (asset.exifInfo?.fileSizeInByte && asset.duration) {
+              duration = Math.round(asset.duration);
+            }
+          }
+
           if (!data.takenAt && asset.fileCreatedAt) {
             data.takenAt = asset.fileCreatedAt;
           }
@@ -132,8 +203,10 @@ class PhotoService {
       data: {
         tripId: data.tripId,
         source: PhotoSource.IMMICH,
+        mediaType,
         immichAssetId: data.immichAssetId,
         thumbnailPath: `/api/immich/assets/${data.immichAssetId}/thumbnail`,
+        duration,
         caption: data.caption || null,
         takenAt: data.takenAt ? new Date(data.takenAt) : null,
         latitude: data.latitude || null,
