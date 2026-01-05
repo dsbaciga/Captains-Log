@@ -219,11 +219,11 @@ export default function PhotoUpload({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           onChange={handleFileInputChange}
           className="hidden"
-          aria-label="Select photos to upload"
+          aria-label="Select photos and videos to upload"
         />
 
         <div className="space-y-4">
@@ -240,10 +240,10 @@ export default function PhotoUpload({
           <div className="hidden md:block">
             <DragDropUpload
               onFilesSelected={handleFilesDropped}
-              accept="image/*"
+              accept="image/*,video/*"
               multiple
               disabled={isUploading}
-              text="Drag and drop photos here"
+              text="Drag and drop photos or videos here"
               subtext="or click to browse from your computer"
             />
           </div>
@@ -259,28 +259,50 @@ export default function PhotoUpload({
           {/* Preview */}
           {selectedFiles.length > 0 && (
             <div className="grid grid-cols-4 gap-2">
-              {selectedFiles.map((file, index) => (
-                <div key={index} className="relative aspect-square">
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-full object-cover rounded"
-                  />
-                  <button
-                    onClick={() =>
-                      setSelectedFiles(
-                        selectedFiles.filter((_, i) => i !== index)
-                      )
-                    }
-                    type="button"
-                    aria-label={`Remove photo ${index + 1}`}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-8 h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
-                    disabled={isUploading}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+              {selectedFiles.map((file, index) => {
+                const isVideo = file.type.startsWith('video/');
+                const previewUrl = URL.createObjectURL(file);
+
+                return (
+                  <div key={index} className="relative aspect-square">
+                    {isVideo ? (
+                      <div className="w-full h-full bg-gray-900 rounded flex items-center justify-center">
+                        <video
+                          src={previewUrl}
+                          className="w-full h-full object-contain rounded"
+                          muted
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="bg-black bg-opacity-50 rounded-full p-3">
+                            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={previewUrl}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-full object-cover rounded"
+                      />
+                    )}
+                    <button
+                      onClick={() =>
+                        setSelectedFiles(
+                          selectedFiles.filter((_, i) => i !== index)
+                        )
+                      }
+                      type="button"
+                      aria-label={`Remove ${isVideo ? 'video' : 'photo'} ${index + 1}`}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-8 h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
+                      disabled={isUploading}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -352,7 +374,7 @@ export default function PhotoUpload({
       {isDraggingFiles && (
         <DragDropUpload
           onFilesSelected={handleFilesDropped}
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           overlay
         />

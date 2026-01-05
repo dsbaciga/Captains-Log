@@ -229,18 +229,30 @@ export default function PhotoLightbox({
         {...swipeHandlers}
       >
         {photoUrl ? (
-          <img
-            ref={imageRef}
-            src={photoUrl}
-            alt={photo.caption || "Photo"}
-            className="max-w-full max-h-full object-contain select-none transition-transform duration-150"
-            style={{
-              transform: `scale(${zoom}) translate(${position.x / zoom}px, ${
-                position.y / zoom
-              }px)`,
-            }}
-            draggable={false}
-          />
+          photo.mediaType === 'video' ? (
+            <video
+              src={photoUrl}
+              controls
+              className="max-w-full max-h-full object-contain select-none"
+              style={{
+                maxHeight: '90vh',
+              }}
+              autoPlay
+            />
+          ) : (
+            <img
+              ref={imageRef}
+              src={photoUrl}
+              alt={photo.caption || "Photo"}
+              className="max-w-full max-h-full object-contain select-none transition-transform duration-150"
+              style={{
+                transform: `scale(${zoom}) translate(${position.x / zoom}px, ${
+                  position.y / zoom
+                }px)`,
+              }}
+              draggable={false}
+            />
+          )
         ) : (
           <div className="text-center text-gray-400">
             <svg
@@ -257,7 +269,7 @@ export default function PhotoLightbox({
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <p>Photo not available</p>
+            <p>{photo.mediaType === 'video' ? 'Video' : 'Photo'} not available</p>
           </div>
         )}
       </div>

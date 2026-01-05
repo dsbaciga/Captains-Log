@@ -1,12 +1,15 @@
 export type PhotoSource = 'local' | 'immich';
+export type MediaType = 'photo' | 'video';
 
 export type Photo = {
   id: number;
   tripId: number;
   source: PhotoSource;
+  mediaType: MediaType;
   immichAssetId: string | null;
   localPath: string | null;
   thumbnailPath: string | null;
+  duration: number | null;
   caption: string | null;
   takenAt: string | null;
   latitude: number | null;

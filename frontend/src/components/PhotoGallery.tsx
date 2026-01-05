@@ -707,6 +707,22 @@ export default function PhotoGallery({
                   )}
                 </div>
 
+                {/* Video indicator */}
+                {photo.mediaType === 'video' && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-black/60 backdrop-blur-sm rounded-full p-4 shadow-xl">
+                      <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+                {photo.mediaType === 'video' && photo.duration && (
+                  <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-mono shadow-lg">
+                    {Math.floor(photo.duration / 60)}:{(photo.duration % 60).toString().padStart(2, '0')}
+                  </div>
+                )}
+
                 {/* Badges */}
                 {coverPhotoId === photo.id && (
                   <div className="absolute top-3 left-3 bg-gradient-to-r from-accent-500 to-accent-600 text-white text-xs px-3 py-1.5 rounded-full font-body font-semibold shadow-lg z-10">
