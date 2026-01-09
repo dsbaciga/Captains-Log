@@ -51,10 +51,10 @@ export const photoAlbumsInclude = {
 
 /**
  * Standard location select (for relations)
- * Used in: activity.service.ts (4x), photoAlbum.service.ts (4x),
- *          transportation.service.ts (2x)
+ * Used in: photoAlbum.service.ts (4x)
  *
  * Provides minimal location info when location is referenced from other entities.
+ * Note: Most services should use locationWithAddressSelect for better user experience.
  */
 export const locationSelect = {
   id: true,
@@ -65,9 +65,9 @@ export const locationSelect = {
 
 /**
  * Extended location select with address
- * Used in: lodging.service.ts, photoAlbum.service.ts
+ * Used in: activity.service.ts, lodging.service.ts, photoAlbum.service.ts, transportation.service.ts
  *
- * Provides location info including the address field.
+ * Provides location info including the address field for better display in timeline and print views.
  */
 export const locationWithAddressSelect = {
   id: true,

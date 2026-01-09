@@ -4,7 +4,7 @@ import {
   UpdateTransportationInput,
 } from '../types/transportation.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
-import { journalAssignmentsInclude, locationSelect } from '../utils/prismaIncludes';
+import { journalAssignmentsInclude, locationWithAddressSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
 // Helper to map database fields to frontend field names
@@ -37,12 +37,14 @@ const mapTransportationToFrontend = (t: any): Record<string, any> => {
     fromLocation: converted.startLocation ? {
       id: converted.startLocation.id,
       name: converted.startLocation.name,
+      address: converted.startLocation.address,
       latitude: converted.startLocation.latitude,
       longitude: converted.startLocation.longitude,
     } : null,
     toLocation: converted.endLocation ? {
       id: converted.endLocation.id,
       name: converted.endLocation.name,
+      address: converted.endLocation.address,
       latitude: converted.endLocation.latitude,
       longitude: converted.endLocation.longitude,
     } : null,
@@ -86,10 +88,10 @@ class TransportationService {
       },
       include: {
         startLocation: {
-          select: locationSelect,
+          select: locationWithAddressSelect,
         },
         endLocation: {
-          select: locationSelect,
+          select: locationWithAddressSelect,
         },
         journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
@@ -112,10 +114,10 @@ class TransportationService {
       where: { tripId },
       include: {
         startLocation: {
-          select: locationSelect,
+          select: locationWithAddressSelect,
         },
         endLocation: {
-          select: locationSelect,
+          select: locationWithAddressSelect,
         },
         journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
@@ -140,10 +142,10 @@ class TransportationService {
       where: { tripId: { in: tripIds } },
       include: {
         startLocation: {
-          select: locationSelect,
+          select: locationWithAddressSelect,
         },
         endLocation: {
-          select: locationSelect,
+          select: locationWithAddressSelect,
         },
         journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
@@ -305,10 +307,10 @@ class TransportationService {
       },
       include: {
         startLocation: {
-          select: locationSelect,
+          select: locationWithAddressSelect,
         },
         endLocation: {
-          select: locationSelect,
+          select: locationWithAddressSelect,
         },
         journalAssignments: journalAssignmentsInclude,
         flightTracking: true,

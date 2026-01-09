@@ -353,7 +353,13 @@ const Timeline = ({
             locationId: number | null,
             locationName: string | null
           ): string => {
-            if (location?.name) return location.name;
+            if (location?.name) {
+              // Include address if available
+              if (location.address) {
+                return `${location.name} (${location.address})`;
+              }
+              return location.name;
+            }
             if (locationName) return locationName;
             if (locationId) return `Location #${locationId} (deleted?)`;
             return "Unknown";
@@ -1114,27 +1120,46 @@ const Timeline = ({
                     </div>
 
                     {item.location && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        {item.location}
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <div className="flex items-center gap-1">
+                          <svg
+                            className="w-4 h-4 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          <div>
+                            <div>{item.location}</div>
+                            {(() => {
+                              // Get address from the data object
+                              const activity = item.type === 'activity' ? item.data as Activity : null;
+                              const lodging = item.type === 'lodging' ? item.data as Lodging : null;
+                              const address = activity?.location?.address || lodging?.location?.address;
+
+                              if (address) {
+                                return (
+                                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                                    {address}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -1874,11 +1899,55 @@ const Timeline = ({
             page-break-inside: avoid;
           }
 
-          /* Force light theme for printing */
-          * {
-            color: black !important;
-            background: white !important;
-            border-color: #ccc !important;
+          /* Force light theme for printing - override all dark mode styles */
+          *,
+          *::before,
+          *::after,
+          body,
+          html {
+            color: #000 !important;
+            background-color: #fff !important;
+            background: #fff !important;
+            border-color: #d1d5db !important;
+          }
+
+          /* Ensure text is readable */
+          .text-gray-900,
+          .text-gray-800,
+          .text-gray-700,
+          .text-gray-600,
+          .text-gray-500,
+          .dark\:text-white,
+          .dark\:text-gray-100,
+          .dark\:text-gray-200,
+          .dark\:text-gray-300,
+          .dark\:text-gray-400 {
+            color: #1f2937 !important;
+          }
+
+          /* Badge colors should remain visible */
+          .bg-blue-500,
+          .bg-green-500,
+          .bg-purple-500,
+          .bg-orange-500 {
+            background-color: initial !important;
+            color: #1f2937 !important;
+            border: 1px solid #d1d5db !important;
+          }
+
+          /* Ensure borders are visible */
+          .border-gray-200,
+          .border-gray-300,
+          .dark\:border-gray-700,
+          .dark\:border-gray-600 {
+            border-color: #d1d5db !important;
+          }
+
+          /* White backgrounds for cards */
+          .bg-white,
+          .dark\:bg-gray-800,
+          .dark\:bg-gray-900 {
+            background-color: #fff !important;
           }
 
           /* Hide the second timezone column on print */
