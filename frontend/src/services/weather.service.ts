@@ -19,6 +19,15 @@ class WeatherService {
     });
     return response.data.data;
   }
+
+  /**
+   * Force refresh all weather data for a trip
+   * This clears the cache and fetches fresh data for all dates
+   */
+  async refreshAllWeather(tripId: number): Promise<WeatherData[]> {
+    const response = await axios.post(`/trips/${tripId}/weather/refresh-all`);
+    return response.data.data;
+  }
 }
 
 export default new WeatherService();

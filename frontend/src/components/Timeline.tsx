@@ -123,6 +123,7 @@ const Timeline = ({
   const [allTransportations, setAllTransportations] = useState<
     Transportation[]
   >([]);
+  const [refreshingWeather, setRefreshingWeather] = useState(false);
 
   // Check if we should show dual timezones
   const showDualTimezone =
@@ -614,6 +615,7 @@ const Timeline = ({
       weather.forEach((w) => {
         const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
         weatherByDate[dateKey] = w;
+        console.log(`[Weather] Mapped weather for ${w.date} to key: "${dateKey}"`);
       });
 
       setWeatherData(weatherByDate);
@@ -1810,6 +1812,29 @@ const Timeline = ({
     window.print();
   };
 
+  const handleRefreshWeather = async () => {
+    setRefreshingWeather(true);
+    try {
+      const weather = await weatherService.refreshAllWeather(tripId);
+
+      // Update weather data state
+      const weatherByDate: Record<string, WeatherData> = {};
+      weather.forEach((w) => {
+        const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
+        weatherByDate[dateKey] = w;
+        console.log(`[Weather Refresh] Mapped weather for ${w.date} to key: "${dateKey}"`);
+      });
+      setWeatherData(weatherByDate);
+
+      toast.success(`Weather data refreshed successfully (${weather.length} days)`);
+    } catch (error) {
+      console.error('Error refreshing weather:', error);
+      toast.error('Failed to refresh weather data');
+    } finally {
+      setRefreshingWeather(false);
+    }
+  };
+
   return (
     <div className="timeline-container">
       {/* Print Styles */}
@@ -1932,8 +1957,30 @@ const Timeline = ({
           </button>
         </div>
 
-        {/* Print Button */}
-        <div className="ml-auto">
+        {/* Weather Refresh & Print Buttons */}
+        <div className="ml-auto flex gap-2">
+          <button
+            type="button"
+            onClick={handleRefreshWeather}
+            disabled={refreshingWeather}
+            className="px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh weather data (updates locations based on current trip entities)"
+          >
+            <svg
+              className={`w-4 h-4 ${refreshingWeather ? 'animate-spin' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>{refreshingWeather ? 'Refreshing...' : 'Refresh Weather'}</span>
+          </button>
           <button
             type="button"
             onClick={handlePrint}

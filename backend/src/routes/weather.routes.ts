@@ -18,4 +18,11 @@ router.post(
   weatherController.refreshWeather
 );
 
+// POST /api/trips/:tripId/weather/refresh-all - Force refresh all weather for trip
+router.post(
+  '/trips/:tripId/weather/refresh-all',
+  authenticate,
+  weatherController.refreshAllWeather
+);
+
 export default router;

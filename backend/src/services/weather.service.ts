@@ -93,11 +93,14 @@ class WeatherService {
       dates.map(async (date) => {
         // Get coordinates for this specific day
         const coordinates = await this.getTripCoordinates(tripId, date);
+        const dateString = date.toISOString().split('T')[0];
 
         if (!coordinates) {
-          console.warn(`No coordinates available for ${date.toISOString().split('T')[0]}`);
+          console.warn(`No coordinates available for ${dateString}`);
           return null;
         }
+
+        console.log(`[Weather] ${dateString}: Using location "${coordinates.locationName || 'Unknown'}" (lat: ${coordinates.lat.toFixed(4)}, lon: ${coordinates.lon.toFixed(4)})`);
 
         return this.getWeatherForDate(tripId, coordinates, date, apiKey);
       })
@@ -302,10 +305,15 @@ class WeatherService {
 
       const dayData = data.daily[dayIndex];
 
-      // Debug: log what the API returns for precipitation
+      // Debug: log what the API returns including temperature data
       console.log(`Weather API response for day ${dayIndex}:`, {
         date: targetDate.toISOString().split('T')[0],
         conditions: dayData.weather[0]?.description,
+        temp: {
+          max: dayData.temp.max,
+          min: dayData.temp.min,
+          day: dayData.temp.day,
+        },
         pop: dayData.pop,
         rain: dayData.rain,
         snow: dayData.snow,
@@ -672,15 +680,26 @@ class WeatherService {
 
   /**
    * Generate array of dates between start and end (inclusive)
+   * Handles date-only values properly to avoid timezone shifts
    */
   private getDateRange(startDate: Date, endDate: Date): Date[] {
     const dates: Date[] = [];
-    const current = new Date(startDate);
-    const end = new Date(endDate);
+
+    // Extract year, month, day from the date objects to avoid timezone issues
+    // The database stores date-only values (@db.Date), which come back as Date objects at UTC midnight
+    // We need to extract the date components and create new Date objects to ensure we get all days
+    const getDateOnly = (date: Date) => {
+      const str = date.toISOString().split('T')[0]; // "YYYY-MM-DD"
+      const [year, month, day] = str.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, day, 12, 0, 0)); // Use noon UTC to avoid edge cases
+    };
+
+    const current = getDateOnly(startDate);
+    const end = getDateOnly(endDate);
 
     while (current <= end) {
       dates.push(new Date(current));
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1); // Use UTC methods to avoid DST issues
     }
 
     return dates;
@@ -738,6 +757,29 @@ class WeatherService {
 
     // Fetch fresh data
     return convertDecimals(await this.getWeatherForDate(tripId, coordinates, targetDate, apiKey));
+  }
+
+  /**
+   * Force refresh all weather data for a trip
+   * Clears all cached weather and fetches fresh data for all dates
+   */
+  async refreshAllWeatherForTrip(tripId: number, userId: number) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    console.log(`[Weather] Refreshing all weather data for trip ${tripId}`);
+
+    // Delete all cached weather data for this trip
+    const deletedCount = await prisma.weatherData.deleteMany({
+      where: {
+        tripId,
+      },
+    });
+
+    console.log(`[Weather] Deleted ${deletedCount.count} cached weather records`);
+
+    // Fetch fresh weather data (will use new locations if entities were added)
+    return await this.getWeatherForTrip(tripId, userId);
   }
 }
 

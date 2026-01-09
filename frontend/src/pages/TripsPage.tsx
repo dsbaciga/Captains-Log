@@ -32,14 +32,26 @@ export default function TripsPage() {
   const [sortOption, setSortOption] = useState<SortOption>('startDate-desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTrips, setTotalTrips] = useState(0);
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   // Use ref to track blob URLs for proper cleanup (avoids stale closure issues)
   const blobUrlsRef = useRef<string[]>([]);
 
+  // Debounce search query to avoid API calls on every keystroke
   useEffect(() => {
-    loadTrips();
+    const timeoutId = setTimeout(() => {
+      loadTrips();
+    }, searchQuery ? 300 : 0); // 300ms debounce for search, immediate for other changes
+
+    return () => clearTimeout(timeoutId);
+  }, [statusFilter, currentPage, startDateFrom, startDateTo, selectedTags, sortOption, searchQuery]);
+
+  // Load tags once on mount
+  useEffect(() => {
     loadTags();
-  }, [statusFilter]);
+  }, []);
 
   const loadTags = async () => {
     try {
@@ -109,9 +121,23 @@ export default function TripsPage() {
   const loadTrips = async () => {
     try {
       setLoading(true);
-      const params = statusFilter ? { status: statusFilter } : {};
+      const params: any = {
+        page: currentPage,
+        limit: 20,
+      };
+
+      // Add all filter parameters
+      if (statusFilter) params.status = statusFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+      if (startDateFrom) params.startDateFrom = startDateFrom;
+      if (startDateTo) params.startDateTo = startDateTo;
+      if (selectedTags.length > 0) params.tags = selectedTags.join(',');
+      if (sortOption) params.sort = sortOption;
+
       const response = await tripService.getTrips(params);
       setTrips(response.trips);
+      setTotalPages(response.totalPages);
+      setTotalTrips(response.total);
     } catch (error) {
       console.error('Error loading trips:', error);
       toast.error('Failed to load trips');
@@ -139,94 +165,9 @@ export default function TripsPage() {
     }
   };
 
-  // Filter and sort trips
-  const filteredTrips = useMemo(() => {
-    try {
-      let result = [...trips];
-
-      // Search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        result = result.filter(trip =>
-          trip.title?.toLowerCase().includes(query) ||
-          (trip.description && trip.description.toLowerCase().includes(query))
-        );
-      }
-
-      // Date range filter
-      if (startDateFrom) {
-        result = result.filter(trip => {
-          if (!trip.startDate) return false;
-          try {
-            const dateValue = trip.startDate;
-            const tripDate = typeof dateValue === 'string'
-              ? dateValue.split('T')[0]
-              : new Date(dateValue).toISOString().split('T')[0];
-            return tripDate >= startDateFrom;
-          } catch {
-            return false;
-          }
-        });
-      }
-      if (startDateTo) {
-        result = result.filter(trip => {
-          if (!trip.startDate) return false;
-          try {
-            const dateValue = trip.startDate;
-            const tripDate = typeof dateValue === 'string'
-              ? dateValue.split('T')[0]
-              : new Date(dateValue).toISOString().split('T')[0];
-            return tripDate <= startDateTo;
-          } catch {
-            return false;
-          }
-        });
-      }
-
-      // Tag filter
-      if (selectedTags.length > 0) {
-        result = result.filter(trip => {
-          if (!trip.tagAssignments || trip.tagAssignments.length === 0) return false;
-          const tripTagIds = trip.tagAssignments.map(ta => ta.tag.id);
-          return selectedTags.some(tagId => tripTagIds.includes(tagId));
-        });
-      }
-
-      // Sort
-      result.sort((a, b) => {
-        try {
-          switch (sortOption) {
-            case 'startDate-desc':
-              if (!a.startDate && !b.startDate) return 0;
-              if (!a.startDate) return 1;
-              if (!b.startDate) return -1;
-              return String(b.startDate).localeCompare(String(a.startDate));
-            case 'startDate-asc':
-              if (!a.startDate && !b.startDate) return 0;
-              if (!a.startDate) return 1;
-              if (!b.startDate) return -1;
-              return String(a.startDate).localeCompare(String(b.startDate));
-            case 'title-asc':
-              return (a.title || '').localeCompare(b.title || '');
-            case 'title-desc':
-              return (b.title || '').localeCompare(a.title || '');
-            case 'status':
-              return (a.status || '').localeCompare(b.status || '');
-            default:
-              return 0;
-          }
-        } catch (error) {
-          console.error('Error sorting trips:', error);
-          return 0;
-        }
-      });
-
-      return result;
-    } catch (error) {
-      console.error('Error filtering trips:', error);
-      return trips;
-    }
-  }, [trips, searchQuery, startDateFrom, startDateTo, selectedTags, sortOption]);
+  // All filtering and sorting is now handled by the backend
+  // No client-side filtering needed - just use the trips directly
+  const filteredTrips = trips;
 
   const toggleTagFilter = (tagId: number) => {
     setSelectedTags(prev =>
@@ -234,6 +175,7 @@ export default function TripsPage() {
         ? prev.filter(id => id !== tagId)
         : [...prev, tagId]
     );
+    setCurrentPage(1); // Reset to page 1 when tags change
   };
 
   const clearFilters = () => {
@@ -243,6 +185,34 @@ export default function TripsPage() {
     setSelectedTags([]);
     setStatusFilter('');
     setSortOption('startDate-desc');
+    setCurrentPage(1);
+  };
+
+  // Reset to page 1 when filters change
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+  };
+
+  // Helper to handle filter changes that should reset to page 1
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleStartDateFromChange = (value: string) => {
+    setStartDateFrom(value);
+    setCurrentPage(1);
+  };
+
+  const handleStartDateToChange = (value: string) => {
+    setStartDateTo(value);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (value: SortOption) => {
+    setSortOption(value);
+    setCurrentPage(1);
   };
 
   const hasActiveFilters = searchQuery || startDateFrom || startDateTo || selectedTags.length > 0;
@@ -271,7 +241,7 @@ export default function TripsPage() {
                 type="text"
                 placeholder="Search trips..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-parchment dark:bg-navy-700 text-charcoal dark:text-warm-gray placeholder-slate/50 dark:placeholder-warm-gray/50 border-2 border-transparent focus:border-primary-500 dark:focus:border-sky focus:outline-none transition-colors"
               />
             </div>
@@ -279,7 +249,7 @@ export default function TripsPage() {
             {/* Sort Dropdown */}
             <select
               value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as SortOption)}
+              onChange={(e) => handleSortChange(e.target.value as SortOption)}
               aria-label="Sort trips by"
               className="px-4 py-2.5 rounded-lg bg-parchment dark:bg-navy-700 text-charcoal dark:text-warm-gray border-2 border-transparent focus:border-primary-500 dark:focus:border-sky focus:outline-none transition-colors cursor-pointer"
             >
@@ -312,7 +282,7 @@ export default function TripsPage() {
           <div className="flex gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => setStatusFilter('')}
+              onClick={() => handleStatusFilterChange('')}
               className={`px-4 py-2 rounded-lg font-medium transition-all ${
                 statusFilter === ''
                   ? 'bg-primary-600 dark:bg-sky text-white dark:text-navy-900'
@@ -325,7 +295,7 @@ export default function TripsPage() {
               <button
                 type="button"
                 key={status}
-                onClick={() => setStatusFilter(status)}
+                onClick={() => handleStatusFilterChange(status)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   statusFilter === status
                     ? 'bg-primary-600 dark:bg-sky text-white dark:text-navy-900'
@@ -350,7 +320,7 @@ export default function TripsPage() {
                     type="date"
                     id="startDateFrom"
                     value={startDateFrom}
-                    onChange={(e) => setStartDateFrom(e.target.value)}
+                    onChange={(e) => handleStartDateFromChange(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-parchment dark:bg-navy-700 text-charcoal dark:text-warm-gray border-2 border-transparent focus:border-primary-500 dark:focus:border-sky focus:outline-none transition-colors"
                   />
                 </div>
@@ -362,7 +332,7 @@ export default function TripsPage() {
                     type="date"
                     id="startDateTo"
                     value={startDateTo}
-                    onChange={(e) => setStartDateTo(e.target.value)}
+                    onChange={(e) => handleStartDateToChange(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-parchment dark:bg-navy-700 text-charcoal dark:text-warm-gray border-2 border-transparent focus:border-primary-500 dark:focus:border-sky focus:outline-none transition-colors"
                   />
                 </div>
@@ -416,8 +386,9 @@ export default function TripsPage() {
         {/* Results Count */}
         {!loading && (
           <div className="mb-4 text-sm text-slate dark:text-warm-gray/70">
-            Showing {filteredTrips.length} of {trips.length} trips
+            Showing {filteredTrips.length} of {totalTrips} trips
             {hasActiveFilters && ' (filtered)'}
+            {totalPages > 1 && ` - Page ${currentPage} of ${totalPages}`}
           </div>
         )}
 
@@ -537,6 +508,69 @@ export default function TripsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div className="mt-8 flex justify-center items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600 disabled:hover:bg-parchment dark:disabled:hover:bg-navy-700"
+            >
+              Previous
+            </button>
+
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                // Show first page, last page, current page, and pages around current
+                const showPage = page === 1 ||
+                                page === totalPages ||
+                                (page >= currentPage - 1 && page <= currentPage + 1);
+
+                // Show ellipsis
+                const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+
+                if (!showPage && !showEllipsisBefore && !showEllipsisAfter) {
+                  return null;
+                }
+
+                if (showEllipsisBefore || showEllipsisAfter) {
+                  return (
+                    <span key={`ellipsis-${page}`} className="px-2 py-2 text-slate dark:text-warm-gray">
+                      ...
+                    </span>
+                  );
+                }
+
+                return (
+                  <button
+                    type="button"
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      currentPage === page
+                        ? 'bg-primary-600 dark:bg-sky text-white dark:text-navy-900'
+                        : 'bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600 disabled:hover:bg-parchment dark:disabled:hover:bg-navy-700"
+            >
+              Next
+            </button>
           </div>
         )}
       </main>

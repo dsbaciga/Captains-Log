@@ -51,8 +51,9 @@ export class TripService {
 
   async getTrips(userId: number, query: GetTripQuery) {
     const page = parseInt(query.page || '1');
-    const limit = parseInt(query.limit || '10');
+    const limit = parseInt(query.limit || '20');
     const skip = (page - 1) * limit;
+    const sortOption = query.sort || 'startDate-desc';
 
     const where: any = { userId };
 
@@ -69,12 +70,33 @@ export class TripService {
       ];
     }
 
-    const [trips, total] = await Promise.all([
+    // Filter by date range
+    if (query.startDateFrom || query.startDateTo) {
+      where.startDate = {};
+      if (query.startDateFrom) {
+        where.startDate.gte = new Date(query.startDateFrom + 'T00:00:00.000Z');
+      }
+      if (query.startDateTo) {
+        where.startDate.lte = new Date(query.startDateTo + 'T23:59:59.999Z');
+      }
+    }
+
+    // Filter by tags
+    if (query.tags) {
+      const tagIds = query.tags.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      if (tagIds.length > 0) {
+        where.tagAssignments = {
+          some: {
+            tagId: { in: tagIds }
+          }
+        };
+      }
+    }
+
+    // Fetch all matching trips (without pagination) to sort properly
+    const [allTrips, total] = await Promise.all([
       prisma.trip.findMany({
         where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
         include: {
           coverPhoto: true,
           tagAssignments: {
@@ -87,8 +109,64 @@ export class TripService {
       prisma.trip.count({ where }),
     ]);
 
+    // Apply sorting based on sort option
+    let sortedTrips = [...allTrips];
+
+    if (sortOption === 'startDate-desc') {
+      // Smart sorting for default: newest first by start date
+      // Active trips (Dream, Planning, Planned, In Progress) without dates go first
+      // Then trips with dates (newest first)
+      // Then Completed/Cancelled trips without dates go last
+      sortedTrips.sort((a, b) => {
+        const activeStatuses = [TripStatus.DREAM, TripStatus.PLANNING, TripStatus.PLANNED, TripStatus.IN_PROGRESS];
+        const aIsActive = activeStatuses.includes(a.status as any);
+        const bIsActive = activeStatuses.includes(b.status as any);
+        const aHasDate = !!a.startDate;
+        const bHasDate = !!b.startDate;
+
+        // Active trips without dates go first
+        if (aIsActive && !aHasDate && bIsActive && !bHasDate) return 0;
+        if (aIsActive && !aHasDate) return -1;
+        if (bIsActive && !bHasDate) return 1;
+
+        // Both have dates - sort by date (newest first)
+        if (aHasDate && bHasDate) {
+          return new Date(b.startDate!).getTime() - new Date(a.startDate!).getTime();
+        }
+
+        // One has date, other doesn't (but not active without date)
+        // Trips with dates come before Completed/Cancelled trips without dates
+        if (aHasDate && !bHasDate) return -1;
+        if (!aHasDate && bHasDate) return 1;
+
+        // Both don't have dates and aren't active - sort by status then createdAt
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else if (sortOption === 'startDate-asc') {
+      // Oldest first - trips without dates go to the end
+      sortedTrips.sort((a, b) => {
+        const aHasDate = !!a.startDate;
+        const bHasDate = !!b.startDate;
+
+        if (!aHasDate && !bHasDate) return 0;
+        if (!aHasDate) return 1;
+        if (!bHasDate) return -1;
+
+        return new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime();
+      });
+    } else if (sortOption === 'title-asc') {
+      sortedTrips.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortOption === 'title-desc') {
+      sortedTrips.sort((a, b) => b.title.localeCompare(a.title));
+    } else if (sortOption === 'status') {
+      sortedTrips.sort((a, b) => a.status.localeCompare(b.status));
+    }
+
+    // Apply pagination after sorting
+    const paginatedTrips = sortedTrips.slice(skip, skip + limit);
+
     return {
-      trips: trips.map((trip) => convertDecimals(trip)),
+      trips: paginatedTrips.map((trip) => convertDecimals(trip)),
       total,
       page,
       limit,

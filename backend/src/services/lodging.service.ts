@@ -11,9 +11,28 @@ class LodgingService {
     // Verify user owns the trip
     await verifyTripAccess(userId, data.tripId);
 
+    let locationId = data.locationId;
+
     // Verify location belongs to trip if provided
-    if (data.locationId) {
-      await verifyLocationInTrip(data.locationId, data.tripId);
+    if (locationId) {
+      await verifyLocationInTrip(locationId, data.tripId);
+    }
+    // If no locationId but address is provided, create a new location automatically
+    else if (!locationId && data.address) {
+      const newLocation = await prisma.location.create({
+        data: {
+          tripId: data.tripId,
+          name: data.name, // Use lodging name as location name
+          address: data.address,
+          latitude: null,
+          longitude: null,
+          categoryId: null,
+          visitDatetime: data.checkInDate ? new Date(data.checkInDate) : null,
+          visitDurationMinutes: null,
+          notes: null,
+        },
+      });
+      locationId = newLocation.id;
     }
 
     const lodging = await prisma.lodging.create({
@@ -21,7 +40,7 @@ class LodgingService {
         tripId: data.tripId,
         type: data.type,
         name: data.name,
-        locationId: data.locationId || null,
+        locationId: locationId || null,
         address: data.address || null,
         checkInDate: data.checkInDate ? new Date(data.checkInDate) : new Date(),
         checkOutDate: data.checkOutDate ? new Date(data.checkOutDate) : new Date(),

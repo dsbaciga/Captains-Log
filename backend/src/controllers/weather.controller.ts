@@ -53,3 +53,25 @@ export const refreshWeather = async (req: Request, res: Response) => {
     data: weatherData,
   });
 };
+
+/**
+ * Force refresh all weather for a trip
+ */
+export const refreshAllWeather = async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const tripId = parseInt(req.params.tripId);
+
+  if (isNaN(tripId)) {
+    throw new AppError('Invalid trip ID', 400);
+  }
+
+  const weatherData = await weatherService.refreshAllWeatherForTrip(
+    tripId,
+    userId
+  );
+
+  res.json({
+    status: 'success',
+    data: weatherData,
+  });
+};

@@ -100,6 +100,10 @@ export const getTripQuerySchema = z.object({
   search: z.string().optional(),
   page: z.string().optional(),
   limit: z.string().optional(),
+  sort: z.enum(['startDate-desc', 'startDate-asc', 'title-asc', 'title-desc', 'status']).optional(),
+  startDateFrom: z.string().optional(),
+  startDateTo: z.string().optional(),
+  tags: z.string().optional(), // Comma-separated tag IDs
 });
 
 // Types

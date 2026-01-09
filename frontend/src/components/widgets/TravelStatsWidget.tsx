@@ -250,23 +250,27 @@ export default function TravelStatsWidget() {
             key={index}
             className="p-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-navy-900/50 dark:to-navy-900/30 hover:scale-105 transition-transform duration-200"
           >
-            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center mb-2 shadow-md`}>
-              <div className="text-white">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {stat.icon.props.children}
-                </svg>
+            <div className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md flex-shrink-0`}>
+                <div className="text-white">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {stat.icon.props.children}
+                  </svg>
+                </div>
               </div>
-            </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
-              {stat.valueDisplay}
-            </div>
-            {stat.subtext && (
-              <div className="text-xs text-gray-500 dark:text-gray-500 mb-0.5">
-                {stat.subtext}
+              <div className="flex-1 min-w-0">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white leading-none mb-1">
+                  {stat.valueDisplay}
+                </div>
+                {stat.subtext && (
+                  <div className="text-xs text-gray-500 dark:text-gray-500 mb-0.5">
+                    {stat.subtext}
+                  </div>
+                )}
+                <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                  {stat.label}
+                </div>
               </div>
-            )}
-            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-              {stat.label}
             </div>
           </div>
         ))}
