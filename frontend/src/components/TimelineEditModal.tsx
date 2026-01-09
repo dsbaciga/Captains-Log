@@ -304,6 +304,7 @@ export default function TimelineEditModal({
       id: locationId,
       name: locationName,
       tripId,
+      parentId: null,
       address: null,
       latitude: null,
       longitude: null,

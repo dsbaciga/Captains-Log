@@ -111,6 +111,7 @@ export default function LodgingManager({
       id: locationId,
       name: locationName,
       tripId,
+      parentId: null,
       address: null,
       latitude: null,
       longitude: null,

@@ -91,6 +91,7 @@ export default function TripDetailPage() {
   const [locationLongitude, setLocationLongitude] = useState<
     number | undefined
   >();
+  const [locationParentId, setLocationParentId] = useState<number | undefined>();
   // Initialize activeTab from URL parameter or default to 'timeline'
   const initialTab =
     (searchParams.get("tab") as
@@ -525,6 +526,7 @@ export default function TripDetailPage() {
     setLocationNotes("");
     setLocationLatitude(undefined);
     setLocationLongitude(undefined);
+    setLocationParentId(undefined);
     setEditingLocationId(null);
     setShowLocationForm(false);
   };
@@ -541,6 +543,7 @@ export default function TripDetailPage() {
           address: locationAddress || undefined,
           latitude: locationLatitude,
           longitude: locationLongitude,
+          parentId: locationParentId,
           notes: locationNotes || undefined,
         });
         toast.success("Location updated");
@@ -552,18 +555,20 @@ export default function TripDetailPage() {
           address: locationAddress || undefined,
           latitude: locationLatitude,
           longitude: locationLongitude,
+          parentId: locationParentId,
           notes: locationNotes || undefined,
         });
         toast.success("Location added");
       }
       resetLocationForm();
       loadTripData(trip.id);
-    } catch {
-      toast.error(
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || (
         editingLocationId
           ? "Failed to update location"
           : "Failed to add location"
       );
+      toast.error(errorMessage);
     }
   };
 
@@ -574,6 +579,7 @@ export default function TripDetailPage() {
     setLocationNotes(location.notes || "");
     setLocationLatitude(location.latitude || undefined);
     setLocationLongitude(location.longitude || undefined);
+    setLocationParentId(location.parentId || undefined);
     setShowLocationForm(true);
   };
 
@@ -1104,6 +1110,7 @@ export default function TripDetailPage() {
             </h2>
             <Timeline
               tripId={parseInt(id!)}
+              tripName={trip.title}
               tripTimezone={trip.timezone || undefined}
               userTimezone={userTimezone || undefined}
               tripStartDate={trip.startDate || undefined}
@@ -1169,6 +1176,28 @@ export default function TripDetailPage() {
                       required
                     />
                   </div>
+
+                  <div>
+                    <label className="label">Parent Location (City/Region)</label>
+                    <select
+                      value={locationParentId || ""}
+                      onChange={(e) => setLocationParentId(e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="input"
+                    >
+                      <option value="">None (Top-level location)</option>
+                      {locations
+                        .filter(loc => loc.id !== editingLocationId)
+                        .map((loc) => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.name}
+                          </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Group places by selecting a parent city or region
+                    </p>
+                  </div>
+
                   <div>
                     <label className="label">Address</label>
                     <input
@@ -1203,57 +1232,133 @@ export default function TripDetailPage() {
               </p>
             ) : (
               <div className="space-y-4">
-                {locations.map((location) => (
-                  <div
-                    key={location.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {location.name}
-                        </h3>
-                        {location.address && (
-                          <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                            {location.address}
-                          </p>
-                        )}
-                        {location.notes && (
-                          <p className="text-gray-700 dark:text-gray-300 mt-2">
-                            {location.notes}
-                          </p>
-                        )}
-                        {location.category && (
-                          <span className="inline-block mt-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded">
-                            {location.category.name}
-                          </span>
-                        )}
+                {/* Render top-level locations (no parent) */}
+                {locations
+                  .filter((loc) => !loc.parentId)
+                  .map((location) => (
+                  <div key={location.id} className="space-y-2">
+                    {/* Parent Location */}
+                    <div
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+                    >
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {location.name}
+                            </h3>
+                            {location.children && location.children.length > 0 && (
+                              <span className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                                {location.children.length} {location.children.length === 1 ? 'place' : 'places'}
+                              </span>
+                            )}
+                          </div>
+                          {location.address && (
+                            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+                              {location.address}
+                            </p>
+                          )}
+                          {location.notes && (
+                            <p className="text-gray-700 dark:text-gray-300 mt-2">
+                              {location.notes}
+                            </p>
+                          )}
+                          {location.category && (
+                            <span className="inline-block mt-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded">
+                              {location.category.name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2 items-center flex-shrink-0">
+                          <JournalEntriesButton
+                            journalEntries={location.journalLocationAssignments}
+                            tripId={trip.id}
+                          />
+                          <button
+                            onClick={() => handleEditLocation(location)}
+                            className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLocation(location.id)}
+                            className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2 items-center flex-shrink-0">
-                        <JournalEntriesButton
-                          journalEntries={location.journalLocationAssignments}
-                          tripId={trip.id}
-                        />
-                        <button
-                          onClick={() => handleEditLocation(location)}
-                          className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteLocation(location.id)}
-                          className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
-                        >
-                          Delete
-                        </button>
-                      </div>
+
+                      {/* Associated Albums - Full Width */}
+                      <AssociatedAlbums
+                        albums={location.photoAlbums}
+                        tripId={trip.id}
+                      />
                     </div>
 
-                    {/* Associated Albums - Full Width */}
-                    <AssociatedAlbums
-                      albums={location.photoAlbums}
-                      tripId={trip.id}
-                    />
+                    {/* Child Locations */}
+                    {location.children && location.children.length > 0 && (
+                      <div className="ml-8 space-y-2">
+                        {locations
+                          .filter((child) => child.parentId === location.id)
+                          .map((childLocation) => (
+                          <div
+                            key={childLocation.id}
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-750"
+                          >
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400 dark:text-gray-500">↳</span>
+                                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">
+                                    {childLocation.name}
+                                  </h4>
+                                </div>
+                                {childLocation.address && (
+                                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 ml-6">
+                                    {childLocation.address}
+                                  </p>
+                                )}
+                                {childLocation.notes && (
+                                  <p className="text-gray-700 dark:text-gray-300 mt-2 ml-6">
+                                    {childLocation.notes}
+                                  </p>
+                                )}
+                                {childLocation.category && (
+                                  <span className="inline-block mt-2 ml-6 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded">
+                                    {childLocation.category.name}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex gap-2 items-center flex-shrink-0">
+                                <JournalEntriesButton
+                                  journalEntries={childLocation.journalLocationAssignments}
+                                  tripId={trip.id}
+                                />
+                                <button
+                                  onClick={() => handleEditLocation(childLocation)}
+                                  className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteLocation(childLocation.id)}
+                                  className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Associated Albums - Full Width */}
+                            <AssociatedAlbums
+                              albums={childLocation.photoAlbums}
+                              tripId={trip.id}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

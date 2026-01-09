@@ -3,6 +3,7 @@ import { z } from 'zod';
 // Validation schemas
 export const createLocationSchema = z.object({
   tripId: z.number(),
+  parentId: z.number().optional(),
   name: z.string().min(1).max(500),
   address: z.string().optional(),
   latitude: z.number().min(-90).max(90).optional(),
@@ -14,6 +15,7 @@ export const createLocationSchema = z.object({
 });
 
 export const updateLocationSchema = z.object({
+  parentId: z.number().nullable().optional(),
   name: z.string().min(1).max(500).optional(),
   address: z.string().nullable().optional(),
   latitude: z.number().min(-90).max(90).nullable().optional(),
@@ -45,6 +47,7 @@ export type UpdateLocationCategoryInput = z.infer<typeof updateLocationCategoryS
 export interface LocationResponse {
   id: number;
   tripId: number;
+  parentId: number | null;
   name: string;
   address: string | null;
   latitude: number | null;
@@ -61,6 +64,11 @@ export interface LocationResponse {
     icon: string | null;
     color: string | null;
   } | null;
+  parent?: {
+    id: number;
+    name: string;
+  } | null;
+  children?: LocationResponse[];
 }
 
 export interface LocationCategoryResponse {

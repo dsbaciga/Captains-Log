@@ -9,9 +9,24 @@ export class LocationService {
     // Verify user owns the trip
     await verifyTripAccess(userId, data.tripId);
 
+    // If parentId is provided, verify it exists and belongs to the same trip
+    if (data.parentId) {
+      const parent = await prisma.location.findFirst({
+        where: {
+          id: data.parentId,
+          tripId: data.tripId,
+        },
+      });
+
+      if (!parent) {
+        throw new AppError('Parent location not found or does not belong to the same trip', 404);
+      }
+    }
+
     const location = await prisma.location.create({
       data: {
         tripId: data.tripId,
+        parentId: data.parentId,
         name: data.name,
         address: data.address,
         latitude: data.latitude,
@@ -23,6 +38,12 @@ export class LocationService {
       },
       include: {
         category: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -54,6 +75,22 @@ export class LocationService {
       where: { tripId },
       include: {
         category: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        children: {
+          select: {
+            id: true,
+            name: true,
+            latitude: true,
+            longitude: true,
+            visitDatetime: true,
+            category: true,
+          },
+        },
         photoAlbums: photoAlbumsInclude,
         journalLocationAssignments: {
           select: {
@@ -111,6 +148,22 @@ export class LocationService {
       where: { id: locationId },
       include: {
         category: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        children: {
+          select: {
+            id: true,
+            name: true,
+            latitude: true,
+            longitude: true,
+            visitDatetime: true,
+            category: true,
+          },
+        },
         photoAlbums: photoAlbumsInclude,
         journalLocationAssignments: {
           select: {
@@ -161,6 +214,31 @@ export class LocationService {
     // Verify access
     await verifyEntityAccess(location, userId, 'Location');
 
+    // If updating parentId, verify it exists and belongs to the same trip
+    if (data.parentId !== undefined && data.parentId !== null) {
+      // Prevent self-referencing
+      if (data.parentId === locationId) {
+        throw new AppError('A location cannot be its own parent', 400);
+      }
+
+      const parent = await prisma.location.findFirst({
+        where: {
+          id: data.parentId,
+          tripId: location!.tripId,
+        },
+      });
+
+      if (!parent) {
+        throw new AppError('Parent location not found or does not belong to the same trip', 404);
+      }
+
+      // Prevent circular references (check if new parent is a child of this location)
+      const descendants = await this.getDescendants(locationId);
+      if (descendants.some(d => d.id === data.parentId)) {
+        throw new AppError('Cannot set parent to a descendant location (would create circular reference)', 400);
+      }
+    }
+
     const updateData = buildConditionalUpdateData(data, {
       transformers: {
         visitDatetime: (val) => val ? new Date(val) : null,
@@ -172,10 +250,32 @@ export class LocationService {
       data: updateData,
       include: {
         category: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
     return convertDecimals(updatedLocation);
+  }
+
+  // Helper method to get all descendants of a location
+  private async getDescendants(locationId: number): Promise<{ id: number }[]> {
+    const children = await prisma.location.findMany({
+      where: { parentId: locationId },
+      select: { id: true },
+    });
+
+    const descendants = [...children];
+    for (const child of children) {
+      const childDescendants = await this.getDescendants(child.id);
+      descendants.push(...childDescendants);
+    }
+
+    return descendants;
   }
 
   async deleteLocation(userId: number, locationId: number) {

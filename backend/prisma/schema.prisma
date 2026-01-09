@@ -149,6 +149,7 @@ model TripCollaborator {
 model Location {
   id                   Int       @id @default(autoincrement())
   tripId               Int       @map("trip_id")
+  parentId             Int?      @map("parent_id")
   name                 String    @db.VarChar(500)
   address              String?   @db.Text
   latitude             Decimal?  @db.Decimal(10, 8)
@@ -163,6 +164,8 @@ model Location {
 
   trip                     Trip                  @relation(fields: [tripId], references: [id], onDelete: Cascade)
   category                 LocationCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  parent                   Location?             @relation("LocationChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children                 Location[]            @relation("LocationChildren")
   activities               Activity[]
   lodging                  Lodging[]
   transportationStarts     Transportation[]      @relation("StartLocation")
@@ -172,6 +175,7 @@ model Location {
   photoAlbums              PhotoAlbum[]
 
   @@index([tripId])
+  @@index([parentId])
   @@index([coordinates], type: Gist)
   @@map("locations")
 }

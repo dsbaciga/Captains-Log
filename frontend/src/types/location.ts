@@ -1,6 +1,7 @@
 export type Location = {
   id: number;
   tripId: number;
+  parentId: number | null;
   name: string;
   address: string | null;
   latitude: number | null;
@@ -12,6 +13,18 @@ export type Location = {
   createdAt: string;
   updatedAt: string;
   category?: LocationCategory | null;
+  parent?: {
+    id: number;
+    name: string;
+  } | null;
+  children?: {
+    id: number;
+    name: string;
+    latitude: number | null;
+    longitude: number | null;
+    visitDatetime: string | null;
+    category?: LocationCategory | null;
+  }[];
   trip?: {
     id: number;
     title: string;
@@ -50,6 +63,7 @@ export type LocationCategory = {
 
 export type CreateLocationInput = {
   tripId: number;
+  parentId?: number;
   name: string;
   address?: string;
   latitude?: number;

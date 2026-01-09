@@ -136,6 +136,7 @@ export default function ActivityManager({
       id: locationId,
       name: locationName,
       tripId,
+      parentId: null,
       address: null,
       latitude: null,
       longitude: null,
