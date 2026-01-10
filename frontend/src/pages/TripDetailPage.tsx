@@ -1556,15 +1556,19 @@ export default function TripDetailPage() {
                     }
                     toast.success("Photos added to album");
                   }}
-                  onSetCoverPhoto={async (photoId: number) => {
-                    try {
-                      await tripService.updateCoverPhoto(trip.id, photoId);
-                      toast.success("Cover photo updated");
-                      loadTripData(trip.id);
-                    } catch {
-                      toast.error("Failed to set cover photo");
-                    }
-                  }}
+                  onSetCoverPhoto={
+                    selectedAlbumId === null
+                      ? async (photoId: number) => {
+                          try {
+                            await tripService.updateCoverPhoto(trip.id, photoId);
+                            toast.success("Cover photo updated");
+                            loadTripData(trip.id);
+                          } catch {
+                            toast.error("Failed to set cover photo");
+                          }
+                        }
+                      : undefined
+                  }
                   coverPhotoId={trip.coverPhotoId}
                   totalPhotosInView={
                     selectedAlbumId === null
