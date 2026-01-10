@@ -96,11 +96,11 @@ export default function PlacesVisitedPage() {
       {/* Map and Sidebar */}
       <div className="flex-1 flex overflow-hidden">
         {/* Map */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative z-0">
           <MapContainer
             center={[center.lat, center.lng]}
             zoom={4}
-            className="h-full w-full"
+            className="h-full w-full z-0"
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
