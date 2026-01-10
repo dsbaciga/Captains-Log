@@ -1766,7 +1766,7 @@ export default function TripDetailPage() {
         {/* Companions Tab */}
         {activeTab === "companions" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <CompanionManager tripId={trip.id} />
+            <CompanionManager tripId={trip.id} onUpdate={loadTripData} />
           </div>
         )}
       </main>

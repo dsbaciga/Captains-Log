@@ -7,9 +7,10 @@ import CompanionAvatar from './CompanionAvatar';
 
 interface CompanionManagerProps {
   tripId: number;
+  onUpdate?: () => void;
 }
 
-export default function CompanionManager({ tripId }: CompanionManagerProps) {
+export default function CompanionManager({ tripId, onUpdate }: CompanionManagerProps) {
   // Service adapter for trip companions (companions linked to this trip) - memoized to prevent infinite loops
   const tripCompanionServiceAdapter = useMemo(() => ({
     getByTrip: companionService.getCompanionsByTrip,
@@ -89,6 +90,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       await companionService.linkCompanionToTrip(tripId, companionId);
       toast.success('Companion added to trip');
       manager.loadItems();
+      onUpdate?.();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       if (error.response?.data?.message?.includes('already linked')) {
@@ -104,6 +106,7 @@ export default function CompanionManager({ tripId }: CompanionManagerProps) {
       await companionService.unlinkCompanionFromTrip(tripId, companionId);
       toast.success('Companion removed from trip');
       manager.loadItems();
+      onUpdate?.();
     } catch {
       toast.error('Failed to remove companion');
     }
