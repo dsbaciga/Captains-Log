@@ -43,6 +43,20 @@ class PhotoService {
     return response.data;
   }
 
+  async linkImmichPhotosBatch(data: {
+    tripId: number;
+    assets: Array<{
+      immichAssetId: string;
+      caption?: string;
+      takenAt?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    }>;
+  }): Promise<{ total: number; successful: number; failed: number; errors: string[] }> {
+    const response = await api.post('/photos/immich/batch', data);
+    return response.data.data;
+  }
+
   async getPhotosByTrip(
     tripId: number,
     options?: { skip?: number; take?: number }

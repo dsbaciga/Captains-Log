@@ -45,6 +45,7 @@ export default function ImmichBrowser({
   const [totalAssets, setTotalAssets] = useState(0);
   const ITEMS_PER_PAGE = 50;
   const [isLinking, setIsLinking] = useState(false);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
 
   // Filter albums based on search term
   const filteredAlbums = useMemo(() => {
@@ -255,6 +256,49 @@ export default function ImmichBrowser({
     });
   };
 
+  const handleSelectAll = async () => {
+    if (!filterByTripDates || !tripStartDate || !tripEndDate) {
+      // If not filtering by trip dates, just select all on page
+      handleSelectAllOnPage();
+      return;
+    }
+
+    setIsLoadingAll(true);
+    try {
+      // Fetch ALL assets for the date range (no pagination)
+      const result = await immichService.getAssetsByDateRange(
+        tripStartDate,
+        tripEndDate
+      );
+
+      const allAssets = result.assets || [];
+      console.log(`[ImmichBrowser] Loaded ${allAssets.length} total assets for selection`);
+
+      // Filter out already-linked assets
+      const assetsToSelect = excludeAssetIds
+        ? allAssets.filter((asset) => !excludeAssetIds.has(asset.id))
+        : allAssets;
+
+      // Add all to selection
+      setSelectedAssetsMap((prev) => {
+        const newMap = new Map(prev);
+        assetsToSelect.forEach((asset) => newMap.set(asset.id, asset));
+        return newMap;
+      });
+
+      console.log(`[ImmichBrowser] Selected ${assetsToSelect.length} assets (excluded ${allAssets.length - assetsToSelect.length} already linked)`);
+    } catch (error) {
+      console.error("[ImmichBrowser] Failed to load all assets:", error);
+      alert("Failed to load all photos. Please try again.");
+    } finally {
+      setIsLoadingAll(false);
+    }
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedAssetsMap(new Map());
+  };
+
   const allPageAssetsSelected =
     displayAssets.length > 0 &&
     displayAssets.every((asset) => selectedAssetsMap.has(asset.id));
@@ -450,9 +494,9 @@ export default function ImmichBrowser({
             </div>
           ) : (
             <>
-              {/* Select All Button */}
+              {/* Selection Controls */}
               {displayAssets.length > 0 && (
-                <div className="mb-4">
+                <div className="mb-4 flex flex-wrap gap-2">
                   <button
                     onClick={
                       allPageAssetsSelected
@@ -466,6 +510,27 @@ export default function ImmichBrowser({
                       ? "Deselect All on Page"
                       : "Select All on Page"}
                   </button>
+                  {filterByTripDates && tripStartDate && tripEndDate && totalAssets > ITEMS_PER_PAGE && (
+                    <>
+                      <button
+                        onClick={handleSelectAll}
+                        disabled={isLoadingAll}
+                        type="button"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isLoadingAll ? "Loading..." : `Select All ${totalAssets} Photos`}
+                      </button>
+                      {selectedAssetsMap.size > 0 && (
+                        <button
+                          onClick={handleDeselectAll}
+                          type="button"
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+                        >
+                          Deselect All
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

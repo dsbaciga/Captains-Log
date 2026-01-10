@@ -89,6 +89,47 @@ router.post('/immich', photoController.linkImmichPhoto);
 
 /**
  * @openapi
+ * /api/photos/immich/batch:
+ *   post:
+ *     summary: Link multiple photos from Immich in a batch
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tripId, assets]
+ *             properties:
+ *               tripId:
+ *                 type: integer
+ *               assets:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [immichAssetId]
+ *                   properties:
+ *                     immichAssetId:
+ *                       type: string
+ *                     caption:
+ *                       type: string
+ *                     takenAt:
+ *                       type: string
+ *                       format: date-time
+ *                     latitude:
+ *                       type: number
+ *                     longitude:
+ *                       type: number
+ *     responses:
+ *       201:
+ *         description: Batch linking results
+ */
+router.post('/immich/batch', photoController.linkImmichPhotosBatch);
+
+/**
+ * @openapi
  * /api/photos/trip/{tripId}:
  *   get:
  *     summary: Get all photos for a specific trip

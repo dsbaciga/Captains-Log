@@ -3,6 +3,7 @@ import photoService from '../services/photo.service';
 import {
   uploadPhotoSchema,
   linkImmichPhotoSchema,
+  linkImmichPhotoBatchSchema,
   updatePhotoSchema,
 } from '../types/photo.types';
 import { AppError } from '../utils/errors';
@@ -65,6 +66,24 @@ class PhotoController {
       );
 
       res.status(201).json(transformPhoto(photo));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async linkImmichPhotosBatch(req: Request, res: Response, next: NextFunction) {
+    try {
+      const validatedData = linkImmichPhotoBatchSchema.parse(req.body);
+      const results = await photoService.linkImmichPhotosBatch(
+        req.user!.userId,
+        validatedData
+      );
+
+      res.status(201).json({
+        status: 'success',
+        data: results,
+        message: `Successfully linked ${results.successful} photos (${results.failed} failed)`,
+      });
     } catch (error) {
       next(error);
     }

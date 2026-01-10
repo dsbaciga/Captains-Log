@@ -83,19 +83,52 @@ export default function PhotoUpload({
     setUploadProgress(0);
 
     try {
-      for (let i = 0; i < assets.length; i++) {
-        const asset = assets[i];
-        const takenAt = asset.exifInfo?.dateTimeOriginal || asset.fileCreatedAt;
+      const BATCH_THRESHOLD = 250;
 
-        await photoService.linkImmichPhoto({
-          tripId,
+      if (assets.length >= BATCH_THRESHOLD) {
+        // Use batch endpoint for large selections
+        console.log(`[PhotoUpload] Using batch endpoint for ${assets.length} photos`);
+        toast.loading(`Linking ${assets.length} photos in batches...`);
+
+        const batchData = assets.map((asset) => ({
           immichAssetId: asset.id,
           caption: assets.length === 1 ? caption || undefined : undefined,
-          takenAt: takenAt ?? undefined,
+          takenAt: asset.exifInfo?.dateTimeOriginal || asset.fileCreatedAt,
           latitude: asset.exifInfo?.latitude ?? undefined,
           longitude: asset.exifInfo?.longitude ?? undefined,
+        }));
+
+        const result = await photoService.linkImmichPhotosBatch({
+          tripId,
+          assets: batchData,
         });
-        setUploadProgress(((i + 1) / assets.length) * 100);
+
+        toast.dismiss();
+        if (result.failed > 0) {
+          toast.error(
+            `Linked ${result.successful} photos successfully, ${result.failed} failed`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.success(`Successfully linked ${result.successful} photos!`);
+        }
+      } else {
+        // Use individual linking for smaller selections
+        console.log(`[PhotoUpload] Using individual linking for ${assets.length} photos`);
+        for (let i = 0; i < assets.length; i++) {
+          const asset = assets[i];
+          const takenAt = asset.exifInfo?.dateTimeOriginal || asset.fileCreatedAt;
+
+          await photoService.linkImmichPhoto({
+            tripId,
+            immichAssetId: asset.id,
+            caption: assets.length === 1 ? caption || undefined : undefined,
+            takenAt: takenAt ?? undefined,
+            latitude: asset.exifInfo?.latitude ?? undefined,
+            longitude: asset.exifInfo?.longitude ?? undefined,
+          });
+          setUploadProgress(((i + 1) / assets.length) * 100);
+        }
       }
 
       setCaption("");
@@ -104,7 +137,8 @@ export default function PhotoUpload({
       onPhotoUploaded();
     } catch (err) {
       console.error("Failed to link Immich photos:", err);
-      alert("Failed to link Immich photos");
+      toast.dismiss();
+      toast.error("Failed to link Immich photos");
     } finally {
       setIsUploading(false);
     }
