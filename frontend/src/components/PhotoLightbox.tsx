@@ -397,9 +397,9 @@ export default function PhotoLightbox({
             </div>
           ) : (
             /* Normal controls */
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-3">
               {/* Photo details */}
-              <div className="flex gap-4 text-white text-sm">
+              <div className="flex gap-2 md:gap-4 text-white text-xs md:text-sm flex-wrap justify-center md:justify-start">
                 {photo.location && (
                   <span className="flex items-center gap-1">
                     <svg
@@ -444,15 +444,15 @@ export default function PhotoLightbox({
                     {new Date(photo.takenAt).toLocaleDateString()}
                   </span>
                 )}
-                <span className="px-2 py-0.5 bg-white/20 rounded text-xs">
+                <span className="hidden sm:inline px-2 py-0.5 bg-white/20 rounded text-xs">
                   {photo.source === "local" ? "Uploaded" : "Immich"}
                 </span>
               </div>
 
               {/* Zoom and action controls */}
               <div className="flex items-center gap-2">
-                {/* Zoom controls */}
-                <div className="flex items-center bg-black/50 rounded-lg overflow-hidden">
+                {/* Zoom controls - hidden on small screens */}
+                <div className="hidden sm:flex items-center bg-black/50 rounded-lg overflow-hidden">
                   <button
                     type="button"
                     onClick={handleZoomOut}
@@ -525,16 +525,16 @@ export default function PhotoLightbox({
                   )}
                 </div>
 
-                {/* Divider */}
-                <div className="w-px h-8 bg-white/30" />
+                {/* Divider - hidden on small screens */}
+                <div className="hidden sm:block w-px h-8 bg-white/30" />
 
                 {/* Action buttons */}
-                <div className="flex gap-1">
+                <div className="flex gap-2">
                   {onEdit && (
                     <button
                       type="button"
                       onClick={onEdit}
-                      className="p-2 text-white bg-black/50 hover:bg-white/20 rounded-lg transition-colors"
+                      className="p-3 text-white bg-black/50 hover:bg-white/20 rounded-lg transition-colors"
                       aria-label="Edit caption"
                     >
                       <svg
@@ -557,7 +557,7 @@ export default function PhotoLightbox({
                     <button
                       type="button"
                       onClick={onSetCover}
-                      className="p-2 text-white bg-black/50 hover:bg-green-600/70 rounded-lg transition-colors"
+                      className="p-3 text-white bg-black/50 hover:bg-green-600/70 rounded-lg transition-colors"
                       aria-label="Set as cover photo"
                     >
                       <svg
@@ -580,7 +580,7 @@ export default function PhotoLightbox({
                     <button
                       type="button"
                       onClick={onDelete}
-                      className="p-2 text-white bg-black/50 hover:bg-red-600/70 rounded-lg transition-colors"
+                      className="p-3 text-white bg-black/50 hover:bg-red-600/70 rounded-lg transition-colors"
                       aria-label="Delete photo"
                     >
                       <svg

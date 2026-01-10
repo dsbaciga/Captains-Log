@@ -1498,7 +1498,7 @@ export default function TripDetailPage() {
                         Add Photos
                       </button>
                     )}
-                    {trip.coverPhoto && selectedAlbumId === null && (
+                    {trip.coverPhoto && (
                       <button
                         type="button"
                         onClick={async () => {
