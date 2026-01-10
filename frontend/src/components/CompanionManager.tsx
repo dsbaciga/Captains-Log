@@ -80,6 +80,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
       resetForm();
       loadAllCompanions();
       manager.loadItems();
+      onUpdate?.();
     } catch {
       toast.error('Failed to update companion');
     }
