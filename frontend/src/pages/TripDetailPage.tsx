@@ -191,6 +191,7 @@ export default function TripDetailPage() {
       loadImmichAssetIds(tripId);
     }
     loadUserTimezone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Function to change tabs and update URL
@@ -204,6 +205,7 @@ export default function TripDetailPage() {
     if (trip) {
       photosPagination.loadInitial();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip?.id]);
 
   // Load photos when selected album changes
@@ -230,6 +232,7 @@ export default function TripDetailPage() {
       unsortedPagination.clear();
       albumPhotosPagination.loadInitial();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAlbumId, trip?.id]);
 
   // Update filtered photos based on selected album
@@ -301,6 +304,7 @@ export default function TripDetailPage() {
         URL.revokeObjectURL(coverPhotoUrl);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip?.coverPhoto]);
 
   const loadUserTimezone = async () => {
@@ -562,8 +566,8 @@ export default function TripDetailPage() {
       }
       resetLocationForm();
       loadTripData(trip.id);
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || (
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || (error as { message?: string })?.message || (
         editingLocationId
           ? "Failed to update location"
           : "Failed to add location"

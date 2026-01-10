@@ -81,6 +81,7 @@ export default function AlbumDetailPage() {
     if (showPhotoSelector && availablePhotos.length > 0) {
       loadThumbnails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availablePhotos, showPhotoSelector]);
 
   // Cleanup blob URLs on unmount
@@ -129,6 +130,7 @@ export default function AlbumDetailPage() {
     photosPagination.clear();
     loadAlbum();
     loadTripData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albumId, tripId]);
 
   const loadTripData = async () => {

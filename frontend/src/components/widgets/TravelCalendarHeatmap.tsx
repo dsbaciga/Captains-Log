@@ -22,6 +22,7 @@ export default function TravelCalendarHeatmap() {
 
   useEffect(() => {
     loadTravelData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTravelData = async () => {

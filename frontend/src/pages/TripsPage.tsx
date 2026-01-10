@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import tagService from '../services/tag.service';
@@ -46,6 +46,7 @@ export default function TripsPage() {
     }, searchQuery ? 300 : 0); // 300ms debounce for search, immediate for other changes
 
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, currentPage, startDateFrom, startDateTo, selectedTags, sortOption, searchQuery]);
 
   // Load tags once on mount
@@ -121,7 +122,7 @@ export default function TripsPage() {
   const loadTrips = async () => {
     try {
       setLoading(true);
-      const params: any = {
+      const params: Record<string, string | number> = {
         page: currentPage,
         limit: 20,
       };
