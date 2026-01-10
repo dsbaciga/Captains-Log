@@ -4,6 +4,7 @@ import type { Companion } from '../types/companion';
 import toast from 'react-hot-toast';
 import { useManagerCRUD } from '../hooks/useManagerCRUD';
 import CompanionAvatar from './CompanionAvatar';
+import FormModal from './FormModal';
 
 interface CompanionManagerProps {
   tripId: number;
@@ -149,81 +150,104 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
       <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">Travel Companions</h2>
         <button
-          onClick={() => manager.toggleForm()}
+          onClick={() => manager.openCreateForm()}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
-          {manager.showForm ? 'Cancel' : '+ Add New Companion'}
+          + Add New Companion
         </button>
       </div>
 
-      {/* Create/Edit Companion Form */}
-      {manager.showForm && (
+      {/* Create/Edit Companion Form Modal */}
+      <FormModal
+        isOpen={manager.showForm}
+        onClose={resetForm}
+        title={editingCompanion ? "Edit Companion" : "Add Companion"}
+        icon="👥"
+        maxWidth="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="companion-form"
+              className="btn btn-primary"
+            >
+              {editingCompanion ? 'Update' : 'Add'} Companion
+            </button>
+          </>
+        }
+      >
         <form
+          id="companion-form"
           onSubmit={editingCompanion ? handleUpdateCompanion : handleCreateCompanion}
-          className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+          className="space-y-4"
         >
-          <div className="space-y-4">
+          <div>
+            <label htmlFor="companion-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Name *
+            </label>
+            <input
+              type="text"
+              id="companion-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input"
+              placeholder="John Doe"
+              maxLength={100}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="label">Name *</label>
+              <label htmlFor="companion-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email
+              </label>
               <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="email"
+                id="companion-email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="input"
-                placeholder="John Doe"
-                maxLength={100}
-                required
+                placeholder="john@example.com"
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input"
-                  placeholder="john@example.com"
-                />
-              </div>
-              <div>
-                <label className="label">Phone</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="input"
-                  placeholder="+1 (555) 123-4567"
-                  maxLength={20}
-                />
-              </div>
             </div>
             <div>
-              <label className="label">Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+              <label htmlFor="companion-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Phone
+              </label>
+              <input
+                type="tel"
+                id="companion-phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="input"
-                rows={3}
-                placeholder="Additional information..."
-                maxLength={1000}
+                placeholder="+1 (555) 123-4567"
+                maxLength={20}
               />
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" className="btn btn-primary">
-                {editingCompanion ? 'Update Companion' : 'Add Companion'}
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
             </div>
           </div>
+          <div>
+            <label htmlFor="companion-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Notes
+            </label>
+            <textarea
+              id="companion-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="input"
+              rows={3}
+              placeholder="Additional information..."
+              maxLength={1000}
+            />
+          </div>
         </form>
-      )}
+      </FormModal>
 
       {/* Trip Companions */}
       <div className="mb-6">

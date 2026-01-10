@@ -4,6 +4,7 @@ import type { Tag, TripTag } from "../types/tag";
 import toast from "react-hot-toast";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import FormModal from "./FormModal";
 
 interface TagManagerProps {
   tripId: number;
@@ -167,78 +168,89 @@ export default function TagManager({ tripId }: TagManagerProps) {
           Tags
         </h2>
         <button
-          onClick={() => manager.toggleForm()}
+          onClick={() => manager.openCreateForm()}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
-          {manager.showForm ? "Cancel" : "+ Create Tag"}
+          + Create Tag
         </button>
       </div>
 
-      {/* Create/Edit Tag Form */}
-      {manager.showForm && (
+      {/* Create/Edit Tag Form Modal */}
+      <FormModal
+        isOpen={manager.showForm}
+        onClose={cancelForm}
+        title={editingTag ? "Edit Tag" : "Create Tag"}
+        icon="🏷️"
+        maxWidth="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={cancelForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="tag-form"
+              className="btn btn-primary"
+            >
+              {editingTag ? "Update" : "Create"} Tag
+            </button>
+          </>
+        }
+      >
         <form
+          id="tag-form"
           onSubmit={editingTag ? handleUpdateTag : handleCreateTag}
-          className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+          className="space-y-4"
         >
-          <div className="space-y-4">
-            <div>
-              <label htmlFor={tagNameId} className="label">
-                Tag Name *
-              </label>
-              <input
-                type="text"
-                id={tagNameId}
-                value={tagName}
-                onChange={(e) => setTagName(e.target.value)}
-                className="input"
-                placeholder="Adventure, Beach, Food..."
-                maxLength={50}
-                required
-              />
+          <div>
+            <label htmlFor={tagNameId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Tag Name *
+            </label>
+            <input
+              type="text"
+              id={tagNameId}
+              value={tagName}
+              onChange={(e) => setTagName(e.target.value)}
+              className="input"
+              placeholder="Adventure, Beach, Food..."
+              maxLength={50}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor={tagColorId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Color
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {DEFAULT_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setTagColor(color)}
+                  className={`w-10 h-10 rounded-full border-2 ${
+                    tagColor === color ? "border-gray-900 dark:border-white" : "border-gray-300 dark:border-gray-600"
+                  }`}
+                  aria-label={`Select color ${color}`}
+                  title={`Select color ${color}`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
             </div>
-            <div>
-              <label htmlFor={tagColorId} className="label">
-                Color
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {DEFAULT_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setTagColor(color)}
-                    className={`w-10 h-10 rounded-full border-2 ${
-                      tagColor === color ? "border-gray-900 dark:border-white" : "border-gray-300 dark:border-gray-600"
-                    }`}
-                    aria-label={`Select color ${color}`}
-                    title={`Select color ${color}`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-              <input
-                type="color"
-                id={tagColorId}
-                value={tagColor}
-                onChange={(e) => setTagColor(e.target.value)}
-                className="mt-2 h-10 w-32 cursor-pointer"
-                aria-label="Custom color picker"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" className="btn btn-primary">
-                {editingTag ? "Update Tag" : "Create Tag"}
-              </button>
-              <button
-                type="button"
-                onClick={cancelForm}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
+            <input
+              type="color"
+              id={tagColorId}
+              value={tagColor}
+              onChange={(e) => setTagColor(e.target.value)}
+              className="mt-2 h-10 w-32 cursor-pointer"
+              aria-label="Custom color picker"
+            />
           </div>
         </form>
-      )}
+      </FormModal>
 
       {/* Trip Tags */}
       <div className="mb-6">
