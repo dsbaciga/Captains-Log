@@ -156,6 +156,7 @@ export default function TimelineEditModal({
         initJournalForm(itemData as JournalEntry);
         break;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, itemType, itemData]);
 
   const loadUserCategories = async () => {

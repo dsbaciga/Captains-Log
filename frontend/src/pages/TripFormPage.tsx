@@ -24,6 +24,7 @@ export default function TripFormPage() {
     if (isEdit && id) {
       loadTrip(parseInt(id));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit]);
 
   const loadTrip = async (tripId: number) => {

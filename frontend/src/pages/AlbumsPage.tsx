@@ -87,6 +87,7 @@ export default function AlbumsPage() {
     return () => {
       // Cleanup is handled by separate effect to avoid revoking active URLs
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albums]);
 
   // Cleanup blob URLs on unmount
@@ -99,6 +100,7 @@ export default function AlbumsPage() {
 
   useEffect(() => {
     loadAlbums();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
   const loadAlbums = async () => {

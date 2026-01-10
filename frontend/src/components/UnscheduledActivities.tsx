@@ -74,6 +74,7 @@ export default function UnscheduledActivities({
   useEffect(() => {
     loadActivities();
     loadUserCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
   const loadUserCategories = async () => {

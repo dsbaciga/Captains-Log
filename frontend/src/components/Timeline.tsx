@@ -1917,11 +1917,11 @@ const Timeline = ({
           .text-gray-700,
           .text-gray-600,
           .text-gray-500,
-          .dark\:text-white,
-          .dark\:text-gray-100,
-          .dark\:text-gray-200,
-          .dark\:text-gray-300,
-          .dark\:text-gray-400 {
+          .dark:text-white,
+          .dark:text-gray-100,
+          .dark:text-gray-200,
+          .dark:text-gray-300,
+          .dark:text-gray-400 {
             color: #1f2937 !important;
           }
 
@@ -1938,15 +1938,15 @@ const Timeline = ({
           /* Ensure borders are visible */
           .border-gray-200,
           .border-gray-300,
-          .dark\:border-gray-700,
-          .dark\:border-gray-600 {
+          .dark:border-gray-700,
+          .dark:border-gray-600 {
             border-color: #d1d5db !important;
           }
 
           /* White backgrounds for cards */
           .bg-white,
-          .dark\:bg-gray-800,
-          .dark\:bg-gray-900 {
+          .dark:bg-gray-800,
+          .dark:bg-gray-900 {
             background-color: #fff !important;
           }
 

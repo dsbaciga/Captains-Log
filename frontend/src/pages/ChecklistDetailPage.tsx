@@ -19,6 +19,7 @@ export default function ChecklistDetailPage() {
 
   useEffect(() => {
     loadChecklist();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadChecklist = async () => {
