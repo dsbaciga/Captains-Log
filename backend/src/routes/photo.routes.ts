@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import photoController from '../controllers/photo.controller';
 import { authenticate } from '../middleware/auth';
@@ -88,6 +88,15 @@ router.post('/upload', upload.single('photo'), photoController.uploadPhoto);
 router.post('/immich', photoController.linkImmichPhoto);
 
 /**
+ * Middleware to extend timeout for long-running batch operations
+ */
+const extendTimeout = (req: Request, res: Response, next: NextFunction) => {
+  req.setTimeout(300000); // 5 minutes
+  res.setTimeout(300000); // 5 minutes
+  next();
+};
+
+/**
  * @openapi
  * /api/photos/immich/batch:
  *   post:
@@ -126,7 +135,7 @@ router.post('/immich', photoController.linkImmichPhoto);
  *       201:
  *         description: Batch linking results
  */
-router.post('/immich/batch', photoController.linkImmichPhotosBatch);
+router.post('/immich/batch', extendTimeout, photoController.linkImmichPhotosBatch);
 
 /**
  * @openapi

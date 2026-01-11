@@ -84,11 +84,11 @@ export default function PhotoUpload({
 
     try {
       const BATCH_THRESHOLD = 250;
+      const CHUNK_SIZE = 500; // Send max 500 photos per HTTP request
 
       if (assets.length >= BATCH_THRESHOLD) {
-        // Use batch endpoint for large selections
+        // Use batch endpoint for large selections with chunking
         console.log(`[PhotoUpload] Using batch endpoint for ${assets.length} photos`);
-        toast.loading(`Linking ${assets.length} photos in batches...`);
 
         const batchData = assets.map((asset) => ({
           immichAssetId: asset.id,
@@ -98,19 +98,65 @@ export default function PhotoUpload({
           longitude: asset.exifInfo?.longitude ?? undefined,
         }));
 
-        const result = await photoService.linkImmichPhotosBatch({
-          tripId,
-          assets: batchData,
-        });
+        // Split into chunks to avoid request timeout
+        const chunks = [];
+        for (let i = 0; i < batchData.length; i += CHUNK_SIZE) {
+          chunks.push(batchData.slice(i, i + CHUNK_SIZE));
+        }
 
-        toast.dismiss();
-        if (result.failed > 0) {
+        console.log(`[PhotoUpload] Split ${assets.length} photos into ${chunks.length} chunks of up to ${CHUNK_SIZE}`);
+
+        // Process chunks sequentially with progress tracking
+        let totalSuccessful = 0;
+        let totalFailed = 0;
+        const allErrors: string[] = [];
+
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          const chunkNumber = i + 1;
+
+          console.log(`[PhotoUpload] Processing chunk ${chunkNumber}/${chunks.length} (${chunk.length} photos)`);
+          toast.loading(
+            `Linking photos: chunk ${chunkNumber}/${chunks.length} (${totalSuccessful + totalFailed}/${assets.length})`,
+            { id: 'batch-progress' }
+          );
+
+          try {
+            const result = await photoService.linkImmichPhotosBatch({
+              tripId,
+              assets: chunk,
+            });
+
+            totalSuccessful += result.successful;
+            totalFailed += result.failed;
+            allErrors.push(...result.errors);
+
+            // Update progress
+            const progress = ((i + 1) / chunks.length) * 100;
+            setUploadProgress(progress);
+
+            console.log(`[PhotoUpload] Chunk ${chunkNumber} complete: ${result.successful} successful, ${result.failed} failed`);
+          } catch (chunkErr) {
+            console.error(`[PhotoUpload] Chunk ${chunkNumber} failed:`, chunkErr);
+            totalFailed += chunk.length;
+            allErrors.push(`Chunk ${chunkNumber} failed completely: ${chunkErr instanceof Error ? chunkErr.message : 'Unknown error'}`);
+          }
+        }
+
+        toast.dismiss('batch-progress');
+
+        console.log(`[PhotoUpload] Batch linking complete: ${totalSuccessful} successful, ${totalFailed} failed out of ${assets.length}`);
+
+        if (totalFailed > 0) {
           toast.error(
-            `Linked ${result.successful} photos successfully, ${result.failed} failed`,
+            `Linked ${totalSuccessful} of ${assets.length} photos successfully (${totalFailed} failed)`,
             { duration: 5000 }
           );
+          if (allErrors.length > 0) {
+            console.error('[PhotoUpload] Errors:', allErrors);
+          }
         } else {
-          toast.success(`Successfully linked ${result.successful} photos!`);
+          toast.success(`Successfully linked all ${totalSuccessful} photos!`);
         }
       } else {
         // Use individual linking for smaller selections
