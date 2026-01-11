@@ -1,5 +1,5 @@
 import axios from '../lib/axios';
-import type { Trip, CreateTripInput, UpdateTripInput, TripListResponse, ValidationResult } from '../types/trip';
+import type { Trip, CreateTripInput, UpdateTripInput, TripListResponse, ValidationResult, DuplicateTripInput } from '../types/trip';
 
 class TripService {
   async createTrip(data: CreateTripInput): Promise<Trip> {
@@ -38,6 +38,11 @@ class TripService {
 
   async validateTrip(tripId: number): Promise<ValidationResult> {
     const response = await axios.get(`/trips/${tripId}/validate`);
+    return response.data.data;
+  }
+
+  async duplicateTrip(tripId: number, data: DuplicateTripInput): Promise<Trip> {
+    const response = await axios.post(`/trips/${tripId}/duplicate`, data);
     return response.data.data;
   }
 }

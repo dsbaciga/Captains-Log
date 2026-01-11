@@ -117,6 +117,20 @@ export default function TripDetailPage() {
   >(initialTab);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [duplicateTripTitle, setDuplicateTripTitle] = useState("");
+  const [duplicateOptions, setDuplicateOptions] = useState({
+    locations: true,
+    photos: false,
+    activities: true,
+    transportation: false,
+    lodging: false,
+    journalEntries: false,
+    photoAlbums: false,
+    tags: true,
+    companions: true,
+    checklists: false,
+  });
 
   // Pagination hooks
   const photosPagination = usePagination<Photo>(
@@ -617,6 +631,33 @@ export default function TripDetailPage() {
     }
   };
 
+  const handleOpenDuplicateDialog = () => {
+    if (trip) {
+      setDuplicateTripTitle(`${trip.title} (Copy)`);
+      setShowDuplicateDialog(true);
+    }
+  };
+
+  const handleDuplicateTrip = async () => {
+    if (!trip || !duplicateTripTitle.trim()) {
+      toast.error("Please enter a title for the duplicated trip");
+      return;
+    }
+
+    try {
+      const duplicatedTrip = await tripService.duplicateTrip(trip.id, {
+        title: duplicateTripTitle,
+        copyEntities: duplicateOptions,
+      });
+      toast.success("Trip duplicated successfully!");
+      setShowDuplicateDialog(false);
+      navigate(`/trips/${duplicatedTrip.id}`);
+    } catch (error) {
+      console.error("Failed to duplicate trip:", error);
+      toast.error("Failed to duplicate trip");
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case TripStatus.DREAM:
@@ -734,6 +775,12 @@ export default function TripDetailPage() {
                     >
                       Edit Trip
                     </Link>
+                    <button
+                      onClick={handleOpenDuplicateDialog}
+                      className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
+                    >
+                      Duplicate
+                    </button>
                   </div>
                 </div>
 
@@ -853,6 +900,12 @@ export default function TripDetailPage() {
                   >
                     Edit Trip
                   </Link>
+                  <button
+                    onClick={handleOpenDuplicateDialog}
+                    className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
+                  >
+                    Duplicate
+                  </button>
                 </div>
               </div>
 
@@ -1780,6 +1833,183 @@ export default function TripDetailPage() {
           }}
         />
       )}
+
+      {/* Duplicate Trip Dialog */}
+      {showDuplicateDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                Duplicate Trip
+              </h2>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  New Trip Title
+                </label>
+                <input
+                  type="text"
+                  value={duplicateTripTitle}
+                  onChange={(e) => setDuplicateTripTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter title for duplicated trip"
+                />
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">
+                  Select What to Copy
+                </h3>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.locations}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, locations: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Locations</strong> - All locations and points of interest
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.photos}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, photos: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Photos</strong> - All trip photos (local uploads and Immich references)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.activities}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, activities: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Activities</strong> - Planned and completed activities (dates will be cleared)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.transportation}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, transportation: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Transportation</strong> - Flights, trains, buses (dates will be cleared)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.lodging}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, lodging: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Lodging</strong> - Hotels, Airbnb, camping (dates will be cleared)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.journalEntries}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, journalEntries: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Journal Entries</strong> - All journal entries with their associations
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.photoAlbums}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, photoAlbums: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Photo Albums</strong> - Album organization (requires photos to be copied)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.tags}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, tags: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Tags</strong> - Trip tags and categories
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.companions}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, companions: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Companions</strong> - Travel companions (defaults to "Myself" if unchecked)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                    <input
+                      type="checkbox"
+                      checked={duplicateOptions.checklists}
+                      onChange={(e) => setDuplicateOptions({ ...duplicateOptions, checklists: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Checklists</strong> - Packing lists and todo items (checked state will be reset)
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  <strong>Note:</strong> The duplicated trip will have status "Dream" with all dates cleared.
+                  You can update dates and details after creation.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDuplicateDialog(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDuplicateTrip}
+                  disabled={!duplicateTripTitle.trim()}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Duplicate Trip
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmDialogComponent />
     </div>
   );

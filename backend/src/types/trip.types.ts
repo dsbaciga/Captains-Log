@@ -135,3 +135,22 @@ export interface TripListResponse {
   limit: number;
   totalPages: number;
 }
+
+// Trip duplication schema
+export const duplicateTripSchema = z.object({
+  title: z.string().min(1).max(500),
+  copyEntities: z.object({
+    locations: z.boolean().optional().default(false),
+    photos: z.boolean().optional().default(false),
+    activities: z.boolean().optional().default(false),
+    transportation: z.boolean().optional().default(false),
+    lodging: z.boolean().optional().default(false),
+    journalEntries: z.boolean().optional().default(false),
+    photoAlbums: z.boolean().optional().default(false),
+    tags: z.boolean().optional().default(false),
+    companions: z.boolean().optional().default(false),
+    checklists: z.boolean().optional().default(false),
+  }).optional().default({}),
+});
+
+export type DuplicateTripInput = z.infer<typeof duplicateTripSchema>;
