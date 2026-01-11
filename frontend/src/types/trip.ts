@@ -84,3 +84,21 @@ export interface ValidationResult {
   issues: ValidationIssue[];
   score: number;
 }
+
+export interface DuplicateTripOptions {
+  locations?: boolean;
+  photos?: boolean;
+  activities?: boolean;
+  transportation?: boolean;
+  lodging?: boolean;
+  journalEntries?: boolean;
+  photoAlbums?: boolean;
+  tags?: boolean;
+  companions?: boolean;
+  checklists?: boolean;
+}
+
+export interface DuplicateTripInput {
+  title: string;
+  copyEntities?: DuplicateTripOptions;
+}

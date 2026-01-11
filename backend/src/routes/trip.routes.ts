@@ -107,4 +107,7 @@ router.put('/:id/cover-photo', tripController.updateCoverPhoto);
 // Trip validation route
 router.get('/:id/validate', tripController.validateTrip);
 
+// Trip duplication route
+router.post('/:id/duplicate', tripController.duplicateTrip);
+
 export default router;
