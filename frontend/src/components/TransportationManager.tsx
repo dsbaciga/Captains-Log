@@ -111,6 +111,7 @@ export default function TransportationManager({
   const [showFromLocationQuickAdd, setShowFromLocationQuickAdd] = useState(false);
   const [showToLocationQuickAdd, setShowToLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
+  const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
 
   // Smart timezone inference: auto-populate timezones when locations are selected
   useEffect(() => {
@@ -152,6 +153,7 @@ export default function TransportationManager({
   const resetForm = () => {
     reset();
     manager.setEditingId(null);
+    setKeepFormOpenAfterSave(false);
   };
 
   const handleFromLocationCreated = (locationId: number, locationName: string) => {
@@ -292,8 +294,20 @@ export default function TransportationManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        resetForm();
-        manager.closeForm();
+        if (keepFormOpenAfterSave) {
+          // Reset form but keep modal open for quick successive entries
+          reset();
+          setKeepFormOpenAfterSave(false);
+          // Focus first input for quick data entry
+          setTimeout(() => {
+            const firstInput = document.querySelector<HTMLSelectElement>('#transportation-type');
+            firstInput?.focus();
+          }, 50);
+        } else {
+          // Standard flow: reset and close
+          resetForm();
+          manager.closeForm();
+        }
       }
     }
   };
@@ -462,6 +476,18 @@ export default function TransportationManager({
             >
               Cancel
             </button>
+            {!manager.editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setKeepFormOpenAfterSave(true);
+                  document.getElementById('transportation-form')?.requestSubmit();
+                }}
+                className="btn btn-secondary"
+              >
+                Save & Add Another
+              </button>
+            )}
             <button
               type="submit"
               form="transportation-form"

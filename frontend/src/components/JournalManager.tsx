@@ -57,6 +57,7 @@ export default function JournalManager({
   const [lodgings, setLodgings] = useState<Lodging[]>([]);
   const [transportations, setTransportations] = useState<Transportation[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
 
   // Use the new useFormFields hook to manage all form state
   // Memoize initial form values to include trip start date as default
@@ -99,6 +100,7 @@ export default function JournalManager({
   const resetForm = () => {
     resetFields();
     manager.setEditingId(null);
+    setKeepFormOpenAfterSave(false);
   };
 
   const handleEdit = (entry: JournalEntry) => {
@@ -155,8 +157,20 @@ export default function JournalManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        resetForm();
-        manager.closeForm();
+        if (keepFormOpenAfterSave) {
+          // Reset form but keep modal open for quick successive entries
+          resetFields();
+          setKeepFormOpenAfterSave(false);
+          // Focus first input for quick data entry
+          setTimeout(() => {
+            const firstInput = document.querySelector<HTMLInputElement>(`#${titleFieldId}`);
+            firstInput?.focus();
+          }, 50);
+        } else {
+          // Standard flow: reset and close
+          resetForm();
+          manager.closeForm();
+        }
       }
     }
   };
@@ -226,6 +240,18 @@ export default function JournalManager({
             >
               Cancel
             </button>
+            {!manager.editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setKeepFormOpenAfterSave(true);
+                  document.getElementById('journal-form')?.requestSubmit();
+                }}
+                className="btn btn-secondary"
+              >
+                Save & Add Another
+              </button>
+            )}
             <button
               type="submit"
               form="journal-form"

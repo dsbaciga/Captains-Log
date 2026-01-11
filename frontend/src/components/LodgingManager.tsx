@@ -96,6 +96,7 @@ export default function LodgingManager({
 
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
+  const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
 
   const { values, handleChange, reset } =
     useFormFields<LodgingFormFields>(getInitialFormState);
@@ -130,6 +131,7 @@ export default function LodgingManager({
   const resetForm = () => {
     reset();
     manager.setEditingId(null);
+    setKeepFormOpenAfterSave(false);
   };
 
   const handleEdit = (lodging: Lodging) => {
@@ -223,8 +225,20 @@ export default function LodgingManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        resetForm();
-        manager.closeForm();
+        if (keepFormOpenAfterSave) {
+          // Reset form but keep modal open for quick successive entries
+          reset();
+          setKeepFormOpenAfterSave(false);
+          // Focus first input for quick data entry
+          setTimeout(() => {
+            const firstInput = document.querySelector<HTMLInputElement>('#lodging-name');
+            firstInput?.focus();
+          }, 50);
+        } else {
+          // Standard flow: reset and close
+          resetForm();
+          manager.closeForm();
+        }
       }
     }
   };
@@ -306,6 +320,18 @@ export default function LodgingManager({
             >
               Cancel
             </button>
+            {!manager.editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setKeepFormOpenAfterSave(true);
+                  document.getElementById('lodging-form')?.requestSubmit();
+                }}
+                className="btn btn-secondary"
+              >
+                Save & Add Another
+              </button>
+            )}
             <button
               type="submit"
               form="lodging-form"

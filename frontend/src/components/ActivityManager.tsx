@@ -109,6 +109,7 @@ export default function ActivityManager({
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
 
   const { values, handleChange, reset } =
     useFormFields<ActivityFormFields>(getInitialFormState);
@@ -157,6 +158,7 @@ export default function ActivityManager({
     reset();
     manager.setEditingId(null);
     setShowMoreOptions(false);
+    setKeepFormOpenAfterSave(false);
   };
 
   const handleEdit = (activity: Activity) => {
@@ -301,8 +303,21 @@ export default function ActivityManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        resetForm();
-        manager.closeForm();
+        if (keepFormOpenAfterSave) {
+          // Reset form but keep modal open for quick successive entries
+          reset();
+          setShowMoreOptions(false);
+          setKeepFormOpenAfterSave(false);
+          // Focus first input for quick data entry
+          setTimeout(() => {
+            const firstInput = document.querySelector<HTMLInputElement>('#activity-name');
+            firstInput?.focus();
+          }, 50);
+        } else {
+          // Standard flow: reset and close
+          resetForm();
+          manager.closeForm();
+        }
       }
     }
   };
@@ -530,6 +545,18 @@ export default function ActivityManager({
             >
               Cancel
             </button>
+            {!manager.editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setKeepFormOpenAfterSave(true);
+                  document.getElementById('activity-form')?.requestSubmit();
+                }}
+                className="btn btn-secondary"
+              >
+                Save & Add Another
+              </button>
+            )}
             <button
               type="submit"
               form="activity-form"
