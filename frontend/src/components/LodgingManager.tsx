@@ -16,6 +16,7 @@ import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import { ListItemSkeleton } from "./SkeletonLoader";
+import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
 interface LodgingManagerProps {
   tripId: number;
@@ -75,6 +76,7 @@ export default function LodgingManager({
       ...initialFormState,
       checkInDate: defaultCheckIn,
       checkOutDate: defaultCheckOut,
+      currency: getLastUsedCurrency(), // Remember last-used currency
     };
   }, [tripStartDate]);
 
@@ -96,6 +98,7 @@ export default function LodgingManager({
 
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
+  const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
 
   const { values, handleChange, reset } =
     useFormFields<LodgingFormFields>(getInitialFormState);
@@ -104,6 +107,39 @@ export default function LodgingManager({
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
+
+  // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
+  useEffect(() => {
+    // Only when creating (not editing) and form just opened
+    if (!manager.editingId && manager.showForm && values.checkInDate === getInitialFormState.checkInDate) {
+      // Find the most recent lodging (by check-out time)
+      const sortedLodgings = [...manager.items]
+        .filter(l => l.checkOut)
+        .sort((a, b) => new Date(b.checkOut!).getTime() - new Date(a.checkOut!).getTime());
+
+      if (sortedLodgings.length > 0) {
+        const lastLodging = sortedLodgings[0];
+        const effectiveTz = lastLodging.timezone || tripTimezone || 'UTC';
+
+        // Convert the last lodging's check-out time to datetime-local format
+        const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOut!, effectiveTz);
+
+        // Use check-out as new check-in
+        handleChange('checkInDate', checkOutDateTime);
+
+        // Set check-out to next day at 11:00 AM
+        const checkOutDate = new Date(checkOutDateTime);
+        checkOutDate.setDate(checkOutDate.getDate() + 1);
+        const nextDayCheckOut = `${checkOutDate.toISOString().slice(0, 10)}T11:00`;
+        handleChange('checkOutDate', nextDayCheckOut);
+
+        // Inherit timezone if set
+        if (lastLodging.timezone && !values.timezone) {
+          handleChange('timezone', lastLodging.timezone);
+        }
+      }
+    }
+  }, [manager.showForm, manager.editingId]);
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
@@ -130,6 +166,7 @@ export default function LodgingManager({
   const resetForm = () => {
     reset();
     manager.setEditingId(null);
+    setKeepFormOpenAfterSave(false);
   };
 
   const handleEdit = (lodging: Lodging) => {
@@ -223,8 +260,25 @@ export default function LodgingManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        resetForm();
-        manager.closeForm();
+        // Save currency for next time
+        if (values.currency) {
+          saveLastUsedCurrency(values.currency);
+        }
+
+        if (keepFormOpenAfterSave) {
+          // Reset form but keep modal open for quick successive entries
+          reset();
+          setKeepFormOpenAfterSave(false);
+          // Focus first input for quick data entry
+          setTimeout(() => {
+            const firstInput = document.querySelector<HTMLInputElement>('#lodging-name');
+            firstInput?.focus();
+          }, 50);
+        } else {
+          // Standard flow: reset and close
+          resetForm();
+          manager.closeForm();
+        }
       }
     }
   };
@@ -296,6 +350,7 @@ export default function LodgingManager({
         onClose={handleCloseForm}
         title={manager.editingId ? "Edit Lodging" : "Add Lodging"}
         icon="🏨"
+        formId="lodging-form"
         footer={
           <>
             <button
@@ -305,6 +360,18 @@ export default function LodgingManager({
             >
               Cancel
             </button>
+            {!manager.editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setKeepFormOpenAfterSave(true);
+                  document.getElementById('lodging-form')?.requestSubmit();
+                }}
+                className="btn btn-secondary"
+              >
+                Save & Add Another
+              </button>
+            )}
             <button
               type="submit"
               form="lodging-form"

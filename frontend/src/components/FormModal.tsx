@@ -9,6 +9,7 @@ interface FormModalProps {
   children: ReactNode;
   footer?: ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl";
+  formId?: string; // Optional form ID for Ctrl+S keyboard shortcut
 }
 
 /**
@@ -23,6 +24,7 @@ export default function FormModal({
   children,
   footer,
   maxWidth = "4xl",
+  formId,
 }: FormModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const hasFocusedRef = useRef(false);
@@ -43,8 +45,18 @@ export default function FormModal({
       if (e.key === "Escape") {
         onClose();
       }
+      // Ctrl+S or Cmd+S to save form
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault(); // Prevent browser's save dialog
+        if (formId) {
+          const form = document.getElementById(formId) as HTMLFormElement;
+          if (form) {
+            form.requestSubmit(); // Use requestSubmit instead of submit() to trigger validation
+          }
+        }
+      }
     },
-    [onClose]
+    [onClose, formId]
   );
 
   // Handle modal opening/closing and body scroll
