@@ -4,6 +4,7 @@ import {
   PhotoSource,
   UploadPhotoInput,
   LinkImmichPhotoInput,
+  LinkImmichPhotoBatchInput,
   UpdatePhotoInput,
 } from '../types/photo.types';
 import sharp from 'sharp';
@@ -142,6 +143,54 @@ class PhotoService {
     });
 
     return convertDecimals(photo);
+  }
+
+  async linkImmichPhotosBatch(userId: number, data: LinkImmichPhotoBatchInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, data.tripId);
+
+    const BATCH_SIZE = 50;
+    const results = {
+      total: data.assets.length,
+      successful: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    // Process in batches to avoid overwhelming the database
+    for (let i = 0; i < data.assets.length; i += BATCH_SIZE) {
+      const batch = data.assets.slice(i, i + BATCH_SIZE);
+
+      // Prepare batch data for insertion
+      const photosToCreate = batch.map((asset) => ({
+        tripId: data.tripId,
+        source: PhotoSource.IMMICH,
+        immichAssetId: asset.immichAssetId,
+        thumbnailPath: `/api/immich/assets/${asset.immichAssetId}/thumbnail`,
+        caption: asset.caption || null,
+        takenAt: asset.takenAt ? new Date(asset.takenAt) : null,
+        latitude: asset.latitude || null,
+        longitude: asset.longitude || null,
+      }));
+
+      try {
+        // Use createMany for efficient batch insertion
+        const result = await prisma.photo.createMany({
+          data: photosToCreate,
+          skipDuplicates: true, // Skip if immichAssetId already exists
+        });
+
+        results.successful += result.count;
+        console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos`);
+      } catch (error: any) {
+        console.error(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, error.message);
+        results.failed += batch.length;
+        results.errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
+      }
+    }
+
+    console.log(`[PhotoService] Batch linking complete: ${results.successful} successful, ${results.failed} failed`);
+    return results;
   }
 
   async getPhotosByTrip(

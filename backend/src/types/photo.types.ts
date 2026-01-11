@@ -64,6 +64,17 @@ export const linkImmichPhotoSchema = z.object({
   longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
+export const linkImmichPhotoBatchSchema = z.object({
+  tripId: z.number(),
+  assets: z.array(z.object({
+    immichAssetId: z.string().min(1),
+    caption: z.string().max(1000).optional(),
+    takenAt: z.string().optional().nullable(),
+    latitude: z.number().min(-90).max(90).optional().nullable(),
+    longitude: z.number().min(-180).max(180).optional().nullable(),
+  })).min(1),
+});
+
 export const updatePhotoSchema = z.object({
   caption: z.string().max(1000).optional().nullable(),
   takenAt: z.string().optional().nullable(),
@@ -96,6 +107,7 @@ export const addPhotosToAlbumSchema = z.object({
 
 export type UploadPhotoInput = z.infer<typeof uploadPhotoSchema>;
 export type LinkImmichPhotoInput = z.infer<typeof linkImmichPhotoSchema>;
+export type LinkImmichPhotoBatchInput = z.infer<typeof linkImmichPhotoBatchSchema>;
 export type UpdatePhotoInput = z.infer<typeof updatePhotoSchema>;
 export type CreateAlbumInput = z.infer<typeof createAlbumSchema>;
 export type UpdateAlbumInput = z.infer<typeof updateAlbumSchema>;
