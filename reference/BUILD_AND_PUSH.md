@@ -26,6 +26,12 @@ The easiest way to release a new version is using the automated release script:
 .\release.ps1 -Version v1.12.6 -DryRun
 ```
 
+**For Claude Code**: When running automated releases, ALWAYS use the `-NoConfirm` option to skip interactive prompts:
+
+```powershell
+.\release.ps1 -Version patch -NoConfirm
+```
+
 The script automatically:
 
 1. Updates version in `backend/package.json` and `frontend/package.json`
