@@ -1114,7 +1114,6 @@ export default function TripDetailPage() {
             </h2>
             <Timeline
               tripId={parseInt(id!)}
-              tripName={trip.title}
               tripTimezone={trip.timezone || undefined}
               userTimezone={userTimezone || undefined}
               tripStartDate={trip.startDate || undefined}
@@ -1766,7 +1765,7 @@ export default function TripDetailPage() {
         {/* Companions Tab */}
         {activeTab === "companions" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <CompanionManager tripId={trip.id} onUpdate={loadTripData} />
+            <CompanionManager tripId={trip.id} onUpdate={() => loadTripData(trip.id)} />
           </div>
         )}
       </main>
