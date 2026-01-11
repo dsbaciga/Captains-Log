@@ -70,17 +70,22 @@ else
 
   # Try db push as a fallback to ensure schema matches
   echo "Attempting prisma db push as a fallback to ensure schema matches..."
-  if npx prisma db push --accept-data-loss --url "$DATABASE_URL"; then
+  if npx prisma db push --accept-data-loss; then
     echo "✓ Schema synchronized via db push."
 
     # Try to resolve migrations so they don't block future deploys
-    echo "Marking migrations as applied..."
-    for migration_dir in prisma/migrations/*/; do
-      if [ -d "$migration_dir" ]; then
-        migration_name=$(basename "$migration_dir")
-        npx prisma migrate resolve --applied "$migration_name" || true
-      fi
-    done
+    if [ -n "$DATABASE_URL" ]; then
+      echo "Marking migrations as applied..."
+      for migration_dir in prisma/migrations/*/; do
+        if [ -d "$migration_dir" ]; then
+          migration_name=$(basename "$migration_dir")
+          echo "  Resolving migration: $migration_name"
+          npx prisma migrate resolve --applied "$migration_name" || echo "  Could not resolve $migration_name (may already be applied)"
+        fi
+      done
+    else
+      echo "⚠ DATABASE_URL not set, skipping migration resolve."
+    fi
   else
     echo "✗ Fallback failed. Application may have issues."
   fi
