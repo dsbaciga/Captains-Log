@@ -16,10 +16,12 @@ import ChecklistDetailPage from './pages/ChecklistDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Toaster position="top-right" />
       {/* Skip to content link for accessibility */}
       <a href="#main-content" className="skip-link">
