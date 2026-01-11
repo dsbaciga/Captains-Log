@@ -33,7 +33,7 @@ export default function Breadcrumbs({ items, className = '' }: BreadcrumbsProps)
       aria-label="Breadcrumb"
       className={`mb-4 ${className}`}
     >
-      <ol className="flex items-center text-sm font-body min-w-0 leading-none">
+      <ol className="flex flex-nowrap items-center text-sm font-body min-w-0 leading-none">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           const isFirst = index === 0;
