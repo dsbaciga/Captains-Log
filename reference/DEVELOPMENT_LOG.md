@@ -591,6 +591,29 @@ Last Updated: 2025-12-21 | Current Version: v1.8.0 (Comprehensive Design System)
   - Default privacy level
   - Date/time format preferences
 
+### Data Management
+- **Backup & Restore**
+  - **Create Backup**
+    - Export all user data to JSON file
+    - Includes trips, locations, photos, activities, transportation, lodging
+    - Includes journal entries, albums, tags, companions, and custom categories
+    - Includes user settings and preferences
+    - Photo metadata included (actual files not included)
+    - One-click download of backup file
+  - **Restore from Backup**
+    - Upload and parse JSON backup file
+    - Option to clear existing data before restore (recommended)
+    - Option to merge backup with existing data
+    - Option to include/exclude photo metadata
+    - Automatic ID remapping for relationships
+    - Restore statistics showing imported items
+    - Confirmation prompts for destructive operations
+  - **Backup Best Practices**
+    - Regular backup recommendations
+    - Version compatibility checks
+    - Data integrity validation
+    - Safe storage guidance
+
 ### Appearance
 - **Dark Mode**
   - System-based theme detection

@@ -26,6 +26,7 @@ import immichRoutes from './routes/immich.routes';
 import weatherRoutes from './routes/weather.routes';
 import checklistRoutes from './routes/checklist.routes';
 import searchRoutes from './routes/search.routes';
+import backupRoutes from './routes/backup.routes';
 
 // Read version from package.json
 const packageJson = JSON.parse(
@@ -116,6 +117,7 @@ app.use('/api/immich', immichRoutes);
 app.use('/api', weatherRoutes);
 app.use('/api/checklists', checklistRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/backup', backupRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
