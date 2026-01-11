@@ -43,6 +43,15 @@ done
 
 echo "Database is ready!"
 
+# Ensure Prisma Client is generated (safety check for TrueNAS compatibility)
+echo "Verifying Prisma Client..."
+if [ ! -d "/app/node_modules/.prisma/client" ]; then
+  echo "Prisma Client not found. Generating..."
+  npx prisma generate
+else
+  echo "Prisma Client exists."
+fi
+
 # Check if PostGIS extension is installed using psql
 echo "Checking for PostGIS extension..."
 if [ -n "$DATABASE_URL" ]; then

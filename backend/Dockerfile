@@ -11,14 +11,17 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy source code
+# Copy Prisma schema first (for better layer caching)
+COPY prisma ./prisma
+
+# Generate Prisma Client with all binary targets
+RUN npx prisma generate
+
+# Copy rest of source code
 COPY . .
 
 # Make startup script executable
 RUN chmod +x scripts/migrate-and-start.sh
-
-# Generate Prisma Client
-RUN npx prisma generate
 
 # Expose port
 EXPOSE 5000

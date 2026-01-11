@@ -39,9 +39,8 @@ RUN npm ci --only=production
 
 # Copy Prisma schema and migrations
 COPY prisma ./prisma/
-COPY prisma.config.js ./
 
-# Generate Prisma Client
+# Generate Prisma Client with all binary targets
 RUN npx prisma generate
 
 # Copy built application from builder
