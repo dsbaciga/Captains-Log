@@ -108,6 +108,7 @@ export default function ActivityManager({
   >([]);
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   const { values, handleChange, reset } =
     useFormFields<ActivityFormFields>(getInitialFormState);
@@ -155,9 +156,11 @@ export default function ActivityManager({
   const resetForm = () => {
     reset();
     manager.setEditingId(null);
+    setShowMoreOptions(false);
   };
 
   const handleEdit = (activity: Activity) => {
+    setShowMoreOptions(true); // Always show all options when editing
     handleChange("name", activity.name);
     handleChange("description", activity.description || "");
     handleChange("category", activity.category || "");
@@ -517,6 +520,7 @@ export default function ActivityManager({
         onClose={handleCloseForm}
         title={manager.editingId ? "Edit Activity" : "Add Activity"}
         icon="🎯"
+        formId="activity-form"
         footer={
           <>
             <button
@@ -537,305 +541,341 @@ export default function ActivityManager({
         }
       >
         <form id="activity-form" onSubmit={handleSubmit} className="space-y-4">
-          {/* Name and Category */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="activity-name"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Name *
-              </label>
-              <input
-                type="text"
-                id="activity-name"
-                value={values.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                className="input"
-                required
-                placeholder="Activity name"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="activity-category"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Category
-              </label>
-              <select
-                id="activity-category"
-                value={values.category}
-                onChange={(e) => handleChange("category", e.target.value)}
-                className="input"
-              >
-                <option value="">-- Select Category --</option>
-                {activityCategories.map((cat) => (
-                  <option key={cat.name} value={cat.name}>
-                    {cat.emoji} {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="activity-description"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Description
-            </label>
-            <textarea
-              id="activity-description"
-              value={values.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              className="input"
-              rows={2}
-              placeholder="Activity description"
-            />
-          </div>
-
-          {/* Location with Quick Add */}
-          <div>
-            <label
-              htmlFor="activity-location"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Location
-            </label>
-            {showLocationQuickAdd ? (
-              <LocationQuickAdd
-                tripId={tripId}
-                onLocationCreated={handleLocationCreated}
-                onCancel={() => setShowLocationQuickAdd(false)}
-              />
-            ) : (
-              <div className="flex gap-2">
-                <select
-                  id="activity-location"
-                  value={values.locationId || ""}
-                  onChange={(e) =>
-                    handleChange(
-                      "locationId",
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
-                  className="input flex-1"
-                >
-                  <option value="">-- Select Location --</option>
-                  {localLocations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setShowLocationQuickAdd(true)}
-                  className="btn btn-secondary whitespace-nowrap"
-                >
-                  + New Location
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Parent Activity */}
-          <div>
-            <label
-              htmlFor="activity-parent"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Parent Activity (Optional)
-            </label>
-            <select
-              id="activity-parent"
-              value={values.parentId || ""}
-              onChange={(e) =>
-                handleChange(
-                  "parentId",
-                  e.target.value ? parseInt(e.target.value) : undefined
-                )
-              }
-              className="input"
-            >
-              <option value="">-- No Parent (Top Level) --</option>
-              {topLevelActivities
-                .filter((a) => a.id !== manager.editingId)
-                .map((activity) => (
-                  <option key={activity.id} value={activity.id}>
-                    {activity.name}
-                  </option>
-                ))}
-            </select>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Group this activity under another activity
-            </p>
-          </div>
-
-          {/* All Day Toggle */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="allDay"
-              checked={values.allDay}
-              onChange={(e) => handleChange("allDay", e.target.checked)}
-              className="rounded"
-            />
-            <label
-              htmlFor="allDay"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              All-day activity
-            </label>
-          </div>
-
-          {/* Date/Time Fields */}
-          {values.allDay ? (
+          {/* Essential Fields - Always Visible */}
+          <div className="space-y-4">
+            {/* Name and Category */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
-                  htmlFor="activity-start-date"
+                  htmlFor="activity-name"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Start Date
+                  Name *
                 </label>
                 <input
-                  type="date"
-                  id="activity-start-date"
-                  value={values.startDate}
-                  onChange={(e) => handleChange("startDate", e.target.value)}
+                  type="text"
+                  id="activity-name"
+                  value={values.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
                   className="input"
+                  required
+                  placeholder="Activity name"
                 />
               </div>
+
               <div>
                 <label
-                  htmlFor="activity-end-date"
+                  htmlFor="activity-category"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  End Date
+                  Category
                 </label>
-                <input
-                  type="date"
-                  id="activity-end-date"
-                  value={values.endDate}
-                  onChange={(e) => handleChange("endDate", e.target.value)}
+                <select
+                  id="activity-category"
+                  value={values.category}
+                  onChange={(e) => handleChange("category", e.target.value)}
                   className="input"
-                />
+                >
+                  <option value="">-- Select Category --</option>
+                  {activityCategories.map((cat) => (
+                    <option key={cat.name} value={cat.name}>
+                      {cat.emoji} {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          ) : (
-            <>
+
+            {/* All Day Toggle */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="allDay"
+                checked={values.allDay}
+                onChange={(e) => handleChange("allDay", e.target.checked)}
+                className="rounded"
+              />
+              <label
+                htmlFor="allDay"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                All-day activity
+              </label>
+            </div>
+
+            {/* Date/Time Fields */}
+            {values.allDay ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
-                    htmlFor="activity-start-date-time"
+                    htmlFor="activity-start-date"
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >
-                    Start Time
+                    Start Date
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      id="activity-start-date-time"
-                      value={values.startDate}
-                      onChange={(e) =>
-                        handleChange("startDate", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                    <input
-                      type="time"
-                      id="activity-start-time"
-                      aria-label="Start time"
-                      value={values.startTime}
-                      onChange={(e) =>
-                        handleChange("startTime", e.target.value)
-                      }
-                      className="input flex-1"
-                      placeholder="12:00"
-                    />
-                  </div>
+                  <input
+                    type="date"
+                    id="activity-start-date"
+                    value={values.startDate}
+                    onChange={(e) => handleChange("startDate", e.target.value)}
+                    className="input"
+                  />
                 </div>
-                <div>
-                  <label
-                    htmlFor="activity-end-date-time"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    End Time
-                  </label>
-                  <div className="flex gap-2">
+                {showMoreOptions && (
+                  <div>
+                    <label
+                      htmlFor="activity-end-date"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      End Date
+                    </label>
                     <input
                       type="date"
-                      id="activity-end-date-time"
+                      id="activity-end-date"
                       value={values.endDate}
                       onChange={(e) => handleChange("endDate", e.target.value)}
-                      className="input flex-1"
-                    />
-                    <input
-                      type="time"
-                      id="activity-end-time"
-                      aria-label="End time"
-                      value={values.endTime}
-                      onChange={(e) => handleChange("endTime", e.target.value)}
-                      className="input flex-1"
-                      placeholder="12:00"
+                      className="input"
                     />
                   </div>
-                </div>
+                )}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
-                Time defaults to 12:00 PM if not specified
-              </p>
-            </>
-          )}
-
-          {/* Timezone Component */}
-          <TimezoneSelect
-            value={values.timezone}
-            onChange={(value) => handleChange("timezone", value)}
-            label="Timezone"
-          />
-
-          {/* Booking Fields Component */}
-          <BookingFields
-            confirmationNumber={values.bookingReference}
-            bookingUrl={values.bookingUrl}
-            onConfirmationNumberChange={(value) =>
-              handleChange("bookingReference", value)
-            }
-            onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
-            confirmationLabel="Booking Reference"
-          />
-
-          {/* Cost and Currency Component */}
-          <CostCurrencyFields
-            cost={values.cost}
-            currency={values.currency}
-            onCostChange={(value) => handleChange("cost", value)}
-            onCurrencyChange={(value) => handleChange("currency", value)}
-          />
-
-          {/* Notes */}
-          <div>
-            <label
-              htmlFor="activity-notes"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Notes
-            </label>
-            <textarea
-              id="activity-notes"
-              value={values.notes}
-              onChange={(e) => handleChange("notes", e.target.value)}
-              className="input"
-              rows={3}
-              placeholder="Additional notes..."
-            />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="activity-start-date-time"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Start Time
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        id="activity-start-date-time"
+                        value={values.startDate}
+                        onChange={(e) =>
+                          handleChange("startDate", e.target.value)
+                        }
+                        className="input flex-1"
+                      />
+                      <input
+                        type="time"
+                        id="activity-start-time"
+                        aria-label="Start time"
+                        value={values.startTime}
+                        onChange={(e) =>
+                          handleChange("startTime", e.target.value)
+                        }
+                        className="input flex-1"
+                        placeholder="12:00"
+                      />
+                    </div>
+                  </div>
+                  {showMoreOptions && (
+                    <div>
+                      <label
+                        htmlFor="activity-end-date-time"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        End Time
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="date"
+                          id="activity-end-date-time"
+                          value={values.endDate}
+                          onChange={(e) => handleChange("endDate", e.target.value)}
+                          className="input flex-1"
+                        />
+                        <input
+                          type="time"
+                          id="activity-end-time"
+                          aria-label="End time"
+                          value={values.endTime}
+                          onChange={(e) => handleChange("endTime", e.target.value)}
+                          className="input flex-1"
+                          placeholder="12:00"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {!showMoreOptions && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+                    Time defaults to 12:00 PM if not specified
+                  </p>
+                )}
+              </>
+            )}
           </div>
+
+          {/* More Options Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowMoreOptions(!showMoreOptions)}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+          >
+            {showMoreOptions ? (
+              <>
+                <span>▲</span>
+                <span>Hide Optional Fields</span>
+              </>
+            ) : (
+              <>
+                <span>▼</span>
+                <span>Show More Options</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  (description, location, end time, etc.)
+                </span>
+              </>
+            )}
+          </button>
+
+          {/* Optional Fields - Conditionally Visible */}
+          {showMoreOptions && (
+            <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+              {/* Description */}
+              <div>
+                <label
+                  htmlFor="activity-description"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Description
+                </label>
+                <textarea
+                  id="activity-description"
+                  value={values.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  className="input"
+                  rows={2}
+                  placeholder="Activity description"
+                />
+              </div>
+
+              {/* Location with Quick Add */}
+              <div>
+                <label
+                  htmlFor="activity-location"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Location
+                </label>
+                {showLocationQuickAdd ? (
+                  <LocationQuickAdd
+                    tripId={tripId}
+                    onLocationCreated={handleLocationCreated}
+                    onCancel={() => setShowLocationQuickAdd(false)}
+                  />
+                ) : (
+                  <div className="flex gap-2">
+                    <select
+                      id="activity-location"
+                      value={values.locationId || ""}
+                      onChange={(e) =>
+                        handleChange(
+                          "locationId",
+                          e.target.value ? parseInt(e.target.value) : undefined
+                        )
+                      }
+                      className="input flex-1"
+                    >
+                      <option value="">-- Select Location --</option>
+                      {localLocations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowLocationQuickAdd(true)}
+                      className="btn btn-secondary whitespace-nowrap"
+                    >
+                      + New Location
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Parent Activity */}
+              <div>
+                <label
+                  htmlFor="activity-parent"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Parent Activity (Optional)
+                </label>
+                <select
+                  id="activity-parent"
+                  value={values.parentId || ""}
+                  onChange={(e) =>
+                    handleChange(
+                      "parentId",
+                      e.target.value ? parseInt(e.target.value) : undefined
+                    )
+                  }
+                  className="input"
+                >
+                  <option value="">-- No Parent (Top Level) --</option>
+                  {topLevelActivities
+                    .filter((a) => a.id !== manager.editingId)
+                    .map((activity) => (
+                      <option key={activity.id} value={activity.id}>
+                        {activity.name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Group this activity under another activity
+                </p>
+              </div>
+
+              {/* Timezone Component */}
+              <TimezoneSelect
+                value={values.timezone}
+                onChange={(value) => handleChange("timezone", value)}
+                label="Timezone"
+              />
+
+              {/* Booking Fields Component */}
+              <BookingFields
+                confirmationNumber={values.bookingReference}
+                bookingUrl={values.bookingUrl}
+                onConfirmationNumberChange={(value) =>
+                  handleChange("bookingReference", value)
+                }
+                onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
+                confirmationLabel="Booking Reference"
+              />
+
+              {/* Cost and Currency Component */}
+              <CostCurrencyFields
+                cost={values.cost}
+                currency={values.currency}
+                onCostChange={(value) => handleChange("cost", value)}
+                onCurrencyChange={(value) => handleChange("currency", value)}
+              />
+
+              {/* Notes */}
+              <div>
+                <label
+                  htmlFor="activity-notes"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Notes
+                </label>
+                <textarea
+                  id="activity-notes"
+                  value={values.notes}
+                  onChange={(e) => handleChange("notes", e.target.value)}
+                  className="input"
+                  rows={3}
+                  placeholder="Additional notes..."
+                />
+              </div>
+            </div>
+          )}
         </form>
       </FormModal>
 

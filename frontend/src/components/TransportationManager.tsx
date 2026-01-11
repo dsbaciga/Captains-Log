@@ -112,6 +112,19 @@ export default function TransportationManager({
   const [showToLocationQuickAdd, setShowToLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
 
+  // Smart timezone inference: auto-populate timezones when locations are selected
+  useEffect(() => {
+    if (values.fromLocationId && !values.startTimezone && tripTimezone) {
+      handleChange("startTimezone", tripTimezone);
+    }
+  }, [values.fromLocationId, tripTimezone]);
+
+  useEffect(() => {
+    if (values.toLocationId && !values.endTimezone && tripTimezone) {
+      handleChange("endTimezone", tripTimezone);
+    }
+  }, [values.toLocationId, tripTimezone]);
+
   // Sync localLocations with locations prop
   useEffect(() => {
     setLocalLocations(locations);
@@ -439,6 +452,7 @@ export default function TransportationManager({
         onClose={handleCloseForm}
         title={manager.editingId ? "Edit Transportation" : "Add Transportation"}
         icon="🚀"
+        formId="transportation-form"
         footer={
           <>
             <button

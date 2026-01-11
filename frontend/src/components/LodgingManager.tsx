@@ -296,6 +296,7 @@ export default function LodgingManager({
         onClose={handleCloseForm}
         title={manager.editingId ? "Edit Lodging" : "Add Lodging"}
         icon="🏨"
+        formId="lodging-form"
         footer={
           <>
             <button
