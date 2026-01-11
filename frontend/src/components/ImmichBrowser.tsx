@@ -4,8 +4,8 @@ import type { ImmichAsset, ImmichAlbum } from "../types/immich";
 import { getFullAssetUrl } from "../lib/config";
 
 interface ImmichBrowserProps {
-  onSelect: (assets: ImmichAsset[]) => void;
-  onImportAlbum?: (album: ImmichAlbum, assets: ImmichAsset[]) => void;
+  onSelect: (assets: ImmichAsset[]) => Promise<void>;
+  onImportAlbum?: (album: ImmichAlbum, assets: ImmichAsset[]) => Promise<void>;
   onClose: () => void;
   tripStartDate?: string;
   tripEndDate?: string;
@@ -237,11 +237,17 @@ export default function ImmichBrowser({
     });
   };
 
-  const handleConfirmSelection = () => {
+  const handleConfirmSelection = async () => {
     const selectedAssets = Array.from(selectedAssetsMap.values());
     if (selectedAssets.length > 0) {
       setIsLinking(true);
-      onSelect(selectedAssets);
+      try {
+        await onSelect(selectedAssets);
+      } catch (error) {
+        console.error('[ImmichBrowser] Error during photo linking:', error);
+      } finally {
+        setIsLinking(false);
+      }
     }
   };
 
@@ -344,7 +350,7 @@ export default function ImmichBrowser({
         return;
       }
 
-      onImportAlbum(album, albumAssets);
+      await onImportAlbum(album, albumAssets);
     } catch (error) {
       console.error("Failed to import album:", error);
       alert("Failed to import album. Please try again.");
