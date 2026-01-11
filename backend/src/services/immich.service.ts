@@ -137,13 +137,21 @@ class ImmichService {
       const response = await client.post('/api/search/metadata', searchQuery);
       const assets = response.data.assets?.items || [];
 
-      // Apply pagination manually since search might return all results
-      const skip = options?.skip || 0;
-      const take = options?.take || 100;
-      const paginatedAssets = assets.slice(skip, skip + take);
+      // Apply pagination manually (only if pagination options are provided)
+      if (options && (options.skip !== undefined || options.take !== undefined)) {
+        const skip = options.skip || 0;
+        const take = options.take || 100;
+        const paginatedAssets = assets.slice(skip, skip + take);
 
+        return {
+          assets: paginatedAssets,
+          total: assets.length,
+        };
+      }
+
+      // No pagination requested - return all assets
       return {
-        assets: paginatedAssets,
+        assets: assets,
         total: assets.length,
       };
     } catch (error: any) {
@@ -366,18 +374,31 @@ class ImmichService {
 
       console.log(`Total assets fetched from Immich: ${allAssets.length}`);
 
-      // Apply our own pagination
-      const skip = options?.skip || 0;
-      const take = options?.take || 100;
-      const paginatedAssets = allAssets.slice(skip, skip + take);
-      console.log(`Returning ${paginatedAssets.length} assets (skip: ${skip}, take: ${take})`);
+      // Apply our own pagination (only if pagination options are provided)
+      if (options && (options.skip !== undefined || options.take !== undefined)) {
+        const skip = options.skip || 0;
+        const take = options.take || 100;
+        const paginatedAssets = allAssets.slice(skip, skip + take);
+        console.log(`Returning ${paginatedAssets.length} assets (skip: ${skip}, take: ${take})`);
 
-      if (paginatedAssets.length > 0) {
-        console.log('First asset sample:', { id: paginatedAssets[0].id, type: paginatedAssets[0].type });
+        if (paginatedAssets.length > 0) {
+          console.log('First asset sample:', { id: paginatedAssets[0].id, type: paginatedAssets[0].type });
+        }
+
+        return {
+          assets: paginatedAssets,
+          total: allAssets.length,
+        };
+      }
+
+      // No pagination requested - return all assets
+      console.log(`No pagination requested, returning all ${allAssets.length} assets`);
+      if (allAssets.length > 0) {
+        console.log('First asset sample:', { id: allAssets[0].id, type: allAssets[0].type });
       }
 
       return {
-        assets: paginatedAssets,
+        assets: allAssets,
         total: allAssets.length,
       };
     } catch (error: any) {

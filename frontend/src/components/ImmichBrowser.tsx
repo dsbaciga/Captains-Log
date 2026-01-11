@@ -70,6 +70,11 @@ export default function ImmichBrowser({
     setCurrentPage(1);
   }, [view, selectedAlbum, filterByTripDates]);
 
+  // Debug: Log selection changes
+  useEffect(() => {
+    console.log(`[ImmichBrowser] Selection state changed: ${selectedAssetsMap.size} photos selected`);
+  }, [selectedAssetsMap]);
+
   // Load thumbnails with authentication
   useEffect(() => {
     const loadThumbnails = async () => {
@@ -257,14 +262,23 @@ export default function ImmichBrowser({
   };
 
   const handleSelectAll = async () => {
+    console.log('[ImmichBrowser] handleSelectAll called', {
+      filterByTripDates,
+      tripStartDate,
+      tripEndDate,
+      currentTotalAssets: totalAssets
+    });
+
     if (!filterByTripDates || !tripStartDate || !tripEndDate) {
       // If not filtering by trip dates, just select all on page
+      console.log('[ImmichBrowser] Filter not active, selecting only current page');
       handleSelectAllOnPage();
       return;
     }
 
     setIsLoadingAll(true);
     try {
+      console.log(`[ImmichBrowser] Fetching ALL assets in date range: ${tripStartDate} to ${tripEndDate}`);
       // Fetch ALL assets for the date range (no pagination)
       const result = await immichService.getAssetsByDateRange(
         tripStartDate,
@@ -272,21 +286,24 @@ export default function ImmichBrowser({
       );
 
       const allAssets = result.assets || [];
-      console.log(`[ImmichBrowser] Loaded ${allAssets.length} total assets for selection`);
+      console.log(`[ImmichBrowser] Loaded ${allAssets.length} total assets for selection (expected: ${totalAssets})`);
 
       // Filter out already-linked assets
       const assetsToSelect = excludeAssetIds
         ? allAssets.filter((asset) => !excludeAssetIds.has(asset.id))
         : allAssets;
 
+      console.log(`[ImmichBrowser] After filtering already-linked: ${assetsToSelect.length} assets to select (excluded ${allAssets.length - assetsToSelect.length})`);
+
       // Add all to selection
       setSelectedAssetsMap((prev) => {
         const newMap = new Map(prev);
         assetsToSelect.forEach((asset) => newMap.set(asset.id, asset));
+        console.log(`[ImmichBrowser] State update: prev size=${prev.size}, new size=${newMap.size}`);
         return newMap;
       });
 
-      console.log(`[ImmichBrowser] Selected ${assetsToSelect.length} assets (excluded ${allAssets.length - assetsToSelect.length} already linked)`);
+      console.log(`[ImmichBrowser] Selection complete. Requested ${assetsToSelect.length} assets to be added`);
     } catch (error) {
       console.error("[ImmichBrowser] Failed to load all assets:", error);
       alert("Failed to load all photos. Please try again.");
@@ -529,12 +546,50 @@ export default function ImmichBrowser({
                           Deselect All
                         </button>
                       )}
+                      {selectedAssetsMap.size > 0 && (
+                        <div className="px-4 py-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 rounded-lg text-sm font-medium">
+                          {selectedAssetsMap.size} selected
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
               )}
 
+              {/* Pagination Controls - Top */}
+              {!isLoading && view === "assets" && totalAssets > ITEMS_PER_PAGE && (
+                <div className="flex justify-center items-center gap-4 mb-6">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Page {currentPage} of {Math.ceil(totalAssets / ITEMS_PER_PAGE)}{" "}
+                    ({totalAssets} total photos)
+                  </span>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) =>
+                        Math.min(Math.ceil(totalAssets / ITEMS_PER_PAGE), p + 1)
+                      )
+                    }
+                    disabled={
+                      currentPage >= Math.ceil(totalAssets / ITEMS_PER_PAGE)
+                    }
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+
                 {displayAssets.map((asset) => {
                   const blobUrl = thumbnailCache[asset.id];
                   return (
@@ -610,7 +665,7 @@ export default function ImmichBrowser({
             </div>
           )}
 
-          {/* Pagination Controls */}
+          {/* Pagination Controls - Bottom */}
           {!isLoading && view === "assets" && totalAssets > ITEMS_PER_PAGE && (
             <div className="flex justify-center items-center gap-4 mt-6">
               <button

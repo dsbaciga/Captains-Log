@@ -57,15 +57,28 @@ export class ImmichController {
 
       const { skip, take, isFavorite, isArchived } = req.query;
 
+      // Build options object only if any parameters are provided
+      const options: any = {};
+      let hasOptions = false;
+
+      if (skip !== undefined || take !== undefined) {
+        options.skip = skip ? parseInt(skip as string) : 0;
+        options.take = take ? parseInt(take as string) : 100;
+        hasOptions = true;
+      }
+      if (isFavorite !== undefined) {
+        options.isFavorite = isFavorite === 'true';
+        hasOptions = true;
+      }
+      if (isArchived !== undefined) {
+        options.isArchived = isArchived === 'true';
+        hasOptions = true;
+      }
+
       const result = await immichService.getAssets(
         user.immichApiUrl,
         user.immichApiKey,
-        {
-          skip: skip ? parseInt(skip as string) : 0,
-          take: take ? parseInt(take as string) : 100,
-          isFavorite: isFavorite === 'true',
-          isArchived: isArchived === 'true',
-        }
+        hasOptions ? options : undefined
       );
 
       // Add thumbnail and file URLs to each asset
@@ -311,15 +324,18 @@ export class ImmichController {
         throw new AppError('Immich settings not configured', 400);
       }
 
+      // Only pass pagination options if they were provided in the request
+      const paginationOptions = (skip !== undefined || take !== undefined) ? {
+        skip: skip ? parseInt(skip as string) : 0,
+        take: take ? parseInt(take as string) : 100,
+      } : undefined;
+
       const result = await immichService.getAssetsByDateRange(
         user.immichApiUrl,
         user.immichApiKey,
         startDate as string,
         endDate as string,
-        {
-          skip: skip ? parseInt(skip as string) : 0,
-          take: take ? parseInt(take as string) : 100,
-        }
+        paginationOptions
       );
 
       // Add thumbnail and file URLs to each asset
