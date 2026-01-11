@@ -5,16 +5,16 @@ export interface BackupData {
     username: string;
     email: string;
     timezone: string | null;
-    activityCategories: any[];
+    activityCategories: Record<string, unknown>[];
     immichApiUrl: string | null;
     immichApiKey: string | null;
     weatherApiKey: string | null;
   };
-  tags: any[];
-  companions: any[];
-  locationCategories: any[];
-  checklists: any[];
-  trips: any[];
+  tags: Record<string, unknown>[];
+  companions: Record<string, unknown>[];
+  locationCategories: Record<string, unknown>[];
+  checklists: Record<string, unknown>[];
+  trips: Record<string, unknown>[];
 }
 
 export interface BackupInfo {

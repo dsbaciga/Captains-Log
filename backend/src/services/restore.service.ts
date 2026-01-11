@@ -35,7 +35,7 @@ export async function restoreFromBackup(
   try {
     // Use a transaction to ensure atomicity
     await prisma.$transaction(
-      async (tx) => {
+      async (tx: any) => {
         // Step 1: Clear existing data if requested
         if (options.clearExistingData) {
           await clearUserData(userId, tx);

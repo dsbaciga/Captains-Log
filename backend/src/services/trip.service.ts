@@ -199,7 +199,7 @@ export class TripService {
     today.setHours(0, 0, 0, 0);
 
     const updates = trips
-      .map((trip) => {
+      .map((trip: any) => {
         if (!trip.startDate || !trip.endDate) return null;
 
         const startDate = new Date(trip.startDate);
@@ -231,7 +231,7 @@ export class TripService {
 
         return null;
       })
-      .filter((update) => update !== null);
+      .filter((update: any) => update !== null);
 
     if (updates.length > 0) {
       await Promise.all(updates);

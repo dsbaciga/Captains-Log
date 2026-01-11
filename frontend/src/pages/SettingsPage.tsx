@@ -7,7 +7,7 @@ import backupService from "../services/backup.service";
 import { useAuthStore } from "../store/authStore";
 import type { ActivityCategory } from "../types/user";
 import type { TripTag } from "../types/tag";
-import type { BackupData, RestoreOptions } from "../types/backup";
+import type { RestoreOptions } from "../types/backup";
 import toast from "react-hot-toast";
 import ImmichSettings from "../components/ImmichSettings";
 import WeatherSettings from "../components/WeatherSettings";

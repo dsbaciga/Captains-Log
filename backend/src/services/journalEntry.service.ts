@@ -78,7 +78,7 @@ class JournalEntryService {
     }
 
     // Create journal entry and all associations in a transaction
-    const journalEntry = await prisma.$transaction(async (tx) => {
+    const journalEntry = await prisma.$transaction(async (tx: any) => {
       const entry = await tx.journalEntry.create({
         data: {
           tripId: data.tripId,
@@ -373,7 +373,7 @@ class JournalEntryService {
     }
 
     // Update journal entry and sync all associations in a transaction
-    const updatedEntry = await prisma.$transaction(async (tx) => {
+    const updatedEntry = await prisma.$transaction(async (tx: any) => {
       // Update the journal entry itself
       // Create date transformer that handles timezone conversion
       const entryDateTransformer = (dateStr: string | null) => {

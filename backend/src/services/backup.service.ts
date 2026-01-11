@@ -257,7 +257,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
       tags,
       companions,
       locationCategories,
-      checklists: checklists.map(checklist => ({
+      checklists: checklists.map((checklist: any) => ({
         name: checklist.name,
         description: checklist.description,
         type: checklist.type,
@@ -265,7 +265,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         sortOrder: checklist.sortOrder,
         items: checklist.items,
       })),
-      trips: trips.map(trip => ({
+      trips: trips.map((trip: any) => ({
         // Trip basic info
         title: trip.title,
         description: trip.description,
@@ -280,7 +280,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         locations: trip.locations,
         photos: trip.photos,
         activities: trip.activities,
-        transportation: trip.transportation.map(t => ({
+        transportation: trip.transportation.map((t: any) => ({
           type: t.type,
           startLocationId: t.startLocationId,
           startLocationText: t.startLocationText,
@@ -310,35 +310,35 @@ export async function createBackup(userId: number): Promise<BackupData> {
           flightTracking: t.flightTracking,
         })),
         lodging: trip.lodging,
-        journalEntries: trip.journalEntries.map(j => ({
+        journalEntries: trip.journalEntries.map((j: any) => ({
           date: j.date,
           title: j.title,
           content: j.content,
           entryType: j.entryType,
           mood: j.mood,
           weatherNotes: j.weatherNotes,
-          photoIds: j.photoAssignments.map(p => p.photoId),
-          locationIds: j.locationAssignments.map(l => l.locationId),
-          activityIds: j.activityAssignments.map(a => a.activityId),
-          lodgingIds: j.lodgingAssignments.map(l => l.lodgingId),
-          transportationIds: j.transportationAssignments.map(t => t.transportationId),
+          photoIds: j.photoAssignments.map((p: any) => p.photoId),
+          locationIds: j.locationAssignments.map((l: any) => l.locationId),
+          activityIds: j.activityAssignments.map((a: any) => a.activityId),
+          lodgingIds: j.lodgingAssignments.map((l: any) => l.lodgingId),
+          transportationIds: j.transportationAssignments.map((t: any) => t.transportationId),
         })),
-        photoAlbums: trip.photoAlbums.map(a => ({
+        photoAlbums: trip.photoAlbums.map((a: any) => ({
           name: a.name,
           description: a.description,
           locationId: a.locationId,
           activityId: a.activityId,
           lodgingId: a.lodgingId,
           coverPhotoId: a.coverPhotoId,
-          photos: a.photoAssignments.map(p => ({
+          photos: a.photoAssignments.map((p: any) => ({
             photoId: p.photoId,
             sortOrder: p.sortOrder,
           })),
         })),
         weatherData: trip.weatherData,
-        tags: trip.tagAssignments.map(t => t.tag.name),
-        companions: trip.companionAssignments.map(c => c.companion.name),
-        checklists: trip.checklists.map(checklist => ({
+        tags: trip.tagAssignments.map((t: any) => t.tag.name),
+        companions: trip.companionAssignments.map((c: any) => c.companion.name),
+        checklists: trip.checklists.map((checklist: any) => ({
           name: checklist.name,
           description: checklist.description,
           type: checklist.type,

@@ -162,6 +162,6 @@ export const tagService = {
       },
     });
 
-    return tripTags.map((tt) => tt.tag);
+    return tripTags.map((tt: any) => tt.tag);
   },
 };

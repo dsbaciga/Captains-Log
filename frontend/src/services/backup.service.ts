@@ -1,5 +1,5 @@
 import axiosInstance from '../lib/axios';
-import type { BackupData, BackupInfo, RestoreOptions, RestoreResult } from '../types/backup';
+import type { BackupData, BackupInfo, RestoreOptions, RestoreResult, RestoreStats } from '../types/backup';
 
 /**
  * Create and download a backup of all user data
@@ -37,7 +37,7 @@ async function restoreFromBackup(
   backupData: BackupData,
   options: RestoreOptions
 ): Promise<RestoreResult> {
-  const response = await axiosInstance.post<{ status: string; message: string; data: { stats: any } }>(
+  const response = await axiosInstance.post<{ status: string; message: string; data: { stats: RestoreStats } }>(
     '/backup/restore',
     {
       backupData,

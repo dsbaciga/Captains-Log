@@ -23,7 +23,7 @@ export class SearchService {
         orderBy: { updatedAt: 'desc' },
       });
 
-      trips.forEach(trip => {
+      trips.forEach((trip: any) => {
         results.push({
           id: trip.id,
           type: 'trip',
@@ -51,7 +51,7 @@ export class SearchService {
         orderBy: { updatedAt: 'desc' },
       });
 
-      locations.forEach(loc => {
+      locations.forEach((loc: any) => {
         results.push({
           id: loc.id,
           type: 'location',
@@ -78,7 +78,7 @@ export class SearchService {
         orderBy: { updatedAt: 'desc' },
       });
 
-      journals.forEach(journal => {
+      journals.forEach((journal: any) => {
         results.push({
           id: journal.id,
           type: 'journal',
@@ -102,7 +102,7 @@ export class SearchService {
         orderBy: { updatedAt: 'desc' },
       });
 
-      photos.forEach(photo => {
+      photos.forEach((photo: any) => {
         results.push({
           id: photo.id,
           type: 'photo',

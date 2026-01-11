@@ -27,9 +27,9 @@ class ChecklistService {
     });
 
     // Add stats to each checklist
-    return checklists.map(checklist => {
+    return checklists.map((checklist: any) => {
       const total = checklist.items.length;
-      const checked = checklist.items.filter(item => item.isChecked).length;
+      const checked = checklist.items.filter((item: any) => item.isChecked).length;
       return {
         ...checklist,
         stats: {
@@ -66,9 +66,9 @@ class ChecklistService {
     });
 
     // Add stats to each checklist
-    return checklists.map(checklist => {
+    return checklists.map((checklist: any) => {
       const total = checklist.items.length;
-      const checked = checklist.items.filter(item => item.isChecked).length;
+      const checked = checklist.items.filter((item: any) => item.isChecked).length;
       return {
         ...checklist,
         stats: {
@@ -102,7 +102,7 @@ class ChecklistService {
     }
 
     const total = checklist.items.length;
-    const checked = checklist.items.filter(item => item.isChecked).length;
+    const checked = checklist.items.filter((item: any) => item.isChecked).length;
 
     return {
       ...checklist,
@@ -443,12 +443,12 @@ class ChecklistService {
     });
 
     // Process Airports checklist
-    const airportsChecklist = checklists.find(c => c.type === 'airports');
+    const airportsChecklist = checklists.find((c: any) => c.type === 'airports');
     if (airportsChecklist) {
       const visitedAirportCodes = new Set<string>();
 
-      trips.forEach(trip => {
-        trip.transportation.forEach(t => {
+      trips.forEach((trip: any) => {
+        trip.transportation.forEach((t: any) => {
           // Extract airport codes from location text (e.g., "LAX - Los Angeles" -> "LAX")
           if (t.startLocationText) {
             const match = t.startLocationText.match(/\(([A-Z]{3})\)/);
@@ -477,15 +477,15 @@ class ChecklistService {
     }
 
     // Process Countries checklist
-    const countriesChecklist = checklists.find(c => c.type === 'countries');
+    const countriesChecklist = checklists.find((c: any) => c.type === 'countries');
     if (countriesChecklist) {
       const visitedCountries = new Set<string>();
 
-      trips.forEach(trip => {
-        trip.locations.forEach(location => {
+      trips.forEach((trip: any) => {
+        trip.locations.forEach((location: any) => {
           // Extract country from address (simple heuristic - last part after comma)
           if (location.address) {
-            const parts = location.address.split(',').map(p => p.trim());
+            const parts = location.address.split(',').map((p: any) => p.trim());
             if (parts.length > 0) {
               const country = parts[parts.length - 1];
               visitedCountries.add(country);
@@ -516,15 +516,15 @@ class ChecklistService {
     }
 
     // Process Cities checklist
-    const citiesChecklist = checklists.find(c => c.type === 'cities');
+    const citiesChecklist = checklists.find((c: any) => c.type === 'cities');
     if (citiesChecklist) {
       const visitedCities = new Set<string>();
 
-      trips.forEach(trip => {
-        trip.locations.forEach(location => {
+      trips.forEach((trip: any) => {
+        trip.locations.forEach((location: any) => {
           // Extract city from address or location name
           if (location.address) {
-            const parts = location.address.split(',').map(p => p.trim());
+            const parts = location.address.split(',').map((p: any) => p.trim());
             if (parts.length >= 2) {
               const city = parts[0]; // First part is usually the city
               visitedCities.add(city);
@@ -557,17 +557,17 @@ class ChecklistService {
     }
 
     // Process US States checklist
-    const usStatesChecklist = checklists.find(c => c.type === 'us_states');
+    const usStatesChecklist = checklists.find((c: any) => c.type === 'us_states');
     if (usStatesChecklist) {
       const visitedStates = new Set<string>();
 
-      trips.forEach(trip => {
-        trip.locations.forEach(location => {
+      trips.forEach((trip: any) => {
+        trip.locations.forEach((location: any) => {
           // Extract state from address
           if (location.address) {
-            const parts = location.address.split(',').map(p => p.trim());
+            const parts = location.address.split(',').map((p: any) => p.trim());
             // Look for state codes or names in address parts
-            parts.forEach(part => {
+            parts.forEach((part: any) => {
               // Check if it matches a state code (2 letters)
               if (/^[A-Z]{2}$/.test(part)) {
                 visitedStates.add(part);
@@ -637,7 +637,7 @@ class ChecklistService {
       select: { type: true },
     });
 
-    const existingTypes = new Set(existing.map(c => c.type));
+    const existingTypes = new Set(existing.map((c: any) => c.type));
 
     for (const type of types) {
       if (existingTypes.has(type)) {
@@ -783,7 +783,7 @@ class ChecklistService {
       select: { type: true },
     });
 
-    const existingTypes = new Set(existing.map(c => c.type));
+    const existingTypes = new Set(existing.map((c: any) => c.type));
 
     return [
       {
@@ -829,7 +829,7 @@ class ChecklistService {
       select: { type: true },
     });
 
-    const existingTypes = new Set(existing.map(c => c.type));
+    const existingTypes = new Set(existing.map((c: any) => c.type));
 
     // Restore missing Airports checklist
     if (!existingTypes.has('airports')) {

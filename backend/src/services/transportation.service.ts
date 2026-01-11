@@ -135,7 +135,7 @@ class TransportationService {
       select: { id: true },
     });
 
-    const tripIds = trips.map(t => t.id);
+    const tripIds = trips.map((t: any) => t.id);
 
     // Get all transportation for user's trips
     const transportations = await prisma.transportation.findMany({
