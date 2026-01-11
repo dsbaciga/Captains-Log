@@ -122,13 +122,13 @@ class PhotoAlbumService {
     });
 
     // Group albums by trip (for tripCount)
-    const tripIds = [...new Set(albums.map((a) => a.trip.id))];
+    const tripIds = [...new Set(albums.map((a: any) => a.trip.id))];
 
     const loadedCount = skip + albums.length;
     const hasMore = loadedCount < totalAlbums;
 
     // Use first photo as cover if no explicit cover photo is set
-    const albumsWithCovers = albums.map((album) => {
+    const albumsWithCovers = albums.map((album: any) => {
       const albumCopy = { ...album };
       if (!albumCopy.coverPhoto && albumCopy.photoAssignments.length > 0) {
         albumCopy.coverPhoto = albumCopy.photoAssignments[0].photo;
@@ -281,7 +281,7 @@ class PhotoAlbumService {
     const unsortedCount = totalPhotosCount - photosInAlbums.length;
 
     // Use first photo as cover if no explicit cover photo is set
-    const albumsWithCovers = albums.map((album) => {
+    const albumsWithCovers = albums.map((album: any) => {
       const albumCopy = { ...album };
       if (!albumCopy.coverPhoto && albumCopy.photoAssignments.length > 0) {
         albumCopy.coverPhoto = albumCopy.photoAssignments[0].photo;

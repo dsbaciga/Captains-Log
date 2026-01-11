@@ -219,7 +219,7 @@ export const companionService = {
       },
     });
 
-    return tripCompanions.map((tc) => tc.companion);
+    return tripCompanions.map((tc: any) => tc.companion);
   },
 
   // Upload avatar for a companion

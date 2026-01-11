@@ -9,6 +9,7 @@ interface OpenWeatherResponse {
   daily: {
     dt: number;
     temp: {
+      day: number;
       min: number;
       max: number;
     };

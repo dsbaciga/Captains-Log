@@ -62,7 +62,7 @@ export async function restoreFromBackup(req: Request, res: Response) {
 /**
  * Get backup information/metadata
  */
-export async function getBackupInfo(req: Request, res: Response) {
+export async function getBackupInfo(_req: Request, res: Response) {
   try {
     // For now, just return basic info
     // In the future, we could store backup metadata in the database

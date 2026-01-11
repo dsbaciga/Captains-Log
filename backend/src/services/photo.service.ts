@@ -171,7 +171,7 @@ class PhotoService {
     });
 
     const existingAssetIds = new Set(
-      existingPhotos.map((p) => p.immichAssetId).filter((id): id is string => id !== null)
+      existingPhotos.map((p: any) => p.immichAssetId).filter((id: any): id is string => id !== null)
     );
 
     console.log(`[PhotoService] Found ${existingAssetIds.size} existing Immich photos for trip ${data.tripId}`);
@@ -259,7 +259,7 @@ class PhotoService {
     ]);
 
     return {
-      photos: photos.map((photo) => convertDecimals(photo)),
+      photos: photos.map((photo: any) => convertDecimals(photo)),
       total,
       hasMore: skip + photos.length < total,
     };
@@ -282,7 +282,7 @@ class PhotoService {
       },
     });
 
-    return photos.map((p) => p.immichAssetId).filter((id): id is string => id !== null);
+    return photos.map((p: any) => p.immichAssetId).filter((id: any): id is string => id !== null);
   }
 
   async getUnsortedPhotosByTrip(
@@ -309,7 +309,7 @@ class PhotoService {
       distinct: ['photoId'],
     });
 
-    const photoIdsInAlbums = photosInAlbums.map(p => p.photoId);
+    const photoIdsInAlbums = photosInAlbums.map((p: any) => p.photoId);
 
     // Get photos that are NOT in the photoIdsInAlbums array
     const [photos, total] = await Promise.all([
@@ -347,7 +347,7 @@ class PhotoService {
     ]);
 
     return {
-      photos: photos.map((photo) => convertDecimals(photo)),
+      photos: photos.map((photo: any) => convertDecimals(photo)),
       total,
       hasMore: skip + photos.length < total,
     };
