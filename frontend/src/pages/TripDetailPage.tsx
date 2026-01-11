@@ -1181,11 +1181,13 @@ export default function TripDetailPage() {
                   </div>
 
                   <div>
-                    <label className="label">Parent Location (City/Region)</label>
+                    <label htmlFor="parent-location-select" className="label">Parent Location (City/Region)</label>
                     <select
+                      id="parent-location-select"
                       value={locationParentId || ""}
                       onChange={(e) => setLocationParentId(e.target.value ? parseInt(e.target.value) : undefined)}
                       className="input"
+                      aria-label="Parent Location (City/Region)"
                     >
                       <option value="">None (Top-level location)</option>
                       {locations
