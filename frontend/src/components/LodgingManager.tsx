@@ -16,6 +16,7 @@ import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import { ListItemSkeleton } from "./SkeletonLoader";
+import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
 interface LodgingManagerProps {
   tripId: number;
@@ -75,6 +76,7 @@ export default function LodgingManager({
       ...initialFormState,
       checkInDate: defaultCheckIn,
       checkOutDate: defaultCheckOut,
+      currency: getLastUsedCurrency(), // Remember last-used currency
     };
   }, [tripStartDate]);
 
@@ -105,6 +107,39 @@ export default function LodgingManager({
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
+
+  // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
+  useEffect(() => {
+    // Only when creating (not editing) and form just opened
+    if (!manager.editingId && manager.showForm && values.checkInDate === getInitialFormState.checkInDate) {
+      // Find the most recent lodging (by check-out time)
+      const sortedLodgings = [...manager.items]
+        .filter(l => l.checkOut)
+        .sort((a, b) => new Date(b.checkOut!).getTime() - new Date(a.checkOut!).getTime());
+
+      if (sortedLodgings.length > 0) {
+        const lastLodging = sortedLodgings[0];
+        const effectiveTz = lastLodging.timezone || tripTimezone || 'UTC';
+
+        // Convert the last lodging's check-out time to datetime-local format
+        const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOut!, effectiveTz);
+
+        // Use check-out as new check-in
+        handleChange('checkInDate', checkOutDateTime);
+
+        // Set check-out to next day at 11:00 AM
+        const checkOutDate = new Date(checkOutDateTime);
+        checkOutDate.setDate(checkOutDate.getDate() + 1);
+        const nextDayCheckOut = `${checkOutDate.toISOString().slice(0, 10)}T11:00`;
+        handleChange('checkOutDate', nextDayCheckOut);
+
+        // Inherit timezone if set
+        if (lastLodging.timezone && !values.timezone) {
+          handleChange('timezone', lastLodging.timezone);
+        }
+      }
+    }
+  }, [manager.showForm, manager.editingId]);
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
@@ -225,6 +260,11 @@ export default function LodgingManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
+        // Save currency for next time
+        if (values.currency) {
+          saveLastUsedCurrency(values.currency);
+        }
+
         if (keepFormOpenAfterSave) {
           // Reset form but keep modal open for quick successive entries
           reset();

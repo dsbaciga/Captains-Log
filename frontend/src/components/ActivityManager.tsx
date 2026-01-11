@@ -23,6 +23,7 @@ import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import { ListItemSkeleton } from "./SkeletonLoader";
+import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
 interface ActivityManagerProps {
   tripId: number;
@@ -84,6 +85,7 @@ export default function ActivityManager({
       ...initialFormState,
       startDate: defaultDate,
       endDate: defaultDate,
+      currency: getLastUsedCurrency(), // Remember last-used currency
     };
   }, [tripStartDate]);
 
@@ -122,6 +124,63 @@ export default function ActivityManager({
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
+
+  // Auto-fill: End Time = Start Time + 1 Hour
+  useEffect(() => {
+    // Only auto-fill when creating (not editing) and if not all-day
+    if (!manager.editingId && !values.allDay && values.startDate && values.startTime) {
+      // If end time is empty, calculate it as start + 1 hour
+      if (!values.endTime || !values.endDate) {
+        const [hours, minutes] = values.startTime.split(':').map(Number);
+        const newHours = (hours + 1) % 24; // Add 1 hour, wrap at midnight
+        const endTime = `${String(newHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+        // End date is same as start date (unless we wrapped past midnight)
+        let endDate = values.startDate;
+        if (newHours < hours) {
+          // We wrapped past midnight, increment date
+          const date = new Date(values.startDate);
+          date.setDate(date.getDate() + 1);
+          endDate = date.toISOString().slice(0, 10);
+        }
+
+        if (!values.endTime) handleChange('endTime', endTime);
+        if (!values.endDate) handleChange('endDate', endDate);
+      }
+    }
+  }, [values.startDate, values.startTime, values.allDay, manager.editingId]);
+
+  // Auto-fill: Sequential Activity Chaining - use last activity's end time as start time
+  useEffect(() => {
+    // Only when creating (not editing) and form just opened
+    if (!manager.editingId && manager.showForm && values.startDate === getInitialFormState.startDate) {
+      // Find the most recent activity (by end time)
+      const sortedActivities = [...manager.items]
+        .filter(a => a.endTime)
+        .sort((a, b) => new Date(b.endTime!).getTime() - new Date(a.endTime!).getTime());
+
+      if (sortedActivities.length > 0) {
+        const lastActivity = sortedActivities[0];
+        const effectiveTz = lastActivity.timezone || tripTimezone || 'UTC';
+
+        // Convert the last activity's end time to datetime-local format
+        const endDateTime = convertISOToDateTimeLocal(lastActivity.endTime!, effectiveTz);
+        const [date, time] = endDateTime.split('T');
+
+        // Auto-fill start date and time
+        handleChange('startDate', date);
+        handleChange('startTime', time);
+
+        // Also inherit timezone and location if they were set
+        if (lastActivity.timezone && !values.timezone) {
+          handleChange('timezone', lastActivity.timezone);
+        }
+        if (lastActivity.locationId && !values.locationId) {
+          handleChange('locationId', lastActivity.locationId);
+        }
+      }
+    }
+  }, [manager.showForm, manager.editingId]);
 
   const loadUserCategories = async () => {
     try {
@@ -303,6 +362,11 @@ export default function ActivityManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
+        // Save currency for next time
+        if (values.currency) {
+          saveLastUsedCurrency(values.currency);
+        }
+
         if (keepFormOpenAfterSave) {
           // Reset form but keep modal open for quick successive entries
           reset();

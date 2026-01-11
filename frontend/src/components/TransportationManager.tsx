@@ -20,6 +20,7 @@ import BookingFields from "./BookingFields";
 import FlightRouteMap from "./FlightRouteMap";
 import TransportationStats from "./TransportationStats";
 import LocationQuickAdd from "./LocationQuickAdd";
+import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
 interface TransportationManagerProps {
   tripId: number;
@@ -86,6 +87,7 @@ export default function TransportationManager({
       ...initialFormState,
       departureTime: defaultDateTime,
       arrivalTime: defaultDateTime,
+      currency: getLastUsedCurrency(), // Remember last-used currency
     };
   }, [tripStartDate]);
 
@@ -130,6 +132,47 @@ export default function TransportationManager({
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
+
+  // Auto-fill: Transportation Connection Chaining - next from location = previous to location
+  useEffect(() => {
+    // Only when creating (not editing) and form just opened
+    if (!manager.editingId && manager.showForm && values.departureTime === getInitialFormState.departureTime) {
+      // Find the most recent transportation (by arrival time)
+      const sortedTransportation = [...manager.items]
+        .filter(t => t.arrivalTime)
+        .sort((a, b) => new Date(b.arrivalTime!).getTime() - new Date(a.arrivalTime!).getTime());
+
+      if (sortedTransportation.length > 0) {
+        const lastTransport = sortedTransportation[0];
+
+        // Auto-fill from location with previous to location
+        if (lastTransport.toLocationId && !values.fromLocationId) {
+          handleChange('fromLocationId', lastTransport.toLocationId);
+        } else if (lastTransport.toLocationName && !values.fromLocationName) {
+          handleChange('fromLocationName', lastTransport.toLocationName);
+        }
+
+        // Auto-fill departure time = arrival time + 2 hours (layover buffer)
+        if (lastTransport.arrivalTime) {
+          const effectiveTz = lastTransport.endTimezone || tripTimezone || 'UTC';
+          const arrivalDateTime = convertISOToDateTimeLocal(lastTransport.arrivalTime, effectiveTz);
+
+          // Add 2 hours for connection/layover
+          const arrivalDate = new Date(arrivalDateTime);
+          arrivalDate.setHours(arrivalDate.getHours() + 2);
+
+          // Format as datetime-local
+          const departureDateTime = arrivalDate.toISOString().slice(0, 16).replace('T', 'T');
+          handleChange('departureTime', departureDateTime);
+
+          // Inherit start timezone
+          if (lastTransport.endTimezone && !values.startTimezone) {
+            handleChange('startTimezone', lastTransport.endTimezone);
+          }
+        }
+      }
+    }
+  }, [manager.showForm, manager.editingId]);
 
   // Filter transportation based on active tab
   const filteredItems = useMemo(() => {
@@ -294,6 +337,11 @@ export default function TransportationManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
+        // Save currency for next time
+        if (values.currency) {
+          saveLastUsedCurrency(values.currency);
+        }
+
         if (keepFormOpenAfterSave) {
           // Reset form but keep modal open for quick successive entries
           reset();
