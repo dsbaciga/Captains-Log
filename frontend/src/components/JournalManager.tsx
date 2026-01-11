@@ -11,6 +11,7 @@ import transportationService from "../services/transportation.service";
 import toast from "react-hot-toast";
 import EmptyState from "./EmptyState";
 import FormModal from "./FormModal";
+import ChipSelector from "./ChipSelector";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -56,6 +57,7 @@ export default function JournalManager({
   const [lodgings, setLodgings] = useState<Lodging[]>([]);
   const [transportations, setTransportations] = useState<Transportation[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
 
   // Use the new useFormFields hook to manage all form state
   // Memoize initial form values to include trip start date as default
@@ -73,12 +75,8 @@ export default function JournalManager({
 
   // Generate IDs for accessibility
   const titleFieldId = useId();
-  const locationsFieldId = useId();
   const entryDateFieldId = useId();
   const contentFieldId = useId();
-  const activitiesFieldId = useId();
-  const lodgingsFieldId = useId();
-  const transportationsFieldId = useId();
 
   const loadTripEntities = useCallback(async () => {
     try {
@@ -102,6 +100,7 @@ export default function JournalManager({
   const resetForm = () => {
     resetFields();
     manager.setEditingId(null);
+    setKeepFormOpenAfterSave(false);
   };
 
   const handleEdit = (entry: JournalEntry) => {
@@ -158,8 +157,20 @@ export default function JournalManager({
       };
       const success = await manager.handleCreate(createData);
       if (success) {
-        resetForm();
-        manager.closeForm();
+        if (keepFormOpenAfterSave) {
+          // Reset form but keep modal open for quick successive entries
+          resetFields();
+          setKeepFormOpenAfterSave(false);
+          // Focus first input for quick data entry
+          setTimeout(() => {
+            const firstInput = document.querySelector<HTMLInputElement>(`#${titleFieldId}`);
+            firstInput?.focus();
+          }, 50);
+        } else {
+          // Standard flow: reset and close
+          resetForm();
+          manager.closeForm();
+        }
       }
     }
   };
@@ -187,15 +198,6 @@ export default function JournalManager({
   const truncateContent = (text: string, maxLength: number = 200) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + "...";
-  };
-
-  const handleMultiSelectChange = (
-    fieldName: 'locationIds' | 'activityIds' | 'lodgingIds' | 'transportationIds',
-    selectElement: HTMLSelectElement
-  ) => {
-    const selectedOptions = Array.from(selectElement.selectedOptions);
-    const selectedIds = selectedOptions.map(option => parseInt(option.value));
-    setField(fieldName, selectedIds);
   };
 
   const handleCloseForm = () => {
@@ -228,6 +230,7 @@ export default function JournalManager({
         onClose={handleCloseForm}
         title={manager.editingId ? "Edit Entry" : "New Journal Entry"}
         icon="📔"
+        formId="journal-form"
         footer={
           <>
             <button
@@ -237,6 +240,18 @@ export default function JournalManager({
             >
               Cancel
             </button>
+            {!manager.editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setKeepFormOpenAfterSave(true);
+                  document.getElementById('journal-form')?.requestSubmit();
+                }}
+                className="btn btn-secondary"
+              >
+                Save & Add Another
+              </button>
+            )}
             <button
               type="submit"
               form="journal-form"
@@ -313,123 +328,63 @@ Tell your story!"
             </div>
 
             {/* Associated Entities Section */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                Link to Trip Items (optional)
-              </h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Hold Ctrl (Windows) or Cmd (Mac) to select multiple items
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Locations */}
-                {locations.length > 0 && (
-                  <div>
-                    <label
-                      htmlFor={locationsFieldId}
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Locations ({formValues.locationIds.length} selected)
-                    </label>
-                    <select
-                      id={locationsFieldId}
-                      multiple
-                      value={formValues.locationIds.map(String)}
-                      onChange={(e) => handleMultiSelectChange('locationIds', e.target)}
-                      className="input h-24"
-                      size={4}
-                    >
-                      {locations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Activities */}
-                {activities.length > 0 && (
-                  <div>
-                    <label
-                      htmlFor={activitiesFieldId}
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Activities ({formValues.activityIds.length} selected)
-                    </label>
-                    <select
-                      id={activitiesFieldId}
-                      multiple
-                      value={formValues.activityIds.map(String)}
-                      onChange={(e) => handleMultiSelectChange('activityIds', e.target)}
-                      className="input h-24"
-                      size={4}
-                    >
-                      {activities.map((activity) => (
-                        <option key={activity.id} value={activity.id}>
-                          {activity.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Lodging */}
-                {lodgings.length > 0 && (
-                  <div>
-                    <label
-                      htmlFor={lodgingsFieldId}
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Lodging ({formValues.lodgingIds.length} selected)
-                    </label>
-                    <select
-                      id={lodgingsFieldId}
-                      multiple
-                      value={formValues.lodgingIds.map(String)}
-                      onChange={(e) => handleMultiSelectChange('lodgingIds', e.target)}
-                      className="input h-24"
-                      size={4}
-                    >
-                      {lodgings.map((lodging) => (
-                        <option key={lodging.id} value={lodging.id}>
-                          {lodging.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Transportation */}
-                {transportations.length > 0 && (
-                  <div>
-                    <label
-                      htmlFor={transportationsFieldId}
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Transportation ({formValues.transportationIds.length} selected)
-                    </label>
-                    <select
-                      id={transportationsFieldId}
-                      multiple
-                      value={formValues.transportationIds.map(String)}
-                      onChange={(e) => handleMultiSelectChange('transportationIds', e.target)}
-                      className="input h-24"
-                      size={4}
-                    >
-                      {transportations.map((transport) => {
-                        const fromName = transport.fromLocation?.name || transport.fromLocationName || 'Start';
-                        const toName = transport.toLocation?.name || transport.toLocationName || 'End';
-                        return (
-                          <option key={transport.id} value={transport.id}>
-                            {transport.type}: {fromName} → {toName}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                )}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Link to Trip Items (optional)
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                  Click chips to select/deselect items
+                </p>
               </div>
+
+              <ChipSelector
+                items={locations}
+                selectedIds={formValues.locationIds}
+                onChange={(ids) => setField('locationIds', ids)}
+                getId={(loc) => loc.id}
+                getLabel={(loc) => loc.name}
+                label="📍 Locations"
+                emptyMessage="No locations created yet"
+                searchPlaceholder="Search locations..."
+              />
+
+              <ChipSelector
+                items={activities}
+                selectedIds={formValues.activityIds}
+                onChange={(ids) => setField('activityIds', ids)}
+                getId={(activity) => activity.id}
+                getLabel={(activity) => activity.name}
+                label="🎯 Activities"
+                emptyMessage="No activities created yet"
+                searchPlaceholder="Search activities..."
+              />
+
+              <ChipSelector
+                items={lodgings}
+                selectedIds={formValues.lodgingIds}
+                onChange={(ids) => setField('lodgingIds', ids)}
+                getId={(lodging) => lodging.id}
+                getLabel={(lodging) => lodging.name}
+                label="🏨 Lodging"
+                emptyMessage="No lodging created yet"
+                searchPlaceholder="Search lodging..."
+              />
+
+              <ChipSelector
+                items={transportations}
+                selectedIds={formValues.transportationIds}
+                onChange={(ids) => setField('transportationIds', ids)}
+                getId={(transport) => transport.id}
+                getLabel={(transport) => {
+                  const fromName = transport.fromLocation?.name || transport.fromLocationName || 'Start';
+                  const toName = transport.toLocation?.name || transport.toLocationName || 'End';
+                  return `${transport.type}: ${fromName} → ${toName}`;
+                }}
+                label="🚗 Transportation"
+                emptyMessage="No transportation created yet"
+                searchPlaceholder="Search transportation..."
+              />
             </div>
           </form>
         </FormModal>

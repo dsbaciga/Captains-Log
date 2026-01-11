@@ -157,9 +157,42 @@ class PhotoService {
       errors: [] as string[],
     };
 
+    // Get existing immichAssetIds for this trip to prevent duplicates
+    const existingPhotos = await prisma.photo.findMany({
+      where: {
+        tripId: data.tripId,
+        immichAssetId: {
+          not: null,
+        },
+      },
+      select: {
+        immichAssetId: true,
+      },
+    });
+
+    const existingAssetIds = new Set(
+      existingPhotos.map((p) => p.immichAssetId).filter((id): id is string => id !== null)
+    );
+
+    console.log(`[PhotoService] Found ${existingAssetIds.size} existing Immich photos for trip ${data.tripId}`);
+
+    // Filter out assets that are already linked to this trip
+    const assetsToLink = data.assets.filter((asset) => !existingAssetIds.has(asset.immichAssetId));
+
+    if (assetsToLink.length < data.assets.length) {
+      const skippedCount = data.assets.length - assetsToLink.length;
+      console.log(`[PhotoService] Skipping ${skippedCount} already-linked photos`);
+      results.total = assetsToLink.length; // Update total to reflect actual photos to link
+    }
+
+    if (assetsToLink.length === 0) {
+      console.log(`[PhotoService] No new photos to link - all ${data.assets.length} photos are already linked`);
+      return results;
+    }
+
     // Process in batches to avoid overwhelming the database
-    for (let i = 0; i < data.assets.length; i += BATCH_SIZE) {
-      const batch = data.assets.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < assetsToLink.length; i += BATCH_SIZE) {
+      const batch = assetsToLink.slice(i, i + BATCH_SIZE);
 
       // Prepare batch data for insertion
       const photosToCreate = batch.map((asset) => ({
@@ -177,7 +210,6 @@ class PhotoService {
         // Use createMany for efficient batch insertion
         const result = await prisma.photo.createMany({
           data: photosToCreate,
-          skipDuplicates: true, // Skip if immichAssetId already exists
         });
 
         results.successful += result.count;
