@@ -529,7 +529,7 @@ export default function TransportationManager({
                 type="button"
                 onClick={() => {
                   setKeepFormOpenAfterSave(true);
-                  document.getElementById('transportation-form')?.requestSubmit();
+                  (document.getElementById('transportation-form') as HTMLFormElement)?.requestSubmit();
                 }}
                 className="btn btn-secondary"
               >

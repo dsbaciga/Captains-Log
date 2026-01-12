@@ -325,7 +325,7 @@ export default function SettingsPage() {
         toast.error(result.message || "Restore failed");
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string }; message?: string } };
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
       toast.error(error.response?.data?.message || error.message || "Failed to restore from backup");
     } finally {
       setRestoreInProgress(false);
@@ -946,10 +946,11 @@ export default function SettingsPage() {
 
               {/* File Selection */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="backup-file-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Select Backup File
                 </label>
                 <input
+                  id="backup-file-input"
                   type="file"
                   accept=".json"
                   onChange={handleBackupFileSelect}

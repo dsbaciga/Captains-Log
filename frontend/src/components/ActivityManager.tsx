@@ -614,7 +614,7 @@ export default function ActivityManager({
                 type="button"
                 onClick={() => {
                   setKeepFormOpenAfterSave(true);
-                  document.getElementById('activity-form')?.requestSubmit();
+                  (document.getElementById('activity-form') as HTMLFormElement)?.requestSubmit();
                 }}
                 className="btn btn-secondary"
               >

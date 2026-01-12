@@ -1,8 +1,7 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import { BackupData, BACKUP_VERSION, RestoreOptions } from '../types/backup.types';
 import { AppError } from '../utils/errors';
-
-const prisma = new PrismaClient();
 
 /**
  * Restore user data from a backup

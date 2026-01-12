@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 import { BACKUP_VERSION, type BackupData } from '../types/backup.types';
 import { AppError } from '../utils/errors';
-
-const prisma = new PrismaClient();
 
 /**
  * Create a complete backup of all user data

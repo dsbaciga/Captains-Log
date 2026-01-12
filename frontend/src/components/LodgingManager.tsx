@@ -114,15 +114,15 @@ export default function LodgingManager({
     if (!manager.editingId && manager.showForm && values.checkInDate === getInitialFormState.checkInDate) {
       // Find the most recent lodging (by check-out time)
       const sortedLodgings = [...manager.items]
-        .filter(l => l.checkOut)
-        .sort((a, b) => new Date(b.checkOut!).getTime() - new Date(a.checkOut!).getTime());
+        .filter(l => l.checkOutDate)
+        .sort((a, b) => new Date(b.checkOutDate!).getTime() - new Date(a.checkOutDate!).getTime());
 
       if (sortedLodgings.length > 0) {
         const lastLodging = sortedLodgings[0];
         const effectiveTz = lastLodging.timezone || tripTimezone || 'UTC';
 
         // Convert the last lodging's check-out time to datetime-local format
-        const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOut!, effectiveTz);
+        const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOutDate!, effectiveTz);
 
         // Use check-out as new check-in
         handleChange('checkInDate', checkOutDateTime);
@@ -365,7 +365,7 @@ export default function LodgingManager({
                 type="button"
                 onClick={() => {
                   setKeepFormOpenAfterSave(true);
-                  document.getElementById('lodging-form')?.requestSubmit();
+                  (document.getElementById('lodging-form') as HTMLFormElement)?.requestSubmit();
                 }}
                 className="btn btn-secondary"
               >

@@ -245,7 +245,7 @@ export default function JournalManager({
                 type="button"
                 onClick={() => {
                   setKeepFormOpenAfterSave(true);
-                  document.getElementById('journal-form')?.requestSubmit();
+                  (document.getElementById('journal-form') as HTMLFormElement)?.requestSubmit();
                 }}
                 className="btn btn-secondary"
               >
