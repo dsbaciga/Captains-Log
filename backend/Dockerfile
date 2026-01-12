@@ -11,8 +11,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy Prisma schema first (for better layer caching)
+# Copy Prisma schema and config first (for better layer caching)
 COPY prisma ./prisma
+COPY prisma.config.* ./
 
 # Generate Prisma Client with all binary targets
 RUN npx prisma generate
