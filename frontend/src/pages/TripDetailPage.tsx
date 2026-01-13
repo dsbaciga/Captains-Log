@@ -747,12 +747,12 @@ export default function TripDetailPage() {
           items={[{ label: "Trips", href: "/trips" }, { label: trip.title }]}
         />
         {/* Trip Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
           {/* Cover Photo Background */}
           {coverPhotoUrl ? (
             // Dynamic background image requires CSS variable - cannot be moved to static CSS
             <div
-              className="relative h-64 bg-cover bg-center cover-photo-bg"
+              className="relative min-h-64 bg-cover bg-center cover-photo-bg"
               style={
                 {
                   "--cover-photo-url": `url(${coverPhotoUrl})`,
@@ -760,7 +760,7 @@ export default function TripDetailPage() {
               }
             >
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70"></div>
-              <div className="relative h-full p-6 flex flex-col justify-between text-white">
+              <div className="relative h-full p-4 sm:p-6 flex flex-col justify-between text-white">
                 <div className="flex flex-wrap justify-between items-start gap-4">
                   <div className="min-w-0 flex-1">
                     <h1 className="text-4xl font-bold drop-shadow-lg">
@@ -840,12 +840,12 @@ export default function TripDetailPage() {
 
                   {/* Tags */}
                   {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 max-w-full">
                       {tags.map((tag) => (
                         // Dynamic tag colors require CSS variables - cannot be moved to static CSS
                         <span
                           key={tag.id}
-                          className="px-3 py-1 rounded-full text-sm font-medium shadow-md tag-colored"
+                          className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium shadow-md tag-colored break-words"
                           style={
                             {
                               "--tag-bg-color": tag.color || "#3B82F6",
@@ -885,7 +885,7 @@ export default function TripDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
                 <div className="min-w-0 flex-1">
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -965,12 +965,12 @@ export default function TripDetailPage() {
               {/* Tags */}
               {tags.length > 0 && (
                 <div className="mt-4">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 max-w-full">
                     {tags.map((tag) => (
                       // Dynamic tag colors require CSS variables - cannot be moved to static CSS
                       <span
                         key={tag.id}
-                        className="px-3 py-1 rounded-full text-sm font-medium tag-colored"
+                        className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium tag-colored break-words"
                         style={
                           {
                             "--tag-bg-color": tag.color || "#3B82F6",
