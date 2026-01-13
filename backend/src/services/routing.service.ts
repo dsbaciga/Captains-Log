@@ -31,6 +31,7 @@ interface RouteResult {
   duration: number; // in minutes
   haversineDistance: number; // fallback distance in kilometers
   source: 'route' | 'haversine';
+  geometry?: number[][]; // Array of [longitude, latitude] coordinates
 }
 
 interface RouteCacheEntry {
@@ -42,6 +43,7 @@ interface RouteCacheEntry {
   distance: number; // in kilometers
   duration: number; // in minutes
   profile: string;
+  routeGeometry?: any; // JSON field with coordinates
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +71,7 @@ class RoutingService {
         duration: cached.duration,
         haversineDistance: this.calculateHaversineDistance(from, to),
         source: 'route',
+        geometry: cached.routeGeometry as number[][] | undefined,
       };
     }
 
@@ -78,13 +81,14 @@ class RoutingService {
         const routeData = await this.fetchRouteFromAPI(from, to, profile);
 
         // Cache the result
-        await this.cacheRoute(from, to, routeData.distance, routeData.duration, profile);
+        await this.cacheRoute(from, to, routeData.distance, routeData.duration, profile, routeData.geometry);
 
         return {
           distance: routeData.distance,
           duration: routeData.duration,
           haversineDistance: this.calculateHaversineDistance(from, to),
           source: 'route',
+          geometry: routeData.geometry,
         };
       } catch (error) {
         console.warn('[Routing Service] Failed to fetch route from API, falling back to Haversine:', error);
@@ -110,7 +114,7 @@ class RoutingService {
     from: RouteCoordinates,
     to: RouteCoordinates,
     profile: string
-  ): Promise<{ distance: number; duration: number }> {
+  ): Promise<{ distance: number; duration: number; geometry?: number[][] }> {
     const url = `${this.API_URL}/v2/directions/${profile}/json`;
 
     // OpenRouteService expects coordinates as [longitude, latitude]
@@ -141,6 +145,7 @@ class RoutingService {
       return {
         distance: route.summary.distance / 1000, // Convert meters to kilometers
         duration: route.summary.duration / 60, // Convert seconds to minutes
+        geometry: route.geometry?.coordinates, // Array of [longitude, latitude]
       };
     } catch (error: any) {
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -263,7 +268,8 @@ class RoutingService {
     to: RouteCoordinates,
     distance: number,
     duration: number,
-    profile: string
+    profile: string,
+    geometry?: number[][]
   ): Promise<void> {
     try {
       await prisma.routeCache.create({
@@ -275,6 +281,7 @@ class RoutingService {
           distance,
           duration,
           profile,
+          routeGeometry: geometry || null,
         },
       });
     } catch (error) {

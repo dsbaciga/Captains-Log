@@ -19,6 +19,7 @@ export type TransportationRoute = {
     latitude: number;
     longitude: number;
   };
+  geometry?: number[][]; // Array of [longitude, latitude] coordinates from OpenRouteService
 };
 
 export type Transportation = {

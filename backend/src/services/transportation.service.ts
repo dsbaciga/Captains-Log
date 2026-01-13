@@ -125,7 +125,7 @@ class TransportationService {
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
     });
 
-    return this.enhanceTransportations(transportations);
+    return await this.enhanceTransportations(transportations);
   }
 
   async getAllTransportation(userId: number) {
@@ -153,13 +153,13 @@ class TransportationService {
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
     });
 
-    return this.enhanceTransportations(transportations);
+    return await this.enhanceTransportations(transportations);
   }
 
-  private enhanceTransportations(transportations: any[]) {
+  private async enhanceTransportations(transportations: any[]) {
     // Enhance with computed fields and map to frontend format
     const now = new Date();
-    const enhancedTransportations = transportations.map((t) => {
+    const enhancedTransportations = await Promise.all(transportations.map(async (t) => {
       const mapped = mapTransportationToFrontend(t);
 
       // Calculate route if we have coordinates
@@ -181,6 +181,40 @@ class TransportationService {
             longitude: Number(t.endLocation.longitude),
           },
         };
+
+        // Try to get cached route geometry for road-based transportation
+        if (
+          t.distanceSource === 'route' &&
+          (t.type === 'car' || t.type === 'bicycle' || t.type === 'bike' || t.type === 'walk' || t.type === 'walking')
+        ) {
+          try {
+            // Determine routing profile based on transportation type
+            let profile: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car';
+            if (t.type === 'bicycle' || t.type === 'bike') {
+              profile = 'cycling-regular';
+            } else if (t.type === 'walk' || t.type === 'walking') {
+              profile = 'foot-walking';
+            }
+
+            const route = await routingService.calculateRoute(
+              {
+                latitude: Number(t.startLocation.latitude),
+                longitude: Number(t.startLocation.longitude),
+              },
+              {
+                latitude: Number(t.endLocation.latitude),
+                longitude: Number(t.endLocation.longitude),
+              },
+              profile
+            );
+
+            if (route.geometry) {
+              mapped.route.geometry = route.geometry;
+            }
+          } catch (error) {
+            console.error('Failed to fetch route geometry:', error);
+          }
+        }
       }
 
       // Calculate duration

@@ -531,11 +531,12 @@ model RouteCache {
   fromLon   Decimal  @map("from_lon") @db.Decimal(11, 8)
   toLat     Decimal  @map("to_lat") @db.Decimal(10, 8)
   toLon     Decimal  @map("to_lon") @db.Decimal(11, 8)
-  distance  Decimal  @db.Decimal(10, 2) // in kilometers
-  duration  Decimal  @db.Decimal(10, 2) // in minutes
-  profile   String   @db.VarChar(50) // driving-car, cycling-regular, foot-walking
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  distance      Decimal  @db.Decimal(10, 2) // in kilometers
+  duration      Decimal  @db.Decimal(10, 2) // in minutes
+  profile       String   @db.VarChar(50) // driving-car, cycling-regular, foot-walking
+  routeGeometry Json?    @map("route_geometry") // Array of [longitude, latitude] coordinates from OpenRouteService
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@index([fromLat, fromLon, toLat, toLon, profile])
   @@map("route_cache")

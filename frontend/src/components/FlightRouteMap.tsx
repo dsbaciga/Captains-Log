@@ -87,7 +87,7 @@ export default function FlightRouteMap({
   showLabels = true,
   transportationType = "flight",
 }: FlightRouteMapProps) {
-  const { from, to } = route;
+  const { from, to, geometry } = route;
 
   // Get the appropriate icon for this transportation type
   const transportIcon = getTransportationIcon(transportationType);
@@ -102,11 +102,11 @@ export default function FlightRouteMap({
   const maxDiff = Math.max(latDiff, lonDiff);
   const zoom = maxDiff > 100 ? 2 : maxDiff > 50 ? 3 : maxDiff > 20 ? 4 : maxDiff > 10 ? 5 : 6;
 
-  // Calculate curved path
-  const flightPath = calculateCurvedPath(
-    [from.latitude, from.longitude],
-    [to.latitude, to.longitude]
-  );
+  // Use actual route geometry if available (from OpenRouteService for car/bike/walking)
+  // Otherwise calculate curved path (for flights and other transportation)
+  const routePath = geometry
+    ? geometry.map(([lon, lat]) => [lat, lon] as [number, number]) // Convert [lon, lat] to [lat, lon]
+    : calculateCurvedPath([from.latitude, from.longitude], [to.latitude, to.longitude]);
 
   return (
     // Dynamic height requires CSS variable - cannot be moved to static CSS
@@ -148,14 +148,14 @@ export default function FlightRouteMap({
           )}
         </Marker>
 
-        {/* Flight path */}
+        {/* Route path - solid line for road routes, dashed for flights */}
         <Polyline
-          positions={flightPath}
+          positions={routePath}
           pathOptions={{
             color: "#3b82f6",
             weight: 3,
             opacity: 0.7,
-            dashArray: "10, 10",
+            dashArray: geometry ? undefined : "10, 10", // Solid line for road routes, dashed for flights
           }}
         />
       </MapContainer>
