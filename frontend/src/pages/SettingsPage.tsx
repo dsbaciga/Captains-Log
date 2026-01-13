@@ -367,8 +367,26 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-8 border-b border-gray-200 dark:border-gray-700">
+        {/* Mobile Dropdown - visible on small screens */}
+        <div className="mb-8 md:hidden">
+          <label htmlFor="mobile-tab-select" className="sr-only">
+            Select a tab
+          </label>
+          <select
+            id="mobile-tab-select"
+            value={activeTab}
+            onChange={(e) => handleTabChange(e.target.value as TabType)}
+            className="input w-full"
+          >
+            <option value="account">Account</option>
+            <option value="tags-categories">Tags & Categories</option>
+            <option value="integrations">Integrations</option>
+            <option value="backup">Backup & Restore</option>
+          </select>
+        </div>
+
+        {/* Desktop Tabs - hidden on small screens */}
+        <div className="mb-8 border-b border-gray-200 dark:border-gray-700 hidden md:block">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button
               type="button"
