@@ -23,6 +23,8 @@ model User {
   immichApiUrl       String?  @map("immich_api_url") @db.VarChar(500)
   immichApiKey       String?  @map("immich_api_key") @db.VarChar(500)
   weatherApiKey      String?  @map("weather_api_key") @db.VarChar(500)
+  aviationstackApiKey String? @map("aviationstack_api_key") @db.VarChar(500)
+  openrouteserviceApiKey String? @map("openrouteservice_api_key") @db.VarChar(500)
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 

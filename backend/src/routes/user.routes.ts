@@ -17,6 +17,14 @@ router.put('/immich-settings', userController.updateImmichSettings);
 router.get('/weather-settings', userController.getWeatherSettings);
 router.put('/weather-settings', userController.updateWeatherSettings);
 
+// Aviationstack settings
+router.get('/aviationstack-settings', userController.getAviationstackSettings);
+router.put('/aviationstack-settings', userController.updateAviationstackSettings);
+
+// OpenRouteService settings
+router.get('/openrouteservice-settings', userController.getOpenrouteserviceSettings);
+router.put('/openrouteservice-settings', userController.updateOpenrouteserviceSettings);
+
 // Profile updates
 router.put('/username', userController.updateUsername);
 router.put('/password', userController.updatePassword);

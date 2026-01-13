@@ -11,6 +11,8 @@ import type { RestoreOptions } from "../types/backup";
 import toast from "react-hot-toast";
 import ImmichSettings from "../components/ImmichSettings";
 import WeatherSettings from "../components/WeatherSettings";
+import AviationstackSettings from "../components/AviationstackSettings";
+import OpenRouteServiceSettings from "../components/OpenRouteServiceSettings";
 import EmojiPicker from "../components/EmojiPicker";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 
@@ -875,6 +877,12 @@ export default function SettingsPage() {
 
             {/* Weather Settings */}
             <WeatherSettings />
+
+            {/* Aviationstack Settings */}
+            <AviationstackSettings />
+
+            {/* OpenRouteService Settings */}
+            <OpenRouteServiceSettings />
           </div>
         )}
 
