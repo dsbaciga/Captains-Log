@@ -803,14 +803,30 @@ export default function TripDetailPage() {
                     >
                       Edit Trip
                     </Link>
-                    <button
-                      onClick={handleOpenDuplicateDialog}
-                      className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
-                    >
-                      Duplicate
-                    </button>
                   </div>
                 </div>
+
+                {/* Duplicate button - positioned in bottom right */}
+                <button
+                  onClick={handleOpenDuplicateDialog}
+                  className="absolute bottom-6 right-6 p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 rounded-lg transition-all hover:shadow-lg"
+                  title="Duplicate Trip"
+                  aria-label="Duplicate Trip"
+                >
+                  <svg
+                    className="w-5 h-5 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
 
                 <div>
                   {trip.description && (
@@ -885,7 +901,7 @@ export default function TripDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="p-6">
+            <div className="p-6 relative">
               <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
                 <div className="min-w-0 flex-1">
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -928,14 +944,30 @@ export default function TripDetailPage() {
                   >
                     Edit Trip
                   </Link>
-                  <button
-                    onClick={handleOpenDuplicateDialog}
-                    className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
-                  >
-                    Duplicate
-                  </button>
                 </div>
               </div>
+
+              {/* Duplicate button - positioned in bottom right */}
+              <button
+                onClick={handleOpenDuplicateDialog}
+                className="absolute bottom-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all hover:shadow-lg"
+                title="Duplicate Trip"
+                aria-label="Duplicate Trip"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-700 dark:text-gray-300"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              </button>
 
               {trip.description && (
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
