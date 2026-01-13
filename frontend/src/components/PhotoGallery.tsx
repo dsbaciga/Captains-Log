@@ -18,6 +18,9 @@ interface PhotoGalleryProps {
   onLoadAllPhotos?: () => Promise<void>;
   currentAlbumId?: number | null;
   onPhotosRemovedFromAlbum?: () => void;
+  onSortChange?: (sortBy: string, sortOrder: string) => void;
+  initialSortBy?: string;
+  initialSortOrder?: string;
 }
 
 interface ThumbnailCache {
@@ -36,6 +39,9 @@ export default function PhotoGallery({
   onLoadAllPhotos,
   currentAlbumId = null,
   onPhotosRemovedFromAlbum,
+  onSortChange,
+  initialSortBy = "date",
+  initialSortOrder = "desc",
 }: PhotoGalleryProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -56,8 +62,12 @@ export default function PhotoGallery({
     null
   );
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState<"date" | "name" | "location">("date");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<"date" | "name" | "location">(
+    initialSortBy as "date" | "name" | "location"
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(
+    initialSortOrder as "asc" | "desc"
+  );
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   // Track which photos we're currently fetching to avoid duplicate requests
@@ -446,33 +456,19 @@ export default function PhotoGallery({
     return getPhotoUrl(photo);
   };
 
-  // Sort photos
-  const sortedPhotos = [...photos].sort((a, b) => {
-    let comparison = 0;
+  // Handle sort change - trigger reload from parent
+  const handleSortChange = (newSortBy: string, newSortOrder: string) => {
+    setSortBy(newSortBy as "date" | "name" | "location");
+    setSortOrder(newSortOrder as "asc" | "desc");
 
-    switch (sortBy) {
-      case "date": {
-        const dateA = a.takenAt ? new Date(a.takenAt).getTime() : 0;
-        const dateB = b.takenAt ? new Date(b.takenAt).getTime() : 0;
-        comparison = dateB - dateA; // Most recent first by default
-        break;
-      }
-      case "name": {
-        const nameA = a.caption || "";
-        const nameB = b.caption || "";
-        comparison = nameA.localeCompare(nameB);
-        break;
-      }
-      case "location": {
-        const locA = a.location?.name || "";
-        const locB = b.location?.name || "";
-        comparison = locA.localeCompare(locB);
-        break;
-      }
+    // Notify parent to reload photos with new sort
+    if (onSortChange) {
+      onSortChange(newSortBy, newSortOrder);
     }
+  };
 
-    return sortOrder === "asc" ? comparison : -comparison;
-  });
+  // Photos are already sorted by the backend, no need to sort client-side
+  const sortedPhotos = photos;
 
   if (photos.length === 0) {
     return (
@@ -543,12 +539,8 @@ export default function PhotoGallery({
           <select
             value={`${sortBy}-${sortOrder}`}
             onChange={(e) => {
-              const [newSortBy, newSortOrder] = e.target.value.split("-") as [
-                typeof sortBy,
-                typeof sortOrder
-              ];
-              setSortBy(newSortBy);
-              setSortOrder(newSortOrder);
+              const [newSortBy, newSortOrder] = e.target.value.split("-");
+              handleSortChange(newSortBy, newSortOrder);
             }}
             className="px-3 py-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky transition-all"
             aria-label="Sort photos"

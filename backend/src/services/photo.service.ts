@@ -6,6 +6,9 @@ import {
   LinkImmichPhotoInput,
   LinkImmichPhotoBatchInput,
   UpdatePhotoInput,
+  PhotoQueryOptions,
+  PhotoSortBy,
+  SortOrder,
 } from '../types/photo.types';
 import sharp from 'sharp';
 import path from 'path';
@@ -20,6 +23,27 @@ const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
 async function ensureUploadDirs() {
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
   await fs.mkdir(THUMBNAIL_DIR, { recursive: true });
+}
+
+// Helper function to build orderBy clause based on sort options
+function buildPhotoOrderBy(sortBy?: string, sortOrder?: string) {
+  const order = sortOrder === SortOrder.ASC ? 'asc' : 'desc';
+
+  switch (sortBy) {
+    case PhotoSortBy.DATE:
+      return [{ takenAt: order }, { createdAt: order }];
+    case PhotoSortBy.CAPTION:
+      return [{ caption: order }, { takenAt: order }];
+    case PhotoSortBy.LOCATION:
+      // For location, we need to order by the related location's name
+      // This will require a different approach since it's a nested relation
+      return [{ takenAt: order }, { createdAt: order }]; // Fallback to date for now
+    case PhotoSortBy.CREATED:
+      return [{ createdAt: order }];
+    default:
+      // Default: most recent photos first
+      return [{ takenAt: 'desc' }, { createdAt: 'desc' }];
+  }
 }
 
 class PhotoService {
@@ -228,13 +252,14 @@ class PhotoService {
   async getPhotosByTrip(
     userId: number,
     tripId: number,
-    options?: { skip?: number; take?: number }
+    options?: PhotoQueryOptions
   ) {
     // Verify user has access to trip
     await verifyTripAccess(userId, tripId);
 
     const skip = options?.skip || 0;
     const take = options?.take || 40; // Default to 40 photos per page
+    const orderBy = buildPhotoOrderBy(options?.sortBy, options?.sortOrder);
 
     const [photos, total] = await Promise.all([
       prisma.photo.findMany({
@@ -251,7 +276,7 @@ class PhotoService {
             },
           },
         },
-        orderBy: [{ takenAt: 'desc' }, { createdAt: 'desc' }],
+        orderBy,
         skip,
         take,
       }),
@@ -288,13 +313,14 @@ class PhotoService {
   async getUnsortedPhotosByTrip(
     userId: number,
     tripId: number,
-    options?: { skip?: number; take?: number }
+    options?: PhotoQueryOptions
   ) {
     // Verify user has access to trip
     await verifyTripAccess(userId, tripId);
 
     const skip = options?.skip || 0;
     const take = options?.take || 40; // Default to 40 photos per page
+    const orderBy = buildPhotoOrderBy(options?.sortBy, options?.sortOrder);
 
     // Get IDs of photos that are in albums
     const photosInAlbums = await prisma.photoAlbumAssignment.findMany({
@@ -332,7 +358,7 @@ class PhotoService {
             },
           },
         },
-        orderBy: [{ takenAt: 'desc' }, { createdAt: 'desc' }],
+        orderBy,
         skip,
         take,
       }),

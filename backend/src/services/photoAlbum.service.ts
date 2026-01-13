@@ -4,6 +4,9 @@ import {
   CreateAlbumInput,
   UpdateAlbumInput,
   AddPhotosToAlbumInput,
+  PhotoQueryOptions,
+  PhotoSortBy,
+  SortOrder,
 } from '../types/photo.types';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
 
@@ -17,6 +20,26 @@ function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(
 // Helper to convert photos in album objects
 function convertAlbumPhotoDecimals<T extends { coverPhoto?: any }>(album: T): T {
   return convertDecimals(album);
+}
+
+// Helper function to build orderBy clause for album photo assignments based on sort options
+function buildAlbumPhotoOrderBy(sortBy?: string, sortOrder?: string) {
+  const order = sortOrder === SortOrder.ASC ? 'asc' : 'desc';
+
+  switch (sortBy) {
+    case PhotoSortBy.DATE:
+      return [{ photo: { takenAt: order } }, { photo: { createdAt: order } }];
+    case PhotoSortBy.CAPTION:
+      return [{ photo: { caption: order } }, { photo: { takenAt: order } }];
+    case PhotoSortBy.LOCATION:
+      // Fallback to date for now (location sorting requires more complex query)
+      return [{ photo: { takenAt: order } }, { photo: { createdAt: order } }];
+    case PhotoSortBy.CREATED:
+      return [{ createdAt: order }];
+    default:
+      // Default: order by assignment creation (most recently added first)
+      return [{ createdAt: 'desc' }];
+  }
 }
 
 class PhotoAlbumService {
@@ -301,10 +324,11 @@ class PhotoAlbumService {
   async getAlbumById(
     userId: number,
     albumId: number,
-    options?: { skip?: number; take?: number }
+    options?: PhotoQueryOptions
   ) {
     const skip = options?.skip || 0;
     const take = options?.take || 40; // Default to 40 photos per page
+    const orderBy = buildAlbumPhotoOrderBy(options?.sortBy, options?.sortOrder);
 
     const album = await prisma.photoAlbum.findUnique({
       where: { id: albumId },
@@ -336,7 +360,7 @@ class PhotoAlbumService {
           include: {
             photo: true,
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy,
           skip,
           take,
         },

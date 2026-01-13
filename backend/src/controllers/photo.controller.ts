@@ -94,10 +94,14 @@ class PhotoController {
       const tripId = parseInt(req.params.tripId);
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+      const sortBy = req.query.sortBy as string | undefined;
+      const sortOrder = req.query.sortOrder as string | undefined;
 
       const result = await photoService.getPhotosByTrip(req.user!.userId, tripId, {
         skip,
         take,
+        sortBy,
+        sortOrder,
       });
 
       // Add thumbnail URLs for Immich photos
@@ -128,10 +132,14 @@ class PhotoController {
       const tripId = parseInt(req.params.tripId);
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+      const sortBy = req.query.sortBy as string | undefined;
+      const sortOrder = req.query.sortOrder as string | undefined;
 
       const result = await photoService.getUnsortedPhotosByTrip(req.user!.userId, tripId, {
         skip,
         take,
+        sortBy,
+        sortOrder,
       });
 
       // Add thumbnail URLs for Immich photos
