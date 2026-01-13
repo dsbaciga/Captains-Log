@@ -367,9 +367,10 @@ export default function LodgingManager({
                   setKeepFormOpenAfterSave(true);
                   (document.getElementById('lodging-form') as HTMLFormElement)?.requestSubmit();
                 }}
-                className="btn btn-secondary"
+                className="btn btn-secondary text-sm whitespace-nowrap"
               >
-                Save & Add Another
+                <span className="hidden sm:inline">Save & Add Another</span>
+                <span className="sm:hidden">Save & Add</span>
               </button>
             )}
             <button

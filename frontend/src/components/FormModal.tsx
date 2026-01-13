@@ -147,7 +147,7 @@ export default function FormModal({
 
         {/* Footer */}
         {footer && (
-          <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50">
             {footer}
           </div>
         )}
