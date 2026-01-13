@@ -1422,7 +1422,7 @@ export default function TripDetailPage() {
                           .map((childLocation) => (
                           <div
                             key={childLocation.id}
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-750"
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-700"
                           >
                             <div className="flex justify-between items-start gap-4">
                               <div className="flex-1 min-w-0">
