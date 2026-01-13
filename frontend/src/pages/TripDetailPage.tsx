@@ -809,7 +809,7 @@ export default function TripDetailPage() {
                 {/* Duplicate button - positioned in bottom right */}
                 <button
                   onClick={handleOpenDuplicateDialog}
-                  className="absolute bottom-6 right-6 p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 rounded-lg transition-all hover:shadow-lg"
+                  className="absolute bottom-4 right-4 p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 rounded-lg transition-all hover:shadow-lg"
                   title="Duplicate Trip"
                   aria-label="Duplicate Trip"
                 >
@@ -950,7 +950,7 @@ export default function TripDetailPage() {
               {/* Duplicate button - positioned in bottom right */}
               <button
                 onClick={handleOpenDuplicateDialog}
-                className="absolute bottom-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all hover:shadow-lg"
+                className="absolute bottom-4 right-4 p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all hover:shadow-lg"
                 title="Duplicate Trip"
                 aria-label="Duplicate Trip"
               >
