@@ -105,6 +105,30 @@ export const addPhotosToAlbumSchema = z.object({
   photoIds: z.array(z.number()).min(1),
 });
 
+// Photo sorting types
+export const PhotoSortBy = {
+  DATE: 'date',
+  CAPTION: 'caption',
+  LOCATION: 'location',
+  CREATED: 'created',
+} as const;
+
+export type PhotoSortByType = typeof PhotoSortBy[keyof typeof PhotoSortBy];
+
+export const SortOrder = {
+  ASC: 'asc',
+  DESC: 'desc',
+} as const;
+
+export type SortOrderType = typeof SortOrder[keyof typeof SortOrder];
+
+export interface PhotoQueryOptions {
+  skip?: number;
+  take?: number;
+  sortBy?: PhotoSortByType;
+  sortOrder?: SortOrderType;
+}
+
 export type UploadPhotoInput = z.infer<typeof uploadPhotoSchema>;
 export type LinkImmichPhotoInput = z.infer<typeof linkImmichPhotoSchema>;
 export type LinkImmichPhotoBatchInput = z.infer<typeof linkImmichPhotoBatchSchema>;

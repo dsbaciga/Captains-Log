@@ -116,11 +116,13 @@ class PhotoAlbumController {
       const albumId = parseInt(req.params.id);
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+      const sortBy = req.query.sortBy as string | undefined;
+      const sortOrder = req.query.sortOrder as string | undefined;
 
       const album = await photoAlbumService.getAlbumById(
         req.user!.userId,
         albumId,
-        { skip, take }
+        { skip, take, sortBy, sortOrder }
       );
 
       // Transform photoAssignments to photos for frontend compatibility

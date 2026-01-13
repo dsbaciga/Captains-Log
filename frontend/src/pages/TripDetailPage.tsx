@@ -132,6 +132,10 @@ export default function TripDetailPage() {
     checklists: false,
   });
 
+  // Photo sorting state
+  const sortByRef = useRef<string>("date");
+  const sortOrderRef = useRef<string>("desc");
+
   // Pagination hooks
   const photosPagination = usePagination<Photo>(
     async (skip, take) => {
@@ -139,6 +143,8 @@ export default function TripDetailPage() {
       const result = await photoService.getPhotosByTrip(trip.id, {
         skip,
         take,
+        sortBy: sortByRef.current,
+        sortOrder: sortOrderRef.current,
       });
       return {
         items: result.photos,
@@ -155,6 +161,8 @@ export default function TripDetailPage() {
       const result = await photoService.getUnsortedPhotosByTrip(trip.id, {
         skip,
         take,
+        sortBy: sortByRef.current,
+        sortOrder: sortOrderRef.current,
       });
       return {
         items: result.photos,
@@ -172,6 +180,8 @@ export default function TripDetailPage() {
       const result = await photoService.getAlbumById(selectedAlbumId, {
         skip,
         take,
+        sortBy: sortByRef.current,
+        sortOrder: sortOrderRef.current,
       });
       const albumPhotos = result.photos.map((p) => p.photo);
       return {
@@ -195,6 +205,24 @@ export default function TripDetailPage() {
       setExistingImmichAssetIds(new Set(assetIds));
     } catch (error) {
       console.error("Failed to load Immich asset IDs:", error);
+    }
+  };
+
+  // Handle photo sort change
+  const handlePhotoSortChange = (sortBy: string, sortOrder: string) => {
+    sortByRef.current = sortBy;
+    sortOrderRef.current = sortOrder;
+
+    // Reload photos based on current view
+    if (selectedAlbumId === null) {
+      photosPagination.clear();
+      photosPagination.loadInitial();
+    } else if (selectedAlbumId === -1) {
+      unsortedPagination.clear();
+      unsortedPagination.loadInitial();
+    } else if (selectedAlbumId > 0) {
+      albumPhotosPagination.clear();
+      albumPhotosPagination.loadInitial();
     }
   };
 
@@ -1656,6 +1684,9 @@ export default function TripDetailPage() {
                     }
                     toast.success("Photos removed from album");
                   }}
+                  onSortChange={handlePhotoSortChange}
+                  initialSortBy={sortByRef.current}
+                  initialSortOrder={sortOrderRef.current}
                 />
 
                 {photosPagination.hasMore && selectedAlbumId === null && (

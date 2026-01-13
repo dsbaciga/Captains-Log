@@ -97,6 +97,10 @@ export default function AlbumDetailPage() {
   const activitySelectId = useId();
   const lodgingSelectId = useId();
 
+  // Photo sorting state
+  const sortByRef = useRef<string>("date");
+  const sortOrderRef = useRef<string>("desc");
+
   // Pagination hook for album photos
   // Load function defined inline to avoid stale closures with albumId
   const photosPagination = usePagination<Photo>(
@@ -106,6 +110,8 @@ export default function AlbumDetailPage() {
       const data = await photoService.getAlbumById(parseInt(albumId), {
         skip,
         take,
+        sortBy: sortByRef.current,
+        sortOrder: sortOrderRef.current,
       });
 
       console.log('[AlbumDetailPage] Loaded album data:', {
@@ -273,6 +279,15 @@ export default function AlbumDetailPage() {
       console.error("Failed to set cover photo", err);
       toast.error("Failed to set cover photo");
     }
+  };
+
+  const handlePhotoSortChange = (sortBy: string, sortOrder: string) => {
+    sortByRef.current = sortBy;
+    sortOrderRef.current = sortOrder;
+
+    // Reload photos with new sort
+    photosPagination.clear();
+    photosPagination.loadInitial();
   };
 
   if (isLoading) {
@@ -536,6 +551,9 @@ export default function AlbumDetailPage() {
               onPhotoUpdated={() => loadAlbum()}
               coverPhotoId={album.coverPhotoId}
               onSetCoverPhoto={handleSetCoverPhoto}
+              onSortChange={handlePhotoSortChange}
+              initialSortBy={sortByRef.current}
+              initialSortOrder={sortOrderRef.current}
             />
 
             {photosPagination.hasMore && (
