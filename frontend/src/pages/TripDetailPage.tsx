@@ -762,8 +762,8 @@ export default function TripDetailPage() {
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70"></div>
               <div className="relative h-full p-4 sm:p-6 flex flex-col justify-between text-white">
                 <div className="flex flex-wrap justify-between items-start gap-4">
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-4xl font-bold drop-shadow-lg">
+                  <div className="min-w-0 flex-1 pr-4">
+                    <h1 className="text-4xl font-bold drop-shadow-lg break-words">
                       {trip.title}
                     </h1>
                     <span
@@ -903,8 +903,8 @@ export default function TripDetailPage() {
           ) : (
             <div className="p-6 relative">
               <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                <div className="min-w-0 flex-1 pr-4">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white break-words">
                     {trip.title}
                   </h1>
                   <span
