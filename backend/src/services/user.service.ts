@@ -129,6 +129,82 @@ class UserService {
     };
   }
 
+  async updateAviationstackSettings(
+    userId: number,
+    data: { aviationstackApiKey?: string | null }
+  ) {
+    const updateData = buildConditionalUpdateData(data);
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        aviationstackApiKey: true,
+      },
+    });
+
+    return user;
+  }
+
+  async getAviationstackSettings(userId: number) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        aviationstackApiKey: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    return {
+      // Return whether key is set, but not the actual key for security
+      aviationstackApiKeySet: !!user.aviationstackApiKey,
+    };
+  }
+
+  async updateOpenrouteserviceSettings(
+    userId: number,
+    data: { openrouteserviceApiKey?: string | null }
+  ) {
+    const updateData = buildConditionalUpdateData(data);
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        openrouteserviceApiKey: true,
+      },
+    });
+
+    return user;
+  }
+
+  async getOpenrouteserviceSettings(userId: number) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        openrouteserviceApiKey: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    return {
+      // Return whether key is set, but not the actual key for security
+      openrouteserviceApiKeySet: !!user.openrouteserviceApiKey,
+    };
+  }
+
   async updateUsername(userId: number, newUsername: string) {
     // Check if username is already taken by another user
     const existingUser = await prisma.user.findFirst({
