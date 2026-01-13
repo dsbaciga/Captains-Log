@@ -451,12 +451,12 @@ export default function TripsPage() {
 
                     {/* Tags */}
                     {trip.tagAssignments && trip.tagAssignments.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="flex flex-wrap gap-2 mb-4 max-w-full">
                         {trip.tagAssignments.map(({ tag }) => (
                           // Dynamic tag colors require CSS variables - cannot be moved to static CSS
                           <span
                             key={tag.id}
-                            className="px-2 py-1 rounded-full text-xs font-medium tag-colored"
+                            className="px-2 py-1 rounded-full text-xs font-medium tag-colored break-words"
                             style={{
                               '--tag-bg-color': tag.color,
                               '--tag-text-color': tag.textColor,
