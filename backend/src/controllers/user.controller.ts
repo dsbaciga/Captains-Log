@@ -13,6 +13,14 @@ const weatherSettingsSchema = z.object({
   weatherApiKey: z.string().min(1).optional().nullable(),
 });
 
+const aviationstackSettingsSchema = z.object({
+  aviationstackApiKey: z.string().min(1).optional().nullable(),
+});
+
+const openrouteserviceSettingsSchema = z.object({
+  openrouteserviceApiKey: z.string().min(1).optional().nullable(),
+});
+
 const updateUsernameSchema = z.object({
   username: z.string().min(3).max(50),
 });
@@ -67,6 +75,40 @@ export const userController = {
   getWeatherSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const settings = await userService.getWeatherSettings(userId);
+    res.json(settings);
+  }),
+
+  updateAviationstackSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const data = aviationstackSettingsSchema.parse(req.body);
+    const user = await userService.updateAviationstackSettings(userId, data);
+    res.json({
+      success: true,
+      message: 'Aviationstack API key updated successfully',
+      aviationstackApiKeySet: !!user.aviationstackApiKey,
+    });
+  }),
+
+  getAviationstackSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const settings = await userService.getAviationstackSettings(userId);
+    res.json(settings);
+  }),
+
+  updateOpenrouteserviceSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const data = openrouteserviceSettingsSchema.parse(req.body);
+    const user = await userService.updateOpenrouteserviceSettings(userId, data);
+    res.json({
+      success: true,
+      message: 'OpenRouteService API key updated successfully',
+      openrouteserviceApiKeySet: !!user.openrouteserviceApiKey,
+    });
+  }),
+
+  getOpenrouteserviceSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const settings = await userService.getOpenrouteserviceSettings(userId);
     res.json(settings);
   }),
 

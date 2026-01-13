@@ -31,6 +31,26 @@ const userService = {
     const response = await axios.put('/users/weather-settings', data);
     return response.data;
   },
+
+  async getAviationstackSettings(): Promise<{ aviationstackApiKeySet: boolean }> {
+    const response = await axios.get('/users/aviationstack-settings');
+    return response.data;
+  },
+
+  async updateAviationstackSettings(data: { aviationstackApiKey: string | null }): Promise<{ success: boolean; message: string; aviationstackApiKeySet: boolean }> {
+    const response = await axios.put('/users/aviationstack-settings', data);
+    return response.data;
+  },
+
+  async getOpenrouteserviceSettings(): Promise<{ openrouteserviceApiKeySet: boolean }> {
+    const response = await axios.get('/users/openrouteservice-settings');
+    return response.data;
+  },
+
+  async updateOpenrouteserviceSettings(data: { openrouteserviceApiKey: string | null }): Promise<{ success: boolean; message: string; openrouteserviceApiKeySet: boolean }> {
+    const response = await axios.put('/users/openrouteservice-settings', data);
+    return response.data;
+  },
 };
 
 export default userService;
