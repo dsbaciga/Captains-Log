@@ -32,6 +32,7 @@ services:
       JWT_SECRET: your-super-secret-jwt-key-change-this
       JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-this
       NOMINATIM_URL: http://nominatim:8080
+      OPENROUTESERVICE_API_KEY: ${OPENROUTESERVICE_API_KEY:-}
     ports:
       - "5000:5000"
     volumes:

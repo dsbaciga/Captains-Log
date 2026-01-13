@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
 - [QUICK_START_PRODUCTION.md](QUICK_START_PRODUCTION.md) - Quick production setup (< 10 min)
 - [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) - Release preparation and deployment checklist
+- [ROUTING_SETUP.md](ROUTING_SETUP.md) - **OpenRouteService configuration for accurate road distance calculations (required for car/bike/walking transportation)**
 
 ## Project Overview
 
@@ -262,6 +263,9 @@ JWT_SECRET=<strong-secret>
 JWT_REFRESH_SECRET=<strong-secret>
 NOMINATIM_URL=http://localhost:8080
 ```
+
+**Recommended Backend Variables**:
+- `OPENROUTESERVICE_API_KEY` - **For accurate road distance calculations (car/bike/walking)**. Without this, distances fall back to straight-line (Haversine) calculations. See [ROUTING_SETUP.md](ROUTING_SETUP.md)
 
 **Optional Backend Variables**:
 - `IMMICH_API_URL` and `IMMICH_API_KEY` - For Immich integration
