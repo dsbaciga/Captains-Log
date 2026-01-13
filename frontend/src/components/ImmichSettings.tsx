@@ -183,11 +183,11 @@ export default function ImmichSettings() {
           </p>
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             onClick={handleTestConnection}
             disabled={isTesting || !apiUrl || !apiKey}
-            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed whitespace-nowrap"
           >
             {isTesting ? 'Testing...' : 'Test Connection'}
           </button>
@@ -195,7 +195,7 @@ export default function ImmichSettings() {
           <button
             onClick={handleSave}
             disabled={isSaving || !apiUrl || !apiKey}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed whitespace-nowrap"
           >
             {isSaving ? 'Saving...' : 'Save Settings'}
           </button>
@@ -204,7 +204,7 @@ export default function ImmichSettings() {
             <button
               onClick={handleClearSettings}
               disabled={isSaving}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed whitespace-nowrap"
             >
               Clear Settings
             </button>
