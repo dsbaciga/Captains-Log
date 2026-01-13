@@ -280,6 +280,24 @@ OPENWEATHERMAP_API_KEY=your-api-key
 AVIATIONSTACK_API_KEY=your-api-key
 ```
 
+### OpenRouteService (Recommended)
+
+**Important**: For accurate road distance calculations for car, bicycle, and walking transportation, configure OpenRouteService:
+
+1. Sign up at https://openrouteservice.org/dev/#/signup (free tier: 2,000 requests/day)
+2. Get your API key
+3. Add to root `.env` file:
+
+```
+OPENROUTESERVICE_API_KEY=your-api-key
+```
+
+4. Restart backend: `docker-compose restart backend`
+
+**Without this configuration**, distances will fall back to straight-line calculations which are significantly less accurate for road-based travel.
+
+See [ROUTING_SETUP.md](ROUTING_SETUP.md) for detailed setup instructions and troubleshooting.
+
 ## Nominatim Configuration
 
 The default Docker Compose setup downloads US map data. To change the region:
