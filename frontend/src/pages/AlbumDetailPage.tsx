@@ -121,13 +121,6 @@ export default function AlbumDetailPage() {
     { pageSize: 40, enabled: true }
   );
 
-  useEffect(() => {
-    // Clear previous album's photos before loading new album
-    photosPagination.clear();
-    loadAlbum();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [albumId, tripId]);
-
   const loadTripData = async () => {
     if (!tripId) return;
     try {
@@ -160,6 +153,14 @@ export default function AlbumDetailPage() {
       photosPagination.loadInitial();
     }
   };
+
+  useEffect(() => {
+    // Clear previous album's photos before loading new album
+    photosPagination.clear();
+    loadTripData();
+    loadAlbum();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [albumId, tripId]);
 
   const handleUpdateAlbum = async (e: React.FormEvent) => {
     e.preventDefault();
