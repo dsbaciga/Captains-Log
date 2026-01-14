@@ -22,6 +22,7 @@ interface PhotoGalleryProps {
   onSortChange?: (sortBy: string, sortOrder: string) => void;
   initialSortBy?: string;
   initialSortOrder?: string;
+  tripId?: number;
 }
 
 interface ThumbnailCache {
@@ -43,6 +44,7 @@ export default function PhotoGallery({
   onSortChange,
   initialSortBy = "date",
   initialSortOrder = "desc",
+  tripId,
 }: PhotoGalleryProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -932,6 +934,8 @@ export default function PhotoGallery({
           onEditCaptionChange={setEditCaption}
           onSaveCaption={handleUpdateCaption}
           onCancelEdit={() => setIsEditMode(false)}
+          tripId={tripId}
+          onPhotoLinksUpdated={onPhotoUpdated}
         />
       )}
 

@@ -68,7 +68,8 @@ export default function GeneralEntityPickerModal({
 
         switch (selectedType) {
           case 'PHOTO': {
-            const photos = await photoService.getByTripId(tripId);
+            const result = await photoService.getPhotosByTrip(tripId);
+            const photos = result.photos;
             items = photos.map((photo: Photo) => ({
               id: photo.id,
               name: photo.caption || photo.originalName || `Photo ${photo.id}`,
@@ -78,7 +79,7 @@ export default function GeneralEntityPickerModal({
           }
 
           case 'LOCATION': {
-            const locations = await locationService.getByTripId(tripId);
+            const locations = await locationService.getLocationsByTrip(tripId);
             items = locations.map((loc: Location) => ({
               id: loc.id,
               name: loc.name,
@@ -88,7 +89,7 @@ export default function GeneralEntityPickerModal({
           }
 
           case 'ACTIVITY': {
-            const activities = await activityService.getByTripId(tripId);
+            const activities = await activityService.getActivitiesByTrip(tripId);
             items = activities.map((act: Activity) => ({
               id: act.id,
               name: act.name,
@@ -98,7 +99,7 @@ export default function GeneralEntityPickerModal({
           }
 
           case 'LODGING': {
-            const lodgings = await lodgingService.getByTripId(tripId);
+            const lodgings = await lodgingService.getLodgingByTrip(tripId);
             items = lodgings.map((lod: Lodging) => ({
               id: lod.id,
               name: lod.name,
@@ -108,7 +109,7 @@ export default function GeneralEntityPickerModal({
           }
 
           case 'TRANSPORTATION': {
-            const transports = await transportationService.getByTripId(tripId);
+            const transports = await transportationService.getTransportationByTrip(tripId);
             items = transports.map((trans: Transportation) => ({
               id: trans.id,
               name: `${trans.type}${trans.company ? ` - ${trans.company}` : ''}`,
@@ -118,7 +119,7 @@ export default function GeneralEntityPickerModal({
           }
 
           case 'JOURNAL_ENTRY': {
-            const entries = await journalEntryService.getByTripId(tripId);
+            const entries = await journalEntryService.getJournalEntriesByTrip(tripId);
             items = entries.map((entry: JournalEntry) => ({
               id: entry.id,
               name: entry.title || `${entry.entryType} Entry`,
