@@ -762,8 +762,8 @@ export default function TripDetailPage() {
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70"></div>
               <div className="relative h-full p-4 sm:p-6 flex flex-col justify-between text-white">
                 <div className="flex flex-wrap justify-between items-start gap-4">
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-4xl font-bold drop-shadow-lg">
+                  <div className="min-w-0 flex-1 pr-4">
+                    <h1 className="text-4xl font-bold drop-shadow-lg break-words">
                       {trip.title}
                     </h1>
                     <span
@@ -809,7 +809,7 @@ export default function TripDetailPage() {
                 {/* Duplicate button - positioned in bottom right */}
                 <button
                   onClick={handleOpenDuplicateDialog}
-                  className="absolute bottom-6 right-6 p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 rounded-lg transition-all hover:shadow-lg"
+                  className="absolute bottom-4 right-4 p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 rounded-lg transition-all hover:shadow-lg"
                   title="Duplicate Trip"
                   aria-label="Duplicate Trip"
                 >
@@ -903,8 +903,8 @@ export default function TripDetailPage() {
           ) : (
             <div className="p-6 relative">
               <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                <div className="min-w-0 flex-1 pr-4">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white break-words">
                     {trip.title}
                   </h1>
                   <span
@@ -950,7 +950,7 @@ export default function TripDetailPage() {
               {/* Duplicate button - positioned in bottom right */}
               <button
                 onClick={handleOpenDuplicateDialog}
-                className="absolute bottom-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all hover:shadow-lg"
+                className="absolute bottom-4 right-4 p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all hover:shadow-lg"
                 title="Duplicate Trip"
                 aria-label="Duplicate Trip"
               >
@@ -1422,7 +1422,7 @@ export default function TripDetailPage() {
                           .map((childLocation) => (
                           <div
                             key={childLocation.id}
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-750"
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-700"
                           >
                             <div className="flex justify-between items-start gap-4">
                               <div className="flex-1 min-w-0">
