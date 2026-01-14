@@ -20,8 +20,9 @@ router.get('/entity/:entityType/:entityId', entityLinkController.getAllLinksForE
 router.get('/photos/:entityType/:entityId', entityLinkController.getPhotosForEntity);
 
 // Delete links
-router.delete('/', entityLinkController.deleteLink);
-router.delete('/:linkId', entityLinkController.deleteLinkById);
+// Note: More specific routes must come before parameterized routes
 router.delete('/entity/:entityType/:entityId', entityLinkController.deleteAllLinksForEntity);
+router.delete('/:linkId', entityLinkController.deleteLinkById);
+router.delete('/', entityLinkController.deleteLink);
 
 export default router;

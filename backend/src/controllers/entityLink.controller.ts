@@ -3,13 +3,10 @@ import { entityLinkService } from '../services/entityLink.service';
 import {
   createEntityLinkSchema,
   bulkCreateEntityLinksSchema,
-  getLinksFromEntitySchema,
-  getLinksToEntitySchema,
   deleteEntityLinkSchema,
   bulkLinkPhotosSchema,
   entityTypeEnum,
 } from '../types/entityLink.types';
-import { z } from 'zod';
 
 export const entityLinkController = {
   /**

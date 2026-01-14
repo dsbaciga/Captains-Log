@@ -1,11 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
 import type {
   EntityType,
   EnrichedEntityLink,
-  EntityLinksResponse,
-  ENTITY_TYPE_CONFIG,
 } from '../types/entityLink';
 
 interface LinkPanelProps {
