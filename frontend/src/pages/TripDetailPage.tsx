@@ -43,6 +43,7 @@ import AlbumsSidebar from "../components/AlbumsSidebar";
 import AlbumModal from "../components/AlbumModal";
 import AssociatedAlbums from "../components/AssociatedAlbums";
 import JournalEntriesButton from "../components/JournalEntriesButton";
+import LinkButton from "../components/LinkButton";
 import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
@@ -1388,6 +1389,12 @@ export default function TripDetailPage() {
                           )}
                         </div>
                         <div className="flex gap-2 items-center flex-shrink-0">
+                          <LinkButton
+                            tripId={trip.id}
+                            entityType="LOCATION"
+                            entityId={location.id}
+                            size="sm"
+                          />
                           <JournalEntriesButton
                             journalEntries={location.journalLocationAssignments}
                             tripId={trip.id}
@@ -1449,6 +1456,12 @@ export default function TripDetailPage() {
                                 )}
                               </div>
                               <div className="flex gap-2 items-center flex-shrink-0">
+                                <LinkButton
+                                  tripId={trip.id}
+                                  entityType="LOCATION"
+                                  entityId={childLocation.id}
+                                  size="sm"
+                                />
                                 <JournalEntriesButton
                                   journalEntries={childLocation.journalLocationAssignments}
                                   tripId={trip.id}

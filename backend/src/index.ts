@@ -27,6 +27,7 @@ import weatherRoutes from './routes/weather.routes';
 import checklistRoutes from './routes/checklist.routes';
 import searchRoutes from './routes/search.routes';
 import backupRoutes from './routes/backup.routes';
+import entityLinkRoutes from './routes/entityLink.routes';
 
 // Read version from package.json
 const packageJson = JSON.parse(
@@ -118,6 +119,7 @@ app.use('/api', weatherRoutes);
 app.use('/api/checklists', checklistRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/trips/:tripId/links', entityLinkRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

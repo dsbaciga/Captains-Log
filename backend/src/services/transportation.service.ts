@@ -238,7 +238,7 @@ class TransportationService {
       }
 
       return mapped;
-    });
+    }));
 
     return enhancedTransportations;
   }
@@ -473,7 +473,18 @@ class TransportationService {
     });
 
     // Verify access
-    await verifyEntityAccess(transportation, userId, 'Transportation');
+    const verifiedTransportation = await verifyEntityAccess(transportation, userId, 'Transportation');
+
+    // Clean up entity links before deleting
+    await prisma.entityLink.deleteMany({
+      where: {
+        tripId: verifiedTransportation.tripId,
+        OR: [
+          { sourceType: 'TRANSPORTATION', sourceId: transportationId },
+          { targetType: 'TRANSPORTATION', targetId: transportationId },
+        ],
+      },
+    });
 
     await prisma.transportation.delete({
       where: { id: transportationId },

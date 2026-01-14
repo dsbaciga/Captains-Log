@@ -467,6 +467,17 @@ class PhotoService {
       }
     }
 
+    // Clean up entity links before deleting
+    await prisma.entityLink.deleteMany({
+      where: {
+        tripId: verifiedPhoto.tripId,
+        OR: [
+          { sourceType: 'PHOTO', sourceId: photoId },
+          { targetType: 'PHOTO', targetId: photoId },
+        ],
+      },
+    });
+
     await prisma.photo.delete({
       where: { id: photoId },
     });

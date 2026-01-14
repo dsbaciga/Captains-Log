@@ -499,7 +499,18 @@ class PhotoAlbumService {
     });
 
     // Verify access
-    await verifyEntityAccess(album, userId, 'Album');
+    const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
+
+    // Clean up entity links before deleting
+    await prisma.entityLink.deleteMany({
+      where: {
+        tripId: verifiedAlbum.tripId,
+        OR: [
+          { sourceType: 'PHOTO_ALBUM', sourceId: albumId },
+          { targetType: 'PHOTO_ALBUM', targetId: albumId },
+        ],
+      },
+    });
 
     await prisma.photoAlbum.delete({
       where: { id: albumId },

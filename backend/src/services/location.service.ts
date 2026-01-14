@@ -287,7 +287,18 @@ export class LocationService {
     });
 
     // Verify access
-    await verifyEntityAccess(location, userId, 'Location');
+    const verifiedLocation = await verifyEntityAccess(location, userId, 'Location');
+
+    // Clean up entity links before deleting
+    await prisma.entityLink.deleteMany({
+      where: {
+        tripId: verifiedLocation.tripId,
+        OR: [
+          { sourceType: 'LOCATION', sourceId: locationId },
+          { targetType: 'LOCATION', targetId: locationId },
+        ],
+      },
+    });
 
     await prisma.location.delete({
       where: { id: locationId },

@@ -272,7 +272,18 @@ class ActivityService {
       include: { trip: true },
     });
 
-    await verifyEntityAccess(activity, userId, 'Activity');
+    const verifiedActivity = await verifyEntityAccess(activity, userId, 'Activity');
+
+    // Clean up entity links before deleting
+    await prisma.entityLink.deleteMany({
+      where: {
+        tripId: verifiedActivity.tripId,
+        OR: [
+          { sourceType: 'ACTIVITY', sourceId: activityId },
+          { targetType: 'ACTIVITY', targetId: activityId },
+        ],
+      },
+    });
 
     await prisma.activity.delete({
       where: { id: activityId },

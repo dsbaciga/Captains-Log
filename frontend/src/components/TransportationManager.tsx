@@ -8,6 +8,7 @@ import type {
 import type { Location } from "../types/location";
 import transportationService from "../services/transportation.service";
 import JournalEntriesButton from "./JournalEntriesButton";
+import LinkButton from "./LinkButton";
 import FormModal from "./FormModal";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
@@ -1012,6 +1013,12 @@ export default function TransportationManager({
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 flex-shrink-0 self-start">
+                  <LinkButton
+                    tripId={tripId}
+                    entityType="TRANSPORTATION"
+                    entityId={transportation.id}
+                    size="sm"
+                  />
                   <JournalEntriesButton
                     journalEntries={transportation.journalAssignments}
                     tripId={tripId}

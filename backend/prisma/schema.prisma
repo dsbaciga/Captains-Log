@@ -69,6 +69,7 @@ model Trip {
   companionAssignments TripCompanion[]
   collaborators      TripCollaborator[]
   checklists         Checklist[]
+  entityLinks        EntityLink[]
 
   @@index([userId, status])
   @@index([startDate, endDate])
@@ -540,4 +541,58 @@ model RouteCache {
 
   @@index([fromLat, fromLon, toLat, toLon, profile])
   @@map("route_cache")
+}
+
+// =============================================================================
+// ENTITY LINKING SYSTEM
+// =============================================================================
+// Unified polymorphic junction table for linking any entity to any other entity
+// within a trip. Replaces scattered FK relationships with a consistent pattern.
+
+enum EntityType {
+  PHOTO
+  LOCATION
+  ACTIVITY
+  LODGING
+  TRANSPORTATION
+  JOURNAL_ENTRY
+  PHOTO_ALBUM
+}
+
+enum LinkRelationship {
+  RELATED        // Generic relationship
+  TAKEN_AT       // Photo taken at location
+  OCCURRED_AT    // Activity/event occurred at location
+  PART_OF        // Sub-activity, nested location
+  DOCUMENTS      // Journal documents this entity
+  FEATURED_IN    // Photo featured in album/journal
+}
+
+model EntityLink {
+  id           Int              @id @default(autoincrement())
+  tripId       Int              @map("trip_id")
+
+  // Source entity (the entity creating the link)
+  sourceType   EntityType       @map("source_type")
+  sourceId     Int              @map("source_id")
+
+  // Target entity (the entity being linked to)
+  targetType   EntityType       @map("target_type")
+  targetId     Int              @map("target_id")
+
+  // Relationship metadata
+  relationship LinkRelationship @default(RELATED)
+  sortOrder    Int?             @map("sort_order")
+  notes        String?          @db.Text
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  trip         Trip             @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate links
+  @@unique([tripId, sourceType, sourceId, targetType, targetId])
+  // Index for querying "what is linked FROM this entity"
+  @@index([tripId, sourceType, sourceId])
+  // Index for querying "what is linked TO this entity"
+  @@index([tripId, targetType, targetId])
+  @@map("entity_links")
 }

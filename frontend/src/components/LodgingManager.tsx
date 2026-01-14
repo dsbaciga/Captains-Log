@@ -5,6 +5,7 @@ import lodgingService from "../services/lodging.service";
 import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
 import JournalEntriesButton from "./JournalEntriesButton";
+import LinkButton from "./LinkButton";
 import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
@@ -690,6 +691,12 @@ export default function LodgingManager({
                   <AssociatedAlbums
                     albums={lodging.photoAlbums}
                     tripId={tripId}
+                  />
+                  <LinkButton
+                    tripId={tripId}
+                    entityType="LODGING"
+                    entityId={lodging.id}
+                    size="sm"
                   />
                   <JournalEntriesButton
                     journalEntries={lodging.journalAssignments}
