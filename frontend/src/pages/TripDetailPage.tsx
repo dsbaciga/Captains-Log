@@ -1732,6 +1732,7 @@ export default function TripDetailPage() {
                   onSortChange={handlePhotoSortChange}
                   initialSortBy={sortByRef.current}
                   initialSortOrder={sortOrderRef.current}
+                  tripId={trip.id}
                 />
 
                 {photosPagination.hasMore && selectedAlbumId === null && (

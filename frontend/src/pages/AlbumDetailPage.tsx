@@ -554,6 +554,7 @@ export default function AlbumDetailPage() {
               onSortChange={handlePhotoSortChange}
               initialSortBy={sortByRef.current}
               initialSortOrder={sortOrderRef.current}
+              tripId={tripId ? parseInt(tripId) : undefined}
             />
 
             {photosPagination.hasMore && (
