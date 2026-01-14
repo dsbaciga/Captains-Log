@@ -128,15 +128,15 @@ export function parseEntityKey(key: string): { entityType: EntityType; entityId:
 // Entity type display configuration
 export const ENTITY_TYPE_CONFIG: Record<
   EntityType,
-  { label: string; emoji: string; color: string }
+  { label: string; pluralLabel: string; emoji: string; color: string }
 > = {
-  PHOTO: { label: 'Photo', emoji: '📷', color: 'gray' },
-  LOCATION: { label: 'Location', emoji: '📍', color: 'blue' },
-  ACTIVITY: { label: 'Activity', emoji: '🎯', color: 'green' },
-  LODGING: { label: 'Lodging', emoji: '🏨', color: 'purple' },
-  TRANSPORTATION: { label: 'Transportation', emoji: '🚗', color: 'orange' },
-  JOURNAL_ENTRY: { label: 'Journal', emoji: '📝', color: 'yellow' },
-  PHOTO_ALBUM: { label: 'Album', emoji: '📸', color: 'pink' },
+  PHOTO: { label: 'Photo', pluralLabel: 'Photos', emoji: '📷', color: 'gray' },
+  LOCATION: { label: 'Location', pluralLabel: 'Locations', emoji: '📍', color: 'blue' },
+  ACTIVITY: { label: 'Activity', pluralLabel: 'Activities', emoji: '🎯', color: 'green' },
+  LODGING: { label: 'Lodging', pluralLabel: 'Lodging', emoji: '🏨', color: 'purple' },
+  TRANSPORTATION: { label: 'Transportation', pluralLabel: 'Transportation', emoji: '🚗', color: 'orange' },
+  JOURNAL_ENTRY: { label: 'Journal Entry', pluralLabel: 'Journal Entries', emoji: '📝', color: 'yellow' },
+  PHOTO_ALBUM: { label: 'Album', pluralLabel: 'Albums', emoji: '📸', color: 'pink' },
 };
 
 // Relationship type display configuration

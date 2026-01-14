@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { EntityType } from '../types/entityLink';
+import { ENTITY_TYPE_CONFIG } from '../types/entityLink';
 import type { Location } from '../types/location';
 import type { Activity } from '../types/activity';
 import type { Lodging } from '../types/lodging';
@@ -19,19 +20,19 @@ interface GeneralEntityPickerModalProps {
   tripId: number;
   sourceEntityType: EntityType;
   sourceEntityId: number;
-  existingLinkIds?: Set<number>; // IDs of already-linked entities by type
+  existingLinksByType?: Map<EntityType, Set<number>>; // IDs of already-linked entities grouped by type
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-// Entity type configuration
-const LINKABLE_ENTITY_TYPES: { type: EntityType; label: string; emoji: string }[] = [
-  { type: 'PHOTO', label: 'Photo', emoji: '📷' },
-  { type: 'LOCATION', label: 'Location', emoji: '📍' },
-  { type: 'ACTIVITY', label: 'Activity', emoji: '🎯' },
-  { type: 'LODGING', label: 'Lodging', emoji: '🏨' },
-  { type: 'TRANSPORTATION', label: 'Transportation', emoji: '🚗' },
-  { type: 'JOURNAL_ENTRY', label: 'Journal Entry', emoji: '📝' },
+// Entity types that can be linked (excludes PHOTO_ALBUM as it's a container, not a linkable destination)
+const LINKABLE_ENTITY_TYPES: EntityType[] = [
+  'PHOTO',
+  'LOCATION',
+  'ACTIVITY',
+  'LODGING',
+  'TRANSPORTATION',
+  'JOURNAL_ENTRY',
 ];
 
 type EntityItem = {
@@ -44,7 +45,7 @@ export default function GeneralEntityPickerModal({
   tripId,
   sourceEntityType,
   sourceEntityId,
-  existingLinkIds = new Set(),
+  existingLinksByType = new Map(),
   onClose,
   onSuccess,
 }: GeneralEntityPickerModalProps) {
@@ -148,13 +149,13 @@ export default function GeneralEntityPickerModal({
       if (selectedType === sourceEntityType && entity.id === sourceEntityId) {
         return false;
       }
-      // Don't show already-linked entities
-      if (existingLinkIds.has(entity.id)) {
+      // Don't show already-linked entities of the selected type
+      if (selectedType && existingLinksByType.get(selectedType)?.has(entity.id)) {
         return false;
       }
       return true;
     });
-  }, [entities, selectedType, sourceEntityType, sourceEntityId, existingLinkIds]);
+  }, [entities, selectedType, sourceEntityType, sourceEntityId, existingLinksByType]);
 
   const handleLinkToEntity = async (targetEntityId: number) => {
     if (!selectedType) return;
@@ -229,16 +230,19 @@ export default function GeneralEntityPickerModal({
           {!selectedType ? (
             // Entity Type Selection
             <div className="grid grid-cols-2 gap-3">
-              {LINKABLE_ENTITY_TYPES.map(({ type, label, emoji }) => (
-                <button
-                  key={type}
-                  onClick={() => setSelectedType(type)}
-                  className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                >
-                  <span className="text-2xl">{emoji}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{label}</span>
-                </button>
-              ))}
+              {LINKABLE_ENTITY_TYPES.map((type) => {
+                const config = ENTITY_TYPE_CONFIG[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedType(type)}
+                    className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  >
+                    <span className="text-2xl">{config.emoji}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{config.label}</span>
+                  </button>
+                );
+              })}
             </div>
           ) : loading ? (
             // Loading State
@@ -276,7 +280,7 @@ export default function GeneralEntityPickerModal({
                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left disabled:opacity-50"
                   >
                     <span className="text-lg">
-                      {LINKABLE_ENTITY_TYPES.find((t) => t.type === selectedType)?.emoji}
+                      {selectedType && ENTITY_TYPE_CONFIG[selectedType].emoji}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 dark:text-white truncate">

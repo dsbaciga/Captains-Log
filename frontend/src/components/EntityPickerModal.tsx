@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { EntityType } from '../types/entityLink';
+import { ENTITY_TYPE_CONFIG } from '../types/entityLink';
 import type { Location } from '../types/location';
 import type { Activity } from '../types/activity';
 import type { Lodging } from '../types/lodging';
@@ -18,12 +19,12 @@ interface EntityPickerModalProps {
   onSuccess?: () => void;
 }
 
-// Entity type configuration
-const LINKABLE_ENTITY_TYPES: { type: EntityType; label: string; emoji: string }[] = [
-  { type: 'LOCATION', label: 'Location', emoji: '📍' },
-  { type: 'ACTIVITY', label: 'Activity', emoji: '🎯' },
-  { type: 'LODGING', label: 'Lodging', emoji: '🏨' },
-  { type: 'TRANSPORTATION', label: 'Transportation', emoji: '🚗' },
+// Entity types that photos can be linked to (excludes PHOTO, JOURNAL_ENTRY, PHOTO_ALBUM)
+const PHOTO_LINKABLE_ENTITY_TYPES: EntityType[] = [
+  'LOCATION',
+  'ACTIVITY',
+  'LODGING',
+  'TRANSPORTATION',
 ];
 
 type EntityItem = {
@@ -188,16 +189,19 @@ export default function EntityPickerModal({
           {!selectedType ? (
             // Entity Type Selection
             <div className="grid grid-cols-2 gap-3">
-              {LINKABLE_ENTITY_TYPES.map(({ type, label, emoji }) => (
-                <button
-                  key={type}
-                  onClick={() => setSelectedType(type)}
-                  className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                >
-                  <span className="text-2xl">{emoji}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{label}</span>
-                </button>
-              ))}
+              {PHOTO_LINKABLE_ENTITY_TYPES.map((type) => {
+                const config = ENTITY_TYPE_CONFIG[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedType(type)}
+                    className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  >
+                    <span className="text-2xl">{config.emoji}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{config.label}</span>
+                  </button>
+                );
+              })}
             </div>
           ) : loading ? (
             // Loading State
@@ -232,7 +236,7 @@ export default function EntityPickerModal({
                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left disabled:opacity-50"
                   >
                     <span className="text-lg">
-                      {LINKABLE_ENTITY_TYPES.find((t) => t.type === selectedType)?.emoji}
+                      {selectedType && ENTITY_TYPE_CONFIG[selectedType].emoji}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 dark:text-white truncate">
