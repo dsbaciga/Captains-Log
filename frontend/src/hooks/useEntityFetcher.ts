@@ -5,7 +5,7 @@ import type { Activity } from '../types/activity';
 import type { Lodging } from '../types/lodging';
 import type { Transportation } from '../types/transportation';
 import type { Photo } from '../types/photo';
-import type { JournalEntry } from '../types/journal';
+import type { JournalEntry } from '../types/journalEntry';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
 import lodgingService from '../services/lodging.service';

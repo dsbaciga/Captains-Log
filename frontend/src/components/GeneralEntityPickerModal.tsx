@@ -80,13 +80,6 @@ export default function GeneralEntityPickerModal({
     }
   };
 
-  // Filter entities by search query
-  const filteredEntities = availableEntities.filter(
-    (entity) =>
-      entity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entity.subtitle?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
