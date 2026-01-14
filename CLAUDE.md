@@ -51,6 +51,7 @@ Travel Life is a full-stack travel documentation application built with a React 
 - ✅ **Activities** - Status tracking, cost tracking, custom categories
 - ✅ **Journal Entries** - Multiple entry types, mood tracking, weather notes, photo/location linking
 - ✅ **Tags & Companions** - Many-to-many relationships with trips, color customization
+- ✅ **Entity Linking** - Unified system to link any entity to any other (photos↔locations, activities↔locations, etc.)
 - ✅ **Timeline View** - Chronological trip events with dual timezone display
 - ✅ **User Settings** - Profile, timezone, theme (light/dark), custom categories
 - ✅ **Dark Mode** - Full support across all components
@@ -69,6 +70,7 @@ Travel Life is a full-stack travel documentation application built with a React 
 - **Immich integration** - Connect to self-hosted photo library
 - **Custom categories** - User-defined location and activity categories
 - **Rich journal entries** - Multiple entry types with mood and weather tracking
+- **Universal entity linking** - Link any entity to any other (photos to locations, activities to locations, albums to multiple locations) with bidirectional discovery
 
 ## Tech Stack
 
@@ -111,7 +113,10 @@ Travel Life is a full-stack travel documentation application built with a React 
 
 **Release Management:**
 
-- `./release.sh patch|minor|major` - Automated version bump, tagging, and build
+- `./release.sh patch|minor|major` (Linux/Mac) - Automated version bump, tagging, and build
+- `.\release.ps1 -Version patch|minor|major` (Windows) - PowerShell release script with more features
+- `.\release.ps1 -Version v1.2.3 -NoConfirm` - Non-interactive release with explicit version
+- `.\release.ps1 -Version patch -DryRun` - Preview changes without executing
 - See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for full release process
 
 ## Build and Deployment Workflow
@@ -182,6 +187,7 @@ The backend follows a layered architecture with clear separation of concerns:
 - `photo.service.ts` - Photo uploads, Immich integration, EXIF parsing
 - `location.service.ts` - Location management with geocoding support
 - `immich.service.ts` - Integration with self-hosted Immich photo library
+- `entityLink.service.ts` - Unified entity linking with automatic relationship detection, bulk operations, bidirectional queries
 
 **Authentication Flow**:
 1. JWT access tokens (15min expiry) and refresh tokens (7 days)
@@ -239,6 +245,7 @@ The Prisma schema models a complex travel data structure:
 - `Activity` - Planned/completed activities with cost tracking
 - `JournalEntry` - Trip-level or daily journal entries
 - `PhotoAlbum` - Organize photos into albums
+- `EntityLink` - Polymorphic linking system connecting any entity to any other entity
 
 **Relationships**:
 - Many-to-many: Trips ↔ Tags, Trips ↔ Companions
@@ -251,6 +258,7 @@ The Prisma schema models a complex travel data structure:
 - Trip collaboration via `TripCollaborator` (view/edit/admin permissions)
 - Flexible location references: Locations can reference Location table or use text fields
 - Photo source tracking: `source` field indicates 'local' or 'immich'
+- **Polymorphic entity linking**: Universal `EntityLink` table with `EntityType` and `LinkRelationship` enums enables any entity to link to any other (photos→locations, activities→locations, albums→multiple locations, etc.). Replaces need for entity-specific foreign keys.
 
 ## Environment Setup
 
@@ -338,6 +346,80 @@ npm run prisma:studio
 - Auth state managed by `useAuthStore` (Zustand)
 - Token refresh handled automatically by axios interceptors
 - Protected routes should check `isAuthenticated` state
+
+### Working with Entity Linking
+
+The Entity Linking system (v3.0.0) provides a unified way to connect any trip entity to any other entity.
+
+**Backend - Creating Links**:
+```typescript
+// Single link
+await entityLinkService.createLink(userId, tripId, {
+  sourceType: 'PHOTO',
+  sourceId: photoId,
+  targetType: 'LOCATION',
+  targetId: locationId,
+  relationship: 'TAKEN_AT' // Auto-detected if omitted
+});
+
+// Bulk link (one source to many targets)
+await entityLinkService.bulkCreateLinks(userId, tripId, {
+  sourceType: 'ALBUM',
+  sourceId: albumId,
+  targets: [
+    { targetType: 'LOCATION', targetId: loc1Id },
+    { targetType: 'LOCATION', targetId: loc2Id }
+  ]
+});
+```
+
+**Backend - Querying Links**:
+```typescript
+// Get all links for an entity (bidirectional)
+const links = await entityLinkService.getLinksForEntity(userId, tripId, 'PHOTO', photoId);
+
+// Get trip-wide link summary (for UI badges)
+const summary = await entityLinkService.getTripLinksSummary(userId, tripId);
+```
+
+**Frontend - UI Components**:
+```typescript
+// LinkButton with count badge
+<LinkButton
+  entityType="PHOTO"
+  entityId={photo.id}
+  linkCount={5}
+  onClick={() => setShowLinkPanel(true)}
+/>
+
+// LinkPanel modal for viewing/managing links
+<LinkPanel
+  isOpen={showLinkPanel}
+  onClose={() => setShowLinkPanel(false)}
+  tripId={tripId}
+  entityType="PHOTO"
+  entityId={photo.id}
+/>
+```
+
+**Supported Entity Types**:
+- `PHOTO`, `LOCATION`, `ACTIVITY`, `LODGING`, `TRANSPORTATION`, `JOURNAL`, `ALBUM`
+
+**Relationship Types** (auto-detected when appropriate):
+- `RELATED` - Generic relationship
+- `TAKEN_AT` - Photo taken at location
+- `OCCURRED_AT` - Activity/event at location
+- `PART_OF` - Sub-item or nested element
+- `DOCUMENTS` - Journal entry about item
+- `FEATURED_IN` - Included in album/journal
+
+**Benefits**:
+- No need to create albums just to link photos to locations
+- Albums can link to multiple locations (not restricted to one)
+- Consistent API and UI patterns across all entity types
+- Bidirectional discovery (see what's linked FROM and TO any entity)
+
+See [reference/DEVELOPMENT_LOG.md](reference/DEVELOPMENT_LOG.md) (Entity Linking section) for complete documentation.
 
 ### Debugging Issues
 
