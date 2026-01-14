@@ -1,7 +1,9 @@
 import { useEffect, useState, useId, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { AlbumWithPhotos, Photo } from "../types/photo";
+import type { Trip } from "../types/trip";
 import photoService from "../services/photo.service";
+import tripService from "../services/trip.service";
 import PhotoGallery from "../components/PhotoGallery";
 import Breadcrumbs from "../components/Breadcrumbs";
 import LinkButton from "../components/LinkButton";
@@ -18,6 +20,7 @@ export default function AlbumDetailPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [albumName, setAlbumName] = useState("");
   const [albumDescription, setAlbumDescription] = useState("");
+  const [trip, setTrip] = useState<Trip | null>(null);
   const [showPhotoSelector, setShowPhotoSelector] = useState(false);
   const [availablePhotos, setAvailablePhotos] = useState<Photo[]>([]);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(new Set());
@@ -121,6 +124,15 @@ export default function AlbumDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albumId, tripId]);
 
+  const loadTripData = async () => {
+    if (!tripId) return;
+    try {
+      const tripData = await tripService.getTripById(parseInt(tripId));
+      setTrip(tripData);
+    } catch (err) {
+      console.error("Failed to load trip data:", err);
+    }
+  };
   const loadAlbum = async () => {
     if (!albumId) return;
 
@@ -323,7 +335,6 @@ export default function AlbumDetailPage() {
                   💡 Use the link button in the album header to connect this album to locations, activities, and other trip entities.
                 </p>
               </div>
-
               <div className="flex gap-2">
                 <button type="submit" className="btn btn-primary">
                   Save Changes
@@ -350,49 +361,21 @@ export default function AlbumDetailPage() {
                     {album.description}
                   </p>
                 )}
-                <p className="text-gray-500 dark:text-gray-400">
-                  {photosPagination.total} photo
-                  {photosPagination.total !== 1 ? "s" : ""}
-                </p>
-
-                {/* Display associations */}
-                {(album.location || album.activity || album.lodging) && (
-                  <div className="mt-4 space-y-2">
-                    {album.location && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Location:</span>{' '}
-                        <Link
-                          to={`/trips/${tripId}#location-${album.location.id}`}
-                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
-                        >
-                          {album.location.name}
-                        </Link>
-                      </div>
-                    )}
-                    {album.activity && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Activity:</span>{' '}
-                        <Link
-                          to={`/trips/${tripId}#activity-${album.activity.id}`}
-                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
-                        >
-                          {album.activity.name}
-                        </Link>
-                      </div>
-                    )}
-                    {album.lodging && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Lodging:</span>{' '}
-                        <Link
-                          to={`/trips/${tripId}#lodging-${album.lodging.id}`}
-                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
-                        >
-                          {album.lodging.name}
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    {photosPagination.total} photo
+                    {photosPagination.total !== 1 ? "s" : ""}
+                  </p>
+                  {tripId && albumId && (
+                    <LinkButton
+                      tripId={parseInt(tripId)}
+                      entityType="PHOTO_ALBUM"
+                      entityId={parseInt(albumId)}
+                      onUpdate={() => loadAlbum()}
+                      size="sm"
+                    />
+                  )}
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:flex-shrink-0 items-center">
                 <button
@@ -450,6 +433,7 @@ export default function AlbumDetailPage() {
               onSortChange={handlePhotoSortChange}
               initialSortBy={sortByRef.current}
               initialSortOrder={sortOrderRef.current}
+              tripId={tripId ? parseInt(tripId) : undefined}
             />
 
             {photosPagination.hasMore && (

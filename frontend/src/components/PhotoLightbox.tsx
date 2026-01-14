@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Photo } from "../types/photo";
 import { useSwipeGesture } from "../hooks/useSwipeGesture";
+import LinkButton from "./LinkButton";
 
 interface PhotoLightboxProps {
   photo: Photo;
@@ -18,6 +19,8 @@ interface PhotoLightboxProps {
   onEditCaptionChange?: (caption: string) => void;
   onSaveCaption?: () => void;
   onCancelEdit?: () => void;
+  tripId?: number;
+  onPhotoLinksUpdated?: () => void;
 }
 
 export default function PhotoLightbox({
@@ -35,6 +38,8 @@ export default function PhotoLightbox({
   onEditCaptionChange,
   onSaveCaption,
   onCancelEdit,
+  tripId,
+  onPhotoLinksUpdated,
 }: PhotoLightboxProps) {
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -552,6 +557,17 @@ export default function PhotoLightbox({
                         />
                       </svg>
                     </button>
+                  )}
+                  {tripId && (
+                    <div className="bg-black/50 rounded-lg">
+                      <LinkButton
+                        tripId={tripId}
+                        entityType="PHOTO"
+                        entityId={photo.id}
+                        onUpdate={onPhotoLinksUpdated}
+                        className="text-white hover:text-blue-400"
+                      />
+                    </div>
                   )}
                   {showCoverButton && onSetCover && (
                     <button
