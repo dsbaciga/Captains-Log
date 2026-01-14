@@ -6,6 +6,7 @@ import type {
   EntityType,
   EnrichedEntityLink,
 } from '../types/entityLink';
+import { ENTITY_TYPE_CONFIG } from '../types/entityLink';
 
 interface LinkPanelProps {
   tripId: number;
@@ -14,17 +15,6 @@ interface LinkPanelProps {
   onClose: () => void;
   onUpdate?: () => void;
 }
-
-// Entity type configuration
-const ENTITY_CONFIG: Record<EntityType, { label: string; emoji: string; color: string }> = {
-  PHOTO: { label: 'Photos', emoji: '📷', color: 'gray' },
-  LOCATION: { label: 'Locations', emoji: '📍', color: 'blue' },
-  ACTIVITY: { label: 'Activities', emoji: '🎯', color: 'green' },
-  LODGING: { label: 'Lodging', emoji: '🏨', color: 'purple' },
-  TRANSPORTATION: { label: 'Transportation', emoji: '🚗', color: 'orange' },
-  JOURNAL_ENTRY: { label: 'Journal Entries', emoji: '📝', color: 'yellow' },
-  PHOTO_ALBUM: { label: 'Albums', emoji: '📸', color: 'pink' },
-};
 
 // Get color classes for an entity type
 function getColorClasses(entityType: EntityType): {
@@ -85,7 +75,7 @@ function getColorClasses(entityType: EntityType): {
       border: 'border-pink-300 dark:border-pink-700',
     },
   };
-  return colorMap[ENTITY_CONFIG[entityType].color] || colorMap.gray;
+  return colorMap[ENTITY_TYPE_CONFIG[entityType].color] || colorMap.gray;
 }
 
 // Get display name for a linked entity
@@ -158,17 +148,25 @@ export default function LinkPanel({
     );
   }, [groupedLinks]);
 
-  // Get all linked entity IDs (grouped by type) to filter from picker
-  const existingLinkIds = useMemo(() => {
-    if (!linksData) return new Set<number>();
-    const ids = new Set<number>();
+  // Get all linked entity IDs grouped by type to filter from picker
+  // Uses Map<EntityType, Set<number>> to properly track IDs per entity type
+  const existingLinksByType = useMemo(() => {
+    const linksByType = new Map<EntityType, Set<number>>();
+    if (!linksData) return linksByType;
+
     for (const link of linksData.linksFrom) {
-      ids.add(link.targetId);
+      if (!linksByType.has(link.targetType)) {
+        linksByType.set(link.targetType, new Set());
+      }
+      linksByType.get(link.targetType)!.add(link.targetId);
     }
     for (const link of linksData.linksTo) {
-      ids.add(link.sourceId);
+      if (!linksByType.has(link.sourceType)) {
+        linksByType.set(link.sourceType, new Set());
+      }
+      linksByType.get(link.sourceType)!.add(link.sourceId);
     }
-    return ids;
+    return linksByType;
   }, [linksData]);
 
   const handleDeleteLink = async (linkId: number) => {
@@ -177,7 +175,7 @@ export default function LinkPanel({
     }
   };
 
-  const currentEntityConfig = ENTITY_CONFIG[entityType];
+  const currentEntityConfig = ENTITY_TYPE_CONFIG[entityType];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -243,14 +241,14 @@ export default function LinkPanel({
             <div className="space-y-6">
               {linkedEntityTypes.map((type) => {
                 const links = groupedLinks[type];
-                const config = ENTITY_CONFIG[type];
+                const config = ENTITY_TYPE_CONFIG[type];
                 const colors = getColorClasses(type);
 
                 return (
                   <div key={type}>
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                       <span>{config.emoji}</span>
-                      <span>{config.label}</span>
+                      <span>{config.pluralLabel}</span>
                       <span className="text-gray-500">({links.length})</span>
                     </h4>
                     <div className="space-y-2">
@@ -267,7 +265,7 @@ export default function LinkPanel({
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <span className="text-lg flex-shrink-0">
-                                {ENTITY_CONFIG[linkedEntityType].emoji}
+                                {ENTITY_TYPE_CONFIG[linkedEntityType].emoji}
                               </span>
                               <div className="min-w-0">
                                 <div className={`font-medium truncate ${colors.text} ${colors.textDark}`}>
@@ -318,7 +316,7 @@ export default function LinkPanel({
           tripId={tripId}
           sourceEntityType={entityType}
           sourceEntityId={entityId}
-          existingLinkIds={existingLinkIds}
+          existingLinksByType={existingLinksByType}
           onClose={() => setShowAddLinkModal(false)}
           onSuccess={() => {
             refetch();

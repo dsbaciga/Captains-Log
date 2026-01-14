@@ -19,6 +19,7 @@ import {
 } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
@@ -106,6 +107,7 @@ export default function ActivityManager({
   });
 
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
   const [activityCategories, setActivityCategories] = useState<
     ActivityCategory[]
@@ -555,6 +557,8 @@ export default function ActivityManager({
               tripId={tripId}
               entityType="ACTIVITY"
               entityId={activity.id}
+              linkSummary={getLinkSummary('ACTIVITY', activity.id)}
+              onUpdate={invalidateLinkSummary}
               size="sm"
             />
             <JournalEntriesButton

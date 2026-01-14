@@ -48,12 +48,15 @@ import LinkedEntitiesDisplay from "../components/LinkedEntitiesDisplay";
 import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
+import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import Breadcrumbs from "../components/Breadcrumbs";
 
 export default function TripDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  const tripId = id ? parseInt(id) : undefined;
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
   const [searchParams, setSearchParams] = useSearchParams();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -1391,6 +1394,8 @@ export default function TripDetailPage() {
                             tripId={trip.id}
                             entityType="LOCATION"
                             entityId={location.id}
+                            linkSummary={getLinkSummary('LOCATION', location.id)}
+                            onUpdate={invalidateLinkSummary}
                             size="sm"
                           />
                           <JournalEntriesButton
@@ -1466,6 +1471,8 @@ export default function TripDetailPage() {
                                   tripId={trip.id}
                                   entityType="LOCATION"
                                   entityId={childLocation.id}
+                                  linkSummary={getLinkSummary('LOCATION', childLocation.id)}
+                                  onUpdate={invalidateLinkSummary}
                                   size="sm"
                                 />
                                 <JournalEntriesButton

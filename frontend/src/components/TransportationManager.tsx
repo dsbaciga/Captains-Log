@@ -15,6 +15,7 @@ import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLoc
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -108,6 +109,7 @@ export default function TransportationManager({
   });
 
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
   const { values, handleChange, reset } =
     useFormFields<TransportationFormFields>(getInitialFormState);
@@ -1026,6 +1028,8 @@ export default function TransportationManager({
                     tripId={tripId}
                     entityType="TRANSPORTATION"
                     entityId={transportation.id}
+                    linkSummary={getLinkSummary('TRANSPORTATION', transportation.id)}
+                    onUpdate={invalidateLinkSummary}
                     size="sm"
                   />
                   <JournalEntriesButton

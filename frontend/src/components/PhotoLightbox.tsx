@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Photo } from "../types/photo";
 import { useSwipeGesture } from "../hooks/useSwipeGesture";
+import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 
@@ -50,6 +51,8 @@ export default function PhotoLightbox({
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
   const currentIndex = photos.findIndex((p) => p.id === photo.id);
   const hasPrev = currentIndex > 0;
@@ -580,7 +583,11 @@ export default function PhotoLightbox({
                         tripId={tripId}
                         entityType="PHOTO"
                         entityId={photo.id}
-                        onUpdate={onPhotoLinksUpdated}
+                        linkSummary={getLinkSummary('PHOTO', photo.id)}
+                        onUpdate={() => {
+                          invalidateLinkSummary();
+                          onPhotoLinksUpdated?.();
+                        }}
                         className="text-white hover:text-blue-400"
                       />
                     </div>
