@@ -57,7 +57,7 @@ export default function EntityPickerModal({
         let items: EntityItem[] = [];
 
         switch (selectedType) {
-          case 'LOCATION':
+          case 'LOCATION': {
             const locations = await locationService.getByTripId(tripId);
             items = locations.map((loc: Location) => ({
               id: loc.id,
@@ -65,8 +65,9 @@ export default function EntityPickerModal({
               subtitle: loc.address || undefined,
             }));
             break;
+          }
 
-          case 'ACTIVITY':
+          case 'ACTIVITY': {
             const activities = await activityService.getByTripId(tripId);
             items = activities.map((act: Activity) => ({
               id: act.id,
@@ -74,8 +75,9 @@ export default function EntityPickerModal({
               subtitle: act.category || undefined,
             }));
             break;
+          }
 
-          case 'LODGING':
+          case 'LODGING': {
             const lodgings = await lodgingService.getByTripId(tripId);
             items = lodgings.map((lod: Lodging) => ({
               id: lod.id,
@@ -83,8 +85,9 @@ export default function EntityPickerModal({
               subtitle: lod.type,
             }));
             break;
+          }
 
-          case 'TRANSPORTATION':
+          case 'TRANSPORTATION': {
             const transports = await transportationService.getByTripId(tripId);
             items = transports.map((trans: Transportation) => ({
               id: trans.id,
@@ -92,6 +95,7 @@ export default function EntityPickerModal({
               subtitle: trans.startLocationText || trans.startLocation?.name || undefined,
             }));
             break;
+          }
         }
 
         setEntities(items);

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
 import type {
@@ -101,9 +101,6 @@ export default function LinkPanel({
   onClose,
   onUpdate,
 }: LinkPanelProps) {
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'linked' | 'add'>('linked');
-
   // Fetch all links for this entity
   const {
     data: linksData,
