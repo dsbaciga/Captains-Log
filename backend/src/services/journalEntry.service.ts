@@ -537,7 +537,18 @@ class JournalEntryService {
     });
 
     // Verify access
-    await verifyEntityAccess(entry, userId, 'Journal entry');
+    const verifiedEntry = await verifyEntityAccess(entry, userId, 'Journal entry');
+
+    // Clean up entity links before deleting
+    await prisma.entityLink.deleteMany({
+      where: {
+        tripId: verifiedEntry.tripId,
+        OR: [
+          { sourceType: 'JOURNAL_ENTRY', sourceId: entryId },
+          { targetType: 'JOURNAL_ENTRY', targetId: entryId },
+        ],
+      },
+    });
 
     await prisma.journalEntry.delete({
       where: { id: entryId },

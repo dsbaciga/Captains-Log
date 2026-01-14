@@ -239,7 +239,7 @@ export const entityLinkService = {
     let skipped = 0;
 
     // Create links in a transaction
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       for (const target of data.targets) {
         // Skip self-links
         if (data.sourceType === target.targetType && data.sourceId === target.targetId) {
@@ -307,7 +307,7 @@ export const entityLinkService = {
 
     const relationship = data.relationship || getDefaultRelationship('PHOTO', data.targetType);
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       for (const photoId of data.photoIds) {
         // Check if link already exists
         const existing = await tx.entityLink.findFirst({
@@ -556,7 +556,7 @@ export const entityLinkService = {
     });
 
     // Fetch the actual photos
-    const photoIds = links.map((l) => l.sourceId);
+    const photoIds = links.map((l: any) => l.sourceId);
     if (photoIds.length === 0) return [];
 
     const photos = await prisma.photo.findMany({
@@ -564,8 +564,8 @@ export const entityLinkService = {
     });
 
     // Maintain sort order from links
-    const photoMap = new Map(photos.map((p) => [p.id, p]));
-    return photoIds.map((id) => photoMap.get(id)).filter(Boolean);
+    const photoMap = new Map(photos.map((p: any) => [p.id, p]));
+    return photoIds.map((id: number) => photoMap.get(id)).filter(Boolean);
   },
 
   /**
