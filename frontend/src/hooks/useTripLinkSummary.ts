@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
-import type { EntityType, EntityLinkSummary, TripLinkSummary } from '../types/entityLink';
+import type { EntityType, EntityLinkSummary } from '../types/entityLink';
 import { getEntityKey } from '../types/entityLink';
 
 /**
