@@ -1,43 +1,27 @@
 import { useState } from "react";
 import type { PhotoAlbum } from "../types/photo";
-import type { Location } from "../types/location";
-import type { Activity } from "../types/activity";
-import type { Lodging } from "../types/lodging";
+import LinkButton from "./LinkButton";
 
 interface AlbumModalProps {
   album?: PhotoAlbum; // If provided, we're editing; otherwise creating
+  tripId: number;
   onSave: (data: {
     name: string;
     description: string;
-    locationId?: number | null;
-    activityId?: number | null;
-    lodgingId?: number | null;
   }) => Promise<void>;
   onClose: () => void;
-  locations?: Location[];
-  activities?: Activity[];
-  lodgings?: Lodging[];
+  onUpdate?: () => void; // Callback to refresh data after linking
 }
 
 export default function AlbumModal({
   album,
+  tripId,
   onSave,
   onClose,
-  locations = [],
-  activities = [],
-  lodgings = [],
+  onUpdate,
 }: AlbumModalProps) {
   const [name, setName] = useState(album?.name || "");
   const [description, setDescription] = useState(album?.description || "");
-  const [locationId, setLocationId] = useState<number | null>(
-    album?.locationId || null
-  );
-  const [activityId, setActivityId] = useState<number | null>(
-    album?.activityId || null
-  );
-  const [lodgingId, setLodgingId] = useState<number | null>(
-    album?.lodgingId || null
-  );
   const [saving, setSaving] = useState(false);
 
   const isEdit = !!album;
@@ -51,9 +35,6 @@ export default function AlbumModal({
       await onSave({
         name: name.trim(),
         description: description.trim() || "",
-        locationId,
-        activityId,
-        lodgingId,
       });
       onClose();
     } catch (error) {
@@ -131,88 +112,30 @@ export default function AlbumModal({
             />
           </div>
 
-          {/* Location Association */}
-          {locations.length > 0 && (
+          {/* Entity Linking Section */}
+          {isEdit ? (
             <div>
-              <label
-                htmlFor="album-location"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Associated Location (Optional)
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Links
               </label>
-              <select
-                id="album-location"
-                value={locationId || ""}
-                onChange={(e) =>
-                  setLocationId(
-                    e.target.value ? parseInt(e.target.value) : null
-                  )
-                }
-                className="input"
-              >
-                <option value="">None</option>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                <LinkButton
+                  tripId={tripId}
+                  entityType="PHOTO_ALBUM"
+                  entityId={album.id}
+                  onUpdate={onUpdate}
+                  size="md"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Link this album to locations, activities, photos, and more
+                </span>
+              </div>
             </div>
-          )}
-
-          {/* Activity Association */}
-          {activities.length > 0 && (
-            <div>
-              <label
-                htmlFor="album-activity"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Associated Activity (Optional)
-              </label>
-              <select
-                id="album-activity"
-                value={activityId || ""}
-                onChange={(e) =>
-                  setActivityId(
-                    e.target.value ? parseInt(e.target.value) : null
-                  )
-                }
-                className="input"
-              >
-                <option value="">None</option>
-                {activities.map((activity) => (
-                  <option key={activity.id} value={activity.id}>
-                    {activity.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Lodging Association */}
-          {lodgings.length > 0 && (
-            <div>
-              <label
-                htmlFor="album-lodging"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Associated Lodging (Optional)
-              </label>
-              <select
-                id="album-lodging"
-                value={lodgingId || ""}
-                onChange={(e) =>
-                  setLodgingId(e.target.value ? parseInt(e.target.value) : null)
-                }
-                className="input"
-              >
-                <option value="">None</option>
-                {lodgings.map((lodging) => (
-                  <option key={lodging.id} value={lodging.id}>
-                    {lodging.name}
-                  </option>
-                ))}
-              </select>
+          ) : (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                💡 After creating this album, you'll be able to link it to locations, activities, and other trip entities.
+              </p>
             </div>
           )}
 

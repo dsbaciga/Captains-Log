@@ -121,13 +121,11 @@ export default function AlbumDetailPage() {
     // Clear previous album's photos before loading new album
     photosPagination.clear();
     loadAlbum();
-    loadTripData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albumId, tripId]);
 
   const loadTripData = async () => {
     if (!tripId) return;
-
     try {
       const tripData = await tripService.getTripById(parseInt(tripId));
       setTrip(tripData);
@@ -135,7 +133,6 @@ export default function AlbumDetailPage() {
       console.error("Failed to load trip data:", err);
     }
   };
-
   const loadAlbum = async () => {
     if (!albumId) return;
 
@@ -172,8 +169,9 @@ export default function AlbumDetailPage() {
 
       setIsEditMode(false);
       loadAlbum();
+      toast.success("Album updated");
     } catch {
-      alert("Failed to update album");
+      toast.error("Failed to update album");
     }
   };
 
@@ -331,6 +329,12 @@ export default function AlbumDetailPage() {
                 />
               </div>
 
+              {/* Entity Linking Info */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  💡 Use the link button in the album header to connect this album to locations, activities, and other trip entities.
+                </p>
+              </div>
               <div className="flex gap-2">
                 <button type="submit" className="btn btn-primary">
                   Save Changes
@@ -373,13 +377,20 @@ export default function AlbumDetailPage() {
                   )}
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:flex-shrink-0">
+              <div className="flex flex-col sm:flex-row gap-2 sm:flex-shrink-0 items-center">
                 <button
                   onClick={handleOpenPhotoSelector}
                   className="btn btn-primary w-full sm:w-auto"
                 >
                   + Add Photos
                 </button>
+                <LinkButton
+                  tripId={parseInt(tripId!)}
+                  entityType="PHOTO_ALBUM"
+                  entityId={parseInt(albumId!)}
+                  onUpdate={() => loadAlbum()}
+                  size="md"
+                />
                 <button
                   onClick={() => setIsEditMode(true)}
                   className="btn btn-secondary w-full sm:w-auto"
