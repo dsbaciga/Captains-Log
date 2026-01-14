@@ -21,8 +21,6 @@ import type { Trip } from "../types/trip";
 import type { Location } from "../types/location";
 import type { Photo } from "../types/photo";
 import type { TripTag } from "../types/tag";
-import type { Activity } from "../types/activity";
-import type { Lodging } from "../types/lodging";
 import type { Checklist } from "../types/checklist";
 import { TripStatus } from "../types/trip";
 import toast from "react-hot-toast";
@@ -44,6 +42,7 @@ import AlbumModal from "../components/AlbumModal";
 import AssociatedAlbums from "../components/AssociatedAlbums";
 import JournalEntriesButton from "../components/JournalEntriesButton";
 import LinkButton from "../components/LinkButton";
+import LinkedEntitiesDisplay from "../components/LinkedEntitiesDisplay";
 import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
@@ -59,8 +58,6 @@ export default function TripDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [lodgings, setLodgings] = useState<Lodging[]>([]);
   const [userTimezone, setUserTimezone] = useState<string>("");
   const [activitiesCount, setActivitiesCount] = useState(0);
   const [unscheduledCount, setUnscheduledCount] = useState(0);
@@ -442,10 +439,6 @@ export default function TripDetailPage() {
         console.error("Failed to load albums:", albumsData.reason);
 
       setLocations(locations);
-
-      // Store activities and lodgings for album modal
-      setActivities(activities);
-      setLodgings(lodging);
 
       // Separate scheduled and unscheduled activities
       const scheduledActivities = activities.filter(
@@ -1421,6 +1414,14 @@ export default function TripDetailPage() {
                         albums={location.photoAlbums}
                         tripId={trip.id}
                       />
+
+                      {/* Linked Entities */}
+                      <LinkedEntitiesDisplay
+                        tripId={trip.id}
+                        entityType="LOCATION"
+                        entityId={location.id}
+                        compact
+                      />
                     </div>
 
                     {/* Child Locations */}
@@ -1489,6 +1490,14 @@ export default function TripDetailPage() {
                             <AssociatedAlbums
                               albums={childLocation.photoAlbums}
                               tripId={trip.id}
+                            />
+
+                            {/* Linked Entities */}
+                            <LinkedEntitiesDisplay
+                              tripId={trip.id}
+                              entityType="LOCATION"
+                              entityId={childLocation.id}
+                              compact
                             />
                           </div>
                         ))}

@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
 import JournalEntriesButton from "./JournalEntriesButton";
 import LinkButton from "./LinkButton";
+import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
@@ -685,6 +686,14 @@ export default function LodgingManager({
                         </p>
                       </div>
                     )}
+
+                    {/* Linked Entities */}
+                    <LinkedEntitiesDisplay
+                      tripId={tripId}
+                      entityType="LODGING"
+                      entityId={lodging.id}
+                      compact
+                    />
                   </div>
                 </div>
 

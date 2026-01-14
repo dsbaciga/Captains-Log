@@ -4,6 +4,7 @@ import type { Photo } from "../types/photo";
 import { useSwipeGesture } from "../hooks/useSwipeGesture";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import LinkButton from "./LinkButton";
+import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 
 interface PhotoLightboxProps {
   photo: Photo;
@@ -407,54 +408,69 @@ export default function PhotoLightbox({
             /* Normal controls */
             <div className="flex flex-col md:flex-row justify-between items-center gap-3">
               {/* Photo details */}
-              <div className="flex gap-2 md:gap-4 text-white text-xs md:text-sm flex-wrap justify-center md:justify-start">
-                {photo.location && (
-                  <span className="flex items-center gap-1">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    {photo.location.name}
+              <div className="flex-1">
+                <div className="flex gap-2 md:gap-4 text-white text-xs md:text-sm flex-wrap justify-center md:justify-start">
+                  {photo.location && (
+                    <span className="flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      {photo.location.name}
+                    </span>
+                  )}
+                  {photo.takenAt && (
+                    <span className="flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      {new Date(photo.takenAt).toLocaleDateString()}
+                    </span>
+                  )}
+                  <span className="hidden sm:inline px-2 py-0.5 bg-white/20 rounded text-xs">
+                    {photo.source === "local" ? "Uploaded" : "Immich"}
                   </span>
+                </div>
+                {/* Linked entities */}
+                {tripId && (
+                  <div className="mt-2 hidden md:block [&_.mt-3]:mt-1 [&_*]:text-white/90 [&_.text-gray-500]:text-white/60 [&_.dark\\:text-gray-400]:text-white/60 [&_.bg-blue-100]:bg-blue-500/30 [&_.dark\\:bg-blue-900\\/50]:bg-blue-500/30 [&_.bg-green-100]:bg-green-500/30 [&_.dark\\:bg-green-900\\/50]:bg-green-500/30 [&_.bg-purple-100]:bg-purple-500/30 [&_.dark\\:bg-purple-900\\/50]:bg-purple-500/30 [&_.bg-orange-100]:bg-orange-500/30 [&_.dark\\:bg-orange-900\\/50]:bg-orange-500/30 [&_.bg-yellow-100]:bg-yellow-500/30 [&_.dark\\:bg-yellow-900\\/50]:bg-yellow-500/30 [&_.bg-pink-100]:bg-pink-500/30 [&_.dark\\:bg-pink-900\\/50]:bg-pink-500/30 [&_.bg-gray-100]:bg-gray-500/30 [&_.dark\\:bg-gray-700]:bg-gray-500/30 [&_.border-blue-300]:border-blue-400/50 [&_.border-green-300]:border-green-400/50 [&_.border-purple-300]:border-purple-400/50 [&_.border-orange-300]:border-orange-400/50 [&_.border-yellow-300]:border-yellow-400/50 [&_.border-pink-300]:border-pink-400/50 [&_.border-gray-300]:border-gray-400/50 [&_.dark\\:border-blue-700]:border-blue-400/50 [&_.dark\\:border-green-700]:border-green-400/50 [&_.dark\\:border-purple-700]:border-purple-400/50 [&_.dark\\:border-orange-700]:border-orange-400/50 [&_.dark\\:border-yellow-700]:border-yellow-400/50 [&_.dark\\:border-pink-700]:border-pink-400/50 [&_.dark\\:border-gray-600]:border-gray-400/50">
+                    <LinkedEntitiesDisplay
+                      tripId={tripId}
+                      entityType="PHOTO"
+                      entityId={photo.id}
+                      excludeTypes={['PHOTO']}
+                      compact
+                      maxItemsPerType={3}
+                    />
+                  </div>
                 )}
-                {photo.takenAt && (
-                  <span className="flex items-center gap-1">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    {new Date(photo.takenAt).toLocaleDateString()}
-                  </span>
-                )}
-                <span className="hidden sm:inline px-2 py-0.5 bg-white/20 rounded text-xs">
-                  {photo.source === "local" ? "Uploaded" : "Immich"}
-                </span>
               </div>
 
               {/* Zoom and action controls */}

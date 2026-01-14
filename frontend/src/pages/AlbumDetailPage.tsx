@@ -7,6 +7,7 @@ import tripService from "../services/trip.service";
 import PhotoGallery from "../components/PhotoGallery";
 import Breadcrumbs from "../components/Breadcrumbs";
 import LinkButton from "../components/LinkButton";
+import LinkedEntitiesDisplay from "../components/LinkedEntitiesDisplay";
 import { usePagination } from "../hooks/usePagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
@@ -120,13 +121,6 @@ export default function AlbumDetailPage() {
     { pageSize: 40, enabled: true }
   );
 
-  useEffect(() => {
-    // Clear previous album's photos before loading new album
-    photosPagination.clear();
-    loadAlbum();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [albumId, tripId]);
-
   const loadTripData = async () => {
     if (!tripId) return;
     try {
@@ -159,6 +153,14 @@ export default function AlbumDetailPage() {
       photosPagination.loadInitial();
     }
   };
+
+  useEffect(() => {
+    // Clear previous album's photos before loading new album
+    photosPagination.clear();
+    loadTripData();
+    loadAlbum();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [albumId, tripId]);
 
   const handleUpdateAlbum = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -383,6 +385,17 @@ export default function AlbumDetailPage() {
                     />
                   )}
                 </div>
+
+                {/* Linked Entities */}
+                {tripId && albumId && (
+                  <LinkedEntitiesDisplay
+                    tripId={parseInt(tripId)}
+                    entityType="PHOTO_ALBUM"
+                    entityId={parseInt(albumId)}
+                    excludeTypes={['PHOTO']}
+                    compact
+                  />
+                )}
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:flex-shrink-0 items-center">
                 <button
