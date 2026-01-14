@@ -1,17 +1,12 @@
 import { useEffect, useState, useId, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { AlbumWithPhotos, Photo } from "../types/photo";
-import type { Location } from "../types/location";
-import type { Activity } from "../types/activity";
-import type { Lodging } from "../types/lodging";
 import type { Trip } from "../types/trip";
 import photoService from "../services/photo.service";
-import locationService from "../services/location.service";
-import activityService from "../services/activity.service";
-import lodgingService from "../services/lodging.service";
 import tripService from "../services/trip.service";
 import PhotoGallery from "../components/PhotoGallery";
 import Breadcrumbs from "../components/Breadcrumbs";
+import LinkButton from "../components/LinkButton";
 import { usePagination } from "../hooks/usePagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getFullAssetUrl } from "../lib/config";
@@ -25,12 +20,6 @@ export default function AlbumDetailPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [albumName, setAlbumName] = useState("");
   const [albumDescription, setAlbumDescription] = useState("");
-  const [locationId, setLocationId] = useState<number | null>(null);
-  const [activityId, setActivityId] = useState<number | null>(null);
-  const [lodgingId, setLodgingId] = useState<number | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [lodgings, setLodgings] = useState<Lodging[]>([]);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [showPhotoSelector, setShowPhotoSelector] = useState(false);
   const [availablePhotos, setAvailablePhotos] = useState<Photo[]>([]);
@@ -93,9 +82,6 @@ export default function AlbumDetailPage() {
   }, []);
   const albumNameId = useId();
   const albumDescriptionId = useId();
-  const locationSelectId = useId();
-  const activitySelectId = useId();
-  const lodgingSelectId = useId();
 
   // Photo sorting state
   const sortByRef = useRef<string>("date");
@@ -143,17 +129,8 @@ export default function AlbumDetailPage() {
     if (!tripId) return;
 
     try {
-      const [tripData, locationsData, activitiesData, lodgingsData] = await Promise.all([
-        tripService.getTripById(parseInt(tripId)),
-        locationService.getLocationsByTrip(parseInt(tripId)),
-        activityService.getActivitiesByTrip(parseInt(tripId)),
-        lodgingService.getLodgingByTrip(parseInt(tripId)),
-      ]);
-
+      const tripData = await tripService.getTripById(parseInt(tripId));
       setTrip(tripData);
-      setLocations(locationsData);
-      setActivities(activitiesData);
-      setLodgings(lodgingsData);
     } catch (err) {
       console.error("Failed to load trip data:", err);
     }
@@ -173,9 +150,6 @@ export default function AlbumDetailPage() {
       setAlbum(data);
       setAlbumName(data.name);
       setAlbumDescription(data.description || "");
-      setLocationId(data.locationId || null);
-      setActivityId(data.activityId || null);
-      setLodgingId(data.lodgingId || null);
     } catch (err) {
       console.error("Failed to load album:", err);
     } finally {
@@ -194,9 +168,6 @@ export default function AlbumDetailPage() {
       await photoService.updateAlbum(parseInt(albumId), {
         name: albumName,
         description: albumDescription || null,
-        locationId,
-        activityId,
-        lodgingId,
       });
 
       setIsEditMode(false);
@@ -360,81 +331,6 @@ export default function AlbumDetailPage() {
                 />
               </div>
 
-              {/* Location Association */}
-              {locations.length > 0 && (
-                <div>
-                  <label
-                    htmlFor={locationSelectId}
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Associated Location (Optional)
-                  </label>
-                  <select
-                    id={locationSelectId}
-                    value={locationId || ''}
-                    onChange={(e) => setLocationId(e.target.value ? parseInt(e.target.value) : null)}
-                    className="input"
-                  >
-                    <option value="">None</option>
-                    {locations.map((location) => (
-                      <option key={location.id} value={location.id}>
-                        {location.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Activity Association */}
-              {activities.length > 0 && (
-                <div>
-                  <label
-                    htmlFor={activitySelectId}
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Associated Activity (Optional)
-                  </label>
-                  <select
-                    id={activitySelectId}
-                    value={activityId || ''}
-                    onChange={(e) => setActivityId(e.target.value ? parseInt(e.target.value) : null)}
-                    className="input"
-                  >
-                    <option value="">None</option>
-                    {activities.map((activity) => (
-                      <option key={activity.id} value={activity.id}>
-                        {activity.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Lodging Association */}
-              {lodgings.length > 0 && (
-                <div>
-                  <label
-                    htmlFor={lodgingSelectId}
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Associated Lodging (Optional)
-                  </label>
-                  <select
-                    id={lodgingSelectId}
-                    value={lodgingId || ''}
-                    onChange={(e) => setLodgingId(e.target.value ? parseInt(e.target.value) : null)}
-                    className="input"
-                  >
-                    <option value="">None</option>
-                    {lodgings.map((lodging) => (
-                      <option key={lodging.id} value={lodging.id}>
-                        {lodging.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               <div className="flex gap-2">
                 <button type="submit" className="btn btn-primary">
                   Save Changes
@@ -461,49 +357,21 @@ export default function AlbumDetailPage() {
                     {album.description}
                   </p>
                 )}
-                <p className="text-gray-500 dark:text-gray-400">
-                  {photosPagination.total} photo
-                  {photosPagination.total !== 1 ? "s" : ""}
-                </p>
-
-                {/* Display associations */}
-                {(album.location || album.activity || album.lodging) && (
-                  <div className="mt-4 space-y-2">
-                    {album.location && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Location:</span>{' '}
-                        <Link
-                          to={`/trips/${tripId}#location-${album.location.id}`}
-                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
-                        >
-                          {album.location.name}
-                        </Link>
-                      </div>
-                    )}
-                    {album.activity && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Activity:</span>{' '}
-                        <Link
-                          to={`/trips/${tripId}#activity-${album.activity.id}`}
-                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
-                        >
-                          {album.activity.name}
-                        </Link>
-                      </div>
-                    )}
-                    {album.lodging && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Lodging:</span>{' '}
-                        <Link
-                          to={`/trips/${tripId}#lodging-${album.lodging.id}`}
-                          className="text-primary-600 dark:text-sky hover:text-primary-700 dark:hover:text-accent-400 hover:underline transition-colors"
-                        >
-                          {album.lodging.name}
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    {photosPagination.total} photo
+                    {photosPagination.total !== 1 ? "s" : ""}
+                  </p>
+                  {tripId && albumId && (
+                    <LinkButton
+                      tripId={parseInt(tripId)}
+                      entityType="PHOTO_ALBUM"
+                      entityId={parseInt(albumId)}
+                      onUpdate={() => loadAlbum()}
+                      size="sm"
+                    />
+                  )}
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:flex-shrink-0">
                 <button
