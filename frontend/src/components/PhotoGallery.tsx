@@ -5,6 +5,7 @@ import { getFullAssetUrl } from "../lib/config";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import PhotoLightbox from "./PhotoLightbox";
 import ProgressiveImage from "./ProgressiveImage";
+import EntityPickerModal from "./EntityPickerModal";
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -61,6 +62,7 @@ export default function PhotoGallery({
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(
     null
   );
+  const [showEntityPickerModal, setShowEntityPickerModal] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"date" | "name" | "location">(
     initialSortBy as "date" | "name" | "location"
@@ -627,6 +629,18 @@ export default function PhotoGallery({
                 )}
                 <button
                   type="button"
+                  onClick={() => setShowEntityPickerModal(true)}
+                  disabled={selectedPhotoIds.size === 0}
+                  className="btn btn-secondary"
+                >
+                  🔗 Link{" "}
+                  {selectedPhotoIds.size > 0
+                    ? `${selectedPhotoIds.size} `
+                    : ""}
+                  to...
+                </button>
+                <button
+                  type="button"
                   onClick={handleDeleteSelected}
                   disabled={selectedPhotoIds.size === 0}
                   className="btn btn-danger"
@@ -1066,6 +1080,19 @@ export default function PhotoGallery({
             )}
           </div>
         </div>
+      )}
+
+      {/* Entity Picker Modal for Bulk Linking */}
+      {showEntityPickerModal && photos.length > 0 && selectedPhotoIds.size > 0 && (
+        <EntityPickerModal
+          tripId={photos[0].tripId}
+          photoIds={Array.from(selectedPhotoIds)}
+          onClose={() => setShowEntityPickerModal(false)}
+          onSuccess={() => {
+            setSelectionMode(false);
+            setSelectedPhotoIds(new Set());
+          }}
+        />
       )}
     </div>
   );
