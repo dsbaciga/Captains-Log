@@ -58,7 +58,7 @@ export default function EntityPickerModal({
 
         switch (selectedType) {
           case 'LOCATION': {
-            const locations = await locationService.getByTripId(tripId);
+            const locations = await locationService.getLocationsByTrip(tripId);
             items = locations.map((loc: Location) => ({
               id: loc.id,
               name: loc.name,
@@ -68,7 +68,7 @@ export default function EntityPickerModal({
           }
 
           case 'ACTIVITY': {
-            const activities = await activityService.getByTripId(tripId);
+            const activities = await activityService.getActivitiesByTrip(tripId);
             items = activities.map((act: Activity) => ({
               id: act.id,
               name: act.name,
@@ -78,7 +78,7 @@ export default function EntityPickerModal({
           }
 
           case 'LODGING': {
-            const lodgings = await lodgingService.getByTripId(tripId);
+            const lodgings = await lodgingService.getLodgingByTrip(tripId);
             items = lodgings.map((lod: Lodging) => ({
               id: lod.id,
               name: lod.name,
@@ -88,11 +88,11 @@ export default function EntityPickerModal({
           }
 
           case 'TRANSPORTATION': {
-            const transports = await transportationService.getByTripId(tripId);
+            const transports = await transportationService.getTransportationByTrip(tripId);
             items = transports.map((trans: Transportation) => ({
               id: trans.id,
-              name: `${trans.type}${trans.company ? ` - ${trans.company}` : ''}`,
-              subtitle: trans.startLocationText || trans.startLocation?.name || undefined,
+              name: `${trans.type}${trans.carrier ? ` - ${trans.carrier}` : ''}`,
+              subtitle: trans.fromLocationName || trans.fromLocation?.name || undefined,
             }));
             break;
           }

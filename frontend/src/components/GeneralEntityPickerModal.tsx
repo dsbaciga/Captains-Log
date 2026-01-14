@@ -5,7 +5,7 @@ import type { Activity } from '../types/activity';
 import type { Lodging } from '../types/lodging';
 import type { Transportation } from '../types/transportation';
 import type { Photo } from '../types/photo';
-import type { JournalEntry } from '../types/journal';
+import type { JournalEntry } from '../types/journalEntry';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
 import lodgingService from '../services/lodging.service';
@@ -72,8 +72,8 @@ export default function GeneralEntityPickerModal({
             const photos = result.photos;
             items = photos.map((photo: Photo) => ({
               id: photo.id,
-              name: photo.caption || photo.originalName || `Photo ${photo.id}`,
-              subtitle: photo.dateTaken || undefined,
+              name: photo.caption || `Photo ${photo.id}`,
+              subtitle: photo.takenAt || undefined,
             }));
             break;
           }
@@ -112,8 +112,8 @@ export default function GeneralEntityPickerModal({
             const transports = await transportationService.getTransportationByTrip(tripId);
             items = transports.map((trans: Transportation) => ({
               id: trans.id,
-              name: `${trans.type}${trans.company ? ` - ${trans.company}` : ''}`,
-              subtitle: trans.startLocationText || trans.startLocation?.name || undefined,
+              name: `${trans.type}${trans.carrier ? ` - ${trans.carrier}` : ''}`,
+              subtitle: trans.fromLocationName || trans.fromLocation?.name || undefined,
             }));
             break;
           }
