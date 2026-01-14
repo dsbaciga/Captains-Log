@@ -7,6 +7,7 @@ import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
 import JournalEntriesButton from "./JournalEntriesButton";
+import LinkButton from "./LinkButton";
 import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
 import {
@@ -541,6 +542,12 @@ export default function ActivityManager({
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-2 flex-shrink-0 self-start">
             <AssociatedAlbums albums={activity.photoAlbums} tripId={tripId} />
+            <LinkButton
+              tripId={tripId}
+              entityType="ACTIVITY"
+              entityId={activity.id}
+              size="sm"
+            />
             <JournalEntriesButton
               journalEntries={activity.journalAssignments}
               tripId={tripId}
