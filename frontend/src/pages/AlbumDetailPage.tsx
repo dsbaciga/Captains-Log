@@ -9,12 +9,15 @@ import Breadcrumbs from "../components/Breadcrumbs";
 import LinkButton from "../components/LinkButton";
 import { usePagination } from "../hooks/usePagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { getFullAssetUrl } from "../lib/config";
 import toast from "react-hot-toast";
 
 export default function AlbumDetailPage() {
   const { tripId, albumId } = useParams<{ tripId: string; albumId: string }>();
   const { ConfirmDialogComponent } = useConfirmDialog();
+  const parsedTripId = tripId ? parseInt(tripId) : undefined;
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(parsedTripId);
   const [album, setAlbum] = useState<AlbumWithPhotos | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -371,7 +374,11 @@ export default function AlbumDetailPage() {
                       tripId={parseInt(tripId)}
                       entityType="PHOTO_ALBUM"
                       entityId={parseInt(albumId)}
-                      onUpdate={() => loadAlbum()}
+                      linkSummary={getLinkSummary('PHOTO_ALBUM', parseInt(albumId))}
+                      onUpdate={() => {
+                        invalidateLinkSummary();
+                        loadAlbum();
+                      }}
                       size="sm"
                     />
                   )}
@@ -388,7 +395,11 @@ export default function AlbumDetailPage() {
                   tripId={parseInt(tripId!)}
                   entityType="PHOTO_ALBUM"
                   entityId={parseInt(albumId!)}
-                  onUpdate={() => loadAlbum()}
+                  linkSummary={getLinkSummary('PHOTO_ALBUM', parseInt(albumId!))}
+                  onUpdate={() => {
+                    invalidateLinkSummary();
+                    loadAlbum();
+                  }}
                   size="md"
                 />
                 <button

@@ -12,6 +12,7 @@ import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLoc
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -96,6 +97,7 @@ export default function LodgingManager({
   });
 
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
@@ -696,6 +698,8 @@ export default function LodgingManager({
                     tripId={tripId}
                     entityType="LODGING"
                     entityId={lodging.id}
+                    linkSummary={getLinkSummary('LODGING', lodging.id)}
+                    onUpdate={invalidateLinkSummary}
                     size="sm"
                   />
                   <JournalEntriesButton
