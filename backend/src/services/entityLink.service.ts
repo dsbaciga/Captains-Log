@@ -15,6 +15,91 @@ import type {
   EntityLinkSummary,
 } from '../types/entityLink.types';
 
+// Entity details return type
+type EntityDetails = { id: number; name?: string; title?: string; caption?: string; thumbnailPath?: string };
+
+/**
+ * Configuration for entity type operations
+ * Maps entity types to their verification and details functions
+ */
+const ENTITY_CONFIG: Record<EntityType, {
+  findInTrip: (tripId: number, entityId: number) => Promise<any>;
+  getDetails: (entityId: number) => Promise<EntityDetails | null>;
+}> = {
+  PHOTO: {
+    findInTrip: (tripId, entityId) => prisma.photo.findFirst({ where: { id: entityId, tripId } }),
+    getDetails: async (entityId) => {
+      const photo = await prisma.photo.findUnique({
+        where: { id: entityId },
+        select: { id: true, caption: true, thumbnailPath: true },
+      });
+      return photo ? { id: photo.id, caption: photo.caption || undefined, thumbnailPath: photo.thumbnailPath || undefined } : null;
+    },
+  },
+  LOCATION: {
+    findInTrip: (tripId, entityId) => prisma.location.findFirst({ where: { id: entityId, tripId } }),
+    getDetails: async (entityId) => {
+      const location = await prisma.location.findUnique({
+        where: { id: entityId },
+        select: { id: true, name: true },
+      });
+      return location ? { id: location.id, name: location.name } : null;
+    },
+  },
+  ACTIVITY: {
+    findInTrip: (tripId, entityId) => prisma.activity.findFirst({ where: { id: entityId, tripId } }),
+    getDetails: async (entityId) => {
+      const activity = await prisma.activity.findUnique({
+        where: { id: entityId },
+        select: { id: true, name: true },
+      });
+      return activity ? { id: activity.id, name: activity.name } : null;
+    },
+  },
+  LODGING: {
+    findInTrip: (tripId, entityId) => prisma.lodging.findFirst({ where: { id: entityId, tripId } }),
+    getDetails: async (entityId) => {
+      const lodging = await prisma.lodging.findUnique({
+        where: { id: entityId },
+        select: { id: true, name: true },
+      });
+      return lodging ? { id: lodging.id, name: lodging.name } : null;
+    },
+  },
+  TRANSPORTATION: {
+    findInTrip: (tripId, entityId) => prisma.transportation.findFirst({ where: { id: entityId, tripId } }),
+    getDetails: async (entityId) => {
+      const transport = await prisma.transportation.findUnique({
+        where: { id: entityId },
+        select: { id: true, type: true, company: true },
+      });
+      return transport
+        ? { id: transport.id, name: `${transport.type}${transport.company ? ` - ${transport.company}` : ''}` }
+        : null;
+    },
+  },
+  JOURNAL_ENTRY: {
+    findInTrip: (tripId, entityId) => prisma.journalEntry.findFirst({ where: { id: entityId, tripId } }),
+    getDetails: async (entityId) => {
+      const journal = await prisma.journalEntry.findUnique({
+        where: { id: entityId },
+        select: { id: true, title: true },
+      });
+      return journal ? { id: journal.id, title: journal.title || undefined } : null;
+    },
+  },
+  PHOTO_ALBUM: {
+    findInTrip: (tripId, entityId) => prisma.photoAlbum.findFirst({ where: { id: entityId, tripId } }),
+    getDetails: async (entityId) => {
+      const album = await prisma.photoAlbum.findUnique({
+        where: { id: entityId },
+        select: { id: true, name: true },
+      });
+      return album ? { id: album.id, name: album.name } : null;
+    },
+  },
+};
+
 /**
  * Verifies that an entity exists within the specified trip
  * @throws AppError if entity not found or doesn't belong to trip
@@ -24,48 +109,12 @@ async function verifyEntityInTrip(
   entityType: EntityType,
   entityId: number
 ): Promise<void> {
-  let entity: any = null;
-
-  switch (entityType) {
-    case 'PHOTO':
-      entity = await prisma.photo.findFirst({
-        where: { id: entityId, tripId },
-      });
-      break;
-    case 'LOCATION':
-      entity = await prisma.location.findFirst({
-        where: { id: entityId, tripId },
-      });
-      break;
-    case 'ACTIVITY':
-      entity = await prisma.activity.findFirst({
-        where: { id: entityId, tripId },
-      });
-      break;
-    case 'LODGING':
-      entity = await prisma.lodging.findFirst({
-        where: { id: entityId, tripId },
-      });
-      break;
-    case 'TRANSPORTATION':
-      entity = await prisma.transportation.findFirst({
-        where: { id: entityId, tripId },
-      });
-      break;
-    case 'JOURNAL_ENTRY':
-      entity = await prisma.journalEntry.findFirst({
-        where: { id: entityId, tripId },
-      });
-      break;
-    case 'PHOTO_ALBUM':
-      entity = await prisma.photoAlbum.findFirst({
-        where: { id: entityId, tripId },
-      });
-      break;
-    default:
-      throw new AppError(`Unknown entity type: ${entityType}`, 400);
+  const config = ENTITY_CONFIG[entityType];
+  if (!config) {
+    throw new AppError(`Unknown entity type: ${entityType}`, 400);
   }
 
+  const entity = await config.findInTrip(tripId, entityId);
   if (!entity) {
     throw new AppError(
       `${entityType} with ID ${entityId} not found in trip ${tripId}`,
@@ -80,62 +129,12 @@ async function verifyEntityInTrip(
 async function getEntityDetails(
   entityType: EntityType,
   entityId: number
-): Promise<{ id: number; name?: string; title?: string; caption?: string; thumbnailPath?: string } | null> {
-  switch (entityType) {
-    case 'PHOTO':
-      const photo = await prisma.photo.findUnique({
-        where: { id: entityId },
-        select: { id: true, caption: true, thumbnailPath: true },
-      });
-      return photo ? { id: photo.id, caption: photo.caption || undefined, thumbnailPath: photo.thumbnailPath || undefined } : null;
-
-    case 'LOCATION':
-      const location = await prisma.location.findUnique({
-        where: { id: entityId },
-        select: { id: true, name: true },
-      });
-      return location ? { id: location.id, name: location.name } : null;
-
-    case 'ACTIVITY':
-      const activity = await prisma.activity.findUnique({
-        where: { id: entityId },
-        select: { id: true, name: true },
-      });
-      return activity ? { id: activity.id, name: activity.name } : null;
-
-    case 'LODGING':
-      const lodging = await prisma.lodging.findUnique({
-        where: { id: entityId },
-        select: { id: true, name: true },
-      });
-      return lodging ? { id: lodging.id, name: lodging.name } : null;
-
-    case 'TRANSPORTATION':
-      const transport = await prisma.transportation.findUnique({
-        where: { id: entityId },
-        select: { id: true, type: true, company: true },
-      });
-      return transport
-        ? { id: transport.id, name: `${transport.type}${transport.company ? ` - ${transport.company}` : ''}` }
-        : null;
-
-    case 'JOURNAL_ENTRY':
-      const journal = await prisma.journalEntry.findUnique({
-        where: { id: entityId },
-        select: { id: true, title: true },
-      });
-      return journal ? { id: journal.id, title: journal.title || undefined } : null;
-
-    case 'PHOTO_ALBUM':
-      const album = await prisma.photoAlbum.findUnique({
-        where: { id: entityId },
-        select: { id: true, name: true },
-      });
-      return album ? { id: album.id, name: album.name } : null;
-
-    default:
-      return null;
+): Promise<EntityDetails | null> {
+  const config = ENTITY_CONFIG[entityType];
+  if (!config) {
+    return null;
   }
+  return config.getDetails(entityId);
 }
 
 /**

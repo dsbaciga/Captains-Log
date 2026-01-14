@@ -1,14 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { EntityType } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG } from '../types/entityLink';
-import type { Location } from '../types/location';
-import type { Activity } from '../types/activity';
-import type { Lodging } from '../types/lodging';
-import type { Transportation } from '../types/transportation';
-import locationService from '../services/location.service';
-import activityService from '../services/activity.service';
-import lodgingService from '../services/lodging.service';
-import transportationService from '../services/transportation.service';
+import { useEntityFetcher, useEntityFilter } from '../hooks/useEntityFetcher';
 import entityLinkService from '../services/entityLink.service';
 import toast from 'react-hot-toast';
 
@@ -27,12 +20,6 @@ const PHOTO_LINKABLE_ENTITY_TYPES: EntityType[] = [
   'TRANSPORTATION',
 ];
 
-type EntityItem = {
-  id: number;
-  name: string;
-  subtitle?: string;
-};
-
 export default function EntityPickerModal({
   tripId,
   photoIds,
@@ -40,76 +27,12 @@ export default function EntityPickerModal({
   onSuccess,
 }: EntityPickerModalProps) {
   const [selectedType, setSelectedType] = useState<EntityType | null>(null);
-  const [entities, setEntities] = useState<EntityItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [linking, setLinking] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch entities when type is selected
-  useEffect(() => {
-    if (!selectedType) {
-      setEntities([]);
-      return;
-    }
-
-    const fetchEntities = async () => {
-      setLoading(true);
-      try {
-        let items: EntityItem[] = [];
-
-        switch (selectedType) {
-          case 'LOCATION': {
-            const locations = await locationService.getByTripId(tripId);
-            items = locations.map((loc: Location) => ({
-              id: loc.id,
-              name: loc.name,
-              subtitle: loc.address || undefined,
-            }));
-            break;
-          }
-
-          case 'ACTIVITY': {
-            const activities = await activityService.getByTripId(tripId);
-            items = activities.map((act: Activity) => ({
-              id: act.id,
-              name: act.name,
-              subtitle: act.category || undefined,
-            }));
-            break;
-          }
-
-          case 'LODGING': {
-            const lodgings = await lodgingService.getByTripId(tripId);
-            items = lodgings.map((lod: Lodging) => ({
-              id: lod.id,
-              name: lod.name,
-              subtitle: lod.type,
-            }));
-            break;
-          }
-
-          case 'TRANSPORTATION': {
-            const transports = await transportationService.getByTripId(tripId);
-            items = transports.map((trans: Transportation) => ({
-              id: trans.id,
-              name: `${trans.type}${trans.company ? ` - ${trans.company}` : ''}`,
-              subtitle: trans.startLocationText || trans.startLocation?.name || undefined,
-            }));
-            break;
-          }
-        }
-
-        setEntities(items);
-      } catch (error) {
-        console.error('Failed to fetch entities:', error);
-        toast.error('Failed to load items');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEntities();
-  }, [selectedType, tripId]);
+  // Use shared hook for entity fetching
+  const { entities, loading } = useEntityFetcher(tripId, selectedType);
+  const filteredEntities = useEntityFilter(entities, searchQuery);
 
   const handleLinkToEntity = async (entityId: number) => {
     if (!selectedType) return;
@@ -138,13 +61,6 @@ export default function EntityPickerModal({
       setLinking(false);
     }
   };
-
-  // Filter entities by search query
-  const filteredEntities = entities.filter(
-    (entity) =>
-      entity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entity.subtitle?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
