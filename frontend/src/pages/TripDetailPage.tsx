@@ -505,9 +505,6 @@ export default function TripDetailPage() {
   const handleSaveAlbum = async (data: {
     name: string;
     description: string;
-    locationId?: number | null;
-    activityId?: number | null;
-    lodgingId?: number | null;
   }) => {
     try {
       if (editingAlbum) {
@@ -1792,14 +1789,16 @@ export default function TripDetailPage() {
             {showAlbumModal && (
               <AlbumModal
                 album={editingAlbum || undefined}
+                tripId={trip.id}
                 onSave={handleSaveAlbum}
                 onClose={() => {
                   setShowAlbumModal(false);
                   setEditingAlbum(null);
                 }}
-                locations={locations}
-                activities={activities}
-                lodgings={lodgings}
+                onUpdate={() => {
+                  // Refresh albums after linking
+                  loadAlbums(trip.id);
+                }}
               />
             )}
 
