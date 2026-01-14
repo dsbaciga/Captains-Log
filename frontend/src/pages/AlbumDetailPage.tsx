@@ -7,6 +7,7 @@ import tripService from "../services/trip.service";
 import PhotoGallery from "../components/PhotoGallery";
 import Breadcrumbs from "../components/Breadcrumbs";
 import LinkButton from "../components/LinkButton";
+import LinkedEntitiesDisplay from "../components/LinkedEntitiesDisplay";
 import { usePagination } from "../hooks/usePagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getFullAssetUrl } from "../lib/config";
@@ -376,6 +377,17 @@ export default function AlbumDetailPage() {
                     />
                   )}
                 </div>
+
+                {/* Linked Entities */}
+                {tripId && albumId && (
+                  <LinkedEntitiesDisplay
+                    tripId={parseInt(tripId)}
+                    entityType="PHOTO_ALBUM"
+                    entityId={parseInt(albumId)}
+                    excludeTypes={['PHOTO']}
+                    compact
+                  />
+                )}
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:flex-shrink-0 items-center">
                 <button

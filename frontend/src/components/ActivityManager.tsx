@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
 import JournalEntriesButton from "./JournalEntriesButton";
 import LinkButton from "./LinkButton";
+import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
 import {
@@ -536,6 +537,14 @@ export default function ActivityManager({
                   </p>
                 </div>
               )}
+
+              {/* Linked Entities */}
+              <LinkedEntitiesDisplay
+                tripId={tripId}
+                entityType="ACTIVITY"
+                entityId={activity.id}
+                compact
+              />
             </div>
           </div>
 

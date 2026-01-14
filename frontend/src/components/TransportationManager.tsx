@@ -9,6 +9,7 @@ import type { Location } from "../types/location";
 import transportationService from "../services/transportation.service";
 import JournalEntriesButton from "./JournalEntriesButton";
 import LinkButton from "./LinkButton";
+import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
@@ -1008,6 +1009,14 @@ export default function TransportationManager({
                         </p>
                       </div>
                     )}
+
+                    {/* Linked Entities */}
+                    <LinkedEntitiesDisplay
+                      tripId={tripId}
+                      entityType="TRANSPORTATION"
+                      entityId={transportation.id}
+                      compact
+                    />
                   </div>
                 </div>
 

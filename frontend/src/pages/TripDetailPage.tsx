@@ -44,6 +44,7 @@ import AlbumModal from "../components/AlbumModal";
 import AssociatedAlbums from "../components/AssociatedAlbums";
 import JournalEntriesButton from "../components/JournalEntriesButton";
 import LinkButton from "../components/LinkButton";
+import LinkedEntitiesDisplay from "../components/LinkedEntitiesDisplay";
 import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
@@ -1416,6 +1417,14 @@ export default function TripDetailPage() {
                         albums={location.photoAlbums}
                         tripId={trip.id}
                       />
+
+                      {/* Linked Entities */}
+                      <LinkedEntitiesDisplay
+                        tripId={trip.id}
+                        entityType="LOCATION"
+                        entityId={location.id}
+                        compact
+                      />
                     </div>
 
                     {/* Child Locations */}
@@ -1482,6 +1491,14 @@ export default function TripDetailPage() {
                             <AssociatedAlbums
                               albums={childLocation.photoAlbums}
                               tripId={trip.id}
+                            />
+
+                            {/* Linked Entities */}
+                            <LinkedEntitiesDisplay
+                              tripId={trip.id}
+                              entityType="LOCATION"
+                              entityId={childLocation.id}
+                              compact
                             />
                           </div>
                         ))}

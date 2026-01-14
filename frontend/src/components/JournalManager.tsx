@@ -10,6 +10,7 @@ import lodgingService from "../services/lodging.service";
 import transportationService from "../services/transportation.service";
 import toast from "react-hot-toast";
 import EmptyState from "./EmptyState";
+import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
 import ChipSelector from "./ChipSelector";
 import { useFormFields } from "../hooks/useFormFields";
@@ -493,6 +494,14 @@ Tell your story!"
                       {isExpanded ? "Show less" : "Read more →"}
                     </button>
                   )}
+
+                  {/* Entity Links (from EntityLink system) */}
+                  <LinkedEntitiesDisplay
+                    tripId={tripId}
+                    entityType="JOURNAL_ENTRY"
+                    entityId={entry.id}
+                    compact
+                  />
                 </div>
 
                 <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400">
