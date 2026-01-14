@@ -17,10 +17,11 @@ Last Updated: 2025-12-21 | Current Version: v1.8.0 (Comprehensive Design System)
 7. [Journal Entries](#journal-entries)
 8. [Checklists](#checklists)
 9. [Photo Management](#photo-management)
-10. [Timeline & Visualization](#timeline--visualization)
-11. [Collaboration Features](#collaboration-features)
-12. [Settings & Customization](#settings--customization)
-13. [External Integrations](#external-integrations)
+10. [Entity Linking](#entity-linking-v270)
+11. [Timeline & Visualization](#timeline--visualization)
+12. [Collaboration Features](#collaboration-features)
+13. [Settings & Customization](#settings--customization)
+14. [External Integrations](#external-integrations)
 
 ---
 
@@ -496,6 +497,69 @@ Last Updated: 2025-12-21 | Current Version: v1.8.0 (Comprehensive Design System)
   - Show albums associated with entities
   - Quick navigation to album views
   - Display in activity/location/lodging cards
+
+---
+
+## Entity Linking (v2.7.0)
+
+### Unified Entity Linking System
+The Entity Linking system provides a consistent way to connect any entity to any other entity within a trip. This replaces scattered foreign key relationships with a unified, bidirectional linking approach.
+
+- **Supported Entity Types**
+  - Photos
+  - Locations
+  - Activities
+  - Lodging
+  - Transportation
+  - Journal Entries
+  - Photo Albums
+
+- **Relationship Types**
+  - `RELATED` - Generic relationship
+  - `TAKEN_AT` - Photo taken at location (auto-detected for photo→location links)
+  - `OCCURRED_AT` - Activity/event occurred at location
+  - `PART_OF` - Sub-item or nested element
+  - `DOCUMENTS` - Journal entry about this item
+  - `FEATURED_IN` - Included in album or journal
+
+### Link Management
+- **Create Links**
+  - Single link creation between any two entities
+  - Bulk link creation (one source to many targets)
+  - Bulk photo linking (many photos to one target)
+  - Automatic relationship type detection based on entity types
+
+- **Query Links**
+  - Get links FROM an entity (outgoing)
+  - Get links TO an entity (incoming)
+  - Get all links for an entity (both directions)
+  - Trip-wide link summary for UI indicators
+  - Enriched links with entity details (names, thumbnails)
+
+- **Delete Links**
+  - Remove individual links
+  - Remove all links for an entity
+  - Cascade deletion when parent entities are deleted
+
+### UI Components
+- **LinkButton Component**
+  - Compact button with link count badge
+  - Opens LinkPanel modal on click
+  - Configurable size (sm/md)
+
+- **LinkPanel Component**
+  - Modal showing all linked entities
+  - Grouped by entity type with emoji indicators
+  - Color-coded sections (blue=location, green=activity, etc.)
+  - Remove link functionality
+  - Empty state with helpful message
+
+### Benefits Over Previous System
+- **Direct Photo Linking** - No need to create albums just to link photos to locations
+- **Consistent Patterns** - Same UI and API for all entity types
+- **Bidirectional Discovery** - See what's linked FROM and TO any entity
+- **Multiple Links** - Albums can now link to multiple locations (not just one)
+- **Extensible** - Easy to add new entity types or relationship types
 
 ---
 

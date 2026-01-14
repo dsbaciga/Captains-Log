@@ -1,0 +1,271 @@
+import axios from '../lib/axios';
+import type {
+  EntityType,
+  EntityLink,
+  EnrichedEntityLink,
+  CreateEntityLinkInput,
+  BulkCreateEntityLinksInput,
+  BulkLinkPhotosInput,
+  DeleteEntityLinkInput,
+  BulkLinkResult,
+  EntityLinksResponse,
+  TripLinkSummary,
+} from '../types/entityLink';
+import type { Photo } from '../types/photo';
+
+const entityLinkService = {
+  /**
+   * Create a single link between two entities
+   */
+  async createLink(tripId: number, data: CreateEntityLinkInput): Promise<EntityLink> {
+    const response = await axios.post(`/trips/${tripId}/links`, data);
+    return response.data;
+  },
+
+  /**
+   * Bulk create links from one source to multiple targets
+   */
+  async bulkCreateLinks(
+    tripId: number,
+    data: BulkCreateEntityLinksInput
+  ): Promise<BulkLinkResult> {
+    const response = await axios.post(`/trips/${tripId}/links/bulk`, data);
+    return response.data;
+  },
+
+  /**
+   * Bulk link multiple photos to a single target
+   */
+  async bulkLinkPhotos(tripId: number, data: BulkLinkPhotosInput): Promise<BulkLinkResult> {
+    const response = await axios.post(`/trips/${tripId}/links/photos`, data);
+    return response.data;
+  },
+
+  /**
+   * Get links from a specific entity
+   */
+  async getLinksFrom(
+    tripId: number,
+    sourceType: EntityType,
+    sourceId: number,
+    targetType?: EntityType
+  ): Promise<EnrichedEntityLink[]> {
+    const params = targetType ? { targetType } : {};
+    const response = await axios.get(
+      `/trips/${tripId}/links/from/${sourceType}/${sourceId}`,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get links to a specific entity
+   */
+  async getLinksTo(
+    tripId: number,
+    targetType: EntityType,
+    targetId: number,
+    sourceType?: EntityType
+  ): Promise<EnrichedEntityLink[]> {
+    const params = sourceType ? { sourceType } : {};
+    const response = await axios.get(
+      `/trips/${tripId}/links/to/${targetType}/${targetId}`,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get all links for an entity (both directions)
+   */
+  async getAllLinksForEntity(
+    tripId: number,
+    entityType: EntityType,
+    entityId: number
+  ): Promise<EntityLinksResponse> {
+    const response = await axios.get(
+      `/trips/${tripId}/links/entity/${entityType}/${entityId}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Get photos linked to an entity
+   */
+  async getPhotosForEntity(
+    tripId: number,
+    entityType: EntityType,
+    entityId: number
+  ): Promise<Photo[]> {
+    const response = await axios.get(
+      `/trips/${tripId}/links/photos/${entityType}/${entityId}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Get link summary for entire trip
+   */
+  async getTripLinkSummary(tripId: number): Promise<TripLinkSummary> {
+    const response = await axios.get(`/trips/${tripId}/links/summary`);
+    return response.data;
+  },
+
+  /**
+   * Delete a specific link by source/target
+   */
+  async deleteLink(tripId: number, data: DeleteEntityLinkInput): Promise<void> {
+    await axios.delete(`/trips/${tripId}/links`, { data });
+  },
+
+  /**
+   * Delete a link by ID
+   */
+  async deleteLinkById(tripId: number, linkId: number): Promise<void> {
+    await axios.delete(`/trips/${tripId}/links/${linkId}`);
+  },
+
+  /**
+   * Delete all links for an entity
+   */
+  async deleteAllLinksForEntity(
+    tripId: number,
+    entityType: EntityType,
+    entityId: number
+  ): Promise<{ deleted: number }> {
+    const response = await axios.delete(
+      `/trips/${tripId}/links/entity/${entityType}/${entityId}`
+    );
+    return response.data;
+  },
+
+  // ============================================================================
+  // Convenience methods for common operations
+  // ============================================================================
+
+  /**
+   * Link a photo to a location
+   */
+  async linkPhotoToLocation(
+    tripId: number,
+    photoId: number,
+    locationId: number
+  ): Promise<EntityLink> {
+    return this.createLink(tripId, {
+      sourceType: 'PHOTO',
+      sourceId: photoId,
+      targetType: 'LOCATION',
+      targetId: locationId,
+      relationship: 'TAKEN_AT',
+    });
+  },
+
+  /**
+   * Link a photo to an activity
+   */
+  async linkPhotoToActivity(
+    tripId: number,
+    photoId: number,
+    activityId: number
+  ): Promise<EntityLink> {
+    return this.createLink(tripId, {
+      sourceType: 'PHOTO',
+      sourceId: photoId,
+      targetType: 'ACTIVITY',
+      targetId: activityId,
+    });
+  },
+
+  /**
+   * Link a photo to lodging
+   */
+  async linkPhotoToLodging(
+    tripId: number,
+    photoId: number,
+    lodgingId: number
+  ): Promise<EntityLink> {
+    return this.createLink(tripId, {
+      sourceType: 'PHOTO',
+      sourceId: photoId,
+      targetType: 'LODGING',
+      targetId: lodgingId,
+    });
+  },
+
+  /**
+   * Link a photo to transportation
+   */
+  async linkPhotoToTransportation(
+    tripId: number,
+    photoId: number,
+    transportationId: number
+  ): Promise<EntityLink> {
+    return this.createLink(tripId, {
+      sourceType: 'PHOTO',
+      sourceId: photoId,
+      targetType: 'TRANSPORTATION',
+      targetId: transportationId,
+    });
+  },
+
+  /**
+   * Link multiple photos to a location
+   */
+  async bulkLinkPhotosToLocation(
+    tripId: number,
+    photoIds: number[],
+    locationId: number
+  ): Promise<BulkLinkResult> {
+    return this.bulkLinkPhotos(tripId, {
+      photoIds,
+      targetType: 'LOCATION',
+      targetId: locationId,
+      relationship: 'TAKEN_AT',
+    });
+  },
+
+  /**
+   * Link multiple photos to an activity
+   */
+  async bulkLinkPhotosToActivity(
+    tripId: number,
+    photoIds: number[],
+    activityId: number
+  ): Promise<BulkLinkResult> {
+    return this.bulkLinkPhotos(tripId, {
+      photoIds,
+      targetType: 'ACTIVITY',
+      targetId: activityId,
+    });
+  },
+
+  /**
+   * Get photos linked to a location
+   */
+  async getLocationPhotos(tripId: number, locationId: number): Promise<Photo[]> {
+    return this.getPhotosForEntity(tripId, 'LOCATION', locationId);
+  },
+
+  /**
+   * Get photos linked to an activity
+   */
+  async getActivityPhotos(tripId: number, activityId: number): Promise<Photo[]> {
+    return this.getPhotosForEntity(tripId, 'ACTIVITY', activityId);
+  },
+
+  /**
+   * Get photos linked to lodging
+   */
+  async getLodgingPhotos(tripId: number, lodgingId: number): Promise<Photo[]> {
+    return this.getPhotosForEntity(tripId, 'LODGING', lodgingId);
+  },
+
+  /**
+   * Get photos linked to transportation
+   */
+  async getTransportationPhotos(tripId: number, transportationId: number): Promise<Photo[]> {
+    return this.getPhotosForEntity(tripId, 'TRANSPORTATION', transportationId);
+  },
+};
+
+export default entityLinkService;
