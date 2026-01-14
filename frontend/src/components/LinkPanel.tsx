@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
+import GeneralEntityPickerModal from './GeneralEntityPickerModal';
 import type {
   EntityType,
   EnrichedEntityLink,
@@ -101,6 +102,8 @@ export default function LinkPanel({
   onClose,
   onUpdate,
 }: LinkPanelProps) {
+  const [showAddLinkModal, setShowAddLinkModal] = useState(false);
+
   // Fetch all links for this entity
   const {
     data: linksData,
@@ -155,6 +158,19 @@ export default function LinkPanel({
     );
   }, [groupedLinks]);
 
+  // Get all linked entity IDs (grouped by type) to filter from picker
+  const existingLinkIds = useMemo(() => {
+    if (!linksData) return new Set<number>();
+    const ids = new Set<number>();
+    for (const link of linksData.linksFrom) {
+      ids.add(link.targetId);
+    }
+    for (const link of linksData.linksTo) {
+      ids.add(link.sourceId);
+    }
+    return ids;
+  }, [linksData]);
+
   const handleDeleteLink = async (linkId: number) => {
     if (window.confirm('Remove this link?')) {
       deleteLinkMutation.mutate(linkId);
@@ -176,21 +192,31 @@ export default function LinkPanel({
               {linksData?.summary.totalLinks ?? 0} linked items
             </p>
           </div>
-          <button
-            onClick={onClose}
-            type="button"
-            aria-label="Close"
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAddLinkModal(true)}
+              type="button"
+              aria-label="Add link"
+              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-md transition-colors"
+            >
+              + Add Link
+            </button>
+            <button
+              onClick={onClose}
+              type="button"
+              aria-label="Close"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -210,7 +236,7 @@ export default function LinkPanel({
                 No linked items yet
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                Links will appear here when you connect this item to photos, locations, or other entities.
+                Click "Add Link" above to connect this item to photos, locations, or other entities.
               </p>
             </div>
           ) : (
@@ -285,6 +311,21 @@ export default function LinkPanel({
           </button>
         </div>
       </div>
+
+      {/* Add Link Modal */}
+      {showAddLinkModal && (
+        <GeneralEntityPickerModal
+          tripId={tripId}
+          sourceEntityType={entityType}
+          sourceEntityId={entityId}
+          existingLinkIds={existingLinkIds}
+          onClose={() => setShowAddLinkModal(false)}
+          onSuccess={() => {
+            refetch();
+            onUpdate?.();
+          }}
+        />
+      )}
     </div>
   );
 }
