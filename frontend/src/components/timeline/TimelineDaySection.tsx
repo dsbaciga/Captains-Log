@@ -65,14 +65,14 @@ export default function TimelineDaySection({
   }, [items, dateKey]);
 
   // Get coordinates for mini map
-  const mapCoordinates = useMemo(() => {
-    const coords: { latitude: number; longitude: number; label?: string }[] = [];
+  const mapLocations = useMemo(() => {
+    const coords: { latitude: number; longitude: number; name: string }[] = [];
 
     sortedItems.forEach((item) => {
       if (item.locationCoords) {
         coords.push({
           ...item.locationCoords,
-          label: item.title,
+          name: item.title,
         });
       }
       // For transportation, include from/to coords
@@ -80,13 +80,13 @@ export default function TimelineDaySection({
         if (item.fromCoords) {
           coords.push({
             ...item.fromCoords,
-            label: 'Departure',
+            name: 'Departure',
           });
         }
         if (item.toCoords) {
           coords.push({
             ...item.toCoords,
-            label: 'Arrival',
+            name: 'Arrival',
           });
         }
       }
@@ -199,9 +199,9 @@ export default function TimelineDaySection({
               </div>
 
               {/* Mini Map */}
-              {mapCoordinates.length > 0 && (
+              {mapLocations.length > 0 && (
                 <div className={`${isCompact ? 'mt-3' : 'mt-4'} border-t border-gray-200 dark:border-gray-700 pt-4`}>
-                  <DayMiniMap coordinates={mapCoordinates} height={150} />
+                  <DayMiniMap locations={mapLocations} />
                 </div>
               )}
             </>
