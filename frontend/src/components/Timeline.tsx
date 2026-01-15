@@ -934,6 +934,15 @@ const Timeline = ({
       totalPhotosLinked: 0,
     };
 
+    // Defensive check: ensure items is an array
+    if (!Array.isArray(items)) {
+      logger.log('⚠️ calculateDayStats received non-array items', {
+        operation: 'calculateDayStats',
+        data: { itemsType: typeof items, items }
+      });
+      return stats;
+    }
+
     items.forEach((item) => {
       switch (item.type) {
         case 'activity':
@@ -1080,6 +1089,19 @@ const Timeline = ({
       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
         No timeline items yet. Add activities, transportation, lodging, or journal entries to see
         them here.
+      </div>
+    );
+  }
+
+  // Defensive check: ensure dayGroups is an array before rendering
+  if (!Array.isArray(dayGroups)) {
+    logger.error('❌ dayGroups is not an array', new Error('Invalid dayGroups'), {
+      operation: 'render',
+      data: { dayGroupsType: typeof dayGroups, dayGroups }
+    });
+    return (
+      <div className="text-center py-8 text-red-500">
+        Error loading timeline. Please refresh the page.
       </div>
     );
   }

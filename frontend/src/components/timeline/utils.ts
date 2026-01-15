@@ -194,6 +194,12 @@ export function getConnectionInfo(
 ): ConnectionInfo | null {
   if (!item.connectionGroupId) return null;
 
+  // Defensive check: ensure items is an array
+  if (!Array.isArray(items)) {
+    console.warn('getConnectionInfo: items is not an array', { item, items });
+    return null;
+  }
+
   const group = items.filter((i) => i.connectionGroupId === item.connectionGroupId);
   if (group.length < 2) return null;
 

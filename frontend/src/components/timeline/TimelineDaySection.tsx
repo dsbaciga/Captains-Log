@@ -56,8 +56,13 @@ export default function TimelineDaySection({
 
   // Sort items by time
   const sortedItems = useMemo(() => {
+    // Defensive check: ensure items is an array
+    if (!Array.isArray(items)) {
+      console.warn('TimelineDaySection: items is not an array', { dateKey, items });
+      return [];
+    }
     return [...items].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
-  }, [items]);
+  }, [items, dateKey]);
 
   // Get coordinates for mini map
   const mapCoordinates = useMemo(() => {
