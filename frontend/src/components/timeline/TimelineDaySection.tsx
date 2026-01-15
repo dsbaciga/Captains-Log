@@ -52,7 +52,7 @@ export default function TimelineDaySection({
   onDelete,
   onLinkUpdate,
 }: TimelineDaySectionProps) {
-  const { dateKey, items, weather, stats } = dayGroup;
+  const { dateKey, items = [], weather, stats } = dayGroup;
 
   // Sort items by time
   const sortedItems = useMemo(() => {

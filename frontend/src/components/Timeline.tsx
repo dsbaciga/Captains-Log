@@ -120,6 +120,7 @@ const Timeline = ({
 
   // Collapse all days
   const collapseAllDays = () => {
+    if (!allGroupedItems) return;
     const allDateKeys = Object.keys(allGroupedItems);
     setCollapsedDays(new Set(allDateKeys));
   };
@@ -580,7 +581,7 @@ const Timeline = ({
   const allGroupedItems: Record<string, TimelineItem[]> = useMemo(() => {
     const result: Record<string, TimelineItem[]> = {};
 
-    if (allTripDates.length > 0) {
+    if (allTripDates && allTripDates.length > 0) {
       allTripDates.forEach((dateKey) => {
         result[dateKey] = groupedItems[dateKey] || [];
       });
@@ -598,6 +599,7 @@ const Timeline = ({
 
   // Sort dates chronologically
   const sortedDateKeys = useMemo(() => {
+    if (!allGroupedItems) return [];
     return Object.keys(allGroupedItems).sort(
       (a, b) => new Date(a).getTime() - new Date(b).getTime()
     );
@@ -691,6 +693,7 @@ const Timeline = ({
 
   // Build day groups
   const dayGroups: DayGroup[] = useMemo(() => {
+    if (!sortedDateKeys || !Array.isArray(sortedDateKeys)) return [];
     return sortedDateKeys.map((dateKey) => {
       const items = allGroupedItems[dateKey] || [];
       const dayWeather = weatherData[dateKey];
@@ -713,13 +716,15 @@ const Timeline = ({
       const weather = await weatherService.refreshAllWeather(tripId);
 
       const weatherByDate: Record<string, WeatherData> = {};
-      weather.forEach((w) => {
-        const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
-        weatherByDate[dateKey] = w;
-      });
+      if (weather && Array.isArray(weather)) {
+        weather.forEach((w) => {
+          const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
+          weatherByDate[dateKey] = w;
+        });
+      }
       setWeatherData(weatherByDate);
 
-      toast.success(`Weather data refreshed successfully (${weather.length} days)`);
+      toast.success(`Weather data refreshed successfully (${weather?.length || 0} days)`);
     } catch (error) {
       console.error('Error refreshing weather:', error);
       toast.error('Failed to refresh weather data');
