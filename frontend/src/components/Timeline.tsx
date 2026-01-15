@@ -224,7 +224,9 @@ const Timeline = ({
       const items: TimelineItem[] = [];
 
       // Add activities
-      activities.forEach((activity) => {
+      if (Array.isArray(activities)) {
+        activities.forEach((activity) => {
+          if (!activity) return;
         if (activity.startTime) {
           let durationMinutes: number | undefined;
           if (activity.startTime && activity.endTime) {
@@ -261,10 +263,13 @@ const Timeline = ({
             data: activity,
           });
         }
-      });
+        });
+      }
 
       // Add transportation
-      transportation.forEach((trans) => {
+      if (Array.isArray(transportation)) {
+        transportation.forEach((trans) => {
+          if (!trans) return;
         if (trans.departureTime) {
           const getLocationDisplay = (
             location: typeof trans.fromLocation,
@@ -328,10 +333,13 @@ const Timeline = ({
             data: trans,
           });
         }
-      });
+        });
+      }
 
       // Add lodging - create an entry for each day
-      lodging.forEach((lodge) => {
+      if (Array.isArray(lodging)) {
+        lodging.forEach((lodge) => {
+          if (!lodge) return;
         if (lodge.checkInDate && lodge.checkOutDate) {
           const checkInStr =
             typeof lodge.checkInDate === 'string'
@@ -456,30 +464,33 @@ const Timeline = ({
             data: lodge,
           });
         }
-      });
+        });
+      }
 
       // Add journal entries (only standalone ones)
-      journal.forEach((entry) => {
-        if (entry.date) {
-          const hasActivityLinks = (entry.activityAssignments?.length || 0) > 0;
-          const hasLodgingLinks = (entry.lodgingAssignments?.length || 0) > 0;
-          const hasTransportationLinks = (entry.transportationAssignments?.length || 0) > 0;
+      if (Array.isArray(journal)) {
+        journal.forEach((entry) => {
+          if (entry && entry.date) {
+            const hasActivityLinks = Array.isArray(entry.activityAssignments) && entry.activityAssignments.length > 0;
+            const hasLodgingLinks = Array.isArray(entry.lodgingAssignments) && entry.lodgingAssignments.length > 0;
+            const hasTransportationLinks = Array.isArray(entry.transportationAssignments) && entry.transportationAssignments.length > 0;
 
-          if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
-            const content = entry.content || '';
-            items.push({
-              id: entry.id,
-              type: 'journal',
-              dateTime: new Date(entry.date),
-              title: entry.title || 'Untitled Entry',
-              description:
-                content.substring(0, 150) + (content.length > 150 ? '...' : ''),
-              location: entry.locationAssignments?.[0]?.location?.name,
-              data: entry,
-            });
+            if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
+              const content = (entry.content != null && typeof entry.content === 'string') ? entry.content : '';
+              items.push({
+                id: entry.id,
+                type: 'journal',
+                dateTime: new Date(entry.date),
+                title: entry.title || 'Untitled Entry',
+                description:
+                  content.substring(0, 150) + (content.length > 150 ? '...' : ''),
+                location: entry.locationAssignments?.[0]?.location?.name,
+                data: entry,
+              });
+            }
           }
-        }
-      });
+        });
+      }
 
       // Sort by date/time
       items.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
@@ -488,10 +499,14 @@ const Timeline = ({
 
       // Process weather data
       const weatherByDate: Record<string, WeatherData> = {};
-      weather.forEach((w) => {
-        const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
-        weatherByDate[dateKey] = w;
-      });
+      if (Array.isArray(weather)) {
+        weather.forEach((w) => {
+          if (w && w.date) {
+            const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
+            weatherByDate[dateKey] = w;
+          }
+        });
+      }
 
       setWeatherData(weatherByDate);
     } catch (error) {
@@ -512,6 +527,7 @@ const Timeline = ({
         if (
           'journalAssignments' in item.data &&
           item.data.journalAssignments &&
+          Array.isArray(item.data.journalAssignments) &&
           item.data.journalAssignments.length > 0
         ) {
           return true;
