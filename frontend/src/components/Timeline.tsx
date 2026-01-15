@@ -466,13 +466,14 @@ const Timeline = ({
           const hasTransportationLinks = (entry.transportationAssignments?.length || 0) > 0;
 
           if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
+            const content = entry.content || '';
             items.push({
               id: entry.id,
               type: 'journal',
               dateTime: new Date(entry.date),
               title: entry.title || 'Untitled Entry',
               description:
-                entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : ''),
+                content.substring(0, 150) + (content.length > 150 ? '...' : ''),
               location: entry.locationAssignments?.[0]?.location?.name,
               data: entry,
             });
