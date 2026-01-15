@@ -1,0 +1,125 @@
+import { useState } from 'react';
+import PhotoPreviewPopover from './PhotoPreviewPopover';
+import LinkPanel from '../LinkPanel';
+import { LinkIcon } from './icons';
+import { ENTITY_TYPE_CONFIG } from '../../types/entityLink';
+import type { EventLinkBarProps } from './types';
+import type { EntityType } from '../../types/entityLink';
+
+// Order of entity types to display
+const DISPLAY_ORDER: EntityType[] = [
+  'PHOTO',
+  'LOCATION',
+  'ACTIVITY',
+  'LODGING',
+  'TRANSPORTATION',
+  'PHOTO_ALBUM',
+  'JOURNAL_ENTRY',
+];
+
+export default function EventLinkBar({
+  tripId,
+  entityType,
+  entityId,
+  linkSummary,
+  onUpdate,
+  compact = false,
+}: EventLinkBarProps) {
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+
+  const totalLinks = linkSummary?.totalLinks ?? 0;
+  const linkCounts = linkSummary?.linkCounts ?? {};
+
+  // Filter to only show entity types that have links
+  const linkedTypes = DISPLAY_ORDER.filter((type) => (linkCounts[type] ?? 0) > 0);
+
+  // Don't render anything if no links
+  if (totalLinks === 0 && !compact) {
+    return (
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={() => setShowLinkPanel(true)}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          title="Link to other items"
+        >
+          <LinkIcon className="w-3.5 h-3.5" />
+          <span>Link</span>
+        </button>
+
+        {showLinkPanel && (
+          <LinkPanel
+            tripId={tripId}
+            entityType={entityType}
+            entityId={entityId}
+            onClose={() => setShowLinkPanel(false)}
+            onUpdate={onUpdate}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {/* Link type badges */}
+      {linkedTypes.map((type) => {
+        const count = linkCounts[type] ?? 0;
+        const config = ENTITY_TYPE_CONFIG[type];
+
+        // Special handling for photos - show preview on hover
+        if (type === 'PHOTO') {
+          return (
+            <PhotoPreviewPopover
+              key={type}
+              tripId={tripId}
+              entityType={entityType}
+              entityId={entityId}
+              photoCount={count}
+              onViewAll={() => setShowLinkPanel(true)}
+            >
+              <span
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer`}
+              >
+                <span>{config.emoji}</span>
+                <span>{count}</span>
+              </span>
+            </PhotoPreviewPopover>
+          );
+        }
+
+        return (
+          <span
+            key={type}
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+            title={`${count} ${count === 1 ? config.label : config.pluralLabel}`}
+          >
+            <span>{config.emoji}</span>
+            <span>{count}</span>
+          </span>
+        );
+      })}
+
+      {/* View all / Link button */}
+      <button
+        type="button"
+        onClick={() => setShowLinkPanel(true)}
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+        title={totalLinks > 0 ? `View all ${totalLinks} links` : 'Link to other items'}
+      >
+        <LinkIcon className="w-3.5 h-3.5" />
+      </button>
+
+      {/* Link Panel Modal */}
+      {showLinkPanel && (
+        <LinkPanel
+          tripId={tripId}
+          entityType={entityType}
+          entityId={entityId}
+          onClose={() => setShowLinkPanel(false)}
+          onUpdate={onUpdate}
+        />
+      )}
+    </div>
+  );
+}
