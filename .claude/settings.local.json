@@ -46,7 +46,12 @@
       "Bash(powershell -ExecutionPolicy Bypass -File ./build.truenas.ps1:*)",
       "Bash(docker version:*)",
       "Bash(npx tsc:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File ./release.ps1 -Version patch -NoConfirm)"
+      "Bash(powershell -ExecutionPolicy Bypass -File ./release.ps1 -Version patch -NoConfirm)",
+      "Bash(start https://travellife.bacigalupo.us)",
+      "Bash(claude mcp list:*)",
+      "Bash(claude mcp call playwright playwright_navigate '{\"\"url\"\": \"\"https://travellife.bacigalupo.us\"\"}')",
+      "Bash(npx @playwright/mcp@latest)",
+      "Bash(mcp list:*)"
     ],
     "deny": [],
     "ask": []
