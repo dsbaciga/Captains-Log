@@ -13,6 +13,7 @@ import locationService from '../services/location.service';
 import TimelineEditModal from './TimelineEditModal';
 import { getWeatherIcon } from '../utils/weatherIcons';
 import toast from 'react-hot-toast';
+import { debugLogger } from '../utils/debugLogger';
 
 // New timeline components
 import {
@@ -51,6 +52,9 @@ const Timeline = ({
   onNavigateToTab: _onNavigateToTab,
   onRefresh,
 }: TimelineProps) => {
+  // Create scoped logger for this component
+  const logger = debugLogger.createScopedLogger('Timeline');
+
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [weatherData, setWeatherData] = useState<Record<string, WeatherData>>({});
   const [loading, setLoading] = useState(true);
@@ -211,8 +215,11 @@ const Timeline = ({
   }, [tripId]);
 
   const loadTimelineData = async () => {
+    logger.log('🔄 Starting loadTimelineData', { operation: 'loadTimelineData', data: { tripId } });
     setLoading(true);
     try {
+      logger.log('📡 Fetching timeline data from API...', { operation: 'loadTimelineData.fetch' });
+
       const [activities, transportation, lodging, journal, weather] = await Promise.all([
         activityService.getActivitiesByTrip(tripId),
         transportationService.getTransportationByTrip(tripId),
@@ -221,12 +228,38 @@ const Timeline = ({
         weatherService.getWeatherForTrip(tripId).catch(() => []),
       ]);
 
+      logger.log('✅ API data received', {
+        operation: 'loadTimelineData.received',
+        data: {
+          activitiesCount: activities?.length ?? 'null/undefined',
+          transportationCount: transportation?.length ?? 'null/undefined',
+          lodgingCount: lodging?.length ?? 'null/undefined',
+          journalCount: journal?.length ?? 'null/undefined',
+          weatherCount: weather?.length ?? 'null/undefined',
+        }
+      });
+
+      // Log data structures
+      logger.logDataStructure('activities', activities, 'loadTimelineData.validate');
+      logger.logDataStructure('transportation', transportation, 'loadTimelineData.validate');
+      logger.logDataStructure('lodging', lodging, 'loadTimelineData.validate');
+      logger.logDataStructure('journal', journal, 'loadTimelineData.validate');
+      logger.logDataStructure('weather', weather, 'loadTimelineData.validate');
+
       const items: TimelineItem[] = [];
+      logger.log('📝 Starting timeline items processing', { operation: 'loadTimelineData.process' });
 
       // Add activities
+      logger.log('Processing activities array', {
+        operation: 'loadTimelineData.activities',
+        data: { count: activities?.length, isArray: Array.isArray(activities) }
+      });
       if (Array.isArray(activities)) {
-        activities.forEach((activity) => {
-          if (!activity) return;
+        activities.forEach((activity, index) => {
+          if (!activity) {
+            logger.log(`⚠️ Skipping null/undefined activity at index ${index}`, { operation: 'loadTimelineData.activities' });
+            return;
+          }
         if (activity.startTime) {
           let durationMinutes: number | undefined;
           if (activity.startTime && activity.endTime) {
@@ -264,12 +297,25 @@ const Timeline = ({
           });
         }
         });
+        logger.log(`✅ Processed ${items.length} activities`, { operation: 'loadTimelineData.activities.complete' });
+      } else {
+        logger.log('⚠️ Activities is not an array', {
+          operation: 'loadTimelineData.activities.invalid',
+          data: { type: typeof activities, value: activities }
+        });
       }
 
       // Add transportation
+      logger.log('Processing transportation array', {
+        operation: 'loadTimelineData.transportation',
+        data: { count: transportation?.length, isArray: Array.isArray(transportation) }
+      });
       if (Array.isArray(transportation)) {
-        transportation.forEach((trans) => {
-          if (!trans) return;
+        transportation.forEach((trans, index) => {
+          if (!trans) {
+            logger.log(`⚠️ Skipping null/undefined transportation at index ${index}`, { operation: 'loadTimelineData.transportation' });
+            return;
+          }
         if (trans.departureTime) {
           const getLocationDisplay = (
             location: typeof trans.fromLocation,
@@ -334,12 +380,25 @@ const Timeline = ({
           });
         }
         });
+        logger.log(`✅ Processed transportation, total items now: ${items.length}`, { operation: 'loadTimelineData.transportation.complete' });
+      } else {
+        logger.log('⚠️ Transportation is not an array', {
+          operation: 'loadTimelineData.transportation.invalid',
+          data: { type: typeof transportation, value: transportation }
+        });
       }
 
       // Add lodging - create an entry for each day
+      logger.log('Processing lodging array', {
+        operation: 'loadTimelineData.lodging',
+        data: { count: lodging?.length, isArray: Array.isArray(lodging) }
+      });
       if (Array.isArray(lodging)) {
-        lodging.forEach((lodge) => {
-          if (!lodge) return;
+        lodging.forEach((lodge, index) => {
+          if (!lodge) {
+            logger.log(`⚠️ Skipping null/undefined lodging at index ${index}`, { operation: 'loadTimelineData.lodging' });
+            return;
+          }
         if (lodge.checkInDate && lodge.checkOutDate) {
           const checkInStr =
             typeof lodge.checkInDate === 'string'
@@ -465,12 +524,38 @@ const Timeline = ({
           });
         }
         });
+        logger.log(`✅ Processed lodging, total items now: ${items.length}`, { operation: 'loadTimelineData.lodging.complete' });
+      } else {
+        logger.log('⚠️ Lodging is not an array', {
+          operation: 'loadTimelineData.lodging.invalid',
+          data: { type: typeof lodging, value: lodging }
+        });
       }
 
       // Add journal entries (only standalone ones)
+      logger.log('Processing journal array', {
+        operation: 'loadTimelineData.journal',
+        data: { count: journal?.length, isArray: Array.isArray(journal) }
+      });
       if (Array.isArray(journal)) {
-        journal.forEach((entry) => {
+        journal.forEach((entry, index) => {
+          if (!entry) {
+            logger.log(`⚠️ Skipping null/undefined journal entry at index ${index}`, { operation: 'loadTimelineData.journal' });
+            return;
+          }
           if (entry && entry.date) {
+            logger.log(`Processing journal entry ${index}`, {
+              operation: 'loadTimelineData.journal.item',
+              data: {
+                hasActivityAssignments: 'activityAssignments' in entry,
+                activityAssignmentsIsArray: Array.isArray(entry.activityAssignments),
+                activityAssignmentsLength: Array.isArray(entry.activityAssignments) ? entry.activityAssignments.length : 'N/A',
+                hasLodgingAssignments: 'lodgingAssignments' in entry,
+                lodgingAssignmentsIsArray: Array.isArray(entry.lodgingAssignments),
+                hasTransportationAssignments: 'transportationAssignments' in entry,
+                transportationAssignmentsIsArray: Array.isArray(entry.transportationAssignments),
+              }
+            });
             const hasActivityLinks = Array.isArray(entry.activityAssignments) && entry.activityAssignments.length > 0;
             const hasLodgingLinks = Array.isArray(entry.lodgingAssignments) && entry.lodgingAssignments.length > 0;
             const hasTransportationLinks = Array.isArray(entry.transportationAssignments) && entry.transportationAssignments.length > 0;
@@ -490,52 +575,135 @@ const Timeline = ({
             }
           }
         });
+        logger.log(`✅ Processed journal, total items now: ${items.length}`, { operation: 'loadTimelineData.journal.complete' });
+      } else {
+        logger.log('⚠️ Journal is not an array', {
+          operation: 'loadTimelineData.journal.invalid',
+          data: { type: typeof journal, value: journal }
+        });
       }
 
       // Sort by date/time
-      items.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+      logger.log(`Sorting ${items.length} timeline items`, { operation: 'loadTimelineData.sort' });
+      try {
+        items.sort((a, b) => {
+          if (!a || !a.dateTime) {
+            logger.log('⚠️ Found item without dateTime in sort (a)', { operation: 'loadTimelineData.sort', data: { item: a } });
+            return 1;
+          }
+          if (!b || !b.dateTime) {
+            logger.log('⚠️ Found item without dateTime in sort (b)', { operation: 'loadTimelineData.sort', data: { item: b } });
+            return -1;
+          }
+          return a.dateTime.getTime() - b.dateTime.getTime();
+        });
+        logger.log('✅ Sorting complete', { operation: 'loadTimelineData.sort.complete' });
+      } catch (sortError) {
+        logger.error('❌ Error during sort', sortError, { operation: 'loadTimelineData.sort' });
+        throw sortError;
+      }
 
+      logger.log(`Setting timeline items state with ${items.length} items`, { operation: 'loadTimelineData.setState' });
       setTimelineItems(items);
 
       // Process weather data
+      logger.log('Processing weather data', {
+        operation: 'loadTimelineData.weather',
+        data: { count: weather?.length, isArray: Array.isArray(weather) }
+      });
       const weatherByDate: Record<string, WeatherData> = {};
       if (Array.isArray(weather)) {
-        weather.forEach((w) => {
+        weather.forEach((w, index) => {
+          if (!w) {
+            logger.log(`⚠️ Skipping null/undefined weather at index ${index}`, { operation: 'loadTimelineData.weather' });
+            return;
+          }
           if (w && w.date) {
             const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
             weatherByDate[dateKey] = w;
           }
         });
+        logger.log(`✅ Processed ${Object.keys(weatherByDate).length} weather entries`, { operation: 'loadTimelineData.weather.complete' });
+      } else {
+        logger.log('⚠️ Weather is not an array', {
+          operation: 'loadTimelineData.weather.invalid',
+          data: { type: typeof weather, value: weather }
+        });
       }
 
+      logger.log('Setting weather data state', { operation: 'loadTimelineData.setWeatherState', data: { count: Object.keys(weatherByDate).length } });
       setWeatherData(weatherByDate);
+
+      logger.log('✅ loadTimelineData completed successfully', {
+        operation: 'loadTimelineData.complete',
+        data: { itemsCount: items.length, weatherCount: Object.keys(weatherByDate).length }
+      });
     } catch (error) {
+      logger.error('❌ Error in loadTimelineData', error, {
+        operation: 'loadTimelineData.error',
+        data: { tripId, errorMessage: error instanceof Error ? error.message : String(error) }
+      });
       toast.error('Failed to load timeline data');
       console.error('Error loading timeline:', error);
     } finally {
       setLoading(false);
+      logger.log('Loading state set to false', { operation: 'loadTimelineData.finally' });
     }
   };
 
   // Filter items by visible types
   const filteredItems = useMemo(() => {
-    return timelineItems.filter((item) => {
-      if (visibleTypes.has(item.type)) {
-        return true;
+    logger.log('useMemo: filteredItems calculation started', {
+      operation: 'useMemo.filteredItems',
+      data: {
+        timelineItemsCount: timelineItems?.length ?? 'null/undefined',
+        timelineItemsIsArray: Array.isArray(timelineItems),
+        visibleTypesSize: visibleTypes?.size ?? 'null/undefined'
       }
-      if (visibleTypes.has('journal')) {
-        if (
-          'journalAssignments' in item.data &&
-          item.data.journalAssignments &&
-          Array.isArray(item.data.journalAssignments) &&
-          item.data.journalAssignments.length > 0
-        ) {
+    });
+
+    try {
+      if (!Array.isArray(timelineItems)) {
+        logger.log('⚠️ timelineItems is not an array in filteredItems', {
+          operation: 'useMemo.filteredItems',
+          data: { type: typeof timelineItems, value: timelineItems }
+        });
+        return [];
+      }
+
+      const filtered = timelineItems.filter((item, index) => {
+        if (!item) {
+          logger.log(`⚠️ Null/undefined item at index ${index} in filteredItems`, { operation: 'useMemo.filteredItems' });
+          return false;
+        }
+
+        if (visibleTypes.has(item.type)) {
           return true;
         }
-      }
-      return false;
-    });
-  }, [timelineItems, visibleTypes]);
+        if (visibleTypes.has('journal')) {
+          if (
+            'journalAssignments' in item.data &&
+            item.data.journalAssignments &&
+            Array.isArray(item.data.journalAssignments) &&
+            item.data.journalAssignments.length > 0
+          ) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      logger.log(`useMemo: filteredItems complete`, {
+        operation: 'useMemo.filteredItems.complete',
+        data: { filteredCount: filtered.length, originalCount: timelineItems.length }
+      });
+
+      return filtered;
+    } catch (error) {
+      logger.error('❌ Error in filteredItems useMemo', error, { operation: 'useMemo.filteredItems.error' });
+      return [];
+    }
+  }, [timelineItems, visibleTypes, logger]);
 
   // Generate all dates from trip start to end
   const generateAllTripDates = (): string[] => {
@@ -581,46 +749,141 @@ const Timeline = ({
 
   // Group items by date
   const groupedItems = useMemo(() => {
-    return filteredItems.reduce((acc, item) => {
-      const itemTimezone =
-        item.type === 'transportation' && item.startTimezone ? item.startTimezone : tripTimezone;
-
-      const dateKey = getDateStringInTimezone(item.dateTime, itemTimezone);
-      if (!acc[dateKey]) {
-        acc[dateKey] = [];
+    logger.log('useMemo: groupedItems calculation started', {
+      operation: 'useMemo.groupedItems',
+      data: {
+        filteredItemsCount: filteredItems?.length ?? 'null/undefined',
+        filteredItemsIsArray: Array.isArray(filteredItems),
+        tripTimezone
       }
-      acc[dateKey].push(item);
-      return acc;
-    }, {} as Record<string, TimelineItem[]>);
-  }, [filteredItems, tripTimezone]);
+    });
+
+    try {
+      if (!Array.isArray(filteredItems)) {
+        logger.log('⚠️ filteredItems is not an array in groupedItems', {
+          operation: 'useMemo.groupedItems',
+          data: { type: typeof filteredItems, value: filteredItems }
+        });
+        return {};
+      }
+
+      const grouped = filteredItems.reduce((acc, item, index) => {
+        if (!item) {
+          logger.log(`⚠️ Null/undefined item at index ${index} in groupedItems`, { operation: 'useMemo.groupedItems' });
+          return acc;
+        }
+
+        if (!item.dateTime) {
+          logger.log(`⚠️ Item at index ${index} has no dateTime`, {
+            operation: 'useMemo.groupedItems',
+            data: { item }
+          });
+          return acc;
+        }
+
+        try {
+          const itemTimezone =
+            item.type === 'transportation' && item.startTimezone ? item.startTimezone : tripTimezone;
+
+          const dateKey = getDateStringInTimezone(item.dateTime, itemTimezone);
+          if (!acc[dateKey]) {
+            acc[dateKey] = [];
+          }
+          acc[dateKey].push(item);
+        } catch (itemError) {
+          logger.error(`❌ Error processing item at index ${index}`, itemError, {
+            operation: 'useMemo.groupedItems.item',
+            data: { item, index }
+          });
+        }
+
+        return acc;
+      }, {} as Record<string, TimelineItem[]>);
+
+      logger.log('useMemo: groupedItems complete', {
+        operation: 'useMemo.groupedItems.complete',
+        data: { groupCount: Object.keys(grouped).length, itemsProcessed: filteredItems.length }
+      });
+
+      return grouped;
+    } catch (error) {
+      logger.error('❌ Error in groupedItems useMemo', error, { operation: 'useMemo.groupedItems.error' });
+      return {};
+    }
+  }, [filteredItems, tripTimezone, logger]);
 
   // Merge all trip dates with grouped items
   const allGroupedItems: Record<string, TimelineItem[]> = useMemo(() => {
-    const result: Record<string, TimelineItem[]> = {};
+    logger.log('useMemo: allGroupedItems calculation started', {
+      operation: 'useMemo.allGroupedItems',
+      data: {
+        allTripDatesCount: allTripDates?.length ?? 'null/undefined',
+        allTripDatesIsArray: Array.isArray(allTripDates),
+        groupedItemsKeys: Object.keys(groupedItems || {}).length
+      }
+    });
 
-    if (allTripDates && allTripDates.length > 0) {
-      allTripDates.forEach((dateKey) => {
-        result[dateKey] = groupedItems[dateKey] || [];
+    try {
+      const result: Record<string, TimelineItem[]> = {};
+
+      if (allTripDates && Array.isArray(allTripDates) && allTripDates.length > 0) {
+        allTripDates.forEach((dateKey, index) => {
+          if (!dateKey) {
+            logger.log(`⚠️ Null/undefined dateKey at index ${index} in allTripDates`, { operation: 'useMemo.allGroupedItems' });
+            return;
+          }
+          result[dateKey] = groupedItems[dateKey] || [];
+        });
+        Object.keys(groupedItems).forEach((dateKey) => {
+          if (!result[dateKey]) {
+            result[dateKey] = groupedItems[dateKey];
+          }
+        });
+      } else {
+        Object.assign(result, groupedItems);
+      }
+
+      logger.log('useMemo: allGroupedItems complete', {
+        operation: 'useMemo.allGroupedItems.complete',
+        data: { resultKeys: Object.keys(result).length }
       });
-      Object.keys(groupedItems).forEach((dateKey) => {
-        if (!result[dateKey]) {
-          result[dateKey] = groupedItems[dateKey];
-        }
-      });
-    } else {
-      Object.assign(result, groupedItems);
+
+      return result;
+    } catch (error) {
+      logger.error('❌ Error in allGroupedItems useMemo', error, { operation: 'useMemo.allGroupedItems.error' });
+      return {};
     }
-
-    return result;
-  }, [allTripDates, groupedItems]);
+  }, [allTripDates, groupedItems, logger]);
 
   // Sort dates chronologically
   const sortedDateKeys = useMemo(() => {
-    if (!allGroupedItems) return [];
-    return Object.keys(allGroupedItems).sort(
-      (a, b) => new Date(a).getTime() - new Date(b).getTime()
-    );
-  }, [allGroupedItems]);
+    logger.log('useMemo: sortedDateKeys calculation started', {
+      operation: 'useMemo.sortedDateKeys',
+      data: {
+        allGroupedItemsKeys: allGroupedItems ? Object.keys(allGroupedItems).length : 'null/undefined'
+      }
+    });
+
+    try {
+      if (!allGroupedItems) {
+        logger.log('⚠️ allGroupedItems is null/undefined', { operation: 'useMemo.sortedDateKeys' });
+        return [];
+      }
+
+      const keys = Object.keys(allGroupedItems);
+      const sorted = keys.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+      logger.log('useMemo: sortedDateKeys complete', {
+        operation: 'useMemo.sortedDateKeys.complete',
+        data: { keysCount: sorted.length }
+      });
+
+      return sorted;
+    } catch (error) {
+      logger.error('❌ Error in sortedDateKeys useMemo', error, { operation: 'useMemo.sortedDateKeys.error' });
+      return [];
+    }
+  }, [allGroupedItems, logger]);
 
   // Get day number from trip start date
   const getDayNumber = (dateString: string): number | null => {
@@ -710,21 +973,72 @@ const Timeline = ({
 
   // Build day groups
   const dayGroups: DayGroup[] = useMemo(() => {
-    if (!sortedDateKeys || !Array.isArray(sortedDateKeys)) return [];
-    return sortedDateKeys.map((dateKey) => {
-      const items = allGroupedItems[dateKey] || [];
-      const dayWeather = weatherData[dateKey];
-
-      return {
-        dateKey,
-        dayNumber: getDayNumber(dateKey),
-        items,
-        weather: dayWeather ? transformWeatherData(dayWeather) : undefined,
-        stats: calculateDayStats(items),
-      };
+    logger.log('useMemo: dayGroups calculation started', {
+      operation: 'useMemo.dayGroups',
+      data: {
+        sortedDateKeysCount: sortedDateKeys?.length ?? 'null/undefined',
+        sortedDateKeysIsArray: Array.isArray(sortedDateKeys),
+        allGroupedItemsKeys: allGroupedItems ? Object.keys(allGroupedItems).length : 'null/undefined',
+        weatherDataKeys: weatherData ? Object.keys(weatherData).length : 'null/undefined',
+      }
     });
+
+    try {
+      if (!sortedDateKeys || !Array.isArray(sortedDateKeys)) {
+        logger.log('⚠️ sortedDateKeys is not valid', {
+          operation: 'useMemo.dayGroups',
+          data: { sortedDateKeys, isArray: Array.isArray(sortedDateKeys) }
+        });
+        return [];
+      }
+
+      const groups = sortedDateKeys.map((dateKey, index) => {
+        try {
+          if (!dateKey) {
+            logger.log(`⚠️ Null/undefined dateKey at index ${index}`, { operation: 'useMemo.dayGroups.map' });
+            return null;
+          }
+
+          const items = allGroupedItems[dateKey] || [];
+          const dayWeather = weatherData[dateKey];
+
+          if (!Array.isArray(items)) {
+            logger.log(`⚠️ Items for dateKey ${dateKey} is not an array`, {
+              operation: 'useMemo.dayGroups.map',
+              data: { dateKey, itemsType: typeof items, items }
+            });
+          }
+
+          const group = {
+            dateKey,
+            dayNumber: getDayNumber(dateKey),
+            items,
+            weather: dayWeather ? transformWeatherData(dayWeather) : undefined,
+            stats: calculateDayStats(items),
+          };
+
+          return group;
+        } catch (itemError) {
+          logger.error(`❌ Error processing dateKey ${dateKey} at index ${index}`, itemError, {
+            operation: 'useMemo.dayGroups.map.item',
+            data: { dateKey, index }
+          });
+          return null;
+        }
+      }).filter(group => group !== null) as DayGroup[];
+
+      logger.log('useMemo: dayGroups complete', {
+        operation: 'useMemo.dayGroups.complete',
+        data: { groupsCount: groups.length, dateKeysProcessed: sortedDateKeys.length }
+      });
+
+      return groups;
+    } catch (error) {
+      logger.error('❌ Error in dayGroups useMemo', error, { operation: 'useMemo.dayGroups.error' });
+      return [];
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate]);
+  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, logger]);
 
   // Weather refresh handler
   const handleRefreshWeather = async () => {

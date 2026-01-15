@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -18,6 +19,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';
 import ScrollToTop from './components/ScrollToTop';
+import { debugLogger } from './utils/debugLogger';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -31,6 +33,45 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Global error handler for unhandled errors
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      debugLogger.error('🚨 Global unhandled error', event.error, {
+        component: 'App',
+        operation: 'window.onerror',
+        data: {
+          message: event.message,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          stack: event.error?.stack,
+        },
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      debugLogger.error('🚨 Global unhandled promise rejection', event.reason, {
+        component: 'App',
+        operation: 'window.onunhandledrejection',
+        data: {
+          reason: event.reason,
+          promise: event.promise,
+        },
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    console.log('[DEBUG] Global error handlers installed');
+    console.log('[DEBUG] Access window.__debugLogger.getRecentContext() to see recent debug logs');
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
