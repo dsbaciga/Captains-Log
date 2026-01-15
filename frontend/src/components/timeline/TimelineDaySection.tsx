@@ -163,7 +163,7 @@ export default function TimelineDaySection({
                 <div className="absolute left-[22px] top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
 
                 {/* Events list */}
-                <div className={`space-y-${isCompact ? '3' : '4'}`}>
+                <div className={isCompact ? 'space-y-3' : 'space-y-4'}>
                   {sortedItems.map((item, index) => {
                     const connectionInfo = getConnectionInfo(item, sortedItems);
                     const nextItem = sortedItems[index + 1];
