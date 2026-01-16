@@ -1365,14 +1365,14 @@ Good enhancements that improve the experience.
 ### By Implementation Effort
 
 **Very Low (< 4 hours)**:
-- Smart Lodging Duration (#7)
+- Smart Lodging Duration (#7) ✅
 - Default Timezone (#21)
 - Recently Viewed Trips (#22)
 - Trip Archive (#25)
 - Night Mode Schedule (#30)
 
 **Low (4-8 hours)**:
-- Trip Cloning (#1)
+- Trip Cloning (#1) ✅
 - Batch Operations (#4)
 - Activity Templates (#5)
 - Auto-Save Drafts (#6)
