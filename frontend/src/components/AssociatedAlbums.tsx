@@ -30,7 +30,7 @@ export default function AssociatedAlbums({ albums, tripId, title = 'Associated A
           <Link
             key={album.id}
             to={`/trips/${tripId}/albums/${album.id}`}
-            className="block p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            className="block p-3 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors border border-gray-200 dark:border-gray-600"
           >
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">

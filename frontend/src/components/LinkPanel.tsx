@@ -256,7 +256,10 @@ export default function LinkPanel({
                         // Determine if this entity is source or target
                         const isSource = link.sourceType === entityType && link.sourceId === entityId;
                         const linkedEntityType = isSource ? link.targetType : link.sourceType;
+                        const linkedEntity = isSource ? link.targetEntity : link.sourceEntity;
                         const displayName = getEntityDisplayName(link, isSource ? 'from' : 'to');
+                        const isPhoto = linkedEntityType === 'PHOTO';
+                        const thumbnailUrl = linkedEntity?.thumbnailPath;
 
                         return (
                           <div
@@ -264,9 +267,18 @@ export default function LinkPanel({
                             className={`flex items-center justify-between p-3 rounded-lg ${colors.bg} ${colors.bgDark} border ${colors.border}`}
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <span className="text-lg flex-shrink-0">
-                                {ENTITY_TYPE_CONFIG[linkedEntityType].emoji}
-                              </span>
+                              {/* Show thumbnail for photos, emoji for others */}
+                              {isPhoto && thumbnailUrl ? (
+                                <img
+                                  src={thumbnailUrl}
+                                  alt={displayName}
+                                  className="w-12 h-12 object-cover rounded flex-shrink-0"
+                                />
+                              ) : (
+                                <span className="text-lg flex-shrink-0">
+                                  {ENTITY_TYPE_CONFIG[linkedEntityType].emoji}
+                                </span>
+                              )}
                               <div className="min-w-0">
                                 <div className={`font-medium truncate ${colors.text} ${colors.textDark}`}>
                                   {displayName}

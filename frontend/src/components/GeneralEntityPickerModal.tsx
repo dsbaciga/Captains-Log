@@ -165,31 +165,43 @@ export default function GeneralEntityPickerModal({
                 />
               )}
               <div className="space-y-2">
-                {filteredEntities.map((entity) => (
-                  <button
-                    key={entity.id}
-                    onClick={() => handleLinkToEntity(entity.id)}
-                    disabled={linking}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left disabled:opacity-50"
-                  >
-                    <span className="text-lg">
-                      {selectedType && ENTITY_TYPE_CONFIG[selectedType].emoji}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 dark:text-white truncate">
-                        {entity.name}
-                      </div>
-                      {entity.subtitle && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                          {entity.subtitle}
-                        </div>
+                {filteredEntities.map((entity) => {
+                  const isPhoto = selectedType === 'PHOTO';
+                  return (
+                    <button
+                      key={entity.id}
+                      onClick={() => handleLinkToEntity(entity.id)}
+                      disabled={linking}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left disabled:opacity-50"
+                    >
+                      {/* Show thumbnail for photos, emoji for others */}
+                      {isPhoto && entity.thumbnailPath ? (
+                        <img
+                          src={entity.thumbnailPath}
+                          alt={entity.name}
+                          className="w-12 h-12 object-cover rounded flex-shrink-0"
+                        />
+                      ) : (
+                        <span className="text-lg">
+                          {selectedType && ENTITY_TYPE_CONFIG[selectedType].emoji}
+                        </span>
                       )}
-                    </div>
-                    {linking && (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    )}
-                  </button>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 dark:text-white truncate">
+                          {entity.name}
+                        </div>
+                        {entity.subtitle && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                            {entity.subtitle}
+                          </div>
+                        )}
+                      </div>
+                      {linking && (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      )}
+                    </button>
+                  );
+                })}
                 {filteredEntities.length === 0 && searchQuery && (
                   <p className="text-center text-gray-500 dark:text-gray-400 py-4">
                     No matches for "{searchQuery}"

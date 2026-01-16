@@ -182,11 +182,10 @@ class TransportationService {
           },
         };
 
-        // Try to get cached route geometry for road-based transportation
-        if (
-          t.distanceSource === 'route' &&
-          (t.type === 'car' || t.type === 'bicycle' || t.type === 'bike' || t.type === 'walk' || t.type === 'walking')
-        ) {
+        // Try to get route geometry for road-based transportation
+        // Always attempt for car/bike/walk types, even if distance was calculated with Haversine
+        // The routing service will use cache if available and handle fallbacks gracefully
+        if (t.type === 'car' || t.type === 'bicycle' || t.type === 'bike' || t.type === 'walk' || t.type === 'walking') {
           try {
             // Determine routing profile based on transportation type
             let profile: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car';

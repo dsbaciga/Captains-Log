@@ -28,7 +28,7 @@ import PhotoGallery from "../components/PhotoGallery";
 import PhotoUpload from "../components/PhotoUpload";
 import Timeline from "../components/Timeline";
 import ActivityManager from "../components/ActivityManager";
-import UnscheduledActivities from "../components/UnscheduledActivities";
+import UnscheduledItems from "../components/UnscheduledItems";
 import TransportationManager from "../components/TransportationManager";
 import LodgingManager from "../components/LodgingManager";
 import JournalManager from "../components/JournalManager";
@@ -44,6 +44,7 @@ import JournalEntriesButton from "../components/JournalEntriesButton";
 import LinkButton from "../components/LinkButton";
 import LinkedEntitiesDisplay from "../components/LinkedEntitiesDisplay";
 import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
+import FormModal from "../components/FormModal";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
@@ -440,18 +441,31 @@ export default function TripDetailPage() {
 
       setLocations(locations);
 
-      // Separate scheduled and unscheduled activities
+      // Separate scheduled and unscheduled items
       const scheduledActivities = activities.filter(
         (a) => a.startTime || a.allDay
       );
       const unscheduledActivities = activities.filter(
         (a) => !a.startTime && !a.allDay
       );
-      setActivitiesCount(scheduledActivities.length);
-      setUnscheduledCount(unscheduledActivities.length);
 
-      setTransportationCount(transportation.length);
-      setLodgingCount(lodging.length);
+      // Count scheduled transportation (has departureTime)
+      const scheduledTransportation = transportation.filter(t => t.departureTime);
+      const unscheduledTransportation = transportation.filter(t => !t.departureTime);
+
+      // Count scheduled lodging (has checkInDate)
+      const scheduledLodging = lodging.filter(l => l.checkInDate);
+      const unscheduledLodging = lodging.filter(l => !l.checkInDate);
+
+      setActivitiesCount(scheduledActivities.length);
+      setUnscheduledCount(
+        unscheduledActivities.length +
+        unscheduledTransportation.length +
+        unscheduledLodging.length
+      );
+
+      setTransportationCount(scheduledTransportation.length);
+      setLodgingCount(scheduledLodging.length);
       setJournalCount(journal.length);
       setTags(tags);
       setTagsCount(tags.length);
@@ -1240,28 +1254,41 @@ export default function TripDetailPage() {
                 Locations
               </h2>
               <button
-                onClick={() => {
-                  if (showLocationForm) {
-                    resetLocationForm();
-                  } else {
-                    setShowLocationForm(true);
-                  }
-                }}
+                onClick={() => setShowLocationForm(true)}
                 className="btn btn-primary"
               >
-                {showLocationForm ? "Cancel" : "+ Add Location"}
+                + Add Location
               </button>
             </div>
 
-            {/* Add/Edit Location Form */}
-            {showLocationForm && (
-              <form
-                onSubmit={handleAddLocation}
-                className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  {editingLocationId ? "Edit Location" : "Add Location"}
-                </h3>
+            {/* Add/Edit Location Modal */}
+            <FormModal
+              isOpen={showLocationForm}
+              onClose={resetLocationForm}
+              title={editingLocationId ? "Edit Location" : "Add Location"}
+              icon="📍"
+              maxWidth="2xl"
+              formId="location-form"
+              footer={
+                <>
+                  <button
+                    type="button"
+                    onClick={resetLocationForm}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    form="location-form"
+                    className="btn btn-primary"
+                  >
+                    {editingLocationId ? "Update Location" : "Add Location"}
+                  </button>
+                </>
+              }
+            >
+              <form id="location-form" onSubmit={handleAddLocation}>
                 <div className="space-y-4">
                   <div>
                     <label className="label">Search & Select Location</label>
@@ -1330,12 +1357,9 @@ export default function TripDetailPage() {
                       placeholder="Additional notes..."
                     />
                   </div>
-                  <button type="submit" className="btn btn-primary">
-                    {editingLocationId ? "Update Location" : "Add Location"}
-                  </button>
                 </div>
               </form>
-            )}
+            </FormModal>
 
             {/* Locations List */}
             {locations.length === 0 ? (
@@ -1862,11 +1886,11 @@ export default function TripDetailPage() {
         {/* Unscheduled Tab */}
         {activeTab === "unscheduled" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <UnscheduledActivities
+            <UnscheduledItems
               tripId={trip.id}
               locations={locations}
               tripTimezone={trip.timezone}
-              onActivityUpdated={() => loadTripData(trip.id)}
+              onUpdate={() => loadTripData(trip.id)}
             />
           </div>
         )}
@@ -1902,7 +1926,6 @@ export default function TripDetailPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <JournalManager
               tripId={trip.id}
-              locations={locations}
               tripStartDate={trip.startDate}
               onUpdate={() => loadTripData(trip.id)}
             />

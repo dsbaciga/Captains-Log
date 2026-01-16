@@ -137,77 +137,75 @@ export default function TimelineDaySection({
       />
 
       {/* Day Content - collapsible */}
-      {!isCollapsed && (
-        <div className={`${isCompact ? 'p-3' : 'p-4'}`}>
-          {items.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <p className="text-sm">No events scheduled for this day</p>
-            </div>
-          ) : (
-            <>
-              {/* Desktop: Dual timezone header row */}
-              {showDualTimezone && (
-                <div className="hidden lg:flex items-center gap-4 mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex-1 text-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Trip Time ({tripTimezone && getTimezoneAbbr(tripTimezone)})
-                    </span>
-                  </div>
-                  <div className="w-12" /> {/* Spacer for icon column */}
-                  <div className="flex-1 text-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Home Time ({userTimezone && getTimezoneAbbr(userTimezone)})
-                    </span>
-                  </div>
+      <div className={`${isCompact ? 'p-3' : 'p-4'} ${isCollapsed ? 'hidden print:block' : ''}`}>
+        {items.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <p className="text-sm">No events scheduled for this day</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop: Dual timezone header row */}
+            {showDualTimezone && (
+              <div className="hidden lg:flex items-center gap-4 mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex-1 text-center">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Trip Time ({tripTimezone && getTimezoneAbbr(tripTimezone)})
+                  </span>
                 </div>
-              )}
-
-              {/* Timeline vertical line container */}
-              <div className="relative">
-                {/* Vertical timeline line */}
-                <div className="absolute left-[22px] top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
-
-                {/* Events list */}
-                <div className={isCompact ? 'space-y-3' : 'space-y-4'}>
-                  {sortedItems.map((item, index) => {
-                    const connectionInfo = getConnectionInfo(item, sortedItems);
-                    const nextItem = sortedItems[index + 1];
-                    const showConnectionLine =
-                      connectionInfo &&
-                      !connectionInfo.isLast &&
-                      nextItem?.connectionGroupId === item.connectionGroupId;
-
-                    return (
-                      <TimelineEventCard
-                        key={`${item.type}-${item.id}`}
-                        item={item}
-                        tripId={tripId}
-                        tripTimezone={getDisplayTimezone(item)}
-                        userTimezone={userTimezone}
-                        showDualTime={showDualTimezone}
-                        linkSummary={getLinkSummary(item)}
-                        viewMode={viewMode}
-                        connectionInfo={connectionInfo || undefined}
-                        showConnectionLine={showConnectionLine}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        onLinkUpdate={onLinkUpdate}
-                      />
-                    );
-                  })}
+                <div className="w-12" /> {/* Spacer for icon column */}
+                <div className="flex-1 text-center">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Home Time ({userTimezone && getTimezoneAbbr(userTimezone)})
+                  </span>
                 </div>
               </div>
+            )}
 
-              {/* Mini Map */}
-              {mapLocations.length > 0 && (
-                <div className={`${isCompact ? 'mt-3' : 'mt-4'} border-t border-gray-200 dark:border-gray-700 pt-4`}>
-                  <DayMiniMap locations={mapLocations} />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+            {/* Timeline vertical line container */}
+            <div className="relative">
+              {/* Vertical timeline line */}
+              <div className="absolute left-[22px] top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+
+              {/* Events list */}
+              <div className={isCompact ? 'space-y-3' : 'space-y-4'}>
+                {sortedItems.map((item, index) => {
+                  const connectionInfo = getConnectionInfo(item, sortedItems);
+                  const nextItem = sortedItems[index + 1];
+                  const showConnectionLine =
+                    connectionInfo &&
+                    !connectionInfo.isLast &&
+                    nextItem?.connectionGroupId === item.connectionGroupId;
+
+                  return (
+                    <TimelineEventCard
+                      key={`${item.type}-${item.id}`}
+                      item={item}
+                      tripId={tripId}
+                      tripTimezone={getDisplayTimezone(item)}
+                      userTimezone={userTimezone}
+                      showDualTime={showDualTimezone}
+                      linkSummary={getLinkSummary(item)}
+                      viewMode={viewMode}
+                      connectionInfo={connectionInfo || undefined}
+                      showConnectionLine={showConnectionLine}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onLinkUpdate={onLinkUpdate}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mini Map */}
+            {mapLocations.length > 0 && (
+              <div className={`${isCompact ? 'mt-3' : 'mt-4'} border-t border-gray-200 dark:border-gray-700 pt-4`}>
+                <DayMiniMap locations={mapLocations} defaultExpanded={viewMode === 'standard'} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

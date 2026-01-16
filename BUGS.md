@@ -10,136 +10,7 @@ _No high priority bugs currently tracked._
 
 ### Medium Priority
 
-#### Timeline expanded mode doesn't expand minimaps
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to a trip's Timeline view
-  2. Toggle expanded mode
-  3. Expected: Minimaps should expand along with other content
-  4. Actual: Minimaps remain at their collapsed size
-- **Notes**: The expanded mode toggle should affect minimap sizing
-
-#### Child location album boxes invisible due to matching background color
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to the Locations page
-  2. View a child location that has associated albums
-  3. Expected: Album boxes should be visually distinct from the card background
-  4. Actual: Album boxes have the same background color as the card, making them invisible
-- **Notes**: Need to add contrasting background color or border to album boxes on child location cards
-
-#### Photo linking shows only photo numbers, not thumbnails
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Open the entity linking panel for any entity
-  2. Attempt to link photos
-  3. Expected: Photo thumbnails should be displayed to identify photos
-  4. Actual: Only photo numbers are shown, making it impossible to identify which photo is which
-- **Notes**: LinkPanel or photo selector needs to display thumbnails for usability
-
-#### Add Location form is not in a modal
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to the Locations page
-  2. Click "Add Location"
-  3. Expected: A modal dialog should appear for adding a new location
-  4. Actual: Form is displayed inline or navigates away from the page
-- **Notes**: Should be consistent with other entity forms that use modals
-
-#### Cannot add activity from Unscheduled page
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to the Unscheduled page
-  2. Attempt to add a new activity
-  3. Expected: Should be able to add an activity from this page
-  4. Actual: No option or button to add an activity, or the functionality is broken
-- **Notes**: Users should be able to create unscheduled activities directly from this view
-
-#### Unscheduled page only supports activities, not transportation or lodging
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to the Unscheduled page
-  2. Observe only activities are displayed/supported
-  3. Expected: Should show and support unscheduled transportation and lodging as well
-  4. Actual: Only activities are available on the Unscheduled page
-- **Notes**: Transportation and lodging can also be unscheduled (no date set) and should be manageable from this view
-
-#### Car routes not displayed on transportation minimap
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Create a transportation entry with type "car"
-  2. View the transportation minimap
-  3. Expected: Route line should be displayed between origin and destination
-  4. Actual: No route is shown for car transportation
-- **Notes**: May need OpenRouteService integration or fallback to straight line. See ROUTING_SETUP.md for configuration.
-
-#### Timeline print creates blank document
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view
-  2. Click the print button or use browser print (Ctrl+P)
-  3. Expected: Printable version of the timeline should be generated
-  4. Actual: Print preview shows a blank document
-- **Notes**: Print styles may be missing or content may be hidden in print media query
-
-#### Car stats and flight stats have inconsistent stat categories
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. View flight stats for a trip
-  2. Note the available stat categories (e.g., upcoming, completed, total distance)
-  3. View car stats for the same trip
-  4. Expected: Car stats should show equivalent categories (upcoming, completed, etc.)
-  5. Actual: Car stats is missing categories that flight stats has
-- **Notes**: Both transportation type stats should be consistent and show upcoming/completed breakdowns
-
-#### Journal entry link selection uses different mechanism than other entities
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Medium
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Open the entity linking panel for a journal entry
-  2. Compare the link selection UI to other entities (photos, activities, etc.)
-  3. Expected: Journal entries should use the same LinkPanel/link selection mechanism as all other entities
-  4. Actual: Journal entry linking uses a different, inconsistent mechanism
-- **Notes**: Should use the unified EntityLink system and LinkPanel component for consistency
+_No medium priority bugs currently tracked._
 
 ### Low Priority
 
@@ -221,9 +92,135 @@ _No high priority bugs currently tracked._
   4. Actual: Cover photo is removed immediately without confirmation
 - **Notes**: Destructive actions should have confirmation to prevent accidental clicks
 
+#### Photo thumbnails broken on hover in timeline
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Navigate to Timeline view for a trip with photos
+  2. Hover over a timeline item that has photos
+  3. Expected: Photo thumbnails should appear on hover
+  4. Actual: Thumbnails are broken or not displaying correctly
+- **Notes**: Thumbnail hover functionality may be missing or the image paths may be incorrect
+
 ## Fixed Bugs
 
-_No bugs have been fixed yet._
+### Unscheduled page only supports activities, not transportation or lodging
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: Unscheduled page only showed activities; transportation and lodging without dates were not visible or manageable
+- **Fix**: Major refactor of UnscheduledActivities component → renamed to UnscheduledItems
+  - Created new `UnscheduledItems.tsx` component with tabbed interface
+  - Added support for Activities, Transportation, and Lodging tabs
+  - Each tab fetches and displays unscheduled items of that type
+  - Added "Add" buttons for all three entity types
+  - Updated TripDetailPage.tsx to use new UnscheduledItems component
+
+### Timeline print creates blank document
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: Print preview showed blank document when printing timeline
+- **Fix**: Updated print CSS media queries in Timeline.tsx to properly display content when printing
+  - Fixed display properties for print media
+  - Ensured timeline events and sections are visible in print mode
+  - Maintained proper layout and formatting for printed output
+
+### Car stats and flight stats have inconsistent stat categories
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: Car and other transportation stats only showed total trips and distance, missing upcoming/completed breakdown that flight stats had
+- **Fix**: Updated TransportationStats.tsx to provide consistent stats across all transportation types
+  - Extended TypeStats interface to include `upcoming` and `completed` fields for all types
+  - Added tracking logic to count upcoming vs completed for all transportation types
+  - Updated display to show Upcoming and Completed badges for cars, trains, buses, etc.
+  - Unified layout with 2-4 column grid matching flight stats structure
+  - Now all transportation types show: Total Trips, Upcoming, Completed, Distance (if available)
+
+### Journal entry link selection uses different mechanism than other entities
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: Journal entries used old assignment-based linking instead of unified EntityLink system
+- **Fix**: Migrated JournalManager.tsx to use unified EntityLink system
+  - Replaced old assignment UI with LinkButton and LinkPanel components
+  - Journal entries now use same linking mechanism as all other entities
+  - Removed legacy assignment-based code
+  - Fully integrated with EntityLink backend system
+
+### Car routes not displayed on transportation minimap
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Backend
+- **Issue**: No route geometry was displayed for car, bicycle, and walk transportation types on minimaps. The backend only attempted to fetch route geometry if `distanceSource === 'route'`, which excluded cases where OpenRouteService was unavailable during initial calculation or became available later.
+- **Fix**: Modified `enhanceTransportations()` method in `backend/src/services/transportation.service.ts` (line 185-216) to always attempt route geometry fetching for road-based transportation types (car, bicycle, walk), regardless of `distanceSource` value. The routing service handles caching and graceful fallbacks, so this change allows existing transportation to show routes if OpenRouteService becomes available.
+
+### Cannot add activity from Unscheduled page
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: No option or button to add an activity from the Unscheduled page, only edit functionality existed
+- **Fix**: Added "+ Add Activity" button and create mode support to UnscheduledActivities.tsx
+  - Added `showForm` state to control form visibility
+  - Added `handleAdd()` function to open the form for creating new activities
+  - Modified `handleSubmit()` to support both create and update modes
+  - Updated form title and button labels to reflect create vs edit mode
+  - Activities created without dates/times automatically appear in the unscheduled view
+
+### Timeline expanded mode doesn't expand minimaps
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: Minimaps remained collapsed regardless of timeline view mode
+- **Fix**: Added `defaultExpanded={viewMode === 'standard'}` prop to DayMiniMap component in TimelineDaySection.tsx (line 204)
+
+### Child location album boxes invisible due to matching background color
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: Album boxes on child location cards had same background as parent card
+- **Fix**: Updated AssociatedAlbums.tsx to use `bg-white dark:bg-gray-800` with border `border-gray-200 dark:border-gray-600` for visual distinction (line 33)
+
+### Photo linking shows only photo numbers, not thumbnails
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: Photo selection showed only numbers/IDs instead of visual thumbnails
+- **Fix**:
+  - Added `thumbnailPath` field to EntityItem type in useEntityFetcher.ts
+  - Updated LinkPanel.tsx to display photo thumbnails (lines 271-280)
+  - Updated GeneralEntityPickerModal.tsx to show thumbnails when selecting photos (lines 178-188)
+
+### Add Location form is not in a modal
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-16
+- **Priority**: Medium
+- **Component**: Frontend
+- **Issue**: Location form displayed inline instead of in modal dialog like other entities
+- **Fix**: Wrapped location form in FormModal component in TripDetailPage.tsx with proper footer buttons (lines 1252-1349)
 
 ---
 

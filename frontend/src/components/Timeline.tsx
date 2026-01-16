@@ -21,7 +21,7 @@ import {
   TimelineFilters,
   MobileTimezoneToggle,
   getDateStringInTimezone,
-} from './timeline';
+} from './timeline/index';
 import type { TimelineItem, TimelineItemType, DayGroup, DayStats } from './timeline/types';
 import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
 

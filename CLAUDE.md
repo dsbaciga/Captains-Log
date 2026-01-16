@@ -4,12 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important References:**
 
-- [reference/DEVELOPMENT_LOG.md](reference/DEVELOPMENT_LOG.md) - **Comprehensive feature list organized by functional area. Update this file when adding new features or modifying existing ones.**
-- [reference/FRONTEND_ARCHITECTURE.md](reference/FRONTEND_ARCHITECTURE.md) - **Detailed frontend architecture guide covering component patterns, state management, data flow, routing, and best practices.**
-- [reference/BACKEND_ARCHITECTURE.md](reference/BACKEND_ARCHITECTURE.md) - **Detailed backend architecture guide covering layered architecture, database patterns, authentication, validation, error handling, and best practices.**
-- [reference/IMPLEMENTATION_STATUS.md](reference/IMPLEMENTATION_STATUS.md) - **Current project status, completed features, and remaining work. Update this file whenever significant features are completed or new issues are discovered.**
-- [reference/FEATURE_IDEAS.md](reference/FEATURE_IDEAS.md) - **Future enhancement ideas and feature requests organized by category (50+ ideas including Quick Wins).**
-- [reference/BUILD_AND_PUSH.md](reference/BUILD_AND_PUSH.md) - **Step-by-step checklist for building and pushing new versions.**
+The reference folder is organized into three categories:
+
+### Architecture Documentation (`reference/app_architecture/`)
+- [FRONTEND_ARCHITECTURE.md](reference/app_architecture/FRONTEND_ARCHITECTURE.md) - **Detailed frontend architecture guide covering component patterns, state management, data flow, routing, and best practices.**
+- [BACKEND_ARCHITECTURE.md](reference/app_architecture/BACKEND_ARCHITECTURE.md) - **Detailed backend architecture guide covering layered architecture, database patterns, authentication, validation, error handling, and best practices.**
+
+### Development Tracking (`reference/development/`)
+- [IMPLEMENTATION_STATUS.md](reference/development/IMPLEMENTATION_STATUS.md) - **Current project status, completed features, and remaining work. Update this file whenever significant features are completed or new issues are discovered.**
+- [DEVELOPMENT_LOG.md](reference/development/DEVELOPMENT_LOG.md) - **Comprehensive feature list organized by functional area. Update this file when adding new features or modifying existing ones.**
+- [FEATURE_BACKLOG.md](reference/development/FEATURE_BACKLOG.md) - **Prioritized feature backlog with 94 future enhancement ideas organized by priority and category.**
+
+### Instructions & How-To Guides (`reference/instructions/`)
+- [BUILD_AND_PUSH.md](reference/instructions/BUILD_AND_PUSH.md) - **Step-by-step checklist for building and pushing new versions.**
+- [TESTING_GUIDE.md](reference/instructions/TESTING_GUIDE.md) - Testing procedures and guidelines
+
+### Other Important Files
 - [agents/DEBUGGER.md](agents/DEBUGGER.md) - **Systematic debugging agent for investigating and fixing bugs. Use this when encountering errors or issues.**
 - [agents/CODE_OPTIMIZER.md](agents/CODE_OPTIMIZER.md) - **Code optimization agent for identifying code reuse opportunities and refactoring to reduce duplication. Use this to improve maintainability.**
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
@@ -39,7 +49,7 @@ Travel Life is a full-stack travel documentation application built with a React 
 
 ### Current Implementation Status
 
-**The application is ~75% complete and production-ready for personal use.** See [reference/IMPLEMENTATION_STATUS.md](reference/IMPLEMENTATION_STATUS.md) for detailed progress tracking.
+**The application is ~78% complete and production-ready for personal use.** See [reference/development/IMPLEMENTATION_STATUS.md](reference/development/IMPLEMENTATION_STATUS.md) for detailed progress tracking and [reference/development/FEATURE_BACKLOG.md](reference/development/FEATURE_BACKLOG.md) for future enhancements.
 
 **Core Features (100% Complete)**:
 - ✅ **Authentication System** - User registration, login, JWT tokens, refresh tokens

@@ -18,6 +18,7 @@ export type EntityItem = {
   id: number;
   name: string;
   subtitle?: string;
+  thumbnailPath?: string;
 };
 
 /**
@@ -47,8 +48,9 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
             const photos = result.photos;
             items = photos.map((photo: Photo) => ({
               id: photo.id,
-              name: photo.caption || photo.originalName || `Photo ${photo.id}`,
-              subtitle: photo.dateTaken || undefined,
+              name: photo.caption || `Photo ${photo.id}`,
+              subtitle: photo.takenAt || undefined,
+              thumbnailPath: photo.thumbnailPath || photo.localPath || undefined,
             }));
             break;
           }
@@ -87,8 +89,8 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
             const transports = await transportationService.getTransportationByTrip(tripId);
             items = transports.map((trans: Transportation) => ({
               id: trans.id,
-              name: `${trans.type}${trans.company ? ` - ${trans.company}` : ''}`,
-              subtitle: trans.startLocationText || trans.startLocation?.name || undefined,
+              name: `${trans.type}${trans.carrier ? ` - ${trans.carrier}` : ''}`,
+              subtitle: trans.fromLocationName || trans.fromLocation?.name || undefined,
             }));
             break;
           }
