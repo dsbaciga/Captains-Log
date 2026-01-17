@@ -16,44 +16,6 @@ _No medium priority bugs currently tracked._
 
 _No low priority bugs currently tracked._
 
-#### User default timezone not showing end time on timeline
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view with dual timezone enabled
-  2. View items with end times
-  3. Expected: Both trip timezone and user default timezone should show end times
-  4. Actual: User default timezone column missing end times
-- **Notes**: End time should be displayed in both timezone columns for consistency
-
-#### User default timezone not showing on check-in/check-out times
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view for lodging with check-in/check-out times
-  2. View lodging items with dual timezone enabled
-  3. Expected: Check-in/check-out times should show in both timezones
-  4. Actual: Only trip timezone is displayed
-- **Notes**: Lodging times should follow same dual timezone pattern as other entities
-
-#### Remove options for old linking methods
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Review codebase for legacy linking UI/options
-  2. Expected: All entities should use unified EntityLink system
-  3. Actual: Some old assignment-based linking options may still be present
-- **Notes**: Clean up any remaining legacy linking UI now that EntityLink system is fully implemented
-
 #### No button to add unscheduled entities (needs type picker)
 
 - **Reported**: 2026-01-16
@@ -189,6 +151,38 @@ _No low priority bugs currently tracked._
 - **Notes**: User prefers trip time (primary context) on left, home time (secondary reference) on right for more intuitive reading. Need better visual separation between the two timezone columns
 
 ## Fixed Bugs
+
+### User default timezone not showing end time on timeline
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: In dual timezone display mode, the user's home timezone column was not showing end times consistently, and the timezone abbreviation was embedded within the time span instead of being separate
+- **Fix**: Updated `renderHomeTime()` function in `TimelineEventCard.tsx` to properly display end times with separate styling for the time and timezone abbreviation. The function now returns start time, end time (if present), and timezone abbreviation in separate elements for proper formatting.
+
+### User default timezone not showing on check-in/check-out times
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Lodging check-in and check-out times in the user's home timezone column lacked the "Check-in:" and "Check-out:" labels that were shown in the trip timezone column
+- **Fix**: Updated `renderHomeTime()` in `TimelineEventCard.tsx` to include "Check-in:" and "Check-out:" labels for lodging time display, matching the format used in `renderTripTime()` for consistency.
+
+### Remove options for old linking methods
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: TimelineEditModal still had legacy multi-select dropdowns for linking journal entries to activities, lodging, and transportation using old assignment-based approach instead of unified EntityLink system
+- **Fix**: Removed legacy linking UI from TimelineEditModal:
+  - Removed `locationIds`, `activityIds`, `lodgingIds`, `transportationIds` from journal form state
+  - Removed multi-select dropdown fields for linking
+  - Updated `submitJournal()` to only send title, content, and date
+  - Added helpful tip directing users to use the Link button (🔗) on the timeline after saving
+  - Deleted 5 backup files (*.backup) that were no longer needed
 
 ### Flights should only show airport names, not full addresses, on timeline
 

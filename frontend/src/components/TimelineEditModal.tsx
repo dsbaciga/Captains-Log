@@ -116,13 +116,11 @@ export default function TimelineEditModal({
   });
 
   // Journal form state
+  // Note: Linking to activities, lodging, transportation now uses the unified EntityLink system
+  // Users should use the Link button (🔗) on the timeline after saving
   const [journalForm, setJournalForm] = useState({
     title: "",
     content: "",
-    locationIds: [] as number[],
-    activityIds: [] as number[],
-    lodgingIds: [] as number[],
-    transportationIds: [] as number[],
     entryDate: "",
   });
 
@@ -288,12 +286,6 @@ export default function TimelineEditModal({
     setJournalForm({
       title: entry.title || "",
       content: entry.content,
-      locationIds: entry.locationAssignments?.map((la) => la.location.id) || [],
-      activityIds: entry.activityAssignments?.map((aa) => aa.activity.id) || [],
-      lodgingIds: entry.lodgingAssignments?.map((la) => la.lodging.id) || [],
-      transportationIds:
-        entry.transportationAssignments?.map((ta) => ta.transportation.id) ||
-        [],
       entryDate: entry.date
         ? new Date(entry.date).toISOString().slice(0, 16)
         : "",
@@ -491,13 +483,11 @@ export default function TimelineEditModal({
       throw new Error("Title and content are required");
     }
 
+    // Note: Linking to other entities now uses the unified EntityLink system
+    // Users should use the Link button (🔗) on the timeline after saving
     const updateData = {
       title: journalForm.title,
       content: journalForm.content,
-      locationIds: journalForm.locationIds,
-      activityIds: journalForm.activityIds,
-      lodgingIds: journalForm.lodgingIds,
-      transportationIds: journalForm.transportationIds,
       entryDate: journalForm.entryDate || null,
     };
 
@@ -1352,154 +1342,12 @@ export default function TimelineEditModal({
         </p>
       </div>
 
-      {/* Associated Entities */}
+      {/* Linking Info */}
       <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          Link to Trip Items (optional)
-        </h4>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          Hold Ctrl (Windows) or Cmd (Mac) to select multiple items
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Locations */}
-          {localLocations.length > 0 && (
-            <div>
-              <label
-                htmlFor="journal-locations"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Locations
-              </label>
-              <select
-                id="journal-locations"
-                multiple
-                value={journalForm.locationIds.map(String)}
-                onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions).map(
-                    (opt) => parseInt(opt.value)
-                  );
-                  setJournalForm((prev) => ({
-                    ...prev,
-                    locationIds: selectedIds,
-                  }));
-                }}
-                className="input h-24"
-              >
-                {localLocations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Activities */}
-          {activities.length > 0 && (
-            <div>
-              <label
-                htmlFor="journal-activities"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Activities
-              </label>
-              <select
-                id="journal-activities"
-                multiple
-                value={journalForm.activityIds.map(String)}
-                onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions).map(
-                    (opt) => parseInt(opt.value)
-                  );
-                  setJournalForm((prev) => ({
-                    ...prev,
-                    activityIds: selectedIds,
-                  }));
-                }}
-                className="input h-24"
-              >
-                {activities.map((activity) => (
-                  <option key={activity.id} value={activity.id}>
-                    {activity.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Lodgings */}
-          {lodgings.length > 0 && (
-            <div>
-              <label
-                htmlFor="journal-lodgings"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Lodgings
-              </label>
-              <select
-                id="journal-lodgings"
-                multiple
-                value={journalForm.lodgingIds.map(String)}
-                onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions).map(
-                    (opt) => parseInt(opt.value)
-                  );
-                  setJournalForm((prev) => ({
-                    ...prev,
-                    lodgingIds: selectedIds,
-                  }));
-                }}
-                className="input h-24"
-              >
-                {lodgings.map((lodging) => (
-                  <option key={lodging.id} value={lodging.id}>
-                    {lodging.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Transportations */}
-          {transportations.length > 0 && (
-            <div>
-              <label
-                htmlFor="journal-transportations"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Transportation
-              </label>
-              <select
-                id="journal-transportations"
-                multiple
-                value={journalForm.transportationIds.map(String)}
-                onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions).map(
-                    (opt) => parseInt(opt.value)
-                  );
-                  setJournalForm((prev) => ({
-                    ...prev,
-                    transportationIds: selectedIds,
-                  }));
-                }}
-                className="input h-24"
-              >
-                {transportations.map((trans) => (
-                  <option key={trans.id} value={trans.id}>
-                    {trans.type}:{" "}
-                    {trans.fromLocation?.name ||
-                      trans.fromLocationName ||
-                      "Unknown"}{" "}
-                    →{" "}
-                    {trans.toLocation?.name ||
-                      trans.toLocationName ||
-                      "Unknown"}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            <strong>Tip:</strong> After saving, use the Link button (🔗) on the timeline to connect this journal entry to locations, activities, lodging, transportation, photos, or albums.
+          </p>
         </div>
       </div>
     </>
