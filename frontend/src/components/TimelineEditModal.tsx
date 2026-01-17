@@ -35,9 +35,6 @@ interface TimelineEditModalProps {
   tripId: number;
   locations: Location[];
   tripTimezone?: string | null;
-  activities?: Activity[];
-  lodgings?: Lodging[];
-  transportations?: Transportation[];
 }
 
 export default function TimelineEditModal({
@@ -49,9 +46,6 @@ export default function TimelineEditModal({
   tripId,
   locations,
   tripTimezone,
-  activities = [],
-  lodgings = [],
-  transportations = [],
 }: TimelineEditModalProps) {
   const [saving, setSaving] = useState(false);
   const [activityCategories, setActivityCategories] = useState<

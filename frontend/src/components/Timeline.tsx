@@ -74,9 +74,6 @@ const Timeline = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [allActivities, setAllActivities] = useState<Activity[]>([]);
-  const [allLodgings, setAllLodgings] = useState<Lodging[]>([]);
-  const [allTransportations, setAllTransportations] = useState<Transportation[]>([]);
   const [refreshingWeather, setRefreshingWeather] = useState(false);
 
   // Entity link summary hook
@@ -137,21 +134,6 @@ const Timeline = ({
         setLocations(locs);
       } catch (error) {
         console.error('Failed to load locations:', error);
-      }
-    }
-
-    if (item.type === 'journal') {
-      try {
-        const [activities, lodgings, transportations] = await Promise.all([
-          activityService.getActivitiesByTrip(tripId),
-          lodgingService.getLodgingByTrip(tripId),
-          transportationService.getTransportationByTrip(tripId),
-        ]);
-        setAllActivities(activities);
-        setAllLodgings(lodgings);
-        setAllTransportations(transportations);
-      } catch (error) {
-        console.error('Failed to load trip entities:', error);
       }
     }
 
@@ -1289,9 +1271,6 @@ const Timeline = ({
           tripId={tripId}
           locations={locations}
           tripTimezone={tripTimezone}
-          activities={allActivities}
-          lodgings={allLodgings}
-          transportations={allTransportations}
         />
       )}
     </div>
