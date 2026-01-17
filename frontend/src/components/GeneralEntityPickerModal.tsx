@@ -36,8 +36,8 @@ export default function GeneralEntityPickerModal({
   const [linking, setLinking] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Use shared hook for entity fetching
-  const { entities, loading } = useEntityFetcher(tripId, selectedType);
+  // Use shared hook for entity fetching (with pagination support for photos)
+  const { entities, loading, loadingMore, hasMore, total, loadMore } = useEntityFetcher(tripId, selectedType);
 
   // Filter out the source entity itself and already-linked entities
   const availableEntities = useMemo(() => {
@@ -155,15 +155,24 @@ export default function GeneralEntityPickerModal({
           ) : (
             // Entity Selection
             <>
-              {availableEntities.length > 5 && (
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="input mb-3 w-full"
-                />
-              )}
+              {/* Search bar and count indicator */}
+              <div className="mb-3 space-y-2">
+                {availableEntities.length > 5 && (
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search..."
+                    className="input w-full"
+                  />
+                )}
+                {/* Show count for photos with pagination */}
+                {selectedType === 'PHOTO' && total > 0 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Showing {entities.length} of {total} photos
+                  </p>
+                )}
+              </div>
               <div className="space-y-2">
                 {filteredEntities.map((entity) => {
                   const isPhoto = selectedType === 'PHOTO';
@@ -206,6 +215,23 @@ export default function GeneralEntityPickerModal({
                   <p className="text-center text-gray-500 dark:text-gray-400 py-4">
                     No matches for "{searchQuery}"
                   </p>
+                )}
+                {/* Load More button for photos */}
+                {selectedType === 'PHOTO' && hasMore && !searchQuery && (
+                  <button
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="w-full py-3 text-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 transition-colors disabled:opacity-50"
+                  >
+                    {loadingMore ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        Loading...
+                      </span>
+                    ) : (
+                      `Load More Photos (${total - entities.length} remaining)`
+                    )}
+                  </button>
                 )}
               </div>
             </>

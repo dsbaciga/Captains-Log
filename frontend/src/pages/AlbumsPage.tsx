@@ -4,18 +4,22 @@ import type { PhotoAlbum, Photo, AlbumWithPhotos } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getFullAssetUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
 import toast from 'react-hot-toast';
 
 // Import reusable components
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
+import LinkButton from '../components/LinkButton';
 import { PhotoIcon } from '../components/icons';
 
 export default function AlbumsPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  const parsedTripId = tripId ? parseInt(tripId) : undefined;
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(parsedTripId);
   const [albums, setAlbums] = useState<PhotoAlbum[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -337,7 +341,20 @@ export default function AlbumsPage() {
                   >
                     View Album
                   </button>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
+                    {parsedTripId && (
+                      <LinkButton
+                        tripId={parsedTripId}
+                        entityType="PHOTO_ALBUM"
+                        entityId={album.id}
+                        linkSummary={getLinkSummary('PHOTO_ALBUM', album.id)}
+                        onUpdate={() => {
+                          invalidateLinkSummary();
+                          loadAlbums();
+                        }}
+                        size="sm"
+                      />
+                    )}
                     <button
                       onClick={() => handleOpenCoverSelector(album)}
                       className="btn btn-secondary flex-1 text-sm"

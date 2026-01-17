@@ -226,11 +226,19 @@ export default function TimelineEventCard({
                 {renderTimeDisplay()}
                 {renderDurationDistance()}
               </div>
-              {/* Desktop: aligned columns */}
-              <div className="hidden lg:flex items-baseline">
-                <div className="w-32 shrink-0">{renderTripTime()}</div>
-                <div className="w-32 shrink-0">{renderHomeTime()}</div>
-                <div>{renderDurationDistance()}</div>
+              {/* Desktop: trip time LEFT, home time RIGHT */}
+              <div className="hidden lg:flex items-baseline justify-between">
+                <div className="flex items-baseline gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                    {renderTripTime()}
+                  </div>
+                  <div className="text-gray-400 dark:text-gray-500">{renderDurationDistance()}</div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {renderHomeTime()}
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0" />
+                </div>
               </div>
             </>
           ) : (

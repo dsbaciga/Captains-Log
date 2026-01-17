@@ -1,7 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { Activity } from '../types/activity';
-import type { Transportation } from '../types/transportation';
-import type { Lodging } from '../types/lodging';
 import type { Location } from '../types/location';
 import type { WeatherData, WeatherDisplay } from '../types/weather';
 import activityService from '../services/activity.service';
@@ -1180,8 +1177,8 @@ const Timeline = ({
         />
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 mt-3">
-          {/* Weather Refresh */}
+        <div className="flex items-center justify-between mt-3">
+          {/* Weather Refresh - Left side */}
           <button
             type="button"
             onClick={handleRefreshWeather}
@@ -1207,7 +1204,7 @@ const Timeline = ({
             </span>
           </button>
 
-          {/* Print */}
+          {/* Print - Right side */}
           <button
             type="button"
             onClick={handlePrint}

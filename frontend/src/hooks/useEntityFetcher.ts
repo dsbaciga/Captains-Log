@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { EntityType } from '../types/entityLink';
 import type { Location } from '../types/location';
 import type { Activity } from '../types/activity';
@@ -21,14 +21,28 @@ export type EntityItem = {
   thumbnailPath?: string;
 };
 
+// Default page size for photo pagination
+const PHOTO_PAGE_SIZE = 24;
+
 /**
  * Hook for fetching entities of a specific type for a trip
  * Centralizes the entity fetching logic used by picker modals
+ * Photos support pagination with load more functionality
  */
 export function useEntityFetcher(tripId: number, entityType: EntityType | null) {
   const [entities, setEntities] = useState<EntityItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
+
+  // Reset state when entity type changes
+  useEffect(() => {
+    setEntities([]);
+    setHasMore(false);
+    setTotal(0);
+  }, [entityType]);
 
   useEffect(() => {
     if (!entityType) {
@@ -44,7 +58,11 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
 
         switch (entityType) {
           case 'PHOTO': {
-            const result = await photoService.getPhotosByTrip(tripId);
+            // Fetch first page of photos with pagination
+            const result = await photoService.getPhotosByTrip(tripId, {
+              skip: 0,
+              take: PHOTO_PAGE_SIZE,
+            });
             const photos = result.photos;
             items = photos.map((photo: Photo) => ({
               id: photo.id,
@@ -52,6 +70,8 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
               subtitle: photo.takenAt || undefined,
               thumbnailPath: photo.thumbnailPath || photo.localPath || undefined,
             }));
+            setHasMore(result.hasMore);
+            setTotal(result.total);
             break;
           }
 
@@ -119,7 +139,33 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
     fetchEntities();
   }, [entityType, tripId]);
 
-  return { entities, loading, error };
+  // Load more function for paginated entities (photos)
+  const loadMore = useCallback(async () => {
+    if (!entityType || entityType !== 'PHOTO' || loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const result = await photoService.getPhotosByTrip(tripId, {
+        skip: entities.length,
+        take: PHOTO_PAGE_SIZE,
+      });
+      const newItems = result.photos.map((photo: Photo) => ({
+        id: photo.id,
+        name: photo.caption || `Photo ${photo.id}`,
+        subtitle: photo.takenAt || undefined,
+        thumbnailPath: photo.thumbnailPath || photo.localPath || undefined,
+      }));
+      setEntities((prev) => [...prev, ...newItems]);
+      setHasMore(result.hasMore);
+    } catch (err) {
+      console.error('Failed to load more photos:', err);
+      toast.error('Failed to load more photos');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [entityType, tripId, entities.length, loadingMore, hasMore]);
+
+  return { entities, loading, loadingMore, error, hasMore, total, loadMore };
 }
 
 /**

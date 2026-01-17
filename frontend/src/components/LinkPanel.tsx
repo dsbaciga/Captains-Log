@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import entityLinkService from '../services/entityLink.service';
 import GeneralEntityPickerModal from './GeneralEntityPickerModal';
 import type {
@@ -7,6 +8,17 @@ import type {
   EnrichedEntityLink,
 } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG } from '../types/entityLink';
+
+// Map entity types to their corresponding tab names on the trip detail page
+const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
+  PHOTO: 'photos',
+  LOCATION: 'locations',
+  ACTIVITY: 'activities',
+  LODGING: 'lodging',
+  TRANSPORTATION: 'transportation',
+  JOURNAL_ENTRY: 'journal',
+  PHOTO_ALBUM: 'photos', // Albums are in the photos tab
+};
 
 interface LinkPanelProps {
   tripId: number;
@@ -92,7 +104,20 @@ export default function LinkPanel({
   onClose,
   onUpdate,
 }: LinkPanelProps) {
+  const navigate = useNavigate();
   const [showAddLinkModal, setShowAddLinkModal] = useState(false);
+
+  // Navigate to the linked entity's location in the trip detail page
+  const handleNavigateToEntity = (linkedEntityType: EntityType, linkedEntityId: number) => {
+    const tab = ENTITY_TYPE_TO_TAB[linkedEntityType];
+    if (tab) {
+      // Close the panel first
+      onClose();
+      // Navigate to the trip detail page with the appropriate tab
+      // Add the entity ID as a hash so it could be used for scrolling/highlighting in the future
+      navigate(`/trips/${tripId}?tab=${tab}#${linkedEntityType.toLowerCase()}-${linkedEntityId}`);
+    }
+  };
 
   // Fetch all links for this entity
   const {
@@ -272,7 +297,16 @@ export default function LinkPanel({
                         return (
                           <div
                             key={link.id}
-                            className={`flex items-center justify-between p-3 rounded-lg ${colors.bg} ${colors.bgDark} border ${colors.border}`}
+                            className={`flex items-center justify-between p-3 rounded-lg ${colors.bg} ${colors.bgDark} border ${colors.border} cursor-pointer hover:shadow-md transition-shadow`}
+                            onClick={() => handleNavigateToEntity(linkedEntityType, isSource ? link.targetId : link.sourceId)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleNavigateToEntity(linkedEntityType, isSource ? link.targetId : link.sourceId);
+                              }
+                            }}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               {/* Show thumbnail for photos, emoji for others */}
@@ -287,19 +321,36 @@ export default function LinkPanel({
                                   {ENTITY_TYPE_CONFIG[linkedEntityType].emoji}
                                 </span>
                               )}
-                              <div className="min-w-0">
-                                <div className={`font-medium truncate ${colors.text} ${colors.textDark}`}>
+                              <div className="min-w-0 flex-1">
+                                <div className={`font-medium truncate ${colors.text} ${colors.textDark} hover:underline`}>
                                   {displayName}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
                                   {link.relationship.replace(/_/g, ' ').toLowerCase()}
                                 </div>
                               </div>
+                              {/* Go to icon */}
+                              <svg
+                                className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
                             </div>
                             <button
-                              onClick={() => handleDeleteLink(link.id)}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent navigation when clicking delete
+                                handleDeleteLink(link.id);
+                              }}
                               disabled={deleteLinkMutation.isPending}
-                              className="p-1.5 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors flex-shrink-0"
+                              className="p-1.5 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors flex-shrink-0 ml-2"
                               title="Remove link"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
