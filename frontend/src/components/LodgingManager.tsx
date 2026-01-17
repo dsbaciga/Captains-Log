@@ -337,8 +337,8 @@ export default function LodgingManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
+      <div className="flex justify-between items-center gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Lodging
         </h2>
         <button
@@ -346,9 +346,10 @@ export default function LodgingManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary whitespace-nowrap flex-shrink-0"
+          className="btn btn-primary text-sm sm:text-base whitespace-nowrap flex-shrink-0"
         >
-          + Add Lodging
+          <span className="sm:hidden">+ Add</span>
+          <span className="hidden sm:inline">+ Add Lodging</span>
         </button>
       </div>
 
@@ -607,139 +608,144 @@ export default function LodgingManager({
           manager.items.map((lodging) => (
             <div
               key={lodging.id}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
             >
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+              {/* Header with title and type */}
+              <div className="flex items-start gap-2 mb-3 flex-wrap">
+                <span className="text-xl sm:text-2xl">
+                  {getTypeIcon(lodging.type)}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className="text-2xl">
-                      {getTypeIcon(lodging.type)}
-                    </span>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {lodging.name}
-                    </h3>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                      ({lodging.type.replace("_", " ")})
-                    </span>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white break-words">
+                    {lodging.name}
+                  </h3>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                    ({lodging.type.replace("_", " ")})
+                  </span>
+                </div>
+              </div>
+
+              {/* Details grid - more compact on mobile */}
+              <div className="space-y-1.5 sm:space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                {/* Location */}
+                {lodging.location && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Location:</span>
+                    <span>{lodging.location.name}</span>
                   </div>
+                )}
 
-                  <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                    {/* Location */}
-                    {lodging.location && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Location:</span>
-                        <span>{lodging.location.name}</span>
-                      </div>
-                    )}
-
-                    {/* Address */}
-                    {lodging.address && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Address:</span>
-                        <span>{lodging.address}</span>
-                      </div>
-                    )}
-
-                    {/* Check-in */}
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Check-in:</span>
-                      <span>
-                        {formatDateTime(lodging.checkInDate, lodging.timezone)}
-                      </span>
-                    </div>
-
-                    {/* Check-out */}
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Check-out:</span>
-                      <span>
-                        {formatDateTime(lodging.checkOutDate, lodging.timezone)}
-                      </span>
-                    </div>
-
-                    {/* Confirmation Number */}
-                    {lodging.confirmationNumber && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Confirmation:</span>
-                        <span>{lodging.confirmationNumber}</span>
-                      </div>
-                    )}
-
-                    {/* Booking URL */}
-                    {lodging.bookingUrl && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Booking:</span>
-                        <a
-                          href={lodging.bookingUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline dark:text-blue-400"
-                        >
-                          View Booking
-                        </a>
-                      </div>
-                    )}
-
-                    {/* Cost */}
-                    {lodging.cost && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Cost:</span>
-                        <span>
-                          {lodging.currency} {lodging.cost}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    {lodging.notes && (
-                      <div className="mt-2">
-                        <span className="font-medium">Notes:</span>
-                        <p className="text-gray-600 dark:text-gray-400 mt-1">
-                          {lodging.notes}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Linked Entities */}
-                    <LinkedEntitiesDisplay
-                      tripId={tripId}
-                      entityType="LODGING"
-                      entityId={lodging.id}
-                      compact
-                    />
+                {/* Address */}
+                {lodging.address && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium flex-shrink-0">Address:</span>
+                    <span className="line-clamp-2 sm:line-clamp-none">{lodging.address}</span>
                   </div>
+                )}
+
+                {/* Check-in */}
+                <div className="flex flex-wrap gap-x-2">
+                  <span className="font-medium">Check-in:</span>
+                  <span>
+                    {formatDateTime(lodging.checkInDate, lodging.timezone)}
+                  </span>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0 self-start">
-                  <AssociatedAlbums
-                    albums={lodging.photoAlbums}
-                    tripId={tripId}
-                  />
-                  <LinkButton
-                    tripId={tripId}
-                    entityType="LODGING"
-                    entityId={lodging.id}
-                    linkSummary={getLinkSummary('LODGING', lodging.id)}
-                    onUpdate={invalidateLinkSummary}
-                    size="sm"
-                  />
-                  <JournalEntriesButton
-                    journalEntries={lodging.journalAssignments}
-                    tripId={tripId}
-                  />
-                  <button
-                    onClick={() => handleEdit(lodging)}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap text-sm sm:text-base"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(lodging.id)}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap text-sm sm:text-base"
-                  >
-                    Delete
-                  </button>
+                {/* Check-out */}
+                <div className="flex flex-wrap gap-x-2">
+                  <span className="font-medium">Check-out:</span>
+                  <span>
+                    {formatDateTime(lodging.checkOutDate, lodging.timezone)}
+                  </span>
                 </div>
+
+                {/* Confirmation Number */}
+                {lodging.confirmationNumber && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Confirmation:</span>
+                    <span>{lodging.confirmationNumber}</span>
+                  </div>
+                )}
+
+                {/* Booking URL */}
+                {lodging.bookingUrl && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Booking:</span>
+                    <a
+                      href={lodging.bookingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      View Booking
+                    </a>
+                  </div>
+                )}
+
+                {/* Cost */}
+                {lodging.cost && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Cost:</span>
+                    <span>
+                      {lodging.currency} {lodging.cost}
+                    </span>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {lodging.notes && (
+                  <div className="mt-2">
+                    <span className="font-medium">Notes:</span>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:line-clamp-none">
+                      {lodging.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Associated Albums - full width */}
+              <div className="mt-3">
+                <AssociatedAlbums
+                  albums={lodging.photoAlbums}
+                  tripId={tripId}
+                />
+              </div>
+
+              {/* Linked Entities */}
+              <LinkedEntitiesDisplay
+                tripId={tripId}
+                entityType="LODGING"
+                entityId={lodging.id}
+                compact
+              />
+
+              {/* Actions - always at bottom on mobile */}
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                <LinkButton
+                  tripId={tripId}
+                  entityType="LODGING"
+                  entityId={lodging.id}
+                  linkSummary={getLinkSummary('LODGING', lodging.id)}
+                  onUpdate={invalidateLinkSummary}
+                  size="sm"
+                />
+                <JournalEntriesButton
+                  journalEntries={lodging.journalAssignments}
+                  tripId={tripId}
+                />
+                <div className="flex-1" />
+                <button
+                  onClick={() => handleEdit(lodging)}
+                  className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(lodging.id)}
+                  className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))
