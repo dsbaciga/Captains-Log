@@ -11,7 +11,7 @@ export interface DebugContext {
   component?: string;
   function?: string;
   operation?: string;
-  data?: any;
+  data?: unknown;
   timestamp?: number;
 }
 
@@ -42,14 +42,14 @@ class DebugLogger {
   /**
    * Log an error with full context history
    */
-  error(message: string, error: any, context?: DebugContext): void {
+  error(message: string, error: unknown, context?: DebugContext): void {
     if (!DEBUG_ENABLED) return;
 
     console.error(`[DEBUG ERROR] ${message}`, {
       error,
       context,
       recentHistory: this.context.slice(-10),
-      stack: error?.stack,
+      stack: error instanceof Error ? error.stack : undefined,
     });
   }
 
@@ -57,7 +57,7 @@ class DebugLogger {
    * Safely access array with logging
    */
   safeArray<T>(
-    value: any,
+    value: unknown,
     context: DebugContext
   ): T[] {
     const isArray = Array.isArray(value);
@@ -97,12 +97,13 @@ class DebugLogger {
    * Safely access object property with logging
    */
   safeProperty<T>(
-    obj: any,
+    obj: unknown,
     property: string,
     context: DebugContext
   ): T | undefined {
-    const exists = obj && obj.hasOwnProperty(property);
-    const value = obj?.[property];
+    const objRecord = obj as Record<string, unknown> | null | undefined;
+    const exists = obj != null && Object.prototype.hasOwnProperty.call(obj, property);
+    const value = objRecord?.[property];
 
     this.log(`safeProperty check: ${property}`, {
       ...context,
@@ -111,40 +112,41 @@ class DebugLogger {
         propertyExists: exists,
         propertyValue: this.getValuePreview(value),
         propertyType: typeof value,
-        objectKeys: obj ? Object.keys(obj).slice(0, 10) : [],
+        objectKeys: obj && typeof obj === 'object' ? Object.keys(obj).slice(0, 10) : [],
       },
     });
 
-    return value;
+    return value as T | undefined;
   }
 
   /**
    * Log data structure before processing
    */
-  logDataStructure(name: string, data: any, context?: DebugContext): void {
+  logDataStructure(name: string, data: unknown, context?: DebugContext): void {
     if (!DEBUG_ENABLED) return;
 
-    const structure: any = {};
+    const structure: Record<string, unknown> = {};
 
     if (Array.isArray(data)) {
       structure.type = 'array';
       structure.length = data.length;
       structure.firstItem = data[0] ? this.getObjectStructure(data[0]) : null;
       structure.sampleIndices = [0, Math.floor(data.length / 2), data.length - 1].filter(i => i < data.length);
-      structure.samples = structure.sampleIndices.map((i: number) => ({
+      structure.samples = (structure.sampleIndices as number[]).map((i: number) => ({
         index: i,
         type: typeof data[i],
         isNull: data[i] === null,
         isUndefined: data[i] === undefined,
-        keys: data[i] && typeof data[i] === 'object' ? Object.keys(data[i]).slice(0, 10) : [],
+        keys: data[i] && typeof data[i] === 'object' ? Object.keys(data[i] as object).slice(0, 10) : [],
       }));
     } else if (data && typeof data === 'object') {
       structure.type = 'object';
       structure.keys = Object.keys(data).slice(0, 20);
-      structure.sampleValues = {};
+      const sampleValues: Record<string, unknown> = {};
       Object.keys(data).slice(0, 5).forEach(key => {
-        structure.sampleValues[key] = this.getValuePreview(data[key]);
+        sampleValues[key] = this.getValuePreview((data as Record<string, unknown>)[key]);
       });
+      structure.sampleValues = sampleValues;
     } else {
       structure.type = typeof data;
       structure.value = this.getValuePreview(data);
@@ -159,7 +161,7 @@ class DebugLogger {
   /**
    * Get a safe preview of any value
    */
-  private getValuePreview(value: any): any {
+  private getValuePreview(value: unknown): unknown {
     if (value === null) return 'null';
     if (value === undefined) return 'undefined';
     if (typeof value === 'string') return value.length > 50 ? value.substring(0, 50) + '...' : value;
@@ -174,17 +176,18 @@ class DebugLogger {
   /**
    * Get structure of an object
    */
-  private getObjectStructure(obj: any): any {
+  private getObjectStructure(obj: unknown): unknown {
     if (!obj || typeof obj !== 'object') return typeof obj;
 
-    const structure: any = {
+    const structure: Record<string, unknown> = {
       keys: Object.keys(obj).slice(0, 10),
     };
 
     // Check for common nested arrays
     Object.keys(obj).forEach(key => {
-      if (Array.isArray(obj[key])) {
-        structure[`${key}_length`] = obj[key].length;
+      const value = (obj as Record<string, unknown>)[key];
+      if (Array.isArray(value)) {
+        structure[`${key}_length`] = value.length;
       }
     });
 
@@ -198,11 +201,11 @@ class DebugLogger {
     return {
       log: (message: string, context?: Partial<DebugContext>) =>
         this.log(message, { component, ...context }),
-      error: (message: string, error: any, context?: Partial<DebugContext>) =>
+      error: (message: string, error: unknown, context?: Partial<DebugContext>) =>
         this.error(message, error, { component, ...context }),
-      safeArray: <T>(value: any, operation: string) =>
+      safeArray: <T>(value: unknown, operation: string) =>
         this.safeArray<T>(value, { component, operation }),
-      logDataStructure: (name: string, data: any, operation?: string) =>
+      logDataStructure: (name: string, data: unknown, operation?: string) =>
         this.logDataStructure(name, data, { component, operation }),
     };
   }
@@ -227,7 +230,7 @@ export const debugLogger = new DebugLogger();
 
 // Export helper to attach to window for console access
 if (typeof window !== 'undefined') {
-  (window as any).__debugLogger = debugLogger;
+  (window as unknown as Record<string, unknown>).__debugLogger = debugLogger;
   console.log('[DEBUG] Debug logger attached to window.__debugLogger');
   console.log('[DEBUG] Use window.__debugLogger.getRecentContext() to see recent logs');
 }

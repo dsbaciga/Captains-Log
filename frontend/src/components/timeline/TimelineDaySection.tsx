@@ -146,17 +146,21 @@ export default function TimelineDaySection({
           <>
             {/* Desktop: Dual timezone header row */}
             {showDualTimezone && (
-              <div className="hidden lg:flex items-center gap-4 mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex-1 text-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Trip Time ({tripTimezone && getTimezoneAbbr(tripTimezone)})
-                  </span>
-                </div>
-                <div className="w-12" /> {/* Spacer for icon column */}
-                <div className="flex-1 text-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Home Time ({userTimezone && getTimezoneAbbr(userTimezone)})
-                  </span>
+              <div className="hidden lg:flex items-center gap-3 mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                {/* Spacer to match icon column width */}
+                <div className="w-11 shrink-0" />
+                {/* Header row aligned with content card */}
+                <div className="flex-1 flex">
+                  <div className="w-32 text-left">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Trip Time ({tripTimezone && getTimezoneAbbr(tripTimezone)})
+                    </span>
+                  </div>
+                  <div className="w-32 text-left">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Home Time ({userTimezone && getTimezoneAbbr(userTimezone)})
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

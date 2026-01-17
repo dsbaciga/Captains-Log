@@ -1666,6 +1666,14 @@ export default function TripDetailPage() {
                       <button
                         type="button"
                         onClick={async () => {
+                          const confirmed = await confirm({
+                            title: "Remove Cover Photo",
+                            message: "Are you sure you want to remove the cover photo from this trip?",
+                            confirmLabel: "Remove",
+                            variant: "warning",
+                          });
+                          if (!confirmed) return;
+
                           try {
                             await tripService.updateCoverPhoto(trip.id, null);
                             toast.success("Cover photo removed");

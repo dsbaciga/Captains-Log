@@ -40,8 +40,8 @@ export default function TimelineEventCard({
       ? item.startTimezone
       : tripTimezone;
 
-  // Format primary time display
-  const renderTimeDisplay = () => {
+  // Format trip time display
+  const renderTripTime = () => {
     if (item.isAllDay) {
       return <span className="text-gray-500 dark:text-gray-400">All Day</span>;
     }
@@ -75,9 +75,53 @@ export default function TimelineEventCard({
             {getTimezoneAbbr(displayTimezone)}
           </span>
         )}
-        {/* Show secondary timezone inline on desktop */}
+      </>
+    );
+  };
+
+  // Format home/user time display
+  const renderHomeTime = () => {
+    if (!userTimezone || displayTimezone === userTimezone) {
+      return null;
+    }
+    if (item.isAllDay) {
+      return <span className="text-gray-500 dark:text-gray-400">All Day</span>;
+    }
+    if (item.showCheckInTime) {
+      return (
+        <span className="text-gray-500 dark:text-gray-400">
+          {formatTime(item.dateTime, userTimezone)} {getTimezoneAbbr(userTimezone)}
+        </span>
+      );
+    }
+    if (item.showCheckOutTime && item.endDateTime) {
+      return (
+        <span className="text-gray-500 dark:text-gray-400">
+          {formatTime(item.endDateTime, userTimezone)} {getTimezoneAbbr(userTimezone)}
+        </span>
+      );
+    }
+
+    const primaryTime = formatTime(item.dateTime, userTimezone);
+    const endTime = item.endDateTime ? formatTime(item.endDateTime, userTimezone) : null;
+
+    return (
+      <span className="text-gray-500 dark:text-gray-400">
+        {primaryTime}
+        {endTime && ` - ${endTime}`}
+        <span className="ml-1">{getTimezoneAbbr(userTimezone)}</span>
+      </span>
+    );
+  };
+
+  // Legacy inline time display (used for mobile and non-dual-time modes)
+  const renderTimeDisplay = () => {
+    return (
+      <>
+        {renderTripTime()}
+        {/* Show secondary timezone inline on mobile */}
         {showDualTime && userTimezone && displayTimezone !== userTimezone && (
-          <span className="hidden lg:inline text-gray-400 dark:text-gray-500 ml-2">
+          <span className="lg:hidden text-gray-400 dark:text-gray-500 ml-2">
             ({formatTime(item.dateTime, userTimezone)} {getTimezoneAbbr(userTimezone)})
           </span>
         )}
@@ -169,8 +213,27 @@ export default function TimelineEventCard({
 
         {/* Time row */}
         <div className={`text-sm text-gray-500 dark:text-gray-400 ${isCompact ? 'mb-1' : 'mb-2'} pr-16`}>
-          {renderTimeDisplay()}
-          {renderDurationDistance()}
+          {/* Desktop: columnar layout for dual timezone */}
+          {showDualTime && userTimezone && displayTimezone !== userTimezone ? (
+            <>
+              {/* Mobile: inline display */}
+              <div className="lg:hidden">
+                {renderTimeDisplay()}
+                {renderDurationDistance()}
+              </div>
+              {/* Desktop: aligned columns */}
+              <div className="hidden lg:flex items-baseline">
+                <div className="w-32 shrink-0">{renderTripTime()}</div>
+                <div className="w-32 shrink-0">{renderHomeTime()}</div>
+                <div>{renderDurationDistance()}</div>
+              </div>
+            </>
+          ) : (
+            <>
+              {renderTimeDisplay()}
+              {renderDurationDistance()}
+            </>
+          )}
         </div>
 
         {/* Title and subtitle */}
@@ -234,10 +297,10 @@ export default function TimelineEventCard({
         )}
 
         {/* Badges row */}
-        <div className={`flex flex-wrap items-center gap-2 ${isCompact ? 'mt-2' : 'mt-3'}`}>
+        <div className={`flex flex-wrap items-center gap-1.5 ${isCompact ? 'mt-2' : 'mt-3'}`}>
           {/* Connection badge */}
           {connectionInfo && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-100 dark:bg-green-900/30 text-xs font-medium text-green-700 dark:text-green-300">
+            <span className="inline-flex items-center justify-center gap-1 h-6 px-2 rounded-md bg-green-100 dark:bg-green-900/30 text-xs font-medium leading-none text-green-700 dark:text-green-300">
               <BoltIcon />
               Leg {connectionInfo.legNumber}/{connectionInfo.totalLegs}
             </span>
@@ -245,7 +308,7 @@ export default function TimelineEventCard({
 
           {/* Multi-day stay badge */}
           {item.multiDayInfo && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-xs font-medium text-purple-700 dark:text-purple-300">
+            <span className="inline-flex items-center justify-center gap-1 h-6 px-2 rounded-md bg-purple-100 dark:bg-purple-900/30 text-xs font-medium leading-none text-purple-700 dark:text-purple-300">
               <MoonIcon />
               Night {item.multiDayInfo.nightNumber}/{item.multiDayInfo.totalNights}
             </span>
@@ -258,7 +321,7 @@ export default function TimelineEventCard({
                 <Link
                   key={album.id}
                   to={`/trips/${tripId}/albums/${album.id}`}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="inline-flex items-center justify-center gap-1 h-6 px-2 rounded-md bg-gray-100 dark:bg-gray-700 text-xs leading-none text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
                   <PhotoIcon />
                   <span className="truncate max-w-[80px]">{album.name}</span>
@@ -270,7 +333,7 @@ export default function TimelineEventCard({
                 </Link>
               ))}
               {item.photoAlbums.length > 2 && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="inline-flex items-center h-6 text-xs text-gray-500 dark:text-gray-400">
                   +{item.photoAlbums.length - 2} more
                 </span>
               )}

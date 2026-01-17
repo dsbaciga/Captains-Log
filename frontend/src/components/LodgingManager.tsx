@@ -9,6 +9,7 @@ import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
+import FormSection, { CollapsibleSection } from "./FormSection";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
@@ -103,6 +104,7 @@ export default function LodgingManager({
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   const { values, handleChange, reset } =
     useFormFields<LodgingFormFields>(getInitialFormState);
@@ -171,9 +173,11 @@ export default function LodgingManager({
     reset();
     manager.setEditingId(null);
     setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
   };
 
   const handleEdit = (lodging: Lodging) => {
+    setShowMoreOptions(true); // Always show all options when editing
     handleChange("type", lodging.type);
     handleChange("name", lodging.name);
     handleChange("locationId", lodging.locationId || undefined);
@@ -387,14 +391,15 @@ export default function LodgingManager({
           </>
         }
       >
-        <form id="lodging-form" onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Type Selection */}
-            <div>
-              <label
-                htmlFor="lodging-type"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
+        <form id="lodging-form" onSubmit={handleSubmit} className="space-y-6">
+          {/* SECTION 1: Basic Info (Type & Name) */}
+          <FormSection title="Basic Info" icon="🏨">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="lodging-type"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Type *
                 </label>
                 <select
@@ -415,7 +420,6 @@ export default function LodgingManager({
                 </select>
               </div>
 
-              {/* Name */}
               <div>
                 <label
                   htmlFor="lodging-name"
@@ -434,71 +438,10 @@ export default function LodgingManager({
                 />
               </div>
             </div>
+          </FormSection>
 
-            {/* Location Selection with Quick Add */}
-            <div>
-              <label
-                htmlFor="lodging-location"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Location
-              </label>
-              {showLocationQuickAdd ? (
-                <LocationQuickAdd
-                  tripId={tripId}
-                  onLocationCreated={handleLocationCreated}
-                  onCancel={() => setShowLocationQuickAdd(false)}
-                />
-              ) : (
-                <div className="flex gap-2">
-                  <select
-                    id="lodging-location"
-                    value={values.locationId || ""}
-                    onChange={(e) =>
-                      handleChange(
-                        "locationId",
-                        e.target.value ? parseInt(e.target.value) : undefined
-                      )
-                    }
-                    className="input flex-1"
-                  >
-                    <option value="">-- Select Location --</option>
-                    {localLocations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowLocationQuickAdd(true)}
-                    className="btn btn-secondary whitespace-nowrap"
-                  >
-                    + New Location
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Address */}
-            <div>
-              <label
-                htmlFor="lodging-address"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Address
-              </label>
-              <input
-                type="text"
-                id="lodging-address"
-                value={values.address}
-                onChange={(e) => handleChange("address", e.target.value)}
-                className="input"
-                placeholder="123 Main St, City, Country"
-              />
-            </div>
-
-            {/* Check-in and Check-out */}
+          {/* SECTION 2: Stay Dates */}
+          <FormSection title="Stay Dates" icon="📅">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
@@ -535,31 +478,99 @@ export default function LodgingManager({
               </div>
             </div>
 
-            {/* Timezone Component */}
             <TimezoneSelect
               value={values.timezone}
               onChange={(value) => handleChange("timezone", value)}
               label="Timezone"
               helpText="Select the timezone for check-in/check-out times"
             />
+          </FormSection>
 
-            {/* Booking Fields Component */}
-            <BookingFields
-              confirmationNumber={values.confirmationNumber}
-              bookingUrl={values.bookingUrl}
-              onConfirmationNumberChange={(value) =>
-                handleChange("confirmationNumber", value)
-              }
-              onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
-            />
+          {/* COLLAPSIBLE: More Options (Location, Address, Booking, Cost, Notes) */}
+          <CollapsibleSection
+            title="More Options"
+            icon="⚙️"
+            isExpanded={showMoreOptions}
+            onToggle={() => setShowMoreOptions(!showMoreOptions)}
+            badge="location, booking, cost"
+          >
+            {/* Location Section */}
+            <FormSection title="Location" icon="📍">
+              {showLocationQuickAdd ? (
+                <LocationQuickAdd
+                  tripId={tripId}
+                  onLocationCreated={handleLocationCreated}
+                  onCancel={() => setShowLocationQuickAdd(false)}
+                />
+              ) : (
+                <div className="flex gap-2">
+                  <select
+                    id="lodging-location"
+                    value={values.locationId || ""}
+                    onChange={(e) =>
+                      handleChange(
+                        "locationId",
+                        e.target.value ? parseInt(e.target.value) : undefined
+                      )
+                    }
+                    className="input flex-1"
+                  >
+                    <option value="">-- Select Location --</option>
+                    {localLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationQuickAdd(true)}
+                    className="btn btn-secondary whitespace-nowrap"
+                  >
+                    + New
+                  </button>
+                </div>
+              )}
 
-            {/* Cost and Currency Component */}
-            <CostCurrencyFields
-              cost={values.cost}
-              currency={values.currency}
-              onCostChange={(value) => handleChange("cost", value)}
-              onCurrencyChange={(value) => handleChange("currency", value)}
-            />
+              <div>
+                <label
+                  htmlFor="lodging-address"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Address
+                </label>
+                <input
+                  type="text"
+                  id="lodging-address"
+                  value={values.address}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                  className="input"
+                  placeholder="123 Main St, City, Country"
+                />
+              </div>
+            </FormSection>
+
+            {/* Booking Section */}
+            <FormSection title="Booking Details" icon="🎫">
+              <BookingFields
+                confirmationNumber={values.confirmationNumber}
+                bookingUrl={values.bookingUrl}
+                onConfirmationNumberChange={(value) =>
+                  handleChange("confirmationNumber", value)
+                }
+                onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
+              />
+            </FormSection>
+
+            {/* Cost Section */}
+            <FormSection title="Cost" icon="💰">
+              <CostCurrencyFields
+                cost={values.cost}
+                currency={values.currency}
+                onCostChange={(value) => handleChange("cost", value)}
+                onCurrencyChange={(value) => handleChange("currency", value)}
+              />
+            </FormSection>
 
             {/* Notes */}
             <div>
@@ -578,7 +589,8 @@ export default function LodgingManager({
                 placeholder="Additional notes..."
               />
             </div>
-          </form>
+          </CollapsibleSection>
+        </form>
         </FormModal>
 
       {/* Lodging List */}

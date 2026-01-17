@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Activity } from "../types/activity";
-import type { Transportation } from "../types/transportation";
-import type { Lodging } from "../types/lodging";
+import type { Transportation, TransportationType } from "../types/transportation";
+import type { Lodging, LodgingType } from "../types/lodging";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
 import activityService from "../services/activity.service";
@@ -456,7 +456,7 @@ export default function UnscheduledItems({
       }
 
       const updateData = {
-        type: transportationForm.values.type as any,
+        type: transportationForm.values.type as TransportationType,
         fromLocationId: transportationForm.values.fromLocationId || null,
         toLocationId: transportationForm.values.toLocationId || null,
         fromLocationName: transportationForm.values.fromLocationName || null,
@@ -498,7 +498,7 @@ export default function UnscheduledItems({
 
     try {
       const updateData = {
-        type: lodgingForm.values.type as any,
+        type: lodgingForm.values.type as LodgingType,
         name: lodgingForm.values.name,
         locationId: lodgingForm.values.locationId || null,
         address: lodgingForm.values.address || null,
