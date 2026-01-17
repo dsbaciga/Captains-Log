@@ -317,12 +317,19 @@ const Timeline = ({
             return;
           }
         if (trans.departureTime) {
+          // For flights, only show airport names (not full addresses)
+          // For other transportation types, include address for context
           const getLocationDisplay = (
             location: typeof trans.fromLocation,
             locationId: number | null,
-            locationName: string | null
+            locationName: string | null,
+            transportType: string
           ): string => {
             if (location?.name) {
+              // Flights should only show airport name, not address
+              if (transportType === 'flight') {
+                return location.name;
+              }
               if (location.address) {
                 return `${location.name} (${location.address})`;
               }
@@ -350,8 +357,9 @@ const Timeline = ({
             description: `${getLocationDisplay(
               trans.fromLocation,
               trans.fromLocationId,
-              trans.fromLocationName
-            )} → ${getLocationDisplay(trans.toLocation, trans.toLocationId, trans.toLocationName)}`,
+              trans.fromLocationName,
+              trans.type
+            )} → ${getLocationDisplay(trans.toLocation, trans.toLocationId, trans.toLocationName, trans.type)}`,
             cost: trans.cost || undefined,
             currency: trans.currency || undefined,
             startTimezone: trans.startTimezone || undefined,

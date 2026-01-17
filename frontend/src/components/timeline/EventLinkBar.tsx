@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PhotoPreviewPopover from './PhotoPreviewPopover';
+import EntityLinkTooltip from './EntityLinkTooltip';
 import LinkPanel from '../LinkPanel';
 import { LinkIcon } from './icons';
 import { ENTITY_TYPE_CONFIG } from '../../types/entityLink';
@@ -89,14 +90,20 @@ export default function EventLinkBar({
         }
 
         return (
-          <span
+          <EntityLinkTooltip
             key={type}
-            className="inline-flex items-center justify-center gap-1 h-6 px-1.5 rounded text-xs font-medium leading-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-            title={`${count} ${count === 1 ? config.label : config.pluralLabel}`}
+            tripId={tripId}
+            sourceEntityType={entityType}
+            sourceEntityId={entityId}
+            targetEntityType={type}
           >
-            <span className="flex items-center justify-center w-4 h-4">{config.emoji}</span>
-            <span>{count}</span>
-          </span>
+            <span
+              className="inline-flex items-center justify-center gap-1 h-6 px-1.5 rounded text-xs font-medium leading-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-default"
+            >
+              <span className="flex items-center justify-center w-4 h-4">{config.emoji}</span>
+              <span>{count}</span>
+            </span>
+          </EntityLinkTooltip>
         );
       })}
 

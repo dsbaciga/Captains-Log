@@ -16,44 +16,6 @@ _No medium priority bugs currently tracked._
 
 _No low priority bugs currently tracked._
 
-#### Flights should only show airport names, not full addresses, on timeline
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view for a trip with flights
-  2. View flight items on timeline
-  3. Expected: Should show just airport names (e.g., "LAX", "JFK")
-  4. Actual: Shows full addresses which makes the display cluttered
-- **Notes**: Simplify flight display to show only airport codes/names for better readability
-
-#### Clicking Link with no existing links should skip to Add Link modal
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Click Link button on a timeline entity that has no existing links
-  2. Expected: Should directly open the Add Link modal
-  3. Actual: Opens the links list modal first, then requires clicking Add Link
-- **Notes**: Improve UX by skipping the empty list and going straight to adding links
-
-#### Linked entities on timeline should show names in tooltip on hover
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view
-  2. Hover over a linked entity icon
-  3. Expected: Tooltip should show the names of linked entities
-  4. Actual: No tooltip appears
-- **Notes**: Would improve discoverability and help users understand what's linked without clicking
-
 #### User default timezone not showing end time on timeline
 
 - **Reported**: 2026-01-16
@@ -227,6 +189,38 @@ _No low priority bugs currently tracked._
 - **Notes**: User prefers trip time (primary context) on left, home time (secondary reference) on right for more intuitive reading. Need better visual separation between the two timezone columns
 
 ## Fixed Bugs
+
+### Flights should only show airport names, not full addresses, on timeline
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Flight items on the timeline showed full addresses (e.g., "LAX (123 Airport Blvd, Los Angeles, CA)") which made the display cluttered
+- **Fix**: Modified the `getLocationDisplay()` function in `Timeline.tsx` to accept a transport type parameter. For flights (`transportType === 'flight'`), the function now returns only the location name without the address. Other transportation types (car, train, bus) continue to show the address for context.
+
+### Clicking Link with no existing links should skip to Add Link modal
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: When clicking the Link button on an entity with no existing links, users had to see an empty list first before clicking "Add Link"
+- **Fix**: Added a `useEffect` in `LinkPanel.tsx` that automatically opens the Add Link modal (`setShowAddLinkModal(true)`) when the link data finishes loading and there are no existing links (`linksData.summary.totalLinks === 0`).
+
+### Linked entities on timeline should show names in tooltip on hover
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Hovering over linked entity badges (📍 2, 🏨 1, etc.) in the timeline showed no information about what was actually linked
+- **Fix**: Created new `EntityLinkTooltip.tsx` component that:
+  - Uses lazy loading to fetch link details only when hovered (300ms delay)
+  - Shows a styled tooltip with the names of linked entities
+  - Limits display to 5 items with a "+X more" indicator
+  - Caches results for 1 minute to avoid repeated requests
+  - Updated `EventLinkBar.tsx` to wrap non-photo entity badges with this tooltip component
 
 ### Add/Edit modals for entities are too busy, need better UI/UX
 
