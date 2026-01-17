@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
 import GeneralEntityPickerModal from './GeneralEntityPickerModal';
@@ -147,6 +147,14 @@ export default function LinkPanel({
       (type) => groupedLinks[type]?.length > 0
     );
   }, [groupedLinks]);
+
+  // Auto-open Add Link modal when there are no existing links
+  // This improves UX by skipping the empty list view
+  useEffect(() => {
+    if (!isLoading && linksData && linksData.summary.totalLinks === 0) {
+      setShowAddLinkModal(true);
+    }
+  }, [isLoading, linksData]);
 
   // Get all linked entity IDs grouped by type to filter from picker
   // Uses Map<EntityType, Set<number>> to properly track IDs per entity type

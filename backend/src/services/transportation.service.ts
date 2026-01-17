@@ -186,6 +186,7 @@ class TransportationService {
         // Always attempt for car/bike/walk types, even if distance was calculated with Haversine
         // The routing service will use cache if available and handle fallbacks gracefully
         if (t.type === 'car' || t.type === 'bicycle' || t.type === 'bike' || t.type === 'walk' || t.type === 'walking') {
+          console.log(`[Transportation Service] Fetching route geometry for ${t.type} transportation (id: ${t.id})`);
           try {
             // Determine routing profile based on transportation type
             let profile: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car';
@@ -208,10 +209,13 @@ class TransportationService {
             );
 
             if (route.geometry) {
+              console.log(`[Transportation Service] Route geometry obtained: ${route.geometry.length} coordinates, source: ${route.source}`);
               mapped.route.geometry = route.geometry;
+            } else {
+              console.log(`[Transportation Service] No geometry returned (source: ${route.source})`);
             }
           } catch (error) {
-            console.error('Failed to fetch route geometry:', error);
+            console.error('[Transportation Service] Failed to fetch route geometry:', error);
           }
         }
       }

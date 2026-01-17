@@ -103,10 +103,13 @@ export default function FlightRouteMap({
   const zoom = maxDiff > 100 ? 2 : maxDiff > 50 ? 3 : maxDiff > 20 ? 4 : maxDiff > 10 ? 5 : 6;
 
   // Use actual route geometry if available (from OpenRouteService for car/bike/walking)
-  // Otherwise calculate curved path (for flights and other transportation)
+  // For flights: use curved path when no geometry (represents flight arc)
+  // For road/ground transportation: use straight line when no geometry (indicates no actual route data)
   const routePath = geometry
     ? geometry.map(([lon, lat]) => [lat, lon] as [number, number]) // Convert [lon, lat] to [lat, lon]
-    : calculateCurvedPath([from.latitude, from.longitude], [to.latitude, to.longitude]);
+    : transportationType === "flight"
+      ? calculateCurvedPath([from.latitude, from.longitude], [to.latitude, to.longitude])
+      : [[from.latitude, from.longitude], [to.latitude, to.longitude]] as [number, number][]; // Straight line for non-flights
 
   return (
     // Dynamic height requires CSS variable - cannot be moved to static CSS
@@ -148,14 +151,14 @@ export default function FlightRouteMap({
           )}
         </Marker>
 
-        {/* Route path - solid line for road routes, dashed for flights */}
+        {/* Route path - solid line when actual route geometry, dashed when fallback/estimated */}
         <Polyline
           positions={routePath}
           pathOptions={{
             color: "#3b82f6",
             weight: 3,
             opacity: 0.7,
-            dashArray: geometry ? undefined : "10, 10", // Solid line for road routes, dashed for flights
+            dashArray: geometry ? undefined : "10, 10", // Solid line for actual routes, dashed for fallback
           }}
         />
       </MapContainer>

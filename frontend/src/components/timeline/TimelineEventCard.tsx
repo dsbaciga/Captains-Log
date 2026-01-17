@@ -90,27 +90,32 @@ export default function TimelineEventCard({
     if (item.showCheckInTime) {
       return (
         <span className="text-gray-500 dark:text-gray-400">
-          {formatTime(item.dateTime, userTimezone)} {getTimezoneAbbr(userTimezone)}
+          Check-in: {formatTime(item.dateTime, userTimezone)} {getTimezoneAbbr(userTimezone)}
         </span>
       );
     }
     if (item.showCheckOutTime && item.endDateTime) {
       return (
         <span className="text-gray-500 dark:text-gray-400">
-          {formatTime(item.endDateTime, userTimezone)} {getTimezoneAbbr(userTimezone)}
+          Check-out: {formatTime(item.endDateTime, userTimezone)} {getTimezoneAbbr(userTimezone)}
         </span>
       );
     }
 
+    // Regular time display with start and end times
     const primaryTime = formatTime(item.dateTime, userTimezone);
     const endTime = item.endDateTime ? formatTime(item.endDateTime, userTimezone) : null;
 
     return (
-      <span className="text-gray-500 dark:text-gray-400">
-        {primaryTime}
-        {endTime && ` - ${endTime}`}
-        <span className="ml-1">{getTimezoneAbbr(userTimezone)}</span>
-      </span>
+      <>
+        <span className="text-gray-500 dark:text-gray-400">
+          {primaryTime}
+          {endTime && ` - ${endTime}`}
+        </span>
+        <span className="text-gray-400 dark:text-gray-500 ml-1">
+          {getTimezoneAbbr(userTimezone)}
+        </span>
+      </>
     );
   };
 

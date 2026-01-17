@@ -74,9 +74,6 @@ const Timeline = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [allActivities, setAllActivities] = useState<Activity[]>([]);
-  const [allLodgings, setAllLodgings] = useState<Lodging[]>([]);
-  const [allTransportations, setAllTransportations] = useState<Transportation[]>([]);
   const [refreshingWeather, setRefreshingWeather] = useState(false);
 
   // Entity link summary hook
@@ -137,21 +134,6 @@ const Timeline = ({
         setLocations(locs);
       } catch (error) {
         console.error('Failed to load locations:', error);
-      }
-    }
-
-    if (item.type === 'journal') {
-      try {
-        const [activities, lodgings, transportations] = await Promise.all([
-          activityService.getActivitiesByTrip(tripId),
-          lodgingService.getLodgingByTrip(tripId),
-          transportationService.getTransportationByTrip(tripId),
-        ]);
-        setAllActivities(activities);
-        setAllLodgings(lodgings);
-        setAllTransportations(transportations);
-      } catch (error) {
-        console.error('Failed to load trip entities:', error);
       }
     }
 
@@ -317,12 +299,19 @@ const Timeline = ({
             return;
           }
         if (trans.departureTime) {
+          // For flights, only show airport names (not full addresses)
+          // For other transportation types, include address for context
           const getLocationDisplay = (
             location: typeof trans.fromLocation,
             locationId: number | null,
-            locationName: string | null
+            locationName: string | null,
+            transportType: string
           ): string => {
             if (location?.name) {
+              // Flights should only show airport name, not address
+              if (transportType === 'flight') {
+                return location.name;
+              }
               if (location.address) {
                 return `${location.name} (${location.address})`;
               }
@@ -350,8 +339,9 @@ const Timeline = ({
             description: `${getLocationDisplay(
               trans.fromLocation,
               trans.fromLocationId,
-              trans.fromLocationName
-            )} → ${getLocationDisplay(trans.toLocation, trans.toLocationId, trans.toLocationName)}`,
+              trans.fromLocationName,
+              trans.type
+            )} → ${getLocationDisplay(trans.toLocation, trans.toLocationId, trans.toLocationName, trans.type)}`,
             cost: trans.cost || undefined,
             currency: trans.currency || undefined,
             startTimezone: trans.startTimezone || undefined,
@@ -1281,9 +1271,6 @@ const Timeline = ({
           tripId={tripId}
           locations={locations}
           tripTimezone={tripTimezone}
-          activities={allActivities}
-          lodgings={allLodgings}
-          transportations={allTransportations}
         />
       )}
     </div>

@@ -16,106 +16,6 @@ _No medium priority bugs currently tracked._
 
 _No low priority bugs currently tracked._
 
-#### Flights should only show airport names, not full addresses, on timeline
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view for a trip with flights
-  2. View flight items on timeline
-  3. Expected: Should show just airport names (e.g., "LAX", "JFK")
-  4. Actual: Shows full addresses which makes the display cluttered
-- **Notes**: Simplify flight display to show only airport codes/names for better readability
-
-#### Clicking Link with no existing links should skip to Add Link modal
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Click Link button on a timeline entity that has no existing links
-  2. Expected: Should directly open the Add Link modal
-  3. Actual: Opens the links list modal first, then requires clicking Add Link
-- **Notes**: Improve UX by skipping the empty list and going straight to adding links
-
-#### Linked entities on timeline should show names in tooltip on hover
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view
-  2. Hover over a linked entity icon
-  3. Expected: Tooltip should show the names of linked entities
-  4. Actual: No tooltip appears
-- **Notes**: Would improve discoverability and help users understand what's linked without clicking
-
-#### User default timezone not showing end time on timeline
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view with dual timezone enabled
-  2. View items with end times
-  3. Expected: Both trip timezone and user default timezone should show end times
-  4. Actual: User default timezone column missing end times
-- **Notes**: End time should be displayed in both timezone columns for consistency
-
-#### User default timezone not showing on check-in/check-out times
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view for lodging with check-in/check-out times
-  2. View lodging items with dual timezone enabled
-  3. Expected: Check-in/check-out times should show in both timezones
-  4. Actual: Only trip timezone is displayed
-- **Notes**: Lodging times should follow same dual timezone pattern as other entities
-
-#### Remove options for old linking methods
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Review codebase for legacy linking UI/options
-  2. Expected: All entities should use unified EntityLink system
-  3. Actual: Some old assignment-based linking options may still be present
-- **Notes**: Clean up any remaining legacy linking UI now that EntityLink system is fully implemented
-
-#### No button to add unscheduled entities (needs type picker)
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Unscheduled page
-  2. Expected: Should have a unified "Add" button that allows picking entity type
-  3. Actual: Each tab has its own Add button, but no unified entry point
-- **Notes**: Consider adding a primary action button that lets users pick the entity type to add
-
-#### Car transportation shows distance twice instead of 3 stats
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. View Transportation stats for cars
-  2. Expected: Should show 3 different stats at the top
-  3. Actual: Distance appears twice
-- **Notes**: Consolidate stats display to show 3 unique metrics instead of duplicating distance
-
 #### Updating transportation hides all transportation entities until refresh
 
 - **Reported**: 2026-01-16
@@ -127,18 +27,6 @@ _No low priority bugs currently tracked._
   2. Expected: Transportation list should update and remain visible
   3. Actual: All transportation items disappear until page refresh
 - **Notes**: Likely a state management or query invalidation issue
-
-#### Car route not showing on minimap (shows flight path instead)
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. View a car transportation item with route on minimap
-  2. Expected: Should show road route
-  3. Actual: Shows straight line (flight path) instead of road route
-- **Notes**: Backend may be providing route geometry, but frontend minimap not rendering it correctly for cars
 
 #### Clicking a linked item should navigate to that item
 
@@ -227,6 +115,100 @@ _No low priority bugs currently tracked._
 - **Notes**: User prefers trip time (primary context) on left, home time (secondary reference) on right for more intuitive reading. Need better visual separation between the two timezone columns
 
 ## Fixed Bugs
+
+### No button to add unscheduled entities (needs type picker)
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: The Unscheduled page had no unified way to add new items - users had to navigate to each tab separately
+- **Fix**: Added a unified "Add Item" button to UnscheduledItems.tsx that opens a modal chooser allowing users to select the entity type (Activity, Transportation, or Lodging). Also added full create functionality with appropriate forms and service calls.
+
+### Car transportation shows distance twice instead of 3 stats
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: In TransportationStats, the stats grid for non-flight transportation showed Distance twice - once in the grid and again in the detail cards below
+- **Fix**: Changed the fourth stat in the grid from "Distance (km)" to "Travel Time" in TransportationStats.tsx. Distance is now shown only in the detail card below, consistent with the flight statistics pattern.
+
+### Car route not showing on minimap (shows flight path instead)
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: When no route geometry was available from OpenRouteService, car/bike/walking transportation showed a curved "flight arc" path instead of a straight line
+- **Fix**: Updated FlightRouteMap.tsx to use different fallback behavior based on transportation type:
+  - Flights: Continue to use curved arc path (represents flight trajectory)
+  - Ground transportation (car, bike, walk, etc.): Use straight line when no geometry (indicates no actual route data available)
+  - Both types use dashed lines when showing fallback/estimated routes
+
+### User default timezone not showing end time on timeline
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: In dual timezone display mode, the user's home timezone column was not showing end times consistently, and the timezone abbreviation was embedded within the time span instead of being separate
+- **Fix**: Updated `renderHomeTime()` function in `TimelineEventCard.tsx` to properly display end times with separate styling for the time and timezone abbreviation. The function now returns start time, end time (if present), and timezone abbreviation in separate elements for proper formatting.
+
+### User default timezone not showing on check-in/check-out times
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Lodging check-in and check-out times in the user's home timezone column lacked the "Check-in:" and "Check-out:" labels that were shown in the trip timezone column
+- **Fix**: Updated `renderHomeTime()` in `TimelineEventCard.tsx` to include "Check-in:" and "Check-out:" labels for lodging time display, matching the format used in `renderTripTime()` for consistency.
+
+### Remove options for old linking methods
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: TimelineEditModal still had legacy multi-select dropdowns for linking journal entries to activities, lodging, and transportation using old assignment-based approach instead of unified EntityLink system
+- **Fix**: Removed legacy linking UI from TimelineEditModal:
+  - Removed `locationIds`, `activityIds`, `lodgingIds`, `transportationIds` from journal form state
+  - Removed multi-select dropdown fields for linking
+  - Updated `submitJournal()` to only send title, content, and date
+  - Added helpful tip directing users to use the Link button (🔗) on the timeline after saving
+  - Deleted 5 backup files (*.backup) that were no longer needed
+
+### Flights should only show airport names, not full addresses, on timeline
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Flight items on the timeline showed full addresses (e.g., "LAX (123 Airport Blvd, Los Angeles, CA)") which made the display cluttered
+- **Fix**: Modified the `getLocationDisplay()` function in `Timeline.tsx` to accept a transport type parameter. For flights (`transportType === 'flight'`), the function now returns only the location name without the address. Other transportation types (car, train, bus) continue to show the address for context.
+
+### Clicking Link with no existing links should skip to Add Link modal
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: When clicking the Link button on an entity with no existing links, users had to see an empty list first before clicking "Add Link"
+- **Fix**: Added a `useEffect` in `LinkPanel.tsx` that automatically opens the Add Link modal (`setShowAddLinkModal(true)`) when the link data finishes loading and there are no existing links (`linksData.summary.totalLinks === 0`).
+
+### Linked entities on timeline should show names in tooltip on hover
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Hovering over linked entity badges (📍 2, 🏨 1, etc.) in the timeline showed no information about what was actually linked
+- **Fix**: Created new `EntityLinkTooltip.tsx` component that:
+  - Uses lazy loading to fetch link details only when hovered (300ms delay)
+  - Shows a styled tooltip with the names of linked entities
+  - Limits display to 5 items with a "+X more" indicator
+  - Caches results for 1 minute to avoid repeated requests
+  - Updated `EventLinkBar.tsx` to wrap non-photo entity badges with this tooltip component
 
 ### Add/Edit modals for entities are too busy, need better UI/UX
 

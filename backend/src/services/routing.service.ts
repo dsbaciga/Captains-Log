@@ -62,10 +62,13 @@ class RoutingService {
     to: RouteCoordinates,
     profile: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car'
   ): Promise<RouteResult> {
+    console.log(`[Routing Service] calculateRoute called: profile=${profile}, from=(${from.latitude}, ${from.longitude}), to=(${to.latitude}, ${to.longitude})`);
+
     // Check cache first
     const cached = await this.getCachedRoute(from, to, profile);
     if (cached) {
-      console.log('[Routing Service] Using cached route');
+      const hasGeometry = cached.routeGeometry && Array.isArray(cached.routeGeometry) && cached.routeGeometry.length > 0;
+      console.log(`[Routing Service] Using cached route (hasGeometry: ${hasGeometry}, points: ${hasGeometry ? cached.routeGeometry.length : 0})`);
       return {
         distance: cached.distance,
         duration: cached.duration,
@@ -76,9 +79,13 @@ class RoutingService {
     }
 
     // Try to fetch from OpenRouteService
-    if (this.API_KEY) {
+    // Check for truthy API key (not undefined, null, or empty string)
+    if (this.API_KEY && this.API_KEY.trim().length > 0) {
+      console.log(`[Routing Service] API key present (length: ${this.API_KEY.length}), fetching from OpenRouteService...`);
       try {
         const routeData = await this.fetchRouteFromAPI(from, to, profile);
+        const hasGeometry = routeData.geometry && routeData.geometry.length > 0;
+        console.log(`[Routing Service] API response received: distance=${routeData.distance.toFixed(2)}km, hasGeometry=${hasGeometry}, points=${hasGeometry ? routeData.geometry!.length : 0}`);
 
         // Cache the result
         await this.cacheRoute(from, to, routeData.distance, routeData.duration, profile, routeData.geometry);
@@ -90,11 +97,20 @@ class RoutingService {
           source: 'route',
           geometry: routeData.geometry,
         };
-      } catch (error) {
-        console.warn('[Routing Service] Failed to fetch route from API, falling back to Haversine:', error);
+      } catch (error: any) {
+        const errorMsg = error.response?.data?.error?.message || error.message || 'Unknown error';
+        const statusCode = error.response?.status || 'N/A';
+        console.warn(`[Routing Service] API call failed (status: ${statusCode}): ${errorMsg}`);
+        console.warn('[Routing Service] Falling back to Haversine formula');
       }
     } else {
-      console.warn('[Routing Service] No API key configured, using Haversine formula');
+      if (this.API_KEY === undefined) {
+        console.warn('[Routing Service] No API key configured (OPENROUTESERVICE_API_KEY not set), using Haversine formula');
+      } else if (this.API_KEY === '') {
+        console.warn('[Routing Service] API key is empty string, using Haversine formula');
+      } else {
+        console.warn(`[Routing Service] API key is whitespace-only (length: ${this.API_KEY.length}), using Haversine formula`);
+      }
     }
 
     // Fallback to Haversine
@@ -123,6 +139,9 @@ class RoutingService {
       [to.longitude, to.latitude],
     ];
 
+    console.log(`[Routing Service] Calling API: ${url}`);
+    console.log(`[Routing Service] Request coordinates: ${JSON.stringify(coordinates)}`);
+
     try {
       const response = await axios.post<OpenRouteServiceResponse>(
         url,
@@ -136,18 +155,30 @@ class RoutingService {
         }
       );
 
+      console.log(`[Routing Service] API response status: ${response.status}`);
+
       if (!response.data.routes || response.data.routes.length === 0) {
+        console.warn('[Routing Service] API returned empty routes array');
         throw new Error('No routes found in response');
       }
 
       const route = response.data.routes[0];
+      const geometryCoords = route.geometry?.coordinates;
+      console.log(`[Routing Service] Route summary: distance=${route.summary.distance}m, duration=${route.summary.duration}s, geometry type=${route.geometry?.type}, coords count=${geometryCoords?.length || 0}`);
 
       return {
         distance: route.summary.distance / 1000, // Convert meters to kilometers
         duration: route.summary.duration / 60, // Convert seconds to minutes
-        geometry: route.geometry?.coordinates, // Array of [longitude, latitude]
+        geometry: geometryCoords, // Array of [longitude, latitude]
       };
     } catch (error: any) {
+      console.error(`[Routing Service] API error details:`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+      });
+
       if (error.response?.status === 401 || error.response?.status === 403) {
         throw new AppError('Invalid OpenRouteService API key', 401);
       }
