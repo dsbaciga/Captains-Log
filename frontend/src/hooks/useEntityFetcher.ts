@@ -6,6 +6,7 @@ import type { Lodging } from '../types/lodging';
 import type { Transportation } from '../types/transportation';
 import type { Photo } from '../types/photo';
 import type { JournalEntry } from '../types/journalEntry';
+import type { PhotoAlbum } from '../types/photo';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
 import lodgingService from '../services/lodging.service';
@@ -121,6 +122,16 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
               id: entry.id,
               name: entry.title || `${entry.entryType} Entry`,
               subtitle: entry.date || undefined,
+            }));
+            break;
+          }
+
+          case 'PHOTO_ALBUM': {
+            const albumsResult = await photoService.getAlbumsByTrip(tripId);
+            items = albumsResult.albums.map((album: PhotoAlbum) => ({
+              id: album.id,
+              name: album.name,
+              subtitle: album.description || undefined,
             }));
             break;
           }

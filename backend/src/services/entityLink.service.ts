@@ -9,6 +9,7 @@ import type {
   GetLinksFromEntityInput,
   GetLinksToEntityInput,
   DeleteEntityLinkInput,
+  UpdateEntityLinkInput,
   BulkLinkPhotosInput,
   EntityLinkResponse,
   EnrichedEntityLink,
@@ -504,6 +505,39 @@ export const entityLinkService = {
 
     await prisma.entityLink.delete({
       where: { id: linkId },
+    });
+  },
+
+  /**
+   * Update a link (relationship and/or notes)
+   */
+  async updateLink(
+    userId: number,
+    tripId: number,
+    linkId: number,
+    data: UpdateEntityLinkInput
+  ): Promise<EntityLinkResponse> {
+    await verifyTripAccess(userId, tripId);
+
+    const link = await prisma.entityLink.findFirst({
+      where: { id: linkId, tripId },
+    });
+
+    if (!link) {
+      throw new AppError('Link not found', 404);
+    }
+
+    const updateData: { relationship?: string; notes?: string | null } = {};
+    if (data.relationship !== undefined) {
+      updateData.relationship = data.relationship;
+    }
+    if (data.notes !== undefined) {
+      updateData.notes = data.notes;
+    }
+
+    return await prisma.entityLink.update({
+      where: { id: linkId },
+      data: updateData,
     });
   },
 

@@ -7,6 +7,7 @@ import type {
   BulkCreateEntityLinksInput,
   BulkLinkPhotosInput,
   DeleteEntityLinkInput,
+  UpdateEntityLinkInput,
   BulkLinkResult,
   EntityLinksResponse,
   TripLinkSummary,
@@ -123,6 +124,14 @@ const entityLinkService = {
    */
   async deleteLinkById(tripId: number, linkId: number): Promise<void> {
     await axios.delete(`/trips/${tripId}/links/${linkId}`);
+  },
+
+  /**
+   * Update a link (relationship and/or notes)
+   */
+  async updateLink(tripId: number, linkId: number, data: UpdateEntityLinkInput): Promise<EntityLink> {
+    const response = await axios.patch(`/trips/${tripId}/links/${linkId}`, data);
+    return response.data;
   },
 
   /**

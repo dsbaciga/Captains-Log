@@ -3,20 +3,9 @@ import PhotoPreviewPopover from './PhotoPreviewPopover';
 import EntityLinkTooltip from './EntityLinkTooltip';
 import LinkPanel from '../LinkPanel';
 import { LinkIcon } from './icons';
-import { ENTITY_TYPE_CONFIG } from '../../types/entityLink';
+import { ENTITY_TYPE_CONFIG, ENTITY_TYPE_DISPLAY_ORDER } from '../../lib/entityConfig';
 import type { EventLinkBarProps } from './types';
 import type { EntityType } from '../../types/entityLink';
-
-// Order of entity types to display
-const DISPLAY_ORDER: EntityType[] = [
-  'PHOTO',
-  'LOCATION',
-  'ACTIVITY',
-  'LODGING',
-  'TRANSPORTATION',
-  'PHOTO_ALBUM',
-  'JOURNAL_ENTRY',
-];
 
 export default function EventLinkBar({
   tripId,
@@ -31,8 +20,8 @@ export default function EventLinkBar({
   const totalLinks = linkSummary?.totalLinks ?? 0;
   const linkCounts = linkSummary?.linkCounts ?? {};
 
-  // Filter to only show entity types that have links
-  const linkedTypes = DISPLAY_ORDER.filter((type) => (linkCounts[type] ?? 0) > 0);
+  // Filter to only show entity types that have links (in standard display order)
+  const linkedTypes = ENTITY_TYPE_DISPLAY_ORDER.filter((type) => (linkCounts[type] ?? 0) > 0);
 
   // Don't render anything if no links
   if (totalLinks === 0 && !compact) {

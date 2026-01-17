@@ -6,6 +6,12 @@ import type {
   EnrichedEntityLink,
   EntityLinksResponse,
 } from '../types/entityLink';
+import {
+  ENTITY_TYPE_CONFIG,
+  ENTITY_TYPE_DISPLAY_ORDER,
+  getEntityColorClasses,
+  getRelationshipLabel,
+} from '../lib/entityConfig';
 import EntityDetailModal from './EntityDetailModal';
 
 interface LinkedEntitiesDisplayProps {
@@ -22,82 +28,6 @@ interface LinkedEntitiesDisplayProps {
   className?: string;
 }
 
-// Entity type configuration
-const ENTITY_CONFIG: Record<EntityType, { label: string; labelPlural: string; emoji: string; color: string }> = {
-  PHOTO: { label: 'Photo', labelPlural: 'Photos', emoji: '📷', color: 'gray' },
-  LOCATION: { label: 'Location', labelPlural: 'Locations', emoji: '📍', color: 'blue' },
-  ACTIVITY: { label: 'Activity', labelPlural: 'Activities', emoji: '🎯', color: 'green' },
-  LODGING: { label: 'Lodging', labelPlural: 'Lodging', emoji: '🏨', color: 'purple' },
-  TRANSPORTATION: { label: 'Transportation', labelPlural: 'Transportation', emoji: '🚗', color: 'orange' },
-  JOURNAL_ENTRY: { label: 'Journal', labelPlural: 'Journal Entries', emoji: '📝', color: 'yellow' },
-  PHOTO_ALBUM: { label: 'Album', labelPlural: 'Albums', emoji: '📸', color: 'pink' },
-};
-
-// Color classes map - defined once outside component to avoid recreation
-const COLOR_MAP: Record<string, { bg: string; bgHover: string; text: string; border: string; ring: string; focus: string }> = {
-  gray: {
-    bg: 'bg-gray-100 dark:bg-gray-700',
-    bgHover: 'hover:bg-gray-200 dark:hover:bg-gray-600',
-    text: 'text-gray-800 dark:text-gray-200',
-    border: 'border-gray-300 dark:border-gray-600',
-    ring: 'ring-gray-400',
-    focus: 'focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 focus:outline-none',
-  },
-  blue: {
-    bg: 'bg-blue-100 dark:bg-blue-900/50',
-    bgHover: 'hover:bg-blue-200 dark:hover:bg-blue-800/50',
-    text: 'text-blue-800 dark:text-blue-200',
-    border: 'border-blue-300 dark:border-blue-700',
-    ring: 'ring-blue-400',
-    focus: 'focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 focus:outline-none',
-  },
-  green: {
-    bg: 'bg-green-100 dark:bg-green-900/50',
-    bgHover: 'hover:bg-green-200 dark:hover:bg-green-800/50',
-    text: 'text-green-800 dark:text-green-200',
-    border: 'border-green-300 dark:border-green-700',
-    ring: 'ring-green-400',
-    focus: 'focus:ring-2 focus:ring-green-400 focus:ring-offset-1 focus:outline-none',
-  },
-  purple: {
-    bg: 'bg-purple-100 dark:bg-purple-900/50',
-    bgHover: 'hover:bg-purple-200 dark:hover:bg-purple-800/50',
-    text: 'text-purple-800 dark:text-purple-200',
-    border: 'border-purple-300 dark:border-purple-700',
-    ring: 'ring-purple-400',
-    focus: 'focus:ring-2 focus:ring-purple-400 focus:ring-offset-1 focus:outline-none',
-  },
-  orange: {
-    bg: 'bg-orange-100 dark:bg-orange-900/50',
-    bgHover: 'hover:bg-orange-200 dark:hover:bg-orange-800/50',
-    text: 'text-orange-800 dark:text-orange-200',
-    border: 'border-orange-300 dark:border-orange-700',
-    ring: 'ring-orange-400',
-    focus: 'focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 focus:outline-none',
-  },
-  yellow: {
-    bg: 'bg-yellow-100 dark:bg-yellow-900/50',
-    bgHover: 'hover:bg-yellow-200 dark:hover:bg-yellow-800/50',
-    text: 'text-yellow-800 dark:text-yellow-200',
-    border: 'border-yellow-300 dark:border-yellow-700',
-    ring: 'ring-yellow-400',
-    focus: 'focus:ring-2 focus:ring-yellow-400 focus:ring-offset-1 focus:outline-none',
-  },
-  pink: {
-    bg: 'bg-pink-100 dark:bg-pink-900/50',
-    bgHover: 'hover:bg-pink-200 dark:hover:bg-pink-800/50',
-    text: 'text-pink-800 dark:text-pink-200',
-    border: 'border-pink-300 dark:border-pink-700',
-    ring: 'ring-pink-400',
-    focus: 'focus:ring-2 focus:ring-pink-400 focus:ring-offset-1 focus:outline-none',
-  },
-};
-
-// Get Tailwind color classes for each entity type
-function getColorClasses(entityType: EntityType) {
-  return COLOR_MAP[ENTITY_CONFIG[entityType].color] || COLOR_MAP.gray;
-}
-
 // Get display name for a linked entity
 function getEntityDisplayName(link: EnrichedEntityLink, direction: 'from' | 'to'): string {
   const entity = direction === 'from' ? link.targetEntity : link.sourceEntity;
@@ -105,10 +35,6 @@ function getEntityDisplayName(link: EnrichedEntityLink, direction: 'from' | 'to'
   return entity.name || entity.title || entity.caption || `ID: ${entity.id}`;
 }
 
-// Format relationship for display
-function formatRelationship(relationship: string): string {
-  return relationship.replace(/_/g, ' ').toLowerCase();
-}
 
 interface GroupedLink {
   link: EnrichedEntityLink;
@@ -189,18 +115,9 @@ export default function LinkedEntitiesDisplay({
     return groups;
   }, [linksData, excludeTypes]);
 
-  // Get entity types that have links (ordered by preference)
+  // Get entity types that have links (in standard display order)
   const linkedEntityTypes = useMemo(() => {
-    const preferredOrder: EntityType[] = [
-      'LOCATION',
-      'ACTIVITY',
-      'LODGING',
-      'TRANSPORTATION',
-      'PHOTO',
-      'PHOTO_ALBUM',
-      'JOURNAL_ENTRY',
-    ];
-    return preferredOrder.filter(
+    return ENTITY_TYPE_DISPLAY_ORDER.filter(
       (type) => groupedLinks[type]?.length > 0
     );
   }, [groupedLinks]);
@@ -239,8 +156,8 @@ export default function LinkedEntitiesDisplay({
       <div className="space-y-3">
         {linkedEntityTypes.map((type) => {
           const items = groupedLinks[type];
-          const config = ENTITY_CONFIG[type];
-          const colors = getColorClasses(type);
+          const config = ENTITY_TYPE_CONFIG[type];
+          const colors = getEntityColorClasses(type);
           const showAll = items.length <= maxItemsPerType;
           const displayItems = showAll ? items : items.slice(0, maxItemsPerType);
           const hiddenCount = items.length - displayItems.length;
@@ -250,8 +167,8 @@ export default function LinkedEntitiesDisplay({
               {/* Type label with count */}
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="text-sm">{config.emoji}</span>
-                <span className={`text-xs font-medium ${colors.text}`}>
-                  {items.length === 1 ? config.label : config.labelPlural} ({items.length})
+                <span className={`text-xs font-medium ${colors.text} ${colors.textDark}`}>
+                  {items.length === 1 ? config.label : config.pluralLabel} ({items.length})
                 </span>
               </div>
 
@@ -264,19 +181,19 @@ export default function LinkedEntitiesDisplay({
                     onClick={() => setSelectedEntity({ type: item.linkedEntityType, id: item.linkedEntityId })}
                     className={`
                       inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border
-                      ${colors.bg} ${colors.bgHover} ${colors.border} ${colors.focus}
+                      ${colors.bg} ${colors.bgDark} ${colors.bgHover} ${colors.border} ${colors.focus}
                       transition-colors cursor-pointer
                       ${compact ? 'text-xs' : 'text-sm'}
                     `}
-                    title={`${formatRelationship(item.link.relationship)}: ${item.displayName}`}
+                    title={`${getRelationshipLabel(item.link.relationship)}: ${item.displayName}`}
                   >
                     <span className={compact ? 'text-xs' : 'text-sm'}>{config.emoji}</span>
-                    <span className={`font-medium ${colors.text} truncate max-w-[150px]`}>
+                    <span className={`font-medium ${colors.text} ${colors.textDark} truncate max-w-[150px]`}>
                       {item.displayName}
                     </span>
                     {!compact && (
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        ({formatRelationship(item.link.relationship)})
+                        ({getRelationshipLabel(item.link.relationship)})
                       </span>
                     )}
                   </button>

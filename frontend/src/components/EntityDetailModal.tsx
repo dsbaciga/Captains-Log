@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { EntityType } from '../types/entityLink';
-import { ENTITY_TYPE_CONFIG } from '../types/entityLink';
+import { ENTITY_TYPE_CONFIG } from '../lib/entityConfig';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
 import lodgingService from '../services/lodging.service';

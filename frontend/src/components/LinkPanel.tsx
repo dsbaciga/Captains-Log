@@ -3,11 +3,18 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import entityLinkService from '../services/entityLink.service';
 import GeneralEntityPickerModal from './GeneralEntityPickerModal';
+import LinkEditModal from './LinkEditModal';
 import type {
   EntityType,
   EnrichedEntityLink,
+  LinkRelationship,
 } from '../types/entityLink';
-import { ENTITY_TYPE_CONFIG } from '../types/entityLink';
+import {
+  ENTITY_TYPE_CONFIG,
+  ENTITY_TYPE_DISPLAY_ORDER,
+  getEntityColorClasses,
+  getRelationshipLabel,
+} from '../lib/entityConfig';
 
 // Map entity types to their corresponding tab names on the trip detail page
 const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
@@ -28,67 +35,6 @@ interface LinkPanelProps {
   onUpdate?: () => void;
 }
 
-// Get color classes for an entity type
-function getColorClasses(entityType: EntityType): {
-  bg: string;
-  bgDark: string;
-  text: string;
-  textDark: string;
-  border: string;
-} {
-  const colorMap: Record<string, { bg: string; bgDark: string; text: string; textDark: string; border: string }> = {
-    gray: {
-      bg: 'bg-gray-100',
-      bgDark: 'dark:bg-gray-700',
-      text: 'text-gray-800',
-      textDark: 'dark:text-gray-200',
-      border: 'border-gray-300 dark:border-gray-600',
-    },
-    blue: {
-      bg: 'bg-blue-100',
-      bgDark: 'dark:bg-blue-900',
-      text: 'text-blue-800',
-      textDark: 'dark:text-blue-200',
-      border: 'border-blue-300 dark:border-blue-700',
-    },
-    green: {
-      bg: 'bg-green-100',
-      bgDark: 'dark:bg-green-900',
-      text: 'text-green-800',
-      textDark: 'dark:text-green-200',
-      border: 'border-green-300 dark:border-green-700',
-    },
-    purple: {
-      bg: 'bg-purple-100',
-      bgDark: 'dark:bg-purple-900',
-      text: 'text-purple-800',
-      textDark: 'dark:text-purple-200',
-      border: 'border-purple-300 dark:border-purple-700',
-    },
-    orange: {
-      bg: 'bg-orange-100',
-      bgDark: 'dark:bg-orange-900',
-      text: 'text-orange-800',
-      textDark: 'dark:text-orange-200',
-      border: 'border-orange-300 dark:border-orange-700',
-    },
-    yellow: {
-      bg: 'bg-yellow-100',
-      bgDark: 'dark:bg-yellow-900',
-      text: 'text-yellow-800',
-      textDark: 'dark:text-yellow-200',
-      border: 'border-yellow-300 dark:border-yellow-700',
-    },
-    pink: {
-      bg: 'bg-pink-100',
-      bgDark: 'dark:bg-pink-900',
-      text: 'text-pink-800',
-      textDark: 'dark:text-pink-200',
-      border: 'border-pink-300 dark:border-pink-700',
-    },
-  };
-  return colorMap[ENTITY_TYPE_CONFIG[entityType].color] || colorMap.gray;
-}
 
 // Get display name for a linked entity
 function getEntityDisplayName(link: EnrichedEntityLink, direction: 'from' | 'to'): string {
@@ -106,6 +52,7 @@ export default function LinkPanel({
 }: LinkPanelProps) {
   const navigate = useNavigate();
   const [showAddLinkModal, setShowAddLinkModal] = useState(false);
+  const [editingLink, setEditingLink] = useState<EnrichedEntityLink | null>(null);
 
   // Navigate to the linked entity's location in the trip detail page
   const handleNavigateToEntity = (linkedEntityType: EntityType, linkedEntityId: number) => {
@@ -166,9 +113,9 @@ export default function LinkPanel({
     return groups;
   }, [linksData]);
 
-  // Get entity types that have links
+  // Get entity types that have links (in standard display order)
   const linkedEntityTypes = useMemo(() => {
-    return (Object.keys(groupedLinks) as EntityType[]).filter(
+    return ENTITY_TYPE_DISPLAY_ORDER.filter(
       (type) => groupedLinks[type]?.length > 0
     );
   }, [groupedLinks]);
@@ -275,7 +222,7 @@ export default function LinkPanel({
               {linkedEntityTypes.map((type) => {
                 const links = groupedLinks[type];
                 const config = ENTITY_TYPE_CONFIG[type];
-                const colors = getColorClasses(type);
+                const colors = getEntityColorClasses(type);
 
                 return (
                   <div key={type}>
@@ -308,7 +255,7 @@ export default function LinkPanel({
                               }
                             }}
                           >
-                            <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               {/* Show thumbnail for photos, emoji for others */}
                               {isPhoto && thumbnailUrl ? (
                                 <img
@@ -325,8 +272,13 @@ export default function LinkPanel({
                                 <div className={`font-medium truncate ${colors.text} ${colors.textDark} hover:underline`}>
                                   {displayName}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {link.relationship.replace(/_/g, ' ').toLowerCase()}
+                                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                  <span>{getRelationshipLabel(link.relationship)}</span>
+                                  {link.notes && (
+                                    <span className="text-gray-400 dark:text-gray-500" title={link.notes}>
+                                      - {link.notes.length > 20 ? link.notes.slice(0, 20) + '...' : link.notes}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               {/* Go to icon */}
@@ -344,24 +296,46 @@ export default function LinkPanel({
                                 />
                               </svg>
                             </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent navigation when clicking delete
-                                handleDeleteLink(link.id);
-                              }}
-                              disabled={deleteLinkMutation.isPending}
-                              className="p-1.5 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors flex-shrink-0 ml-2"
-                              title="Remove link"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </button>
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                              {/* Edit button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingLink(link);
+                                }}
+                                className="p-1.5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                                title="Edit link"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                              </button>
+                              {/* Delete button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteLink(link.id);
+                                }}
+                                disabled={deleteLinkMutation.isPending}
+                                className="p-1.5 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                                title="Remove link"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -392,6 +366,20 @@ export default function LinkPanel({
           onSuccess={() => {
             refetch();
             onUpdate?.();
+          }}
+        />
+      )}
+
+      {/* Edit Link Modal */}
+      {editingLink && (
+        <LinkEditModal
+          tripId={tripId}
+          link={editingLink}
+          onClose={() => setEditingLink(null)}
+          onSuccess={() => {
+            refetch();
+            onUpdate?.();
+            setEditingLink(null);
           }}
         />
       )}

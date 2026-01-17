@@ -88,6 +88,14 @@ export const deleteEntityLinkSchema = z.object({
 
 export type DeleteEntityLinkInput = z.infer<typeof deleteEntityLinkSchema>;
 
+// Update a link (relationship and notes only)
+export const updateEntityLinkSchema = z.object({
+  relationship: linkRelationshipEnum.optional(),
+  notes: z.string().max(1000).nullable().optional(),
+});
+
+export type UpdateEntityLinkInput = z.infer<typeof updateEntityLinkSchema>;
+
 // Convenience schemas for common operations
 export const linkPhotoToEntitySchema = z.object({
   tripId: z.number().int().positive(),

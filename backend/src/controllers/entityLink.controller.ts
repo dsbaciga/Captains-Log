@@ -4,6 +4,7 @@ import {
   createEntityLinkSchema,
   bulkCreateEntityLinksSchema,
   deleteEntityLinkSchema,
+  updateEntityLinkSchema,
   bulkLinkPhotosSchema,
   entityTypeEnum,
 } from '../types/entityLink.types';
@@ -205,6 +206,23 @@ export const entityLinkController = {
       const linkId = parseInt(req.params.linkId);
       await entityLinkService.deleteLinkById(userId, tripId, linkId);
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Update a link (relationship and/or notes)
+   * PATCH /api/trips/:tripId/links/:linkId
+   */
+  async updateLink(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+      const tripId = parseInt(req.params.tripId);
+      const linkId = parseInt(req.params.linkId);
+      const data = updateEntityLinkSchema.parse(req.body);
+      const link = await entityLinkService.updateLink(userId, tripId, linkId, data);
+      res.json(link);
     } catch (error) {
       next(error);
     }

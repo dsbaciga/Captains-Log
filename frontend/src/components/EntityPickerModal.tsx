@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { EntityType } from '../types/entityLink';
-import { ENTITY_TYPE_CONFIG } from '../types/entityLink';
+import { ENTITY_TYPE_CONFIG } from '../lib/entityConfig';
 import { useEntityFetcher, useEntityFilter } from '../hooks/useEntityFetcher';
 import entityLinkService from '../services/entityLink.service';
 import toast from 'react-hot-toast';
