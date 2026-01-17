@@ -430,6 +430,30 @@ export default function TransportationManager({
     return `${kilometers.toFixed(1)} km (${miles.toFixed(1)} mi)`;
   };
 
+  // Helper to get location display name - for flights, only show the name without full address
+  const getLocationDisplay = (
+    location: { name: string } | null | undefined,
+    locationName: string | null | undefined,
+    locationId: number | null | undefined,
+    transportType: string
+  ): string => {
+    if (location?.name) {
+      return location.name;
+    }
+    if (locationName) {
+      // For flights, extract just the first part (name) from text field
+      // This handles cases where users entered full addresses like "JFK Airport, Queens, NY"
+      if (transportType === 'flight') {
+        return locationName.split(',')[0].trim();
+      }
+      return locationName;
+    }
+    if (locationId) {
+      return `Location #${locationId} (deleted?)`;
+    }
+    return "Unknown";
+  };
+
   const getStatusBadge = (transportation: Transportation) => {
     if (transportation.isInProgress) {
       return (
@@ -917,13 +941,19 @@ export default function TransportationManager({
                     <div className="flex items-center gap-2">
                       <span className="font-medium">Route:</span>
                       <span>
-                        {transportation.fromLocation?.name ||
-                          transportation.fromLocationName ||
-                          (transportation.fromLocationId ? `Location #${transportation.fromLocationId} (deleted?)` : "Unknown")}{" "}
+                        {getLocationDisplay(
+                          transportation.fromLocation,
+                          transportation.fromLocationName,
+                          transportation.fromLocationId,
+                          transportation.type
+                        )}{" "}
                         →{" "}
-                        {transportation.toLocation?.name ||
-                          transportation.toLocationName ||
-                          (transportation.toLocationId ? `Location #${transportation.toLocationId} (deleted?)` : "Unknown")}
+                        {getLocationDisplay(
+                          transportation.toLocation,
+                          transportation.toLocationName,
+                          transportation.toLocationId,
+                          transportation.type
+                        )}
                       </span>
                     </div>
 

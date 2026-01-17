@@ -314,7 +314,14 @@ const Timeline = ({
               }
               return location.name;
             }
-            if (locationName) return locationName;
+            if (locationName) {
+              // For flights, extract just the first part (name) from text field
+              // This handles cases where users entered full addresses like "JFK Airport, Queens, NY"
+              if (transportType === 'flight') {
+                return locationName.split(',')[0].trim();
+              }
+              return locationName;
+            }
             if (locationId) return `Location #${locationId} (deleted?)`;
             return 'Unknown';
           };
