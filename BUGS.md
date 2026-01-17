@@ -213,6 +213,19 @@ _No low priority bugs currently tracked._
   3. Actual: Print button may be on left or in inconsistent position
 - **Notes**: UI/UX improvement for better visual hierarchy
 
+#### Timeline timezone layout should be spaced further apart (trip left, home right)
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. View Timeline with dual timezone display enabled
+  2. Observe timezone headers and time positions
+  3. Expected: Trip timezone should be on LEFT side of cards, home timezone on RIGHT side, with headers aligned accordingly and clear separation between them
+  4. Actual: Both times are currently on the left side with insufficient separation
+- **Notes**: User prefers trip time (primary context) on left, home time (secondary reference) on right for more intuitive reading. Need better visual separation between the two timezone columns
+
 ## Fixed Bugs
 
 ### Add/Edit modals for entities are too busy, need better UI/UX
