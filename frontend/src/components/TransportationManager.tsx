@@ -484,8 +484,8 @@ export default function TransportationManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
+      <div className="flex justify-between items-center gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Transportation
         </h2>
         <button
@@ -493,9 +493,10 @@ export default function TransportationManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary whitespace-nowrap flex-shrink-0"
+          className="btn btn-primary text-sm sm:text-base whitespace-nowrap flex-shrink-0"
         >
-          + Add Transportation
+          <span className="sm:hidden">+ Add</span>
+          <span className="hidden sm:inline">+ Add Transportation</span>
         </button>
       </div>
 
@@ -897,197 +898,198 @@ export default function TransportationManager({
           filteredItems.map((transportation) => (
             <div
               key={transportation.id}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
             >
               {/* Route Map - Show for all transportation with route data */}
               {transportation.route && (
-                <div className="mb-4">
+                <div className="mb-3 sm:mb-4 -mx-3 sm:mx-0 -mt-3 sm:mt-0">
                   <FlightRouteMap
                     route={transportation.route}
-                    height="250px"
+                    height="200px"
                     transportationType={transportation.type as "flight" | "train" | "bus" | "car" | "ferry" | "bicycle" | "walk" | "other"}
                   />
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+              {/* Header with icon, type, carrier, and status */}
+              <div className="flex items-start gap-2 mb-3 flex-wrap">
+                <span className="text-xl sm:text-2xl">
+                  {getTypeIcon(transportation.type)}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-2 mb-2 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-2xl">
-                        {getTypeIcon(transportation.type)}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                      {transportation.type}
+                    </h3>
+                    {transportation.carrier && (
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        - {transportation.carrier}
                       </span>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
-                        {transportation.type}
-                      </h3>
-                      {transportation.carrier && (
-                        <span className="text-gray-600 dark:text-gray-400">
-                          - {transportation.carrier}
-                        </span>
-                      )}
-                      {transportation.vehicleNumber && (
-                        <span className="text-sm text-gray-500 dark:text-gray-500">
-                          #{transportation.vehicleNumber}
-                        </span>
-                      )}
-                    </div>
-                    <div className="w-full sm:w-auto">
-                      {getStatusBadge(transportation)}
-                    </div>
+                    )}
+                    {transportation.vehicleNumber && (
+                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                        #{transportation.vehicleNumber}
+                      </span>
+                    )}
                   </div>
-
-                  <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                    {/* Route */}
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Route:</span>
-                      <span>
-                        {getLocationDisplay(
-                          transportation.fromLocation,
-                          transportation.fromLocationName,
-                          transportation.fromLocationId,
-                          transportation.type
-                        )}{" "}
-                        →{" "}
-                        {getLocationDisplay(
-                          transportation.toLocation,
-                          transportation.toLocationName,
-                          transportation.toLocationId,
-                          transportation.type
-                        )}
-                      </span>
-                    </div>
-
-                    {/* Departure */}
-                    {transportation.departureTime && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Departure:</span>
-                        <span>
-                          {formatDateTime(
-                            transportation.departureTime,
-                            transportation.startTimezone
-                          )}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Arrival */}
-                    {transportation.arrivalTime && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Arrival:</span>
-                        <span>
-                          {formatDateTime(
-                            transportation.arrivalTime,
-                            transportation.endTimezone
-                          )}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Duration */}
-                    {transportation.durationMinutes && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Duration:</span>
-                        <span>{formatDuration(transportation.durationMinutes)}</span>
-                      </div>
-                    )}
-
-                    {/* Distance */}
-                    {transportation.calculatedDistance && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Distance:</span>
-                        <span>{formatDistance(transportation.calculatedDistance)}</span>
-                      </div>
-                    )}
-
-                    {/* Flight Tracking Info */}
-                    {transportation.flightTracking && (
-                      <>
-                        {transportation.flightTracking.gate && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">Gate:</span>
-                            <span>{transportation.flightTracking.gate}</span>
-                          </div>
-                        )}
-                        {transportation.flightTracking.terminal && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">Terminal:</span>
-                            <span>{transportation.flightTracking.terminal}</span>
-                          </div>
-                        )}
-                        {transportation.flightTracking.baggageClaim && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">Baggage Claim:</span>
-                            <span>{transportation.flightTracking.baggageClaim}</span>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Confirmation Number */}
-                    {transportation.confirmationNumber && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Confirmation:</span>
-                        <span>{transportation.confirmationNumber}</span>
-                      </div>
-                    )}
-
-                    {/* Cost */}
-                    {transportation.cost && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Cost:</span>
-                        <span>
-                          {transportation.currency} {transportation.cost}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    {transportation.notes && (
-                      <div className="mt-2">
-                        <span className="font-medium">Notes:</span>
-                        <p className="text-gray-600 dark:text-gray-400 mt-1">
-                          {transportation.notes}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Linked Entities */}
-                    <LinkedEntitiesDisplay
-                      tripId={tripId}
-                      entityType="TRANSPORTATION"
-                      entityId={transportation.id}
-                      compact
-                    />
+                  <div className="mt-1">
+                    {getStatusBadge(transportation)}
                   </div>
                 </div>
+              </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0 self-start">
-                  <LinkButton
-                    tripId={tripId}
-                    entityType="TRANSPORTATION"
-                    entityId={transportation.id}
-                    linkSummary={getLinkSummary('TRANSPORTATION', transportation.id)}
-                    onUpdate={invalidateLinkSummary}
-                    size="sm"
-                  />
-                  <JournalEntriesButton
-                    journalEntries={transportation.journalAssignments}
-                    tripId={tripId}
-                  />
-                  <button
-                    onClick={() => handleEdit(transportation)}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap text-sm sm:text-base"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(transportation.id)}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap text-sm sm:text-base"
-                  >
-                    Delete
-                  </button>
+              {/* Details */}
+              <div className="space-y-1.5 sm:space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                {/* Route */}
+                <div className="flex flex-wrap gap-x-2">
+                  <span className="font-medium">Route:</span>
+                  <span>
+                    {getLocationDisplay(
+                      transportation.fromLocation,
+                      transportation.fromLocationName,
+                      transportation.fromLocationId,
+                      transportation.type
+                    )}{" "}
+                    →{" "}
+                    {getLocationDisplay(
+                      transportation.toLocation,
+                      transportation.toLocationName,
+                      transportation.toLocationId,
+                      transportation.type
+                    )}
+                  </span>
                 </div>
+
+                {/* Departure */}
+                {transportation.departureTime && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Departure:</span>
+                    <span>
+                      {formatDateTime(
+                        transportation.departureTime,
+                        transportation.startTimezone
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {/* Arrival */}
+                {transportation.arrivalTime && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Arrival:</span>
+                    <span>
+                      {formatDateTime(
+                        transportation.arrivalTime,
+                        transportation.endTimezone
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {/* Duration */}
+                {transportation.durationMinutes && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Duration:</span>
+                    <span>{formatDuration(transportation.durationMinutes)}</span>
+                  </div>
+                )}
+
+                {/* Distance */}
+                {transportation.calculatedDistance && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Distance:</span>
+                    <span>{formatDistance(transportation.calculatedDistance)}</span>
+                  </div>
+                )}
+
+                {/* Flight Tracking Info */}
+                {transportation.flightTracking && (
+                  <>
+                    {transportation.flightTracking.gate && (
+                      <div className="flex flex-wrap gap-x-2">
+                        <span className="font-medium">Gate:</span>
+                        <span>{transportation.flightTracking.gate}</span>
+                      </div>
+                    )}
+                    {transportation.flightTracking.terminal && (
+                      <div className="flex flex-wrap gap-x-2">
+                        <span className="font-medium">Terminal:</span>
+                        <span>{transportation.flightTracking.terminal}</span>
+                      </div>
+                    )}
+                    {transportation.flightTracking.baggageClaim && (
+                      <div className="flex flex-wrap gap-x-2">
+                        <span className="font-medium">Baggage:</span>
+                        <span>{transportation.flightTracking.baggageClaim}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Confirmation Number */}
+                {transportation.confirmationNumber && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Confirmation:</span>
+                    <span>{transportation.confirmationNumber}</span>
+                  </div>
+                )}
+
+                {/* Cost */}
+                {transportation.cost && (
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">Cost:</span>
+                    <span>
+                      {transportation.currency} {transportation.cost}
+                    </span>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {transportation.notes && (
+                  <div className="mt-2">
+                    <span className="font-medium">Notes:</span>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:line-clamp-none">
+                      {transportation.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Linked Entities */}
+              <LinkedEntitiesDisplay
+                tripId={tripId}
+                entityType="TRANSPORTATION"
+                entityId={transportation.id}
+                compact
+              />
+
+              {/* Actions - bottom row */}
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                <LinkButton
+                  tripId={tripId}
+                  entityType="TRANSPORTATION"
+                  entityId={transportation.id}
+                  linkSummary={getLinkSummary('TRANSPORTATION', transportation.id)}
+                  onUpdate={invalidateLinkSummary}
+                  size="sm"
+                />
+                <JournalEntriesButton
+                  journalEntries={transportation.journalAssignments}
+                  tripId={tripId}
+                />
+                <div className="flex-1" />
+                <button
+                  onClick={() => handleEdit(transportation)}
+                  className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(transportation.id)}
+                  className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))
