@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { Activity, CreateActivityInput, UpdateActivityInput } from "../types/activity";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
@@ -110,6 +111,7 @@ export default function ActivityManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activityCategories, setActivityCategories] = useState<
     ActivityCategory[]
   >([]);
@@ -117,6 +119,7 @@ export default function ActivityManager({
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<ActivityFormFields>(getInitialFormState);
@@ -129,6 +132,71 @@ export default function ActivityManager({
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
+
+  // Handle edit param from URL (for navigating from EntityDetailModal)
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      const itemId = parseInt(editId, 10);
+      // Clear the edit param from URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("edit");
+      setSearchParams(newParams, { replace: true });
+      // Set pending edit ID to be handled when items are loaded
+      setPendingEditId(itemId);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Handle pending edit when items are loaded
+  useEffect(() => {
+    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
+      const item = manager.items.find((a) => a.id === pendingEditId);
+      if (item) {
+        // Copy handleEdit logic - we need to inline it since it's defined later
+        setShowMoreOptions(true);
+        handleChange("name", item.name);
+        handleChange("description", item.description || "");
+        handleChange("category", item.category || "");
+        handleChange("locationId", item.locationId || undefined);
+        handleChange("parentId", item.parentId || undefined);
+        handleChange("allDay", item.allDay);
+        handleChange("timezone", item.timezone || "");
+        handleChange("cost", item.cost?.toString() || "");
+        handleChange("currency", item.currency || "USD");
+        handleChange("bookingUrl", item.bookingUrl || "");
+        handleChange("bookingReference", item.bookingReference || "");
+        handleChange("notes", item.notes || "");
+
+        const effectiveTz = item.timezone || tripTimezone || 'UTC';
+        if (item.allDay) {
+          if (item.startTime) {
+            const startDateTime = convertISOToDateTimeLocal(item.startTime, effectiveTz);
+            handleChange("startDate", startDateTime.slice(0, 10));
+          }
+          if (item.endTime) {
+            const endDateTime = convertISOToDateTimeLocal(item.endTime, effectiveTz);
+            handleChange("endDate", endDateTime.slice(0, 10));
+          }
+          handleChange("startTime", "");
+          handleChange("endTime", "");
+        } else {
+          if (item.startTime) {
+            const startDateTime = convertISOToDateTimeLocal(item.startTime, effectiveTz);
+            handleChange("startDate", startDateTime.slice(0, 10));
+            handleChange("startTime", startDateTime.slice(11));
+          }
+          if (item.endTime) {
+            const endDateTime = convertISOToDateTimeLocal(item.endTime, effectiveTz);
+            handleChange("endDate", endDateTime.slice(0, 10));
+            handleChange("endTime", endDateTime.slice(11));
+          }
+        }
+
+        manager.openEditForm(item.id);
+      }
+      setPendingEditId(null);
+    }
+  }, [pendingEditId, manager.items, manager.loading, tripTimezone]);
 
   // Auto-fill: End Time = Start Time + 1 Hour
   useEffect(() => {

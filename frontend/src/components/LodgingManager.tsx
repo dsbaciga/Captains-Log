@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { Lodging, LodgingType, CreateLodgingInput, UpdateLodgingInput } from "../types/lodging";
 import type { Location } from "../types/location";
 import lodgingService from "../services/lodging.service";
@@ -101,10 +102,12 @@ export default function LodgingManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<LodgingFormFields>(getInitialFormState);
@@ -113,6 +116,54 @@ export default function LodgingManager({
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
+
+  // Handle edit param from URL (for navigating from EntityDetailModal)
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      const itemId = parseInt(editId, 10);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("edit");
+      setSearchParams(newParams, { replace: true });
+      setPendingEditId(itemId);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Handle pending edit when items are loaded
+  useEffect(() => {
+    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
+      const item = manager.items.find((l) => l.id === pendingEditId);
+      if (item) {
+        setShowMoreOptions(true);
+        handleChange("type", item.type);
+        handleChange("name", item.name);
+        handleChange("locationId", item.locationId || undefined);
+        handleChange("address", item.address || "");
+
+        const effectiveTz = item.timezone || tripTimezone || 'UTC';
+        handleChange(
+          "checkInDate",
+          item.checkInDate
+            ? convertISOToDateTimeLocal(item.checkInDate, effectiveTz)
+            : ""
+        );
+        handleChange(
+          "checkOutDate",
+          item.checkOutDate
+            ? convertISOToDateTimeLocal(item.checkOutDate, effectiveTz)
+            : ""
+        );
+        handleChange("timezone", item.timezone || "");
+        handleChange("confirmationNumber", item.confirmationNumber || "");
+        handleChange("bookingUrl", item.bookingUrl || "");
+        handleChange("cost", item.cost?.toString() || "");
+        handleChange("currency", item.currency || "USD");
+        handleChange("notes", item.notes || "");
+        manager.openEditForm(item.id);
+      }
+      setPendingEditId(null);
+    }
+  }, [pendingEditId, manager.items, manager.loading, tripTimezone]);
 
   // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
   useEffect(() => {

@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
 import type {
@@ -7,6 +6,7 @@ import type {
   EnrichedEntityLink,
   EntityLinksResponse,
 } from '../types/entityLink';
+import EntityDetailModal from './EntityDetailModal';
 
 interface LinkedEntitiesDisplayProps {
   tripId: number;
@@ -115,27 +115,10 @@ interface GroupedLink {
   direction: 'from' | 'to';
 }
 
-// Map entity types to tab names for navigation
-const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
-  PHOTO: 'photos',
-  LOCATION: 'locations',
-  ACTIVITY: 'activities',
-  LODGING: 'lodging',
-  TRANSPORTATION: 'transportation',
-  JOURNAL_ENTRY: 'journal',
-  PHOTO_ALBUM: null, // Albums have their own route
-};
-
-// Generate URL for navigating to a linked entity
-function getEntityUrl(tripId: number, entityType: EntityType, entityId: number): string {
-  if (entityType === 'PHOTO_ALBUM') {
-    return `/trips/${tripId}/albums/${entityId}`;
-  }
-  const tab = ENTITY_TYPE_TO_TAB[entityType];
-  if (tab) {
-    return `/trips/${tripId}?tab=${tab}`;
-  }
-  return `/trips/${tripId}`;
+// Selected entity state for detail modal
+interface SelectedEntity {
+  type: EntityType;
+  id: number;
 }
 
 export default function LinkedEntitiesDisplay({
@@ -147,6 +130,9 @@ export default function LinkedEntitiesDisplay({
   maxItemsPerType = 5,
   className = '',
 }: LinkedEntitiesDisplayProps) {
+  // State for entity detail modal
+  const [selectedEntity, setSelectedEntity] = useState<SelectedEntity | null>(null);
+
   // Fetch all links for this entity
   const {
     data: linksData,
@@ -269,9 +255,10 @@ export default function LinkedEntitiesDisplay({
               {/* Cards grid */}
               <div className="flex flex-wrap gap-2">
                 {displayItems.map((item) => (
-                  <Link
+                  <button
                     key={item.link.id}
-                    to={getEntityUrl(tripId, item.linkedEntityType, item.linkedEntityId)}
+                    type="button"
+                    onClick={() => setSelectedEntity({ type: item.linkedEntityType, id: item.linkedEntityId })}
                     className={`
                       inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border
                       ${colors.bg} ${colors.bgHover} ${colors.border}
@@ -289,7 +276,7 @@ export default function LinkedEntitiesDisplay({
                         ({formatRelationship(item.link.relationship)})
                       </span>
                     )}
-                  </Link>
+                  </button>
                 ))}
 
                 {/* Show "more" indicator if items are truncated */}
@@ -310,6 +297,17 @@ export default function LinkedEntitiesDisplay({
           );
         })}
       </div>
+
+      {/* Entity Detail Modal */}
+      {selectedEntity && (
+        <EntityDetailModal
+          isOpen={!!selectedEntity}
+          onClose={() => setSelectedEntity(null)}
+          tripId={tripId}
+          entityType={selectedEntity.type}
+          entityId={selectedEntity.id}
+        />
+      )}
     </div>
   );
 }

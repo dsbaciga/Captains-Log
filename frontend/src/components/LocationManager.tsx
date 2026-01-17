@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { Location, CreateLocationInput, UpdateLocationInput, LocationCategory } from "../types/location";
 import locationService from "../services/location.service";
 import toast from "react-hot-toast";
@@ -64,6 +65,7 @@ export default function LocationManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
 
@@ -73,6 +75,30 @@ export default function LocationManager({
   useEffect(() => {
     loadCategories();
   }, []);
+
+  // Handle edit param from URL (for navigating from EntityDetailModal)
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && manager.items.length > 0 && !manager.loading) {
+      const itemId = parseInt(editId, 10);
+      const item = manager.items.find((loc) => loc.id === itemId);
+      if (item) {
+        // Clear the edit param from URL first
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("edit");
+        setSearchParams(newParams, { replace: true });
+        // Then open the edit form
+        handleChange("name", item.name);
+        handleChange("address", item.address || "");
+        handleChange("notes", item.notes || "");
+        handleChange("latitude", item.latitude || undefined);
+        handleChange("longitude", item.longitude || undefined);
+        handleChange("parentId", item.parentId || undefined);
+        handleChange("categoryId", item.categoryId || undefined);
+        manager.openEditForm(item.id);
+      }
+    }
+  }, [searchParams, manager.items, manager.loading]);
 
   const loadCategories = async () => {
     try {

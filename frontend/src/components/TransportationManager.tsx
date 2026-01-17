@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import type {
   Transportation,
   TransportationType,
@@ -112,6 +113,7 @@ export default function TransportationManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const { values, handleChange, reset } =
     useFormFields<TransportationFormFields>(getInitialFormState);
 
@@ -120,6 +122,60 @@ export default function TransportationManager({
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
+
+  // Handle edit param from URL (for navigating from EntityDetailModal)
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      const itemId = parseInt(editId, 10);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("edit");
+      setSearchParams(newParams, { replace: true });
+      setPendingEditId(itemId);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Handle pending edit when items are loaded
+  useEffect(() => {
+    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
+      const item = manager.items.find((t) => t.id === pendingEditId);
+      if (item) {
+        setShowMoreOptions(true);
+        handleChange("type", item.type);
+        handleChange("fromLocationId", item.fromLocationId || undefined);
+        handleChange("toLocationId", item.toLocationId || undefined);
+        handleChange("fromLocationName", item.fromLocationName || "");
+        handleChange("toLocationName", item.toLocationName || "");
+
+        const effectiveStartTz = item.startTimezone || tripTimezone || 'UTC';
+        const effectiveEndTz = item.endTimezone || tripTimezone || 'UTC';
+
+        handleChange(
+          "departureTime",
+          item.departureTime
+            ? convertISOToDateTimeLocal(item.departureTime, effectiveStartTz)
+            : ""
+        );
+        handleChange(
+          "arrivalTime",
+          item.arrivalTime
+            ? convertISOToDateTimeLocal(item.arrivalTime, effectiveEndTz)
+            : ""
+        );
+        handleChange("startTimezone", item.startTimezone || "");
+        handleChange("endTimezone", item.endTimezone || "");
+        handleChange("carrier", item.carrier || "");
+        handleChange("vehicleNumber", item.vehicleNumber || "");
+        handleChange("confirmationNumber", item.confirmationNumber || "");
+        handleChange("cost", item.cost?.toString() || "");
+        handleChange("currency", item.currency || "USD");
+        handleChange("notes", item.notes || "");
+        manager.openEditForm(item.id);
+      }
+      setPendingEditId(null);
+    }
+  }, [pendingEditId, manager.items, manager.loading, tripTimezone]);
 
   // Smart timezone inference: auto-populate timezones when locations are selected
   useEffect(() => {
