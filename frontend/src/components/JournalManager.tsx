@@ -338,14 +338,14 @@ Tell your story!"
                       <button
                         type="button"
                         onClick={() => handleEdit(entry)}
-                        className="btn btn-secondary text-xs sm:text-sm"
+                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap text-sm sm:text-base"
                       >
                         Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(entry.id)}
-                        className="btn btn-danger text-xs sm:text-sm"
+                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap text-sm sm:text-base"
                       >
                         Delete
                       </button>

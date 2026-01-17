@@ -1,0 +1,525 @@
+import { useState, useEffect, useMemo } from "react";
+import type { Location, CreateLocationInput, UpdateLocationInput, LocationCategory } from "../types/location";
+import locationService from "../services/location.service";
+import toast from "react-hot-toast";
+import AssociatedAlbums from "./AssociatedAlbums";
+import JournalEntriesButton from "./JournalEntriesButton";
+import LinkButton from "./LinkButton";
+import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
+import FormModal from "./FormModal";
+import FormSection from "./FormSection";
+import { useFormFields } from "../hooks/useFormFields";
+import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import EmptyState from "./EmptyState";
+import { ListItemSkeleton } from "./SkeletonLoader";
+import LocationSearchMap from "./LocationSearchMap";
+import TripLocationsMap from "./TripLocationsMap";
+
+interface LocationManagerProps {
+  tripId: number;
+  tripTimezone?: string | null;
+  onUpdate?: () => void;
+}
+
+interface LocationFormFields {
+  name: string;
+  address: string;
+  notes: string;
+  latitude: number | undefined;
+  longitude: number | undefined;
+  parentId: number | undefined;
+  categoryId: number | undefined;
+}
+
+const initialFormState: LocationFormFields = {
+  name: "",
+  address: "",
+  notes: "",
+  latitude: undefined,
+  longitude: undefined,
+  parentId: undefined,
+  categoryId: undefined,
+};
+
+export default function LocationManager({
+  tripId,
+  onUpdate,
+}: LocationManagerProps) {
+  // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
+  const locationServiceAdapter = useMemo(() => ({
+    getByTrip: locationService.getLocationsByTrip,
+    create: locationService.createLocation,
+    update: locationService.updateLocation,
+    delete: locationService.deleteLocation,
+  }), []);
+
+  // Initialize CRUD hook
+  const manager = useManagerCRUD<Location, CreateLocationInput, UpdateLocationInput>(locationServiceAdapter, tripId, {
+    itemName: "location",
+    onUpdate,
+  });
+
+  const { confirm, ConfirmDialogComponent } = useConfirmDialog();
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
+
+  const [categories, setCategories] = useState<LocationCategory[]>([]);
+  const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+
+  const { values, handleChange, reset } =
+    useFormFields<LocationFormFields>(initialFormState);
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      const cats = await locationService.getCategories();
+      setCategories(cats);
+    } catch {
+      console.error("Failed to load location categories");
+    }
+  };
+
+  const resetForm = () => {
+    reset();
+    manager.setEditingId(null);
+    setKeepFormOpenAfterSave(false);
+  };
+
+  const handleLocationSelect = (data: {
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    handleChange("name", data.name);
+    handleChange("address", data.address);
+    handleChange("latitude", data.latitude);
+    handleChange("longitude", data.longitude);
+  };
+
+  const handleEdit = (location: Location) => {
+    handleChange("name", location.name);
+    handleChange("address", location.address || "");
+    handleChange("notes", location.notes || "");
+    handleChange("latitude", location.latitude || undefined);
+    handleChange("longitude", location.longitude || undefined);
+    handleChange("parentId", location.parentId || undefined);
+    handleChange("categoryId", location.categoryId || undefined);
+    manager.openEditForm(location.id);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!values.name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+
+    if (manager.editingId) {
+      // For updates, send null to clear empty fields
+      const updateData = {
+        name: values.name,
+        address: values.address || undefined,
+        notes: values.notes || undefined,
+        latitude: values.latitude,
+        longitude: values.longitude,
+        parentId: values.parentId,
+        categoryId: values.categoryId,
+      };
+      const success = await manager.handleUpdate(manager.editingId, updateData);
+      if (success) {
+        resetForm();
+        manager.closeForm();
+      }
+    } else {
+      // For creates, use undefined to omit optional fields
+      const createData = {
+        tripId,
+        name: values.name,
+        address: values.address || undefined,
+        notes: values.notes || undefined,
+        latitude: values.latitude,
+        longitude: values.longitude,
+        parentId: values.parentId,
+        categoryId: values.categoryId,
+      };
+      const success = await manager.handleCreate(createData);
+      if (success) {
+        if (keepFormOpenAfterSave) {
+          // Reset form but keep modal open for quick successive entries
+          reset();
+          setKeepFormOpenAfterSave(false);
+          // Focus first input for quick data entry
+          setTimeout(() => {
+            const firstInput = document.querySelector<HTMLInputElement>('#location-name');
+            firstInput?.focus();
+          }, 50);
+        } else {
+          // Standard flow: reset and close
+          resetForm();
+          manager.closeForm();
+        }
+      }
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    const location = manager.items.find(l => l.id === id);
+    const hasChildren = manager.items.some(l => l.parentId === id);
+
+    const confirmed = await confirm({
+      title: "Delete Location",
+      message: hasChildren
+        ? `Delete "${location?.name}" and all its child locations? This action cannot be undone.`
+        : `Delete "${location?.name}"? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    await manager.handleDelete(id);
+  };
+
+  const handleCloseForm = () => {
+    resetForm();
+    manager.closeForm();
+  };
+
+  // Get top-level locations (no parent)
+  const topLevelLocations = manager.items.filter((loc) => !loc.parentId);
+
+  // Get children for a parent location
+  const getChildren = (parentId: number) => {
+    return manager.items.filter((loc) => loc.parentId === parentId);
+  };
+
+  const renderLocation = (location: Location, isChild = false) => {
+    const children = getChildren(location.id);
+
+    return (
+      <div key={location.id} className={isChild ? "" : "space-y-2"}>
+        <div
+          className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow ${
+            isChild
+              ? "bg-gray-50 dark:bg-gray-700"
+              : "bg-white dark:bg-gray-800"
+          }`}
+        >
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                {isChild && (
+                  <span className="text-gray-400 dark:text-gray-500">
+                    {String.fromCharCode(8627)}
+                  </span>
+                )}
+                <h3
+                  className={`${
+                    isChild ? "text-base" : "text-lg"
+                  } font-semibold text-gray-900 dark:text-white`}
+                >
+                  {location.name}
+                </h3>
+                {!isChild && children.length > 0 && (
+                  <span className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                    {children.length} {children.length === 1 ? "place" : "places"}
+                  </span>
+                )}
+              </div>
+              {location.address && (
+                <p
+                  className={`text-gray-600 dark:text-gray-400 text-sm mt-1 ${
+                    isChild ? "ml-6" : ""
+                  }`}
+                >
+                  {location.address}
+                </p>
+              )}
+              {location.notes && (
+                <p
+                  className={`text-gray-700 dark:text-gray-300 mt-2 ${
+                    isChild ? "ml-6" : ""
+                  }`}
+                >
+                  {location.notes}
+                </p>
+              )}
+              {location.category && (
+                <span
+                  className={`inline-block mt-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded ${
+                    isChild ? "ml-6" : ""
+                  }`}
+                >
+                  {location.category.icon && `${location.category.icon} `}
+                  {location.category.name}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2 items-center flex-shrink-0">
+              <LinkButton
+                tripId={tripId}
+                entityType="LOCATION"
+                entityId={location.id}
+                linkSummary={getLinkSummary("LOCATION", location.id)}
+                onUpdate={invalidateLinkSummary}
+                size="sm"
+              />
+              <JournalEntriesButton
+                journalEntries={location.journalLocationAssignments}
+                tripId={tripId}
+              />
+              <button
+                onClick={() => handleEdit(location)}
+                className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(location.id)}
+                className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+
+          {/* Associated Albums - Full Width */}
+          <AssociatedAlbums albums={location.photoAlbums} tripId={tripId} />
+
+          {/* Linked Entities */}
+          <LinkedEntitiesDisplay
+            tripId={tripId}
+            entityType="LOCATION"
+            entityId={location.id}
+            compact
+          />
+        </div>
+
+        {/* Render children */}
+        {!isChild && children.length > 0 && (
+          <div className="ml-8 space-y-2">
+            {children.map((child) => renderLocation(child, true))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <ConfirmDialogComponent />
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
+          Locations
+        </h2>
+        <button
+          onClick={() => {
+            resetForm();
+            manager.toggleForm();
+          }}
+          className="btn btn-primary whitespace-nowrap flex-shrink-0"
+        >
+          + Add Location
+        </button>
+      </div>
+
+      {/* Form Modal */}
+      <FormModal
+        isOpen={manager.showForm}
+        onClose={handleCloseForm}
+        title={manager.editingId ? "Edit Location" : "Add Location"}
+        icon="📍"
+        maxWidth="2xl"
+        formId="location-form"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={handleCloseForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            {!manager.editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setKeepFormOpenAfterSave(true);
+                  (document.getElementById('location-form') as HTMLFormElement)?.requestSubmit();
+                }}
+                className="btn btn-secondary text-sm whitespace-nowrap"
+              >
+                <span className="hidden sm:inline">Save & Add Another</span>
+                <span className="sm:hidden">Save & Add</span>
+              </button>
+            )}
+            <button
+              type="submit"
+              form="location-form"
+              className="btn btn-primary"
+            >
+              {manager.editingId ? "Update" : "Add"} Location
+            </button>
+          </>
+        }
+      >
+        <form id="location-form" onSubmit={handleSubmit} className="space-y-6">
+          {/* Map Search Section */}
+          <FormSection title="Search & Select Location" icon="🗺️">
+            <LocationSearchMap
+              onLocationSelect={handleLocationSelect}
+              initialPosition={
+                values.latitude && values.longitude
+                  ? { lat: values.latitude, lng: values.longitude }
+                  : undefined
+              }
+            />
+          </FormSection>
+
+          {/* Basic Info Section */}
+          <FormSection title="Location Details" icon="📍">
+            <div>
+              <label
+                htmlFor="location-name"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Location Name *
+              </label>
+              <input
+                type="text"
+                id="location-name"
+                value={values.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+                className="input"
+                required
+                placeholder="Eiffel Tower"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="location-parent"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Parent Location (City/Region)
+              </label>
+              <select
+                id="location-parent"
+                value={values.parentId || ""}
+                onChange={(e) =>
+                  handleChange(
+                    "parentId",
+                    e.target.value ? parseInt(e.target.value) : undefined
+                  )
+                }
+                className="input"
+              >
+                <option value="">None (Top-level location)</option>
+                {manager.items
+                  .filter((loc) => loc.id !== manager.editingId && !loc.parentId)
+                  .map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Group places by selecting a parent city or region
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="location-address"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Address
+              </label>
+              <input
+                type="text"
+                id="location-address"
+                value={values.address}
+                onChange={(e) => handleChange("address", e.target.value)}
+                className="input"
+                placeholder="Paris, France"
+              />
+            </div>
+
+            {categories.length > 0 && (
+              <div>
+                <label
+                  htmlFor="location-category"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Category
+                </label>
+                <select
+                  id="location-category"
+                  value={values.categoryId || ""}
+                  onChange={(e) =>
+                    handleChange(
+                      "categoryId",
+                      e.target.value ? parseInt(e.target.value) : undefined
+                    )
+                  }
+                  className="input"
+                >
+                  <option value="">-- Select Category --</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon && `${cat.icon} `}
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label
+                htmlFor="location-notes"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Notes
+              </label>
+              <textarea
+                id="location-notes"
+                value={values.notes}
+                onChange={(e) => handleChange("notes", e.target.value)}
+                className="input"
+                rows={2}
+                placeholder="Additional notes..."
+              />
+            </div>
+          </FormSection>
+        </form>
+      </FormModal>
+
+      {/* Locations List */}
+      <div className="space-y-4">
+        {manager.loading ? (
+          <ListItemSkeleton count={3} />
+        ) : manager.items.length === 0 ? (
+          <EmptyState
+            icon="📍"
+            message="No locations added yet"
+            subMessage="Add cities, landmarks, restaurants, and other places you'll visit"
+          />
+        ) : (
+          topLevelLocations.map((location) => renderLocation(location))
+        )}
+      </div>
+
+      {/* Locations Map */}
+      {manager.items.length > 0 && (
+        <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+          <TripLocationsMap locations={manager.items} />
+        </div>
+      )}
+    </div>
+  );
+}

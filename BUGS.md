@@ -16,105 +16,70 @@ _No medium priority bugs currently tracked._
 
 _No low priority bugs currently tracked._
 
-#### Updating transportation hides all transportation entities until refresh
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Edit and save a transportation entity
-  2. Expected: Transportation list should update and remain visible
-  3. Actual: All transportation items disappear until page refresh
-- **Notes**: Likely a state management or query invalidation issue
-
-#### Clicking a linked item should navigate to that item
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Open LinkPanel showing linked entities
-  2. Click on a linked entity
-  3. Expected: Should navigate to/highlight/scroll to that entity
-  4. Actual: Nothing happens
-- **Notes**: Improve UX by making linked items clickable and navigating to the referenced entity
-
-#### Linking photos list doesn't paginate
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Open photo linking modal for a trip with many photos
-  2. Expected: Should have pagination or infinite scroll
-  3. Actual: All photos load at once, causing performance issues
-- **Notes**: Add pagination to photo selection in GeneralEntityPickerModal
-
-#### Inconsistent Edit and Delete buttons across entity managers
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Review Edit/Delete button placement across different entity managers
-  2. Expected: Consistent button styling, placement, and behavior
-  3. Actual: Buttons appear in different locations or with different styles
-- **Notes**: Standardize button placement and styling across all entity manager components
-
-#### Locations needs its own manager component
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Review location management UI
-  2. Expected: Should have dedicated LocationManager like other entities
-  3. Actual: Location management is embedded in TripDetailPage
-- **Notes**: Extract location management into dedicated LocationManager component for consistency and maintainability
-
-#### Albums should use linking strategy and modal
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Try to link albums to other entities
-  2. Expected: Should use unified EntityLink system with LinkButton/LinkPanel
-  3. Actual: Albums may still use old linking approach
-- **Notes**: Migrate albums to use EntityLink system for consistency with other entities
-
-#### Move Print button to right side
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. View Timeline with Print button
-  2. Expected: Print button should be positioned on right side of header
-  3. Actual: Print button may be on left or in inconsistent position
-- **Notes**: UI/UX improvement for better visual hierarchy
-
-#### Timeline timezone layout should be spaced further apart (trip left, home right)
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. View Timeline with dual timezone display enabled
-  2. Observe timezone headers and time positions
-  3. Expected: Trip timezone should be on LEFT side of cards, home timezone on RIGHT side, with headers aligned accordingly and clear separation between them
-  4. Actual: Both times are currently on the left side with insufficient separation
-- **Notes**: User prefers trip time (primary context) on left, home time (secondary reference) on right for more intuitive reading. Need better visual separation between the two timezone columns
-
 ## Fixed Bugs
+
+### Clicking a linked item should navigate to that item
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Clicking on linked entities in LinkPanel did nothing
+- **Fix**: Added navigation handler using `useNavigate()` that closes the panel and navigates to the appropriate tab on the trip detail page with a hash containing entity type and ID for future scroll/highlight support
+
+### Linking photos list doesn't paginate
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Photo selection modal loaded all photos at once, causing performance issues with large collections
+- **Fix**: Added pagination to `useEntityFetcher.ts` and `GeneralEntityPickerModal.tsx` with 24 photos per page and a "Load More" button showing remaining count
+
+### Inconsistent Edit and Delete buttons across entity managers
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Edit/Delete button styling varied across manager components (JournalManager used button classes while others used text links)
+- **Fix**: Updated JournalManager to use consistent text-based link styling (blue Edit, red Delete) matching TransportationManager, LodgingManager, and ActivityManager
+
+### Locations needs its own manager component
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Location management was embedded directly in TripDetailPage instead of having a dedicated manager component
+- **Fix**: Created new `LocationManager.tsx` component following established patterns (useManagerCRUD, useFormFields, useConfirmDialog) and updated TripDetailPage to use it, reducing that file by ~400 lines
+
+### Albums should use linking strategy and modal
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Album cards in AlbumsPage were missing LinkButton for EntityLink integration
+- **Fix**: Added `useTripLinkSummary` hook and `LinkButton` component to album cards in AlbumsPage.tsx, matching the pattern used in ActivityManager
+
+### Move Print button to right side
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Print button was positioned on the left side of the Timeline header
+- **Fix**: Changed action buttons container in Timeline.tsx to use `justify-between`, positioning Weather Refresh on left and Print on right
+
+### Timeline timezone layout should be spaced further apart (trip left, home right)
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: In dual timezone mode, both times appeared on the left with insufficient separation
+- **Fix**: Updated TimelineDaySection.tsx and TimelineEventCard.tsx to use `justify-between` layout with trip time on LEFT (blue dot indicator) and home time on RIGHT (gray dot indicator) with clear visual separation
 
 ### No button to add unscheduled entities (needs type picker)
 

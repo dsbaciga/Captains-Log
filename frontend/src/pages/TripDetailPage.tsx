@@ -33,29 +33,20 @@ import TransportationManager from "../components/TransportationManager";
 import LodgingManager from "../components/LodgingManager";
 import JournalManager from "../components/JournalManager";
 import CompanionManager from "../components/CompanionManager";
-import LocationSearchMap from "../components/LocationSearchMap";
-import TripLocationsMap from "../components/TripLocationsMap";
+import LocationManager from "../components/LocationManager";
 import { getFullAssetUrl } from "../lib/config";
 import TagsModal from "../components/TagsModal";
 import AlbumsSidebar from "../components/AlbumsSidebar";
 import AlbumModal from "../components/AlbumModal";
-import AssociatedAlbums from "../components/AssociatedAlbums";
-import JournalEntriesButton from "../components/JournalEntriesButton";
-import LinkButton from "../components/LinkButton";
-import LinkedEntitiesDisplay from "../components/LinkedEntitiesDisplay";
 import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
-import FormModal from "../components/FormModal";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
-import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import Breadcrumbs from "../components/Breadcrumbs";
 
 export default function TripDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
-  const tripId = id ? parseInt(id) : undefined;
-  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
   const [searchParams, setSearchParams] = useSearchParams();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -80,20 +71,6 @@ export default function TripDetailPage() {
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   const [unsortedPhotosCount, setUnsortedPhotosCount] = useState(0);
   const [totalPhotosCount, setTotalPhotosCount] = useState(0);
-  const [showLocationForm, setShowLocationForm] = useState(false);
-  const [editingLocationId, setEditingLocationId] = useState<number | null>(
-    null
-  );
-  const [locationName, setLocationName] = useState("");
-  const [locationAddress, setLocationAddress] = useState("");
-  const [locationNotes, setLocationNotes] = useState("");
-  const [locationLatitude, setLocationLatitude] = useState<
-    number | undefined
-  >();
-  const [locationLongitude, setLocationLongitude] = useState<
-    number | undefined
-  >();
-  const [locationParentId, setLocationParentId] = useState<number | undefined>();
   // Initialize activeTab from URL parameter or default to 'timeline'
   const initialTab =
     (searchParams.get("tab") as
@@ -362,7 +339,11 @@ export default function TripDetailPage() {
 
   const loadTripData = async (tripId: number) => {
     try {
-      setLoading(true);
+      // Only show loading spinner on initial load, not refreshes
+      // This prevents child components from unmounting during updates
+      if (!trip) {
+        setLoading(true);
+      }
 
       // Load trip data first - this is critical
       const tripData = await tripService.getTripById(tripId);
@@ -571,99 +552,6 @@ export default function TripDetailPage() {
       }
     } catch {
       toast.error("Failed to delete album");
-    }
-  };
-
-  const resetLocationForm = () => {
-    setLocationName("");
-    setLocationAddress("");
-    setLocationNotes("");
-    setLocationLatitude(undefined);
-    setLocationLongitude(undefined);
-    setLocationParentId(undefined);
-    setEditingLocationId(null);
-    setShowLocationForm(false);
-  };
-
-  const handleAddLocation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!trip) return;
-
-    try {
-      if (editingLocationId) {
-        // Update existing location
-        await locationService.updateLocation(editingLocationId, {
-          name: locationName,
-          address: locationAddress || undefined,
-          latitude: locationLatitude,
-          longitude: locationLongitude,
-          parentId: locationParentId,
-          notes: locationNotes || undefined,
-        });
-        toast.success("Location updated");
-      } else {
-        // Create new location
-        await locationService.createLocation({
-          tripId: trip.id,
-          name: locationName,
-          address: locationAddress || undefined,
-          latitude: locationLatitude,
-          longitude: locationLongitude,
-          parentId: locationParentId,
-          notes: locationNotes || undefined,
-        });
-        toast.success("Location added");
-      }
-      resetLocationForm();
-      loadTripData(trip.id);
-    } catch (error: unknown) {
-      const errorMessage = (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || (error as { message?: string })?.message || (
-        editingLocationId
-          ? "Failed to update location"
-          : "Failed to add location"
-      );
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleEditLocation = (location: Location) => {
-    setEditingLocationId(location.id);
-    setLocationName(location.name);
-    setLocationAddress(location.address || "");
-    setLocationNotes(location.notes || "");
-    setLocationLatitude(location.latitude || undefined);
-    setLocationLongitude(location.longitude || undefined);
-    setLocationParentId(location.parentId || undefined);
-    setShowLocationForm(true);
-  };
-
-  const handleLocationSelect = (data: {
-    name: string;
-    address: string;
-    latitude: number;
-    longitude: number;
-  }) => {
-    setLocationName(data.name);
-    setLocationAddress(data.address);
-    setLocationLatitude(data.latitude);
-    setLocationLongitude(data.longitude);
-  };
-
-  const handleDeleteLocation = async (locationId: number) => {
-    const confirmed = await confirm({
-      title: "Delete Location",
-      message: "Delete this location?",
-      confirmLabel: "Delete",
-      variant: "danger",
-    });
-    if (!confirmed) return;
-
-    try {
-      await locationService.deleteLocation(locationId);
-      toast.success("Location deleted");
-      if (trip) loadTripData(trip.id);
-    } catch {
-      toast.error("Failed to delete location");
     }
   };
 
@@ -1249,295 +1137,11 @@ export default function TripDetailPage() {
         {/* Locations Tab */}
         {activeTab === "locations" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Locations
-              </h2>
-              <button
-                onClick={() => setShowLocationForm(true)}
-                className="btn btn-primary"
-              >
-                + Add Location
-              </button>
-            </div>
-
-            {/* Add/Edit Location Modal */}
-            <FormModal
-              isOpen={showLocationForm}
-              onClose={resetLocationForm}
-              title={editingLocationId ? "Edit Location" : "Add Location"}
-              icon="📍"
-              maxWidth="2xl"
-              formId="location-form"
-              footer={
-                <>
-                  <button
-                    type="button"
-                    onClick={resetLocationForm}
-                    className="btn btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    form="location-form"
-                    className="btn btn-primary"
-                  >
-                    {editingLocationId ? "Update Location" : "Add Location"}
-                  </button>
-                </>
-              }
-            >
-              <form id="location-form" onSubmit={handleAddLocation}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="label">Search & Select Location</label>
-                    <LocationSearchMap
-                      onLocationSelect={handleLocationSelect}
-                      initialPosition={
-                        locationLatitude && locationLongitude
-                          ? { lat: locationLatitude, lng: locationLongitude }
-                          : undefined
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="label">Location Name *</label>
-                    <input
-                      type="text"
-                      value={locationName}
-                      onChange={(e) => setLocationName(e.target.value)}
-                      className="input"
-                      placeholder="Eiffel Tower"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="parent-location-select" className="label">Parent Location (City/Region)</label>
-                    <select
-                      id="parent-location-select"
-                      value={locationParentId || ""}
-                      onChange={(e) => setLocationParentId(e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="input"
-                      aria-label="Parent Location (City/Region)"
-                    >
-                      <option value="">None (Top-level location)</option>
-                      {locations
-                        .filter(loc => loc.id !== editingLocationId)
-                        .map((loc) => (
-                          <option key={loc.id} value={loc.id}>
-                            {loc.name}
-                          </option>
-                        ))}
-                    </select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Group places by selecting a parent city or region
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="label">Address</label>
-                    <input
-                      type="text"
-                      value={locationAddress}
-                      onChange={(e) => setLocationAddress(e.target.value)}
-                      className="input"
-                      placeholder="Paris, France"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Notes</label>
-                    <textarea
-                      value={locationNotes}
-                      onChange={(e) => setLocationNotes(e.target.value)}
-                      className="input"
-                      rows={2}
-                      placeholder="Additional notes..."
-                    />
-                  </div>
-                </div>
-              </form>
-            </FormModal>
-
-            {/* Locations List */}
-            {locations.length === 0 ? (
-              <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-                No locations added yet. Click "Add Location" to get started!
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {/* Render top-level locations (no parent) */}
-                {locations
-                  .filter((loc) => !loc.parentId)
-                  .map((location) => (
-                  <div key={location.id} className="space-y-2">
-                    {/* Parent Location */}
-                    <div
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
-                    >
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                              {location.name}
-                            </h3>
-                            {location.children && location.children.length > 0 && (
-                              <span className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
-                                {location.children.length} {location.children.length === 1 ? 'place' : 'places'}
-                              </span>
-                            )}
-                          </div>
-                          {location.address && (
-                            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                              {location.address}
-                            </p>
-                          )}
-                          {location.notes && (
-                            <p className="text-gray-700 dark:text-gray-300 mt-2">
-                              {location.notes}
-                            </p>
-                          )}
-                          {location.category && (
-                            <span className="inline-block mt-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded">
-                              {location.category.name}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2 items-center flex-shrink-0">
-                          <LinkButton
-                            tripId={trip.id}
-                            entityType="LOCATION"
-                            entityId={location.id}
-                            linkSummary={getLinkSummary('LOCATION', location.id)}
-                            onUpdate={invalidateLinkSummary}
-                            size="sm"
-                          />
-                          <JournalEntriesButton
-                            journalEntries={location.journalLocationAssignments}
-                            tripId={trip.id}
-                          />
-                          <button
-                            onClick={() => handleEditLocation(location)}
-                            className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteLocation(location.id)}
-                            className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Associated Albums - Full Width */}
-                      <AssociatedAlbums
-                        albums={location.photoAlbums}
-                        tripId={trip.id}
-                      />
-
-                      {/* Linked Entities */}
-                      <LinkedEntitiesDisplay
-                        tripId={trip.id}
-                        entityType="LOCATION"
-                        entityId={location.id}
-                        compact
-                      />
-                    </div>
-
-                    {/* Child Locations */}
-                    {location.children && location.children.length > 0 && (
-                      <div className="ml-8 space-y-2">
-                        {locations
-                          .filter((child) => child.parentId === location.id)
-                          .map((childLocation) => (
-                          <div
-                            key={childLocation.id}
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50 dark:bg-gray-700"
-                          >
-                            <div className="flex justify-between items-start gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-gray-400 dark:text-gray-500">↳</span>
-                                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">
-                                    {childLocation.name}
-                                  </h4>
-                                </div>
-                                {childLocation.address && (
-                                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 ml-6">
-                                    {childLocation.address}
-                                  </p>
-                                )}
-                                {childLocation.notes && (
-                                  <p className="text-gray-700 dark:text-gray-300 mt-2 ml-6">
-                                    {childLocation.notes}
-                                  </p>
-                                )}
-                                {childLocation.category && (
-                                  <span className="inline-block mt-2 ml-6 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded">
-                                    {childLocation.category.name}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex gap-2 items-center flex-shrink-0">
-                                <LinkButton
-                                  tripId={trip.id}
-                                  entityType="LOCATION"
-                                  entityId={childLocation.id}
-                                  linkSummary={getLinkSummary('LOCATION', childLocation.id)}
-                                  onUpdate={invalidateLinkSummary}
-                                  size="sm"
-                                />
-                                <JournalEntriesButton
-                                  journalEntries={childLocation.journalLocationAssignments}
-                                  tripId={trip.id}
-                                />
-                                <button
-                                  onClick={() => handleEditLocation(childLocation)}
-                                  className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteLocation(childLocation.id)}
-                                  className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Associated Albums - Full Width */}
-                            <AssociatedAlbums
-                              albums={childLocation.photoAlbums}
-                              tripId={trip.id}
-                            />
-
-                            {/* Linked Entities */}
-                            <LinkedEntitiesDisplay
-                              tripId={trip.id}
-                              entityType="LOCATION"
-                              entityId={childLocation.id}
-                              compact
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Locations Map */}
-            {locations.length > 0 && (
-              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-                <TripLocationsMap locations={locations} />
-              </div>
-            )}
+            <LocationManager
+              tripId={trip.id}
+              tripTimezone={trip.timezone}
+              onUpdate={() => loadTripData(trip.id)}
+            />
           </div>
         )}
 
