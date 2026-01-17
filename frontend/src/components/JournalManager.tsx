@@ -203,8 +203,8 @@ export default function JournalManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
+      <div className="flex flex-col-reverse items-start gap-3 sm:flex-row sm:justify-between sm:items-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Journal
         </h2>
         <button
@@ -213,9 +213,10 @@ export default function JournalManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary whitespace-nowrap flex-shrink-0"
+          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
-          + New Entry
+          <span className="sm:hidden">+ Add</span>
+          <span className="hidden sm:inline">+ New Entry</span>
         </button>
       </div>
 

@@ -202,15 +202,7 @@ export default function ChecklistsPage() {
       variant: 'secondary' as const,
     });
   }
-  
-  if (checklists.some(c => c.isDefault)) {
-    secondaryActions.push({
-      label: '- Remove Defaults',
-      onClick: handleOpenRemoveModal,
-      variant: 'secondary' as const,
-    });
-  }
-  
+
   secondaryActions.push({
     label: isAutoChecking ? 'Auto-checking...' : 'Auto-check from Trips',
     onClick: handleAutoCheck,
@@ -374,6 +366,18 @@ export default function ChecklistsPage() {
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* Remove Defaults button at bottom of page */}
+        {checklists.some(c => c.isDefault) && (
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={handleOpenRemoveModal}
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+            >
+              Remove Default Checklists
+            </button>
           </div>
         )}
 

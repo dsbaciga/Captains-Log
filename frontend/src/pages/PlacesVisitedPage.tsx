@@ -55,7 +55,7 @@ export default function PlacesVisitedPage() {
         <EmptyState
           icon="🌍"
           message="No places visited yet"
-          subMessage='Start adding locations to your trips and mark them as "Add to Places Visited"'
+          subMessage="Locations from completed trips will appear here"
           actionLabel="Go to Trips"
           actionHref="/trips"
         />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { Activity, CreateActivityInput, UpdateActivityInput } from "../types/activity";
 import type { Location } from "../types/location";
@@ -673,7 +673,7 @@ export default function ActivityManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex justify-between items-center gap-3">
+      <div className="flex flex-col-reverse items-start gap-3 sm:flex-row sm:justify-between sm:items-center">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Activities
         </h2>
@@ -682,7 +682,7 @@ export default function ActivityManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary text-sm sm:text-base whitespace-nowrap flex-shrink-0"
+          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
           <span className="hidden sm:inline">+ Add Activity</span>

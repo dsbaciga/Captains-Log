@@ -18,7 +18,6 @@ export default function TripFormPage() {
   const [timezone, setTimezone] = useState('');
   const [status, setStatus] = useState<TripStatusType>(TripStatus.PLANNING);
   const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevelType>(PrivacyLevel.PRIVATE);
-  const [addToPlacesVisited, setAddToPlacesVisited] = useState(true);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -46,7 +45,6 @@ export default function TripFormPage() {
       setTimezone(trip.timezone || '');
       setStatus(trip.status);
       setPrivacyLevel(trip.privacyLevel);
-      setAddToPlacesVisited(trip.addToPlacesVisited);
     } catch {
       toast.error('Failed to load trip');
       navigate('/trips');
@@ -82,7 +80,6 @@ export default function TripFormPage() {
         timezone: timezone || undefined,
         status,
         privacyLevel,
-        addToPlacesVisited,
       };
 
       if (isEdit && id) {
@@ -241,19 +238,6 @@ export default function TripFormPage() {
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="addToPlacesVisited"
-                checked={addToPlacesVisited}
-                onChange={(e) => setAddToPlacesVisited(e.target.checked)}
-                className="mr-2"
-              />
-              <label htmlFor="addToPlacesVisited" className="text-sm text-gray-700 dark:text-gray-300">
-                Add to Places I've Visited map
-              </label>
             </div>
 
             <div className="flex gap-4 pt-4">

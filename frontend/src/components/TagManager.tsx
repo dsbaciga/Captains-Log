@@ -272,6 +272,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
                   onClick={() => startEdit(tag)}
                   className="hover:opacity-75"
                   title="Edit tag"
+                  aria-label={`Edit tag ${tag.name}`}
                 >
                   ✏️
                 </button>
@@ -279,6 +280,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
                   onClick={() => handleUnlinkTag(tag.id)}
                   className="hover:opacity-75"
                   title="Remove from trip"
+                  aria-label={`Remove tag ${tag.name} from trip`}
                 >
                   ✕
                 </button>
@@ -319,11 +321,12 @@ export default function TagManager({ tripId }: TagManagerProps) {
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-6 h-6 rounded-full"
-                    style={{ backgroundColor: tag.color || "#6B7280" }}
-                  />
-                  <span className="font-medium text-gray-900 dark:text-white">{tag.name}</span>
+                  <span
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                    style={{ backgroundColor: tag.color || "#6B7280", color: "#FFFFFF" }}
+                  >
+                    {tag.name}
+                  </span>
                   {tag._count && (
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       ({tag._count.trips}{" "}
