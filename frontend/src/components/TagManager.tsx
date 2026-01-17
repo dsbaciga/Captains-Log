@@ -272,6 +272,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
                   onClick={() => startEdit(tag)}
                   className="hover:opacity-75"
                   title="Edit tag"
+                  aria-label={`Edit tag ${tag.name}`}
                 >
                   ✏️
                 </button>
@@ -279,6 +280,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
                   onClick={() => handleUnlinkTag(tag.id)}
                   className="hover:opacity-75"
                   title="Remove from trip"
+                  aria-label={`Remove tag ${tag.name} from trip`}
                 >
                   ✕
                 </button>
