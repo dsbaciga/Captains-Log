@@ -16,18 +16,6 @@ _No medium priority bugs currently tracked._
 
 _No low priority bugs currently tracked._
 
-#### Updating transportation hides all transportation entities until refresh
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Edit and save a transportation entity
-  2. Expected: Transportation list should update and remain visible
-  3. Actual: All transportation items disappear until page refresh
-- **Notes**: Likely a state management or query invalidation issue
-
 #### Clicking a linked item should navigate to that item
 
 - **Reported**: 2026-01-16
