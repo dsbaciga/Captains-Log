@@ -262,15 +262,15 @@ export default function TagsModal({
                         key={tag.id}
                         className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-6 h-6 rounded-full"
-                            style={{ backgroundColor: tag.color || "#3B82F6" }}
-                          />
-                          <span className="text-gray-900 dark:text-white font-medium">
-                            {tag.name}
-                          </span>
-                        </div>
+                        <span
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                          style={{
+                            backgroundColor: tag.color || "#3B82F6",
+                            color: tag.textColor || "#FFFFFF",
+                          }}
+                        >
+                          {tag.name}
+                        </span>
                         <button
                           onClick={() => handleAddTag(tag.id)}
                           type="button"
