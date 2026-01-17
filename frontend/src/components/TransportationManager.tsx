@@ -540,7 +540,7 @@ export default function TransportationManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex justify-between items-center gap-3">
+      <div className="flex flex-col-reverse items-start gap-3 sm:flex-row sm:justify-between sm:items-center">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Transportation
         </h2>
@@ -549,7 +549,7 @@ export default function TransportationManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary text-sm sm:text-base whitespace-nowrap flex-shrink-0"
+          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
           <span className="hidden sm:inline">+ Add Transportation</span>
