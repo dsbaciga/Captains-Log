@@ -147,6 +147,8 @@ export default function UnscheduledItems({
   const [activeSection, setActiveSection] = useState<EntityType>("activity");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingType, setEditingType] = useState<EntityType | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   const activityForm = useFormFields<ActivityFormFields>(
     initialActivityFormState
@@ -208,6 +210,17 @@ export default function UnscheduledItems({
     lodgingForm.reset();
     setEditingId(null);
     setEditingType(null);
+    setIsCreating(false);
+    setShowAddMenu(false);
+  };
+
+  // Start creating a new entity of the specified type
+  const handleStartCreate = (type: EntityType) => {
+    resetForm();
+    setIsCreating(true);
+    setEditingType(type);
+    setActiveSection(type);
+    setShowAddMenu(false);
   };
 
   const handleEditActivity = (activity: Activity) => {
@@ -377,7 +390,7 @@ export default function UnscheduledItems({
       toast.error("Name is required");
       return;
     }
-    if (!editingId) return;
+    if (!isCreating && !editingId) return;
 
     try {
       // Combine date and time fields into ISO strings
@@ -422,8 +435,13 @@ export default function UnscheduledItems({
         notes: activityForm.values.notes || null,
       };
 
-      await activityService.updateActivity(editingId, updateData);
-      toast.success("Activity updated");
+      if (isCreating) {
+        await activityService.createActivity(tripId, updateData);
+        toast.success("Activity created");
+      } else {
+        await activityService.updateActivity(editingId!, updateData);
+        toast.success("Activity updated");
+      }
 
       resetForm();
       loadAllData();
@@ -436,7 +454,7 @@ export default function UnscheduledItems({
   const handleSubmitTransportation = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!editingId) return;
+    if (!isCreating && !editingId) return;
 
     try {
       let departureTimeISO: string | null = null;
@@ -476,8 +494,13 @@ export default function UnscheduledItems({
         notes: transportationForm.values.notes || null,
       };
 
-      await transportationService.updateTransportation(editingId, updateData);
-      toast.success("Transportation updated");
+      if (isCreating) {
+        await transportationService.createTransportation(tripId, updateData);
+        toast.success("Transportation created");
+      } else {
+        await transportationService.updateTransportation(editingId!, updateData);
+        toast.success("Transportation updated");
+      }
 
       resetForm();
       loadAllData();
@@ -494,7 +517,7 @@ export default function UnscheduledItems({
       toast.error("Name is required");
       return;
     }
-    if (!editingId) return;
+    if (!isCreating && !editingId) return;
 
     try {
       const updateData = {
@@ -514,8 +537,13 @@ export default function UnscheduledItems({
         notes: lodgingForm.values.notes || null,
       };
 
-      await lodgingService.updateLodging(editingId, updateData);
-      toast.success("Lodging updated");
+      if (isCreating) {
+        await lodgingService.createLodging(tripId, updateData);
+        toast.success("Lodging created");
+      } else {
+        await lodgingService.updateLodging(editingId!, updateData);
+        toast.success("Lodging updated");
+      }
 
       resetForm();
       loadAllData();
@@ -558,7 +586,98 @@ export default function UnscheduledItems({
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Unscheduled Items
         </h2>
+
+        {/* Add Button */}
+        <button
+          type="button"
+          onClick={() => setShowAddMenu(true)}
+          className="btn btn-primary"
+        >
+          + Add Item
+        </button>
       </div>
+
+      {/* Entity Type Chooser Modal */}
+      {showAddMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Item
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddMenu(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Choose the type of item to add:
+              </p>
+
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => handleStartCreate("activity")}
+                  className="w-full p-4 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🎯</span>
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">Activity</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Things to do, places to visit</div>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleStartCreate("transportation")}
+                  className="w-full p-4 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">✈️</span>
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">Transportation</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Flights, trains, cars, etc.</div>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleStartCreate("lodging")}
+                  className="w-full p-4 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🏨</span>
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">Lodging</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Hotels, Airbnb, camping</div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setShowAddMenu(false)}
+                className="w-full btn btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="text-sm text-gray-600 dark:text-gray-400">
         Items without scheduled dates/times. Add dates to move them to their
@@ -599,10 +718,12 @@ export default function UnscheduledItems({
         </button>
       </div>
 
-      {/* Edit Form - Activity */}
-      {editingId && editingType === "activity" && (
+      {/* Add/Edit Form - Activity */}
+      {(editingId || isCreating) && editingType === "activity" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Edit Activity</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            {isCreating ? "Add Activity" : "Edit Activity"}
+          </h3>
           <form onSubmit={handleSubmitActivity} className="space-y-4">
             {/* Name and Category */}
             <div className="grid grid-cols-2 gap-4">
@@ -877,17 +998,19 @@ export default function UnscheduledItems({
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                Update Activity
+                {isCreating ? "Add Activity" : "Update Activity"}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Edit Form - Transportation */}
-      {editingId && editingType === "transportation" && (
+      {/* Add/Edit Form - Transportation */}
+      {(editingId || isCreating) && editingType === "transportation" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Edit Transportation</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            {isCreating ? "Add Transportation" : "Edit Transportation"}
+          </h3>
           <form onSubmit={handleSubmitTransportation} className="space-y-4">
             {/* Type */}
             <div>
@@ -1175,17 +1298,19 @@ export default function UnscheduledItems({
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                Update Transportation
+                {isCreating ? "Add Transportation" : "Update Transportation"}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Edit Form - Lodging */}
-      {editingId && editingType === "lodging" && (
+      {/* Add/Edit Form - Lodging */}
+      {(editingId || isCreating) && editingType === "lodging" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Edit Lodging</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            {isCreating ? "Add Lodging" : "Edit Lodging"}
+          </h3>
           <form onSubmit={handleSubmitLodging} className="space-y-4">
             {/* Name and Type */}
             <div className="grid grid-cols-2 gap-4">
@@ -1375,7 +1500,7 @@ export default function UnscheduledItems({
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                Update Lodging
+                {isCreating ? "Add Lodging" : "Update Lodging"}
               </button>
             </div>
           </form>

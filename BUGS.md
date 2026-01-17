@@ -16,30 +16,6 @@ _No medium priority bugs currently tracked._
 
 _No low priority bugs currently tracked._
 
-#### No button to add unscheduled entities (needs type picker)
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Unscheduled page
-  2. Expected: Should have a unified "Add" button that allows picking entity type
-  3. Actual: Each tab has its own Add button, but no unified entry point
-- **Notes**: Consider adding a primary action button that lets users pick the entity type to add
-
-#### Car transportation shows distance twice instead of 3 stats
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. View Transportation stats for cars
-  2. Expected: Should show 3 different stats at the top
-  3. Actual: Distance appears twice
-- **Notes**: Consolidate stats display to show 3 unique metrics instead of duplicating distance
-
 #### Updating transportation hides all transportation entities until refresh
 
 - **Reported**: 2026-01-16
@@ -51,18 +27,6 @@ _No low priority bugs currently tracked._
   2. Expected: Transportation list should update and remain visible
   3. Actual: All transportation items disappear until page refresh
 - **Notes**: Likely a state management or query invalidation issue
-
-#### Car route not showing on minimap (shows flight path instead)
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. View a car transportation item with route on minimap
-  2. Expected: Should show road route
-  3. Actual: Shows straight line (flight path) instead of road route
-- **Notes**: Backend may be providing route geometry, but frontend minimap not rendering it correctly for cars
 
 #### Clicking a linked item should navigate to that item
 
@@ -151,6 +115,36 @@ _No low priority bugs currently tracked._
 - **Notes**: User prefers trip time (primary context) on left, home time (secondary reference) on right for more intuitive reading. Need better visual separation between the two timezone columns
 
 ## Fixed Bugs
+
+### No button to add unscheduled entities (needs type picker)
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: The Unscheduled page had no unified way to add new items - users had to navigate to each tab separately
+- **Fix**: Added a unified "Add Item" button to UnscheduledItems.tsx that opens a modal chooser allowing users to select the entity type (Activity, Transportation, or Lodging). Also added full create functionality with appropriate forms and service calls.
+
+### Car transportation shows distance twice instead of 3 stats
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: In TransportationStats, the stats grid for non-flight transportation showed Distance twice - once in the grid and again in the detail cards below
+- **Fix**: Changed the fourth stat in the grid from "Distance (km)" to "Travel Time" in TransportationStats.tsx. Distance is now shown only in the detail card below, consistent with the flight statistics pattern.
+
+### Car route not showing on minimap (shows flight path instead)
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: When no route geometry was available from OpenRouteService, car/bike/walking transportation showed a curved "flight arc" path instead of a straight line
+- **Fix**: Updated FlightRouteMap.tsx to use different fallback behavior based on transportation type:
+  - Flights: Continue to use curved arc path (represents flight trajectory)
+  - Ground transportation (car, bike, walk, etc.): Use straight line when no geometry (indicates no actual route data available)
+  - Both types use dashed lines when showing fallback/estimated routes
 
 ### User default timezone not showing end time on timeline
 

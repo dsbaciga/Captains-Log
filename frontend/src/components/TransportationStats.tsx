@@ -240,13 +240,13 @@ export default function TransportationStats({
                 </div>
               </div>
 
-              {stats.distance > 0 && (
+              {stats.duration > 0 && (
                 <div className="text-center">
                   <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                    {Math.round(stats.distance).toLocaleString()}
+                    {formatDuration(stats.duration)}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Distance (km)
+                    Travel Time
                   </div>
                 </div>
               )}
