@@ -730,6 +730,7 @@ const Timeline = ({
     const endDate = new Date(endParts.year, endParts.month, endParts.day, 12, 0, 0);
 
     const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tripTimezone,
       weekday: 'short',
       year: 'numeric',
       month: 'short',

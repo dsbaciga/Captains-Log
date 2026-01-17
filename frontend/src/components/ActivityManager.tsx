@@ -11,6 +11,7 @@ import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
+import FormSection, { CollapsibleSection } from "./FormSection";
 import {
   formatDateTimeInTimezone,
   formatDateInTimezone,
@@ -652,10 +653,9 @@ export default function ActivityManager({
           </>
         }
       >
-        <form id="activity-form" onSubmit={handleSubmit} className="space-y-4">
-          {/* Essential Fields - Always Visible */}
-          <div className="space-y-4">
-            {/* Name and Category */}
+        <form id="activity-form" onSubmit={handleSubmit} className="space-y-6">
+          {/* SECTION 1: Basic Info (Name & Category) */}
+          <FormSection title="Basic Info" icon="🎯">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
@@ -697,7 +697,10 @@ export default function ActivityManager({
                 </select>
               </div>
             </div>
+          </FormSection>
 
+          {/* SECTION 2: Schedule */}
+          <FormSection title="Schedule" icon="🕐">
             {/* All Day Toggle */}
             <div className="flex items-center gap-2">
               <input
@@ -820,103 +823,81 @@ export default function ActivityManager({
                 )}
               </>
             )}
-          </div>
+          </FormSection>
 
-          {/* More Options Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setShowMoreOptions(!showMoreOptions)}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+          {/* COLLAPSIBLE: More Options */}
+          <CollapsibleSection
+            title="More Options"
+            icon="⚙️"
+            isExpanded={showMoreOptions}
+            onToggle={() => setShowMoreOptions(!showMoreOptions)}
+            badge="description, location, cost"
           >
-            {showMoreOptions ? (
-              <>
-                <span>▲</span>
-                <span>Hide Optional Fields</span>
-              </>
-            ) : (
-              <>
-                <span>▼</span>
-                <span>Show More Options</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  (description, location, end time, etc.)
-                </span>
-              </>
-            )}
-          </button>
+            {/* Description */}
+            <div>
+              <label
+                htmlFor="activity-description"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Description
+              </label>
+              <textarea
+                id="activity-description"
+                value={values.description}
+                onChange={(e) => handleChange("description", e.target.value)}
+                className="input"
+                rows={2}
+                placeholder="Activity description"
+              />
+            </div>
 
-          {/* Optional Fields - Conditionally Visible */}
-          {showMoreOptions && (
-            <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-700">
-              {/* Description */}
-              <div>
-                <label
-                  htmlFor="activity-description"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Description
-                </label>
-                <textarea
-                  id="activity-description"
-                  value={values.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  className="input"
-                  rows={2}
-                  placeholder="Activity description"
+            {/* Location Section */}
+            <FormSection title="Location" icon="📍">
+              {showLocationQuickAdd ? (
+                <LocationQuickAdd
+                  tripId={tripId}
+                  onLocationCreated={handleLocationCreated}
+                  onCancel={() => setShowLocationQuickAdd(false)}
                 />
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  <select
+                    id="activity-location"
+                    value={values.locationId || ""}
+                    onChange={(e) =>
+                      handleChange(
+                        "locationId",
+                        e.target.value ? parseInt(e.target.value) : undefined
+                      )
+                    }
+                    className="input flex-1"
+                  >
+                    <option value="">-- Select Location --</option>
+                    {localLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationQuickAdd(true)}
+                    className="btn btn-secondary whitespace-nowrap"
+                  >
+                    + New
+                  </button>
+                </div>
+              )}
+            </FormSection>
 
-              {/* Location with Quick Add */}
-              <div>
-                <label
-                  htmlFor="activity-location"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Location
-                </label>
-                {showLocationQuickAdd ? (
-                  <LocationQuickAdd
-                    tripId={tripId}
-                    onLocationCreated={handleLocationCreated}
-                    onCancel={() => setShowLocationQuickAdd(false)}
-                  />
-                ) : (
-                  <div className="flex gap-2">
-                    <select
-                      id="activity-location"
-                      value={values.locationId || ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "locationId",
-                          e.target.value ? parseInt(e.target.value) : undefined
-                        )
-                      }
-                      className="input flex-1"
-                    >
-                      <option value="">-- Select Location --</option>
-                      {localLocations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setShowLocationQuickAdd(true)}
-                      className="btn btn-secondary whitespace-nowrap"
-                    >
-                      + New Location
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Parent Activity */}
+            {/* Organization */}
+            <FormSection title="Organization" icon="📂">
               <div>
                 <label
                   htmlFor="activity-parent"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Parent Activity (Optional)
+                  Parent Activity
                 </label>
                 <select
                   id="activity-parent"
@@ -943,14 +924,15 @@ export default function ActivityManager({
                 </p>
               </div>
 
-              {/* Timezone Component */}
               <TimezoneSelect
                 value={values.timezone}
                 onChange={(value) => handleChange("timezone", value)}
                 label="Timezone"
               />
+            </FormSection>
 
-              {/* Booking Fields Component */}
+            {/* Booking Section */}
+            <FormSection title="Booking Details" icon="🎫">
               <BookingFields
                 confirmationNumber={values.bookingReference}
                 bookingUrl={values.bookingUrl}
@@ -960,34 +942,36 @@ export default function ActivityManager({
                 onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
                 confirmationLabel="Booking Reference"
               />
+            </FormSection>
 
-              {/* Cost and Currency Component */}
+            {/* Cost Section */}
+            <FormSection title="Cost" icon="💰">
               <CostCurrencyFields
                 cost={values.cost}
                 currency={values.currency}
                 onCostChange={(value) => handleChange("cost", value)}
                 onCurrencyChange={(value) => handleChange("currency", value)}
               />
+            </FormSection>
 
-              {/* Notes */}
-              <div>
-                <label
-                  htmlFor="activity-notes"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Notes
-                </label>
-                <textarea
-                  id="activity-notes"
-                  value={values.notes}
-                  onChange={(e) => handleChange("notes", e.target.value)}
-                  className="input"
-                  rows={3}
-                  placeholder="Additional notes..."
-                />
-              </div>
+            {/* Notes */}
+            <div>
+              <label
+                htmlFor="activity-notes"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Notes
+              </label>
+              <textarea
+                id="activity-notes"
+                value={values.notes}
+                onChange={(e) => handleChange("notes", e.target.value)}
+                className="input"
+                rows={3}
+                placeholder="Additional notes..."
+              />
             </div>
-          )}
+          </CollapsibleSection>
         </form>
       </FormModal>
 

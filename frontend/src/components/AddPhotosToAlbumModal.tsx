@@ -239,19 +239,41 @@ export default function AddPhotosToAlbumModal({
         </div>
 
         {/* Selection Toolbar */}
-        <div className="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700 flex-wrap">
-          <button onClick={selectAll} className="btn btn-secondary text-sm">
-            Select All ({photos.length})
-          </button>
-          {selectedPhotoIds.size > 0 && (
-            <button onClick={deselectAll} className="btn btn-secondary text-sm">
-              Deselect All
-            </button>
-          )}
-          <span className="text-sm text-gray-600 dark:text-gray-400 ml-auto">
-            {selectedPhotoIds.size} photo{selectedPhotoIds.size !== 1 ? "s" : ""}{" "}
-            selected
+        <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
+          {/* Selection Status Badge */}
+          <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
+            selectedPhotoIds.size > 0
+              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+          }`}>
+            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {selectedPhotoIds.size} of {photos.length} selected
           </span>
+
+          {/* Selection Controls */}
+          <div className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm ml-auto">
+            <button
+              onClick={selectAll}
+              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-l-lg transition-colors"
+              title={`Select all ${photos.length} photos`}
+            >
+              All
+            </button>
+            {selectedPhotoIds.size > 0 && (
+              <>
+                <span className="w-px h-6 bg-gray-200 dark:bg-gray-700"></span>
+                <button
+                  onClick={deselectAll}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-r-lg transition-colors"
+                  title="Deselect all photos"
+                >
+                  None
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Photo Grid */}

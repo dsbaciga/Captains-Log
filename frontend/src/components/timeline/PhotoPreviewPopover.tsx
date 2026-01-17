@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import entityLinkService from '../../services/entityLink.service';
+import { getFullAssetUrl } from '../../lib/config';
 import type { EntityType } from '../../types/entityLink';
+import type { PhotoSource } from '../../types/photo';
 
 interface PhotoPreviewPopoverProps {
   tripId: number;
@@ -15,6 +17,7 @@ interface LinkedPhoto {
   id: number;
   thumbnailPath?: string;
   caption?: string;
+  source?: PhotoSource;
 }
 
 export default function PhotoPreviewPopover({
@@ -28,10 +31,18 @@ export default function PhotoPreviewPopover({
   const [isOpen, setIsOpen] = useState(false);
   const [photos, setPhotos] = useState<LinkedPhoto[]>([]);
   const [loading, setLoading] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [thumbnailCache, setThumbnailCache] = useState<Record<number, string>>({});
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const blobUrlsRef = useRef<string[]>([]);
 
-  const uploadUrl = import.meta.env.VITE_UPLOAD_URL || 'http://localhost:5000/uploads';
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    const blobUrls = blobUrlsRef.current;
+    return () => {
+      blobUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   // Fetch photos when popover opens
   useEffect(() => {
@@ -39,15 +50,40 @@ export default function PhotoPreviewPopover({
       setLoading(true);
       entityLinkService
         .getPhotosForEntity(tripId, entityType, entityId)
-        .then((data) => {
+        .then(async (data) => {
           // Map Photo objects to LinkedPhoto format
-          setPhotos(
-            data.slice(0, 6).map((photo) => ({
-              id: photo.id,
-              thumbnailPath: photo.thumbnailPath || undefined,
-              caption: photo.caption || undefined,
-            }))
-          );
+          const mappedPhotos = data.slice(0, 6).map((photo) => ({
+            id: photo.id,
+            thumbnailPath: photo.thumbnailPath || undefined,
+            caption: photo.caption || undefined,
+            source: photo.source || undefined,
+          }));
+          setPhotos(mappedPhotos);
+
+          // Load thumbnails for Immich photos (require auth)
+          const token = localStorage.getItem('accessToken');
+          if (token) {
+            for (const photo of mappedPhotos.filter(
+              (p) => p.source === 'immich' && p.thumbnailPath
+            )) {
+              try {
+                const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+                if (!fullUrl) continue;
+
+                const response = await fetch(fullUrl, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                if (response.ok) {
+                  const blob = await response.blob();
+                  const blobUrl = URL.createObjectURL(blob);
+                  blobUrlsRef.current.push(blobUrl);
+                  setThumbnailCache((prev) => ({ ...prev, [photo.id]: blobUrl }));
+                }
+              } catch {
+                // Skip failed thumbnails
+              }
+            }
+          }
         })
         .catch((err) => {
           console.error('Failed to fetch linked photos:', err);
@@ -57,6 +93,21 @@ export default function PhotoPreviewPopover({
         });
     }
   }, [isOpen, tripId, entityType, entityId, photos.length, loading]);
+
+  // Helper to get the proper URL for a photo
+  const getPhotoUrl = (photo: LinkedPhoto): string | null => {
+    if (photo.source === 'local' && photo.thumbnailPath) {
+      return getFullAssetUrl(photo.thumbnailPath);
+    }
+    if (photo.source === 'immich') {
+      return thumbnailCache[photo.id] || null;
+    }
+    // Fallback for photos without source specified
+    if (photo.thumbnailPath) {
+      return getFullAssetUrl(photo.thumbnailPath);
+    }
+    return null;
+  };
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
@@ -108,37 +159,44 @@ export default function PhotoPreviewPopover({
           ) : photos.length > 0 ? (
             <>
               <div className="grid grid-cols-3 gap-1">
-                {photos.map((photo) => (
-                  <div
-                    key={photo.id}
-                    className="aspect-square rounded overflow-hidden bg-gray-100 dark:bg-gray-700"
-                  >
-                    {photo.thumbnailPath ? (
-                      <img
-                        src={`${uploadUrl}/${photo.thumbnailPath}`}
-                        alt={photo.caption || 'Photo'}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {photos.map((photo) => {
+                  const photoUrl = getPhotoUrl(photo);
+                  return (
+                    <div
+                      key={photo.id}
+                      className="aspect-square rounded overflow-hidden bg-gray-100 dark:bg-gray-700"
+                    >
+                      {photoUrl ? (
+                        <img
+                          src={photoUrl}
+                          alt={photo.caption || 'Photo'}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            // Hide broken images
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {photoCount > 6 && (

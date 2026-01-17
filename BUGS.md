@@ -14,98 +14,72 @@ _No medium priority bugs currently tracked._
 
 ### Low Priority
 
-#### Add/Edit modals for entities are too busy, need better UI/UX
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Open any Add or Edit modal (transportation, lodging, activity, etc.)
-  2. Observe the layout and density of form fields
-  3. Expected: Clean, organized form with good visual hierarchy
-  4. Actual: Modals feel cluttered and overwhelming
-- **Notes**: Consider grouping related fields, using tabs/accordions, improving spacing, or progressive disclosure to show advanced options only when needed
-
-#### Timeline item icons (photos, locations, links) are misaligned
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view
-  2. View an item with multiple icons (photos count, location pin, link icon)
-  3. Expected: Icons should be vertically aligned
-  4. Actual: Icons appear at different vertical positions
-- **Notes**: The photo count, location marker, and link icons in the timeline item footer need consistent alignment
-
-#### Last day of trip missing weather on timeline
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view for a completed trip
-  2. Scroll to the last day of the trip
-  3. Expected: Weather should be displayed for the last day like other days
-  4. Actual: Weather is missing on the final day
-- **Notes**: Likely an off-by-one error in date range calculation or weather data fetching
-
-#### Trip times do not align under timezone headers on timeline
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view for a trip with dual timezone display
-  2. Observe the time display under the timezone headers (e.g., CST/CDT and EST/EDT)
-  3. Expected: Times should be aligned directly under their respective timezone headers
-  4. Actual: Times are misaligned with the headers above them
-- **Notes**: CSS alignment issue in the dual timezone time display
-
-#### Photo selection buttons are busy and confusing
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to photo selection interface (e.g., when selecting photos for an album or linking)
-  2. Observe the button layout and options
-  3. Expected: Clear, organized button layout with intuitive grouping
-  4. Actual: Buttons appear cluttered and confusing to use
-- **Notes**: Consider grouping related actions, using icons with tooltips, or reorganizing the button hierarchy
-
-#### Remove Cover Photo has no confirmation dialog
-
-- **Reported**: 2026-01-15
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to a trip or album with a cover photo set
-  2. Click "Remove Cover Photo"
-  3. Expected: A confirmation dialog should appear asking "Are you sure?"
-  4. Actual: Cover photo is removed immediately without confirmation
-- **Notes**: Destructive actions should have confirmation to prevent accidental clicks
-
-#### Photo thumbnails broken on hover in timeline
-
-- **Reported**: 2026-01-16
-- **Status**: Open
-- **Priority**: Low
-- **Component**: Frontend
-- **Steps to Reproduce**:
-  1. Navigate to Timeline view for a trip with photos
-  2. Hover over a timeline item that has photos
-  3. Expected: Photo thumbnails should appear on hover
-  4. Actual: Thumbnails are broken or not displaying correctly
-- **Notes**: Thumbnail hover functionality may be missing or the image paths may be incorrect
+_No low priority bugs currently tracked._
 
 ## Fixed Bugs
+
+### Add/Edit modals for entities are too busy, need better UI/UX
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Add/Edit modals for transportation, lodging, and activities felt cluttered and overwhelming with too many form fields displayed at once
+- **Fix**: Created new `FormSection.tsx` component with collapsible sections for progressive disclosure. Updated TransportationManager, LodgingManager, and ActivityManager to organize fields into logical groups (Type, Route, Schedule, etc.) with advanced/optional fields hidden behind "Show More Options" toggle.
+
+### Timeline item icons (photos, locations, links) are misaligned
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Photo count, location marker, and link icons in timeline item footers had inconsistent vertical alignment
+- **Fix**: Updated `EventLinkBar.tsx` and `TimelineEventCard.tsx` to use consistent `h-6` height, `items-center justify-center`, and `leading-none` on all badges. Wrapped emojis in fixed-dimension containers for proper centering.
+
+### Trip times do not align under timezone headers on timeline
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Times were misaligned with their respective timezone headers in dual timezone display
+- **Fix**: Updated `TimelineDaySection.tsx` and `TimelineEventCard.tsx` with matching column widths (`w-11` spacer for icon, `w-32` for each time column) to ensure times align directly under their corresponding timezone headers.
+
+### Photo selection buttons are busy and confusing
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Photo selection interface had cluttered button layout that was confusing to use
+- **Fix**: Redesigned `PhotoGallery.tsx` and `AddPhotosToAlbumModal.tsx` with clear visual grouping (selection status badge, selection controls group, actions group), consistent SVG icons with tooltips, clear visual hierarchy (primary/secondary/danger actions), and proper dark mode support.
+
+### Remove Cover Photo has no confirmation dialog
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Cover photo was removed immediately without any confirmation when clicking "Remove Cover Photo"
+- **Fix**: Updated `TripDetailPage.tsx` to use the existing `useConfirmDialog` hook before removing cover photo, showing a warning dialog with "Remove Cover Photo" title and confirmation message.
+
+### Photo thumbnails broken on hover in timeline
+
+- **Reported**: 2026-01-16
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Photo thumbnails were broken or not displaying correctly when hovering over timeline items
+- **Fix**: Updated `PhotoPreviewPopover.tsx` to use `getFullAssetUrl()` helper for correct URL construction. Added support for Immich photos by fetching with auth headers and caching blob URLs. Added error handling to hide broken images gracefully.
+
+### Last day of trip missing weather on timeline
+
+- **Reported**: 2026-01-15
+- **Fixed**: 2026-01-17
+- **Priority**: Low
+- **Component**: Frontend
+- **Issue**: Weather data was not displayed on the final day of a trip in the Timeline view due to a timezone mismatch in date key formatting
+- **Fix**: Updated `generateAllTripDates()` function in Timeline.tsx to use `tripTimezone` when formatting dates. The `Intl.DateTimeFormat` formatter was missing the `timeZone` option, causing date keys to use the browser's local timezone instead of the trip timezone. This mismatch meant weather data (keyed using trip timezone) couldn't be looked up correctly when the user's local timezone differed from the trip timezone.
 
 ### Unscheduled page only supports activities, not transportation or lodging
 

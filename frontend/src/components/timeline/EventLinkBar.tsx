@@ -40,10 +40,10 @@ export default function EventLinkBar({
         <button
           type="button"
           onClick={() => setShowLinkPanel(true)}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          className="inline-flex items-center justify-center gap-1 h-6 px-2 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
           title="Link to other items"
         >
-          <LinkIcon className="w-3.5 h-3.5" />
+          <LinkIcon className="w-4 h-4" />
           <span>Link</span>
         </button>
 
@@ -61,7 +61,7 @@ export default function EventLinkBar({
   }
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       {/* Link type badges */}
       {linkedTypes.map((type) => {
         const count = linkCounts[type] ?? 0;
@@ -79,9 +79,9 @@ export default function EventLinkBar({
               onViewAll={() => setShowLinkPanel(true)}
             >
               <span
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer`}
+                className={`inline-flex items-center justify-center gap-1 h-6 px-1.5 rounded text-xs font-medium leading-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer`}
               >
-                <span>{config.emoji}</span>
+                <span className="flex items-center justify-center w-4 h-4">{config.emoji}</span>
                 <span>{count}</span>
               </span>
             </PhotoPreviewPopover>
@@ -91,10 +91,10 @@ export default function EventLinkBar({
         return (
           <span
             key={type}
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+            className="inline-flex items-center justify-center gap-1 h-6 px-1.5 rounded text-xs font-medium leading-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
             title={`${count} ${count === 1 ? config.label : config.pluralLabel}`}
           >
-            <span>{config.emoji}</span>
+            <span className="flex items-center justify-center w-4 h-4">{config.emoji}</span>
             <span>{count}</span>
           </span>
         );
@@ -104,10 +104,10 @@ export default function EventLinkBar({
       <button
         type="button"
         onClick={() => setShowLinkPanel(true)}
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+        className="inline-flex items-center justify-center h-6 px-1.5 rounded text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
         title={totalLinks > 0 ? `View all ${totalLinks} links` : 'Link to other items'}
       >
-        <LinkIcon className="w-3.5 h-3.5" />
+        <LinkIcon className="w-4 h-4" />
       </button>
 
       {/* Link Panel Modal */}

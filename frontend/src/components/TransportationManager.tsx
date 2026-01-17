@@ -11,6 +11,7 @@ import JournalEntriesButton from "./JournalEntriesButton";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
+import FormSection, { CollapsibleSection } from "./FormSection";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
@@ -118,6 +119,7 @@ export default function TransportationManager({
   const [showToLocationQuickAdd, setShowToLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   // Smart timezone inference: auto-populate timezones when locations are selected
   useEffect(() => {
@@ -201,6 +203,7 @@ export default function TransportationManager({
     reset();
     manager.setEditingId(null);
     setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
   };
 
   const handleFromLocationCreated = (locationId: number, locationName: string) => {
@@ -248,6 +251,7 @@ export default function TransportationManager({
   };
 
   const handleEdit = (transportation: Transportation) => {
+    setShowMoreOptions(true); // Always show all options when editing
     handleChange("type", transportation.type);
     handleChange("fromLocationId", transportation.fromLocationId || undefined);
     handleChange("toLocationId", transportation.toLocationId || undefined);
@@ -551,199 +555,129 @@ export default function TransportationManager({
           </>
         }
       >
-        <form id="transportation-form" onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Type Selection */}
+        <form id="transportation-form" onSubmit={handleSubmit} className="space-y-6">
+          {/* SECTION 1: Type Selection */}
+          <FormSection title="Type" icon="🚀">
+            <select
+              id="transportation-type"
+              value={values.type}
+              onChange={(e) =>
+                handleChange("type", e.target.value as TransportationType)
+              }
+              className="input"
+              required
+            >
+              <option value="flight">✈️ Flight</option>
+              <option value="train">🚆 Train</option>
+              <option value="bus">🚌 Bus</option>
+              <option value="car">🚗 Car</option>
+              <option value="ferry">⛴️ Ferry</option>
+              <option value="bicycle">🚴 Bicycle</option>
+              <option value="walk">🚶 Walk</option>
+              <option value="other">🚀 Other</option>
+            </select>
+          </FormSection>
+
+          {/* SECTION 2: Route (From/To Locations) */}
+          <FormSection title="Route" icon="📍" description="Select your departure and arrival locations">
+            {/* From Location */}
             <div>
               <label
-                htmlFor="transportation-type"
+                htmlFor="transportation-from-location"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                  Type *
-                </label>
-                <select
-                  id="transportation-type"
-                  value={values.type}
-                  onChange={(e) =>
-                    handleChange("type", e.target.value as TransportationType)
-                  }
-                  className="input"
-                  required
-                >
-                  <option value="flight">✈️ Flight</option>
-                  <option value="train">🚆 Train</option>
-                  <option value="bus">🚌 Bus</option>
-                  <option value="car">🚗 Car</option>
-                  <option value="ferry">⛴️ Ferry</option>
-                  <option value="bicycle">🚴 Bicycle</option>
-                  <option value="walk">🚶 Walk</option>
-                  <option value="other">🚀 Other</option>
-                </select>
-              </div>
-
-              {/* Carrier/Company */}
-              <div>
-                <label
-                  htmlFor="transportation-carrier"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Carrier/Company
-                </label>
-                <input
-                  type="text"
-                  id="transportation-carrier"
-                  value={values.carrier}
-                  onChange={(e) => handleChange("carrier", e.target.value)}
-                  className="input"
-                  placeholder="e.g., United Airlines"
-                />
-              </div>
-            </div>
-
-            {/* From Location */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="transportation-from-location"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  From Location (e.g., Airport)
-                </label>
-                <select
-                  id="transportation-from-location"
-                  value={values.fromLocationId || ""}
-                  onChange={(e) =>
-                    handleChange(
-                      "fromLocationId",
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
-                  className="input"
-                >
-                  <option value="">-- Select Location --</option>
-                  {localLocations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setShowFromLocationQuickAdd(!showFromLocationQuickAdd)}
-                  className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {showFromLocationQuickAdd ? "Cancel" : "🔍 Search for Airport/Location"}
-                </button>
-                {showFromLocationQuickAdd && (
-                  <div className="mt-2">
-                    <LocationQuickAdd
-                      tripId={tripId}
-                      onLocationCreated={handleFromLocationCreated}
-                      onCancel={() => setShowFromLocationQuickAdd(false)}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="transportation-from-custom"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Or Custom Text (not recommended)
-                </label>
-                <input
-                  type="text"
-                  id="transportation-from-custom"
-                  value={values.fromLocationName}
-                  onChange={(e) =>
-                    handleChange("fromLocationName", e.target.value)
-                  }
-                  className="input"
-                  placeholder="e.g., JFK Airport (no distance tracking)"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  ⚠️ Custom text won't calculate distance. Use search instead.
-                </p>
-              </div>
+                From
+              </label>
+              <select
+                id="transportation-from-location"
+                value={values.fromLocationId || ""}
+                onChange={(e) =>
+                  handleChange(
+                    "fromLocationId",
+                    e.target.value ? parseInt(e.target.value) : undefined
+                  )
+                }
+                className="input"
+              >
+                <option value="">-- Select Location --</option>
+                {localLocations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowFromLocationQuickAdd(!showFromLocationQuickAdd)}
+                className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {showFromLocationQuickAdd ? "Cancel" : "+ Add New Location"}
+              </button>
+              {showFromLocationQuickAdd && (
+                <div className="mt-2">
+                  <LocationQuickAdd
+                    tripId={tripId}
+                    onLocationCreated={handleFromLocationCreated}
+                    onCancel={() => setShowFromLocationQuickAdd(false)}
+                  />
+                </div>
+              )}
             </div>
 
             {/* To Location */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="transportation-to-location"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  To Location (e.g., Airport)
-                </label>
-                <select
-                  id="transportation-to-location"
-                  value={values.toLocationId || ""}
-                  onChange={(e) =>
-                    handleChange(
-                      "toLocationId",
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
-                  className="input"
-                >
-                  <option value="">-- Select Location --</option>
-                  {localLocations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setShowToLocationQuickAdd(!showToLocationQuickAdd)}
-                  className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {showToLocationQuickAdd ? "Cancel" : "🔍 Search for Airport/Location"}
-                </button>
-                {showToLocationQuickAdd && (
-                  <div className="mt-2">
-                    <LocationQuickAdd
-                      tripId={tripId}
-                      onLocationCreated={handleToLocationCreated}
-                      onCancel={() => setShowToLocationQuickAdd(false)}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="transportation-to-custom"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Or Custom Text (not recommended)
-                </label>
-                <input
-                  type="text"
-                  id="transportation-to-custom"
-                  value={values.toLocationName}
-                  onChange={(e) =>
-                    handleChange("toLocationName", e.target.value)
-                  }
-                  className="input"
-                  placeholder="e.g., LAX Airport (no distance tracking)"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  ⚠️ Custom text won't calculate distance. Use search instead.
-                </p>
-              </div>
+            <div>
+              <label
+                htmlFor="transportation-to-location"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                To
+              </label>
+              <select
+                id="transportation-to-location"
+                value={values.toLocationId || ""}
+                onChange={(e) =>
+                  handleChange(
+                    "toLocationId",
+                    e.target.value ? parseInt(e.target.value) : undefined
+                  )
+                }
+                className="input"
+              >
+                <option value="">-- Select Location --</option>
+                {localLocations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowToLocationQuickAdd(!showToLocationQuickAdd)}
+                className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {showToLocationQuickAdd ? "Cancel" : "+ Add New Location"}
+              </button>
+              {showToLocationQuickAdd && (
+                <div className="mt-2">
+                  <LocationQuickAdd
+                    tripId={tripId}
+                    onLocationCreated={handleToLocationCreated}
+                    onCancel={() => setShowToLocationQuickAdd(false)}
+                  />
+                </div>
+              )}
             </div>
+          </FormSection>
 
-            {/* Departure Time and Timezone */}
+          {/* SECTION 3: Schedule (Departure/Arrival Times) */}
+          <FormSection title="Schedule" icon="🕐">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="transportation-departure-time"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Departure Time
+                  Departure
                 </label>
                 <input
                   type="datetime-local"
@@ -759,18 +693,17 @@ export default function TransportationManager({
               <TimezoneSelect
                 value={values.startTimezone}
                 onChange={(value) => handleChange("startTimezone", value)}
-                label="Departure Timezone"
+                label="Timezone"
               />
             </div>
 
-            {/* Arrival Time and Timezone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="transportation-arrival-time"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Arrival Time
+                  Arrival
                 </label>
                 <input
                   type="datetime-local"
@@ -784,47 +717,122 @@ export default function TransportationManager({
               <TimezoneSelect
                 value={values.endTimezone}
                 onChange={(value) => handleChange("endTimezone", value)}
-                label="Arrival Timezone"
+                label="Timezone"
               />
             </div>
+          </FormSection>
 
-            {/* Vehicle Number */}
-            <div>
-              <label
-                htmlFor="transportation-vehicle-number"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Flight/Train/Vehicle Number
-              </label>
-              <input
-                type="text"
-                id="transportation-vehicle-number"
-                value={values.vehicleNumber}
-                onChange={(e) => handleChange("vehicleNumber", e.target.value)}
-                className="input"
-                placeholder="e.g., UA 123"
+          {/* COLLAPSIBLE: More Options (Carrier, Vehicle, Booking, Cost, Notes) */}
+          <CollapsibleSection
+            title="More Options"
+            icon="⚙️"
+            isExpanded={showMoreOptions}
+            onToggle={() => setShowMoreOptions(!showMoreOptions)}
+            badge="carrier, cost, notes"
+          >
+            {/* Carrier and Vehicle Number */}
+            <FormSection title="Transport Details" icon="🎫">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="transportation-carrier"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Carrier/Company
+                  </label>
+                  <input
+                    type="text"
+                    id="transportation-carrier"
+                    value={values.carrier}
+                    onChange={(e) => handleChange("carrier", e.target.value)}
+                    className="input"
+                    placeholder="e.g., United Airlines"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="transportation-vehicle-number"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Flight/Train/Vehicle #
+                  </label>
+                  <input
+                    type="text"
+                    id="transportation-vehicle-number"
+                    value={values.vehicleNumber}
+                    onChange={(e) => handleChange("vehicleNumber", e.target.value)}
+                    className="input"
+                    placeholder="e.g., UA 123"
+                  />
+                </div>
+              </div>
+
+              {/* Confirmation Number */}
+              <BookingFields
+                confirmationNumber={values.confirmationNumber}
+                bookingUrl=""
+                onConfirmationNumberChange={(value) =>
+                  handleChange("confirmationNumber", value)
+                }
+                onBookingUrlChange={() => {}}
+                confirmationLabel="Confirmation Number"
+                hideBookingUrl={true}
               />
-            </div>
+            </FormSection>
 
-            {/* Booking Fields Component */}
-            <BookingFields
-              confirmationNumber={values.confirmationNumber}
-              bookingUrl=""
-              onConfirmationNumberChange={(value) =>
-                handleChange("confirmationNumber", value)
-              }
-              onBookingUrlChange={() => {}}
-              confirmationLabel="Confirmation Number"
-              hideBookingUrl={true}
-            />
+            {/* Custom Location Text (Advanced) */}
+            <FormSection title="Custom Locations" icon="✏️" description="Use only if location not in list (distances won't be calculated)">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="transportation-from-custom"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    From (custom text)
+                  </label>
+                  <input
+                    type="text"
+                    id="transportation-from-custom"
+                    value={values.fromLocationName}
+                    onChange={(e) =>
+                      handleChange("fromLocationName", e.target.value)
+                    }
+                    className="input"
+                    placeholder="e.g., JFK Airport"
+                  />
+                </div>
 
-            {/* Cost and Currency Component */}
-            <CostCurrencyFields
-              cost={values.cost}
-              currency={values.currency}
-              onCostChange={(value) => handleChange("cost", value)}
-              onCurrencyChange={(value) => handleChange("currency", value)}
-            />
+                <div>
+                  <label
+                    htmlFor="transportation-to-custom"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    To (custom text)
+                  </label>
+                  <input
+                    type="text"
+                    id="transportation-to-custom"
+                    value={values.toLocationName}
+                    onChange={(e) =>
+                      handleChange("toLocationName", e.target.value)
+                    }
+                    className="input"
+                    placeholder="e.g., LAX Airport"
+                  />
+                </div>
+              </div>
+            </FormSection>
+
+            {/* Cost */}
+            <FormSection title="Cost" icon="💰">
+              <CostCurrencyFields
+                cost={values.cost}
+                currency={values.currency}
+                onCostChange={(value) => handleChange("cost", value)}
+                onCurrencyChange={(value) => handleChange("currency", value)}
+              />
+            </FormSection>
 
             {/* Notes */}
             <div>
@@ -843,7 +851,8 @@ export default function TransportationManager({
                 placeholder="Additional notes..."
               />
             </div>
-          </form>
+          </CollapsibleSection>
+        </form>
         </FormModal>
 
       {/* Transportation List */}
