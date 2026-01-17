@@ -16,6 +16,203 @@ _No medium priority bugs currently tracked._
 
 _No low priority bugs currently tracked._
 
+#### Flights should only show airport names, not full addresses, on timeline
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Navigate to Timeline view for a trip with flights
+  2. View flight items on timeline
+  3. Expected: Should show just airport names (e.g., "LAX", "JFK")
+  4. Actual: Shows full addresses which makes the display cluttered
+- **Notes**: Simplify flight display to show only airport codes/names for better readability
+
+#### Clicking Link with no existing links should skip to Add Link modal
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Click Link button on a timeline entity that has no existing links
+  2. Expected: Should directly open the Add Link modal
+  3. Actual: Opens the links list modal first, then requires clicking Add Link
+- **Notes**: Improve UX by skipping the empty list and going straight to adding links
+
+#### Linked entities on timeline should show names in tooltip on hover
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Navigate to Timeline view
+  2. Hover over a linked entity icon
+  3. Expected: Tooltip should show the names of linked entities
+  4. Actual: No tooltip appears
+- **Notes**: Would improve discoverability and help users understand what's linked without clicking
+
+#### User default timezone not showing end time on timeline
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Navigate to Timeline view with dual timezone enabled
+  2. View items with end times
+  3. Expected: Both trip timezone and user default timezone should show end times
+  4. Actual: User default timezone column missing end times
+- **Notes**: End time should be displayed in both timezone columns for consistency
+
+#### User default timezone not showing on check-in/check-out times
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Navigate to Timeline view for lodging with check-in/check-out times
+  2. View lodging items with dual timezone enabled
+  3. Expected: Check-in/check-out times should show in both timezones
+  4. Actual: Only trip timezone is displayed
+- **Notes**: Lodging times should follow same dual timezone pattern as other entities
+
+#### Remove options for old linking methods
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Review codebase for legacy linking UI/options
+  2. Expected: All entities should use unified EntityLink system
+  3. Actual: Some old assignment-based linking options may still be present
+- **Notes**: Clean up any remaining legacy linking UI now that EntityLink system is fully implemented
+
+#### No button to add unscheduled entities (needs type picker)
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Navigate to Unscheduled page
+  2. Expected: Should have a unified "Add" button that allows picking entity type
+  3. Actual: Each tab has its own Add button, but no unified entry point
+- **Notes**: Consider adding a primary action button that lets users pick the entity type to add
+
+#### Car transportation shows distance twice instead of 3 stats
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. View Transportation stats for cars
+  2. Expected: Should show 3 different stats at the top
+  3. Actual: Distance appears twice
+- **Notes**: Consolidate stats display to show 3 unique metrics instead of duplicating distance
+
+#### Updating transportation hides all transportation entities until refresh
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Edit and save a transportation entity
+  2. Expected: Transportation list should update and remain visible
+  3. Actual: All transportation items disappear until page refresh
+- **Notes**: Likely a state management or query invalidation issue
+
+#### Car route not showing on minimap (shows flight path instead)
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. View a car transportation item with route on minimap
+  2. Expected: Should show road route
+  3. Actual: Shows straight line (flight path) instead of road route
+- **Notes**: Backend may be providing route geometry, but frontend minimap not rendering it correctly for cars
+
+#### Clicking a linked item should navigate to that item
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Open LinkPanel showing linked entities
+  2. Click on a linked entity
+  3. Expected: Should navigate to/highlight/scroll to that entity
+  4. Actual: Nothing happens
+- **Notes**: Improve UX by making linked items clickable and navigating to the referenced entity
+
+#### Linking photos list doesn't paginate
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Open photo linking modal for a trip with many photos
+  2. Expected: Should have pagination or infinite scroll
+  3. Actual: All photos load at once, causing performance issues
+- **Notes**: Add pagination to photo selection in GeneralEntityPickerModal
+
+#### Inconsistent Edit and Delete buttons across entity managers
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Review Edit/Delete button placement across different entity managers
+  2. Expected: Consistent button styling, placement, and behavior
+  3. Actual: Buttons appear in different locations or with different styles
+- **Notes**: Standardize button placement and styling across all entity manager components
+
+#### Locations needs its own manager component
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Review location management UI
+  2. Expected: Should have dedicated LocationManager like other entities
+  3. Actual: Location management is embedded in TripDetailPage
+- **Notes**: Extract location management into dedicated LocationManager component for consistency and maintainability
+
+#### Albums should use linking strategy and modal
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. Try to link albums to other entities
+  2. Expected: Should use unified EntityLink system with LinkButton/LinkPanel
+  3. Actual: Albums may still use old linking approach
+- **Notes**: Migrate albums to use EntityLink system for consistency with other entities
+
+#### Move Print button to right side
+
+- **Reported**: 2026-01-16
+- **Status**: Open
+- **Priority**: Low
+- **Component**: Frontend
+- **Steps to Reproduce**:
+  1. View Timeline with Print button
+  2. Expected: Print button should be positioned on right side of header
+  3. Actual: Print button may be on left or in inconsistent position
+- **Notes**: UI/UX improvement for better visual hierarchy
+
 ## Fixed Bugs
 
 ### Add/Edit modals for entities are too busy, need better UI/UX
