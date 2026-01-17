@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Activity } from "../types/activity";
 import type { Transportation, TransportationType } from "../types/transportation";
 import type { Lodging, LodgingType } from "../types/lodging";
@@ -21,7 +21,6 @@ import FormSection from "./FormSection";
 interface UnscheduledItemsProps {
   tripId: number;
   locations: Location[];
-  tripTimezone?: string | null;
   onUpdate?: () => void;
 }
 
@@ -152,6 +151,7 @@ export default function UnscheduledItems({
   const [isCreating, setIsCreating] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activityForm = useFormFields<ActivityFormFields>(
     initialActivityFormState
@@ -163,22 +163,16 @@ export default function UnscheduledItems({
     initialLodgingFormState
   );
 
-  useEffect(() => {
-    loadAllData();
-    loadUserCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripId]);
-
-  const loadUserCategories = async () => {
+  const loadUserCategories = useCallback(async () => {
     try {
       const user = await userService.getMe();
       setActivityCategories(user.activityCategories || []);
     } catch {
       console.error("Failed to load activity categories");
     }
-  };
+  }, []);
 
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     try {
       const [activitiesData, transportationData, lodgingData] =
         await Promise.all([
@@ -205,7 +199,12 @@ export default function UnscheduledItems({
     } catch {
       toast.error("Failed to load data");
     }
-  };
+  }, [tripId]);
+
+  useEffect(() => {
+    loadAllData();
+    loadUserCategories();
+  }, [loadAllData, loadUserCategories]);
 
   const resetForm = () => {
     activityForm.reset();
@@ -399,6 +398,7 @@ export default function UnscheduledItems({
     }
     if (!isCreating && !editingId) return;
 
+    setIsSubmitting(true);
     try {
       // Combine date and time fields into ISO strings
       let startTimeISO: string | null = null;
@@ -443,7 +443,7 @@ export default function UnscheduledItems({
       };
 
       if (isCreating) {
-        await activityService.createActivity(tripId, updateData);
+        await activityService.createActivity({ ...updateData, tripId });
         toast.success("Activity created");
       } else {
         await activityService.updateActivity(editingId!, updateData);
@@ -455,6 +455,8 @@ export default function UnscheduledItems({
       onUpdate?.();
     } catch {
       toast.error("Failed to save activity");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -463,6 +465,7 @@ export default function UnscheduledItems({
 
     if (!isCreating && !editingId) return;
 
+    setIsSubmitting(true);
     try {
       let departureTimeISO: string | null = null;
       let arrivalTimeISO: string | null = null;
@@ -502,7 +505,7 @@ export default function UnscheduledItems({
       };
 
       if (isCreating) {
-        await transportationService.createTransportation(tripId, updateData);
+        await transportationService.createTransportation({ ...updateData, tripId });
         toast.success("Transportation created");
       } else {
         await transportationService.updateTransportation(editingId!, updateData);
@@ -514,6 +517,8 @@ export default function UnscheduledItems({
       onUpdate?.();
     } catch {
       toast.error("Failed to save transportation");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -526,6 +531,7 @@ export default function UnscheduledItems({
     }
     if (!isCreating && !editingId) return;
 
+    setIsSubmitting(true);
     try {
       const updateData = {
         type: lodgingForm.values.type as LodgingType,
@@ -545,7 +551,7 @@ export default function UnscheduledItems({
       };
 
       if (isCreating) {
-        await lodgingService.createLodging(tripId, updateData);
+        await lodgingService.createLodging({ ...updateData, tripId });
         toast.success("Lodging created");
       } else {
         await lodgingService.updateLodging(editingId!, updateData);
@@ -557,6 +563,8 @@ export default function UnscheduledItems({
       onUpdate?.();
     } catch {
       toast.error("Failed to save lodging");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -737,12 +745,18 @@ export default function UnscheduledItems({
             <button
               type="button"
               onClick={resetForm}
+              disabled={isSubmitting}
               className="btn btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" form="activity-form" className="btn btn-primary">
-              {isCreating ? "Add Activity" : "Update Activity"}
+            <button
+              type="submit"
+              form="activity-form"
+              disabled={isSubmitting}
+              className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "Saving..." : isCreating ? "Add Activity" : "Update Activity"}
             </button>
           </>
         }
@@ -1017,12 +1031,18 @@ export default function UnscheduledItems({
             <button
               type="button"
               onClick={resetForm}
+              disabled={isSubmitting}
               className="btn btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" form="transportation-form" className="btn btn-primary">
-              {isCreating ? "Add Transportation" : "Update Transportation"}
+            <button
+              type="submit"
+              form="transportation-form"
+              disabled={isSubmitting}
+              className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "Saving..." : isCreating ? "Add Transportation" : "Update Transportation"}
             </button>
           </>
         }
@@ -1305,12 +1325,18 @@ export default function UnscheduledItems({
             <button
               type="button"
               onClick={resetForm}
+              disabled={isSubmitting}
               className="btn btn-secondary"
             >
               Cancel
             </button>
-            <button type="submit" form="lodging-form" className="btn btn-primary">
-              {isCreating ? "Add Lodging" : "Update Lodging"}
+            <button
+              type="submit"
+              form="lodging-form"
+              disabled={isSubmitting}
+              className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "Saving..." : isCreating ? "Add Lodging" : "Update Lodging"}
             </button>
           </>
         }

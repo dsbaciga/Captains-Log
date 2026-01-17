@@ -1501,7 +1501,6 @@ export default function TripDetailPage() {
             <UnscheduledItems
               tripId={trip.id}
               locations={locations}
-              tripTimezone={trip.timezone}
               onUpdate={() => loadTripData(trip.id)}
             />
           </div>

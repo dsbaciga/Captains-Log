@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -324,6 +324,7 @@ function JournalDetails({ entity }: { entity: JournalEntry }) {
 }
 
 function PhotoDetails({ entity }: { entity: Photo }) {
+  const [imageError, setImageError] = useState(false);
   const uploadUrl = import.meta.env.VITE_UPLOAD_URL || '';
   const imageUrl = entity.thumbnailPath
     ? `${uploadUrl}/${entity.thumbnailPath}`
@@ -333,13 +334,20 @@ function PhotoDetails({ entity }: { entity: Photo }) {
 
   return (
     <dl className="divide-y divide-gray-200 dark:divide-gray-700">
-      {imageUrl && (
+      {imageUrl && !imageError && (
         <div className="py-4">
           <img
             src={imageUrl}
             alt={entity.caption || 'Photo'}
             className="max-w-full max-h-64 object-contain rounded-lg mx-auto"
+            onError={() => setImageError(true)}
           />
+        </div>
+      )}
+      {imageError && (
+        <div className="py-4 text-center text-gray-500 dark:text-gray-400">
+          <span className="text-4xl">📷</span>
+          <p className="mt-2 text-sm">Image could not be loaded</p>
         </div>
       )}
       <DetailRow label="Caption" value={entity.caption} />
@@ -355,6 +363,33 @@ function PhotoDetails({ entity }: { entity: Photo }) {
   );
 }
 
+function AlbumPhotoPreview({ photo }: { photo: Photo }) {
+  const [imageError, setImageError] = useState(false);
+  const uploadUrl = import.meta.env.VITE_UPLOAD_URL || '';
+  const imageUrl = photo.thumbnailPath
+    ? `${uploadUrl}/${photo.thumbnailPath}`
+    : photo.localPath
+      ? `${uploadUrl}/${photo.localPath}`
+      : null;
+
+  if (!imageUrl || imageError) {
+    return (
+      <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded text-gray-400">
+        📷
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={photo.caption || 'Photo'}
+      className="w-16 h-16 object-cover rounded"
+      onError={() => setImageError(true)}
+    />
+  );
+}
+
 function AlbumDetails({ entity }: { entity: AlbumWithPhotos }) {
   const photoCount = entity.total ?? entity.photos?.length ?? 0;
   return (
@@ -366,23 +401,9 @@ function AlbumDetails({ entity }: { entity: AlbumWithPhotos }) {
         <div className="py-4">
           <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Preview</dt>
           <dd className="flex flex-wrap gap-2">
-            {entity.photos.slice(0, 6).map((photoAssignment) => {
-              const photo = photoAssignment.photo;
-              const uploadUrl = import.meta.env.VITE_UPLOAD_URL || '';
-              const imageUrl = photo.thumbnailPath
-                ? `${uploadUrl}/${photo.thumbnailPath}`
-                : photo.localPath
-                  ? `${uploadUrl}/${photo.localPath}`
-                  : null;
-              return imageUrl ? (
-                <img
-                  key={photo.id}
-                  src={imageUrl}
-                  alt={photo.caption || 'Photo'}
-                  className="w-16 h-16 object-cover rounded"
-                />
-              ) : null;
-            })}
+            {entity.photos.slice(0, 6).map((photoAssignment) => (
+              <AlbumPhotoPreview key={photoAssignment.photo.id} photo={photoAssignment.photo} />
+            ))}
             {photoCount > 6 && (
               <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded text-sm text-gray-500 dark:text-gray-400">
                 +{photoCount - 6}
@@ -429,6 +450,7 @@ export default function EntityDetailModal({
 }: EntityDetailModalProps) {
   const navigate = useNavigate();
   const modalRef = useRef<HTMLDivElement>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const config = ENTITY_TYPE_CONFIG[entityType];
 
@@ -443,11 +465,35 @@ export default function EntityDetailModal({
     enabled: isOpen,
   });
 
-  // Handle keyboard events
+  // Handle keyboard events including focus trap
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+
+      // Focus trap - Tab key handling
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          // Shift + Tab: if on first element, go to last
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement?.focus();
+          }
+        } else {
+          // Tab: if on last element, go to first
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement?.focus();
+          }
+        }
       }
     },
     [onClose]
@@ -457,6 +503,13 @@ export default function EntityDetailModal({
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
+
+      // Focus the modal when it opens
+      setTimeout(() => {
+        const closeButton = modalRef.current?.querySelector<HTMLElement>('button[aria-label="Close"]');
+        closeButton?.focus();
+      }, 0);
+
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
         document.body.style.overflow = '';
@@ -466,6 +519,7 @@ export default function EntityDetailModal({
 
   // Handle edit button - navigate to the entity's tab with edit param
   const handleEdit = () => {
+    setIsNavigating(true);
     onClose();
     if (entityType === 'PHOTO_ALBUM') {
       navigate(`/trips/${tripId}/albums/${entityId}?edit=true`);
@@ -575,9 +629,10 @@ export default function EntityDetailModal({
           <button
             type="button"
             onClick={handleEdit}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={isNavigating}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Edit
+            {isNavigating ? 'Loading...' : 'Edit'}
           </button>
         </div>
       </div>
