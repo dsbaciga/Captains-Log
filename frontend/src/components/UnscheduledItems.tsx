@@ -15,6 +15,8 @@ import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
+import FormModal from "./FormModal";
+import FormSection from "./FormSection";
 
 interface UnscheduledItemsProps {
   tripId: number;
@@ -149,6 +151,7 @@ export default function UnscheduledItems({
   const [editingType, setEditingType] = useState<EntityType | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
 
   const activityForm = useFormFields<ActivityFormFields>(
     initialActivityFormState
@@ -212,6 +215,7 @@ export default function UnscheduledItems({
     setEditingType(null);
     setIsCreating(false);
     setShowAddMenu(false);
+    setShowFormModal(false);
   };
 
   // Start creating a new entity of the specified type
@@ -221,6 +225,7 @@ export default function UnscheduledItems({
     setEditingType(type);
     setActiveSection(type);
     setShowAddMenu(false);
+    setShowFormModal(true);
   };
 
   const handleEditActivity = (activity: Activity) => {
@@ -273,8 +278,8 @@ export default function UnscheduledItems({
       activityForm.handleChange("endTime", endDateTime.slice(11));
     }
 
-    // Scroll to top to show the edit form
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Open the form modal
+    setShowFormModal(true);
   };
 
   const handleEditTransportation = (transport: Transportation) => {
@@ -343,7 +348,8 @@ export default function UnscheduledItems({
       );
     }
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Open the form modal
+    setShowFormModal(true);
   };
 
   const handleEditLodging = (lodgingItem: Lodging) => {
@@ -380,7 +386,8 @@ export default function UnscheduledItems({
       );
     }
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Open the form modal
+    setShowFormModal(true);
   };
 
   const handleSubmitActivity = async (e: React.FormEvent) => {
@@ -718,15 +725,31 @@ export default function UnscheduledItems({
         </button>
       </div>
 
-      {/* Add/Edit Form - Activity */}
-      {(editingId || isCreating) && editingType === "activity" && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {isCreating ? "Add Activity" : "Edit Activity"}
-          </h3>
-          <form onSubmit={handleSubmitActivity} className="space-y-4">
-            {/* Name and Category */}
-            <div className="grid grid-cols-2 gap-4">
+      {/* Add/Edit Form - Activity Modal */}
+      <FormModal
+        isOpen={showFormModal && editingType === "activity"}
+        onClose={resetForm}
+        title={isCreating ? "Add Activity" : "Edit Activity"}
+        icon="🎯"
+        formId="activity-form"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button type="submit" form="activity-form" className="btn btn-primary">
+              {isCreating ? "Add Activity" : "Update Activity"}
+            </button>
+          </>
+        }
+      >
+        <form id="activity-form" onSubmit={handleSubmitActivity} className="space-y-6">
+          <FormSection title="Basic Information">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="unscheduled-activity-name"
@@ -771,7 +794,6 @@ export default function UnscheduledItems({
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <label
                 htmlFor="unscheduled-activity-description"
@@ -791,7 +813,6 @@ export default function UnscheduledItems({
               />
             </div>
 
-            {/* Location */}
             <div>
               <label
                 htmlFor="unscheduled-activity-location"
@@ -818,9 +839,10 @@ export default function UnscheduledItems({
                 ))}
               </select>
             </div>
+          </FormSection>
 
-            {/* All Day Toggle */}
-            <div className="flex items-center gap-2">
+          <FormSection title="Schedule">
+            <div className="flex items-center gap-2 mb-4">
               <input
                 type="checkbox"
                 id="allDay"
@@ -838,9 +860,8 @@ export default function UnscheduledItems({
               </label>
             </div>
 
-            {/* Date/Time Fields */}
             {activityForm.values.allDay ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label
                     htmlFor="unscheduled-activity-start-date"
@@ -877,7 +898,7 @@ export default function UnscheduledItems({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label
                     htmlFor="unscheduled-activity-start-date-time"
@@ -939,14 +960,14 @@ export default function UnscheduledItems({
               </div>
             )}
 
-            {/* Timezone Component */}
             <TimezoneSelect
               value={activityForm.values.timezone}
               onChange={(value) => activityForm.handleChange("timezone", value)}
               label="Timezone"
             />
+          </FormSection>
 
-            {/* Booking Fields Component */}
+          <FormSection title="Booking & Cost">
             <BookingFields
               confirmationNumber={activityForm.values.bookingReference}
               bookingUrl={activityForm.values.bookingUrl}
@@ -959,7 +980,6 @@ export default function UnscheduledItems({
               confirmationLabel="Booking Reference"
             />
 
-            {/* Cost and Currency Component */}
             <CostCurrencyFields
               cost={activityForm.values.cost}
               currency={activityForm.values.currency}
@@ -968,76 +988,65 @@ export default function UnscheduledItems({
                 activityForm.handleChange("currency", value)
               }
             />
+          </FormSection>
 
-            {/* Notes */}
-            <div>
-              <label
-                htmlFor="unscheduled-activity-notes"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Notes
-              </label>
-              <textarea
-                id="unscheduled-activity-notes"
-                value={activityForm.values.notes}
-                onChange={(e) =>
-                  activityForm.handleChange("notes", e.target.value)
-                }
-                className="input"
-                rows={3}
-              />
-            </div>
+          <FormSection title="Notes">
+            <textarea
+              id="unscheduled-activity-notes"
+              value={activityForm.values.notes}
+              onChange={(e) =>
+                activityForm.handleChange("notes", e.target.value)
+              }
+              className="input"
+              rows={3}
+              placeholder="Additional notes..."
+            />
+          </FormSection>
+        </form>
+      </FormModal>
 
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                {isCreating ? "Add Activity" : "Update Activity"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {/* Add/Edit Form - Transportation Modal */}
+      <FormModal
+        isOpen={showFormModal && editingType === "transportation"}
+        onClose={resetForm}
+        title={isCreating ? "Add Transportation" : "Edit Transportation"}
+        icon="✈️"
+        formId="transportation-form"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button type="submit" form="transportation-form" className="btn btn-primary">
+              {isCreating ? "Add Transportation" : "Update Transportation"}
+            </button>
+          </>
+        }
+      >
+        <form id="transportation-form" onSubmit={handleSubmitTransportation} className="space-y-6">
+          <FormSection title="Type">
+            <select
+              id="unscheduled-transport-type"
+              value={transportationForm.values.type}
+              onChange={(e) =>
+                transportationForm.handleChange("type", e.target.value)
+              }
+              className="input"
+            >
+              {Object.entries(transportationTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </FormSection>
 
-      {/* Add/Edit Form - Transportation */}
-      {(editingId || isCreating) && editingType === "transportation" && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {isCreating ? "Add Transportation" : "Edit Transportation"}
-          </h3>
-          <form onSubmit={handleSubmitTransportation} className="space-y-4">
-            {/* Type */}
-            <div>
-              <label
-                htmlFor="unscheduled-transport-type"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Type
-              </label>
-              <select
-                id="unscheduled-transport-type"
-                value={transportationForm.values.type}
-                onChange={(e) =>
-                  transportationForm.handleChange("type", e.target.value)
-                }
-                className="input"
-              >
-                {Object.entries(transportationTypeLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* From/To Locations */}
-            <div className="grid grid-cols-2 gap-4">
+          <FormSection title="Route">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="unscheduled-transport-from"
@@ -1117,9 +1126,10 @@ export default function UnscheduledItems({
                 />
               </div>
             </div>
+          </FormSection>
 
-            {/* Departure/Arrival Times */}
-            <div className="grid grid-cols-2 gap-4">
+          <FormSection title="Schedule">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Departure Time
@@ -1184,8 +1194,7 @@ export default function UnscheduledItems({
               </div>
             </div>
 
-            {/* Timezones */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <TimezoneSelect
                 value={transportationForm.values.startTimezone}
                 onChange={(value) =>
@@ -1201,9 +1210,10 @@ export default function UnscheduledItems({
                 label="Arrival Timezone"
               />
             </div>
+          </FormSection>
 
-            {/* Carrier and Vehicle Number */}
-            <div className="grid grid-cols-2 gap-4">
+          <FormSection title="Carrier Details">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="unscheduled-transport-carrier"
@@ -1245,7 +1255,6 @@ export default function UnscheduledItems({
               </div>
             </div>
 
-            {/* Confirmation Number */}
             <BookingFields
               confirmationNumber={transportationForm.values.confirmationNumber}
               bookingUrl=""
@@ -1257,7 +1266,6 @@ export default function UnscheduledItems({
               hideBookingUrl={true}
             />
 
-            {/* Cost and Currency */}
             <CostCurrencyFields
               cost={transportationForm.values.cost}
               currency={transportationForm.values.currency}
@@ -1268,52 +1276,48 @@ export default function UnscheduledItems({
                 transportationForm.handleChange("currency", value)
               }
             />
+          </FormSection>
 
-            {/* Notes */}
-            <div>
-              <label
-                htmlFor="unscheduled-transport-notes"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Notes
-              </label>
-              <textarea
-                id="unscheduled-transport-notes"
-                value={transportationForm.values.notes}
-                onChange={(e) =>
-                  transportationForm.handleChange("notes", e.target.value)
-                }
-                className="input"
-                rows={3}
-              />
-            </div>
+          <FormSection title="Notes">
+            <textarea
+              id="unscheduled-transport-notes"
+              value={transportationForm.values.notes}
+              onChange={(e) =>
+                transportationForm.handleChange("notes", e.target.value)
+              }
+              className="input"
+              rows={3}
+              placeholder="Additional notes..."
+            />
+          </FormSection>
+        </form>
+      </FormModal>
 
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                {isCreating ? "Add Transportation" : "Update Transportation"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Add/Edit Form - Lodging */}
-      {(editingId || isCreating) && editingType === "lodging" && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {isCreating ? "Add Lodging" : "Edit Lodging"}
-          </h3>
-          <form onSubmit={handleSubmitLodging} className="space-y-4">
-            {/* Name and Type */}
-            <div className="grid grid-cols-2 gap-4">
+      {/* Add/Edit Form - Lodging Modal */}
+      <FormModal
+        isOpen={showFormModal && editingType === "lodging"}
+        onClose={resetForm}
+        title={isCreating ? "Add Lodging" : "Edit Lodging"}
+        icon="🏨"
+        formId="lodging-form"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button type="submit" form="lodging-form" className="btn btn-primary">
+              {isCreating ? "Add Lodging" : "Update Lodging"}
+            </button>
+          </>
+        }
+      >
+        <form id="lodging-form" onSubmit={handleSubmitLodging} className="space-y-6">
+          <FormSection title="Basic Information">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="unscheduled-lodging-name"
@@ -1356,7 +1360,6 @@ export default function UnscheduledItems({
               </div>
             </div>
 
-            {/* Location */}
             <div>
               <label
                 htmlFor="unscheduled-lodging-location"
@@ -1384,7 +1387,6 @@ export default function UnscheduledItems({
               </select>
             </div>
 
-            {/* Address */}
             <div>
               <label
                 htmlFor="unscheduled-lodging-address"
@@ -1402,9 +1404,10 @@ export default function UnscheduledItems({
                 className="input"
               />
             </div>
+          </FormSection>
 
-            {/* Check-in/Check-out Dates */}
-            <div className="grid grid-cols-2 gap-4">
+          <FormSection title="Schedule">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="unscheduled-lodging-checkin"
@@ -1441,14 +1444,14 @@ export default function UnscheduledItems({
               </div>
             </div>
 
-            {/* Timezone */}
             <TimezoneSelect
               value={lodgingForm.values.timezone}
               onChange={(value) => lodgingForm.handleChange("timezone", value)}
               label="Timezone"
             />
+          </FormSection>
 
-            {/* Booking Fields */}
+          <FormSection title="Booking & Cost">
             <BookingFields
               confirmationNumber={lodgingForm.values.confirmationNumber}
               bookingUrl={lodgingForm.values.bookingUrl}
@@ -1461,7 +1464,6 @@ export default function UnscheduledItems({
               confirmationLabel="Confirmation Number"
             />
 
-            {/* Cost and Currency */}
             <CostCurrencyFields
               cost={lodgingForm.values.cost}
               currency={lodgingForm.values.currency}
@@ -1470,42 +1472,22 @@ export default function UnscheduledItems({
                 lodgingForm.handleChange("currency", value)
               }
             />
+          </FormSection>
 
-            {/* Notes */}
-            <div>
-              <label
-                htmlFor="unscheduled-lodging-notes"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Notes
-              </label>
-              <textarea
-                id="unscheduled-lodging-notes"
-                value={lodgingForm.values.notes}
-                onChange={(e) =>
-                  lodgingForm.handleChange("notes", e.target.value)
-                }
-                className="input"
-                rows={3}
-              />
-            </div>
-
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                {isCreating ? "Add Lodging" : "Update Lodging"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          <FormSection title="Notes">
+            <textarea
+              id="unscheduled-lodging-notes"
+              value={lodgingForm.values.notes}
+              onChange={(e) =>
+                lodgingForm.handleChange("notes", e.target.value)
+              }
+              className="input"
+              rows={3}
+              placeholder="Additional notes..."
+            />
+          </FormSection>
+        </form>
+      </FormModal>
 
       {/* Items List */}
       <div className="space-y-4">
