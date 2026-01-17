@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
 import type {
@@ -109,8 +110,32 @@ function formatRelationship(relationship: string): string {
 interface GroupedLink {
   link: EnrichedEntityLink;
   linkedEntityType: EntityType;
+  linkedEntityId: number;
   displayName: string;
   direction: 'from' | 'to';
+}
+
+// Map entity types to tab names for navigation
+const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
+  PHOTO: 'photos',
+  LOCATION: 'locations',
+  ACTIVITY: 'activities',
+  LODGING: 'lodging',
+  TRANSPORTATION: 'transportation',
+  JOURNAL_ENTRY: 'journal',
+  PHOTO_ALBUM: null, // Albums have their own route
+};
+
+// Generate URL for navigating to a linked entity
+function getEntityUrl(tripId: number, entityType: EntityType, entityId: number): string {
+  if (entityType === 'PHOTO_ALBUM') {
+    return `/trips/${tripId}/albums/${entityId}`;
+  }
+  const tab = ENTITY_TYPE_TO_TAB[entityType];
+  if (tab) {
+    return `/trips/${tripId}?tab=${tab}`;
+  }
+  return `/trips/${tripId}`;
 }
 
 export default function LinkedEntitiesDisplay({
@@ -152,6 +177,7 @@ export default function LinkedEntitiesDisplay({
         groups[link.targetType].push({
           link,
           linkedEntityType: link.targetType,
+          linkedEntityId: link.targetId,
           displayName: getEntityDisplayName(link, 'from'),
           direction: 'from',
         });
@@ -164,6 +190,7 @@ export default function LinkedEntitiesDisplay({
         groups[link.sourceType].push({
           link,
           linkedEntityType: link.sourceType,
+          linkedEntityId: link.sourceId,
           displayName: getEntityDisplayName(link, 'to'),
           direction: 'to',
         });
@@ -242,12 +269,13 @@ export default function LinkedEntitiesDisplay({
               {/* Cards grid */}
               <div className="flex flex-wrap gap-2">
                 {displayItems.map((item) => (
-                  <div
+                  <Link
                     key={item.link.id}
+                    to={getEntityUrl(tripId, item.linkedEntityType, item.linkedEntityId)}
                     className={`
                       inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border
                       ${colors.bg} ${colors.bgHover} ${colors.border}
-                      transition-colors cursor-default
+                      transition-colors cursor-pointer
                       ${compact ? 'text-xs' : 'text-sm'}
                     `}
                     title={`${formatRelationship(item.link.relationship)}: ${item.displayName}`}
@@ -261,7 +289,7 @@ export default function LinkedEntitiesDisplay({
                         ({formatRelationship(item.link.relationship)})
                       </span>
                     )}
-                  </div>
+                  </Link>
                 ))}
 
                 {/* Show "more" indicator if items are truncated */}
