@@ -314,7 +314,14 @@ const Timeline = ({
               }
               return location.name;
             }
-            if (locationName) return locationName;
+            if (locationName) {
+              // For flights, extract just the first part (name) from text field
+              // This handles cases where users entered full addresses like "JFK Airport, Queens, NY"
+              if (transportType === 'flight') {
+                return locationName.split(',')[0].trim();
+              }
+              return locationName;
+            }
             if (locationId) return `Location #${locationId} (deleted?)`;
             return 'Unknown';
           };
@@ -1166,7 +1173,7 @@ const Timeline = ({
       `}</style>
 
       {/* Filter Bar */}
-      <div className="timeline-filter-bar mb-6 print:hidden">
+      <div className="timeline-filter-bar mb-4 print:hidden">
         <TimelineFilters
           visibleTypes={visibleTypes}
           onToggleType={toggleType}
@@ -1174,54 +1181,10 @@ const Timeline = ({
           onToggleViewMode={toggleViewMode}
           onExpandAll={expandAllDays}
           onCollapseAll={collapseAllDays}
+          onRefreshWeather={handleRefreshWeather}
+          onPrint={handlePrint}
+          refreshingWeather={refreshingWeather}
         />
-
-        {/* Action buttons */}
-        <div className="flex items-center justify-between mt-3">
-          {/* Weather Refresh - Left side */}
-          <button
-            type="button"
-            onClick={handleRefreshWeather}
-            disabled={refreshingWeather}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Refresh weather data"
-          >
-            <svg
-              className={`w-4 h-4 ${refreshingWeather ? 'animate-spin' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            <span className="hidden sm:inline">
-              {refreshingWeather ? 'Refreshing...' : 'Refresh Weather'}
-            </span>
-          </button>
-
-          {/* Print - Right side */}
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
-            title="Print timeline"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-              />
-            </svg>
-            <span className="hidden sm:inline">Print</span>
-          </button>
-        </div>
       </div>
 
       {/* Mobile timezone toggle */}

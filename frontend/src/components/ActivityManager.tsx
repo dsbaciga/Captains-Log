@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { Activity, CreateActivityInput, UpdateActivityInput } from "../types/activity";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
@@ -110,6 +111,7 @@ export default function ActivityManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activityCategories, setActivityCategories] = useState<
     ActivityCategory[]
   >([]);
@@ -117,6 +119,7 @@ export default function ActivityManager({
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<ActivityFormFields>(getInitialFormState);
@@ -129,6 +132,71 @@ export default function ActivityManager({
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
+
+  // Handle edit param from URL (for navigating from EntityDetailModal)
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      const itemId = parseInt(editId, 10);
+      // Clear the edit param from URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("edit");
+      setSearchParams(newParams, { replace: true });
+      // Set pending edit ID to be handled when items are loaded
+      setPendingEditId(itemId);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Handle pending edit when items are loaded
+  useEffect(() => {
+    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
+      const item = manager.items.find((a) => a.id === pendingEditId);
+      if (item) {
+        // Copy handleEdit logic - we need to inline it since it's defined later
+        setShowMoreOptions(true);
+        handleChange("name", item.name);
+        handleChange("description", item.description || "");
+        handleChange("category", item.category || "");
+        handleChange("locationId", item.locationId || undefined);
+        handleChange("parentId", item.parentId || undefined);
+        handleChange("allDay", item.allDay);
+        handleChange("timezone", item.timezone || "");
+        handleChange("cost", item.cost?.toString() || "");
+        handleChange("currency", item.currency || "USD");
+        handleChange("bookingUrl", item.bookingUrl || "");
+        handleChange("bookingReference", item.bookingReference || "");
+        handleChange("notes", item.notes || "");
+
+        const effectiveTz = item.timezone || tripTimezone || 'UTC';
+        if (item.allDay) {
+          if (item.startTime) {
+            const startDateTime = convertISOToDateTimeLocal(item.startTime, effectiveTz);
+            handleChange("startDate", startDateTime.slice(0, 10));
+          }
+          if (item.endTime) {
+            const endDateTime = convertISOToDateTimeLocal(item.endTime, effectiveTz);
+            handleChange("endDate", endDateTime.slice(0, 10));
+          }
+          handleChange("startTime", "");
+          handleChange("endTime", "");
+        } else {
+          if (item.startTime) {
+            const startDateTime = convertISOToDateTimeLocal(item.startTime, effectiveTz);
+            handleChange("startDate", startDateTime.slice(0, 10));
+            handleChange("startTime", startDateTime.slice(11));
+          }
+          if (item.endTime) {
+            const endDateTime = convertISOToDateTimeLocal(item.endTime, effectiveTz);
+            handleChange("endDate", endDateTime.slice(0, 10));
+            handleChange("endTime", endDateTime.slice(11));
+          }
+        }
+
+        manager.openEditForm(item.id);
+      }
+      setPendingEditId(null);
+    }
+  }, [pendingEditId, manager.items, manager.loading, tripTimezone]);
 
   // Auto-fill: End Time = Start Time + 1 Hour
   useEffect(() => {
@@ -431,154 +499,160 @@ export default function ActivityManager({
     return (
       <div
         key={activity.id}
-        className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-6 hover:shadow-md transition-shadow ${
+        className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow ${
           isChild
-            ? "ml-8 mt-3 border-l-4 border-blue-300 dark:border-blue-700"
+            ? "ml-4 sm:ml-8 mt-3 border-l-4 border-blue-300 dark:border-blue-700"
             : ""
         }`}
       >
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              {activity.category && (
-                <span className="text-xl">
-                  {activityCategories.find((c) => c.name === activity.category)
-                    ?.emoji || "📍"}
-                </span>
-              )}
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {activity.name}
-              </h3>
-              {activity.category && (
-                <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
-                  {activity.category}
-                </span>
-              )}
-            </div>
-
-            {activity.description && (
-              <p className="text-gray-600 dark:text-gray-400 mb-2">
-                {activity.description}
-              </p>
+        {/* Header with icon, name, and category */}
+        <div className="flex items-start gap-2 mb-3 flex-wrap">
+          {activity.category && (
+            <span className="text-xl sm:text-2xl">
+              {activityCategories.find((c) => c.name === activity.category)
+                ?.emoji || "📍"}
+            </span>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white break-words">
+              {activity.name}
+            </h3>
+            {activity.category && (
+              <span className="text-xs sm:text-sm px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded inline-block mt-1">
+                {activity.category}
+              </span>
             )}
+          </div>
+        </div>
 
-            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-              {/* Location */}
-              {activity.location && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Location:</span>
-                  <span>{activity.location.name}</span>
-                  {activity.location.address && (
-                    <span className="text-gray-500 dark:text-gray-500">
-                      ({activity.location.address})
-                    </span>
-                  )}
-                </div>
+        {/* Description */}
+        {activity.description && (
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2 sm:line-clamp-none">
+            {activity.description}
+          </p>
+        )}
+
+        {/* Details */}
+        <div className="space-y-1.5 sm:space-y-2 text-sm text-gray-700 dark:text-gray-300">
+          {/* Location */}
+          {activity.location && (
+            <div className="flex flex-wrap gap-x-2">
+              <span className="font-medium">Location:</span>
+              <span>{activity.location.name}</span>
+              {activity.location.address && (
+                <span className="text-gray-500 dark:text-gray-500 hidden sm:inline">
+                  ({activity.location.address})
+                </span>
               )}
-
-              {/* Time */}
-              {activity.startTime && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">
-                    {activity.allDay ? "Date:" : "Time:"}
-                  </span>
-                  <span>
-                    {formatDateTime(
-                      activity.startTime,
-                      activity.timezone,
-                      activity.allDay
-                    )}
-                    {activity.endTime &&
-                      ` - ${formatDateTime(
-                        activity.endTime,
-                        activity.timezone,
-                        activity.allDay
-                      )}`}
-                  </span>
-                </div>
-              )}
-
-              {/* Booking Reference */}
-              {activity.bookingReference && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Reference:</span>
-                  <span>{activity.bookingReference}</span>
-                </div>
-              )}
-
-              {/* Booking URL */}
-              {activity.bookingUrl && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium whitespace-nowrap">Booking:</span>
-                  <a
-                    href={activity.bookingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline dark:text-blue-400 whitespace-nowrap truncate"
-                  >
-                    View Booking
-                  </a>
-                </div>
-              )}
-
-              {/* Cost */}
-              {activity.cost && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Cost:</span>
-                  <span>
-                    {activity.currency} {activity.cost}
-                  </span>
-                </div>
-              )}
-
-              {/* Notes */}
-              {activity.notes && (
-                <div className="mt-2">
-                  <span className="font-medium">Notes:</span>
-                  <p className="text-gray-600 dark:text-gray-400 mt-1">
-                    {activity.notes}
-                  </p>
-                </div>
-              )}
-
-              {/* Linked Entities */}
-              <LinkedEntitiesDisplay
-                tripId={tripId}
-                entityType="ACTIVITY"
-                entityId={activity.id}
-                compact
-              />
             </div>
-          </div>
+          )}
 
-          {/* Actions */}
-          <div className="flex flex-wrap items-center gap-2 flex-shrink-0 self-start">
-            <AssociatedAlbums albums={activity.photoAlbums} tripId={tripId} />
-            <LinkButton
-              tripId={tripId}
-              entityType="ACTIVITY"
-              entityId={activity.id}
-              linkSummary={getLinkSummary('ACTIVITY', activity.id)}
-              onUpdate={invalidateLinkSummary}
-              size="sm"
-            />
-            <JournalEntriesButton
-              journalEntries={activity.journalAssignments}
-              tripId={tripId}
-            />
-            <button
-              onClick={() => handleEdit(activity)}
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap text-sm sm:text-base"
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => handleDelete(activity.id)}
-              className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap text-sm sm:text-base"
-            >
-              Delete
-            </button>
-          </div>
+          {/* Time */}
+          {activity.startTime && (
+            <div className="flex flex-wrap gap-x-2">
+              <span className="font-medium">
+                {activity.allDay ? "Date:" : "Time:"}
+              </span>
+              <span>
+                {formatDateTime(
+                  activity.startTime,
+                  activity.timezone,
+                  activity.allDay
+                )}
+                {activity.endTime &&
+                  ` - ${formatDateTime(
+                    activity.endTime,
+                    activity.timezone,
+                    activity.allDay
+                  )}`}
+              </span>
+            </div>
+          )}
+
+          {/* Booking Reference */}
+          {activity.bookingReference && (
+            <div className="flex flex-wrap gap-x-2">
+              <span className="font-medium">Reference:</span>
+              <span>{activity.bookingReference}</span>
+            </div>
+          )}
+
+          {/* Booking URL */}
+          {activity.bookingUrl && (
+            <div className="flex flex-wrap gap-x-2">
+              <span className="font-medium">Booking:</span>
+              <a
+                href={activity.bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                View Booking
+              </a>
+            </div>
+          )}
+
+          {/* Cost */}
+          {activity.cost && (
+            <div className="flex flex-wrap gap-x-2">
+              <span className="font-medium">Cost:</span>
+              <span>
+                {activity.currency} {activity.cost}
+              </span>
+            </div>
+          )}
+
+          {/* Notes */}
+          {activity.notes && (
+            <div className="mt-2">
+              <span className="font-medium">Notes:</span>
+              <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:line-clamp-none">
+                {activity.notes}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Associated Albums */}
+        <div className="mt-3">
+          <AssociatedAlbums albums={activity.photoAlbums} tripId={tripId} />
+        </div>
+
+        {/* Linked Entities */}
+        <LinkedEntitiesDisplay
+          tripId={tripId}
+          entityType="ACTIVITY"
+          entityId={activity.id}
+          compact
+        />
+
+        {/* Actions - bottom row */}
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <LinkButton
+            tripId={tripId}
+            entityType="ACTIVITY"
+            entityId={activity.id}
+            linkSummary={getLinkSummary('ACTIVITY', activity.id)}
+            onUpdate={invalidateLinkSummary}
+            size="sm"
+          />
+          <JournalEntriesButton
+            journalEntries={activity.journalAssignments}
+            tripId={tripId}
+          />
+          <div className="flex-1" />
+          <button
+            onClick={() => handleEdit(activity)}
+            className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleDelete(activity.id)}
+            className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+          >
+            Delete
+          </button>
         </div>
 
         {/* Render children */}
@@ -599,8 +673,8 @@ export default function ActivityManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
+      <div className="flex justify-between items-center gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Activities
         </h2>
         <button
@@ -608,9 +682,10 @@ export default function ActivityManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary whitespace-nowrap flex-shrink-0"
+          className="btn btn-primary text-sm sm:text-base whitespace-nowrap flex-shrink-0"
         >
-          + Add Activity
+          <span className="sm:hidden">+ Add</span>
+          <span className="hidden sm:inline">+ Add Activity</span>
         </button>
       </div>
 

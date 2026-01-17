@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
 import type {
@@ -6,6 +6,7 @@ import type {
   EnrichedEntityLink,
   EntityLinksResponse,
 } from '../types/entityLink';
+import EntityDetailModal from './EntityDetailModal';
 
 interface LinkedEntitiesDisplayProps {
   tripId: number;
@@ -32,66 +33,69 @@ const ENTITY_CONFIG: Record<EntityType, { label: string; labelPlural: string; em
   PHOTO_ALBUM: { label: 'Album', labelPlural: 'Albums', emoji: '📸', color: 'pink' },
 };
 
+// Color classes map - defined once outside component to avoid recreation
+const COLOR_MAP: Record<string, { bg: string; bgHover: string; text: string; border: string; ring: string; focus: string }> = {
+  gray: {
+    bg: 'bg-gray-100 dark:bg-gray-700',
+    bgHover: 'hover:bg-gray-200 dark:hover:bg-gray-600',
+    text: 'text-gray-800 dark:text-gray-200',
+    border: 'border-gray-300 dark:border-gray-600',
+    ring: 'ring-gray-400',
+    focus: 'focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 focus:outline-none',
+  },
+  blue: {
+    bg: 'bg-blue-100 dark:bg-blue-900/50',
+    bgHover: 'hover:bg-blue-200 dark:hover:bg-blue-800/50',
+    text: 'text-blue-800 dark:text-blue-200',
+    border: 'border-blue-300 dark:border-blue-700',
+    ring: 'ring-blue-400',
+    focus: 'focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 focus:outline-none',
+  },
+  green: {
+    bg: 'bg-green-100 dark:bg-green-900/50',
+    bgHover: 'hover:bg-green-200 dark:hover:bg-green-800/50',
+    text: 'text-green-800 dark:text-green-200',
+    border: 'border-green-300 dark:border-green-700',
+    ring: 'ring-green-400',
+    focus: 'focus:ring-2 focus:ring-green-400 focus:ring-offset-1 focus:outline-none',
+  },
+  purple: {
+    bg: 'bg-purple-100 dark:bg-purple-900/50',
+    bgHover: 'hover:bg-purple-200 dark:hover:bg-purple-800/50',
+    text: 'text-purple-800 dark:text-purple-200',
+    border: 'border-purple-300 dark:border-purple-700',
+    ring: 'ring-purple-400',
+    focus: 'focus:ring-2 focus:ring-purple-400 focus:ring-offset-1 focus:outline-none',
+  },
+  orange: {
+    bg: 'bg-orange-100 dark:bg-orange-900/50',
+    bgHover: 'hover:bg-orange-200 dark:hover:bg-orange-800/50',
+    text: 'text-orange-800 dark:text-orange-200',
+    border: 'border-orange-300 dark:border-orange-700',
+    ring: 'ring-orange-400',
+    focus: 'focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 focus:outline-none',
+  },
+  yellow: {
+    bg: 'bg-yellow-100 dark:bg-yellow-900/50',
+    bgHover: 'hover:bg-yellow-200 dark:hover:bg-yellow-800/50',
+    text: 'text-yellow-800 dark:text-yellow-200',
+    border: 'border-yellow-300 dark:border-yellow-700',
+    ring: 'ring-yellow-400',
+    focus: 'focus:ring-2 focus:ring-yellow-400 focus:ring-offset-1 focus:outline-none',
+  },
+  pink: {
+    bg: 'bg-pink-100 dark:bg-pink-900/50',
+    bgHover: 'hover:bg-pink-200 dark:hover:bg-pink-800/50',
+    text: 'text-pink-800 dark:text-pink-200',
+    border: 'border-pink-300 dark:border-pink-700',
+    ring: 'ring-pink-400',
+    focus: 'focus:ring-2 focus:ring-pink-400 focus:ring-offset-1 focus:outline-none',
+  },
+};
+
 // Get Tailwind color classes for each entity type
-function getColorClasses(entityType: EntityType): {
-  bg: string;
-  bgHover: string;
-  text: string;
-  border: string;
-  ring: string;
-} {
-  const colorMap: Record<string, { bg: string; bgHover: string; text: string; border: string; ring: string }> = {
-    gray: {
-      bg: 'bg-gray-100 dark:bg-gray-700',
-      bgHover: 'hover:bg-gray-200 dark:hover:bg-gray-600',
-      text: 'text-gray-800 dark:text-gray-200',
-      border: 'border-gray-300 dark:border-gray-600',
-      ring: 'ring-gray-400',
-    },
-    blue: {
-      bg: 'bg-blue-100 dark:bg-blue-900/50',
-      bgHover: 'hover:bg-blue-200 dark:hover:bg-blue-800/50',
-      text: 'text-blue-800 dark:text-blue-200',
-      border: 'border-blue-300 dark:border-blue-700',
-      ring: 'ring-blue-400',
-    },
-    green: {
-      bg: 'bg-green-100 dark:bg-green-900/50',
-      bgHover: 'hover:bg-green-200 dark:hover:bg-green-800/50',
-      text: 'text-green-800 dark:text-green-200',
-      border: 'border-green-300 dark:border-green-700',
-      ring: 'ring-green-400',
-    },
-    purple: {
-      bg: 'bg-purple-100 dark:bg-purple-900/50',
-      bgHover: 'hover:bg-purple-200 dark:hover:bg-purple-800/50',
-      text: 'text-purple-800 dark:text-purple-200',
-      border: 'border-purple-300 dark:border-purple-700',
-      ring: 'ring-purple-400',
-    },
-    orange: {
-      bg: 'bg-orange-100 dark:bg-orange-900/50',
-      bgHover: 'hover:bg-orange-200 dark:hover:bg-orange-800/50',
-      text: 'text-orange-800 dark:text-orange-200',
-      border: 'border-orange-300 dark:border-orange-700',
-      ring: 'ring-orange-400',
-    },
-    yellow: {
-      bg: 'bg-yellow-100 dark:bg-yellow-900/50',
-      bgHover: 'hover:bg-yellow-200 dark:hover:bg-yellow-800/50',
-      text: 'text-yellow-800 dark:text-yellow-200',
-      border: 'border-yellow-300 dark:border-yellow-700',
-      ring: 'ring-yellow-400',
-    },
-    pink: {
-      bg: 'bg-pink-100 dark:bg-pink-900/50',
-      bgHover: 'hover:bg-pink-200 dark:hover:bg-pink-800/50',
-      text: 'text-pink-800 dark:text-pink-200',
-      border: 'border-pink-300 dark:border-pink-700',
-      ring: 'ring-pink-400',
-    },
-  };
-  return colorMap[ENTITY_CONFIG[entityType].color] || colorMap.gray;
+function getColorClasses(entityType: EntityType) {
+  return COLOR_MAP[ENTITY_CONFIG[entityType].color] || COLOR_MAP.gray;
 }
 
 // Get display name for a linked entity
@@ -109,8 +113,15 @@ function formatRelationship(relationship: string): string {
 interface GroupedLink {
   link: EnrichedEntityLink;
   linkedEntityType: EntityType;
+  linkedEntityId: number;
   displayName: string;
   direction: 'from' | 'to';
+}
+
+// Selected entity state for detail modal
+interface SelectedEntity {
+  type: EntityType;
+  id: number;
 }
 
 export default function LinkedEntitiesDisplay({
@@ -122,6 +133,9 @@ export default function LinkedEntitiesDisplay({
   maxItemsPerType = 5,
   className = '',
 }: LinkedEntitiesDisplayProps) {
+  // State for entity detail modal
+  const [selectedEntity, setSelectedEntity] = useState<SelectedEntity | null>(null);
+
   // Fetch all links for this entity
   const {
     data: linksData,
@@ -152,6 +166,7 @@ export default function LinkedEntitiesDisplay({
         groups[link.targetType].push({
           link,
           linkedEntityType: link.targetType,
+          linkedEntityId: link.targetId,
           displayName: getEntityDisplayName(link, 'from'),
           direction: 'from',
         });
@@ -164,6 +179,7 @@ export default function LinkedEntitiesDisplay({
         groups[link.sourceType].push({
           link,
           linkedEntityType: link.sourceType,
+          linkedEntityId: link.sourceId,
           displayName: getEntityDisplayName(link, 'to'),
           direction: 'to',
         });
@@ -242,12 +258,14 @@ export default function LinkedEntitiesDisplay({
               {/* Cards grid */}
               <div className="flex flex-wrap gap-2">
                 {displayItems.map((item) => (
-                  <div
+                  <button
                     key={item.link.id}
+                    type="button"
+                    onClick={() => setSelectedEntity({ type: item.linkedEntityType, id: item.linkedEntityId })}
                     className={`
                       inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border
-                      ${colors.bg} ${colors.bgHover} ${colors.border}
-                      transition-colors cursor-default
+                      ${colors.bg} ${colors.bgHover} ${colors.border} ${colors.focus}
+                      transition-colors cursor-pointer
                       ${compact ? 'text-xs' : 'text-sm'}
                     `}
                     title={`${formatRelationship(item.link.relationship)}: ${item.displayName}`}
@@ -261,7 +279,7 @@ export default function LinkedEntitiesDisplay({
                         ({formatRelationship(item.link.relationship)})
                       </span>
                     )}
-                  </div>
+                  </button>
                 ))}
 
                 {/* Show "more" indicator if items are truncated */}
@@ -282,6 +300,17 @@ export default function LinkedEntitiesDisplay({
           );
         })}
       </div>
+
+      {/* Entity Detail Modal */}
+      {selectedEntity && (
+        <EntityDetailModal
+          isOpen={!!selectedEntity}
+          onClose={() => setSelectedEntity(null)}
+          tripId={tripId}
+          entityType={selectedEntity.type}
+          entityId={selectedEntity.id}
+        />
+      )}
     </div>
   );
 }

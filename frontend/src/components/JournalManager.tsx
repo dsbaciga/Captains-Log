@@ -1,4 +1,5 @@
-import { useState, useId, useMemo } from "react";
+import { useState, useId, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput } from "../types/journalEntry";
 import journalEntryService from "../services/journalEntry.service";
 import toast from "react-hot-toast";
@@ -49,8 +50,10 @@ export default function JournalManager({
   // Link summary hook for displaying link counts
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
   // Use the new useFormFields hook to manage all form state
   // Memoize initial form values to include trip start date as default
@@ -66,6 +69,37 @@ export default function JournalManager({
   const titleFieldId = useId();
   const entryDateFieldId = useId();
   const contentFieldId = useId();
+
+  // Handle edit param from URL (for navigating from EntityDetailModal)
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      const itemId = parseInt(editId, 10);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("edit");
+      setSearchParams(newParams, { replace: true });
+      setPendingEditId(itemId);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Handle pending edit when items are loaded
+  useEffect(() => {
+    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
+      const item = manager.items.find((j) => j.id === pendingEditId);
+      if (item) {
+        setAllFields({
+          title: item.title || "",
+          content: item.content,
+          entryDate: item.date
+            ? new Date(item.date).toISOString().slice(0, 16)
+            : "",
+        });
+        manager.openEditForm(item.id);
+        setExpandedId(null);
+      }
+      setPendingEditId(null);
+    }
+  }, [pendingEditId, manager.items, manager.loading]);
 
   const resetForm = () => {
     resetFields();

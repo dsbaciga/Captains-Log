@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { Location, CreateLocationInput, UpdateLocationInput, LocationCategory } from "../types/location";
 import locationService from "../services/location.service";
 import toast from "react-hot-toast";
@@ -64,6 +65,7 @@ export default function LocationManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
 
@@ -73,6 +75,30 @@ export default function LocationManager({
   useEffect(() => {
     loadCategories();
   }, []);
+
+  // Handle edit param from URL (for navigating from EntityDetailModal)
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && manager.items.length > 0 && !manager.loading) {
+      const itemId = parseInt(editId, 10);
+      const item = manager.items.find((loc) => loc.id === itemId);
+      if (item) {
+        // Clear the edit param from URL first
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("edit");
+        setSearchParams(newParams, { replace: true });
+        // Then open the edit form
+        handleChange("name", item.name);
+        handleChange("address", item.address || "");
+        handleChange("notes", item.notes || "");
+        handleChange("latitude", item.latitude || undefined);
+        handleChange("longitude", item.longitude || undefined);
+        handleChange("parentId", item.parentId || undefined);
+        handleChange("categoryId", item.categoryId || undefined);
+        manager.openEditForm(item.id);
+      }
+    }
+  }, [searchParams, manager.items, manager.loading]);
 
   const loadCategories = async () => {
     try {
@@ -203,36 +229,39 @@ export default function LocationManager({
     return (
       <div key={location.id} className={isChild ? "" : "space-y-2"}>
         <div
-          className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow ${
+          className={`border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow ${
             isChild
               ? "bg-gray-50 dark:bg-gray-700"
               : "bg-white dark:bg-gray-800"
           }`}
         >
-          <div className="flex justify-between items-start gap-4">
+          {/* Header row: Title + badge on mobile, with actions on larger screens */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              {/* Title row */}
+              <div className="flex items-start gap-2 flex-wrap">
                 {isChild && (
-                  <span className="text-gray-400 dark:text-gray-500">
+                  <span className="text-gray-400 dark:text-gray-500 mt-0.5">
                     {String.fromCharCode(8627)}
                   </span>
                 )}
                 <h3
                   className={`${
                     isChild ? "text-base" : "text-lg"
-                  } font-semibold text-gray-900 dark:text-white`}
+                  } font-semibold text-gray-900 dark:text-white break-words`}
                 >
                   {location.name}
                 </h3>
                 {!isChild && children.length > 0 && (
-                  <span className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                  <span className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded whitespace-nowrap flex-shrink-0">
                     {children.length} {children.length === 1 ? "place" : "places"}
                   </span>
                 )}
               </div>
+              {/* Address - line clamp on mobile */}
               {location.address && (
                 <p
-                  className={`text-gray-600 dark:text-gray-400 text-sm mt-1 ${
+                  className={`text-gray-600 dark:text-gray-400 text-sm mt-1 line-clamp-2 sm:line-clamp-none ${
                     isChild ? "ml-6" : ""
                   }`}
                 >
@@ -241,7 +270,7 @@ export default function LocationManager({
               )}
               {location.notes && (
                 <p
-                  className={`text-gray-700 dark:text-gray-300 mt-2 ${
+                  className={`text-gray-700 dark:text-gray-300 text-sm mt-2 line-clamp-2 sm:line-clamp-none ${
                     isChild ? "ml-6" : ""
                   }`}
                 >
@@ -259,7 +288,9 @@ export default function LocationManager({
                 </span>
               )}
             </div>
-            <div className="flex gap-2 items-center flex-shrink-0">
+
+            {/* Action buttons - own row on mobile, inline on larger screens */}
+            <div className="flex gap-2 items-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-600">
               <LinkButton
                 tripId={tripId}
                 entityType="LOCATION"
@@ -274,13 +305,13 @@ export default function LocationManager({
               />
               <button
                 onClick={() => handleEdit(location)}
-                className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(location.id)}
-                className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
               >
                 Delete
               </button>
@@ -299,9 +330,9 @@ export default function LocationManager({
           />
         </div>
 
-        {/* Render children */}
+        {/* Render children - less indent on mobile */}
         {!isChild && children.length > 0 && (
-          <div className="ml-8 space-y-2">
+          <div className="ml-4 sm:ml-8 space-y-2">
             {children.map((child) => renderLocation(child, true))}
           </div>
         )}
@@ -312,8 +343,8 @@ export default function LocationManager({
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">
+      <div className="flex justify-between items-center gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Locations
         </h2>
         <button
@@ -321,9 +352,10 @@ export default function LocationManager({
             resetForm();
             manager.toggleForm();
           }}
-          className="btn btn-primary whitespace-nowrap flex-shrink-0"
+          className="btn btn-primary text-sm sm:text-base whitespace-nowrap flex-shrink-0"
         >
-          + Add Location
+          <span className="sm:hidden">+ Add</span>
+          <span className="hidden sm:inline">+ Add Location</span>
         </button>
       </div>
 

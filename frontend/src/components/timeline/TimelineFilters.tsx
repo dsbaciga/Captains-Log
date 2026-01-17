@@ -7,26 +7,33 @@ interface TimelineFiltersProps {
   onToggleViewMode: (mode: 'standard' | 'compact') => void;
   onExpandAll: () => void;
   onCollapseAll: () => void;
+  onRefreshWeather?: () => void;
+  onPrint?: () => void;
+  refreshingWeather?: boolean;
 }
 
-const TYPE_CONFIG: Record<TimelineItemType, { label: string; color: string; bgColor: string }> = {
+const TYPE_CONFIG: Record<TimelineItemType, { label: string; shortLabel: string; color: string; bgColor: string }> = {
   activity: {
     label: 'Activities',
+    shortLabel: 'Act',
     color: 'text-green-600 dark:text-green-400',
     bgColor: 'bg-green-100 dark:bg-green-900/30',
   },
   transportation: {
     label: 'Transport',
+    shortLabel: 'Trans',
     color: 'text-blue-600 dark:text-blue-400',
     bgColor: 'bg-blue-100 dark:bg-blue-900/30',
   },
   lodging: {
     label: 'Lodging',
+    shortLabel: 'Lodge',
     color: 'text-purple-600 dark:text-purple-400',
     bgColor: 'bg-purple-100 dark:bg-purple-900/30',
   },
   journal: {
     label: 'Journal',
+    shortLabel: 'Jrnl',
     color: 'text-amber-600 dark:text-amber-400',
     bgColor: 'bg-amber-100 dark:bg-amber-900/30',
   },
@@ -39,99 +46,144 @@ export default function TimelineFilters({
   onToggleViewMode,
   onExpandAll,
   onCollapseAll,
+  onRefreshWeather,
+  onPrint,
+  refreshingWeather,
 }: TimelineFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-4">
-      {/* Type filters */}
-      <div className="flex flex-wrap gap-2">
-        {(Object.keys(TYPE_CONFIG) as TimelineItemType[]).map((type) => {
-          const config = TYPE_CONFIG[type];
-          const isActive = visibleTypes.has(type);
-
-          return (
-            <button
-              key={type}
-              type="button"
-              onClick={() => onToggleType(type)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                isActive
-                  ? `${config.bgColor} ${config.color}`
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              {config.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* View controls */}
+    <div className="space-y-2">
+      {/* Row 1: Type filters + View controls - all in one row */}
       <div className="flex items-center gap-2">
-        {/* Expand/Collapse buttons */}
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {/* Type filters - scrollable on mobile */}
+        <div className="flex gap-1.5 overflow-x-auto flex-1 pb-1 -mb-1 scrollbar-hide">
+          {(Object.keys(TYPE_CONFIG) as TimelineItemType[]).map((type) => {
+            const config = TYPE_CONFIG[type];
+            const isActive = visibleTypes.has(type);
+
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => onToggleType(type)}
+                className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                  isActive
+                    ? `${config.bgColor} ${config.color}`
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span className="sm:hidden">{config.shortLabel}</span>
+                <span className="hidden sm:inline">{config.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Divider - visible on larger screens */}
+        <div className="hidden sm:block w-px h-6 bg-gray-200 dark:bg-gray-700" />
+
+        {/* View controls - compact icon buttons */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Expand/Collapse */}
           <button
             type="button"
             onClick={onExpandAll}
-            className="px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
             title="Expand all days"
           >
-            Expand
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
           </button>
-          <div className="w-px bg-gray-200 dark:bg-gray-700" />
           <button
             type="button"
             onClick={onCollapseAll}
-            className="px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
             title="Collapse all days"
           >
-            Collapse
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+            </svg>
           </button>
-        </div>
 
-        {/* View mode toggle */}
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Divider */}
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+
+          {/* View mode toggle */}
           <button
             type="button"
             onClick={() => onToggleViewMode('standard')}
-            className={`px-2.5 py-1.5 text-xs transition-colors ${
+            className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
               viewMode === 'standard'
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
             title="Standard view"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <div className="w-px bg-gray-200 dark:bg-gray-700" />
           <button
             type="button"
             onClick={() => onToggleViewMode('compact')}
-            className={`px-2.5 py-1.5 text-xs transition-colors ${
+            className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
               viewMode === 'compact'
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
             title="Compact view"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 10h16M4 14h16M4 18h16"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
           </button>
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+
+          {/* Weather refresh */}
+          {onRefreshWeather && (
+            <button
+              type="button"
+              onClick={onRefreshWeather}
+              disabled={refreshingWeather}
+              className="p-1.5 sm:p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh weather data"
+            >
+              <svg
+                className={`w-4 h-4 ${refreshingWeather ? 'animate-spin' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+          )}
+
+          {/* Print */}
+          {onPrint && (
+            <button
+              type="button"
+              onClick={onPrint}
+              className="p-1.5 sm:p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              title="Print timeline"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </div>
