@@ -376,7 +376,7 @@ export default function ChecklistsPage() {
               onClick={handleOpenRemoveModal}
               className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
             >
-              Remove Default Checklists
+              Remove Default Checklist(s)
             </button>
           </div>
         )}

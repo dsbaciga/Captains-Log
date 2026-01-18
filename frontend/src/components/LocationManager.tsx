@@ -68,6 +68,7 @@ export default function LocationManager({
   const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<LocationFormFields>(initialFormState);
@@ -79,15 +80,22 @@ export default function LocationManager({
   // Handle edit param from URL (for navigating from EntityDetailModal)
   useEffect(() => {
     const editId = searchParams.get("edit");
-    if (editId && manager.items.length > 0 && !manager.loading) {
+    if (editId) {
       const itemId = parseInt(editId, 10);
-      const item = manager.items.find((loc) => loc.id === itemId);
+      // Clear the edit param from URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("edit");
+      setSearchParams(newParams, { replace: true });
+      // Set pending edit ID to be handled when items are loaded
+      setPendingEditId(itemId);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Handle pending edit when items are loaded
+  useEffect(() => {
+    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
+      const item = manager.items.find((loc) => loc.id === pendingEditId);
       if (item) {
-        // Clear the edit param from URL first
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete("edit");
-        setSearchParams(newParams, { replace: true });
-        // Then open the edit form
         handleChange("name", item.name);
         handleChange("address", item.address || "");
         handleChange("notes", item.notes || "");
@@ -97,8 +105,9 @@ export default function LocationManager({
         handleChange("categoryId", item.categoryId || undefined);
         manager.openEditForm(item.id);
       }
+      setPendingEditId(null);
     }
-  }, [searchParams, manager.items, manager.loading]);
+  }, [pendingEditId, manager.items, manager.loading]);
 
   const loadCategories = async () => {
     try {

@@ -231,7 +231,7 @@ export default function TagsModal({
                       />
                     </div>
                   </div>
-                  <button type="submit" className="btn btn-primary w-full">
+                  <button type="submit" className="btn btn-primary">
                     Create and Add to Trip
                   </button>
                 </form>

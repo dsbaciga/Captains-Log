@@ -94,6 +94,15 @@ export default function TripDetailPage() {
   // Initialize activeTab from URL parameter or default to 'timeline'
   const initialTab = (searchParams.get("tab") as TabId) || "timeline";
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+
+  // Sync activeTab with URL when tab parameter changes externally (e.g., from EntityDetailModal navigation)
+  useEffect(() => {
+    const urlTab = searchParams.get("tab") as TabId | null;
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams, activeTab]);
+
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
