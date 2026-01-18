@@ -36,7 +36,7 @@ export const ENTITY_TYPE_CONFIG: Record<EntityType, EntityTypeConfig> = {
 
 /**
  * Standard display order for entity types across all components
- * Use this to ensure consistent ordering in LinkPanel, LinkedEntitiesDisplay, EventLinkBar, etc.
+ * Use this to ensure consistent ordering in LinkPanel, LinkedEntitiesDisplay, etc.
  */
 export const ENTITY_TYPE_DISPLAY_ORDER: EntityType[] = [
   'LOCATION',
