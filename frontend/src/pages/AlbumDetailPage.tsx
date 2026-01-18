@@ -8,7 +8,8 @@ import PhotoGallery from "../components/PhotoGallery";
 import Breadcrumbs from "../components/Breadcrumbs";
 import LinkButton from "../components/LinkButton";
 import LinkedEntitiesDisplay from "../components/LinkedEntitiesDisplay";
-import { usePagination } from "../hooks/usePagination";
+import { usePagedPagination } from "../hooks/usePagedPagination";
+import Pagination from "../components/Pagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { getFullAssetUrl } from "../lib/config";
@@ -91,9 +92,8 @@ export default function AlbumDetailPage() {
   const sortByRef = useRef<string>("date");
   const sortOrderRef = useRef<string>("desc");
 
-  // Pagination hook for album photos
-  // Load function defined inline to avoid stale closures with albumId
-  const photosPagination = usePagination<Photo>(
+  // Paged pagination hook for album photos - replaces items instead of accumulating
+  const photosPagination = usePagedPagination<Photo>(
     async (skip, take) => {
       if (!albumId) return { items: [], total: 0, hasMore: false };
 
@@ -104,21 +104,13 @@ export default function AlbumDetailPage() {
         sortOrder: sortOrderRef.current,
       });
 
-      console.log('[AlbumDetailPage] Loaded album data:', {
-        albumId,
-        skip,
-        photosCount: data.photos?.length || 0,
-        hasMore: data.hasMore,
-        total: data.total,
-      });
-
       return {
         items: data.photos.map(p => p.photo),
         total: data.total || 0,
         hasMore: data.hasMore || false,
       };
     },
-    { pageSize: 40, enabled: true }
+    { pageSize: 40 }
   );
 
   const loadTripData = async () => {
@@ -460,21 +452,27 @@ export default function AlbumDetailPage() {
               tripId={tripId ? parseInt(tripId) : undefined}
             />
 
-            {photosPagination.hasMore && (
-              <div className="mt-6 text-center">
-                <button
-                  onClick={photosPagination.loadMore}
-                  disabled={photosPagination.loadingMore}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
-                >
-                  {photosPagination.loadingMore ? "Loading..." : "Load More Photos"}
-                </button>
-              </div>
-            )}
+            {/* Pagination controls */}
+            <div className="mt-6">
+              <Pagination
+                currentPage={photosPagination.currentPage}
+                totalPages={photosPagination.totalPages}
+                pageNumbers={photosPagination.pageNumbers}
+                onPageChange={photosPagination.goToPage}
+                onPrevious={photosPagination.previousPage}
+                onNext={photosPagination.nextPage}
+                hasPreviousPage={photosPagination.hasPreviousPage}
+                hasNextPage={photosPagination.hasNextPage}
+                loading={photosPagination.loading}
+                rangeStart={photosPagination.rangeStart}
+                rangeEnd={photosPagination.rangeEnd}
+                total={photosPagination.total}
+              />
+            </div>
 
             {/* Debug info */}
             <div className="mt-4 text-xs text-gray-400 text-center">
-              Frontend v1.1.5 | Photos: {photosPagination.items.length}/{photosPagination.total} | hasMore: {String(photosPagination.hasMore)}
+              Page {photosPagination.currentPage}/{photosPagination.totalPages} | Photos: {photosPagination.items.length}/{photosPagination.total}
             </div>
           </div>
         )}
