@@ -113,15 +113,6 @@ export interface DayHeaderProps {
   onToggleCollapse: () => void;
 }
 
-export interface EventLinkBarProps {
-  tripId: number;
-  entityType: 'ACTIVITY' | 'TRANSPORTATION' | 'LODGING' | 'JOURNAL_ENTRY';
-  entityId: number;
-  linkSummary?: EntityLinkSummary;
-  onUpdate: () => void;
-  compact?: boolean;
-}
-
 export interface PhotoPreviewPopoverProps {
   tripId: number;
   entityType: 'ACTIVITY' | 'TRANSPORTATION' | 'LODGING' | 'JOURNAL_ENTRY';
