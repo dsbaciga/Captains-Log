@@ -393,8 +393,11 @@ class JournalEntryService {
         }
       };
 
+      // Extract only the fields that are valid for JournalEntry model
+      // (exclude association IDs which are handled separately below)
+      const { title, content, entryDate } = data;
       const updateData = buildConditionalUpdateData(
-        { ...data, date: data.entryDate },
+        { title, content, date: entryDate },
         {
           transformers: {
             title: (val) => val || null,
