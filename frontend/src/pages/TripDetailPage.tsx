@@ -1174,6 +1174,7 @@ export default function TripDetailPage() {
                 </h2>
                 <Timeline
                   tripId={parseInt(id!)}
+                  tripTitle={trip.title}
                   tripTimezone={trip.timezone || undefined}
                   userTimezone={userTimezone || undefined}
                   tripStartDate={trip.startDate || undefined}
