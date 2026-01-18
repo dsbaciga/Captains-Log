@@ -57,16 +57,6 @@ export type Transportation = {
     latitude?: number | null;
     longitude?: number | null;
   };
-  journalAssignments?: {
-    id: number;
-    journal: {
-      id: number;
-      title: string | null;
-      content: string;
-      date: string | null;
-      entryType: string;
-    };
-  }[];
   route?: TransportationRoute | null;
   durationMinutes?: number | null;
   calculatedDistance?: number | null; // Route distance in kilometers

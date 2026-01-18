@@ -56,16 +56,6 @@ export type Activity = {
         photoAssignments: number;
       };
     }[];
-    journalAssignments?: {
-      id: number;
-      journal: {
-        id: number;
-        title: string | null;
-        content: string;
-        date: string | null;
-        entryType: string;
-      };
-    }[];
   }[];
   photoAlbums?: {
     id: number;
@@ -73,16 +63,6 @@ export type Activity = {
     description: string | null;
     _count?: {
       photoAssignments: number;
-    };
-  }[];
-  journalAssignments?: {
-    id: number;
-    journal: {
-      id: number;
-      title: string | null;
-      content: string;
-      date: string | null;
-      entryType: string;
     };
   }[];
 };

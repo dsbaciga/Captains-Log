@@ -4,7 +4,7 @@ import {
   UpdateTransportationInput,
 } from '../types/transportation.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
-import { journalAssignmentsInclude, locationWithAddressSelect } from '../utils/prismaIncludes';
+import { locationWithAddressSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
 // Helper to map database fields to frontend field names
@@ -48,7 +48,6 @@ const mapTransportationToFrontend = (t: any): Record<string, any> => {
       latitude: converted.endLocation.latitude,
       longitude: converted.endLocation.longitude,
     } : null,
-    journalAssignments: converted.journalAssignments,
     flightTracking: converted.flightTracking,
   };
 };
@@ -93,7 +92,6 @@ class TransportationService {
         endLocation: {
           select: locationWithAddressSelect,
         },
-        journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
       },
     });
@@ -119,7 +117,6 @@ class TransportationService {
         endLocation: {
           select: locationWithAddressSelect,
         },
-        journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
       },
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
@@ -147,7 +144,6 @@ class TransportationService {
         endLocation: {
           select: locationWithAddressSelect,
         },
-        journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
       },
       orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
@@ -267,20 +263,6 @@ class TransportationService {
             longitude: true,
           },
         },
-        journalAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
         flightTracking: true,
       },
     });
@@ -349,7 +331,6 @@ class TransportationService {
         endLocation: {
           select: locationWithAddressSelect,
         },
-        journalAssignments: journalAssignmentsInclude,
         flightTracking: true,
       },
     });

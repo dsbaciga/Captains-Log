@@ -43,16 +43,6 @@ export type Lodging = {
       photoAssignments: number;
     };
   }[];
-  journalAssignments?: {
-    id: number;
-    journal: {
-      id: number;
-      title: string | null;
-      content: string;
-      date: string | null;
-      entryType: string;
-    };
-  }[];
 };
 
 export type CreateLodgingInput = {

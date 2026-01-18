@@ -9,53 +9,18 @@ export type JournalEntry = {
   weatherNotes: string | null;
   createdAt: string;
   updatedAt: string;
-  locationAssignments?: {
-    id: number;
-    location: {
-      id: number;
-      name: string;
-    };
-  }[];
-  activityAssignments?: {
-    id: number;
-    activity: {
-      id: number;
-      name: string;
-    };
-  }[];
-  lodgingAssignments?: {
-    id: number;
-    lodging: {
-      id: number;
-      name: string;
-    };
-  }[];
-  transportationAssignments?: {
-    id: number;
-    transportation: {
-      id: number;
-      type: string;
-    };
-  }[];
 };
 
 export type CreateJournalEntryInput = {
   tripId: number;
-  locationIds?: number[];
-  activityIds?: number[];
-  lodgingIds?: number[];
-  transportationIds?: number[];
   title: string;
   content: string;
   entryDate?: string;
+  entryType?: string;
 };
 
 export type UpdateJournalEntryInput = {
-  locationIds?: number[];
-  activityIds?: number[];
-  lodgingIds?: number[];
-  transportationIds?: number[];
-  title?: string;
+  title?: string | null;
   content?: string;
   entryDate?: string | null;
 };

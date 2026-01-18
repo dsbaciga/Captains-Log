@@ -8,7 +8,6 @@ import type {
 } from "../types/transportation";
 import type { Location } from "../types/location";
 import transportationService from "../services/transportation.service";
-import JournalEntriesButton from "./JournalEntriesButton";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
@@ -1133,10 +1132,6 @@ export default function TransportationManager({
                   linkSummary={getLinkSummary('TRANSPORTATION', transportation.id)}
                   onUpdate={invalidateLinkSummary}
                   size="sm"
-                />
-                <JournalEntriesButton
-                  journalEntries={transportation.journalAssignments}
-                  tripId={tripId}
                 />
                 <div className="flex-1" />
                 <button
