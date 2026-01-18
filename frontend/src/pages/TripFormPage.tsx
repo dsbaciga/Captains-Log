@@ -103,10 +103,10 @@ export default function TripFormPage() {
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
       <main className="max-w-3xl mx-auto px-4 py-8">
         <button
-          onClick={() => navigate('/trips')}
+          onClick={() => navigate(-1)}
           className="text-blue-600 dark:text-blue-400 hover:underline mb-6 inline-block"
         >
-          ← Back to Trips
+          ← Back
         </button>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
@@ -250,7 +250,7 @@ export default function TripFormPage() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/trips')}
+                onClick={() => navigate(-1)}
                 className="flex-1 btn btn-secondary"
               >
                 Cancel
