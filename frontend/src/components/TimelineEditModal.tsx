@@ -12,6 +12,7 @@ import activityService from "../services/activity.service";
 import transportationService from "../services/transportation.service";
 import lodgingService from "../services/lodging.service";
 import journalEntryService from "../services/journalEntry.service";
+import entityLinkService from "../services/entityLink.service";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import {
@@ -53,6 +54,8 @@ export default function TimelineEditModal({
   >([]);
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
+  // Track original location ID to detect changes (for entity linking)
+  const [originalActivityLocationId, setOriginalActivityLocationId] = useState<number | null>(null);
 
   // Activity form state
   const [activityForm, setActivityForm] = useState({
@@ -160,7 +163,7 @@ export default function TimelineEditModal({
     }
   };
 
-  const initActivityForm = (activity: Activity) => {
+  const initActivityForm = async (activity: Activity) => {
     const effectiveTz = activity.timezone || tripTimezone || "UTC";
 
     let startDate = "";
@@ -202,11 +205,26 @@ export default function TimelineEditModal({
       }
     }
 
+    // Fetch linked location via entity linking system
+    let linkedLocationId: number | undefined = undefined;
+    try {
+      const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
+      if (links.length > 0 && links[0].targetId) {
+        linkedLocationId = links[0].targetId;
+        setOriginalActivityLocationId(links[0].targetId);
+      } else {
+        setOriginalActivityLocationId(null);
+      }
+    } catch {
+      // If fetching links fails, proceed without location
+      setOriginalActivityLocationId(null);
+    }
+
     setActivityForm({
       name: activity.name,
       description: activity.description || "",
       category: activity.category || "",
-      locationId: activity.locationId || undefined,
+      locationId: linkedLocationId,
       parentId: activity.parentId || undefined,
       allDay: activity.allDay,
       startDate,
@@ -371,11 +389,11 @@ export default function TimelineEditModal({
       }
     }
 
+    // Update activity data (without locationId - using entity links)
     const updateData = {
       name: activityForm.name,
       description: activityForm.description || null,
       category: activityForm.category || null,
-      locationId: activityForm.locationId || null,
       parentId: activityForm.parentId || null,
       allDay: activityForm.allDay,
       startTime: startTimeISO,
@@ -389,6 +407,36 @@ export default function TimelineEditModal({
     };
 
     await activityService.updateActivity(itemData.id, updateData);
+
+    // Handle location link changes via entity linking
+    const newLocationId = activityForm.locationId || null;
+    const locationChanged = newLocationId !== originalActivityLocationId;
+
+    if (locationChanged) {
+      try {
+        // Remove old link if there was one
+        if (originalActivityLocationId) {
+          await entityLinkService.deleteLink(tripId, {
+            sourceType: 'ACTIVITY',
+            sourceId: itemData.id,
+            targetType: 'LOCATION',
+            targetId: originalActivityLocationId,
+          });
+        }
+        // Create new link if there's a new location
+        if (newLocationId) {
+          await entityLinkService.createLink(tripId, {
+            sourceType: 'ACTIVITY',
+            sourceId: itemData.id,
+            targetType: 'LOCATION',
+            targetId: newLocationId,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to update location link:', error);
+        // Don't fail - activity was saved successfully
+      }
+    }
   };
 
   const submitTransportation = async () => {
