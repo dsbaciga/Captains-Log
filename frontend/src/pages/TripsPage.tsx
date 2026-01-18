@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import tagService from '../services/tag.service';
-import type { Trip } from '../types/trip';
+import type { Trip, TripListResponse } from '../types/trip';
 import type { TripTag } from '../types/tag';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
@@ -70,9 +70,9 @@ export default function TripsPage() {
     mutationFn: tripService.deleteTrip,
     onMutate: async (deletedTripId: number) => {
       await queryClient.cancelQueries({ queryKey: ['trips'] });
-      const previousTripsData = queryClient.getQueryData<any>(['trips', queryParams]);
+      const previousTripsData = queryClient.getQueryData<TripListResponse>(['trips', queryParams]);
 
-      queryClient.setQueryData(['trips', queryParams], (oldData: any) => {
+      queryClient.setQueryData(['trips', queryParams], (oldData: TripListResponse | undefined) => {
         if (!oldData) return oldData;
         return {
           ...oldData,

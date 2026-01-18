@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import locationService from "../services/location.service";
 import transportationService from "../services/transportation.service";
 import type { Location } from "../types/location";
@@ -8,7 +7,7 @@ import toast from "react-hot-toast";
 import "leaflet/dist/leaflet.css";
 
 // Import shared utilities
-import { calculateMapCenter, filterValidCoordinates } from "../utils/mapUtils";
+import { filterValidCoordinates } from "../utils/mapUtils";
 import "../utils/mapUtils"; // This import runs the leaflet icon setup
 
 // Import reusable components
@@ -70,9 +69,8 @@ export default function PlacesVisitedPage() {
     );
   }
 
-  // Calculate center of map based on all locations using shared utility
+  // Filter locations with valid coordinates for the map
   const validLocations = filterValidCoordinates(locations);
-  const center = calculateMapCenter(validLocations);
 
   return (
     <div className="h-screen flex flex-col">
