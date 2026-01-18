@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { getTimelineItemIcon, EditIcon, DeleteIcon, LocationIcon, HashIcon, CheckCircleIcon, PhotoIcon, MoonIcon, BoltIcon, ChecklistIcon } from './icons';
+import { getTimelineItemIcon, EditIcon, DeleteIcon, LocationIcon, HashIcon, CheckCircleIcon, MoonIcon, BoltIcon, ChecklistIcon } from './icons';
 import {
   formatTime,
   formatDuration,
@@ -350,32 +349,6 @@ export default function TimelineEventCard({
               <MoonIcon />
               Night {item.multiDayInfo.nightNumber}/{item.multiDayInfo.totalNights}
             </span>
-          )}
-
-          {/* Photo albums */}
-          {item.photoAlbums && item.photoAlbums.length > 0 && (
-            <>
-              {item.photoAlbums.slice(0, 2).map((album) => (
-                <Link
-                  key={album.id}
-                  to={`/trips/${tripId}/albums/${album.id}`}
-                  className="inline-flex items-center justify-center gap-1 h-6 px-2 rounded-md bg-gray-100 dark:bg-gray-700 text-xs leading-none text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                >
-                  <PhotoIcon />
-                  <span className="truncate max-w-[80px]">{album.name}</span>
-                  {album._count?.photoAssignments !== undefined && (
-                    <span className="text-gray-400 dark:text-gray-500">
-                      ({album._count.photoAssignments})
-                    </span>
-                  )}
-                </Link>
-              ))}
-              {item.photoAlbums.length > 2 && (
-                <span className="inline-flex items-center h-6 text-xs text-gray-500 dark:text-gray-400">
-                  +{item.photoAlbums.length - 2} more
-                </span>
-              )}
-            </>
           )}
         </div>
 

@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import type { Location, CreateLocationInput, UpdateLocationInput, LocationCategory } from "../types/location";
 import locationService from "../services/location.service";
 import toast from "react-hot-toast";
-import AssociatedAlbums from "./AssociatedAlbums";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
@@ -321,9 +320,6 @@ export default function LocationManager({
               </button>
             </div>
           </div>
-
-          {/* Associated Albums - Full Width */}
-          <AssociatedAlbums albums={location.photoAlbums} tripId={tripId} />
 
           {/* Linked Entities */}
           <LinkedEntitiesDisplay

@@ -248,11 +248,6 @@ const Timeline = ({
             currency: activity.currency || undefined,
             confirmationNumber: activity.bookingReference || undefined,
             durationMinutes,
-            photoAlbums: activity.photoAlbums?.map((album) => ({
-              id: album.id,
-              name: album.name,
-              _count: album._count,
-            })),
             data: activity,
           });
         }
@@ -454,13 +449,6 @@ const Timeline = ({
               showCheckInTime: isCheckInDay,
               showCheckOutTime: isCheckOutDay,
               confirmationNumber: isCheckInDay ? lodge.confirmationNumber || undefined : undefined,
-              photoAlbums: isCheckInDay
-                ? lodge.photoAlbums?.map((album) => ({
-                    id: album.id,
-                    name: album.name,
-                    _count: album._count,
-                  }))
-                : undefined,
               multiDayInfo,
               data: lodge,
             });
@@ -490,11 +478,6 @@ const Timeline = ({
             cost: lodge.cost || undefined,
             currency: lodge.currency || undefined,
             confirmationNumber: lodge.confirmationNumber || undefined,
-            photoAlbums: lodge.photoAlbums?.map((album) => ({
-              id: album.id,
-              name: album.name,
-              _count: album._count,
-            })),
             data: lodge,
           });
         }

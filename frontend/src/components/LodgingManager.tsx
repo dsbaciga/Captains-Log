@@ -4,7 +4,6 @@ import type { Lodging, LodgingType, CreateLodgingInput, UpdateLodgingInput } fro
 import type { Location } from "../types/location";
 import lodgingService from "../services/lodging.service";
 import toast from "react-hot-toast";
-import AssociatedAlbums from "./AssociatedAlbums";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
@@ -756,14 +755,6 @@ export default function LodgingManager({
                     </p>
                   </div>
                 )}
-              </div>
-
-              {/* Associated Albums - full width */}
-              <div className="mt-3">
-                <AssociatedAlbums
-                  albums={lodging.photoAlbums}
-                  tripId={tripId}
-                />
               </div>
 
               {/* Linked Entities */}

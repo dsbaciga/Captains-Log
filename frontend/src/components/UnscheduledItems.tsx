@@ -9,7 +9,6 @@ import transportationService from "../services/transportation.service";
 import lodgingService from "../services/lodging.service";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
-import AssociatedAlbums from "./AssociatedAlbums";
 import { useFormFields } from "../hooks/useFormFields";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
@@ -1615,10 +1614,6 @@ export default function UnscheduledItems({
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
-                        <AssociatedAlbums
-                          albums={activity.photoAlbums}
-                          tripId={tripId}
-                        />
                         <button
                           onClick={() => handleEditActivity(activity)}
                           type="button"
@@ -1818,10 +1813,6 @@ export default function UnscheduledItems({
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
-                        <AssociatedAlbums
-                          albums={lodgingItem.photoAlbums}
-                          tripId={tripId}
-                        />
                         <button
                           onClick={() => handleEditLodging(lodgingItem)}
                           type="button"
