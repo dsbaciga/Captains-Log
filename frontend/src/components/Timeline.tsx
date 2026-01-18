@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import type { Location } from '../types/location';
 import type { WeatherData, WeatherDisplay } from '../types/weather';
 import type { Activity } from '../types/activity';
 import type { Transportation } from '../types/transportation';
