@@ -13,7 +13,7 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
-import EmptyState from "./EmptyState";
+import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import LocationSearchMap from "./LocationSearchMap";
 import TripLocationsMap from "./TripLocationsMap";
@@ -537,9 +537,14 @@ export default function LocationManager({
           <ListItemSkeleton count={3} />
         ) : manager.items.length === 0 ? (
           <EmptyState
-            icon="📍"
-            message="No locations added yet"
-            subMessage="Add cities, landmarks, restaurants, and other places you'll visit"
+            icon={<EmptyIllustrations.NoLocations />}
+            message="Pin Your Destinations"
+            subMessage="Mark the places that matter - from iconic landmarks and hidden gems to cozy cafes and stunning viewpoints. Build your personal map of memories."
+            actionLabel="Add Your First Location"
+            onAction={() => {
+              resetForm();
+              manager.toggleForm();
+            }}
           />
         ) : (
           topLevelLocations.map((location) => renderLocation(location))

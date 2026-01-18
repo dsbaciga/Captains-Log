@@ -16,7 +16,7 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
-import EmptyState from "./EmptyState";
+import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
@@ -651,9 +651,14 @@ export default function LodgingManager({
           <ListItemSkeleton count={3} />
         ) : manager.items.length === 0 ? (
           <EmptyState
-            icon="🏨"
-            message="No lodging added yet"
-            subMessage="Add your hotels, hostels, vacation rentals, and other accommodations"
+            icon={<EmptyIllustrations.NoLodging />}
+            message="Where Will You Stay?"
+            subMessage="From boutique hotels and cozy Airbnbs to camping under the stars - add your accommodations to keep all your booking details in one place."
+            actionLabel="Add Your First Stay"
+            onAction={() => {
+              resetForm();
+              manager.toggleForm();
+            }}
           />
         ) : (
           manager.items.map((lodging) => (

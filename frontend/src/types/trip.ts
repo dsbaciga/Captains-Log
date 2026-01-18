@@ -47,6 +47,14 @@ export type Trip = {
       textColor: string;
     };
   }[];
+  _count?: {
+    locations: number;
+    photos: number;
+    transportation: number;
+    activities: number;
+    lodging: number;
+    journalEntries: number;
+  };
 };
 
 export type CreateTripInput = {

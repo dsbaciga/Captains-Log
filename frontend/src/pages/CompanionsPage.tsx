@@ -17,7 +17,7 @@ import { formatDate } from "../utils/dateFormat";
 
 // Import reusable components
 import LoadingSpinner from "../components/LoadingSpinner";
-import EmptyState from "../components/EmptyState";
+import EmptyState, { EmptyIllustrations } from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
 import { TrashIcon, ChevronRightIcon, PlusIcon } from "../components/icons";
@@ -411,10 +411,10 @@ export default function CompanionsPage() {
       <div>
         {companions.length === 0 ? (
           <EmptyState
-            icon="👥"
-            message="No companions yet"
-            subMessage="Add your first travel companion to get started"
-            actionLabel="+ Add Your First Companion"
+            icon={<EmptyIllustrations.NoCompanions />}
+            message="Share the Journey"
+            subMessage="Great adventures are even better when shared. Add your travel companions to keep track of who you're exploring the world with - from family and friends to new connections made along the way."
+            actionLabel="Add Your First Companion"
             onAction={() => setShowForm(true)}
           />
         ) : (

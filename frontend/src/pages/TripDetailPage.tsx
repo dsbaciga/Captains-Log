@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   useParams,
   useNavigate,
@@ -42,6 +42,26 @@ import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
 import Breadcrumbs from "../components/Breadcrumbs";
+import TabGroup from "../components/TabGroup";
+import type { TabGroupItem } from "../components/TabGroup";
+import TripStats from "../components/TripStats";
+import {
+  formatTripDates,
+  getTripDateStatus,
+  formatTripDuration,
+} from "../utils/dateFormat";
+
+// All possible tab IDs for the grouped navigation
+type TabId =
+  | "timeline"
+  | "locations"
+  | "photos"
+  | "journal"
+  | "activities"
+  | "transportation"
+  | "lodging"
+  | "unscheduled"
+  | "companions";
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -72,28 +92,8 @@ export default function TripDetailPage() {
   const [unsortedPhotosCount, setUnsortedPhotosCount] = useState(0);
   const [totalPhotosCount, setTotalPhotosCount] = useState(0);
   // Initialize activeTab from URL parameter or default to 'timeline'
-  const initialTab =
-    (searchParams.get("tab") as
-      | "timeline"
-      | "locations"
-      | "photos"
-      | "activities"
-      | "unscheduled"
-      | "transportation"
-      | "lodging"
-      | "journal"
-      | "companions") || "timeline";
-  const [activeTab, setActiveTab] = useState<
-    | "timeline"
-    | "locations"
-    | "photos"
-    | "activities"
-    | "unscheduled"
-    | "transportation"
-    | "lodging"
-    | "journal"
-    | "companions"
-  >(initialTab);
+  const initialTab = (searchParams.get("tab") as TabId) || "timeline";
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
@@ -216,10 +216,199 @@ export default function TripDetailPage() {
   }, [id]);
 
   // Function to change tabs and update URL
-  const changeTab = (tab: typeof activeTab) => {
+  const changeTab = (tab: TabId) => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
+
+  // Define the grouped tab configuration
+  const tabGroups: TabGroupItem[] = useMemo(
+    () => [
+      {
+        id: "overview",
+        label: "Overview",
+        icon: (
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+            />
+          </svg>
+        ),
+        subTabs: [{ id: "timeline", label: "Timeline" }],
+      },
+      {
+        id: "plan",
+        label: "Plan",
+        icon: (
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+            />
+          </svg>
+        ),
+        subTabs: [
+          {
+            id: "activities",
+            label: "Activities",
+            count: activitiesCount,
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "transportation",
+            label: "Transport",
+            count: transportationCount,
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "lodging",
+            label: "Lodging",
+            count: lodgingCount,
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "unscheduled",
+            label: "Unscheduled",
+            count: unscheduledCount,
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            ),
+          },
+        ],
+      },
+      {
+        id: "memories",
+        label: "Memories",
+        icon: (
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        ),
+        subTabs: [
+          {
+            id: "photos",
+            label: "Photos",
+            count: totalPhotosCount,
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "journal",
+            label: "Journal",
+            count: journalCount,
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+            ),
+          },
+        ],
+      },
+      {
+        id: "locations",
+        label: "Places",
+        icon: (
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+        ),
+        count: locations.length,
+      },
+      {
+        id: "companions",
+        label: "People",
+        icon: (
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+        ),
+        count: companionsCount,
+      },
+    ],
+    [
+      activitiesCount,
+      transportationCount,
+      lodgingCount,
+      unscheduledCount,
+      totalPhotosCount,
+      journalCount,
+      locations.length,
+      companionsCount,
+    ]
+  );
 
   // Load photos when trip is set
   useEffect(() => {
@@ -601,23 +790,6 @@ export default function TripDetailPage() {
     }
   };
 
-  const formatDate = (date: string | Date | null) => {
-    if (!date) return "Not set";
-    // Parse date string directly to avoid timezone shifts
-    // Date strings from backend are in YYYY-MM-DD format
-    const dateStr =
-      typeof date === "string"
-        ? date.split("T")[0]
-        : date.toISOString().split("T")[0]; // Get just the date part
-    const [year, month, day] = dateStr.split("-").map(Number);
-    const dateObj = new Date(year, month - 1, day); // month is 0-indexed
-    return dateObj.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -659,7 +831,7 @@ export default function TripDetailPage() {
               <div className="relative h-full p-4 sm:p-6 flex flex-col justify-between text-white">
                 <div className="flex flex-wrap justify-between items-start gap-4">
                   <div className="min-w-0 flex-1 pr-4">
-                    <h1 className="text-4xl font-bold drop-shadow-lg break-words">
+                    <h1 className="trip-title-hero text-white drop-shadow-lg break-words">
                       {trip.title}
                     </h1>
                     <span
@@ -731,22 +903,28 @@ export default function TripDetailPage() {
                     </p>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                    <div>
-                      <span className="font-medium text-white/80">
-                        Start Date:
-                      </span>
-                      <p className="text-white drop-shadow-md">
-                        {formatDate(trip.startDate)}
-                      </p>
+                  {/* Trip Dates - Natural Language Format */}
+                  <div className="text-sm mb-4">
+                    <div className="text-white font-medium drop-shadow-md">
+                      {formatTripDates(trip.startDate, trip.endDate)}
                     </div>
-                    <div>
-                      <span className="font-medium text-white/80">
-                        End Date:
-                      </span>
-                      <p className="text-white drop-shadow-md">
-                        {formatDate(trip.endDate)}
-                      </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-white/80">
+                      {formatTripDuration(trip.startDate, trip.endDate) && (
+                        <span>{formatTripDuration(trip.startDate, trip.endDate)}</span>
+                      )}
+                      {getTripDateStatus(trip.startDate, trip.endDate) && (
+                        <>
+                          {formatTripDuration(trip.startDate, trip.endDate) && <span>·</span>}
+                          <span className={`${
+                            getTripDateStatus(trip.startDate, trip.endDate)?.includes('progress') ||
+                            getTripDateStatus(trip.startDate, trip.endDate)?.includes('today')
+                              ? 'text-green-300 font-medium'
+                              : ''
+                          }`}>
+                            {getTripDateStatus(trip.startDate, trip.endDate)}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -800,7 +978,7 @@ export default function TripDetailPage() {
             <div className="p-6 relative">
               <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
                 <div className="min-w-0 flex-1 pr-4">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white break-words">
+                  <h1 className="trip-title-hero text-gray-900 dark:text-white break-words">
                     {trip.title}
                   </h1>
                   <span
@@ -871,22 +1049,28 @@ export default function TripDetailPage() {
                 </p>
               )}
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-gray-600 dark:text-gray-400">
-                    Start Date:
-                  </span>
-                  <p className="text-gray-900 dark:text-white">
-                    {formatDate(trip.startDate)}
-                  </p>
+              {/* Trip Dates - Natural Language Format */}
+              <div className="text-sm">
+                <div className="text-gray-900 dark:text-white font-medium">
+                  {formatTripDates(trip.startDate, trip.endDate)}
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600 dark:text-gray-400">
-                    End Date:
-                  </span>
-                  <p className="text-gray-900 dark:text-white">
-                    {formatDate(trip.endDate)}
-                  </p>
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  {formatTripDuration(trip.startDate, trip.endDate) && (
+                    <span>{formatTripDuration(trip.startDate, trip.endDate)}</span>
+                  )}
+                  {getTripDateStatus(trip.startDate, trip.endDate) && (
+                    <>
+                      {formatTripDuration(trip.startDate, trip.endDate) && <span>·</span>}
+                      <span className={`${
+                        getTripDateStatus(trip.startDate, trip.endDate)?.includes('progress') ||
+                        getTripDateStatus(trip.startDate, trip.endDate)?.includes('today')
+                          ? 'text-green-600 dark:text-green-400 font-medium'
+                          : ''
+                      }`}>
+                        {getTripDateStatus(trip.startDate, trip.endDate)}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -941,202 +1125,61 @@ export default function TripDetailPage() {
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-primary-500/10 dark:border-sky/10 mb-6 overflow-hidden">
-          {/* Mobile Tab Dropdown */}
-          <div className="md:hidden p-4 border-b-2 border-primary-500/10 dark:border-sky/10">
-            <select
-              value={activeTab}
-              onChange={(e) => changeTab(e.target.value as typeof activeTab)}
-              className="w-full px-4 py-3 rounded-lg bg-white dark:bg-navy-900 border-2 border-primary-500/20 dark:border-sky/20 text-slate dark:text-warm-gray font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky"
-              aria-label="Select tab"
-            >
-              <option value="timeline">Timeline</option>
-              <option value="locations">Locations ({locations.length})</option>
-              <option value="photos">Photos ({totalPhotosCount})</option>
-              <option value="activities">Activities ({activitiesCount})</option>
-              <option value="unscheduled">
-                Unscheduled ({unscheduledCount})
-              </option>
-              <option value="transportation">
-                Transportation ({transportationCount})
-              </option>
-              <option value="lodging">Lodging ({lodgingCount})</option>
-              <option value="journal">Journal ({journalCount})</option>
-              <option value="companions">Companions ({companionsCount})</option>
-            </select>
-          </div>
+        {/* Grouped Tab Navigation */}
+        <TabGroup
+          tabs={tabGroups}
+          activeTab={activeTab}
+          onTabChange={(tabId) => changeTab(tabId as TabId)}
+          className="mb-6"
+        />
 
-          {/* Desktop Horizontal Tabs */}
-          <div className="hidden md:block border-b-2 border-primary-500/10 dark:border-sky/10">
-            <nav className="flex -mb-0.5 overflow-x-auto">
-              <button
-                onClick={() => changeTab("timeline")}
-                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "timeline"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Timeline</span>
-                {activeTab === "timeline" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-              <button
-                onClick={() => changeTab("locations")}
-                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "locations"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Locations</span>
-                <span className="text-xs mt-1 opacity-75">
-                  ({locations.length})
-                </span>
-                {activeTab === "locations" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-              <button
-                onClick={() => changeTab("photos")}
-                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "photos"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Photos</span>
-                <span className="text-xs mt-1 opacity-75">
-                  ({totalPhotosCount})
-                </span>
-                {activeTab === "photos" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-              <button
-                onClick={() => changeTab("activities")}
-                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "activities"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Activities</span>
-                <span className="text-xs mt-1 opacity-75">
-                  ({activitiesCount})
-                </span>
-                {activeTab === "activities" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-              <button
-                onClick={() => changeTab("unscheduled")}
-                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "unscheduled"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Unscheduled</span>
-                <span className="text-xs mt-1 opacity-75">
-                  ({unscheduledCount})
-                </span>
-                {activeTab === "unscheduled" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-              <button
-                onClick={() => changeTab("transportation")}
-                className={`flex-1 min-w-[120px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "transportation"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Transportation</span>
-                <span className="text-xs mt-1 opacity-75">
-                  ({transportationCount})
-                </span>
-                {activeTab === "transportation" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-              <button
-                onClick={() => changeTab("lodging")}
-                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "lodging"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Lodging</span>
-                <span className="text-xs mt-1 opacity-75">
-                  ({lodgingCount})
-                </span>
-                {activeTab === "lodging" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-              <button
-                onClick={() => changeTab("journal")}
-                className={`flex-1 min-w-[100px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "journal"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Journal</span>
-                <span className="text-xs mt-1 opacity-75">
-                  ({journalCount})
-                </span>
-                {activeTab === "journal" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-              <button
-                onClick={() => changeTab("companions")}
-                className={`flex-1 min-w-[110px] py-4 px-3 text-sm font-body font-medium relative flex flex-col items-center transition-colors ${
-                  activeTab === "companions"
-                    ? "text-primary-600 dark:text-sky"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky"
-                }`}
-              >
-                <span>Companions</span>
-                <span className="text-xs mt-1 opacity-75">
-                  ({companionsCount})
-                </span>
-                {activeTab === "companions" && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
-                )}
-              </button>
-            </nav>
-          </div>
-        </div>
+        {/* Tab Content with smooth transitions */}
+        <div className="transition-all duration-300 ease-in-out">
+          {/* Timeline Tab */}
+          {activeTab === "timeline" && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Trip Stats Summary */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Trip at a Glance
+                </h2>
+                <TripStats
+                  locationsCount={locations.length}
+                  photosCount={totalPhotosCount}
+                  activitiesCount={activitiesCount}
+                  transportationCount={transportationCount}
+                  lodgingCount={lodgingCount}
+                  journalCount={journalCount}
+                  companionsCount={companionsCount}
+                  unscheduledCount={unscheduledCount}
+                  tripStartDate={trip.startDate}
+                  tripEndDate={trip.endDate}
+                  onNavigateToTab={(tab) => changeTab(tab as TabId)}
+                />
+              </div>
 
-        {/* Timeline Tab */}
-        {activeTab === "timeline" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Timeline
-            </h2>
-            <Timeline
-              tripId={parseInt(id!)}
-              tripTimezone={trip.timezone || undefined}
-              userTimezone={userTimezone || undefined}
-              tripStartDate={trip.startDate || undefined}
-              tripEndDate={trip.endDate || undefined}
-              tripStatus={trip.status || undefined}
-              onNavigateToTab={(tab) => changeTab(tab)}
-              onRefresh={() => loadTripData(trip.id)}
-            />
-          </div>
-        )}
+              {/* Timeline */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                  Timeline
+                </h2>
+                <Timeline
+                  tripId={parseInt(id!)}
+                  tripTimezone={trip.timezone || undefined}
+                  userTimezone={userTimezone || undefined}
+                  tripStartDate={trip.startDate || undefined}
+                  tripEndDate={trip.endDate || undefined}
+                  tripStatus={trip.status || undefined}
+                  onNavigateToTab={(tab) => changeTab(tab as TabId)}
+                  onRefresh={() => loadTripData(trip.id)}
+                />
+              </div>
+            </div>
+          )}
 
         {/* Locations Tab */}
         {activeTab === "locations" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
             <LocationManager
               tripId={trip.id}
               tripTimezone={trip.timezone}
@@ -1147,7 +1190,7 @@ export default function TripDetailPage() {
 
         {/* Photos Tab */}
         {activeTab === "photos" && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fadeIn">
             {/* Upload Interface - Full Width */}
             <PhotoUpload
               tripId={trip.id}
@@ -1484,7 +1527,7 @@ export default function TripDetailPage() {
 
         {/* Activities Tab */}
         {activeTab === "activities" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
             <ActivityManager
               tripId={trip.id}
               locations={locations}
@@ -1497,7 +1540,7 @@ export default function TripDetailPage() {
 
         {/* Unscheduled Tab */}
         {activeTab === "unscheduled" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
             <UnscheduledItems
               tripId={trip.id}
               locations={locations}
@@ -1508,7 +1551,7 @@ export default function TripDetailPage() {
 
         {/* Transportation Tab */}
         {activeTab === "transportation" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
             <TransportationManager
               tripId={trip.id}
               locations={locations}
@@ -1521,7 +1564,7 @@ export default function TripDetailPage() {
 
         {/* Lodging Tab */}
         {activeTab === "lodging" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
             <LodgingManager
               tripId={trip.id}
               locations={locations}
@@ -1534,7 +1577,7 @@ export default function TripDetailPage() {
 
         {/* Journal Tab */}
         {activeTab === "journal" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
             <JournalManager
               tripId={trip.id}
               tripStartDate={trip.startDate}
@@ -1545,10 +1588,11 @@ export default function TripDetailPage() {
 
         {/* Companions Tab */}
         {activeTab === "companions" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
             <CompanionManager tripId={trip.id} onUpdate={() => loadTripData(trip.id)} />
           </div>
         )}
+        </div>
       </main>
 
       {/* Tags Modal */}

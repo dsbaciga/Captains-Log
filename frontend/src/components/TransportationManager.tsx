@@ -18,7 +18,7 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
-import EmptyState from "./EmptyState";
+import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
@@ -940,9 +940,14 @@ export default function TransportationManager({
       <div className="space-y-4">
         {manager.items.length === 0 ? (
           <EmptyState
-            icon="🚗"
-            message="No transportation added yet"
-            subMessage="Add your flights, trains, buses, and other transportation"
+            icon={<EmptyIllustrations.NoTransportation />}
+            message="Plan Your Journey"
+            subMessage="How will you get there? Add flights, trains, road trips, and more. Track departure times, booking confirmations, and never miss a connection."
+            actionLabel="Add Transportation"
+            onAction={() => {
+              resetForm();
+              manager.toggleForm();
+            }}
           />
         ) : filteredItems.length === 0 ? (
           <EmptyState

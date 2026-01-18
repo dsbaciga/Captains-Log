@@ -9,6 +9,8 @@ import { getFullAssetUrl } from "../lib/config";
 import { usePagination } from "../hooks/usePagination";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
+import EmptyState, { EmptyIllustrations } from "../components/EmptyState";
+import { formatTripDates } from "../utils/dateFormat";
 
 type SortOption =
   | "tripDate-desc"
@@ -175,26 +177,12 @@ export default function GlobalAlbumsPage() {
     };
   }, [albums]);
 
-  const formatDate = (date: string | Date | null) => {
-    if (!date) return "";
-    const dateStr = typeof date === 'string' ? date.split("T")[0] : date.toISOString().split("T")[0];
-    const [year, month, day] = dateStr.split("-").map(Number);
-    const dateObj = new Date(year, month - 1, day);
-    return dateObj.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
+  // Use centralized date formatting utility
   const formatDateRange = (
     startDate: string | null,
     endDate: string | null
   ) => {
-    if (!startDate && !endDate) return "No dates set";
-    if (!startDate) return `Until ${formatDate(endDate)}`;
-    if (!endDate) return `From ${formatDate(startDate)}`;
-    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    return formatTripDates(startDate, endDate);
   };
 
   const toggleTag = (tagId: number) => {
@@ -578,24 +566,13 @@ export default function GlobalAlbumsPage() {
             </p>
           </div>
         ) : totalAlbums === 0 ? (
-          <div className="text-center py-16 px-6 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl border-2 border-primary-500/10 dark:border-sky/10">
-            <div className="text-6xl mb-4">📷</div>
-            <h3 className="text-xl font-semibold text-charcoal dark:text-warm-gray mb-2">
-              No albums yet
-            </h3>
-            <p className="text-slate dark:text-warm-gray/70 mb-6 max-w-md mx-auto">
-              Create albums within your trips to organize your photos. Albums
-              help you group photos by location, activity, or theme.
-            </p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <Link to="/trips" className="btn btn-primary">
-                Go to Trips
-              </Link>
-              <Link to="/trips/new" className="btn btn-secondary">
-                Create Trip
-              </Link>
-            </div>
-          </div>
+          <EmptyState
+            icon={<EmptyIllustrations.NoPhotos />}
+            message="Capture Your Memories"
+            subMessage="Albums help you organize and relive your travel moments. Create albums to group photos by destination, activity, or theme - whether it's 'Sunset Views', 'Street Food Adventures', or 'Mountain Hikes'."
+            actionLabel="Create Your First Album"
+            onAction={() => setShowCreateForm(true)}
+          />
         ) : filteredAlbums.length === 0 ? (
           <div className="text-center py-12 px-6 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl border-2 border-primary-500/10 dark:border-sky/10">
             <div className="text-5xl mb-4">🔍</div>

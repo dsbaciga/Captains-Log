@@ -399,6 +399,29 @@ textarea:focus-visible {
   @apply text-base sm:text-lg md:text-xl;
 }
 
+/* Trip title typography - Hero display for trip detail pages */
+.trip-title-hero {
+  @apply font-display font-semibold tracking-tight;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* Trip title typography - Card display for trip listings */
+.trip-title-card {
+  @apply font-display font-semibold tracking-tight;
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+/* Trip title typography - Compact for widgets/smaller displays */
+.trip-title-compact {
+  @apply font-display font-semibold;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.25;
+}
+
 /* Hide scrollbar but keep functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;

@@ -104,6 +104,16 @@ export class TripService {
               tag: true,
             },
           },
+          _count: {
+            select: {
+              locations: true,
+              photos: true,
+              transportation: true,
+              activities: true,
+              lodging: true,
+              journalEntries: true,
+            },
+          },
         },
       }),
       prisma.trip.count({ where }),
@@ -198,8 +208,15 @@ export class TripService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    interface TripForStatusUpdate {
+      id: number;
+      status: string;
+      startDate: Date | null;
+      endDate: Date | null;
+    }
+
     const updates = trips
-      .map((trip: any) => {
+      .map((trip: TripForStatusUpdate) => {
         if (!trip.startDate || !trip.endDate) return null;
 
         const startDate = new Date(trip.startDate);
@@ -231,7 +248,7 @@ export class TripService {
 
         return null;
       })
-      .filter((update: any) => update !== null);
+      .filter((update): update is NonNullable<typeof update> => update !== null);
 
     if (updates.length > 0) {
       await Promise.all(updates);
