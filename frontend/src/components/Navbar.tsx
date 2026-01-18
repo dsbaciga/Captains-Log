@@ -92,15 +92,15 @@ export default function Navbar() {
         mobile ? "block w-full px-4 py-2.5 text-base" : "px-4 py-2.5"
       } rounded-lg font-body font-medium relative group transition-colors ${
         isActive(path)
-          ? "text-primary-600 dark:text-sky bg-primary-50 dark:bg-navy-800"
-          : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky hover:bg-primary-50/50 dark:hover:bg-navy-800/50"
+          ? "text-primary-600 dark:text-gold bg-primary-50 dark:bg-navy-800"
+          : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold hover:bg-primary-50/50 dark:hover:bg-navy-800/50"
       }`}
       onClick={() => mobile && setShowMobileMenu(false)}
     >
       <span className="relative z-10">{label}</span>
       {!mobile && (
         <div
-          className={`absolute inset-x-2 bottom-1 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400 transition-transform origin-left ${
+          className={`absolute inset-x-2 bottom-1 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400 transition-transform origin-left ${
             isActive(path) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
           }`}
         />
@@ -109,7 +109,7 @@ export default function Navbar() {
   );
 
   return (
-    <nav className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md shadow-sm border-b border-primary-500/10 dark:border-sky/10 fixed top-0 left-0 right-0 z-50">
+    <nav className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md shadow-sm border-b border-primary-500/10 dark:border-gold/20 fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo / Brand */}
@@ -133,7 +133,7 @@ export default function Navbar() {
                 />
               </svg>
             </div>
-            <span className="text-xl sm:text-2xl font-display font-bold text-primary-600 dark:text-sky tracking-tight">
+            <span className="text-xl sm:text-2xl font-display font-bold text-primary-600 dark:text-gold tracking-tight">
               Travel Life
             </span>
           </Link>
@@ -157,7 +157,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center space-x-2 px-4 py-2 text-sm font-body font-medium text-primary-600 dark:text-sky hover:bg-primary-50 dark:hover:bg-navy-800 rounded-lg transition-all"
+                className="flex items-center space-x-2 px-4 py-2 text-sm font-body font-medium text-primary-600 dark:text-gold hover:bg-primary-50 dark:hover:bg-navy-800 rounded-lg transition-all"
                 {...(dropdownExpanded === "true"
                   ? { "aria-expanded": "true" }
                   : { "aria-expanded": "false" })}
@@ -183,10 +183,10 @@ export default function Navbar() {
               </button>
 
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-xl py-2 z-50 border-2 border-primary-500/10 dark:border-sky/10 backdrop-blur-sm">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-xl py-2 z-50 border-2 border-primary-500/10 dark:border-gold/20 backdrop-blur-sm">
                   <Link
                     to="/settings"
-                    className="block px-4 py-2.5 text-sm font-body text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-700 hover:text-primary-600 dark:hover:text-sky transition-colors"
+                    className="block px-4 py-2.5 text-sm font-body text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-700 hover:text-primary-600 dark:hover:text-gold transition-colors"
                     onClick={() => setShowDropdown(false)}
                   >
                     Settings
@@ -209,7 +209,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="lg:hidden p-3 min-w-[44px] min-h-[44px] rounded-lg text-primary-600 dark:text-sky hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors flex items-center justify-center"
+              className="lg:hidden p-3 min-w-[44px] min-h-[44px] rounded-lg text-primary-600 dark:text-gold hover:bg-primary-50 dark:hover:bg-navy-800 transition-colors flex items-center justify-center"
               aria-label={showMobileMenu ? "Close menu" : "Open menu"}
               {...(mobileMenuExpanded === "true"
                 ? { "aria-expanded": "true" }
@@ -274,8 +274,8 @@ export default function Navbar() {
           }}
         >
           {/* Mobile Menu Header */}
-          <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-sky/10 bg-white dark:bg-navy-900">
-            <span className="text-lg font-display font-bold text-primary-600 dark:text-sky">
+          <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-gold/20 bg-white dark:bg-navy-900">
+            <span className="text-lg font-display font-bold text-primary-600 dark:text-gold">
               Menu
             </span>
             <button
@@ -314,7 +314,7 @@ export default function Navbar() {
           </nav>
 
           {/* Mobile User Section */}
-          <div className="flex-shrink-0 border-t border-primary-500/10 dark:border-sky/10 p-4 bg-white dark:bg-navy-900">
+          <div className="flex-shrink-0 border-t border-primary-500/10 dark:border-gold/20 p-4 bg-white dark:bg-navy-900">
             <div className="flex items-center space-x-3 mb-3 px-2">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 dark:from-accent-400 dark:to-accent-600 flex items-center justify-center">
                 <span className="text-white font-medium text-sm">
@@ -332,7 +332,7 @@ export default function Navbar() {
             </div>
             <Link
               to="/settings"
-              className="block w-full px-4 py-3 text-center rounded-lg font-medium text-primary-600 dark:text-sky bg-primary-50 dark:bg-navy-800 hover:bg-primary-100 dark:hover:bg-navy-700 transition-colors mb-2"
+              className="block w-full px-4 py-3 text-center rounded-lg font-medium text-primary-600 dark:text-gold bg-primary-50 dark:bg-navy-800 hover:bg-primary-100 dark:hover:bg-navy-700 transition-colors mb-2"
               onClick={() => setShowMobileMenu(false)}
             >
               Settings

@@ -117,6 +117,14 @@ export default {
         },
         // Gold accent for dark mode
         gold: '#fbbf24',
+        // Sky accent for dark mode (consistent with Tailwind's sky-400)
+        sky: '#38bdf8',
+      },
+      // Custom box shadows with gold glow for dark mode
+      boxShadow: {
+        'glow-gold-sm': '0 0 15px rgba(251, 191, 36, 0.15)',
+        'glow-gold': '0 0 20px rgba(251, 191, 36, 0.15)',
+        'glow-gold-lg': '0 0 30px rgba(251, 191, 36, 0.2)',
       },
     },
   },

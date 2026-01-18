@@ -40,7 +40,7 @@ export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = 
   const hasStats = counts && (counts.locations > 0 || counts.photos > 0 || counts.transportation > 0);
 
   return (
-    <div className="group relative rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-primary-500/10 dark:border-sky/10 hover:border-primary-500/30 dark:hover:border-sky/30 bg-white dark:bg-navy-800 min-h-[380px] transform hover:-translate-y-1">
+    <div className="group relative rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-primary-500/10 dark:border-gold/20 hover:border-primary-500/30 dark:hover:border-gold/40 bg-white dark:bg-navy-800 min-h-[380px] transform hover:-translate-y-1 dark:hover:shadow-[0_0_25px_rgba(251,191,36,0.15),0_20px_40px_-15px_rgba(0,0,0,0.3)]">
       {/* Clickable area covering the entire card for navigation */}
       <Link to={`/trips/${trip.id}`} className="absolute inset-0 z-10" aria-label={`View ${trip.title}`}>
         <span className="sr-only">View trip details</span>
@@ -103,7 +103,7 @@ export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = 
       {/* Content Section (~40% height) */}
       <div className="relative h-[40%] p-4 flex flex-col">
         {/* Trip Title */}
-        <h3 className="text-xl font-display font-bold text-charcoal dark:text-warm-gray mb-1 line-clamp-1 group-hover:text-primary-600 dark:group-hover:text-sky transition-colors">
+        <h3 className="text-xl font-display font-bold text-charcoal dark:text-warm-gray mb-1 line-clamp-1 group-hover:text-primary-600 dark:group-hover:text-gold transition-colors">
           {trip.title}
         </h3>
 
@@ -146,7 +146,7 @@ export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = 
           <div className="flex items-center gap-4 pt-3 border-t border-gray-200 dark:border-navy-700 mt-2">
             {counts.locations > 0 && (
               <div className="flex items-center gap-1 text-sm text-slate dark:text-warm-gray/70">
-                <MapPinIcon className="w-4 h-4 text-primary-500 dark:text-sky" />
+                <MapPinIcon className="w-4 h-4 text-primary-500 dark:text-gold" />
                 <span>{counts.locations}</span>
               </div>
             )}

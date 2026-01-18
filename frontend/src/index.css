@@ -6,8 +6,15 @@
 
 @layer base {
   body {
-    @apply bg-cream dark:bg-navy-900 text-charcoal dark:text-warm-gray m-0 font-body;
+    @apply bg-cream text-charcoal m-0 font-body;
     min-height: 100vh;
+  }
+
+  /* Dark mode with subtle gradient background */
+  .dark body {
+    @apply text-warm-gray;
+    background: linear-gradient(to bottom, #0f172a 0%, #1e293b 100%);
+    background-attachment: fixed;
   }
 }
 
@@ -22,11 +29,16 @@
            bg-gradient-to-r from-primary-500 to-primary-600
            dark:from-accent-400 dark:to-accent-600
            text-white shadow-lg shadow-primary-500/20 dark:shadow-accent-400/20
-           hover:shadow-xl hover:shadow-primary-500/30 dark:hover:shadow-accent-400/30
+           hover:shadow-xl hover:shadow-primary-500/30
            transform hover:-translate-y-0.5 active:translate-y-0
            transition-all duration-200
            whitespace-nowrap
            disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  }
+
+  /* Enhanced gold glow on hover in dark mode */
+  .dark .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.25), 0 10px 25px -5px rgba(251, 191, 36, 0.2);
   }
 
   .btn-secondary {
@@ -56,14 +68,19 @@
 
   .input {
     @apply w-full px-4 py-3 rounded-lg border-2
-           border-primary-100 dark:border-primary-500/30
+           border-primary-100 dark:border-gold/20
            bg-white dark:bg-navy-800
            text-charcoal dark:text-warm-gray font-body
            placeholder:text-slate/50 dark:placeholder:text-warm-gray/40
            focus:outline-none
            focus:border-primary-500 dark:focus:border-gold
-           focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-gold/10
+           focus:ring-4 focus:ring-primary-500/10 dark:focus:ring-gold/20
            transition-all duration-200;
+  }
+
+  /* Enhanced gold glow on focus in dark mode */
+  .dark .input:focus {
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.15), 0 0 0 4px rgba(251, 191, 36, 0.1);
   }
 
   /* Make date and time input calendar icons white for both light and dark mode */
@@ -131,17 +148,33 @@
   }
 
   .card {
-    @apply bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm
+    @apply bg-white/80 backdrop-blur-sm
            rounded-2xl shadow-lg p-6
-           border-2 border-primary-500/10 dark:border-gold/10
+           border-2 border-primary-500/10
            transition-all duration-300
-           hover:shadow-xl hover:border-accent-400/30 dark:hover:border-gold/20;
+           hover:shadow-xl hover:border-accent-400/30;
+  }
+
+  /* Dark mode card with gradient background and gold accents */
+  .dark .card {
+    @apply border-gold/20;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%);
+  }
+
+  .dark .card:hover {
+    @apply border-gold/40;
+    box-shadow: 0 0 25px rgba(251, 191, 36, 0.1), 0 20px 40px -15px rgba(0, 0, 0, 0.3);
   }
 
   /* Interactive card with lift effect */
   .card-interactive {
     @apply card cursor-pointer
            hover:-translate-y-1 active:translate-y-0;
+  }
+
+  /* Enhanced glow on interactive cards in dark mode */
+  .dark .card-interactive:hover {
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.15), 0 25px 50px -15px rgba(0, 0, 0, 0.3);
   }
 
   /* Success state animation */
@@ -163,8 +196,17 @@
            text-white shadow-2xl
            flex items-center justify-center
            transition-all duration-300
-           hover:scale-110 hover:shadow-2xl hover:shadow-primary-500/50 dark:hover:shadow-accent-400/50
+           hover:scale-110 hover:shadow-2xl hover:shadow-primary-500/50
            active:scale-95;
+  }
+
+  /* Enhanced gold glow on FAB in dark mode */
+  .dark .fab {
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.2), 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  .dark .fab:hover {
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.35), 0 15px 40px -5px rgba(0, 0, 0, 0.4);
   }
 
   /* Badge animations */

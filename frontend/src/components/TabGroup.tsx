@@ -83,9 +83,9 @@ export default function TabGroup({
   };
 
   return (
-    <div className={`bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-primary-500/10 dark:border-sky/10 overflow-hidden ${className}`}>
+    <div className={`bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-primary-500/10 dark:border-gold/20 overflow-hidden ${className}`}>
       {/* Mobile Tab Dropdown */}
-      <div className="md:hidden p-4 border-b-2 border-primary-500/10 dark:border-sky/10">
+      <div className="md:hidden p-4 border-b-2 border-primary-500/10 dark:border-gold/20">
         <select
           value={activeTab}
           onChange={(e) => {
@@ -96,7 +96,7 @@ export default function TabGroup({
             }
             onTabChange(newTab);
           }}
-          className="w-full px-4 py-3 rounded-lg bg-white dark:bg-navy-900 border-2 border-primary-500/20 dark:border-sky/20 text-slate dark:text-warm-gray font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky"
+          className="w-full px-4 py-3 rounded-lg bg-white dark:bg-navy-900 border-2 border-primary-500/20 dark:border-gold/30 text-slate dark:text-warm-gray font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-gold"
           aria-label="Select tab"
         >
           {tabs.map((tab) =>
@@ -122,7 +122,7 @@ export default function TabGroup({
       {/* Desktop Horizontal Tabs */}
       <div className="hidden md:block">
         {/* Main Tab Navigation */}
-        <nav className="flex border-b-2 border-primary-500/10 dark:border-sky/10">
+        <nav className="flex border-b-2 border-primary-500/10 dark:border-gold/20">
           {tabs.map((tab) => {
             const isActive = isTabActive(tab);
             const groupCount = getGroupCount(tab);
@@ -133,8 +133,8 @@ export default function TabGroup({
                 onClick={() => handleTabClick(tab)}
                 className={`flex-1 py-4 px-4 text-sm font-body font-medium relative flex flex-col items-center gap-1 transition-all duration-200 ${
                   isActive
-                    ? "text-primary-600 dark:text-sky bg-primary-50/50 dark:bg-sky/5"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-sky hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                    ? "text-primary-600 dark:text-gold bg-primary-50/50 dark:bg-gold/5"
+                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold hover:bg-gray-50 dark:hover:bg-gray-700/30"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -144,7 +144,7 @@ export default function TabGroup({
                     <span
                       className={`ml-1 px-2 py-0.5 text-xs rounded-full transition-colors ${
                         isActive
-                          ? "bg-primary-100 dark:bg-sky/20 text-primary-700 dark:text-sky"
+                          ? "bg-primary-100 dark:bg-gold/20 text-primary-700 dark:text-gold"
                           : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
                       }`}
                     >
@@ -153,7 +153,7 @@ export default function TabGroup({
                   )}
                 </div>
                 {isActive && (
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-sky dark:to-accent-400" />
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400" />
                 )}
               </button>
             );
@@ -178,8 +178,8 @@ export default function TabGroup({
                     onClick={() => handleSubTabClick(subTab.id)}
                     className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 flex items-center gap-2 ${
                       isSubActive
-                        ? "bg-white dark:bg-gray-700 text-primary-600 dark:text-sky shadow-sm"
-                        : "text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-sky hover:bg-white/50 dark:hover:bg-gray-700/50"
+                        ? "bg-white dark:bg-gray-700 text-primary-600 dark:text-gold shadow-sm"
+                        : "text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-gold hover:bg-white/50 dark:hover:bg-gray-700/50"
                     }`}
                   >
                     {subTab.icon && (
@@ -190,7 +190,7 @@ export default function TabGroup({
                       <span
                         className={`px-1.5 py-0.5 text-xs rounded-full ${
                           isSubActive
-                            ? "bg-primary-100 dark:bg-sky/20 text-primary-700 dark:text-sky"
+                            ? "bg-primary-100 dark:bg-gold/20 text-primary-700 dark:text-gold"
                             : "bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400"
                         }`}
                       >
