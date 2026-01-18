@@ -55,14 +55,14 @@ Travel Life is a full-stack travel documentation application built with a React 
 - ✅ **Authentication System** - User registration, login, JWT tokens, refresh tokens
 - ✅ **Trip Management** - Full CRUD with status tracking (Dream → Planning → Planned → In Progress → Completed → Cancelled)
 - ✅ **Location Management** - Interactive maps, geocoding, custom categories, photo linking
-- ✅ **Photo Management** - Local uploads, Immich integration, EXIF parsing, albums, thumbnails
+- ✅ **Photo Management** - Local uploads, Immich integration, EXIF parsing, albums, thumbnails, paged pagination
 - ✅ **Transportation** - Flights, trains, buses, cars with dual timezone support and connections
 - ✅ **Lodging** - Hotels, Airbnb, camping with booking details and multi-day display
 - ✅ **Activities** - Status tracking, cost tracking, custom categories
 - ✅ **Journal Entries** - Multiple entry types, mood tracking, weather notes, photo/location linking
 - ✅ **Tags & Companions** - Many-to-many relationships with trips, color customization
 - ✅ **Entity Linking** - Unified system to link any entity to any other (photos↔locations, activities↔locations, etc.)
-- ✅ **Timeline View** - Chronological trip events with dual timezone display
+- ✅ **Timeline View** - Chronological trip events with dual timezone display and printable itinerary export
 - ✅ **User Settings** - Profile, timezone, theme (light/dark), custom categories
 - ✅ **Dark Mode** - Full support across all components
 
@@ -76,6 +76,8 @@ Travel Life is a full-stack travel documentation application built with a React 
 
 **Unique Features**:
 - **Dual timezone timeline** - View trip events in both trip timezone and home timezone simultaneously
+- **Printable itinerary** - Export timeline to a beautifully formatted, print-ready document with day-by-day breakdown
+- **Paged pagination** - Memory-efficient photo album viewing with true page navigation (not infinite scroll)
 - **Multi-day lodging** - Lodging automatically appears on every day from check-in to check-out
 - **Immich integration** - Connect to self-hosted photo library
 - **Custom categories** - User-defined location and activity categories
@@ -236,10 +238,24 @@ The frontend uses a modern React architecture with clear data flow:
 - Service classes provide type-safe API methods
 
 **Key Frontend Services**:
+
 - `auth.service.ts` - Login, register, token refresh
 - `trip.service.ts` - Trip CRUD operations
 - `photo.service.ts` - Photo upload and management
 - `geocoding.service.ts` - Nominatim geocoding queries
+
+**Key Frontend Hooks**:
+
+- `usePagedPagination` - True paged pagination with page replacement (not accumulative)
+- `usePagination` - Legacy infinite scroll pagination (deprecated for albums)
+
+**Key Frontend Components**:
+
+- `Timeline` - Chronological trip events with dual timezone display
+- `PrintableItinerary` - Print-ready itinerary document export
+- `Pagination` - Page navigation controls for paged pagination
+- `LinkPanel` - Modal for managing entity links
+- `LinkedEntitiesDisplay` - Display linked entities with counts
 
 ### Database Schema Highlights
 
@@ -430,6 +446,100 @@ const summary = await entityLinkService.getTripLinksSummary(userId, tripId);
 - Bidirectional discovery (see what's linked FROM and TO any entity)
 
 See [reference/DEVELOPMENT_LOG.md](reference/DEVELOPMENT_LOG.md) (Entity Linking section) for complete documentation.
+
+### Working with Timeline and Printable Itinerary
+
+**Timeline Features**:
+
+The Timeline component displays all trip events chronologically with dual timezone support (trip timezone + home timezone).
+
+**Printable Itinerary (Added v4.0.1)**:
+
+- Export button in Timeline component generates print-ready itinerary document
+- Uses `PrintableItinerary` component ([frontend/src/components/timeline/PrintableItinerary.tsx](frontend/src/components/timeline/PrintableItinerary.tsx))
+- Renders in hidden div, opens print dialog, cleans up automatically
+- Day-by-day breakdown with all events (transportation, lodging, activities, locations)
+- Includes unscheduled items section at the end
+- Print-optimized CSS in `src/index.css` with `@media print` styles
+- Events grouped by date with formatted times and timezone information
+
+**Implementation Pattern**:
+
+```typescript
+// Create ref for printable content
+const printableRef = useRef<HTMLDivElement>(null);
+
+// Render hidden printable component
+<div style={{ display: 'none' }}>
+  <PrintableItinerary
+    ref={printableRef}
+    tripTitle={trip.title}
+    dayGroups={dayGroups}
+    unscheduled={unscheduledData}
+  />
+</div>
+
+// Print handler
+const handlePrint = () => {
+  const printWindow = window.open('', '', 'width=800,height=600');
+  // Copy styles and content, trigger print dialog
+};
+```
+
+### Working with Album Pagination
+
+**Paged Pagination (Added v4.0.1)**:
+
+Album views use true paged pagination instead of infinite scroll to prevent memory issues with large albums.
+
+**Key Components**:
+
+- `usePagedPagination` hook ([frontend/src/hooks/usePagedPagination.ts](frontend/src/hooks/usePagedPagination.ts)) - Replaces items on page change (not accumulative)
+- `Pagination` component ([frontend/src/components/Pagination.tsx](frontend/src/components/Pagination.tsx)) - Page number navigation UI
+
+**Usage Pattern**:
+
+```typescript
+const {
+  items,
+  total,
+  currentPage,
+  totalPages,
+  loading,
+  hasNextPage,
+  hasPreviousPage,
+  goToPage,
+  nextPage,
+  previousPage,
+  refresh
+} = usePagedPagination(
+  async (skip, take) => {
+    const result = await albumService.getAlbumPhotos(albumId, skip, take);
+    return {
+      items: result.photos,
+      total: result.total,
+      hasMore: result.hasMore
+    };
+  },
+  { pageSize: 40 }
+);
+
+// Render pagination controls
+<Pagination
+  currentPage={currentPage}
+  totalPages={totalPages}
+  onPageChange={goToPage}
+  hasNext={hasNextPage}
+  hasPrevious={hasPreviousPage}
+/>
+```
+
+**Benefits**:
+
+- Only one page of items in memory at a time (40 photos per page for albums, 30 for global album list)
+- Prevents browser memory issues with 1000+ photo albums
+- Better UX with page numbers and direct page navigation
+- Replaces accumulative "Load More" pattern from old `usePagination` hook
 
 ### Debugging Issues
 
