@@ -1,0 +1,196 @@
+/**
+ * TripCard - Visually engaging trip card component
+ *
+ * Features:
+ * - Large cover photo (~60% of card height)
+ * - Gradient overlay for text readability
+ * - Status ribbon badge (color-coded by status)
+ * - Trip title with serif display font
+ * - Destination and date range
+ * - Stats row with locations, photos, transportation counts
+ * - Hover effects with lift and photo zoom
+ */
+
+import { Link } from 'react-router-dom';
+import type { Trip } from '../types/trip';
+import { getTripStatusRibbonColor } from '../utils/statusColors';
+import { formatTripDates, getTripDateStatus, formatTripDuration } from '../utils/dateFormat';
+import { MapPinIcon, PhotoIcon, CalendarIcon } from './icons';
+
+interface TripCardProps {
+  trip: Trip;
+  coverPhotoUrl?: string;
+  onDelete?: (id: number) => void;
+  showActions?: boolean;
+}
+
+/**
+ * Transportation icon component
+ */
+function TransportIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+    </svg>
+  );
+}
+
+export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = true }: TripCardProps) {
+  const counts = trip._count;
+  const hasStats = counts && (counts.locations > 0 || counts.photos > 0 || counts.transportation > 0);
+
+  return (
+    <div className="group relative rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-primary-500/10 dark:border-gold/20 hover:border-primary-500/30 dark:hover:border-gold/40 bg-white dark:bg-navy-800 min-h-[380px] transform hover:-translate-y-1 dark:hover:shadow-[0_0_25px_rgba(251,191,36,0.15),0_20px_40px_-15px_rgba(0,0,0,0.3)]">
+      {/* Clickable area covering the entire card for navigation */}
+      <Link to={`/trips/${trip.id}`} className="absolute inset-0 z-10" aria-label={`View ${trip.title}`}>
+        <span className="sr-only">View trip details</span>
+      </Link>
+
+      {/* Cover Photo Section (~60% height) */}
+      <div className="relative h-[60%] overflow-hidden">
+        {coverPhotoUrl ? (
+          <>
+            {/* Photo with zoom effect on hover */}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+              style={{ backgroundImage: `url(${coverPhotoUrl})` }}
+            />
+            {/* Gradient overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/60" />
+          </>
+        ) : (
+          /* Fallback gradient pattern for trips without cover photos */
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-400 via-accent-400 to-primary-600 dark:from-primary-600 dark:via-accent-600 dark:to-primary-800">
+            {/* Decorative pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-4 left-4 w-20 h-20 border-2 border-white rounded-full" />
+              <div className="absolute top-8 left-8 w-16 h-16 border-2 border-white rounded-full" />
+              <div className="absolute bottom-4 right-4 w-24 h-24 border-2 border-white rounded-full" />
+              <div className="absolute bottom-8 right-8 w-16 h-16 border-2 border-white rounded-full" />
+            </div>
+          </div>
+        )}
+
+        {/* Status Ribbon Badge */}
+        <div className={`absolute top-3 left-3 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg shadow-md ${getTripStatusRibbonColor(trip.status)}`}>
+          {trip.status}
+        </div>
+
+        {/* Tags overlay on photo */}
+        {trip.tagAssignments && trip.tagAssignments.length > 0 && (
+          <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1.5">
+            {trip.tagAssignments.slice(0, 3).map(({ tag }) => (
+              <span
+                key={tag.id}
+                className="px-2 py-0.5 rounded-full text-xs font-medium shadow-sm backdrop-blur-sm tag-colored"
+                style={{
+                  '--tag-bg-color': tag.color,
+                  '--tag-text-color': tag.textColor,
+                } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
+              >
+                {tag.name}
+              </span>
+            ))}
+            {trip.tagAssignments.length > 3 && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-black/50 text-white backdrop-blur-sm">
+                +{trip.tagAssignments.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Content Section (~40% height) */}
+      <div className="relative h-[40%] p-4 flex flex-col">
+        {/* Trip Title */}
+        <h3 className="text-xl font-display font-bold text-charcoal dark:text-warm-gray mb-1 line-clamp-1 group-hover:text-primary-600 dark:group-hover:text-gold transition-colors">
+          {trip.title}
+        </h3>
+
+        {/* Description (if available) */}
+        {trip.description && (
+          <p className="text-sm text-slate dark:text-warm-gray/70 line-clamp-1 mb-2">
+            {trip.description}
+          </p>
+        )}
+
+        {/* Date Range with Calendar Icon and Relative Status */}
+        <div className="text-sm text-slate dark:text-warm-gray/80 mb-auto">
+          <div className="flex items-center gap-1.5">
+            <CalendarIcon className="w-4 h-4 flex-shrink-0" />
+            <span>{formatTripDates(trip.startDate, trip.endDate)}</span>
+          </div>
+          {/* Duration and relative timing */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs text-slate/70 dark:text-warm-gray/60 ml-5">
+            {formatTripDuration(trip.startDate, trip.endDate) && (
+              <span>{formatTripDuration(trip.startDate, trip.endDate)}</span>
+            )}
+            {getTripDateStatus(trip.startDate, trip.endDate) && (
+              <>
+                {formatTripDuration(trip.startDate, trip.endDate) && <span>·</span>}
+                <span className={`${
+                  getTripDateStatus(trip.startDate, trip.endDate)?.includes('progress') ||
+                  getTripDateStatus(trip.startDate, trip.endDate)?.includes('today')
+                    ? 'text-green-600 dark:text-green-400 font-medium'
+                    : ''
+                }`}>
+                  {getTripDateStatus(trip.startDate, trip.endDate)}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        {hasStats && (
+          <div className="flex items-center gap-4 pt-3 border-t border-gray-200 dark:border-navy-700 mt-2">
+            {counts.locations > 0 && (
+              <div className="flex items-center gap-1 text-sm text-slate dark:text-warm-gray/70">
+                <MapPinIcon className="w-4 h-4 text-primary-500 dark:text-gold" />
+                <span>{counts.locations}</span>
+              </div>
+            )}
+            {counts.photos > 0 && (
+              <div className="flex items-center gap-1 text-sm text-slate dark:text-warm-gray/70">
+                <PhotoIcon className="w-4 h-4 text-accent-500 dark:text-gold" />
+                <span>{counts.photos}</span>
+              </div>
+            )}
+            {counts.transportation > 0 && (
+              <div className="flex items-center gap-1 text-sm text-slate dark:text-warm-gray/70">
+                <TransportIcon className="w-4 h-4 text-green-500 dark:text-green-400" />
+                <span>{counts.transportation}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action Buttons - positioned above the clickable link */}
+        {showActions && (
+          <div className="flex gap-2 pt-3 mt-auto relative z-20">
+            <Link
+              to={`/trips/${trip.id}/edit`}
+              className="flex-1 btn btn-secondary text-center text-sm py-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Edit
+            </Link>
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onDelete(trip.id);
+                }}
+                className="btn btn-danger px-4 text-sm py-2"
+                aria-label={`Delete ${trip.title}`}
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

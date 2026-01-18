@@ -6,12 +6,34 @@ import { TripStatus, type TripStatusType } from '../types/trip';
  */
 export const tripStatusColors: Record<TripStatusType, string> = {
   [TripStatus.DREAM]: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  [TripStatus.PLANNING]: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  [TripStatus.PLANNED]: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  [TripStatus.IN_PROGRESS]: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  [TripStatus.COMPLETED]: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+  [TripStatus.PLANNING]: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  [TripStatus.PLANNED]: 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300',
+  [TripStatus.IN_PROGRESS]: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+  [TripStatus.COMPLETED]: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
   [TripStatus.CANCELLED]: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 };
+
+/**
+ * Ribbon color mappings for trip cards
+ * More vibrant colors for visual impact on card ribbons
+ */
+export const tripStatusRibbonColors: Record<TripStatusType, string> = {
+  [TripStatus.DREAM]: 'bg-purple-500 text-white',
+  [TripStatus.PLANNING]: 'bg-blue-500 text-white',
+  [TripStatus.PLANNED]: 'bg-sky-500 text-white',
+  [TripStatus.IN_PROGRESS]: 'bg-amber-500 text-white',
+  [TripStatus.COMPLETED]: 'bg-green-500 text-white',
+  [TripStatus.CANCELLED]: 'bg-red-500 text-white',
+};
+
+/**
+ * Get the ribbon color classes for a trip status
+ * @param status - The trip status
+ * @returns Tailwind CSS classes for ribbon background and text color
+ */
+export function getTripStatusRibbonColor(status: string): string {
+  return tripStatusRibbonColors[status as TripStatusType] ?? 'bg-gray-500 text-white';
+}
 
 /**
  * Get the color classes for a trip status

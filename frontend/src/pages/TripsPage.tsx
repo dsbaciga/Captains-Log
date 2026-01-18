@@ -9,14 +9,11 @@ import toast from 'react-hot-toast';
 import { getFullAssetUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
-// Import shared utilities
-import { formatDate } from '../utils/dateFormat';
-import { getTripStatusColor } from '../utils/statusColors';
-
 // Import reusable components
-import EmptyState from '../components/EmptyState';
+import EmptyState, { EmptyIllustrations } from '../components/EmptyState';
 import { SkeletonGrid } from '../components/Skeleton';
 import { SearchIcon, FilterIcon, CloseIcon } from '../components/icons';
+import TripCard from '../components/TripCard';
 
 type SortOption = 'startDate-desc' | 'startDate-asc' | 'title-asc' | 'title-desc' | 'status';
 
@@ -397,118 +394,34 @@ export default function TripsPage() {
         {loading ? (
           <SkeletonGrid count={6} columns={3} hasImage />
         ) : filteredTrips.length === 0 ? (
-          <EmptyState
-            icon="✈️"
-            message={trips.length === 0 ? 'No trips found' : 'No trips match your filters'}
-            subMessage={trips.length === 0 ? 'Start planning your next adventure' : 'Try adjusting your search or filters'}
-            actionLabel={trips.length === 0 ? 'Create your first trip' : 'Clear all filters'}
-            onAction={trips.length === 0 ? undefined : clearFilters}
-            actionHref={trips.length === 0 ? '/trips/new' : undefined}
-          />
+          trips.length === 0 ? (
+            <EmptyState
+              icon={<EmptyIllustrations.NoTrips />}
+              message="Your Adventure Begins Here"
+              subMessage="Every great journey starts with a single step. Create your first trip to start planning, dreaming, and documenting your travels. From dream destinations to detailed itineraries - it all begins now."
+              actionLabel="Plan Your First Adventure"
+              actionHref="/trips/new"
+            />
+          ) : (
+            <EmptyState
+              icon="🔍"
+              message="No Trips Match Your Filters"
+              subMessage="Try adjusting your search terms, status filter, or selected tags to find what you're looking for."
+              actionLabel="Clear All Filters"
+              onAction={clearFilters}
+            />
+          )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTrips.map((trip) => {
-              const coverPhotoUrl = coverPhotoUrls[trip.id];
-
-              return (
-                <div
-                  key={trip.id}
-                  className="rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative h-[400px] border-2 border-primary-500/10 dark:border-sky/10"
-                >
-                  {/* Background Image */}
-                  {coverPhotoUrl ? (
-                    // Dynamic background image requires CSS variable - cannot be moved to static CSS
-                    <div
-                      className="absolute inset-0 bg-cover bg-center cover-photo-bg"
-                      style={{ '--cover-photo-url': `url(${coverPhotoUrl})` } as React.CSSProperties & { '--cover-photo-url': string }}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/80"></div>
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 bg-white/80 dark:bg-navy-800/80 backdrop-blur-sm"></div>
-                  )}
-
-                  {/* Content Overlay */}
-                  <div className="relative h-full flex flex-col p-6">
-                    {/* Header with title and status */}
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className={`text-xl font-semibold font-display flex-1 ${coverPhotoUrl ? 'text-white drop-shadow-lg' : 'text-charcoal dark:text-warm-gray'}`}>
-                        {trip.title}
-                      </h3>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-lg ${getTripStatusColor(trip.status)}`}
-                      >
-                        {trip.status}
-                      </span>
-                    </div>
-
-                    {/* Description */}
-                    {trip.description && (
-                      <p className={`mb-4 line-clamp-2 ${coverPhotoUrl ? 'text-white/90 drop-shadow-md' : 'text-slate dark:text-warm-gray/80'}`}>
-                        {trip.description}
-                      </p>
-                    )}
-
-                    {/* Tags */}
-                    {trip.tagAssignments && trip.tagAssignments.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4 max-w-full">
-                        {trip.tagAssignments.map(({ tag }) => (
-                          // Dynamic tag colors require CSS variables - cannot be moved to static CSS
-                          <span
-                            key={tag.id}
-                            className="px-2 py-1 rounded-full text-xs font-medium tag-colored break-words"
-                            style={{
-                              '--tag-bg-color': tag.color,
-                              '--tag-text-color': tag.textColor,
-                            } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Spacer to push dates and buttons to bottom */}
-                    <div className="flex-1"></div>
-
-                    {/* Dates */}
-                    <div className={`text-sm space-y-1 mb-4 ${coverPhotoUrl ? 'text-white/90' : 'text-slate dark:text-warm-gray/70'}`}>
-                      <div>
-                        <span className="font-medium">Start:</span>{' '}
-                        {formatDate(trip.startDate)}
-                      </div>
-                      <div>
-                        <span className="font-medium">End:</span>{' '}
-                        {formatDate(trip.endDate)}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2">
-                      <Link
-                        to={`/trips/${trip.id}`}
-                        className="flex-1 btn btn-primary text-center"
-                      >
-                        View
-                      </Link>
-                      <Link
-                        to={`/trips/${trip.id}/edit`}
-                        className="flex-1 btn btn-secondary text-center"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(trip.id)}
-                        className="btn btn-danger px-4"
-                        aria-label={`Delete ${trip.title}`}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredTrips.map((trip) => (
+              <TripCard
+                key={trip.id}
+                trip={trip}
+                coverPhotoUrl={coverPhotoUrls[trip.id]}
+                onDelete={handleDelete}
+                showActions={true}
+              />
+            ))}
           </div>
         )}
 

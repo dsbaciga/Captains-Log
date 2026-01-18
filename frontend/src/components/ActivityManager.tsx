@@ -23,7 +23,7 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import EmptyState from "./EmptyState";
+import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
@@ -196,7 +196,8 @@ export default function ActivityManager({
       }
       setPendingEditId(null);
     }
-  }, [pendingEditId, manager.items, manager.loading, tripTimezone]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEditId, manager.items, manager.loading, tripTimezone, handleChange]);
 
   // Auto-fill: End Time = Start Time + 1 Hour
   useEffect(() => {
@@ -1056,9 +1057,14 @@ export default function ActivityManager({
           <ListItemSkeleton count={3} />
         ) : topLevelActivities.length === 0 ? (
           <EmptyState
-            icon="🎯"
-            message="No activities added yet"
-            subMessage="Add activities, tours, dining, and other things you plan to do"
+            icon={<EmptyIllustrations.NoActivities />}
+            message="What Will You Discover?"
+            subMessage="Plan your adventures - from guided tours and museum visits to local dining experiences and outdoor excursions. Every activity tells a story."
+            actionLabel="Add Your First Activity"
+            onAction={() => {
+              resetForm();
+              manager.toggleForm();
+            }}
           />
         ) : (
           topLevelActivities.map((activity) => renderActivity(activity))

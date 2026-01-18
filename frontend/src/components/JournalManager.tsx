@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import type { JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput } from "../types/journalEntry";
 import journalEntryService from "../services/journalEntry.service";
 import toast from "react-hot-toast";
-import EmptyState from "./EmptyState";
+import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
@@ -99,7 +99,8 @@ export default function JournalManager({
       }
       setPendingEditId(null);
     }
-  }, [pendingEditId, manager.items, manager.loading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEditId, manager.items, manager.loading, setAllFields]);
 
   const resetForm = () => {
     resetFields();
@@ -337,9 +338,14 @@ Tell your story!"
 
       {manager.items.length === 0 ? (
         <EmptyState
-          icon="📔"
-          message="No journal entries yet"
-          subMessage="Start documenting your adventure by creating your first entry!"
+          icon={<EmptyIllustrations.NoJournalEntries />}
+          message="Tell Your Story"
+          subMessage="Every journey has a story worth telling. Write about your experiences, capture the emotions, and preserve the small moments that make travel unforgettable. Your future self will thank you."
+          actionLabel="Write Your First Entry"
+          onAction={() => {
+            resetFields();
+            manager.toggleForm();
+          }}
         />
       ) : (
         <div className="space-y-4">

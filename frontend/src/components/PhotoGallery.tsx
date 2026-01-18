@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import type { Photo, PhotoAlbum } from "../types/photo";
 import photoService from "../services/photo.service";
+import toast from "react-hot-toast";
 import { getFullAssetUrl } from "../lib/config";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import PhotoLightbox from "./PhotoLightbox";
 import ProgressiveImage from "./ProgressiveImage";
 import EntityPickerModal from "./EntityPickerModal";
+import BatchPhotoToolbar from "./BatchPhotoToolbar";
+import EmptyState, { EmptyIllustrations } from "./EmptyState";
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -225,7 +228,7 @@ export default function PhotoGallery({
       setSelectedPhoto(null);
       onPhotoDeleted?.();
     } catch {
-      alert("Failed to delete photo");
+      toast.error("Failed to delete photo");
     }
   };
 
@@ -239,7 +242,7 @@ export default function PhotoGallery({
       setIsEditMode(false);
       onPhotoUpdated?.();
     } catch {
-      alert("Failed to update photo");
+      toast.error("Failed to update photo");
     }
   };
 
@@ -303,7 +306,7 @@ export default function PhotoGallery({
       // The effect will handle selection once photos.length >= totalPhotosInView
     } catch {
       pendingSelectAll.current = false;
-      alert("Failed to load all photos");
+      toast.error("Failed to load all photos");
     }
   };
 
@@ -326,9 +329,9 @@ export default function PhotoGallery({
       setSelectedPhotoIds(new Set());
       setLastSelectedIndex(null);
       onPhotosAddedToAlbum?.();
-      alert(`Successfully added ${selectedPhotoIds.size} photo(s) to album`);
+      toast.success(`Successfully added ${selectedPhotoIds.size} photo(s) to album`);
     } catch {
-      alert("Failed to add photos to album");
+      toast.error("Failed to add photos to album");
     } finally {
       setIsAddingToAlbum(false);
     }
@@ -365,11 +368,11 @@ export default function PhotoGallery({
       setSelectedPhotoIds(new Set());
       setLastSelectedIndex(null);
       onPhotosAddedToAlbum?.();
-      alert(
+      toast.success(
         `Successfully created album "${newAlbum.name}" with ${selectedPhotoIds.size} photo(s)`
       );
     } catch {
-      alert("Failed to create album");
+      toast.error("Failed to create album");
     } finally {
       setIsCreatingAlbum(false);
     }
@@ -397,9 +400,9 @@ export default function PhotoGallery({
       setSelectedPhotoIds(new Set());
       setLastSelectedIndex(null);
       onPhotosRemovedFromAlbum?.();
-      alert(`Successfully removed ${photoIds.length} photo(s) from album`);
+      toast.success(`Successfully removed ${photoIds.length} photo(s) from album`);
     } catch {
-      alert("Failed to remove photos from album");
+      toast.error("Failed to remove photos from album");
     } finally {
       setIsAddingToAlbum(false);
     }
@@ -427,7 +430,7 @@ export default function PhotoGallery({
       setLastSelectedIndex(null);
       onPhotoDeleted?.();
     } catch {
-      alert("Failed to delete photos");
+      toast.error("Failed to delete photos");
     } finally {
       setIsDeletingPhotos(false);
     }
@@ -476,9 +479,11 @@ export default function PhotoGallery({
 
   if (photos.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-        <p>No photos yet. Upload some photos to get started!</p>
-      </div>
+      <EmptyState
+        icon={<EmptyIllustrations.NoPhotos />}
+        message="Your Photo Journey Begins Here"
+        subMessage="Upload photos to capture your travel memories. You can link photos to locations, add them to albums, and create a visual story of your adventures."
+      />
     );
   }
 
@@ -563,7 +568,7 @@ export default function PhotoGallery({
           {photos.length} photo{photos.length !== 1 ? "s" : ""}
         </div>
       </div>
-      {/* Selection Toolbar */}
+      {/* Selection Mode Toggle */}
       <div className="mb-4">
         {!selectionMode ? (
           <button
@@ -576,155 +581,20 @@ export default function PhotoGallery({
             Select Photos
           </button>
         ) : (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            {/* Selection Status Badge */}
-            <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
-                selectedPhotoIds.size > 0
-                  ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
-              }`}>
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {selectedPhotoIds.size} of {photos.length} selected
-              </span>
-            </div>
-
-            {/* Button Groups Container */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Selection Controls Group */}
-              <div className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-                <button
-                  onClick={selectAllLoadedPhotos}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-l-lg transition-colors"
-                  title={`Select all ${photos.length} loaded photos`}
-                >
-                  All
-                </button>
-                {totalPhotosInView > photos.length && onLoadAllPhotos && (
-                  <>
-                    <span className="w-px h-6 bg-gray-200 dark:bg-gray-700"></span>
-                    <button
-                      onClick={selectAllPhotosInFolderWithEffect}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      title={`Load and select all ${totalPhotosInView} photos in folder`}
-                    >
-                      All {totalPhotosInView}
-                    </button>
-                  </>
-                )}
-                {selectedPhotoIds.size > 0 && (
-                  <>
-                    <span className="w-px h-6 bg-gray-200 dark:bg-gray-700"></span>
-                    <button
-                      onClick={deselectAllPhotos}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-r-lg transition-colors"
-                      title="Deselect all photos"
-                    >
-                      None
-                    </button>
-                  </>
-                )}
-                {selectedPhotoIds.size === 0 && (
-                  <span className="w-px h-6 bg-gray-200 dark:bg-gray-700 invisible"></span>
-                )}
-              </div>
-
-              {/* Separator */}
-              <span className="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-600"></span>
-
-              {/* Actions Group */}
-              {currentAlbumId && currentAlbumId > 0 ? (
-                <button
-                  onClick={handleRemoveFromAlbum}
-                  disabled={selectedPhotoIds.size === 0 || isAddingToAlbum}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="Remove selected photos from this album"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Remove from Album
-                </button>
-              ) : (
-                <div className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-                  {/* Add to Album */}
-                  {albums && albums.length > 0 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setShowAlbumSelectModal(true)}
-                        disabled={selectedPhotoIds.size === 0}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-l-lg transition-colors"
-                        title="Add selected photos to an album"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                        Album
-                      </button>
-                      <span className="w-px h-6 bg-gray-200 dark:bg-gray-700"></span>
-                    </>
-                  )}
-
-                  {/* Link to Entity */}
-                  <button
-                    type="button"
-                    onClick={() => setShowEntityPickerModal(true)}
-                    disabled={selectedPhotoIds.size === 0}
-                    className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                      !(albums && albums.length > 0) ? "rounded-l-lg" : ""
-                    }`}
-                    title="Link selected photos to a location, activity, or lodging"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    Link
-                  </button>
-
-                  <span className="w-px h-6 bg-gray-200 dark:bg-gray-700"></span>
-
-                  {/* Delete */}
-                  <button
-                    type="button"
-                    onClick={handleDeleteSelected}
-                    disabled={selectedPhotoIds.size === 0 || isDeletingPhotos}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-lg transition-colors"
-                    title="Delete selected photos permanently"
-                  >
-                    {isDeletingPhotos ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    )}
-                    {isDeletingPhotos ? "Deleting..." : "Delete"}
-                  </button>
-                </div>
-              )}
-
-              {/* Cancel Button */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Selection hint */}
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Click photos to select. Hold Shift for range selection.
+            </span>
+            {/* Quick select all if more photos available */}
+            {totalPhotosInView > photos.length && onLoadAllPhotos && (
               <button
-                onClick={() => {
-                  setSelectionMode(false);
-                  setSelectedPhotoIds(new Set());
-                  setLastSelectedIndex(null);
-                }}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                title="Exit selection mode"
+                onClick={selectAllPhotosInFolderWithEffect}
+                className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Done
+                Load all {totalPhotosInView} photos
               </button>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -1164,6 +1034,28 @@ export default function PhotoGallery({
             setSelectionMode(false);
             setSelectedPhotoIds(new Set());
           }}
+        />
+      )}
+
+      {/* Floating Batch Operations Toolbar */}
+      {selectionMode && (
+        <BatchPhotoToolbar
+          selectedCount={selectedPhotoIds.size}
+          totalCount={photos.length}
+          onSelectAll={selectAllLoadedPhotos}
+          onDeselectAll={deselectAllPhotos}
+          onExitSelectionMode={() => {
+            setSelectionMode(false);
+            setSelectedPhotoIds(new Set());
+            setLastSelectedIndex(null);
+          }}
+          onAddToAlbum={() => setShowAlbumSelectModal(true)}
+          onLinkToEntity={() => setShowEntityPickerModal(true)}
+          onDelete={handleDeleteSelected}
+          onRemoveFromAlbum={currentAlbumId ? handleRemoveFromAlbum : undefined}
+          isDeleting={isDeletingPhotos}
+          isInAlbum={!!currentAlbumId && currentAlbumId > 0}
+          hasAlbums={!!albums && albums.length > 0}
         />
       )}
     </div>

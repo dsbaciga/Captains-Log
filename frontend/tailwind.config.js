@@ -75,6 +75,7 @@ export default {
       animation: {
         'bounce-slow': 'bounce-slow 3s ease-in-out infinite',
         'fade-in': 'fade-in 0.3s ease-out',
+        'fadeIn': 'fade-in 0.3s ease-out',
         'slide-in-right': 'slide-in-right 0.3s ease-out',
         'slide-in-left': 'slide-in-left 0.3s ease-out',
         'scale-in': 'scale-in 0.2s ease-out',
@@ -116,6 +117,14 @@ export default {
         },
         // Gold accent for dark mode
         gold: '#fbbf24',
+        // Sky accent for dark mode (consistent with Tailwind's sky-400)
+        sky: '#38bdf8',
+      },
+      // Custom box shadows with gold glow for dark mode
+      boxShadow: {
+        'glow-gold-sm': '0 0 15px rgba(251, 191, 36, 0.15)',
+        'glow-gold': '0 0 20px rgba(251, 191, 36, 0.15)',
+        'glow-gold-lg': '0 0 30px rgba(251, 191, 36, 0.2)',
       },
     },
   },

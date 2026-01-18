@@ -109,10 +109,10 @@ export default function FormModal({
       {/* Modal */}
       <div
         ref={modalRef}
-        className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200`}
+        className={`relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gold/20 flex-shrink-0">
           <h2
             id="form-modal-title"
             className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2"
@@ -124,7 +124,7 @@ export default function FormModal({
             onClick={onClose}
             type="button"
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gold transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-navy-700"
           >
             <svg
               className="w-6 h-6"
@@ -147,7 +147,7 @@ export default function FormModal({
 
         {/* Footer */}
         {footer && (
-          <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gold/20 flex-shrink-0 bg-gray-50 dark:bg-navy-800/50">
             {footer}
           </div>
         )}
