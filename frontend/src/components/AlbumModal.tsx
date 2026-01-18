@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { PhotoAlbum } from "../types/photo";
 import LinkButton from "./LinkButton";
+import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 
 interface AlbumModalProps {
   album?: PhotoAlbum; // If provided, we're editing; otherwise creating
@@ -23,6 +24,9 @@ export default function AlbumModal({
   const [name, setName] = useState(album?.name || "");
   const [description, setDescription] = useState(album?.description || "");
   const [saving, setSaving] = useState(false);
+
+  // Fetch link summary for this album
+  const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
   const isEdit = !!album;
 
@@ -123,7 +127,11 @@ export default function AlbumModal({
                   tripId={tripId}
                   entityType="PHOTO_ALBUM"
                   entityId={album.id}
-                  onUpdate={onUpdate}
+                  linkSummary={getLinkSummary('PHOTO_ALBUM', album.id)}
+                  onUpdate={() => {
+                    invalidateLinkSummary();
+                    onUpdate?.();
+                  }}
                   size="md"
                 />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
