@@ -20,6 +20,7 @@ export default function TimelineEventCard({
   tripTimezone,
   userTimezone,
   showDualTime,
+  mobileActiveTimezone = 'trip',
   linkSummary,
   viewMode,
   connectionInfo,
@@ -143,17 +144,21 @@ export default function TimelineEventCard({
     );
   };
 
-  // Legacy inline time display (used for mobile and non-dual-time modes)
+  // Mobile time display - shows only the timezone selected by the toggle
+  const renderMobileTime = () => {
+    if (mobileActiveTimezone === 'user' && userTimezone && displayTimezone !== userTimezone) {
+      // Show home/user timezone
+      return renderHomeTime();
+    }
+    // Default to trip timezone
+    return renderTripTime();
+  };
+
+  // Legacy inline time display (used for non-dual-time modes and desktop)
   const renderTimeDisplay = () => {
     return (
       <>
         {renderTripTime()}
-        {/* Show secondary timezone inline on mobile */}
-        {showDualTime && userTimezone && displayTimezone !== userTimezone && (
-          <span className="lg:hidden text-gray-400 dark:text-gray-500 ml-2">
-            ({formatTime(item.dateTime, userTimezone)} {getTimezoneAbbr(userTimezone)})
-          </span>
-        )}
       </>
     );
   };
@@ -245,9 +250,9 @@ export default function TimelineEventCard({
           {/* Desktop: columnar layout for dual timezone */}
           {showDualTime && userTimezone && displayTimezone !== userTimezone ? (
             <>
-              {/* Mobile: inline display */}
+              {/* Mobile: show only the selected timezone */}
               <div className="lg:hidden">
-                {renderTimeDisplay()}
+                {renderMobileTime()}
                 {renderDurationDistance()}
               </div>
               {/* Desktop: trip time LEFT, home time RIGHT */}

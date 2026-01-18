@@ -83,6 +83,7 @@ export interface TimelineEventCardProps {
   tripTimezone?: string;
   userTimezone?: string;
   showDualTime: boolean;
+  mobileActiveTimezone?: 'trip' | 'user';
   linkSummary?: EntityLinkSummary;
   viewMode: 'standard' | 'compact';
   connectionInfo?: ConnectionInfo;

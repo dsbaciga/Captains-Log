@@ -1157,6 +1157,7 @@ const Timeline = ({
             viewMode={viewMode}
             isCollapsed={collapsedDays.has(dayGroup.dateKey)}
             showDualTimezone={!!showDualTimezone}
+            mobileActiveTimezone={mobileActiveTimezone}
             linkSummaryMap={summaryMap}
             onToggleCollapse={() => toggleDay(dayGroup.dateKey)}
             onEdit={handleEdit}
