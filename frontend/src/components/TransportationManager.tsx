@@ -750,7 +750,7 @@ export default function TransportationManager({
           </FormSection>
 
           {/* SECTION 3: Schedule (Departure/Arrival Times) */}
-          <FormSection title="Schedule" icon="🕐">
+          <FormSection title="Schedule" icon="🕐" description="Optional - leave blank if times are unknown">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
@@ -759,15 +759,27 @@ export default function TransportationManager({
                 >
                   Departure
                 </label>
-                <input
-                  type="datetime-local"
-                  id="transportation-departure-time"
-                  value={values.departureTime}
-                  onChange={(e) =>
-                    handleChange("departureTime", e.target.value)
-                  }
-                  className="input"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="datetime-local"
+                    id="transportation-departure-time"
+                    value={values.departureTime}
+                    onChange={(e) =>
+                      handleChange("departureTime", e.target.value)
+                    }
+                    className="input flex-1"
+                  />
+                  {values.departureTime && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange("departureTime", "")}
+                      className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      title="Clear departure time"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
 
               <TimezoneSelect
@@ -785,13 +797,25 @@ export default function TransportationManager({
                 >
                   Arrival
                 </label>
-                <input
-                  type="datetime-local"
-                  id="transportation-arrival-time"
-                  value={values.arrivalTime}
-                  onChange={(e) => handleChange("arrivalTime", e.target.value)}
-                  className="input"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="datetime-local"
+                    id="transportation-arrival-time"
+                    value={values.arrivalTime}
+                    onChange={(e) => handleChange("arrivalTime", e.target.value)}
+                    className="input flex-1"
+                  />
+                  {values.arrivalTime && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange("arrivalTime", "")}
+                      className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      title="Clear arrival time"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
 
               <TimezoneSelect
