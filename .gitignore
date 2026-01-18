@@ -46,3 +46,6 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+.gemini/
+gha-creds-*.json
