@@ -3,6 +3,7 @@ import { render, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import ActivityManager from "../ActivityManager";
 import { activityService } from "../../services/activity.service";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock the activity service
 vi.mock("../../services/activity.service", () => {
@@ -20,6 +21,7 @@ vi.mock("../../services/activity.service", () => {
 
 describe("ActivityManager", () => {
   const tripId = 1;
+  const queryClient = new QueryClient();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -31,9 +33,11 @@ describe("ActivityManager", () => {
     const getActivitiesSpy = vi.mocked(activityService.getActivitiesByTrip);
 
     render(
-      <BrowserRouter>
-        <ActivityManager tripId={tripId} locations={[]} />
-      </BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ActivityManager tripId={tripId} locations={[]} />
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
     // Wait for initial load
@@ -52,9 +56,11 @@ describe("ActivityManager", () => {
     const getActivitiesSpy = vi.mocked(activityService.getActivitiesByTrip);
 
     const { rerender } = render(
-      <BrowserRouter>
-        <ActivityManager tripId={tripId} locations={[]} />
-      </BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ActivityManager tripId={tripId} locations={[]} />
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
     await waitFor(() => {
@@ -63,15 +69,19 @@ describe("ActivityManager", () => {
 
     // Simulate tab switch by unmounting and remounting
     rerender(
-      <BrowserRouter>
-        <div>Other Tab</div>
-      </BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+                <div>Other Tab</div>
+            </BrowserRouter>
+        </QueryClientProvider>
     );
 
     rerender(
-      <BrowserRouter>
-        <ActivityManager tripId={tripId} locations={[]} />
-      </BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ActivityManager tripId={tripId} locations={[]} />
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
     // Should reload when coming back to tab

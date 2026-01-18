@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { Link } from "react-router-dom";
 import locationService from "../services/location.service";
+import transportationService from "../services/transportation.service";
 import type { Location } from "../types/location";
+import type { Transportation } from "../types/transportation";
 import toast from "react-hot-toast";
 import "leaflet/dist/leaflet.css";
 
@@ -14,9 +15,11 @@ import "../utils/mapUtils"; // This import runs the leaflet icon setup
 import LoadingSpinner from "../components/LoadingSpinner";
 import EmptyState from "../components/EmptyState";
 import { CloseIcon } from "../components/icons";
+import PlacesVisitedMapContainer from "../components/PlacesVisitedMapContainer";
 
 export default function PlacesVisitedPage() {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [transportation, setTransportation] = useState<Transportation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null
@@ -29,8 +32,12 @@ export default function PlacesVisitedPage() {
   const loadVisitedLocations = async () => {
     try {
       setLoading(true);
-      const data = await locationService.getAllVisitedLocations();
-      setLocations(data);
+      const [locationData, transportationData] = await Promise.all([
+        locationService.getAllVisitedLocations(),
+        transportationService.getAllTransportation(),
+      ]);
+      setLocations(locationData);
+      setTransportation(transportationData);
     } catch {
       toast.error("Failed to load visited places");
     } finally {
@@ -97,64 +104,7 @@ export default function PlacesVisitedPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Map */}
         <div className="flex-1 relative z-0">
-          <MapContainer
-            center={[center.lat, center.lng]}
-            zoom={4}
-            className="h-full w-full z-0"
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-              subdomains="abcd"
-              maxZoom={20}
-            />
-            {validLocations.map((location) => (
-              <Marker
-                key={location.id}
-                position={[
-                  Number(location.latitude),
-                  Number(location.longitude),
-                ]}
-                eventHandlers={{
-                  click: () => setSelectedLocation(location),
-                }}
-              >
-                <Popup>
-                  <div className="min-w-[200px]">
-                    <h3 className="font-semibold text-lg mb-1">
-                      {location.name}
-                    </h3>
-                    {location.category && (
-                      <p className="text-sm text-gray-600 mb-2">
-                        {location.category.icon} {location.category.name}
-                      </p>
-                    )}
-                    {location.trip && (
-                      <p className="text-sm text-gray-600 mb-2">
-                        Trip:{" "}
-                        <Link
-                          to={`/trips/${location.trip.id}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {location.trip.title}
-                        </Link>
-                      </p>
-                    )}
-                    {location.address && (
-                      <p className="text-sm text-gray-600 mb-2">
-                        {location.address}
-                      </p>
-                    )}
-                    {location.notes && (
-                      <p className="text-sm text-gray-700 mt-2 border-t pt-2">
-                        {location.notes}
-                      </p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+          <PlacesVisitedMapContainer locations={locations} transportation={transportation} />
         </div>
 
         {/* Sidebar - Selected Location Details */}

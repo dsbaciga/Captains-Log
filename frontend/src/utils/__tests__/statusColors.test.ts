@@ -28,7 +28,7 @@ describe('Status Colors', () => {
   describe('getTripStatusColor', () => {
     it('should return correct color for valid status', () => {
       const color = getTripStatusColor(TripStatus.IN_PROGRESS);
-      expect(color).toBe('bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300');
+      expect(color).toBe('bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300');
     });
 
     it('should return default color for invalid status', () => {
@@ -57,8 +57,8 @@ describe('Status Colors', () => {
 
     it('should include status color classes', () => {
       const classes = getTripStatusBadgeClasses(TripStatus.PLANNED);
-      expect(classes).toContain('bg-blue-100');
-      expect(classes).toContain('text-blue-800');
+      expect(classes).toContain('bg-sky-100');
+      expect(classes).toContain('text-sky-800');
     });
   });
 
