@@ -50,6 +50,8 @@ import {
   getTripDateStatus,
   formatTripDuration,
 } from "../utils/dateFormat";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "../components/Skeleton";
 
 // All possible tab IDs for the grouped navigation
 type TabId =
@@ -65,32 +67,22 @@ type TabId =
 
 export default function TripDetailPage() {
   const { id } = useParams();
+  const tripId = parseInt(id!);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [trip, setTrip] = useState<Trip | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]);
+  
   const [userTimezone, setUserTimezone] = useState<string>("");
-  const [activitiesCount, setActivitiesCount] = useState(0);
-  const [unscheduledCount, setUnscheduledCount] = useState(0);
-  const [transportationCount, setTransportationCount] = useState(0);
-  const [lodgingCount, setLodgingCount] = useState(0);
-  const [journalCount, setJournalCount] = useState(0);
-  const [tags, setTags] = useState<TripTag[]>([]);
-  const [tagsCount, setTagsCount] = useState(0);
-  const [checklists, setChecklists] = useState<Checklist[]>([]);
-  const [companionsCount, setCompanionsCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  
   // Album management state
-  const [albums, setAlbums] = useState<PhotoAlbum[]>([]);
   const [selectedAlbumId, setSelectedAlbumId] = useState<number | null>(null);
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<PhotoAlbum | null>(null);
   const [showAlbumsMobileDrawer, setShowAlbumsMobileDrawer] = useState(false);
   const [showAddPhotosModal, setShowAddPhotosModal] = useState(false);
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
-  const [unsortedPhotosCount, setUnsortedPhotosCount] = useState(0);
-  const [totalPhotosCount, setTotalPhotosCount] = useState(0);
+  
   // Initialize activeTab from URL parameter or default to 'timeline'
   const initialTab = (searchParams.get("tab") as TabId) || "timeline";
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
@@ -120,6 +112,79 @@ export default function TripDetailPage() {
     checklists: false,
   });
 
+  const { data: trip, isLoading: isTripLoading } = useQuery({
+    queryKey: ['trip', tripId],
+    queryFn: () => tripService.getTripById(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ['locations', tripId],
+    queryFn: () => locationService.getLocationsByTrip(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: activitiesData } = useQuery({
+    queryKey: ['activities', tripId],
+    queryFn: () => activityService.getActivitiesByTrip(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: transportationData } = useQuery({
+    queryKey: ['transportation', tripId],
+    queryFn: () => transportationService.getTransportationByTrip(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: lodgingData } = useQuery({
+    queryKey: ['lodging', tripId],
+    queryFn: () => lodgingService.getLodgingByTrip(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: journalData } = useQuery({
+    queryKey: ['journal', tripId],
+    queryFn: () => journalService.getJournalEntriesByTrip(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: tags = [], isLoading: areTagsLoading } = useQuery({
+    queryKey: ['tags', tripId],
+    queryFn: () => tagService.getTagsByTrip(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: checklists = [] } = useQuery({
+    queryKey: ['checklists', tripId],
+    queryFn: () => checklistService.getChecklistsByTripId(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: companionsData } = useQuery({
+    queryKey: ['companions', tripId],
+    queryFn: () => companionService.getCompanionsByTrip(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: albumsData, isLoading: areAlbumsLoading } = useQuery({
+    queryKey: ['albums', tripId],
+    queryFn: () => photoService.getAlbumsByTrip(tripId),
+    enabled: !!tripId,
+  });
+
+  const { albums = [], unsortedCount: unsortedPhotosCount = 0, totalCount: totalPhotosCount = 0 } = albumsData || {};
+  
+  const activitiesCount = useMemo(() => activitiesData?.filter(a => a.startTime || a.allDay).length || 0, [activitiesData]);
+  const unscheduledActivitiesCount = useMemo(() => activitiesData?.filter(a => !a.startTime && !a.allDay).length || 0, [activitiesData]);
+  const transportationCount = useMemo(() => transportationData?.filter(t => t.departureTime).length || 0, [transportationData]);
+  const unscheduledTransportationCount = useMemo(() => transportationData?.filter(t => !t.departureTime).length || 0, [transportationData]);
+  const lodgingCount = useMemo(() => lodgingData?.filter(l => l.checkInDate).length || 0, [lodgingData]);
+  const unscheduledLodgingCount = useMemo(() => lodgingData?.filter(l => !l.checkInDate).length || 0, [lodgingData]);
+  const unscheduledCount = useMemo(() => unscheduledActivitiesCount + unscheduledTransportationCount + unscheduledLodgingCount, [unscheduledActivitiesCount, unscheduledTransportationCount, unscheduledLodgingCount]);
+  const journalCount = useMemo(() => journalData?.length || 0, [journalData]);
+  const tagsCount = useMemo(() => tags?.length || 0, [tags]);
+  const companionsCount = useMemo(() => companionsData?.length || 0, [companionsData]);
+  
   // Photo sorting state
   const sortByRef = useRef<string>("date");
   const sortOrderRef = useRef<string>("desc");
@@ -216,8 +281,6 @@ export default function TripDetailPage() {
 
   useEffect(() => {
     if (id) {
-      const tripId = parseInt(id);
-      loadTripData(tripId);
       loadImmichAssetIds(tripId);
     }
     loadUserTimezone();
@@ -1139,7 +1202,7 @@ export default function TripDetailPage() {
           tabs={tabGroups}
           activeTab={activeTab}
           onTabChange={(tabId) => changeTab(tabId as TabId)}
-          className="mb-6"
+          className="mb-6 sticky top-16 sm:top-20 bg-gray-50 dark:bg-gray-900 z-10"
         />
 
         {/* Tab Content with smooth transitions */}
@@ -1181,7 +1244,7 @@ export default function TripDetailPage() {
                   tripEndDate={trip.endDate || undefined}
                   tripStatus={trip.status || undefined}
                   onNavigateToTab={(tab) => changeTab(tab as TabId)}
-                  onRefresh={() => loadTripData(trip.id)}
+                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
                 />
               </div>
             </div>
@@ -1190,11 +1253,13 @@ export default function TripDetailPage() {
         {/* Locations Tab */}
         {activeTab === "locations" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+            {isTripLoading ? <Skeleton /> : (
             <LocationManager
               tripId={trip.id}
               tripTimezone={trip.timezone}
-              onUpdate={() => loadTripData(trip.id)}
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['locations', tripId] })}
             />
+            )}
           </div>
         )}
 
@@ -1206,7 +1271,7 @@ export default function TripDetailPage() {
               tripId={trip.id}
               locations={locations}
               onPhotoUploaded={async () => {
-                await loadTripData(trip.id);
+                await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
                 // Refresh Immich asset IDs to update the exclude list
                 await loadImmichAssetIds(trip.id);
                 // Refresh the current view
@@ -1247,6 +1312,7 @@ export default function TripDetailPage() {
             {/* Sidebar Layout */}
             <div className="flex gap-0 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
               {/* Left: Albums Sidebar */}
+              {areAlbumsLoading ? <Skeleton className="w-64" /> : (
               <AlbumsSidebar
                 albums={albums}
                 selectedAlbumId={selectedAlbumId}
@@ -1259,6 +1325,7 @@ export default function TripDetailPage() {
                 isMobileDrawerOpen={showAlbumsMobileDrawer}
                 onCloseMobileDrawer={() => setShowAlbumsMobileDrawer(false)}
               />
+              )}
 
               {/* Right: Photo Gallery */}
               <div className="flex-1 min-w-0 p-6">
@@ -1334,7 +1401,7 @@ export default function TripDetailPage() {
                           try {
                             await tripService.updateCoverPhoto(trip.id, null);
                             toast.success("Cover photo removed");
-                            loadTripData(trip.id);
+                            queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
                           } catch {
                             toast.error("Failed to remove cover photo");
                           }
@@ -1351,8 +1418,8 @@ export default function TripDetailPage() {
                   photos={filteredPhotos}
                   albums={albums}
                   onPhotoDeleted={() => {
-                    loadTripData(trip.id);
-                    loadAlbums(trip.id);
+                    queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+                    queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
                     // Refresh the current view
                     if (selectedAlbumId === null) {
                       photosPagination.loadInitial();
@@ -1363,7 +1430,7 @@ export default function TripDetailPage() {
                     }
                   }}
                   onPhotoUpdated={() => {
-                    loadTripData(trip.id);
+                    queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
                     // Refresh the current view
                     if (selectedAlbumId === null) {
                       photosPagination.loadInitial();
@@ -1374,7 +1441,7 @@ export default function TripDetailPage() {
                     }
                   }}
                   onPhotosAddedToAlbum={() => {
-                    loadAlbums(trip.id);
+                    queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
                     // Refresh the current view
                     if (selectedAlbumId === null) {
                       photosPagination.loadInitial();
@@ -1389,7 +1456,7 @@ export default function TripDetailPage() {
                     try {
                       await tripService.updateCoverPhoto(trip.id, photoId);
                       toast.success("Cover photo updated");
-                      loadTripData(trip.id);
+                      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
                     } catch {
                       toast.error("Failed to set cover photo");
                     }
@@ -1420,7 +1487,7 @@ export default function TripDetailPage() {
                   }}
                   currentAlbumId={selectedAlbumId}
                   onPhotosRemovedFromAlbum={() => {
-                    loadAlbums(trip.id);
+                    queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
                     // Refresh the current view
                     if (selectedAlbumId === null) {
                       photosPagination.loadInitial();
@@ -1503,7 +1570,7 @@ export default function TripDetailPage() {
                 }}
                 onUpdate={() => {
                   // Refresh albums after linking
-                  loadAlbums(trip.id);
+                  queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
                 }}
               />
             )}
@@ -1519,7 +1586,7 @@ export default function TripDetailPage() {
                 existingPhotoIds={new Set(filteredPhotos.map((p) => p.id))}
                 onClose={() => setShowAddPhotosModal(false)}
                 onPhotosAdded={() => {
-                  loadAlbums(trip.id);
+                  queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
                   // Refresh the current view
                   if (selectedAlbumId === null) {
                     photosPagination.loadInitial();
@@ -1538,68 +1605,80 @@ export default function TripDetailPage() {
         {/* Activities Tab */}
         {activeTab === "activities" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+            {isTripLoading ? <Skeleton /> : (
             <ActivityManager
               tripId={trip.id}
               locations={locations}
               tripTimezone={trip.timezone}
               tripStartDate={trip.startDate}
-              onUpdate={() => loadTripData(trip.id)}
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['activities', tripId] })}
             />
+            )}
           </div>
         )}
 
         {/* Unscheduled Tab */}
         {activeTab === "unscheduled" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+            {isTripLoading ? <Skeleton /> : (
             <UnscheduledItems
               tripId={trip.id}
               locations={locations}
-              onUpdate={() => loadTripData(trip.id)}
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
             />
+            )}
           </div>
         )}
 
         {/* Transportation Tab */}
         {activeTab === "transportation" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+            {isTripLoading ? <Skeleton /> : (
             <TransportationManager
               tripId={trip.id}
               locations={locations}
               tripTimezone={trip.timezone}
               tripStartDate={trip.startDate}
-              onUpdate={() => loadTripData(trip.id)}
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['transportation', tripId] })}
             />
+            )}
           </div>
         )}
 
         {/* Lodging Tab */}
         {activeTab === "lodging" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+            {isTripLoading ? <Skeleton /> : (
             <LodgingManager
               tripId={trip.id}
               locations={locations}
               tripTimezone={trip.timezone}
               tripStartDate={trip.startDate}
-              onUpdate={() => loadTripData(trip.id)}
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['lodging', tripId] })}
             />
+            )}
           </div>
         )}
 
         {/* Journal Tab */}
         {activeTab === "journal" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+            {isTripLoading ? <Skeleton /> : (
             <JournalManager
               tripId={trip.id}
               tripStartDate={trip.startDate}
-              onUpdate={() => loadTripData(trip.id)}
+              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['journal', tripId] })}
             />
+            )}
           </div>
         )}
 
         {/* Companions Tab */}
         {activeTab === "companions" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            <CompanionManager tripId={trip.id} onUpdate={() => loadTripData(trip.id)} />
+            {isTripLoading ? <Skeleton /> : (
+            <CompanionManager tripId={trip.id} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['companions', tripId] })} />
+            )}
           </div>
         )}
         </div>

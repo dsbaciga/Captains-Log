@@ -8,6 +8,7 @@ import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
 import { getFullAssetUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Import reusable components
 import EmptyState, { EmptyIllustrations } from '../components/EmptyState';
@@ -18,11 +19,11 @@ import TripCard from '../components/TripCard';
 type SortOption = 'startDate-desc' | 'startDate-asc' | 'title-asc' | 'title-desc' | 'status';
 
 export default function TripsPage() {
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const queryClient = useQueryClient();
   const [allTags, setAllTags] = useState<TripTag[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [startDateFrom, setStartDateFrom] = useState('');
   const [startDateTo, setStartDateTo] = useState('');
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
@@ -30,35 +31,82 @@ export default function TripsPage() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalTrips, setTotalTrips] = useState(0);
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   // Use ref to track blob URLs for proper cleanup (avoids stale closure issues)
   const blobUrlsRef = useRef<string[]>([]);
 
-  // Debounce search query to avoid API calls on every keystroke
+  // Debounce search query
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      loadTrips();
-    }, searchQuery ? 300 : 0); // 300ms debounce for search, immediate for other changes
-
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, currentPage, startDateFrom, startDateTo, selectedTags, sortOption, searchQuery]);
+  }, [searchQuery]);
+
+  const queryParams = {
+    page: currentPage,
+    limit: 20,
+    status: statusFilter,
+    search: debouncedSearchQuery.trim(),
+    startDateFrom,
+    startDateTo,
+    tags: selectedTags.join(','),
+    sort: sortOption,
+  };
+
+  const { data: tripsData, isLoading: loading } = useQuery({
+    queryKey: ['trips', queryParams],
+    queryFn: () => tripService.getTrips(queryParams),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const { trips = [], totalPages = 1, total: totalTrips = 0 } = tripsData || {};
+
+  const deleteTripMutation = useMutation({
+    mutationFn: tripService.deleteTrip,
+    onMutate: async (deletedTripId: number) => {
+      await queryClient.cancelQueries({ queryKey: ['trips'] });
+      const previousTripsData = queryClient.getQueryData<any>(['trips', queryParams]);
+
+      queryClient.setQueryData(['trips', queryParams], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          trips: oldData.trips.filter((trip: Trip) => trip.id !== deletedTripId),
+          total: oldData.total - 1,
+        };
+      });
+
+      return { previousTripsData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousTripsData) {
+        queryClient.setQueryData(['trips', queryParams], context.previousTripsData);
+      }
+      toast.error('Failed to delete trip. Please try again.');
+    },
+    onSuccess: (data, deletedTripId) => {
+      toast.success('Trip deleted.', {
+        id: `delete-trip-${deletedTripId}`,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+    },
+  });
 
   // Load tags once on mount
   useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const tags = await tagService.getAllTags();
+        setAllTags(tags);
+      } catch {
+        console.error('Failed to load tags');
+      }
+    };
     loadTags();
   }, []);
-
-  const loadTags = async () => {
-    try {
-      const tags = await tagService.getAllTags();
-      setAllTags(tags);
-    } catch {
-      console.error('Failed to load tags');
-    }
-  };
 
   // Load cover photos with authentication for Immich photos
   useEffect(() => {
@@ -116,34 +164,6 @@ export default function TripsPage() {
     };
   }, [trips]);
 
-  const loadTrips = async () => {
-    try {
-      setLoading(true);
-      const params: Record<string, string | number> = {
-        page: currentPage,
-        limit: 20,
-      };
-
-      // Add all filter parameters
-      if (statusFilter) params.status = statusFilter;
-      if (searchQuery.trim()) params.search = searchQuery.trim();
-      if (startDateFrom) params.startDateFrom = startDateFrom;
-      if (startDateTo) params.startDateTo = startDateTo;
-      if (selectedTags.length > 0) params.tags = selectedTags.join(',');
-      if (sortOption) params.sort = sortOption;
-
-      const response = await tripService.getTrips(params);
-      setTrips(response.trips);
-      setTotalPages(response.totalPages);
-      setTotalTrips(response.total);
-    } catch (error) {
-      console.error('Error loading trips:', error);
-      toast.error('Failed to load trips');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: number) => {
     const confirmed = await confirm({
       title: 'Delete Trip',
@@ -154,13 +174,7 @@ export default function TripsPage() {
 
     if (!confirmed) return;
 
-    try {
-      await tripService.deleteTrip(id);
-      toast.success('Trip deleted successfully');
-      loadTrips();
-    } catch {
-      toast.error('Failed to delete trip');
-    }
+    deleteTripMutation.mutate(id);
   };
 
   // All filtering and sorting is now handled by the backend
