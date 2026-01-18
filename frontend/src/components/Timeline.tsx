@@ -671,20 +671,7 @@ const Timeline = ({
           return false;
         }
 
-        if (visibleTypes.has(item.type)) {
-          return true;
-        }
-        if (visibleTypes.has('journal')) {
-          if (
-            'journalAssignments' in item.data &&
-            item.data.journalAssignments &&
-            Array.isArray(item.data.journalAssignments) &&
-            item.data.journalAssignments.length > 0
-          ) {
-            return true;
-          }
-        }
-        return false;
+        return visibleTypes.has(item.type);
       });
 
       logger.log(`useMemo: filteredItems complete`, {

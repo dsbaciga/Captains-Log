@@ -4,7 +4,6 @@ import type { Location, CreateLocationInput, UpdateLocationInput, LocationCatego
 import locationService from "../services/location.service";
 import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
-import JournalEntriesButton from "./JournalEntriesButton";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
@@ -307,10 +306,6 @@ export default function LocationManager({
                 linkSummary={getLinkSummary("LOCATION", location.id)}
                 onUpdate={invalidateLinkSummary}
                 size="sm"
-              />
-              <JournalEntriesButton
-                journalEntries={location.journalLocationAssignments}
-                tripId={tripId}
               />
               <button
                 onClick={() => handleEdit(location)}
