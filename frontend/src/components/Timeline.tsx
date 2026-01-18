@@ -1,6 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { Location } from '../types/location';
 import type { WeatherData, WeatherDisplay } from '../types/weather';
+import type { Activity } from '../types/activity';
+import type { Transportation } from '../types/transportation';
+import type { Lodging } from '../types/lodging';
 import activityService from '../services/activity.service';
 import transportationService from '../services/transportation.service';
 import lodgingService from '../services/lodging.service';
@@ -17,6 +21,7 @@ import {
   TimelineDaySection,
   TimelineFilters,
   MobileTimezoneToggle,
+  PrintableItinerary,
   getDateStringInTimezone,
 } from './timeline/index';
 import type { TimelineItem, TimelineItemType, DayGroup, DayStats } from './timeline/types';
@@ -24,6 +29,7 @@ import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
 
 interface TimelineProps {
   tripId: number;
+  tripTitle?: string;
   tripTimezone?: string;
   userTimezone?: string;
   tripStartDate?: string;
@@ -38,6 +44,7 @@ interface TimelineProps {
 
 const Timeline = ({
   tripId,
+  tripTitle,
   tripTimezone,
   userTimezone,
   tripStartDate,
@@ -72,6 +79,15 @@ const Timeline = ({
   const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [refreshingWeather, setRefreshingWeather] = useState(false);
+
+  // Print state
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [unscheduledData, setUnscheduledData] = useState<{
+    activities: Activity[];
+    transportation: Transportation[];
+    lodging: Lodging[];
+  }>({ activities: [], transportation: [], lodging: [] });
+  const printRef = useRef<HTMLDivElement>(null);
 
   // Entity link summary hook
   const { summaryMap, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
@@ -1055,9 +1071,56 @@ const Timeline = ({
     }
   };
 
+  // Fetch unscheduled items for printing
+  const fetchUnscheduledItems = useCallback(async () => {
+    try {
+      const [activities, transportation, lodging] = await Promise.all([
+        activityService.getActivitiesByTrip(tripId),
+        transportationService.getTransportationByTrip(tripId),
+        lodgingService.getLodgingByTrip(tripId),
+      ]);
+
+      // Filter for unscheduled items
+      const unscheduledActivities = activities.filter(
+        (a) => !a.startTime && !a.allDay
+      );
+      const unscheduledTransportation = transportation.filter(
+        (t) => !t.departureTime
+      );
+      const unscheduledLodging = lodging.filter((l) => !l.checkInDate);
+
+      return {
+        activities: unscheduledActivities,
+        transportation: unscheduledTransportation,
+        lodging: unscheduledLodging,
+      };
+    } catch (error) {
+      console.error('Error fetching unscheduled items:', error);
+      return { activities: [], transportation: [], lodging: [] };
+    }
+  }, [tripId]);
+
   // Print handler
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    try {
+      // Fetch unscheduled items before printing
+      const unscheduled = await fetchUnscheduledItems();
+      setUnscheduledData(unscheduled);
+      setIsPrinting(true);
+
+      // Wait for state to update and DOM to render
+      setTimeout(() => {
+        window.print();
+        // Reset printing state after print dialog closes
+        setTimeout(() => {
+          setIsPrinting(false);
+        }, 500);
+      }, 100);
+    } catch (error) {
+      console.error('Error preparing print:', error);
+      toast.error('Failed to prepare print view');
+      setIsPrinting(false);
+    }
   };
 
   if (loading) {
@@ -1090,75 +1153,6 @@ const Timeline = ({
 
   return (
     <div className="timeline-container">
-      {/* Print Styles */}
-      <style>{`
-        @media print {
-          .timeline-controls,
-          .timeline-filter-bar,
-          .timeline-timezone-tabs,
-          nav,
-          header,
-          footer,
-          button,
-          .no-print {
-            display: none !important;
-          }
-
-          .timeline-container {
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-
-          .timeline-content {
-            display: block !important;
-          }
-
-          .timeline-day {
-            break-inside: avoid;
-            page-break-inside: avoid;
-            margin-bottom: 1rem !important;
-          }
-
-          .timeline-item {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-
-          *,
-          *::before,
-          *::after,
-          body,
-          html {
-            color: #000 !important;
-            background-color: #fff !important;
-            background: #fff !important;
-            border-color: #d1d5db !important;
-          }
-
-          .text-gray-900,
-          .text-gray-800,
-          .text-gray-700,
-          .text-gray-600,
-          .text-gray-500,
-          .dark\\:text-white,
-          .dark\\:text-gray-100,
-          .dark\\:text-gray-200,
-          .dark\\:text-gray-300,
-          .dark\\:text-gray-400 {
-            color: #1f2937 !important;
-          }
-
-          .bg-green-500,
-          .bg-blue-500,
-          .bg-purple-500,
-          .bg-amber-500 {
-            background-color: initial !important;
-            color: #1f2937 !important;
-            border: 1px solid #d1d5db !important;
-          }
-        }
-      `}</style>
-
       {/* Filter Bar */}
       <div className="timeline-filter-bar mb-4 print:hidden">
         <TimelineFilters
@@ -1220,6 +1214,23 @@ const Timeline = ({
           tripTimezone={tripTimezone}
         />
       )}
+
+      {/* Printable Itinerary - rendered via portal for clean printing */}
+      {isPrinting &&
+        createPortal(
+          <div className="print-itinerary-wrapper">
+            <PrintableItinerary
+              ref={printRef}
+              tripTitle={tripTitle || 'Trip Itinerary'}
+              tripStartDate={tripStartDate}
+              tripEndDate={tripEndDate}
+              tripTimezone={tripTimezone}
+              dayGroups={dayGroups}
+              unscheduled={unscheduledData}
+            />
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
