@@ -406,15 +406,7 @@ export class TripService {
             location: true,
           },
         } : false,
-        journalEntries: data.copyEntities?.journalEntries ? {
-          include: {
-            photoAssignments: true,
-            locationAssignments: true,
-            activityAssignments: true,
-            lodgingAssignments: true,
-            transportationAssignments: true,
-          },
-        } : false,
+        journalEntries: data.copyEntities?.journalEntries ? true : false,
         photoAlbums: data.copyEntities?.photoAlbums ? {
           include: {
             photoAssignments: {
@@ -706,81 +698,6 @@ export class TripService {
           },
         });
         journalIdMap.set(journal.id, newJournal.id);
-
-        // Copy journal photo assignments
-        if (journal.photoAssignments && Array.isArray(journal.photoAssignments)) {
-          for (const assignment of journal.photoAssignments) {
-            const newPhotoId = photoIdMap.get(assignment.photoId);
-            if (newPhotoId) {
-              await prisma.journalPhoto.create({
-                data: {
-                  journalId: newJournal.id,
-                  photoId: newPhotoId,
-                },
-              });
-            }
-          }
-        }
-
-        // Copy journal location assignments
-        if (journal.locationAssignments && Array.isArray(journal.locationAssignments)) {
-          for (const assignment of journal.locationAssignments) {
-            const newLocationId = locationIdMap.get(assignment.locationId);
-            if (newLocationId) {
-              await prisma.journalLocation.create({
-                data: {
-                  journalId: newJournal.id,
-                  locationId: newLocationId,
-                },
-              });
-            }
-          }
-        }
-
-        // Copy journal activity assignments
-        if (journal.activityAssignments && Array.isArray(journal.activityAssignments)) {
-          for (const assignment of journal.activityAssignments) {
-            const newActivityId = activityIdMap.get(assignment.activityId);
-            if (newActivityId) {
-              await prisma.journalActivity.create({
-                data: {
-                  journalId: newJournal.id,
-                  activityId: newActivityId,
-                },
-              });
-            }
-          }
-        }
-
-        // Copy journal lodging assignments
-        if (journal.lodgingAssignments && Array.isArray(journal.lodgingAssignments)) {
-          for (const assignment of journal.lodgingAssignments) {
-            const newLodgingId = lodgingIdMap.get(assignment.lodgingId);
-            if (newLodgingId) {
-              await prisma.journalLodging.create({
-                data: {
-                  journalId: newJournal.id,
-                  lodgingId: newLodgingId,
-                },
-              });
-            }
-          }
-        }
-
-        // Copy journal transportation assignments
-        if (journal.transportationAssignments && Array.isArray(journal.transportationAssignments)) {
-          for (const assignment of journal.transportationAssignments) {
-            const newTransportId = transportationIdMap.get(assignment.transportationId);
-            if (newTransportId) {
-              await prisma.journalTransportation.create({
-                data: {
-                  journalId: newJournal.id,
-                  transportationId: newTransportId,
-                },
-              });
-            }
-          }
-        }
       }
     }
 

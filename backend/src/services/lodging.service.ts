@@ -4,7 +4,7 @@ import {
   UpdateLodgingInput,
 } from '../types/lodging.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
-import { photoAlbumsInclude, journalAssignmentsInclude } from '../utils/prismaIncludes';
+import { photoAlbumsInclude } from '../utils/prismaIncludes';
 
 class LodgingService {
   async createLodging(userId: number, data: CreateLodgingInput) {
@@ -83,7 +83,6 @@ class LodgingService {
           },
         },
         photoAlbums: photoAlbumsInclude,
-        journalAssignments: journalAssignmentsInclude,
       },
       orderBy: [{ checkInDate: 'asc' }, { createdAt: 'asc' }],
     });
@@ -98,7 +97,6 @@ class LodgingService {
         trip: true,
         location: true,
         photoAlbums: photoAlbumsInclude,
-        journalAssignments: journalAssignmentsInclude,
       },
     });
 

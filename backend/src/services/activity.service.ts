@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
 import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
-import { photoAlbumsInclude, journalAssignmentsInclude } from '../utils/prismaIncludes';
+import { photoAlbumsInclude } from '../utils/prismaIncludes';
 
 class ActivityService {
   async createActivity(userId: number, data: CreateActivityInput) {
@@ -108,12 +108,10 @@ class ActivityService {
               },
             },
             photoAlbums: photoAlbumsInclude,
-            journalAssignments: journalAssignmentsInclude,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
         photoAlbums: photoAlbumsInclude,
-        journalAssignments: journalAssignmentsInclude,
       },
       orderBy: [
         { manualOrder: { sort: 'asc', nulls: 'last' } },
@@ -168,12 +166,10 @@ class ActivityService {
               },
             },
             photoAlbums: photoAlbumsInclude,
-            journalAssignments: journalAssignmentsInclude,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
         photoAlbums: photoAlbumsInclude,
-        journalAssignments: journalAssignmentsInclude,
       },
     });
 

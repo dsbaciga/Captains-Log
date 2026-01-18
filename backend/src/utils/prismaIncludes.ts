@@ -11,27 +11,6 @@
  */
 
 /**
- * Standard journal assignment include
- * Used in: transportation.service.ts (4x), activity.service.ts (2x), lodging.service.ts (2x)
- *
- * Provides journal entries associated with entities through the journalAssignments relation.
- */
-export const journalAssignmentsInclude = {
-  select: {
-    id: true,
-    journal: {
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        date: true,
-        entryType: true,
-      },
-    },
-  },
-} as const;
-
-/**
  * Standard photo album include with photo count
  * Used in: activity.service.ts (2x), location.service.ts (2x),
  *          lodging.service.ts (2x), photoAlbum.service.ts (3x)
@@ -97,20 +76,6 @@ export const tripAccessSelect = {
 export const locationWithCategoryInclude = {
   category: true,
   photoAlbums: photoAlbumsInclude,
-  journalLocationAssignments: {
-    select: {
-      id: true,
-      journal: {
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          date: true,
-          entryType: true,
-        },
-      },
-    },
-  },
   trip: {
     select: tripAccessSelect,
   },

@@ -92,20 +92,6 @@ export class LocationService {
           },
         },
         photoAlbums: photoAlbumsInclude,
-        journalLocationAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -165,20 +151,6 @@ export class LocationService {
           },
         },
         photoAlbums: photoAlbumsInclude,
-        journalLocationAssignments: {
-          select: {
-            id: true,
-            journal: {
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                date: true,
-                entryType: true,
-              },
-            },
-          },
-        },
         trip: {
           select: {
             userId: true,

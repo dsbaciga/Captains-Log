@@ -160,35 +160,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
             notes: true,
           },
         },
-        journalEntries: {
-          include: {
-            photoAssignments: {
-              select: {
-                photoId: true,
-              },
-            },
-            locationAssignments: {
-              select: {
-                locationId: true,
-              },
-            },
-            activityAssignments: {
-              select: {
-                activityId: true,
-              },
-            },
-            lodgingAssignments: {
-              select: {
-                lodgingId: true,
-              },
-            },
-            transportationAssignments: {
-              select: {
-                transportationId: true,
-              },
-            },
-          },
-        },
+        journalEntries: true,
         photoAlbums: {
           include: {
             photoAssignments: {
@@ -315,11 +287,6 @@ export async function createBackup(userId: number): Promise<BackupData> {
           entryType: j.entryType,
           mood: j.mood,
           weatherNotes: j.weatherNotes,
-          photoIds: j.photoAssignments.map((p: any) => p.photoId),
-          locationIds: j.locationAssignments.map((l: any) => l.locationId),
-          activityIds: j.activityAssignments.map((a: any) => a.activityId),
-          lodgingIds: j.lodgingAssignments.map((l: any) => l.lodgingId),
-          transportationIds: j.transportationAssignments.map((t: any) => t.transportationId),
         })),
         photoAlbums: trip.photoAlbums.map((a: any) => ({
           name: a.name,
