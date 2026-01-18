@@ -7,25 +7,15 @@ import LinkEditModal from './LinkEditModal';
 import type {
   EntityType,
   EnrichedEntityLink,
-  LinkRelationship,
 } from '../types/entityLink';
 import {
   ENTITY_TYPE_CONFIG,
   ENTITY_TYPE_DISPLAY_ORDER,
+  ENTITY_TYPE_TO_TAB,
   getEntityColorClasses,
   getRelationshipLabel,
+  getEntityDisplayName,
 } from '../lib/entityConfig';
-
-// Map entity types to their corresponding tab names on the trip detail page
-const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
-  PHOTO: 'photos',
-  LOCATION: 'locations',
-  ACTIVITY: 'activities',
-  LODGING: 'lodging',
-  TRANSPORTATION: 'transportation',
-  JOURNAL_ENTRY: 'journal',
-  PHOTO_ALBUM: 'photos', // Albums are in the photos tab
-};
 
 interface LinkPanelProps {
   tripId: number;
@@ -33,14 +23,6 @@ interface LinkPanelProps {
   entityId: number;
   onClose: () => void;
   onUpdate?: () => void;
-}
-
-
-// Get display name for a linked entity
-function getEntityDisplayName(link: EnrichedEntityLink, direction: 'from' | 'to'): string {
-  const entity = direction === 'from' ? link.targetEntity : link.sourceEntity;
-  if (!entity) return `ID: ${direction === 'from' ? link.targetId : link.sourceId}`;
-  return entity.name || entity.title || entity.caption || `ID: ${entity.id}`;
 }
 
 export default function LinkPanel({
@@ -127,6 +109,17 @@ export default function LinkPanel({
       setShowAddLinkModal(true);
     }
   }, [isLoading, linksData]);
+
+  // Handle Escape key to close modal (only when sub-modals are closed)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !showAddLinkModal && !editingLink) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, showAddLinkModal, editingLink]);
 
   // Get all linked entity IDs grouped by type to filter from picker
   // Uses Map<EntityType, Set<number>> to properly track IDs per entity type
@@ -237,7 +230,8 @@ export default function LinkPanel({
                         const isSource = link.sourceType === entityType && link.sourceId === entityId;
                         const linkedEntityType = isSource ? link.targetType : link.sourceType;
                         const linkedEntity = isSource ? link.targetEntity : link.sourceEntity;
-                        const displayName = getEntityDisplayName(link, isSource ? 'from' : 'to');
+                        const linkedEntityId = isSource ? link.targetId : link.sourceId;
+                        const displayName = getEntityDisplayName(linkedEntity, linkedEntityId);
                         const isPhoto = linkedEntityType === 'PHOTO';
                         const thumbnailUrl = linkedEntity?.thumbnailPath;
 
@@ -245,13 +239,13 @@ export default function LinkPanel({
                           <div
                             key={link.id}
                             className={`flex items-center justify-between p-3 rounded-lg ${colors.bg} ${colors.bgDark} border ${colors.border} cursor-pointer hover:shadow-md transition-shadow`}
-                            onClick={() => handleNavigateToEntity(linkedEntityType, isSource ? link.targetId : link.sourceId)}
+                            onClick={() => handleNavigateToEntity(linkedEntityType, linkedEntityId)}
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
-                                handleNavigateToEntity(linkedEntityType, isSource ? link.targetId : link.sourceId);
+                                handleNavigateToEntity(linkedEntityType, linkedEntityId);
                               }
                             }}
                           >

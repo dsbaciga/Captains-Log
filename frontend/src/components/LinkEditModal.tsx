@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
 import type { EnrichedEntityLink, LinkRelationship } from '../types/entityLink';
@@ -26,6 +26,17 @@ export default function LinkEditModal({
   const [relationship, setRelationship] = useState<LinkRelationship>(link.relationship);
   const [notes, setNotes] = useState(link.notes || '');
 
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const updateMutation = useMutation({
     mutationFn: () =>
       entityLinkService.updateLink(tripId, link.id, {
@@ -36,8 +47,9 @@ export default function LinkEditModal({
       toast.success('Link updated');
       onSuccess();
     },
-    onError: () => {
-      toast.error('Failed to update link');
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update link';
+      toast.error(message);
     },
   });
 
@@ -62,6 +74,7 @@ export default function LinkEditModal({
           <button
             onClick={onClose}
             type="button"
+            aria-label="Close"
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

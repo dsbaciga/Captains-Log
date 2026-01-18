@@ -11,6 +11,7 @@ import {
   ENTITY_TYPE_DISPLAY_ORDER,
   getEntityColorClasses,
   getRelationshipLabel,
+  getEntityDisplayName,
 } from '../lib/entityConfig';
 import EntityDetailModal from './EntityDetailModal';
 
@@ -26,13 +27,6 @@ interface LinkedEntitiesDisplayProps {
   maxItemsPerType?: number;
   /** Optional: Custom class name for the container */
   className?: string;
-}
-
-// Get display name for a linked entity
-function getEntityDisplayName(link: EnrichedEntityLink, direction: 'from' | 'to'): string {
-  const entity = direction === 'from' ? link.targetEntity : link.sourceEntity;
-  if (!entity) return `ID: ${direction === 'from' ? link.targetId : link.sourceId}`;
-  return entity.name || entity.title || entity.caption || `ID: ${entity.id}`;
 }
 
 
@@ -93,7 +87,7 @@ export default function LinkedEntitiesDisplay({
           link,
           linkedEntityType: link.targetType,
           linkedEntityId: link.targetId,
-          displayName: getEntityDisplayName(link, 'from'),
+          displayName: getEntityDisplayName(link.targetEntity, link.targetId),
           direction: 'from',
         });
       }
@@ -106,7 +100,7 @@ export default function LinkedEntitiesDisplay({
           link,
           linkedEntityType: link.sourceType,
           linkedEntityId: link.sourceId,
-          displayName: getEntityDisplayName(link, 'to'),
+          displayName: getEntityDisplayName(link.sourceEntity, link.sourceId),
           direction: 'to',
         });
       }
@@ -139,7 +133,14 @@ export default function LinkedEntitiesDisplay({
   }
 
   if (error) {
-    return null; // Silently fail - don't break the UI if links can't be loaded
+    // Log the error for debugging while not breaking the UI
+    console.error('LinkedEntitiesDisplay: Failed to load links', {
+      tripId,
+      entityType,
+      entityId,
+      error: error instanceof Error ? error.message : error,
+    });
+    return null;
   }
 
   return (

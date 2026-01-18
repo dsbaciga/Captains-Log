@@ -121,13 +121,39 @@ export function getEntityKey(entityType: EntityType, entityId: number): string {
   return `${entityType}:${entityId}`;
 }
 
+// Valid entity types for validation
+const VALID_ENTITY_TYPES: EntityType[] = [
+  'PHOTO',
+  'LOCATION',
+  'ACTIVITY',
+  'LODGING',
+  'TRANSPORTATION',
+  'JOURNAL_ENTRY',
+  'PHOTO_ALBUM',
+];
+
+// Helper to validate entity type
+function isValidEntityType(value: string): value is EntityType {
+  return VALID_ENTITY_TYPES.includes(value as EntityType);
+}
+
 // Helper to parse entity key
 export function parseEntityKey(key: string): { entityType: EntityType; entityId: number } | null {
   const parts = key.split(':');
   if (parts.length !== 2) return null;
+
+  const [typeStr, idStr] = parts;
+
+  // Validate entity type
+  if (!isValidEntityType(typeStr)) return null;
+
+  // Validate entity ID
+  const entityId = parseInt(idStr, 10);
+  if (isNaN(entityId) || entityId <= 0) return null;
+
   return {
-    entityType: parts[0] as EntityType,
-    entityId: parseInt(parts[1], 10),
+    entityType: typeStr,
+    entityId,
   };
 }
 

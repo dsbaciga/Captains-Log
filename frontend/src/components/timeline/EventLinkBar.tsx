@@ -5,7 +5,6 @@ import LinkPanel from '../LinkPanel';
 import { LinkIcon } from './icons';
 import { ENTITY_TYPE_CONFIG, ENTITY_TYPE_DISPLAY_ORDER } from '../../lib/entityConfig';
 import type { EventLinkBarProps } from './types';
-import type { EntityType } from '../../types/entityLink';
 
 export default function EventLinkBar({
   tripId,

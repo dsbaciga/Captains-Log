@@ -196,8 +196,38 @@ export const ALL_RELATIONSHIP_TYPES: LinkRelationship[] = [
 ];
 
 // =============================================================================
+// Navigation Configuration
+// =============================================================================
+
+/**
+ * Map entity types to their corresponding tab names on the trip detail page
+ * Used for navigation to linked entities
+ */
+export const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
+  PHOTO: 'photos',
+  LOCATION: 'locations',
+  ACTIVITY: 'activities',
+  LODGING: 'lodging',
+  TRANSPORTATION: 'transportation',
+  JOURNAL_ENTRY: 'journal',
+  PHOTO_ALBUM: 'photos', // Albums are in the photos tab
+};
+
+// =============================================================================
 // Helper Functions
 // =============================================================================
+
+/**
+ * Get display name for an enriched entity link
+ * Handles different entity name fields (name, title, caption)
+ */
+export function getEntityDisplayName(
+  entity: { name?: string; title?: string; caption?: string; id: number } | undefined,
+  fallbackId: number
+): string {
+  if (!entity) return `ID: ${fallbackId}`;
+  return entity.name || entity.title || entity.caption || `ID: ${entity.id}`;
+}
 
 /**
  * Sort entity types by the standard display order

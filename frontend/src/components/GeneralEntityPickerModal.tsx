@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { EntityType } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG, LINKABLE_ENTITY_TYPES } from '../lib/entityConfig';
 import { useEntityFetcher, useEntityFilter } from '../hooks/useEntityFetcher';
 import entityLinkService from '../services/entityLink.service';
 import toast from 'react-hot-toast';
+
+// Threshold for showing search bar
+const SEARCH_THRESHOLD = 5;
 
 interface GeneralEntityPickerModalProps {
   tripId: number;
@@ -27,6 +30,17 @@ export default function GeneralEntityPickerModal({
   const [linking, setLinking] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [multiSelectMode, setMultiSelectMode] = useState(false);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   // Use shared hook for entity fetching (with pagination support for photos)
   const { entities, loading, loadingMore, hasMore, total, loadMore } = useEntityFetcher(tripId, selectedType);
@@ -64,9 +78,10 @@ export default function GeneralEntityPickerModal({
       toast.success('Link created');
       onSuccess?.();
       onClose();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to create link:', error);
-      toast.error('Failed to create link');
+      const message = error instanceof Error ? error.message : 'Failed to create link';
+      toast.error(message);
     } finally {
       setLinking(false);
     }
@@ -94,9 +109,10 @@ export default function GeneralEntityPickerModal({
       }
       onSuccess?.();
       onClose();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to create links:', error);
-      toast.error('Failed to create links');
+      const message = error instanceof Error ? error.message : 'Failed to create links';
+      toast.error(message);
     } finally {
       setLinking(false);
     }
@@ -168,10 +184,6 @@ export default function GeneralEntityPickerModal({
             // Entity Type Selection
             <div className="grid grid-cols-2 gap-3">
               {LINKABLE_ENTITY_TYPES.map((type) => {
-                // Don't show source entity type as an option if it would only show self
-                if (type === sourceEntityType) {
-                  // Still show it - user might want to link to other entities of the same type
-                }
                 const config = ENTITY_TYPE_CONFIG[type];
                 return (
                   <button
@@ -206,7 +218,7 @@ export default function GeneralEntityPickerModal({
               {/* Search bar, multi-select toggle, and count indicator */}
               <div className="mb-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  {availableEntities.length > 5 && (
+                  {availableEntities.length > SEARCH_THRESHOLD && (
                     <input
                       type="text"
                       value={searchQuery}

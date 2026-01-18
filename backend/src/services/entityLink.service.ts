@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import { verifyTripAccess } from '../utils/serviceHelpers';
 import type {
@@ -239,7 +240,7 @@ export const entityLinkService = {
     let skipped = 0;
 
     // Create links in a transaction
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       for (const target of data.targets) {
         // Skip self-links
         if (data.sourceType === target.targetType && data.sourceId === target.targetId) {
@@ -307,7 +308,7 @@ export const entityLinkService = {
 
     const relationship = data.relationship || getDefaultRelationship('PHOTO', data.targetType);
 
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       for (const photoId of data.photoIds) {
         // Check if link already exists
         const existing = await tx.entityLink.findFirst({
