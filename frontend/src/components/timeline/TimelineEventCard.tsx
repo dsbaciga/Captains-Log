@@ -9,7 +9,8 @@ import {
   getTimezoneAbbr,
   mapTimelineTypeToEntityType,
 } from './utils';
-import EventLinkBar from './EventLinkBar';
+import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
+import LinkButton from '../LinkButton';
 import type { TimelineEventCardProps, TimelineItem } from './types';
 import type { Activity } from '../../types/activity';
 import type { Lodging } from '../../types/lodging';
@@ -381,15 +382,23 @@ export default function TimelineEventCard({
         {/* Child activities (for parent activities) */}
         {item.type === 'activity' && renderChildActivities(item, isCompact, tripTimezone)}
 
-        {/* Entity link bar */}
-        <div className={`border-t border-gray-100 dark:border-gray-700 ${isCompact ? 'mt-2 pt-2' : 'mt-3 pt-3'}`}>
-          <EventLinkBar
+        {/* Linked Entities */}
+        <LinkedEntitiesDisplay
+          tripId={tripId}
+          entityType={entityType}
+          entityId={actualEntityId}
+          compact
+        />
+
+        {/* Link button */}
+        <div className={`flex items-center gap-2 border-t border-gray-100 dark:border-gray-700 ${isCompact ? 'mt-2 pt-2' : 'mt-3 pt-3'}`}>
+          <LinkButton
             tripId={tripId}
             entityType={entityType}
             entityId={actualEntityId}
             linkSummary={linkSummary}
             onUpdate={onLinkUpdate}
-            compact={isCompact}
+            size="sm"
           />
         </div>
       </div>
