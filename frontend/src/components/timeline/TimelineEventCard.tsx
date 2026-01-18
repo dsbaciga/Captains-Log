@@ -47,16 +47,30 @@ export default function TimelineEventCard({
     }
     if (item.showCheckInTime) {
       return (
-        <span>
-          Check-in: {formatTime(item.dateTime, displayTimezone)}
-        </span>
+        <>
+          <span className="font-medium text-gray-700 dark:text-gray-300">
+            Check-in: {formatTime(item.dateTime, displayTimezone)}
+          </span>
+          {displayTimezone && (
+            <span className="text-gray-400 dark:text-gray-500 ml-1">
+              {getTimezoneAbbr(displayTimezone)}
+            </span>
+          )}
+        </>
       );
     }
     if (item.showCheckOutTime && item.endDateTime) {
       return (
-        <span>
-          Check-out: {formatTime(item.endDateTime, displayTimezone)}
-        </span>
+        <>
+          <span className="font-medium text-gray-700 dark:text-gray-300">
+            Check-out: {formatTime(item.endDateTime, displayTimezone)}
+          </span>
+          {displayTimezone && (
+            <span className="text-gray-400 dark:text-gray-500 ml-1">
+              {getTimezoneAbbr(displayTimezone)}
+            </span>
+          )}
+        </>
       );
     }
 
@@ -89,16 +103,26 @@ export default function TimelineEventCard({
     }
     if (item.showCheckInTime) {
       return (
-        <span className="text-gray-500 dark:text-gray-400">
-          Check-in: {formatTime(item.dateTime, userTimezone)} {getTimezoneAbbr(userTimezone)}
-        </span>
+        <>
+          <span className="text-gray-500 dark:text-gray-400">
+            Check-in: {formatTime(item.dateTime, userTimezone)}
+          </span>
+          <span className="text-gray-400 dark:text-gray-500 ml-1">
+            {getTimezoneAbbr(userTimezone)}
+          </span>
+        </>
       );
     }
     if (item.showCheckOutTime && item.endDateTime) {
       return (
-        <span className="text-gray-500 dark:text-gray-400">
-          Check-out: {formatTime(item.endDateTime, userTimezone)} {getTimezoneAbbr(userTimezone)}
-        </span>
+        <>
+          <span className="text-gray-500 dark:text-gray-400">
+            Check-out: {formatTime(item.endDateTime, userTimezone)}
+          </span>
+          <span className="text-gray-400 dark:text-gray-500 ml-1">
+            {getTimezoneAbbr(userTimezone)}
+          </span>
+        </>
       );
     }
 
