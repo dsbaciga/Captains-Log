@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import entityLinkService from '../../services/entityLink.service';
 import type { EntityType } from '../../types/entityLink';
-import { ENTITY_TYPE_CONFIG } from '../../types/entityLink';
+import { ENTITY_TYPE_CONFIG } from '../../lib/entityConfig';
 
 interface EntityLinkTooltipProps {
   tripId: number;

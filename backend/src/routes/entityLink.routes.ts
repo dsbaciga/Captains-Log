@@ -19,6 +19,9 @@ router.get('/to/:entityType/:entityId', entityLinkController.getLinksTo);
 router.get('/entity/:entityType/:entityId', entityLinkController.getAllLinksForEntity);
 router.get('/photos/:entityType/:entityId', entityLinkController.getPhotosForEntity);
 
+// Update links
+router.patch('/:linkId', entityLinkController.updateLink);
+
 // Delete links
 // Note: More specific routes must come before parameterized routes
 router.delete('/entity/:entityType/:entityId', entityLinkController.deleteAllLinksForEntity);

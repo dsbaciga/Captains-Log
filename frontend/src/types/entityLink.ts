@@ -94,6 +94,12 @@ export interface DeleteEntityLinkInput {
   targetId: number;
 }
 
+// Update a link (relationship and notes only)
+export interface UpdateEntityLinkInput {
+  relationship?: LinkRelationship;
+  notes?: string | null;
+}
+
 // Bulk operation result
 export interface BulkLinkResult {
   created: number;
@@ -115,37 +121,41 @@ export function getEntityKey(entityType: EntityType, entityId: number): string {
   return `${entityType}:${entityId}`;
 }
 
+// Valid entity types for validation
+const VALID_ENTITY_TYPES: EntityType[] = [
+  'PHOTO',
+  'LOCATION',
+  'ACTIVITY',
+  'LODGING',
+  'TRANSPORTATION',
+  'JOURNAL_ENTRY',
+  'PHOTO_ALBUM',
+];
+
+// Helper to validate entity type
+function isValidEntityType(value: string): value is EntityType {
+  return VALID_ENTITY_TYPES.includes(value as EntityType);
+}
+
 // Helper to parse entity key
 export function parseEntityKey(key: string): { entityType: EntityType; entityId: number } | null {
   const parts = key.split(':');
   if (parts.length !== 2) return null;
+
+  const [typeStr, idStr] = parts;
+
+  // Validate entity type
+  if (!isValidEntityType(typeStr)) return null;
+
+  // Validate entity ID
+  const entityId = parseInt(idStr, 10);
+  if (isNaN(entityId) || entityId <= 0) return null;
+
   return {
-    entityType: parts[0] as EntityType,
-    entityId: parseInt(parts[1], 10),
+    entityType: typeStr,
+    entityId,
   };
 }
 
-// Entity type display configuration
-export const ENTITY_TYPE_CONFIG: Record<
-  EntityType,
-  { label: string; pluralLabel: string; emoji: string; color: string }
-> = {
-  PHOTO: { label: 'Photo', pluralLabel: 'Photos', emoji: '📷', color: 'gray' },
-  LOCATION: { label: 'Location', pluralLabel: 'Locations', emoji: '📍', color: 'blue' },
-  ACTIVITY: { label: 'Activity', pluralLabel: 'Activities', emoji: '🎯', color: 'green' },
-  LODGING: { label: 'Lodging', pluralLabel: 'Lodging', emoji: '🏨', color: 'purple' },
-  TRANSPORTATION: { label: 'Transportation', pluralLabel: 'Transportation', emoji: '🚗', color: 'orange' },
-  JOURNAL_ENTRY: { label: 'Journal Entry', pluralLabel: 'Journal Entries', emoji: '📝', color: 'yellow' },
-  PHOTO_ALBUM: { label: 'Album', pluralLabel: 'Albums', emoji: '📸', color: 'pink' },
-};
-
-// Relationship type display configuration
-export const RELATIONSHIP_CONFIG: Record<LinkRelationship, { label: string; description: string }> =
-  {
-    RELATED: { label: 'Related', description: 'Generic relationship' },
-    TAKEN_AT: { label: 'Taken at', description: 'Photo taken at this location' },
-    OCCURRED_AT: { label: 'Occurred at', description: 'Event occurred at this location' },
-    PART_OF: { label: 'Part of', description: 'Sub-item or nested element' },
-    DOCUMENTS: { label: 'Documents', description: 'Journal entry about this item' },
-    FEATURED_IN: { label: 'Featured in', description: 'Included in album or journal' },
-  };
+// NOTE: Entity type and relationship configuration is now centralized in lib/entityConfig.ts
+// Import ENTITY_TYPE_CONFIG, RELATIONSHIP_CONFIG, etc. from '../lib/entityConfig' instead

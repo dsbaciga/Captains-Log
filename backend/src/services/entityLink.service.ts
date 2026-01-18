@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import { verifyTripAccess } from '../utils/serviceHelpers';
 import type {
@@ -9,6 +10,7 @@ import type {
   GetLinksFromEntityInput,
   GetLinksToEntityInput,
   DeleteEntityLinkInput,
+  UpdateEntityLinkInput,
   BulkLinkPhotosInput,
   EntityLinkResponse,
   EnrichedEntityLink,
@@ -238,7 +240,7 @@ export const entityLinkService = {
     let skipped = 0;
 
     // Create links in a transaction
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       for (const target of data.targets) {
         // Skip self-links
         if (data.sourceType === target.targetType && data.sourceId === target.targetId) {
@@ -306,7 +308,7 @@ export const entityLinkService = {
 
     const relationship = data.relationship || getDefaultRelationship('PHOTO', data.targetType);
 
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       for (const photoId of data.photoIds) {
         // Check if link already exists
         const existing = await tx.entityLink.findFirst({
@@ -504,6 +506,39 @@ export const entityLinkService = {
 
     await prisma.entityLink.delete({
       where: { id: linkId },
+    });
+  },
+
+  /**
+   * Update a link (relationship and/or notes)
+   */
+  async updateLink(
+    userId: number,
+    tripId: number,
+    linkId: number,
+    data: UpdateEntityLinkInput
+  ): Promise<EntityLinkResponse> {
+    await verifyTripAccess(userId, tripId);
+
+    const link = await prisma.entityLink.findFirst({
+      where: { id: linkId, tripId },
+    });
+
+    if (!link) {
+      throw new AppError('Link not found', 404);
+    }
+
+    const updateData: { relationship?: string; notes?: string | null } = {};
+    if (data.relationship !== undefined) {
+      updateData.relationship = data.relationship;
+    }
+    if (data.notes !== undefined) {
+      updateData.notes = data.notes;
+    }
+
+    return await prisma.entityLink.update({
+      where: { id: linkId },
+      data: updateData,
     });
   },
 

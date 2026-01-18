@@ -6,6 +6,7 @@ import type { Lodging } from '../types/lodging';
 import type { Transportation } from '../types/transportation';
 import type { Photo } from '../types/photo';
 import type { JournalEntry } from '../types/journalEntry';
+import type { PhotoAlbum } from '../types/photo';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
 import lodgingService from '../services/lodging.service';
@@ -50,6 +51,8 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
       return;
     }
 
+    let isMounted = true;
+
     const fetchEntities = async () => {
       setLoading(true);
       setError(null);
@@ -70,8 +73,10 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
               subtitle: photo.takenAt || undefined,
               thumbnailPath: photo.thumbnailPath || photo.localPath || undefined,
             }));
-            setHasMore(result.hasMore);
-            setTotal(result.total);
+            if (isMounted) {
+              setHasMore(result.hasMore);
+              setTotal(result.total);
+            }
             break;
           }
 
@@ -124,19 +129,39 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
             }));
             break;
           }
+
+          case 'PHOTO_ALBUM': {
+            const albumsResult = await photoService.getAlbumsByTrip(tripId);
+            items = albumsResult.albums.map((album: PhotoAlbum) => ({
+              id: album.id,
+              name: album.name,
+              subtitle: album.description || undefined,
+            }));
+            break;
+          }
         }
 
-        setEntities(items);
+        if (isMounted) {
+          setEntities(items);
+        }
       } catch (err) {
         console.error('Failed to fetch entities:', err);
-        setError(err instanceof Error ? err : new Error('Failed to load items'));
-        toast.error('Failed to load items');
+        if (isMounted) {
+          setError(err instanceof Error ? err : new Error('Failed to load items'));
+          toast.error('Failed to load items');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchEntities();
+
+    return () => {
+      isMounted = false;
+    };
   }, [entityType, tripId]);
 
   // Load more function for paginated entities (photos)
