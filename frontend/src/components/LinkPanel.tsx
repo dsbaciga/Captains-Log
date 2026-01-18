@@ -38,10 +38,17 @@ export default function LinkPanel({
 
   // Navigate to the linked entity's location in the trip detail page
   const handleNavigateToEntity = (linkedEntityType: EntityType, linkedEntityId: number) => {
+    // Close the panel first
+    onClose();
+
+    // Albums have their own detail page
+    if (linkedEntityType === 'PHOTO_ALBUM') {
+      navigate(`/trips/${tripId}/albums/${linkedEntityId}`);
+      return;
+    }
+
     const tab = ENTITY_TYPE_TO_TAB[linkedEntityType];
     if (tab) {
-      // Close the panel first
-      onClose();
       // Navigate to the trip detail page with the appropriate tab
       // Add the entity ID as a hash so it could be used for scrolling/highlighting in the future
       navigate(`/trips/${tripId}?tab=${tab}#${linkedEntityType.toLowerCase()}-${linkedEntityId}`);
