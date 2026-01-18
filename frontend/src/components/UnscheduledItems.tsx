@@ -7,6 +7,7 @@ import type { ActivityCategory } from "../types/user";
 import activityService from "../services/activity.service";
 import transportationService from "../services/transportation.service";
 import lodgingService from "../services/lodging.service";
+import entityLinkService from "../services/entityLink.service";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import { useFormFields } from "../hooks/useFormFields";
@@ -151,6 +152,8 @@ export default function UnscheduledItems({
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Track original location ID when editing to detect changes (for entity linking)
+  const [originalActivityLocationId, setOriginalActivityLocationId] = useState<number | null>(null);
 
   const activityForm = useFormFields<ActivityFormFields>(
     initialActivityFormState
@@ -214,6 +217,7 @@ export default function UnscheduledItems({
     setIsCreating(false);
     setShowAddMenu(false);
     setShowFormModal(false);
+    setOriginalActivityLocationId(null);
   };
 
   // Start creating a new entity of the specified type
@@ -226,14 +230,13 @@ export default function UnscheduledItems({
     setShowFormModal(true);
   };
 
-  const handleEditActivity = (activity: Activity) => {
+  const handleEditActivity = async (activity: Activity) => {
     setEditingId(activity.id);
     setEditingType("activity");
     setActiveSection("activity");
     activityForm.handleChange("name", activity.name);
     activityForm.handleChange("description", activity.description || "");
     activityForm.handleChange("category", activity.category || "");
-    activityForm.handleChange("locationId", activity.locationId || undefined);
     activityForm.handleChange("parentId", activity.parentId || undefined);
     activityForm.handleChange("allDay", activity.allDay);
     activityForm.handleChange("timezone", activity.timezone || "");
@@ -245,6 +248,22 @@ export default function UnscheduledItems({
       activity.bookingReference || ""
     );
     activityForm.handleChange("notes", activity.notes || "");
+
+    // Fetch linked location via entity linking system
+    try {
+      const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
+      if (links.length > 0 && links[0].targetId) {
+        activityForm.handleChange("locationId", links[0].targetId);
+        setOriginalActivityLocationId(links[0].targetId);
+      } else {
+        activityForm.handleChange("locationId", undefined);
+        setOriginalActivityLocationId(null);
+      }
+    } catch {
+      // If fetching links fails, proceed without location
+      activityForm.handleChange("locationId", undefined);
+      setOriginalActivityLocationId(null);
+    }
 
     // Handle date/time fields based on allDay flag
     if (activity.allDay) {
@@ -422,11 +441,11 @@ export default function UnscheduledItems({
         }
       }
 
+      // Activity data without locationId (using entity links instead)
       const updateData = {
         name: activityForm.values.name,
         description: activityForm.values.description || null,
         category: activityForm.values.category || null,
-        locationId: activityForm.values.locationId || null,
         parentId: activityForm.values.parentId || null,
         allDay: activityForm.values.allDay,
         startTime: startTimeISO,
@@ -441,12 +460,60 @@ export default function UnscheduledItems({
         notes: activityForm.values.notes || null,
       };
 
+      const newLocationId = activityForm.values.locationId || null;
+
       if (isCreating) {
-        await activityService.createActivity({ ...updateData, tripId });
+        // Create the activity first
+        const createdActivity = await activityService.createActivity({ ...updateData, tripId });
         toast.success("Activity created");
+
+        // Create location link if a location was selected
+        if (newLocationId) {
+          try {
+            await entityLinkService.createLink(tripId, {
+              sourceType: 'ACTIVITY',
+              sourceId: createdActivity.id,
+              targetType: 'LOCATION',
+              targetId: newLocationId,
+            });
+          } catch (linkError) {
+            console.error('Failed to create location link:', linkError);
+            // Don't fail - activity was created successfully
+          }
+        }
       } else {
+        // Update the activity
         await activityService.updateActivity(editingId!, updateData);
         toast.success("Activity updated");
+
+        // Handle location link changes via entity linking
+        const locationChanged = newLocationId !== originalActivityLocationId;
+
+        if (locationChanged) {
+          try {
+            // Remove old link if there was one
+            if (originalActivityLocationId) {
+              await entityLinkService.deleteLink(tripId, {
+                sourceType: 'ACTIVITY',
+                sourceId: editingId!,
+                targetType: 'LOCATION',
+                targetId: originalActivityLocationId,
+              });
+            }
+            // Create new link if there's a new location
+            if (newLocationId) {
+              await entityLinkService.createLink(tripId, {
+                sourceType: 'ACTIVITY',
+                sourceId: editingId!,
+                targetType: 'LOCATION',
+                targetId: newLocationId,
+              });
+            }
+          } catch (error) {
+            console.error('Failed to update location link:', error);
+            // Don't fail - activity was saved successfully
+          }
+        }
       }
 
       resetForm();
@@ -1565,13 +1632,6 @@ export default function UnscheduledItems({
                         )}
 
                         <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                          {activity.location && (
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">Location:</span>
-                              <span>{activity.location.name}</span>
-                            </div>
-                          )}
-
                           {activity.bookingReference && (
                             <div className="flex items-center gap-2">
                               <span className="font-medium">Reference:</span>
