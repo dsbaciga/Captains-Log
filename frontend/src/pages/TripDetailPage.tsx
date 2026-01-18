@@ -118,31 +118,31 @@ export default function TripDetailPage() {
     enabled: !!tripId,
   });
 
-  const { data: locations = [] } = useQuery({
+  const { data: locations = [], isLoading: isLocationsLoading } = useQuery({
     queryKey: ['locations', tripId],
     queryFn: () => locationService.getLocationsByTrip(tripId),
     enabled: !!tripId,
   });
 
-  const { data: activitiesData } = useQuery({
+  const { data: activitiesData, isLoading: isActivitiesLoading } = useQuery({
     queryKey: ['activities', tripId],
     queryFn: () => activityService.getActivitiesByTrip(tripId),
     enabled: !!tripId,
   });
 
-  const { data: transportationData } = useQuery({
+  const { data: transportationData, isLoading: isTransportationLoading } = useQuery({
     queryKey: ['transportation', tripId],
     queryFn: () => transportationService.getTransportationByTrip(tripId),
     enabled: !!tripId,
   });
 
-  const { data: lodgingData } = useQuery({
+  const { data: lodgingData, isLoading: isLodgingLoading } = useQuery({
     queryKey: ['lodging', tripId],
     queryFn: () => lodgingService.getLodgingByTrip(tripId),
     enabled: !!tripId,
   });
 
-  const { data: journalData } = useQuery({
+  const { data: journalData, isLoading: isJournalLoading } = useQuery({
     queryKey: ['journal', tripId],
     queryFn: () => journalService.getJournalEntriesByTrip(tripId),
     enabled: !!tripId,
@@ -154,13 +154,13 @@ export default function TripDetailPage() {
     enabled: !!tripId,
   });
 
-  const { data: checklists = [] } = useQuery({
+  const { data: checklists = [], isLoading: areChecklistsLoading } = useQuery({
     queryKey: ['checklists', tripId],
     queryFn: () => checklistService.getChecklistsByTripId(tripId),
     enabled: !!tripId,
   });
 
-  const { data: companionsData } = useQuery({
+  const { data: companionsData, isLoading: areCompanionsLoading } = useQuery({
     queryKey: ['companions', tripId],
     queryFn: () => companionService.getCompanionsByTrip(tripId),
     enabled: !!tripId,
@@ -862,7 +862,7 @@ export default function TripDetailPage() {
     }
   };
 
-  if (loading) {
+  if (isTripLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -1253,7 +1253,7 @@ export default function TripDetailPage() {
         {/* Locations Tab */}
         {activeTab === "locations" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isTripLoading ? <Skeleton /> : (
+            {isLocationsLoading ? <Skeleton /> : (
             <LocationManager
               tripId={trip.id}
               tripTimezone={trip.timezone}
@@ -1605,7 +1605,7 @@ export default function TripDetailPage() {
         {/* Activities Tab */}
         {activeTab === "activities" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isTripLoading ? <Skeleton /> : (
+            {isActivitiesLoading ? <Skeleton /> : (
             <ActivityManager
               tripId={trip.id}
               locations={locations}
@@ -1620,7 +1620,7 @@ export default function TripDetailPage() {
         {/* Unscheduled Tab */}
         {activeTab === "unscheduled" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isTripLoading ? <Skeleton /> : (
+            {isActivitiesLoading || isTransportationLoading || isLodgingLoading ? <Skeleton /> : (
             <UnscheduledItems
               tripId={trip.id}
               locations={locations}
@@ -1633,7 +1633,7 @@ export default function TripDetailPage() {
         {/* Transportation Tab */}
         {activeTab === "transportation" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isTripLoading ? <Skeleton /> : (
+            {isTransportationLoading ? <Skeleton /> : (
             <TransportationManager
               tripId={trip.id}
               locations={locations}
@@ -1648,7 +1648,7 @@ export default function TripDetailPage() {
         {/* Lodging Tab */}
         {activeTab === "lodging" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isTripLoading ? <Skeleton /> : (
+            {isLodgingLoading ? <Skeleton /> : (
             <LodgingManager
               tripId={trip.id}
               locations={locations}
@@ -1663,7 +1663,7 @@ export default function TripDetailPage() {
         {/* Journal Tab */}
         {activeTab === "journal" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isTripLoading ? <Skeleton /> : (
+            {isJournalLoading ? <Skeleton /> : (
             <JournalManager
               tripId={trip.id}
               tripStartDate={trip.startDate}
@@ -1676,7 +1676,7 @@ export default function TripDetailPage() {
         {/* Companions Tab */}
         {activeTab === "companions" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isTripLoading ? <Skeleton /> : (
+            {areCompanionsLoading ? <Skeleton /> : (
             <CompanionManager tripId={trip.id} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['companions', tripId] })} />
             )}
           </div>

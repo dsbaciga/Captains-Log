@@ -43,7 +43,7 @@ export default function TripsPage() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  const queryParams = {
+  const params = {
     page: currentPage,
     limit: 20,
     status: statusFilter,
@@ -53,6 +53,10 @@ export default function TripsPage() {
     tags: selectedTags.join(','),
     sort: sortOption,
   };
+
+  const queryParams = Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== '' && value != null)
+  );
 
   const { data: tripsData, isLoading: loading } = useQuery({
     queryKey: ['trips', queryParams],
