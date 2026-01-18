@@ -7,7 +7,6 @@ import activityService from "../services/activity.service";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
-import JournalEntriesButton from "./JournalEntriesButton";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
@@ -636,10 +635,6 @@ export default function ActivityManager({
             linkSummary={getLinkSummary('ACTIVITY', activity.id)}
             onUpdate={invalidateLinkSummary}
             size="sm"
-          />
-          <JournalEntriesButton
-            journalEntries={activity.journalAssignments}
-            tripId={tripId}
           />
           <div className="flex-1" />
           <button

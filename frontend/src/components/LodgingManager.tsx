@@ -5,7 +5,6 @@ import type { Location } from "../types/location";
 import lodgingService from "../services/lodging.service";
 import toast from "react-hot-toast";
 import AssociatedAlbums from "./AssociatedAlbums";
-import JournalEntriesButton from "./JournalEntriesButton";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
@@ -784,10 +783,6 @@ export default function LodgingManager({
                   linkSummary={getLinkSummary('LODGING', lodging.id)}
                   onUpdate={invalidateLinkSummary}
                   size="sm"
-                />
-                <JournalEntriesButton
-                  journalEntries={lodging.journalAssignments}
-                  tripId={tripId}
                 />
                 <div className="flex-1" />
                 <button
