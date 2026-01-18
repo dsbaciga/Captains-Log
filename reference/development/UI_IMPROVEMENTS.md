@@ -64,7 +64,7 @@ This document tracks progress on planned UI/UX improvements for Travel Life.
 
 | Status | Feature | Description | Priority |
 |--------|---------|-------------|----------|
-| [ ] | Dark mode refinement | More prominent gold accents, subtle gradients, glowing interactive elements | Medium |
+| [x] | Dark mode refinement | More prominent gold accents, subtle gradients, glowing interactive elements | Medium |
 
 ### Cards & Layout
 
@@ -192,6 +192,37 @@ This document tracks progress on planned UI/UX improvements for Travel Life.
 - Fixed unused variables and props
 - Added missing useEffect dependencies
 - Improved TypeScript types in backend
+
+### 2026-01-18 (Dark Mode Refinement)
+
+**Dark Mode Enhancements Completed:**
+
+1. **More Prominent Gold Accents**
+   - Border opacity increased from 10% to 20%
+   - Consistent gold color usage across all components (replaced sky with gold)
+   - Enhanced hover states with gold/40 for clearer feedback
+
+2. **Subtle Gradient Backgrounds**
+   - Body: Top-to-bottom gradient (navy-900 → navy-800)
+   - Cards: Diagonal gradient for depth
+   - Fixed background attachment for smooth scrolling
+
+3. **Glow Effects on Interactive Elements**
+   - Buttons: `box-shadow: 0 0 20px rgba(251,191,36,0.25)` on hover
+   - Inputs: Subtle glow on focus
+   - Cards: Ambient glow on hover
+   - FAB: Enhanced glow effect
+
+4. **Consistency Fixes**
+   - Modal backgrounds: gray-800 → navy-800
+   - Modal borders: gold/20 for cohesion
+   - Added `sky` color to Tailwind config
+
+**Files Updated:**
+- `tailwind.config.js` - Glow shadow utilities
+- `index.css` - Enhanced component styles
+- `Modal.tsx`, `FormModal.tsx` - Navy backgrounds
+- `Navbar.tsx`, `TabGroup.tsx`, `TripCard.tsx` - Gold accents
 
 ---
 
