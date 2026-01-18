@@ -6,7 +6,6 @@ import type { ActivityCategory } from "../types/user";
 import activityService from "../services/activity.service";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
-import AssociatedAlbums from "./AssociatedAlbums";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
@@ -611,11 +610,6 @@ export default function ActivityManager({
               </p>
             </div>
           )}
-        </div>
-
-        {/* Associated Albums */}
-        <div className="mt-3">
-          <AssociatedAlbums albums={activity.photoAlbums} tripId={tripId} />
         </div>
 
         {/* Linked Entities */}

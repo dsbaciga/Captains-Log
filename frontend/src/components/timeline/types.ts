@@ -17,14 +17,6 @@ export type TransportationType =
   | 'walk'
   | 'other';
 
-export interface PhotoAlbumInfo {
-  id: number;
-  name: string;
-  _count?: {
-    photoAssignments: number;
-  };
-}
-
 export interface MultiDayInfo {
   originalId: number;
   nightNumber: number;
@@ -61,7 +53,6 @@ export interface TimelineItem {
   confirmationNumber?: string;
   durationMinutes?: number;
   distanceKm?: number;
-  photoAlbums?: PhotoAlbumInfo[];
   fromCoords?: { latitude: number; longitude: number };
   toCoords?: { latitude: number; longitude: number };
   connectionGroupId?: string;

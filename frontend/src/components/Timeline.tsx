@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import type { Location } from '../types/location';
 import type { WeatherData, WeatherDisplay } from '../types/weather';
@@ -10,8 +11,6 @@ import transportationService from '../services/transportation.service';
 import lodgingService from '../services/lodging.service';
 import journalService from '../services/journalEntry.service';
 import weatherService from '../services/weather.service';
-import locationService from '../services/location.service';
-import TimelineEditModal from './TimelineEditModal';
 import { getWeatherIcon } from '../utils/weatherIcons';
 import toast from 'react-hot-toast';
 import { debugLogger } from '../utils/debugLogger';
@@ -58,6 +57,7 @@ const Timeline = ({
 }: TimelineProps) => {
   // Create scoped logger for this component
   const logger = debugLogger.createScopedLogger('Timeline');
+  const navigate = useNavigate();
 
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [weatherData, setWeatherData] = useState<Record<string, WeatherData>>({});
@@ -74,10 +74,6 @@ const Timeline = ({
     return saved === 'compact' || saved === 'standard' ? saved : 'standard';
   });
 
-  // Edit modal state
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]);
   const [refreshingWeather, setRefreshingWeather] = useState(false);
 
   // Print state
@@ -139,31 +135,17 @@ const Timeline = ({
     setCollapsedDays(new Set(allDateKeys));
   };
 
-  // Handle edit
-  const handleEdit = async (item: TimelineItem) => {
-    if (locations.length === 0) {
-      try {
-        const locs = await locationService.getLocationsByTrip(tripId);
-        setLocations(locs);
-      } catch (error) {
-        console.error('Failed to load locations:', error);
-      }
-    }
-
-    setEditingItem(item);
-    setEditModalOpen(true);
-  };
-
-  // Handle modal save
-  const handleEditSave = () => {
-    loadTimelineData();
-    onRefresh?.();
-  };
-
-  // Handle modal close
-  const handleEditClose = () => {
-    setEditModalOpen(false);
-    setEditingItem(null);
+  // Handle edit - navigate to the appropriate tab with edit parameter
+  const handleEdit = (item: TimelineItem) => {
+    const itemId = item.data.id;
+    const tabMap: Record<TimelineItemType, string> = {
+      activity: 'activities',
+      transportation: 'transportation',
+      lodging: 'lodging',
+      journal: 'journal',
+    };
+    const tab = tabMap[item.type];
+    navigate(`/trips/${tripId}?tab=${tab}&edit=${itemId}`);
   };
 
   // Handle delete
@@ -283,11 +265,6 @@ const Timeline = ({
             currency: activity.currency || undefined,
             confirmationNumber: activity.bookingReference || undefined,
             durationMinutes,
-            photoAlbums: activity.photoAlbums?.map((album) => ({
-              id: album.id,
-              name: album.name,
-              _count: album._count,
-            })),
             data: activity,
           });
         }
@@ -489,13 +466,6 @@ const Timeline = ({
               showCheckInTime: isCheckInDay,
               showCheckOutTime: isCheckOutDay,
               confirmationNumber: isCheckInDay ? lodge.confirmationNumber || undefined : undefined,
-              photoAlbums: isCheckInDay
-                ? lodge.photoAlbums?.map((album) => ({
-                    id: album.id,
-                    name: album.name,
-                    _count: album._count,
-                  }))
-                : undefined,
               multiDayInfo,
               data: lodge,
             });
@@ -525,11 +495,6 @@ const Timeline = ({
             cost: lodge.cost || undefined,
             currency: lodge.currency || undefined,
             confirmationNumber: lodge.confirmationNumber || undefined,
-            photoAlbums: lodge.photoAlbums?.map((album) => ({
-              id: album.id,
-              name: album.name,
-              _count: album._count,
-            })),
             data: lodge,
           });
         }
@@ -1200,20 +1165,6 @@ const Timeline = ({
           />
         ))}
       </div>
-
-      {/* Edit Modal */}
-      {editingItem && (
-        <TimelineEditModal
-          isOpen={editModalOpen}
-          onClose={handleEditClose}
-          onSave={handleEditSave}
-          itemType={editingItem.type}
-          itemData={editingItem.data}
-          tripId={tripId}
-          locations={locations}
-          tripTimezone={tripTimezone}
-        />
-      )}
 
       {/* Printable Itinerary - rendered via portal for clean printing */}
       {isPrinting &&

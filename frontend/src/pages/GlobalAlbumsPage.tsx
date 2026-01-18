@@ -6,7 +6,8 @@ import type { AlbumWithTrip } from "../types/photo";
 import type { Trip } from "../types/trip";
 import toast from "react-hot-toast";
 import { getFullAssetUrl } from "../lib/config";
-import { usePagination } from "../hooks/usePagination";
+import { usePagedPagination } from "../hooks/usePagedPagination";
+import Pagination from "../components/Pagination";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
 import EmptyState, { EmptyIllustrations } from "../components/EmptyState";
@@ -65,9 +66,8 @@ export default function GlobalAlbumsPage() {
     [selectedTagIds]
   );
 
-  const albumPagination = usePagination<AlbumWithTrip>(loadAlbumsPage, {
+  const albumPagination = usePagedPagination<AlbumWithTrip>(loadAlbumsPage, {
     pageSize: 30,
-    enabled: true,
     onError: () => toast.error("Failed to load albums"),
   });
 
@@ -752,20 +752,23 @@ export default function GlobalAlbumsPage() {
               );
             })}
 
-            {albumPagination.hasMore && (
-              <div className="text-center mt-6">
-                <button
-                  type="button"
-                  onClick={albumPagination.loadMore}
-                  disabled={albumPagination.loadingMore}
-                  className="px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
-                >
-                  {albumPagination.loadingMore
-                    ? "Loading..."
-                    : "Load More Albums"}
-                </button>
-              </div>
-            )}
+            {/* Pagination controls */}
+            <div className="mt-6">
+              <Pagination
+                currentPage={albumPagination.currentPage}
+                totalPages={albumPagination.totalPages}
+                pageNumbers={albumPagination.pageNumbers}
+                onPageChange={albumPagination.goToPage}
+                onPrevious={albumPagination.previousPage}
+                onNext={albumPagination.nextPage}
+                hasPreviousPage={albumPagination.hasPreviousPage}
+                hasNextPage={albumPagination.hasNextPage}
+                loading={albumPagination.loading}
+                rangeStart={albumPagination.rangeStart}
+                rangeEnd={albumPagination.rangeEnd}
+                total={albumPagination.total}
+              />
+            </div>
           </div>
         )}
       </main>

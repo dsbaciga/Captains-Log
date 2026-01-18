@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import entityLinkService from '../services/entityLink.service';
 import type {
   EntityType,
@@ -53,8 +54,18 @@ export default function LinkedEntitiesDisplay({
   maxItemsPerType = 5,
   className = '',
 }: LinkedEntitiesDisplayProps) {
+  const navigate = useNavigate();
   // State for entity detail modal
   const [selectedEntity, setSelectedEntity] = useState<SelectedEntity | null>(null);
+
+  // Handle clicking on a linked entity - albums go to their detail page, others open modal
+  const handleEntityClick = (linkedEntityType: EntityType, linkedEntityId: number) => {
+    if (linkedEntityType === 'PHOTO_ALBUM') {
+      navigate(`/trips/${tripId}/albums/${linkedEntityId}`);
+    } else {
+      setSelectedEntity({ type: linkedEntityType, id: linkedEntityId });
+    }
+  };
 
   // Fetch all links for this entity
   const {
@@ -179,7 +190,7 @@ export default function LinkedEntitiesDisplay({
                   <button
                     key={item.link.id}
                     type="button"
-                    onClick={() => setSelectedEntity({ type: item.linkedEntityType, id: item.linkedEntityId })}
+                    onClick={() => handleEntityClick(item.linkedEntityType, item.linkedEntityId)}
                     className={`
                       inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border
                       ${colors.bg} ${colors.bgDark} ${colors.bgHover} ${colors.border} ${colors.focus}
