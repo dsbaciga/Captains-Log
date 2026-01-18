@@ -17,11 +17,7 @@ import companionService from "../services/companion.service";
 import userService from "../services/user.service";
 import checklistService from "../services/checklist.service";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import type { Trip } from "../types/trip";
-import type { Location } from "../types/location";
 import type { Photo } from "../types/photo";
-import type { TripTag } from "../types/tag";
-import type { Checklist } from "../types/checklist";
 import { TripStatus } from "../types/trip";
 import toast from "react-hot-toast";
 import PhotoGallery from "../components/PhotoGallery";
@@ -148,13 +144,13 @@ export default function TripDetailPage() {
     enabled: !!tripId,
   });
 
-  const { data: tags = [], isLoading: areTagsLoading } = useQuery({
+  const { data: tags = [] } = useQuery({
     queryKey: ['tags', tripId],
     queryFn: () => tagService.getTagsByTrip(tripId),
     enabled: !!tripId,
   });
 
-  const { data: checklists = [], isLoading: areChecklistsLoading } = useQuery({
+  const { data: checklists = [] } = useQuery({
     queryKey: ['checklists', tripId],
     queryFn: () => checklistService.getChecklistsByTripId(tripId),
     enabled: !!tripId,

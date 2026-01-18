@@ -15,6 +15,7 @@ interface TimelineDaySectionProps {
   viewMode: 'standard' | 'compact';
   isCollapsed: boolean;
   showDualTimezone: boolean;
+  mobileActiveTimezone?: 'trip' | 'user';
   linkSummaryMap?: Record<string, EntityLinkSummary>;
   onToggleCollapse: () => void;
   onEdit: (item: TimelineItem) => void;
@@ -46,6 +47,7 @@ export default function TimelineDaySection({
   viewMode,
   isCollapsed,
   showDualTimezone,
+  mobileActiveTimezone,
   linkSummaryMap,
   onToggleCollapse,
   onEdit,
@@ -190,6 +192,7 @@ export default function TimelineDaySection({
                       tripTimezone={getDisplayTimezone(item)}
                       userTimezone={userTimezone}
                       showDualTime={showDualTimezone}
+                      mobileActiveTimezone={mobileActiveTimezone}
                       linkSummary={getLinkSummary(item)}
                       viewMode={viewMode}
                       connectionInfo={connectionInfo || undefined}
