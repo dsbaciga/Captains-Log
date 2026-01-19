@@ -4,6 +4,7 @@ import type { Activity, CreateActivityInput, UpdateActivityInput } from "../type
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
 import activityService from "../services/activity.service";
+import entityLinkService from "../services/entityLink.service";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import LinkButton from "./LinkButton";
@@ -118,6 +119,8 @@ export default function ActivityManager({
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [pendingEditId, setPendingEditId] = useState<number | null>(null);
+  // Track original location ID when editing to detect changes (for entity linking)
+  const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<ActivityFormFields>(getInitialFormState);
@@ -145,57 +148,18 @@ export default function ActivityManager({
     }
   }, [searchParams, setSearchParams]);
 
-  // Handle pending edit when items are loaded
+  // Handle pending edit when items are loaded (from URL ?edit=id parameter)
   useEffect(() => {
     if (pendingEditId && manager.items.length > 0 && !manager.loading) {
       const item = manager.items.find((a) => a.id === pendingEditId);
       if (item) {
-        // Copy handleEdit logic - we need to inline it since it's defined later
-        setShowMoreOptions(true);
-        handleChange("name", item.name);
-        handleChange("description", item.description || "");
-        handleChange("category", item.category || "");
-        handleChange("locationId", item.locationId || undefined);
-        handleChange("parentId", item.parentId || undefined);
-        handleChange("allDay", item.allDay);
-        handleChange("timezone", item.timezone || "");
-        handleChange("cost", item.cost?.toString() || "");
-        handleChange("currency", item.currency || "USD");
-        handleChange("bookingUrl", item.bookingUrl || "");
-        handleChange("bookingReference", item.bookingReference || "");
-        handleChange("notes", item.notes || "");
-
-        const effectiveTz = item.timezone || tripTimezone || 'UTC';
-        if (item.allDay) {
-          if (item.startTime) {
-            const startDateTime = convertISOToDateTimeLocal(item.startTime, effectiveTz);
-            handleChange("startDate", startDateTime.slice(0, 10));
-          }
-          if (item.endTime) {
-            const endDateTime = convertISOToDateTimeLocal(item.endTime, effectiveTz);
-            handleChange("endDate", endDateTime.slice(0, 10));
-          }
-          handleChange("startTime", "");
-          handleChange("endTime", "");
-        } else {
-          if (item.startTime) {
-            const startDateTime = convertISOToDateTimeLocal(item.startTime, effectiveTz);
-            handleChange("startDate", startDateTime.slice(0, 10));
-            handleChange("startTime", startDateTime.slice(11));
-          }
-          if (item.endTime) {
-            const endDateTime = convertISOToDateTimeLocal(item.endTime, effectiveTz);
-            handleChange("endDate", endDateTime.slice(0, 10));
-            handleChange("endTime", endDateTime.slice(11));
-          }
-        }
-
-        manager.openEditForm(item.id);
+        // Use handleEdit which handles location link fetching
+        handleEdit(item);
       }
       setPendingEditId(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEditId, manager.items, manager.loading, tripTimezone, handleChange]);
+  }, [pendingEditId, manager.items, manager.loading]);
 
   // Auto-fill: End Time = Start Time + 1 Hour
   useEffect(() => {
@@ -243,12 +207,9 @@ export default function ActivityManager({
         handleChange('startDate', date);
         handleChange('startTime', time);
 
-        // Also inherit timezone and location if they were set
+        // Also inherit timezone if set (location is now managed via entity links)
         if (lastActivity.timezone && !values.timezone) {
           handleChange('timezone', lastActivity.timezone);
-        }
-        if (lastActivity.locationId && !values.locationId) {
-          handleChange('locationId', lastActivity.locationId);
         }
       }
     }
@@ -290,14 +251,14 @@ export default function ActivityManager({
     manager.setEditingId(null);
     setShowMoreOptions(false);
     setKeepFormOpenAfterSave(false);
+    setOriginalLocationId(null);
   };
 
-  const handleEdit = (activity: Activity) => {
+  const handleEdit = async (activity: Activity) => {
     setShowMoreOptions(true); // Always show all options when editing
     handleChange("name", activity.name);
     handleChange("description", activity.description || "");
     handleChange("category", activity.category || "");
-    handleChange("locationId", activity.locationId || undefined);
     handleChange("parentId", activity.parentId || undefined);
     handleChange("allDay", activity.allDay);
     handleChange("timezone", activity.timezone || "");
@@ -306,6 +267,22 @@ export default function ActivityManager({
     handleChange("bookingUrl", activity.bookingUrl || "");
     handleChange("bookingReference", activity.bookingReference || "");
     handleChange("notes", activity.notes || "");
+
+    // Fetch linked location via entity linking system
+    try {
+      const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
+      if (links.length > 0 && links[0].targetId) {
+        handleChange("locationId", links[0].targetId);
+        setOriginalLocationId(links[0].targetId);
+      } else {
+        handleChange("locationId", undefined);
+        setOriginalLocationId(null);
+      }
+    } catch {
+      // If fetching links fails, just proceed without location
+      handleChange("locationId", undefined);
+      setOriginalLocationId(null);
+    }
 
     // Determine effective timezone
     const effectiveTz = activity.timezone || tripTimezone || 'UTC';
@@ -391,12 +368,11 @@ export default function ActivityManager({
     }
 
     if (manager.editingId) {
-      // For updates, send null to clear empty fields
+      // For updates, send null to clear empty fields (without locationId - using entity links)
       const updateData = {
         name: values.name,
         description: values.description || null,
         category: values.category || null,
-        locationId: values.locationId || null,
         parentId: values.parentId || null,
         allDay: values.allDay,
         startTime: startTimeISO,
@@ -410,17 +386,47 @@ export default function ActivityManager({
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
+        // Handle location link changes via entity linking
+        const newLocationId = values.locationId || null;
+        const locationChanged = newLocationId !== originalLocationId;
+
+        if (locationChanged) {
+          try {
+            // Remove old link if there was one
+            if (originalLocationId) {
+              await entityLinkService.deleteLink(tripId, {
+                sourceType: 'ACTIVITY',
+                sourceId: manager.editingId,
+                targetType: 'LOCATION',
+                targetId: originalLocationId,
+              });
+            }
+            // Create new link if there's a new location
+            if (newLocationId) {
+              await entityLinkService.createLink(tripId, {
+                sourceType: 'ACTIVITY',
+                sourceId: manager.editingId,
+                targetType: 'LOCATION',
+                targetId: newLocationId,
+              });
+            }
+            invalidateLinkSummary();
+          } catch (error) {
+            console.error('Failed to update location link:', error);
+            // Don't fail the whole operation - activity was saved successfully
+          }
+        }
+
         resetForm();
         manager.closeForm();
       }
     } else {
-      // For creates, use undefined to omit optional fields
+      // For creates, use undefined to omit optional fields (without locationId - using entity links)
       const createData = {
         tripId,
         name: values.name,
         description: values.description || undefined,
         category: values.category || undefined,
-        locationId: values.locationId,
         parentId: values.parentId,
         allDay: values.allDay,
         startTime: startTimeISO || undefined,
@@ -432,8 +438,32 @@ export default function ActivityManager({
         bookingReference: values.bookingReference || undefined,
         notes: values.notes || undefined,
       };
-      const success = await manager.handleCreate(createData);
-      if (success) {
+
+      try {
+        // Call service directly to get the created activity ID for linking
+        const createdActivity = await activityService.createActivity(createData);
+        toast.success('Activity added successfully');
+
+        // Create location link if a location was selected
+        if (values.locationId) {
+          try {
+            await entityLinkService.createLink(tripId, {
+              sourceType: 'ACTIVITY',
+              sourceId: createdActivity.id,
+              targetType: 'LOCATION',
+              targetId: values.locationId,
+            });
+            invalidateLinkSummary();
+          } catch (linkError) {
+            console.error('Failed to create location link:', linkError);
+            // Don't fail - activity was created successfully
+          }
+        }
+
+        // Reload items and trigger parent update
+        await manager.loadItems();
+        onUpdate?.();
+
         // Save currency for next time
         if (values.currency) {
           saveLastUsedCurrency(values.currency);
@@ -454,6 +484,9 @@ export default function ActivityManager({
           resetForm();
           manager.closeForm();
         }
+      } catch (error) {
+        console.error('Failed to create activity:', error);
+        toast.error('Failed to add activity');
       }
     }
   };
@@ -533,19 +566,6 @@ export default function ActivityManager({
 
         {/* Details */}
         <div className="space-y-1.5 sm:space-y-2 text-sm text-gray-700 dark:text-gray-300">
-          {/* Location */}
-          {activity.location && (
-            <div className="flex flex-wrap gap-x-2">
-              <span className="font-medium">Location:</span>
-              <span>{activity.location.name}</span>
-              {activity.location.address && (
-                <span className="text-gray-500 dark:text-gray-500 hidden sm:inline">
-                  ({activity.location.address})
-                </span>
-              )}
-            </div>
-          )}
-
           {/* Time */}
           {activity.startTime && (
             <div className="flex flex-wrap gap-x-2">
@@ -702,10 +722,9 @@ export default function ActivityManager({
                   setKeepFormOpenAfterSave(true);
                   (document.getElementById('activity-form') as HTMLFormElement)?.requestSubmit();
                 }}
-                className="btn btn-secondary text-sm whitespace-nowrap"
+                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
               >
-                <span className="hidden sm:inline">Save & Add Another</span>
-                <span className="sm:hidden">Save & Add</span>
+                Save & Add Another
               </button>
             )}
             <button

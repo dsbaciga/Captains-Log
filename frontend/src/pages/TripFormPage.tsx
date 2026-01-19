@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import tripService from '../services/trip.service';
 import { TripStatus, PrivacyLevel } from '../types/trip';
 import type { TripStatusType, PrivacyLevelType } from '../types/trip';
@@ -8,6 +9,7 @@ import toast from 'react-hot-toast';
 export default function TripFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isEdit = !!id;
 
   const [loading, setLoading] = useState(false);
@@ -90,6 +92,8 @@ export default function TripFormPage() {
         toast.success('Trip created successfully');
       }
 
+      // Invalidate trips cache so the list refreshes
+      await queryClient.invalidateQueries({ queryKey: ['trips'] });
       navigate('/trips');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };

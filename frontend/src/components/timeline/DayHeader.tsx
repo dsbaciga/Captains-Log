@@ -62,7 +62,7 @@ export default function DayHeader({
   const statsString = statParts.length > 0 ? statParts.join(' · ') : 'No events';
 
   return (
-    <div className="sticky top-0 z-10 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-700 px-4 py-3 rounded-t-xl">
+    <div className="lg:sticky lg:top-0 z-10 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-700 px-4 py-3 rounded-t-xl">
       <div className="flex items-center justify-between">
         {/* Left side: Date and stats */}
         <div className="flex-1 min-w-0">
