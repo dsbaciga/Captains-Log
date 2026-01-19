@@ -594,145 +594,8 @@ export default function TripDetailPage() {
     }
   };
 
-  const loadTripData = async (tripId: number) => {
-    try {
-      // Only show loading spinner on initial load, not refreshes
-      // This prevents child components from unmounting during updates
-      if (!trip) {
-        setLoading(true);
-      }
-
-      // Load trip data first - this is critical
-      const tripData = await tripService.getTripById(tripId);
-      console.log("Trip data loaded:", tripData);
-      console.log("Cover photo:", tripData.coverPhoto);
-      setTrip(tripData);
-
-      // Load other data in parallel with individual error handling
-      const [
-        locationsData,
-        activitiesData,
-        transportationData,
-        lodgingData,
-        journalData,
-        tagsData,
-        checklistsData,
-        companionsData,
-        albumsData,
-      ] = await Promise.allSettled([
-        locationService.getLocationsByTrip(tripId),
-        activityService.getActivitiesByTrip(tripId),
-        transportationService.getTransportationByTrip(tripId),
-        lodgingService.getLodgingByTrip(tripId),
-        journalService.getJournalEntriesByTrip(tripId),
-        tagService.getTagsByTrip(tripId),
-        checklistService.getChecklistsByTripId(tripId),
-        companionService.getCompanionsByTrip(tripId),
-        photoService.getAlbumsByTrip(tripId),
-      ]);
-
-      // Extract data from settled promises, using empty arrays as fallbacks
-      const locations =
-        locationsData.status === "fulfilled" ? locationsData.value : [];
-      const activities =
-        activitiesData.status === "fulfilled" ? activitiesData.value : [];
-      const transportation =
-        transportationData.status === "fulfilled"
-          ? transportationData.value
-          : [];
-      const lodging =
-        lodgingData.status === "fulfilled" ? lodgingData.value : [];
-      const journal =
-        journalData.status === "fulfilled" ? journalData.value : [];
-      const tags = tagsData.status === "fulfilled" ? tagsData.value : [];
-      const checklistsList =
-        checklistsData.status === "fulfilled" ? checklistsData.value : [];
-      const companions =
-        companionsData.status === "fulfilled" ? companionsData.value : [];
-      const albums =
-        albumsData.status === "fulfilled"
-          ? albumsData.value
-          : { albums: [], unsortedCount: 0, totalCount: 0 };
-
-      // Log any failures
-      if (locationsData.status === "rejected")
-        console.error("Failed to load locations:", locationsData.reason);
-      if (activitiesData.status === "rejected")
-        console.error("Failed to load activities:", activitiesData.reason);
-      if (transportationData.status === "rejected")
-        console.error(
-          "Failed to load transportation:",
-          transportationData.reason
-        );
-      if (lodgingData.status === "rejected")
-        console.error("Failed to load lodging:", lodgingData.reason);
-      if (journalData.status === "rejected")
-        console.error("Failed to load journal entries:", journalData.reason);
-      if (tagsData.status === "rejected")
-        console.error("Failed to load tags:", tagsData.reason);
-      if (checklistsData.status === "rejected")
-        console.error("Failed to load checklists:", checklistsData.reason);
-      if (companionsData.status === "rejected")
-        console.error("Failed to load companions:", companionsData.reason);
-      if (albumsData.status === "rejected")
-        console.error("Failed to load albums:", albumsData.reason);
-
-      setLocations(locations);
-
-      // Separate scheduled and unscheduled items
-      const scheduledActivities = activities.filter(
-        (a) => a.startTime || a.allDay
-      );
-      const unscheduledActivities = activities.filter(
-        (a) => !a.startTime && !a.allDay
-      );
-
-      // Count scheduled transportation (has departureTime)
-      const scheduledTransportation = transportation.filter(t => t.departureTime);
-      const unscheduledTransportation = transportation.filter(t => !t.departureTime);
-
-      // Count scheduled lodging (has checkInDate)
-      const scheduledLodging = lodging.filter(l => l.checkInDate);
-      const unscheduledLodging = lodging.filter(l => !l.checkInDate);
-
-      setActivitiesCount(scheduledActivities.length);
-      setUnscheduledCount(
-        unscheduledActivities.length +
-        unscheduledTransportation.length +
-        unscheduledLodging.length
-      );
-
-      setTransportationCount(scheduledTransportation.length);
-      setLodgingCount(scheduledLodging.length);
-      setJournalCount(journal.length);
-      setTags(tags);
-      setTagsCount(tags.length);
-      setChecklists(checklistsList);
-      setCompanionsCount(companions.length);
-      setAlbums(albums.albums);
-      setUnsortedPhotosCount(albums.unsortedCount);
-      setTotalPhotosCount(albums.totalCount || 0);
-    } catch (error) {
-      console.error("Failed to load trip data:", error);
-      // Log which specific API call might have failed
-      if (error instanceof Error) {
-        console.error("Error details:", error.message, error.stack);
-      }
-      toast.error("Failed to load trip. Check console for details.");
-      navigate("/trips");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAlbums = async (tripId: number) => {
-    try {
-      const albumsData = await photoService.getAlbumsByTrip(tripId);
-      setAlbums(albumsData.albums);
-      setUnsortedPhotosCount(albumsData.unsortedCount);
-    } catch (err) {
-      console.error("Failed to load albums:", err);
-    }
+  const refreshAlbums = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
   };
 
   const handleSelectAlbum = async (albumId: number | null) => {
@@ -769,9 +632,7 @@ export default function TripDetailPage() {
       }
 
       // Reload albums
-      if (trip) {
-        await loadAlbums(trip.id);
-      }
+      await refreshAlbums();
 
       setShowAlbumModal(false);
       setEditingAlbum(null);
@@ -804,9 +665,7 @@ export default function TripDetailPage() {
       }
 
       // Reload albums
-      if (trip) {
-        await loadAlbums(trip.id);
-      }
+      await refreshAlbums();
     } catch {
       toast.error("Failed to delete album");
     }
@@ -1686,7 +1545,7 @@ export default function TripDetailPage() {
           tripId={trip.id}
           onClose={() => setShowTagsModal(false)}
           onTagsUpdated={() => {
-            if (trip) loadTripData(trip.id);
+            queryClient.invalidateQueries({ queryKey: ['tags', tripId] });
           }}
         />
       )}
