@@ -1,4 +1,5 @@
-import { getTimelineItemIcon, EditIcon, DeleteIcon, LocationIcon, HashIcon, CheckCircleIcon, MoonIcon, BoltIcon, ChecklistIcon } from './icons';
+import { useState, useEffect, useRef } from 'react';
+import { getTimelineItemIcon, EditIcon, DeleteIcon, LocationIcon, HashIcon, CheckCircleIcon, MoonIcon, BoltIcon, ChecklistIcon, PhotoIcon } from './icons';
 import {
   formatTime,
   formatDuration,
@@ -10,9 +11,12 @@ import {
 } from './utils';
 import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import LinkButton from '../LinkButton';
+import entityLinkService from '../../services/entityLink.service';
+import { getFullAssetUrl } from '../../lib/config';
 import type { TimelineEventCardProps, TimelineItem } from './types';
 import type { Activity } from '../../types/activity';
 import type { Lodging } from '../../types/lodging';
+import type { Photo } from '../../types/photo';
 
 export default function TimelineEventCard({
   item,
@@ -34,6 +38,72 @@ export default function TimelineEventCard({
 
   // Get the actual entity ID from the data object
   const actualEntityId = item.data.id;
+
+  // Inline photos state
+  const [inlinePhotos, setInlinePhotos] = useState<Photo[]>([]);
+  const [photosLoaded, setPhotosLoaded] = useState(false);
+  const [thumbnailCache, setThumbnailCache] = useState<Record<number, string>>({});
+  const blobUrlsRef = useRef<string[]>([]);
+  const photoCount = linkSummary?.linkCounts?.PHOTO || 0;
+
+  // Load inline photos when card is rendered and photos are linked
+  useEffect(() => {
+    if (photoCount > 0 && !photosLoaded) {
+      entityLinkService
+        .getPhotosForEntity(tripId, entityType, actualEntityId)
+        .then(async (photos) => {
+          setInlinePhotos(photos.slice(0, 3));
+          setPhotosLoaded(true);
+
+          // Load thumbnails for Immich photos
+          const token = localStorage.getItem('accessToken');
+          if (token) {
+            for (const photo of photos.slice(0, 3).filter(p => p.source === 'immich' && p.thumbnailPath)) {
+              try {
+                const fullUrl = getFullAssetUrl(photo.thumbnailPath);
+                if (!fullUrl) continue;
+                const response = await fetch(fullUrl, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                if (response.ok) {
+                  const blob = await response.blob();
+                  const blobUrl = URL.createObjectURL(blob);
+                  blobUrlsRef.current.push(blobUrl);
+                  setThumbnailCache(prev => ({ ...prev, [photo.id]: blobUrl }));
+                }
+              } catch {
+                // Skip failed thumbnails
+              }
+            }
+          }
+        })
+        .catch(() => {
+          setPhotosLoaded(true);
+        });
+    }
+  }, [photoCount, photosLoaded, tripId, entityType, actualEntityId]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    const blobUrls = blobUrlsRef.current;
+    return () => {
+      blobUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  // Helper to get photo URL
+  const getPhotoUrl = (photo: Photo): string | null => {
+    if (photo.source === 'local' && photo.thumbnailPath) {
+      return getFullAssetUrl(photo.thumbnailPath);
+    }
+    if (photo.source === 'immich') {
+      return thumbnailCache[photo.id] || null;
+    }
+    if (photo.thumbnailPath) {
+      return getFullAssetUrl(photo.thumbnailPath);
+    }
+    return null;
+  };
 
   // Determine timezone to use for display
   const displayTimezone =
@@ -336,6 +406,44 @@ export default function TimelineEventCard({
           <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
             {item.description}
           </p>
+        )}
+
+        {/* Inline photo thumbnails */}
+        {inlinePhotos.length > 0 && !isCompact && (
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {inlinePhotos.map((photo) => {
+                const photoUrl = getPhotoUrl(photo);
+                return (
+                  <div
+                    key={photo.id}
+                    className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0"
+                  >
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={photo.caption || 'Photo'}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <PhotoIcon className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {photoCount > 3 && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                +{photoCount - 3} more
+              </span>
+            )}
+          </div>
         )}
 
         {/* Badges row */}

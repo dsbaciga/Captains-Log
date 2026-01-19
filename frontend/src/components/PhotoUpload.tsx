@@ -7,6 +7,7 @@ import ImmichBrowser from "./ImmichBrowser";
 import DragDropUpload from "./DragDropUpload";
 import { useDragDropOverlay } from "../hooks/useDragDropOverlay";
 import { PhotoSourcePicker } from "./CameraCapture";
+import { useConfetti } from "../hooks/useConfetti";
 import toast from "react-hot-toast";
 
 interface PhotoUploadProps {
@@ -26,17 +27,31 @@ export default function PhotoUpload({
   existingImmichAssetIds,
 }: PhotoUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showImmichBrowser, setShowImmichBrowser] = useState(false);
   const [immichConfigured, setImmichConfigured] = useState(false);
   const { isDraggingFiles, setupListeners } = useDragDropOverlay();
+  const { triggerConfetti } = useConfetti();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     checkImmichSettings();
   }, []);
+
+  // Create and cleanup preview URLs when files change
+  useEffect(() => {
+    // Create URLs for new files
+    const urls = selectedFiles.map(file => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+
+    // Cleanup previous URLs on change or unmount
+    return () => {
+      urls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [selectedFiles]);
 
   useEffect(() => {
     // Setup global drag-and-drop overlay
@@ -269,6 +284,10 @@ export default function PhotoUpload({
       setSelectedFiles([]);
       setCaption("");
       setUploadProgress(0);
+
+      // Celebrate successful upload
+      triggerConfetti('photo');
+
       onPhotoUploaded();
     } catch {
       alert("Failed to upload photos");
@@ -342,7 +361,7 @@ export default function PhotoUpload({
               {selectedFiles.map((file, index) => (
                 <div key={index} className="relative aspect-square">
                   <img
-                    src={URL.createObjectURL(file)}
+                    src={previewUrls[index] || ''}
                     alt={`Preview ${index + 1}`}
                     className="w-full h-full object-cover rounded"
                   />

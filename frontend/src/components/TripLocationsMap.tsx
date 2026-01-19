@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import MarkerClusterGroup from '@changey/react-leaflet-markercluster';
 import { LatLngBounds, LatLng } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import type { Location } from '../types/location';
 import type { Transportation } from '../types/transportation';
 
@@ -187,30 +190,32 @@ export default function TripLocationsMap({ locations, transportations = [], show
             );
           })}
 
-          {/* Location Markers */}
-          {validLocations.map((location) => (
-            <Marker
-              key={location.id}
-              position={[Number(location.latitude), Number(location.longitude)]}
-            >
-              <Popup>
-                <div className="p-2">
-                  <h4 className="font-semibold text-gray-900">{location.name}</h4>
-                  {location.address && (
-                    <p className="text-sm text-gray-600 mt-1">{location.address}</p>
-                  )}
-                  {location.notes && (
-                    <p className="text-sm text-gray-500 mt-2 italic">{location.notes}</p>
-                  )}
-                  {location.category && (
-                    <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                      {location.category.name}
-                    </span>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {/* Location Markers with Clustering */}
+          <MarkerClusterGroup chunkedLoading>
+            {validLocations.map((location) => (
+              <Marker
+                key={location.id}
+                position={[Number(location.latitude), Number(location.longitude)]}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <h4 className="font-semibold text-gray-900">{location.name}</h4>
+                    {location.address && (
+                      <p className="text-sm text-gray-600 mt-1">{location.address}</p>
+                    )}
+                    {location.notes && (
+                      <p className="text-sm text-gray-500 mt-2 italic">{location.notes}</p>
+                    )}
+                    {location.category && (
+                      <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                        {location.category.name}
+                      </span>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
         </MapContainer>
       </div>
 

@@ -7,6 +7,9 @@ import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
 import FormSection from "./FormSection";
+import LocationDisplay from "./LocationDisplay";
+import PhotoPreviewPopover from "./timeline/PhotoPreviewPopover";
+import LinkPanel from "./LinkPanel";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -67,6 +70,7 @@ export default function LocationManager({
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [pendingEditId, setPendingEditId] = useState<number | null>(null);
+  const [linkPanelLocation, setLinkPanelLocation] = useState<Location | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<LocationFormFields>(initialFormState);
@@ -245,36 +249,28 @@ export default function LocationManager({
           {/* Header row: Title + badge on mobile, with actions on larger screens */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4">
             <div className="flex-1 min-w-0">
-              {/* Title row */}
+              {/* Title row with hierarchical display */}
               <div className="flex items-start gap-2 flex-wrap">
                 {isChild && (
                   <span className="text-gray-400 dark:text-gray-500 mt-0.5">
                     {String.fromCharCode(8627)}
                   </span>
                 )}
-                <h3
-                  className={`${
-                    isChild ? "text-base" : "text-lg"
-                  } font-semibold text-gray-900 dark:text-white break-words`}
-                >
-                  {location.name}
-                </h3>
+                <div className={isChild ? "ml-0" : ""}>
+                  <LocationDisplay
+                    name={location.name}
+                    address={location.address}
+                    compact={isChild}
+                    showFullAddress={!isChild}
+                    className={isChild ? "text-base" : ""}
+                  />
+                </div>
                 {!isChild && children.length > 0 && (
                   <span className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded whitespace-nowrap flex-shrink-0">
                     {children.length} {children.length === 1 ? "place" : "places"}
                   </span>
                 )}
               </div>
-              {/* Address - line clamp on mobile */}
-              {location.address && (
-                <p
-                  className={`text-gray-600 dark:text-gray-400 text-sm mt-1 line-clamp-2 sm:line-clamp-none ${
-                    isChild ? "ml-6" : ""
-                  }`}
-                >
-                  {location.address}
-                </p>
-              )}
               {location.notes && (
                 <p
                   className={`text-gray-700 dark:text-gray-300 text-sm mt-2 line-clamp-2 sm:line-clamp-none ${
@@ -298,6 +294,30 @@ export default function LocationManager({
 
             {/* Action buttons - own row on mobile, inline on larger screens */}
             <div className="flex gap-2 items-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-600">
+              {/* Photo preview badge with popover */}
+              {(() => {
+                const linkSummary = getLinkSummary("LOCATION", location.id);
+                const photoCount = linkSummary?.linkCounts?.PHOTO || 0;
+                if (photoCount > 0) {
+                  return (
+                    <PhotoPreviewPopover
+                      tripId={tripId}
+                      entityType="LOCATION"
+                      entityId={location.id}
+                      photoCount={photoCount}
+                      onViewAll={() => setLinkPanelLocation(location)}
+                    >
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 cursor-pointer">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {photoCount}
+                      </span>
+                    </PhotoPreviewPopover>
+                  );
+                }
+                return null;
+              })()}
               <LinkButton
                 tripId={tripId}
                 entityType="LOCATION"
@@ -555,6 +575,17 @@ export default function LocationManager({
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
           <TripLocationsMap locations={manager.items} />
         </div>
+      )}
+
+      {/* Link Panel for viewing all photos */}
+      {linkPanelLocation && (
+        <LinkPanel
+          tripId={tripId}
+          entityType="LOCATION"
+          entityId={linkPanelLocation.id}
+          onClose={() => setLinkPanelLocation(null)}
+          onUpdate={invalidateLinkSummary}
+        />
       )}
     </div>
   );

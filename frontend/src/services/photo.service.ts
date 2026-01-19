@@ -155,6 +155,31 @@ class PhotoService {
   ): Promise<void> {
     await api.delete(`/albums/${albumId}/photos/${photoId}`);
   }
+
+  async getAlbumSuggestions(tripId: number): Promise<AlbumSuggestion[]> {
+    const response = await api.get(`/photos/trip/${tripId}/suggest-albums`);
+    return response.data;
+  }
+
+  async acceptAlbumSuggestion(
+    tripId: number,
+    suggestion: { name: string; photoIds: number[] }
+  ): Promise<{ albumId: number }> {
+    const response = await api.post(`/photos/trip/${tripId}/accept-suggestion`, suggestion);
+    return response.data;
+  }
+}
+
+export interface AlbumSuggestion {
+  name: string;
+  photoIds: number[];
+  type: 'date' | 'location';
+  confidence: number;
+  metadata: {
+    date?: string;
+    locationName?: string;
+    locationId?: number;
+  };
 }
 
 export const photoService = new PhotoService();

@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import tripService from '../services/trip.service';
 import { TripStatus, PrivacyLevel } from '../types/trip';
 import type { TripStatusType, PrivacyLevelType } from '../types/trip';
 import toast from 'react-hot-toast';
+import { useConfetti } from '../hooks/useConfetti';
 
 export default function TripFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!id;
+  const { triggerConfetti } = useConfetti();
+  const originalStatusRef = useRef<TripStatusType | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
@@ -47,6 +50,8 @@ export default function TripFormPage() {
       setTimezone(trip.timezone || '');
       setStatus(trip.status);
       setPrivacyLevel(trip.privacyLevel);
+      // Track original status for confetti celebration
+      originalStatusRef.current = trip.status;
     } catch {
       toast.error('Failed to load trip');
       navigate('/trips');
@@ -87,6 +92,13 @@ export default function TripFormPage() {
       if (isEdit && id) {
         await tripService.updateTrip(parseInt(id), data);
         toast.success('Trip updated successfully');
+
+        // Celebrate if trip status changed to COMPLETED
+        const wasCompleted = originalStatusRef.current === TripStatus.COMPLETED;
+        const isNowCompleted = status === TripStatus.COMPLETED;
+        if (!wasCompleted && isNowCompleted) {
+          triggerConfetti('trip');
+        }
       } else {
         await tripService.createTrip(data);
         toast.success('Trip created successfully');

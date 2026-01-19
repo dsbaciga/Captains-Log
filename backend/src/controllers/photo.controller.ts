@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import photoService from '../services/photo.service';
+import albumSuggestionService from '../services/albumSuggestion.service';
 import {
   uploadPhotoSchema,
   linkImmichPhotoSchema,
   linkImmichPhotoBatchSchema,
   updatePhotoSchema,
+  acceptAlbumSuggestionSchema,
 } from '../types/photo.types';
 import { AppError } from '../utils/errors';
 
@@ -188,6 +190,47 @@ class PhotoController {
       await photoService.deletePhoto(req.user!.userId, photoId);
 
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAlbumSuggestions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tripId = parseInt(req.params.tripId);
+      const suggestions = await albumSuggestionService.getAlbumSuggestions(
+        req.user!.userId,
+        tripId
+      );
+
+      res.json(suggestions);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async acceptAlbumSuggestion(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tripId = parseInt(req.params.tripId);
+
+      // Validate input with Zod schema
+      const validationResult = acceptAlbumSuggestionSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        throw new AppError(
+          `Invalid suggestion data: ${validationResult.error.errors.map(e => e.message).join(', ')}`,
+          400
+        );
+      }
+
+      const { name, photoIds } = validationResult.data;
+
+      const result = await albumSuggestionService.acceptSuggestion(
+        req.user!.userId,
+        tripId,
+        { name, photoIds }
+      );
+
+      res.status(201).json(result);
     } catch (error) {
       next(error);
     }

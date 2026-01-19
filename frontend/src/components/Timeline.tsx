@@ -518,24 +518,27 @@ const Timeline = ({
             return;
           }
           if (entry && entry.date) {
+            // Cast to any for dynamic property checks (these properties may not exist in the type)
+            const entryAny = entry as Record<string, unknown>;
             logger.log(`Processing journal entry ${index}`, {
               operation: 'loadTimelineData.journal.item',
               data: {
-                hasActivityAssignments: 'activityAssignments' in entry,
-                activityAssignmentsIsArray: Array.isArray(entry.activityAssignments),
-                activityAssignmentsLength: Array.isArray(entry.activityAssignments) ? entry.activityAssignments.length : 'N/A',
-                hasLodgingAssignments: 'lodgingAssignments' in entry,
-                lodgingAssignmentsIsArray: Array.isArray(entry.lodgingAssignments),
-                hasTransportationAssignments: 'transportationAssignments' in entry,
-                transportationAssignmentsIsArray: Array.isArray(entry.transportationAssignments),
+                hasActivityAssignments: 'activityAssignments' in entryAny,
+                activityAssignmentsIsArray: Array.isArray(entryAny.activityAssignments),
+                activityAssignmentsLength: Array.isArray(entryAny.activityAssignments) ? (entryAny.activityAssignments as unknown[]).length : 'N/A',
+                hasLodgingAssignments: 'lodgingAssignments' in entryAny,
+                lodgingAssignmentsIsArray: Array.isArray(entryAny.lodgingAssignments),
+                hasTransportationAssignments: 'transportationAssignments' in entryAny,
+                transportationAssignmentsIsArray: Array.isArray(entryAny.transportationAssignments),
               }
             });
-            const hasActivityLinks = Array.isArray(entry.activityAssignments) && entry.activityAssignments.length > 0;
-            const hasLodgingLinks = Array.isArray(entry.lodgingAssignments) && entry.lodgingAssignments.length > 0;
-            const hasTransportationLinks = Array.isArray(entry.transportationAssignments) && entry.transportationAssignments.length > 0;
+            const hasActivityLinks = Array.isArray(entryAny.activityAssignments) && (entryAny.activityAssignments as unknown[]).length > 0;
+            const hasLodgingLinks = Array.isArray(entryAny.lodgingAssignments) && (entryAny.lodgingAssignments as unknown[]).length > 0;
+            const hasTransportationLinks = Array.isArray(entryAny.transportationAssignments) && (entryAny.transportationAssignments as unknown[]).length > 0;
 
             if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
               const content = (entry.content != null && typeof entry.content === 'string') ? entry.content : '';
+              const locationAssignments = entryAny.locationAssignments as { location?: { name?: string } }[] | undefined;
               items.push({
                 id: entry.id,
                 type: 'journal',
@@ -543,7 +546,7 @@ const Timeline = ({
                 title: entry.title || 'Untitled Entry',
                 description:
                   content.substring(0, 150) + (content.length > 150 ? '...' : ''),
-                location: entry.locationAssignments?.[0]?.location?.name,
+                location: locationAssignments?.[0]?.location?.name,
                 data: entry,
               });
             }
@@ -593,7 +596,18 @@ const Timeline = ({
             return;
           }
           if (w && w.date) {
-            const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
+            // Parse the date as a local date to avoid timezone shifts
+            // Weather dates come from the server as ISO strings (e.g., "2025-01-15T00:00:00.000Z")
+            // which when parsed as UTC midnight can shift to the previous day in local timezones.
+            // We need to extract the date parts and create a local noon date to match
+            // how generateAllTripDates creates timeline dates.
+            const dateStr = typeof w.date === 'string'
+              ? w.date.split('T')[0]  // Extract "YYYY-MM-DD" from ISO string
+              : new Date(w.date).toISOString().split('T')[0];
+            const [year, month, day] = dateStr.split('-').map(Number);
+            // Create date at noon local time to match how timeline dates are generated
+            const localDate = new Date(year, month - 1, day, 12, 0, 0);
+            const dateKey = getDateStringInTimezone(localDate, tripTimezone);
             weatherByDate[dateKey] = w;
           }
         });
@@ -1020,7 +1034,14 @@ const Timeline = ({
       const weatherByDate: Record<string, WeatherData> = {};
       if (weather && Array.isArray(weather)) {
         weather.forEach((w) => {
-          const dateKey = getDateStringInTimezone(new Date(w.date), tripTimezone);
+          // Parse the date as a local date to avoid timezone shifts
+          // (same fix as in loadTimelineData)
+          const dateStr = typeof w.date === 'string'
+            ? w.date.split('T')[0]
+            : new Date(w.date).toISOString().split('T')[0];
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const localDate = new Date(year, month - 1, day, 12, 0, 0);
+          const dateKey = getDateStringInTimezone(localDate, tripTimezone);
           weatherByDate[dateKey] = w;
         });
       }

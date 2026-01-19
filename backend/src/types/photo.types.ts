@@ -105,6 +105,11 @@ export const addPhotosToAlbumSchema = z.object({
   photoIds: z.array(z.number()).min(1),
 });
 
+export const acceptAlbumSuggestionSchema = z.object({
+  name: z.string().min(1).max(255),
+  photoIds: z.array(z.number().int().positive()).min(1).max(1000),
+});
+
 // Photo sorting types
 export const PhotoSortBy = {
   DATE: 'date',
@@ -136,3 +141,4 @@ export type UpdatePhotoInput = z.infer<typeof updatePhotoSchema>;
 export type CreateAlbumInput = z.infer<typeof createAlbumSchema>;
 export type UpdateAlbumInput = z.infer<typeof updateAlbumSchema>;
 export type AddPhotosToAlbumInput = z.infer<typeof addPhotosToAlbumSchema>;
+export type AcceptAlbumSuggestionInput = z.infer<typeof acceptAlbumSuggestionSchema>;

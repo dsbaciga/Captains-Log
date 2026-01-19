@@ -263,4 +263,58 @@ router.get('/:id', photoController.getPhotoById);
 router.put('/:id', photoController.updatePhoto);
 router.delete('/:id', photoController.deletePhoto);
 
+/**
+ * @openapi
+ * /api/photos/trip/{tripId}/suggest-albums:
+ *   get:
+ *     summary: Get smart album suggestions based on photo clustering
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of album suggestions
+ */
+router.get('/trip/:tripId/suggest-albums', photoController.getAlbumSuggestions);
+
+/**
+ * @openapi
+ * /api/photos/trip/{tripId}/accept-suggestion:
+ *   post:
+ *     summary: Accept an album suggestion and create the album
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, photoIds]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               photoIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       201:
+ *         description: Album created from suggestion
+ */
+router.post('/trip/:tripId/accept-suggestion', photoController.acceptAlbumSuggestion);
+
 export default router;

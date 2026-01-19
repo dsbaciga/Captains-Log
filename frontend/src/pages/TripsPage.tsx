@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import tagService from '../services/tag.service';
-import type { Trip, TripListResponse } from '../types/trip';
+import type { Trip, TripListResponse, TripStatusType } from '../types/trip';
 import type { TripTag } from '../types/tag';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
@@ -15,8 +15,10 @@ import EmptyState, { EmptyIllustrations } from '../components/EmptyState';
 import { SkeletonGrid } from '../components/Skeleton';
 import { SearchIcon, FilterIcon, CloseIcon } from '../components/icons';
 import TripCard from '../components/TripCard';
+import TripsKanbanView from '../components/TripsKanbanView';
 
 type SortOption = 'startDate-desc' | 'startDate-asc' | 'title-asc' | 'title-desc' | 'status';
+type ViewMode = 'grid' | 'kanban';
 
 export default function TripsPage() {
   const queryClient = useQueryClient();
@@ -31,6 +33,7 @@ export default function TripsPage() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   // Use ref to track blob URLs for proper cleanup (avoids stale closure issues)
   const blobUrlsRef = useRef<string[]>([]);
@@ -98,6 +101,46 @@ export default function TripsPage() {
       queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
+
+  // Mutation for updating trip status (used by Kanban view)
+  const updateTripStatusMutation = useMutation({
+    mutationFn: async ({ tripId, status }: { tripId: number; status: TripStatusType }) => {
+      return tripService.updateTrip(tripId, { status });
+    },
+    onMutate: async ({ tripId, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['trips'] });
+      const previousTripsData = queryClient.getQueryData<TripListResponse>(['trips', queryParams]);
+
+      queryClient.setQueryData(['trips', queryParams], (oldData: TripListResponse | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          trips: oldData.trips.map((trip: Trip) =>
+            trip.id === tripId ? { ...trip, status } : trip
+          ),
+        };
+      });
+
+      return { previousTripsData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousTripsData) {
+        queryClient.setQueryData(['trips', queryParams], context.previousTripsData);
+      }
+      toast.error('Failed to update trip status.');
+    },
+    onSuccess: () => {
+      toast.success('Trip status updated.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+    },
+  });
+
+  // Handler for Kanban status change
+  const handleStatusChange = async (tripId: number, newStatus: TripStatusType) => {
+    await updateTripStatusMutation.mutateAsync({ tripId, status: newStatus });
+  };
 
   // Load tags once on mount
   useEffect(() => {
@@ -239,11 +282,44 @@ export default function TripsPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
           <h2 className="text-3xl font-bold text-charcoal dark:text-warm-gray font-display">My Trips</h2>
-          <Link to="/trips/new" className="btn btn-primary">
-            + New Trip
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+                title="Grid View"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === 'kanban'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+                title="Kanban View"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
+              </button>
+            </div>
+            <Link to="/trips/new" className="btn btn-primary">
+              + New Trip
+            </Link>
+          </div>
         </div>
 
         {/* Filter Bar */}
@@ -408,7 +484,7 @@ export default function TripsPage() {
           </div>
         )}
 
-        {/* Trips Grid */}
+        {/* Trips Display */}
         {loading ? (
           <SkeletonGrid count={6} columns={3} hasImage />
         ) : filteredTrips.length === 0 ? (
@@ -429,7 +505,15 @@ export default function TripsPage() {
               onAction={clearFilters}
             />
           )
+        ) : viewMode === 'kanban' ? (
+          /* Kanban View */
+          <TripsKanbanView
+            trips={filteredTrips}
+            coverPhotoUrls={coverPhotoUrls}
+            onStatusChange={handleStatusChange}
+          />
         ) : (
+          /* Grid View */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTrips.map((trip) => (
               <TripCard

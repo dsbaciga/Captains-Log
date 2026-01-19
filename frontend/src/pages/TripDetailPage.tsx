@@ -22,6 +22,8 @@ import { TripStatus } from "../types/trip";
 import toast from "react-hot-toast";
 import PhotoGallery from "../components/PhotoGallery";
 import PhotoUpload from "../components/PhotoUpload";
+import PhotosMapView from "../components/PhotosMapView";
+import AlbumSuggestions from "../components/AlbumSuggestions";
 import Timeline from "../components/Timeline";
 import ActivityManager from "../components/ActivityManager";
 import UnscheduledItems from "../components/UnscheduledItems";
@@ -35,6 +37,7 @@ import TagsModal from "../components/TagsModal";
 import AlbumsSidebar from "../components/AlbumsSidebar";
 import AlbumModal from "../components/AlbumModal";
 import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
+import FloatingTripHeader from "../components/FloatingTripHeader";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
 import Breadcrumbs from "../components/Breadcrumbs";
@@ -76,6 +79,7 @@ export default function TripDetailPage() {
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<PhotoAlbum | null>(null);
   const [showAlbumsMobileDrawer, setShowAlbumsMobileDrawer] = useState(false);
+  const [photoViewMode, setPhotoViewMode] = useState<'gallery' | 'map'>('gallery');
   const [showAddPhotosModal, setShowAddPhotosModal] = useState(false);
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   
@@ -184,6 +188,9 @@ export default function TripDetailPage() {
   // Photo sorting state
   const sortByRef = useRef<string>("date");
   const sortOrderRef = useRef<string>("desc");
+
+  // Ref for floating header observation
+  const tripHeaderRef = useRef<HTMLDivElement>(null);
 
   // Pagination hooks
   const photosPagination = usePagination<Photo>(
@@ -594,10 +601,6 @@ export default function TripDetailPage() {
     }
   };
 
-  const refreshAlbums = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
-  };
-
   const handleSelectAlbum = async (albumId: number | null) => {
     setSelectedAlbumId(albumId);
     // Loading will be triggered by useEffect below
@@ -632,7 +635,7 @@ export default function TripDetailPage() {
       }
 
       // Reload albums
-      await refreshAlbums();
+      queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
 
       setShowAlbumModal(false);
       setEditingAlbum(null);
@@ -665,7 +668,7 @@ export default function TripDetailPage() {
       }
 
       // Reload albums
-      await refreshAlbums();
+      queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
     } catch {
       toast.error("Failed to delete album");
     }
@@ -736,13 +739,16 @@ export default function TripDetailPage() {
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* Floating Trip Header - appears when main header scrolls out */}
+      <FloatingTripHeader trip={trip} observeRef={tripHeaderRef} />
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <Breadcrumbs
           items={[{ label: "Trips", href: "/trips" }, { label: trip.title }]}
         />
         {/* Trip Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+        <div ref={tripHeaderRef} className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
           {/* Cover Photo Background */}
           {coverPhotoUrl ? (
             // Dynamic background image requires CSS variable - cannot be moved to static CSS
@@ -1143,6 +1149,17 @@ export default function TripDetailPage() {
               existingImmichAssetIds={existingImmichAssetIds}
             />
 
+            {/* Smart Album Suggestions */}
+            {selectedAlbumId === -1 && unsortedPhotosCount >= 3 && (
+              <AlbumSuggestions
+                tripId={trip.id}
+                onAlbumCreated={() => {
+                  queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
+                  unsortedPagination.loadInitial();
+                }}
+              />
+            )}
+
             {/* Mobile Albums Drawer Toggle Button */}
             <button
               onClick={() => setShowAlbumsMobileDrawer(true)}
@@ -1218,6 +1235,37 @@ export default function TripDetailPage() {
                       )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                    {/* Gallery/Map View Toggle */}
+                    <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setPhotoViewMode('gallery')}
+                        className={`px-2.5 py-1.5 text-sm transition-colors ${
+                          photoViewMode === 'gallery'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        }`}
+                        title="Gallery View"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPhotoViewMode('map')}
+                        className={`px-2.5 py-1.5 text-sm transition-colors ${
+                          photoViewMode === 'map'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        }`}
+                        title="Map View"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                      </button>
+                    </div>
                     {/* Add Photos button - only show when viewing a specific album */}
                     {selectedAlbumId !== null && selectedAlbumId > 0 && (
                       <button
@@ -1269,95 +1317,104 @@ export default function TripDetailPage() {
                   </div>
                 </div>
 
-                <PhotoGallery
-                  photos={filteredPhotos}
-                  albums={albums}
-                  onPhotoDeleted={() => {
-                    queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-                    queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
-                    // Refresh the current view
-                    if (selectedAlbumId === null) {
-                      photosPagination.loadInitial();
-                    } else if (selectedAlbumId === -1) {
-                      unsortedPagination.loadInitial();
-                    } else {
-                      albumPhotosPagination.loadInitial();
-                    }
-                  }}
-                  onPhotoUpdated={() => {
-                    queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-                    // Refresh the current view
-                    if (selectedAlbumId === null) {
-                      photosPagination.loadInitial();
-                    } else if (selectedAlbumId === -1) {
-                      unsortedPagination.loadInitial();
-                    } else {
-                      albumPhotosPagination.loadInitial();
-                    }
-                  }}
-                  onPhotosAddedToAlbum={() => {
-                    queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
-                    // Refresh the current view
-                    if (selectedAlbumId === null) {
-                      photosPagination.loadInitial();
-                    } else if (selectedAlbumId === -1) {
-                      unsortedPagination.loadInitial();
-                    } else {
-                      albumPhotosPagination.loadInitial();
-                    }
-                    toast.success("Photos added to album");
-                  }}
-                  onSetCoverPhoto={async (photoId: number) => {
-                    try {
-                      await tripService.updateCoverPhoto(trip.id, photoId);
-                      toast.success("Cover photo updated");
+                {photoViewMode === 'map' ? (
+                  <PhotosMapView
+                    photos={filteredPhotos}
+                    onPhotoClick={() => {
+                      // TODO: Implement lightbox or photo navigation
+                    }}
+                  />
+                ) : (
+                  <PhotoGallery
+                    photos={filteredPhotos}
+                    albums={albums}
+                    onPhotoDeleted={() => {
                       queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-                    } catch {
-                      toast.error("Failed to set cover photo");
-                    }
-                  }}
-                  coverPhotoId={trip.coverPhotoId}
-                  totalPhotosInView={
-                    selectedAlbumId === null
-                      ? photosPagination.total
-                      : selectedAlbumId === -1
-                      ? unsortedPagination.total
-                      : albumPhotosPagination.total
-                  }
-                  onLoadAllPhotos={async () => {
-                    // Load all remaining photos for current view
-                    if (selectedAlbumId === null) {
-                      while (photosPagination.hasMore) {
-                        await photosPagination.loadMore();
+                      queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
+                      // Refresh the current view
+                      if (selectedAlbumId === null) {
+                        photosPagination.loadInitial();
+                      } else if (selectedAlbumId === -1) {
+                        unsortedPagination.loadInitial();
+                      } else {
+                        albumPhotosPagination.loadInitial();
                       }
-                    } else if (selectedAlbumId === -1) {
-                      while (unsortedPagination.hasMore) {
-                        await unsortedPagination.loadMore();
+                    }}
+                    onPhotoUpdated={() => {
+                      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+                      // Refresh the current view
+                      if (selectedAlbumId === null) {
+                        photosPagination.loadInitial();
+                      } else if (selectedAlbumId === -1) {
+                        unsortedPagination.loadInitial();
+                      } else {
+                        albumPhotosPagination.loadInitial();
                       }
-                    } else {
-                      while (albumPhotosPagination.hasMore) {
-                        await albumPhotosPagination.loadMore();
+                    }}
+                    onPhotosAddedToAlbum={() => {
+                      queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
+                      // Refresh the current view
+                      if (selectedAlbumId === null) {
+                        photosPagination.loadInitial();
+                      } else if (selectedAlbumId === -1) {
+                        unsortedPagination.loadInitial();
+                      } else {
+                        albumPhotosPagination.loadInitial();
                       }
+                      toast.success("Photos added to album");
+                    }}
+                    onSetCoverPhoto={async (photoId: number) => {
+                      try {
+                        await tripService.updateCoverPhoto(trip.id, photoId);
+                        toast.success("Cover photo updated");
+                        queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+                      } catch {
+                        toast.error("Failed to set cover photo");
+                      }
+                    }}
+                    coverPhotoId={trip.coverPhotoId}
+                    totalPhotosInView={
+                      selectedAlbumId === null
+                        ? photosPagination.total
+                        : selectedAlbumId === -1
+                        ? unsortedPagination.total
+                        : albumPhotosPagination.total
                     }
-                  }}
-                  currentAlbumId={selectedAlbumId}
-                  onPhotosRemovedFromAlbum={() => {
-                    queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
-                    // Refresh the current view
-                    if (selectedAlbumId === null) {
-                      photosPagination.loadInitial();
-                    } else if (selectedAlbumId === -1) {
-                      unsortedPagination.loadInitial();
-                    } else {
-                      albumPhotosPagination.loadInitial();
-                    }
-                    toast.success("Photos removed from album");
-                  }}
-                  onSortChange={handlePhotoSortChange}
-                  initialSortBy={sortByRef.current}
-                  initialSortOrder={sortOrderRef.current}
-                  tripId={trip.id}
-                />
+                    onLoadAllPhotos={async () => {
+                      // Load all remaining photos for current view
+                      if (selectedAlbumId === null) {
+                        while (photosPagination.hasMore) {
+                          await photosPagination.loadMore();
+                        }
+                      } else if (selectedAlbumId === -1) {
+                        while (unsortedPagination.hasMore) {
+                          await unsortedPagination.loadMore();
+                        }
+                      } else {
+                        while (albumPhotosPagination.hasMore) {
+                          await albumPhotosPagination.loadMore();
+                        }
+                      }
+                    }}
+                    currentAlbumId={selectedAlbumId}
+                    onPhotosRemovedFromAlbum={() => {
+                      queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
+                      // Refresh the current view
+                      if (selectedAlbumId === null) {
+                        photosPagination.loadInitial();
+                      } else if (selectedAlbumId === -1) {
+                        unsortedPagination.loadInitial();
+                      } else {
+                        albumPhotosPagination.loadInitial();
+                      }
+                      toast.success("Photos removed from album");
+                    }}
+                    onSortChange={handlePhotoSortChange}
+                    initialSortBy={sortByRef.current}
+                    initialSortOrder={sortOrderRef.current}
+                    tripId={trip.id}
+                  />
+                )}
 
                 {photosPagination.hasMore && selectedAlbumId === null && (
                   <div className="text-center mt-6">
