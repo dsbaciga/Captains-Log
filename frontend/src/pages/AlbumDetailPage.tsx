@@ -259,7 +259,7 @@ export default function AlbumDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-6 py-8 text-gray-900 dark:text-white">
+        <div className="max-w-[1600px] mx-auto px-6 py-8 text-gray-900 dark:text-white">
           Loading...
         </div>
       </div>
@@ -269,7 +269,7 @@ export default function AlbumDetailPage() {
   if (!album) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-6 py-8 text-gray-900 dark:text-white">
+        <div className="max-w-[1600px] mx-auto px-6 py-8 text-gray-900 dark:text-white">
           Album not found
         </div>
       </div>
@@ -278,7 +278,7 @@ export default function AlbumDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-[1600px] mx-auto px-6 py-8">
         <Breadcrumbs
           items={[
             { label: 'Trips', href: '/trips' },

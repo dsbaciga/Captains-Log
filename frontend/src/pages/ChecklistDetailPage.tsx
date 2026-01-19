@@ -128,7 +128,7 @@ export default function ChecklistDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-6 py-8 text-gray-900 dark:text-white">
+        <div className="max-w-[1600px] mx-auto px-6 py-8 text-gray-900 dark:text-white">
           Loading...
         </div>
       </div>
@@ -138,7 +138,7 @@ export default function ChecklistDetailPage() {
   if (!checklist) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-6 py-8 text-gray-900 dark:text-white">
+        <div className="max-w-[1600px] mx-auto px-6 py-8 text-gray-900 dark:text-white">
           Checklist not found
         </div>
       </div>
@@ -192,7 +192,7 @@ export default function ChecklistDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-[1600px] mx-auto px-6 py-8">
         <div className="mb-8">
           <Breadcrumbs
             items={[

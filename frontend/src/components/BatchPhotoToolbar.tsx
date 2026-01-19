@@ -59,7 +59,7 @@ export default function BatchPhotoToolbar({
     >
       {/* Backdrop blur effect */}
       <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6">
+        <div className="max-w-[1600px] mx-auto px-4 py-3 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             {/* Left section: Selection info */}
             <div className="flex items-center gap-3">

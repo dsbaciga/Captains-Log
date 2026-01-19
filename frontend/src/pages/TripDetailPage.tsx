@@ -743,7 +743,7 @@ export default function TripDetailPage() {
       <FloatingTripHeader trip={trip} observeRef={tripHeaderRef} />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Breadcrumbs
           items={[{ label: "Trips", href: "/trips" }, { label: trip.title }]}
         />

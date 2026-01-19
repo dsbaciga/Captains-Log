@@ -344,7 +344,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-[1600px] mx-auto px-6 py-8">
         <Link
           to="/dashboard"
           className="text-blue-600 dark:text-blue-400 hover:underline mb-6 inline-block"

@@ -277,7 +277,7 @@ export default function PhotoLightbox({
           showControls ? "opacity-100" : "opacity-0"
         }`}
       >
-        <div className="flex justify-between items-start max-w-7xl mx-auto">
+        <div className="flex justify-between items-start max-w-[1600px] mx-auto">
           {/* Photo info */}
           <div className="text-white">
             <p className="text-sm font-medium">
@@ -372,7 +372,7 @@ export default function PhotoLightbox({
           showControls ? "opacity-100" : "opacity-0"
         }`}
       >
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           {editMode ? (
             /* Edit mode panel */
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 max-w-lg mx-auto">

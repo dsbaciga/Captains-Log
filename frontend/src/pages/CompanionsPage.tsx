@@ -314,14 +314,14 @@ export default function CompanionsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 py-8">
         <LoadingSpinner.FullPage message="Loading companions..." />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="max-w-[1600px] mx-auto px-4 py-8">
       <ConfirmDialogComponent />
       
       <PageHeader

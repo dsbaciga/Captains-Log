@@ -45,7 +45,7 @@ export default function PlacesVisitedPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 py-8">
         <LoadingSpinner.FullPage message="Loading your visited places..." />
       </div>
     );
@@ -53,7 +53,7 @@ export default function PlacesVisitedPage() {
 
   if (locations.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
           Places Visited
         </h1>
@@ -72,7 +72,7 @@ export default function PlacesVisitedPage() {
     <div className="h-screen flex flex-col">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
-        <div className="container mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">

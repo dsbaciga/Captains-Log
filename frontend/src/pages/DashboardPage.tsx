@@ -29,7 +29,7 @@ export default function DashboardPage() {
       className="min-h-screen bg-gradient-to-br from-cream to-parchment dark:from-navy-900 dark:to-navy-800 overflow-y-auto"
     >
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
-      <main className="max-w-7xl mx-auto px-6 py-16 pt-24">
+      <main className="max-w-[1600px] mx-auto px-6 py-16 pt-24">
         {/* Hero Section */}
         <div className="mb-12 animate-fade-in">
           <h1 className="text-5xl md:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight leading-none mb-4">

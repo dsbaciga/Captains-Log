@@ -132,8 +132,10 @@ export default function TripsPage() {
     onSuccess: () => {
       toast.success('Trip status updated.');
     },
-    onSettled: () => {
+    onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['trips'] });
+      // Also invalidate the individual trip query so TripDetailPage gets updated
+      queryClient.invalidateQueries({ queryKey: ['trip', variables.tripId] });
     },
   });
 
@@ -280,7 +282,7 @@ export default function TripsPage() {
     <div className="bg-cream dark:bg-navy-900 min-h-screen">
       <ConfirmDialogComponent />
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
           <h2 className="text-3xl font-bold text-charcoal dark:text-warm-gray font-display">My Trips</h2>
