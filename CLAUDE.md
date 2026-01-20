@@ -9,6 +9,7 @@ The reference folder is organized into three categories:
 ### Architecture Documentation (`reference/app_architecture/`)
 - [FRONTEND_ARCHITECTURE.md](reference/app_architecture/FRONTEND_ARCHITECTURE.md) - **Detailed frontend architecture guide covering component patterns, state management, data flow, routing, and best practices.**
 - [BACKEND_ARCHITECTURE.md](reference/app_architecture/BACKEND_ARCHITECTURE.md) - **Detailed backend architecture guide covering layered architecture, database patterns, authentication, validation, error handling, and best practices.**
+- [STYLE_GUIDE.md](reference/app_architecture/STYLE_GUIDE.md) - **UI design system and visual conventions including colors, typography, components, dark mode patterns, animations, and accessibility guidelines.**
 
 ### Development Tracking (`reference/development/`)
 - [IMPLEMENTATION_STATUS.md](reference/development/IMPLEMENTATION_STATUS.md) - **Current project status, completed features, and remaining work. Update this file whenever significant features are completed or new issues are discovered.**
