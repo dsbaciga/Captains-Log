@@ -1133,6 +1133,8 @@ export default function TripDetailPage() {
               locations={locations}
               onPhotoUploaded={async () => {
                 await queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+                // Refresh album counts (totalPhotosCount, unsortedPhotosCount)
+                await queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
                 // Refresh Immich asset IDs to update the exclude list
                 await loadImmichAssetIds(trip.id);
                 // Refresh the current view
@@ -1200,10 +1202,11 @@ export default function TripDetailPage() {
               )}
 
               {/* Right: Photo Gallery */}
-              <div className="flex-1 min-w-0 p-6">
-                <div className="flex flex-wrap justify-between items-start mb-6 gap-3">
-                  <div className="flex flex-col gap-1 min-w-0 flex-1 max-w-full">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
+              <div className="flex-1 min-w-0 p-4 sm:p-6">
+                {/* Header row - stacks on mobile */}
+                <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-between sm:items-start mb-4 sm:mb-6 gap-3">
+                  <div className="flex flex-col gap-1 w-full sm:w-auto sm:min-w-0 sm:flex-1">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white break-words">
                       {selectedAlbumId === null
                         ? `All Photos (${totalPhotosCount})`
                         : selectedAlbumId === -1
