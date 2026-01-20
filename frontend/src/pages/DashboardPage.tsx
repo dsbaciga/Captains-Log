@@ -46,27 +46,27 @@ export default function DashboardPage() {
           {/* Top Row - Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Left Column */}
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-6">
               {/* Upcoming Trips */}
               <div className="animate-fade-in">
                 <UpcomingTripsWidget />
               </div>
 
               {/* Quick Actions */}
-              <div className="animate-fade-in stagger-4">
+              <div className="animate-fade-in stagger-4 flex-1">
                 <QuickActionsWidget />
               </div>
             </div>
 
             {/* Right Column */}
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-6">
               {/* Travel Stats */}
               <div className="animate-fade-in stagger-1">
                 <TravelStatsWidget />
               </div>
 
               {/* Recent Photos */}
-              <div className="animate-fade-in stagger-3">
+              <div className="animate-fade-in stagger-3 flex-1">
                 <RecentPhotosWidget />
               </div>
             </div>
