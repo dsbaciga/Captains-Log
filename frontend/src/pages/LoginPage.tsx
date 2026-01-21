@@ -43,7 +43,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md animate-fade-in-up">
           {/* Title with embossed effect */}
           <div className="text-center mb-8">
-            <h1 className="text-6xl md:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight mb-3 drop-shadow-sm">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight mb-3 drop-shadow-sm">
               Travel Life
             </h1>
             <p className="text-slate dark:text-warm-gray font-body text-sm italic tracking-wide">
@@ -52,7 +52,7 @@ export default function LoginPage() {
           </div>
 
           {/* Form card with refined styling */}
-          <div className="bg-white/90 dark:bg-navy-800/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(43,90,127,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border-2 border-primary-500/10 dark:border-sky/10 p-8">
+          <div className="bg-white/90 dark:bg-navy-800/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(43,90,127,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border-2 border-primary-500/10 dark:border-sky/10 p-4 sm:p-6 md:p-8">
             <h2 className="text-2xl font-display font-semibold text-center mb-8 text-primary-700 dark:text-sky">
               Welcome Back
             </h2>

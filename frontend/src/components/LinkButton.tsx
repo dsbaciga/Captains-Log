@@ -28,7 +28,8 @@ export default function LinkButton({
   const hasLinks = totalLinks > 0;
   const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
   const badgeSize = size === 'sm' ? 'w-4 h-4 text-[9px]' : 'w-5 h-5 text-[10px]';
-  const buttonPadding = size === 'sm' ? 'p-1.5' : 'p-2';
+  const buttonPadding = size === 'sm' ? 'p-2.5' : 'p-3';
+  const minSize = 'min-w-[44px] min-h-[44px]';
 
   // Build tooltip showing linked entity types
   const getTooltip = () => {
@@ -55,7 +56,7 @@ export default function LinkButton({
           setShowPanel(true);
         }}
         type="button"
-        className={`relative ${buttonPadding} rounded-md transition-all ${
+        className={`relative ${buttonPadding} ${minSize} rounded-md transition-all flex items-center justify-center ${
           hasLinks
             ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50'
             : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700'

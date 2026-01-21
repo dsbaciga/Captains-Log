@@ -489,10 +489,14 @@ textarea:focus-visible {
   display: none;
 }
 
-/* Touch-friendly minimum sizes for mobile */
+/* Touch-friendly targets for coarse pointer devices (touch screens)
+   Use .touch-compact class on buttons that need smaller touch targets */
 @media (pointer: coarse) {
-  button,
-  a,
+  /* Only apply to actual button elements, not text links */
+  button:not(.touch-compact),
+  a.btn,
+  a.btn-primary,
+  a.btn-secondary,
   input[type="checkbox"],
   input[type="radio"] {
     min-height: 44px;
@@ -502,6 +506,37 @@ textarea:focus-visible {
   select {
     min-height: 44px;
   }
+}
+
+/* Prevent iOS zoom on input focus - inputs need 16px minimum */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area padding for notched devices */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-bottom-nav {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
 }
 
 /* Dynamic height utility using CSS variable */
@@ -810,5 +845,21 @@ textarea:focus-visible {
   @page {
     margin: 0.5in;
     size: letter;
+  }
+}
+
+/* ========================================
+   REDUCED MOTION SUPPORT
+   ======================================== */
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

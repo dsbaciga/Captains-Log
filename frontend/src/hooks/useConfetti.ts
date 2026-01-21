@@ -32,7 +32,7 @@ export function useConfetti() {
         });
         break;
 
-      case 'trip':
+      case 'trip': {
         // Grand celebration for trip completion
         // Fire from both sides
         const duration = 2000;
@@ -65,6 +65,7 @@ export function useConfetti() {
           });
         }, 250);
         break;
+      }
 
       case 'photo':
         // Sparkle effect for first photo

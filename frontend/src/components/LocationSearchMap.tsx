@@ -180,7 +180,7 @@ const LocationSearchMap = ({ onLocationSelect, initialPosition }: LocationSearch
       )}
 
       {/* Map */}
-      <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200 relative z-0">
+      <div className="h-56 sm:h-72 md:h-80 lg:h-[400px] rounded-lg overflow-hidden border border-gray-200 relative z-0">
         <MapContainer
           center={[mapCenter.lat, mapCenter.lng]}
           zoom={selectedPosition ? 13 : 2}

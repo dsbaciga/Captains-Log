@@ -69,12 +69,12 @@ export default function ChipSelector<T>({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {label} ({selectedIds.length} selected)
         </label>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           {selectedIds.length > 0 && (
             <button
               type="button"
               onClick={clearAll}
-              className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline"
+              className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline px-2 py-2 min-h-[44px] flex items-center"
             >
               Clear all
             </button>
@@ -83,7 +83,7 @@ export default function ChipSelector<T>({
             <button
               type="button"
               onClick={selectAll}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline px-2 py-2 min-h-[44px] flex items-center"
             >
               Select all
             </button>

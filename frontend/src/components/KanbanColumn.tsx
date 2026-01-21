@@ -29,7 +29,7 @@ export default function KanbanColumn({
   const tripIds = trips.map((trip) => trip.id.toString());
 
   return (
-    <div className="flex flex-col min-w-[280px] w-[280px] flex-shrink-0">
+    <div className="flex flex-col min-w-[240px] w-[240px] sm:min-w-[280px] sm:w-[280px] flex-shrink-0">
       {/* Column header */}
       <div
         className="flex items-center gap-2 px-3 py-2 rounded-t-lg"
