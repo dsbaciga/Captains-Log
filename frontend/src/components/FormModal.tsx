@@ -124,7 +124,7 @@ export default function FormModal({
             onClick={onClose}
             type="button"
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gold transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-navy-700"
+            className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gold transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-navy-700"
           >
             <svg
               className="w-6 h-6"

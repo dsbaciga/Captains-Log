@@ -35,7 +35,7 @@ export default function KeyboardShortcutsHelp() {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4"
       onClick={() => setShowHelp(false)}
     >
       <div
@@ -55,7 +55,7 @@ export default function KeyboardShortcutsHelp() {
             </div>
             <button
               onClick={() => setShowHelp(false)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               aria-label="Close"
             >
               <svg

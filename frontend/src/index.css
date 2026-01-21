@@ -489,10 +489,13 @@ textarea:focus-visible {
   display: none;
 }
 
-/* Touch-friendly minimum sizes for mobile */
+/* Touch-friendly targets for coarse pointer devices (touch screens) */
 @media (pointer: coarse) {
-  button,
-  a,
+  /* Only apply to actual button elements, not text links */
+  button:not(.touch-compact),
+  a.btn,
+  a.btn-primary,
+  a.btn-secondary,
   input[type="checkbox"],
   input[type="radio"] {
     min-height: 44px;
