@@ -66,7 +66,7 @@ export default function TripsKanbanView({
     }
   }, []);
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
+  const handleDragOver = useCallback((_event: DragOverEvent) => {
     // Handle drag over logic if needed
   }, []);
 
