@@ -32,6 +32,7 @@ import LodgingManager from "../components/LodgingManager";
 import JournalManager from "../components/JournalManager";
 import CompanionManager from "../components/CompanionManager";
 import LocationManager from "../components/LocationManager";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { getFullAssetUrl } from "../lib/config";
 import TagsModal from "../components/TagsModal";
 import AlbumsSidebar from "../components/AlbumsSidebar";
@@ -1114,13 +1115,15 @@ export default function TripDetailPage() {
         {/* Locations Tab */}
         {activeTab === "locations" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isLocationsLoading ? <Skeleton /> : (
-            <LocationManager
-              tripId={trip.id}
-              tripTimezone={trip.timezone}
-              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['locations', tripId] })}
-            />
-            )}
+            <ErrorBoundary>
+              {isLocationsLoading ? <Skeleton /> : (
+              <LocationManager
+                tripId={trip.id}
+                tripTimezone={trip.timezone}
+                onUpdate={() => queryClient.invalidateQueries({ queryKey: ['locations', tripId] })}
+              />
+              )}
+            </ErrorBoundary>
           </div>
         )}
 
