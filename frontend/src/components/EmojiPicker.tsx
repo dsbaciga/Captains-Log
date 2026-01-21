@@ -41,7 +41,7 @@ export default function EmojiPicker({ value, onChange, className = "" }: EmojiPi
         {value || "😀"}
       </button>
       {showPicker && (
-        <div className="absolute z-50 mt-2">
+        <div className="absolute z-[95] mt-2">
           <EmojiPickerReact
             onEmojiClick={handleEmojiClick}
             searchDisabled={false}

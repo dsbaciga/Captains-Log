@@ -79,6 +79,3 @@ export default function LocationDisplay({
     </div>
   );
 }
-
-// Export the utility function for use in other components
-export { extractSecondaryLocation };

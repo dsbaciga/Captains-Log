@@ -134,7 +134,7 @@ export default function AlbumsSidebar({
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Albums</h3>
             <button
               onClick={onCloseMobileDrawer}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Close albums"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +243,7 @@ export default function AlbumsSidebar({
                       e.stopPropagation();
                       onEditAlbum(album);
                     }}
-                    className="p-1.5 bg-white dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm"
+                    className="p-1.5 bg-white dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center"
                     title="Edit album"
                   >
                     <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -255,7 +255,7 @@ export default function AlbumsSidebar({
                       e.stopPropagation();
                       onDeleteAlbum(album.id);
                     }}
-                    className="p-1.5 bg-white dark:bg-gray-700 rounded hover:bg-red-100 dark:hover:bg-red-900 shadow-sm"
+                    className="p-1.5 bg-white dark:bg-gray-700 rounded hover:bg-red-100 dark:hover:bg-red-900 shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center"
                     title="Delete album"
                   >
                     <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

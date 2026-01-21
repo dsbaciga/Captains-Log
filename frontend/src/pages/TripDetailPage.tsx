@@ -36,6 +36,7 @@ import CollaboratorsManager from "../components/CollaboratorsManager";
 import Modal from "../components/Modal";
 import collaborationService from "../services/collaboration.service";
 import type { UserPermission } from "../types/collaboration";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { getFullAssetUrl } from "../lib/config";
 import TagsModal from "../components/TagsModal";
 import AlbumsSidebar from "../components/AlbumsSidebar";
@@ -1097,7 +1098,7 @@ export default function TripDetailPage() {
           tabs={tabGroups}
           activeTab={activeTab}
           onTabChange={(tabId) => changeTab(tabId as TabId)}
-          className="mb-6 sticky top-16 sm:top-20 bg-gray-50 dark:bg-gray-900 z-10"
+          className="mb-6 sticky top-28 sm:top-32 bg-gray-50 dark:bg-gray-900 z-10"
         />
 
         {/* Tab Content with smooth transitions */}
@@ -1148,13 +1149,15 @@ export default function TripDetailPage() {
         {/* Locations Tab */}
         {activeTab === "locations" && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
-            {isLocationsLoading ? <Skeleton /> : (
-            <LocationManager
-              tripId={trip.id}
-              tripTimezone={trip.timezone}
-              onUpdate={() => queryClient.invalidateQueries({ queryKey: ['locations', tripId] })}
-            />
-            )}
+            <ErrorBoundary>
+              {isLocationsLoading ? <Skeleton /> : (
+              <LocationManager
+                tripId={trip.id}
+                tripTimezone={trip.timezone}
+                onUpdate={() => queryClient.invalidateQueries({ queryKey: ['locations', tripId] })}
+              />
+              )}
+            </ErrorBoundary>
           </div>
         )}
 
@@ -1662,7 +1665,7 @@ export default function TripDetailPage() {
 
       {/* Duplicate Trip Dialog */}
       {showDuplicateDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">

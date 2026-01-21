@@ -5,21 +5,16 @@ import toast from "react-hot-toast";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import FormModal from "./FormModal";
+import {
+  DEFAULT_TAG_COLORS,
+  DEFAULT_TAG_COLOR,
+  DEFAULT_TEXT_COLOR,
+  getRandomTagColor,
+} from "../utils/tagColors";
 
 interface TagManagerProps {
   tripId: number;
 }
-
-const DEFAULT_COLORS = [
-  "#3B82F6", // blue
-  "#10B981", // green
-  "#F59E0B", // yellow
-  "#EF4444", // red
-  "#8B5CF6", // purple
-  "#EC4899", // pink
-  "#F97316", // orange
-  "#06B6D4", // cyan
-];
 
 export default function TagManager({ tripId }: TagManagerProps) {
   // Service adapter for trip tags (tags linked to this trip)
@@ -38,11 +33,12 @@ export default function TagManager({ tripId }: TagManagerProps) {
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagName, setTagName] = useState("");
-  const [tagColor, setTagColor] = useState(DEFAULT_COLORS[0]);
+  const [tagColor, setTagColor] = useState(getRandomTagColor);
   const [editingTag, setEditingTag] = useState<Tag | TripTag | null>(null);
   const tagNameId = useId();
   const tagColorId = useId();
 
+  // Reload tags when navigating between trips to ensure fresh data
   useEffect(() => {
     loadAllTags();
   }, [tripId]);
@@ -62,10 +58,11 @@ export default function TagManager({ tripId }: TagManagerProps) {
       const newTag = await tagService.createTag({
         name: tagName,
         color: tagColor,
+        textColor: DEFAULT_TEXT_COLOR,
       });
       toast.success("Tag created");
       setTagName("");
-      setTagColor(DEFAULT_COLORS[0]);
+      setTagColor(getRandomTagColor());
       manager.closeForm();
       await loadAllTags();
       // Automatically link the new tag to this trip
@@ -87,7 +84,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       toast.success("Tag updated");
       setEditingTag(null);
       setTagName("");
-      setTagColor(DEFAULT_COLORS[0]);
+      setTagColor(getRandomTagColor());
       loadAllTags();
       manager.loadItems();
     } catch {
@@ -142,7 +139,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
   const startEdit = (tag: Tag | TripTag) => {
     setEditingTag(tag);
     setTagName(tag.name);
-    setTagColor(tag.color || DEFAULT_COLORS[0]);
+    setTagColor(tag.color || DEFAULT_TAG_COLOR);
     manager.openCreateForm();
   };
 
@@ -150,7 +147,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     manager.closeForm();
     setEditingTag(null);
     setTagName("");
-    setTagColor(DEFAULT_COLORS[0]);
+    setTagColor(getRandomTagColor());
   };
 
   if (manager.loading) {
@@ -168,7 +165,10 @@ export default function TagManager({ tripId }: TagManagerProps) {
           Tags
         </h2>
         <button
-          onClick={() => manager.openCreateForm()}
+          onClick={() => {
+            setTagColor(getRandomTagColor());
+            manager.openCreateForm();
+          }}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           + Create Tag
@@ -226,7 +226,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
               Color
             </label>
             <div className="flex gap-2 flex-wrap">
-              {DEFAULT_COLORS.map((color) => (
+              {DEFAULT_TAG_COLORS.map((color) => (
                 <button
                   key={color}
                   type="button"
@@ -265,7 +265,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
               <div
                 key={tag.id}
                 className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-medium"
-                style={{ backgroundColor: tag.color || "#6B7280" }}
+                style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR }}
               >
                 <span>{tag.name}</span>
                 <button
@@ -300,7 +300,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
                 key={tag.id}
                 onClick={() => handleLinkTag(tag.id)}
                 className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-medium hover:opacity-80"
-                style={{ backgroundColor: tag.color || "#6B7280" }}
+                style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR }}
               >
                 <span>{tag.name}</span>
                 <span>+</span>
@@ -323,7 +323,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
                 <div className="flex items-center gap-3">
                   <span
                     className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-                    style={{ backgroundColor: tag.color || "#6B7280", color: "#FFFFFF" }}
+                    style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR, color: DEFAULT_TEXT_COLOR }}
                   >
                     {tag.name}
                   </span>

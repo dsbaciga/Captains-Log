@@ -276,7 +276,7 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
       {showResults && (query || recentSearches.length > 0) && (
         <div
           ref={resultsRef}
-          className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-96 overflow-y-auto z-50 animate-slide-in"
+          className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-96 overflow-y-auto z-[70] animate-slide-in"
         >
           {/* Recent Searches */}
           {!query && recentSearches.length > 0 && (
@@ -395,7 +395,7 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
       {/* Click outside to close */}
       {showResults && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-[60]"
           onClick={() => {
             setShowResults(false);
             onClose?.();

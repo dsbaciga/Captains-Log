@@ -378,7 +378,7 @@ export default function AlbumsPage() {
 
       {/* Cover Photo Selector Modal */}
       {showCoverSelector && selectedAlbum && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -398,7 +398,7 @@ export default function AlbumsPage() {
                 }}
                 type="button"
                 aria-label="Close"
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <svg
                   className="w-6 h-6"

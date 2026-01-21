@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
+import {
+  DEFAULT_TAG_COLOR,
+  DEFAULT_TEXT_COLOR,
+  getRandomTagColor,
+} from "../utils/tagColors";
 
 interface TagsModalProps {
   tripId: number;
@@ -18,8 +23,8 @@ export default function TagsModal({
   const [allTags, setAllTags] = useState<TripTag[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [newTagName, setNewTagName] = useState("");
-  const [newTagColor, setNewTagColor] = useState("#3B82F6");
-  const [newTagTextColor, setNewTagTextColor] = useState("#FFFFFF");
+  const [newTagColor, setNewTagColor] = useState(getRandomTagColor);
+  const [newTagTextColor, setNewTagTextColor] = useState(DEFAULT_TEXT_COLOR);
   const [loading, setLoading] = useState(true);
 
   const loadTags = useCallback(async () => {
@@ -57,8 +62,8 @@ export default function TagsModal({
       await tagService.assignTagToTrip(tripId, newTag.id);
 
       setNewTagName("");
-      setNewTagColor("#3B82F6");
-      setNewTagTextColor("#FFFFFF");
+      setNewTagColor(getRandomTagColor());
+      setNewTagTextColor(DEFAULT_TEXT_COLOR);
       await loadTags();
       onTagsUpdated();
       toast.success("Tag created and added to trip");
@@ -96,7 +101,7 @@ export default function TagsModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -107,7 +112,7 @@ export default function TagsModal({
             onClick={onClose}
             type="button"
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <svg
               className="w-6 h-6"
@@ -151,8 +156,8 @@ export default function TagsModal({
                         key={tag.id}
                         className="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium"
                         style={{
-                          backgroundColor: tag.color || "#3B82F6",
-                          color: tag.textColor || "#FFFFFF",
+                          backgroundColor: tag.color || DEFAULT_TAG_COLOR,
+                          color: tag.textColor || DEFAULT_TEXT_COLOR,
                         }}
                       >
                         <span>{tag.name}</span>
@@ -265,8 +270,8 @@ export default function TagsModal({
                         <span
                           className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
                           style={{
-                            backgroundColor: tag.color || "#3B82F6",
-                            color: tag.textColor || "#FFFFFF",
+                            backgroundColor: tag.color || DEFAULT_TAG_COLOR,
+                            color: tag.textColor || DEFAULT_TEXT_COLOR,
                           }}
                         >
                           {tag.name}

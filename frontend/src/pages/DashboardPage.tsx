@@ -30,10 +30,10 @@ export default function DashboardPage() {
       className="min-h-screen bg-gradient-to-br from-cream to-parchment dark:from-navy-900 dark:to-navy-800 overflow-y-auto"
     >
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
-      <main className="max-w-[1600px] mx-auto px-6 py-16 pt-24">
+      <main className="max-w-[1600px] mx-auto px-6 py-8 sm:py-12 md:py-16 pt-20 sm:pt-24">
         {/* Hero Section */}
         <div className="mb-12 animate-fade-in">
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight leading-none mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight leading-none mb-4">
             Welcome back,<br />
             <span className="text-accent-500 dark:text-warm-gray">{user?.username}</span>
           </h1>
@@ -52,27 +52,27 @@ export default function DashboardPage() {
           {/* Top Row - Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Left Column */}
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-6">
               {/* Upcoming Trips */}
               <div className="animate-fade-in">
                 <UpcomingTripsWidget />
               </div>
 
               {/* Quick Actions */}
-              <div className="animate-fade-in stagger-4">
+              <div className="animate-fade-in stagger-4 flex-1">
                 <QuickActionsWidget />
               </div>
             </div>
 
             {/* Right Column */}
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-6">
               {/* Travel Stats */}
               <div className="animate-fade-in stagger-1">
                 <TravelStatsWidget />
               </div>
 
               {/* Recent Photos */}
-              <div className="animate-fade-in stagger-3">
+              <div className="animate-fade-in stagger-3 flex-1">
                 <RecentPhotosWidget />
               </div>
             </div>

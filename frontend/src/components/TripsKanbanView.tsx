@@ -7,7 +7,7 @@ import {
   useSensors,
   closestCorners,
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { useState } from 'react';
 import type { Trip, TripStatusType } from '../types/trip';
 import { TripStatus } from '../types/trip';
@@ -66,7 +66,7 @@ export default function TripsKanbanView({
     }
   }, []);
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
+  const handleDragOver = useCallback(() => {
     // Handle drag over logic if needed
   }, []);
 
