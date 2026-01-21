@@ -1063,7 +1063,7 @@ export default function TripDetailPage() {
           tabs={tabGroups}
           activeTab={activeTab}
           onTabChange={(tabId) => changeTab(tabId as TabId)}
-          className="mb-6 sticky top-16 sm:top-20 bg-gray-50 dark:bg-gray-900 z-10"
+          className="mb-6 sticky top-28 sm:top-32 bg-gray-50 dark:bg-gray-900 z-10"
         />
 
         {/* Tab Content with smooth transitions */}
