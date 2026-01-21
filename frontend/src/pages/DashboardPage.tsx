@@ -6,6 +6,7 @@ import TravelStatsWidget from '../components/widgets/TravelStatsWidget';
 import RecentPhotosWidget from '../components/widgets/RecentPhotosWidget';
 import QuickActionsWidget from '../components/widgets/QuickActionsWidget';
 import TravelCalendarHeatmap from '../components/widgets/TravelCalendarHeatmap';
+import PendingInvitations from '../components/PendingInvitations';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 export default function DashboardPage() {
@@ -39,6 +40,11 @@ export default function DashboardPage() {
           <p className="text-xl text-slate dark:text-warm-gray font-body max-w-2xl">
             Your adventures await. Continue documenting your journey.
           </p>
+        </div>
+
+        {/* Pending Invitations */}
+        <div className="mb-8 animate-fade-in">
+          <PendingInvitations />
         </div>
 
         {/* Widgets Grid */}
