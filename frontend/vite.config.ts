@@ -15,9 +15,16 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   resolve: {
-    // Force single React instance to prevent "Cannot read properties of null (reading 'useContext')" error
-    // caused by @changey/react-leaflet-markercluster bundling its own React 18
-    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    // Force single React and react-leaflet instances to prevent context errors
+    // caused by @changey/react-leaflet-markercluster bundling incompatible versions
+    dedupe: [
+      'react',
+      'react-dom',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+      'react-leaflet',
+      '@react-leaflet/core',
+    ],
   },
   server: {
     watch: {
