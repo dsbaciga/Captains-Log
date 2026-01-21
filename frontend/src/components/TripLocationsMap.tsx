@@ -126,7 +126,7 @@ export default function TripLocationsMap({ locations, transportations = [], show
         </span>
       </div>
 
-      <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg relative z-0">
+      <div className="h-64 sm:h-80 md:h-96 lg:h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg relative z-0">
         <MapContainer
           center={[center.lat, center.lng]}
           zoom={13}

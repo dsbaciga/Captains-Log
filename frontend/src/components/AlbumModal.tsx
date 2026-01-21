@@ -60,7 +60,7 @@ export default function AlbumModal({
             onClick={onClose}
             type="button"
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 min-w-[44px] min-h-[44px] p-2 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <svg
               className="w-6 h-6"

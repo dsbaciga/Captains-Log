@@ -157,7 +157,7 @@ export default function PhotosMapView({ photos, onPhotoClick }: PhotosMapViewPro
   const centerLng = geoPhotos.reduce((sum, p) => sum + Number(p.longitude), 0) / geoPhotos.length;
 
   return (
-    <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+    <div className="h-64 sm:h-80 md:h-96 lg:h-[500px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
       <MapContainer
         center={[centerLat, centerLng]}
         zoom={10}

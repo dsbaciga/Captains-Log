@@ -360,7 +360,7 @@ export default function ImmichBrowser({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[90] p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl h-full sm:h-5/6 flex flex-col">
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">

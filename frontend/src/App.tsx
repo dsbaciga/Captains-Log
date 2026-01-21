@@ -76,7 +76,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ScrollToTop />
-        <Toaster position="top-right" />
+        <Toaster position="top-right" containerClassName="z-[100]" />
         {/* Skip to content link for accessibility */}
         <a href="#main-content" className="skip-link">
           Skip to main content

@@ -504,6 +504,37 @@ textarea:focus-visible {
   }
 }
 
+/* Prevent iOS zoom on input focus - inputs need 16px minimum */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area padding for notched devices */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-bottom-nav {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
 /* Dynamic height utility using CSS variable */
 .map-container-dynamic {
   height: var(--map-height, 300px);
@@ -810,5 +841,21 @@ textarea:focus-visible {
   @page {
     margin: 0.5in;
     size: letter;
+  }
+}
+
+/* ========================================
+   REDUCED MOTION SUPPORT
+   ======================================== */
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

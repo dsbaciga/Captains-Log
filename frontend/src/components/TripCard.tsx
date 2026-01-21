@@ -82,11 +82,12 @@ export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = 
             {trip.tagAssignments.slice(0, 3).map(({ tag }) => (
               <span
                 key={tag.id}
-                className="px-2 py-0.5 rounded-full text-xs font-medium shadow-sm backdrop-blur-sm tag-colored"
+                className="px-2 py-0.5 rounded-full text-xs font-medium shadow-sm backdrop-blur-sm tag-colored max-w-[120px] truncate"
                 style={{
                   '--tag-bg-color': tag.color,
                   '--tag-text-color': tag.textColor,
                 } as React.CSSProperties & { '--tag-bg-color': string; '--tag-text-color': string }}
+                title={tag.name}
               >
                 {tag.name}
               </span>
