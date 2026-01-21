@@ -34,6 +34,7 @@ model User {
   locationCategories LocationCategory[]
   tripCollaborators  TripCollaborator[]
   checklists         Checklist[]
+  invitationsSent    TripInvitation[] @relation("InvitationsSent")
 
   @@map("users")
 }
@@ -68,6 +69,7 @@ model Trip {
   tagAssignments     TripTagAssignment[]
   companionAssignments TripCompanion[]
   collaborators      TripCollaborator[]
+  invitations        TripInvitation[]
   checklists         Checklist[]
   entityLinks        EntityLink[]
 
@@ -147,6 +149,28 @@ model TripCollaborator {
 
   @@unique([tripId, userId])
   @@map("trip_collaborators")
+}
+
+model TripInvitation {
+  id              Int      @id @default(autoincrement())
+  tripId          Int      @map("trip_id")
+  invitedByUserId Int      @map("invited_by_user_id")
+  email           String   @db.VarChar(255)
+  permissionLevel String   @map("permission_level") @db.VarChar(50) // view, edit, admin
+  token           String   @unique @db.VarChar(255) // Unique token for accepting invitation
+  status          String   @default("pending") @db.VarChar(50) // pending, accepted, declined, expired
+  message         String?  @db.Text // Optional personal message
+  expiresAt       DateTime @map("expires_at")
+  respondedAt     DateTime? @map("responded_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  trip      Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  invitedBy User @relation("InvitationsSent", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([token])
+  @@index([tripId, status])
+  @@map("trip_invitations")
 }
 
 model Location {

@@ -28,6 +28,7 @@ import checklistRoutes from './routes/checklist.routes';
 import searchRoutes from './routes/search.routes';
 import backupRoutes from './routes/backup.routes';
 import entityLinkRoutes from './routes/entityLink.routes';
+import collaborationRoutes from './routes/collaboration.routes';
 
 // Read version from package.json
 const packageJson = JSON.parse(
@@ -120,6 +121,7 @@ app.use('/api/checklists', checklistRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/trips/:tripId/links', entityLinkRoutes);
+app.use('/api', collaborationRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
