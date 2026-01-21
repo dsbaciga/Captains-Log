@@ -21,6 +21,9 @@ const DEFAULT_COLORS = [
   "#06B6D4", // cyan
 ];
 
+const getRandomColor = () =>
+  DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
+
 export default function TagManager({ tripId }: TagManagerProps) {
   // Service adapter for trip tags (tags linked to this trip)
   const tripTagServiceAdapter = {
@@ -38,7 +41,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagName, setTagName] = useState("");
-  const [tagColor, setTagColor] = useState(DEFAULT_COLORS[0]);
+  const [tagColor, setTagColor] = useState(getRandomColor);
   const [editingTag, setEditingTag] = useState<Tag | TripTag | null>(null);
   const tagNameId = useId();
   const tagColorId = useId();
@@ -65,7 +68,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       });
       toast.success("Tag created");
       setTagName("");
-      setTagColor(DEFAULT_COLORS[0]);
+      setTagColor(getRandomColor());
       manager.closeForm();
       await loadAllTags();
       // Automatically link the new tag to this trip
@@ -87,7 +90,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
       toast.success("Tag updated");
       setEditingTag(null);
       setTagName("");
-      setTagColor(DEFAULT_COLORS[0]);
+      setTagColor(getRandomColor());
       loadAllTags();
       manager.loadItems();
     } catch {
@@ -150,7 +153,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
     manager.closeForm();
     setEditingTag(null);
     setTagName("");
-    setTagColor(DEFAULT_COLORS[0]);
+    setTagColor(getRandomColor());
   };
 
   if (manager.loading) {
@@ -168,7 +171,10 @@ export default function TagManager({ tripId }: TagManagerProps) {
           Tags
         </h2>
         <button
-          onClick={() => manager.openCreateForm()}
+          onClick={() => {
+            setTagColor(getRandomColor());
+            manager.openCreateForm();
+          }}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           + Create Tag

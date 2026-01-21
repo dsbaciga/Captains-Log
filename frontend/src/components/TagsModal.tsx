@@ -3,6 +3,20 @@ import toast from "react-hot-toast";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
 
+const DEFAULT_COLORS = [
+  "#3B82F6", // blue
+  "#10B981", // green
+  "#F59E0B", // yellow
+  "#EF4444", // red
+  "#8B5CF6", // purple
+  "#EC4899", // pink
+  "#F97316", // orange
+  "#06B6D4", // cyan
+];
+
+const getRandomColor = () =>
+  DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
+
 interface TagsModalProps {
   tripId: number;
   onClose: () => void;
@@ -18,7 +32,7 @@ export default function TagsModal({
   const [allTags, setAllTags] = useState<TripTag[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [newTagName, setNewTagName] = useState("");
-  const [newTagColor, setNewTagColor] = useState("#3B82F6");
+  const [newTagColor, setNewTagColor] = useState(getRandomColor);
   const [newTagTextColor, setNewTagTextColor] = useState("#FFFFFF");
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +71,7 @@ export default function TagsModal({
       await tagService.assignTagToTrip(tripId, newTag.id);
 
       setNewTagName("");
-      setNewTagColor("#3B82F6");
+      setNewTagColor(getRandomColor());
       setNewTagTextColor("#FFFFFF");
       await loadTags();
       onTagsUpdated();
