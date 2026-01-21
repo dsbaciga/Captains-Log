@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { DefaultChecklistStatus, ChecklistType } from '../types/checklist';
 
 interface ChecklistSelectorModalProps {
@@ -86,14 +87,26 @@ export default function ChecklistSelectorModal({
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {mode === 'add' ? 'Add Default Checklist(s)' : 'Remove Default Checklist(s)'}
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {mode === 'add'
-              ? 'Select which default checklists you want to add to your account'
-              : 'Select which default checklists you want to remove from your account'}
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {mode === 'add' ? 'Add Default Checklist(s)' : 'Remove Default Checklist(s)'}
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {mode === 'add'
+                  ? 'Select which default checklists you want to add to your account'
+                  : 'Select which default checklists you want to remove from your account'}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              type="button"
+              aria-label="Close"
+              className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

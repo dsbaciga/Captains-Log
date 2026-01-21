@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import type { Photo, PhotoAlbum } from "../types/photo";
 import photoService from "../services/photo.service";
 import toast from "react-hot-toast";
@@ -892,9 +893,24 @@ export default function PhotoGallery({
             className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              {showCreateAlbumForm ? "Create New Album" : "Select Album"}
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                {showCreateAlbumForm ? "Create New Album" : "Select Album"}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAlbumSelectModal(false);
+                  setShowCreateAlbumForm(false);
+                  setNewAlbumName("");
+                  setNewAlbumDescription("");
+                }}
+                type="button"
+                aria-label="Close"
+                className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
 
             {!showCreateAlbumForm ? (
               <>

@@ -489,7 +489,8 @@ textarea:focus-visible {
   display: none;
 }
 
-/* Touch-friendly targets for coarse pointer devices (touch screens) */
+/* Touch-friendly targets for coarse pointer devices (touch screens)
+   Use .touch-compact class on buttons that need smaller touch targets */
 @media (pointer: coarse) {
   /* Only apply to actual button elements, not text links */
   button:not(.touch-compact),

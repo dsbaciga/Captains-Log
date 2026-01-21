@@ -134,7 +134,7 @@ export default function AlbumsSidebar({
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Albums</h3>
             <button
               onClick={onCloseMobileDrawer}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Close albums"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
