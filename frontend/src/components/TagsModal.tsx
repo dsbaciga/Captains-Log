@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
+import {
+  DEFAULT_TAG_COLOR,
+  DEFAULT_TEXT_COLOR,
+  getRandomTagColor,
+} from "../utils/tagColors";
 
 interface TagsModalProps {
   tripId: number;
@@ -18,8 +23,8 @@ export default function TagsModal({
   const [allTags, setAllTags] = useState<TripTag[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [newTagName, setNewTagName] = useState("");
-  const [newTagColor, setNewTagColor] = useState("#3B82F6");
-  const [newTagTextColor, setNewTagTextColor] = useState("#FFFFFF");
+  const [newTagColor, setNewTagColor] = useState(getRandomTagColor);
+  const [newTagTextColor, setNewTagTextColor] = useState(DEFAULT_TEXT_COLOR);
   const [loading, setLoading] = useState(true);
 
   const loadTags = useCallback(async () => {
@@ -57,8 +62,8 @@ export default function TagsModal({
       await tagService.assignTagToTrip(tripId, newTag.id);
 
       setNewTagName("");
-      setNewTagColor("#3B82F6");
-      setNewTagTextColor("#FFFFFF");
+      setNewTagColor(getRandomTagColor());
+      setNewTagTextColor(DEFAULT_TEXT_COLOR);
       await loadTags();
       onTagsUpdated();
       toast.success("Tag created and added to trip");
@@ -151,8 +156,8 @@ export default function TagsModal({
                         key={tag.id}
                         className="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium"
                         style={{
-                          backgroundColor: tag.color || "#3B82F6",
-                          color: tag.textColor || "#FFFFFF",
+                          backgroundColor: tag.color || DEFAULT_TAG_COLOR,
+                          color: tag.textColor || DEFAULT_TEXT_COLOR,
                         }}
                       >
                         <span>{tag.name}</span>
@@ -265,8 +270,8 @@ export default function TagsModal({
                         <span
                           className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
                           style={{
-                            backgroundColor: tag.color || "#3B82F6",
-                            color: tag.textColor || "#FFFFFF",
+                            backgroundColor: tag.color || DEFAULT_TAG_COLOR,
+                            color: tag.textColor || DEFAULT_TEXT_COLOR,
                           }}
                         >
                           {tag.name}
