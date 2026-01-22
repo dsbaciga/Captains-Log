@@ -79,6 +79,9 @@ const Timeline = ({
   // Unscheduled activities state
   const [unscheduledActivities, setUnscheduledActivities] = useState<Activity[]>([]);
   const [activityLocationMap, setActivityLocationMap] = useState<Record<number, number[]>>({});
+  // Entity-to-location links map for all entities (used to match unscheduled activities)
+  // Key format: "ENTITY_TYPE:ID", Value: array of linked location IDs
+  const [entityLocationLinksMap, setEntityLocationLinksMap] = useState<Record<string, number[]>>({});
 
   // Print state
   const [isPrinting, setIsPrinting] = useState(false);
@@ -201,12 +204,13 @@ const Timeline = ({
     try {
       logger.log('📡 Fetching timeline data from API...', { operation: 'loadTimelineData.fetch' });
 
-      const [activities, transportation, lodging, journal, weather] = await Promise.all([
+      const [activities, transportation, lodging, journal, weather, locationLinks] = await Promise.all([
         activityService.getActivitiesByTrip(tripId),
         transportationService.getTransportationByTrip(tripId),
         lodgingService.getLodgingByTrip(tripId),
         journalService.getJournalEntriesByTrip(tripId),
         weatherService.getWeatherForTrip(tripId).catch(() => []),
+        entityLinkService.getLinksByTargetType(tripId, 'LOCATION').catch(() => []),
       ]);
 
       logger.log('✅ API data received', {
@@ -230,12 +234,29 @@ const Timeline = ({
       const items: TimelineItem[] = [];
       logger.log('📝 Starting timeline items processing', { operation: 'loadTimelineData.process' });
 
-      // Separate unscheduled activities and build location mapping
+      // Build entity-to-location links map FIRST from the bulk fetch
+      // This map is used for:
+      // 1. Finding linked locations for unscheduled activities (avoids N+1 API calls)
+      // 2. Finding linked locations for scheduled entities when matching unscheduled activities to days
+      const entityLinksMap: Record<string, number[]> = {};
+      if (Array.isArray(locationLinks)) {
+        for (const link of locationLinks) {
+          const key = `${link.sourceType}:${link.sourceId}`;
+          if (!entityLinksMap[key]) {
+            entityLinksMap[key] = [];
+          }
+          entityLinksMap[key].push(link.targetId);
+        }
+      }
+      setEntityLocationLinksMap(entityLinksMap);
+      logger.log(`Built entity-location links map with ${Object.keys(entityLinksMap).length} entities`, { operation: 'loadTimelineData.entityLinks' });
+
+      // Separate unscheduled activities and build location mapping using the already-fetched links
       const unscheduled: Activity[] = [];
       const locationMap: Record<number, number[]> = {};
 
       if (Array.isArray(activities)) {
-        // First pass: identify unscheduled activities
+        // Identify unscheduled activities
         for (const activity of activities) {
           if (!activity) continue;
           // An activity is unscheduled if it has no startTime and is not allDay
@@ -244,19 +265,12 @@ const Timeline = ({
           }
         }
 
-        // Fetch linked locations for all unscheduled activities in parallel
-        if (unscheduled.length > 0) {
-          const linkPromises = unscheduled.map(activity =>
-            entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION')
-              .then(links => ({ activityId: activity.id, links }))
-              .catch(() => ({ activityId: activity.id, links: [] as { targetId: number }[] }))
-          );
-          const linkResults = await Promise.all(linkPromises);
-          linkResults.forEach(({ activityId, links }) => {
-            if (links && links.length > 0) {
-              locationMap[activityId] = links.map(link => link.targetId);
-            }
-          });
+        // Build activity location map from the already-fetched entityLinksMap (no extra API calls needed)
+        for (const activity of unscheduled) {
+          const linkedLocs = entityLinksMap[`ACTIVITY:${activity.id}`];
+          if (linkedLocs && linkedLocs.length > 0) {
+            locationMap[activity.id] = linkedLocs;
+          }
         }
       }
       setUnscheduledActivities(unscheduled);
@@ -995,6 +1009,7 @@ const Timeline = ({
   };
 
   // Helper to extract location IDs from timeline items
+  // This includes both direct location references AND entity-linked locations
   const getLocationIdsFromItems = (items: TimelineItem[]): Set<number> => {
     const locationIds = new Set<number>();
     items.forEach((item) => {
@@ -1008,6 +1023,11 @@ const Timeline = ({
         if (activity.location?.id) {
           locationIds.add(activity.location.id);
         }
+        // Check entity links for this activity
+        const linkedLocs = entityLocationLinksMap[`ACTIVITY:${activity.id}`];
+        if (linkedLocs) {
+          linkedLocs.forEach(locId => locationIds.add(locId));
+        }
       } else if (item.type === 'lodging') {
         const lodging = item.data as Lodging;
         if (lodging.locationId) {
@@ -1016,6 +1036,11 @@ const Timeline = ({
         if (lodging.location?.id) {
           locationIds.add(lodging.location.id);
         }
+        // Check entity links for this lodging
+        const linkedLocs = entityLocationLinksMap[`LODGING:${lodging.id}`];
+        if (linkedLocs) {
+          linkedLocs.forEach(locId => locationIds.add(locId));
+        }
       } else if (item.type === 'transportation') {
         const trans = item.data as Transportation;
         if (trans.fromLocationId) {
@@ -1023,6 +1048,18 @@ const Timeline = ({
         }
         if (trans.toLocationId) {
           locationIds.add(trans.toLocationId);
+        }
+        // Check entity links for this transportation
+        const linkedLocs = entityLocationLinksMap[`TRANSPORTATION:${trans.id}`];
+        if (linkedLocs) {
+          linkedLocs.forEach(locId => locationIds.add(locId));
+        }
+      } else if (item.type === 'journal') {
+        // Journal entries can also be linked to locations
+        const journal = item.data as { id: number };
+        const linkedLocs = entityLocationLinksMap[`JOURNAL_ENTRY:${journal.id}`];
+        if (linkedLocs) {
+          linkedLocs.forEach(locId => locationIds.add(locId));
         }
       }
     });
@@ -1112,7 +1149,7 @@ const Timeline = ({
       return [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, logger]);
+  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, entityLocationLinksMap, logger]);
 
   // Weather refresh handler
   const handleRefreshWeather = async () => {
