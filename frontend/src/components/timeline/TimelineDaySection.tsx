@@ -139,7 +139,7 @@ export default function TimelineDaySection({
       />
 
       {/* Day Content - collapsible */}
-      <div className={`${isCompact ? 'p-3' : 'p-4'} ${isCollapsed ? 'hidden print:block' : ''}`}>
+      <div className={`${isCompact ? 'p-3' : 'p-4'} ${isCollapsed ? 'hidden print:block' : ''} scroll-mt-48`}>
         {items.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <p className="text-sm">No events scheduled for this day</p>
