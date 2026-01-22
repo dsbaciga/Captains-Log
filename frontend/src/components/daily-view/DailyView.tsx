@@ -433,6 +433,8 @@ export default function DailyView({
         currentDate={currentDay?.displayDate || ''}
         onDayChange={handleDayChange}
         allDates={navigatorDates}
+        weather={currentDay?.weather}
+        tripTimezone={tripTimezone}
       />
 
       {/* Day Content */}
