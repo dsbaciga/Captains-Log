@@ -603,6 +603,36 @@ export const entityLinkService = {
   },
 
   /**
+   * Get all links targeting a specific entity type in a trip
+   * Useful for building entity-to-location mappings for timeline
+   */
+  async getLinksByTargetType(
+    userId: number,
+    tripId: number,
+    targetType: EntityType
+  ): Promise<Array<{ sourceType: EntityType; sourceId: number; targetId: number }>> {
+    await verifyTripAccess(userId, tripId);
+
+    const links = await prisma.entityLink.findMany({
+      where: {
+        tripId,
+        targetType,
+      },
+      select: {
+        sourceType: true,
+        sourceId: true,
+        targetId: true,
+      },
+    });
+
+    return links.map(link => ({
+      sourceType: link.sourceType as EntityType,
+      sourceId: link.sourceId,
+      targetId: link.targetId,
+    }));
+  },
+
+  /**
    * Get link summary for all entities in a trip
    * Useful for showing link indicators on entity cards
    */

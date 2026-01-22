@@ -113,6 +113,18 @@ const entityLinkService = {
   },
 
   /**
+   * Get all links targeting a specific entity type
+   * Useful for building entity-to-location mappings for timeline
+   */
+  async getLinksByTargetType(
+    tripId: number,
+    targetType: EntityType
+  ): Promise<Array<{ sourceType: EntityType; sourceId: number; targetId: number }>> {
+    const response = await axios.get(`/trips/${tripId}/links/target-type/${targetType}`);
+    return response.data;
+  },
+
+  /**
    * Delete a specific link by source/target
    */
   async deleteLink(tripId: number, data: DeleteEntityLinkInput): Promise<void> {
