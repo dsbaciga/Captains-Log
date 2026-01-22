@@ -459,13 +459,14 @@ class PhotoService {
     // Use raw SQL for efficient date grouping with timezone conversion
     // Convert from UTC (stored) to the trip's timezone for grouping
     // Note: Using Prisma.raw for timezone since AT TIME ZONE requires a literal string
+    // The timezone is already validated above, so it's safe to use Prisma.raw
     const groupings = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
       SELECT
-        TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}::text, 'YYYY-MM-DD') as date,
+        TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${Prisma.raw(`'${tz}'`)}, 'YYYY-MM-DD') as date,
         COUNT(*) as count
       FROM photos
       WHERE trip_id = ${tripId} AND "taken_at" IS NOT NULL
-      GROUP BY TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}::text, 'YYYY-MM-DD')
+      GROUP BY TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${Prisma.raw(`'${tz}'`)}, 'YYYY-MM-DD')
       ORDER BY date ASC
     `;
 
@@ -508,7 +509,8 @@ class PhotoService {
 
     // Use raw SQL to query photos for the specific date in the given timezone
     // This ensures we get the same photos that were grouped under this date
-    // Note: Using ::text cast for timezone since AT TIME ZONE requires a string
+    // Note: Using Prisma.raw for timezone since AT TIME ZONE requires a literal string
+    // The timezone is already validated above, so it's safe to use Prisma.raw
     const photos = await prisma.$queryRaw<Array<any>>`
       SELECT p.*,
         json_agg(
@@ -521,7 +523,7 @@ class PhotoService {
       LEFT JOIN photo_albums a ON paa.album_id = a.id
       WHERE p.trip_id = ${tripId}
         AND p."taken_at" IS NOT NULL
-        AND TO_CHAR(p."taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}::text, 'YYYY-MM-DD') = ${date}
+        AND TO_CHAR(p."taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${Prisma.raw(`'${tz}'`)}, 'YYYY-MM-DD') = ${date}
       GROUP BY p.id
       ORDER BY p."taken_at" ASC
     `;
