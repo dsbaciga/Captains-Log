@@ -43,6 +43,7 @@ interface ActivityFormFields {
   category: string;
   locationId: number | undefined;
   parentId: number | undefined;
+  unscheduled: boolean;
   allDay: boolean;
   startDate: string;
   startTime: string;
@@ -62,6 +63,7 @@ const initialFormState: ActivityFormFields = {
   category: "",
   locationId: undefined,
   parentId: undefined,
+  unscheduled: false,
   allDay: false,
   startDate: "",
   startTime: "",
@@ -260,6 +262,8 @@ export default function ActivityManager({
     handleChange("description", activity.description || "");
     handleChange("category", activity.category || "");
     handleChange("parentId", activity.parentId || undefined);
+    // Set unscheduled based on whether the activity has a start time
+    handleChange("unscheduled", !activity.startTime);
     handleChange("allDay", activity.allDay);
     handleChange("timezone", activity.timezone || "");
     handleChange("cost", activity.cost?.toString() || "");
@@ -342,28 +346,31 @@ export default function ActivityManager({
     let startTimeISO: string | null = null;
     let endTimeISO: string | null = null;
 
-    if (values.allDay) {
-      // For all-day events, use just the date (set time to 00:00 and 23:59:59 in the timezone)
-      if (values.startDate) {
-        const dateTimeLocal = `${values.startDate}T00:00`;
-        startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
-      }
-      if (values.endDate) {
-        const dateTimeLocal = `${values.endDate}T23:59`;
-        endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
-      }
-    } else {
-      // For timed events, combine date and time and convert to UTC
-      // If only date is provided without time, default to noon (12:00) to ensure it appears on timeline
-      if (values.startDate) {
-        const startTime = values.startTime || "12:00";
-        const dateTimeLocal = `${values.startDate}T${startTime}`;
-        startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
-      }
-      if (values.endDate) {
-        const endTime = values.endTime || "12:00";
-        const dateTimeLocal = `${values.endDate}T${endTime}`;
-        endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
+    // Skip date processing if marked as unscheduled
+    if (!values.unscheduled) {
+      if (values.allDay) {
+        // For all-day events, use just the date (set time to 00:00 and 23:59:59 in the timezone)
+        if (values.startDate) {
+          const dateTimeLocal = `${values.startDate}T00:00`;
+          startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
+        }
+        if (values.endDate) {
+          const dateTimeLocal = `${values.endDate}T23:59`;
+          endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
+        }
+      } else {
+        // For timed events, combine date and time and convert to UTC
+        // If only date is provided without time, default to noon (12:00) to ensure it appears on timeline
+        if (values.startDate) {
+          const startTime = values.startTime || "12:00";
+          const dateTimeLocal = `${values.startDate}T${startTime}`;
+          startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
+        }
+        if (values.endDate) {
+          const endTime = values.endTime || "12:00";
+          const dateTimeLocal = `${values.endDate}T${endTime}`;
+          endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
+        }
       }
     }
 
@@ -786,125 +793,156 @@ export default function ActivityManager({
 
           {/* SECTION 2: Schedule */}
           <FormSection title="Schedule" icon="🕐">
-            {/* All Day Toggle */}
-            <div className="flex items-center gap-2">
+            {/* Unscheduled Toggle */}
+            <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
               <input
                 type="checkbox"
-                id="allDay"
-                checked={values.allDay}
-                onChange={(e) => handleChange("allDay", e.target.checked)}
+                id="activity-unscheduled"
+                checked={values.unscheduled}
+                onChange={(e) => {
+                  handleChange("unscheduled", e.target.checked);
+                  // Clear date fields when toggling to unscheduled
+                  if (e.target.checked) {
+                    handleChange("startDate", "");
+                    handleChange("startTime", "");
+                    handleChange("endDate", "");
+                    handleChange("endTime", "");
+                  }
+                }}
                 className="rounded"
               />
               <label
-                htmlFor="allDay"
+                htmlFor="activity-unscheduled"
                 className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                All-day activity
+                Keep unscheduled (no date/time)
               </label>
             </div>
 
-            {/* Date/Time Fields */}
-            {values.allDay ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="activity-start-date"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    id="activity-start-date"
-                    value={values.startDate}
-                    onChange={(e) => handleChange("startDate", e.target.value)}
-                    className="input"
-                  />
-                </div>
-                {showMoreOptions && (
-                  <div>
-                    <label
-                      htmlFor="activity-end-date"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      id="activity-end-date"
-                      value={values.endDate}
-                      onChange={(e) => handleChange("endDate", e.target.value)}
-                      className="input"
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
+            {/* Date/Time Fields - only shown when not unscheduled */}
+            {!values.unscheduled && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="activity-start-date-time"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Start Time
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        id="activity-start-date-time"
-                        value={values.startDate}
-                        onChange={(e) =>
-                          handleChange("startDate", e.target.value)
-                        }
-                        className="input flex-1"
-                      />
-                      <input
-                        type="time"
-                        id="activity-start-time"
-                        aria-label="Start time"
-                        value={values.startTime}
-                        onChange={(e) =>
-                          handleChange("startTime", e.target.value)
-                        }
-                        className="input flex-1"
-                        placeholder="12:00"
-                      />
-                    </div>
-                  </div>
-                  {showMoreOptions && (
+                {/* All Day Toggle */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="allDay"
+                    checked={values.allDay}
+                    onChange={(e) => handleChange("allDay", e.target.checked)}
+                    className="rounded"
+                  />
+                  <label
+                    htmlFor="allDay"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    All-day activity
+                  </label>
+                </div>
+
+                {/* Date/Time Fields */}
+                {values.allDay ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label
-                        htmlFor="activity-end-date-time"
+                        htmlFor="activity-start-date"
                         className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                       >
-                        End Time
+                        Start Date
                       </label>
-                      <div className="flex gap-2">
+                      <input
+                        type="date"
+                        id="activity-start-date"
+                        value={values.startDate}
+                        onChange={(e) => handleChange("startDate", e.target.value)}
+                        className="input"
+                      />
+                    </div>
+                    {showMoreOptions && (
+                      <div>
+                        <label
+                          htmlFor="activity-end-date"
+                          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >
+                          End Date
+                        </label>
                         <input
                           type="date"
-                          id="activity-end-date-time"
+                          id="activity-end-date"
                           value={values.endDate}
                           onChange={(e) => handleChange("endDate", e.target.value)}
-                          className="input flex-1"
-                        />
-                        <input
-                          type="time"
-                          id="activity-end-time"
-                          aria-label="End time"
-                          value={values.endTime}
-                          onChange={(e) => handleChange("endTime", e.target.value)}
-                          className="input flex-1"
-                          placeholder="12:00"
+                          className="input"
                         />
                       </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="activity-start-date-time"
+                          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >
+                          Start Time
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="date"
+                            id="activity-start-date-time"
+                            value={values.startDate}
+                            onChange={(e) =>
+                              handleChange("startDate", e.target.value)
+                            }
+                            className="input flex-1"
+                          />
+                          <input
+                            type="time"
+                            id="activity-start-time"
+                            aria-label="Start time"
+                            value={values.startTime}
+                            onChange={(e) =>
+                              handleChange("startTime", e.target.value)
+                            }
+                            className="input flex-1"
+                            placeholder="12:00"
+                          />
+                        </div>
+                      </div>
+                      {showMoreOptions && (
+                        <div>
+                          <label
+                            htmlFor="activity-end-date-time"
+                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                          >
+                            End Time
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="date"
+                              id="activity-end-date-time"
+                              value={values.endDate}
+                              onChange={(e) => handleChange("endDate", e.target.value)}
+                              className="input flex-1"
+                            />
+                            <input
+                              type="time"
+                              id="activity-end-time"
+                              aria-label="End time"
+                              value={values.endTime}
+                              onChange={(e) => handleChange("endTime", e.target.value)}
+                              className="input flex-1"
+                              placeholder="12:00"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                {!showMoreOptions && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
-                    Time defaults to 12:00 PM if not specified
-                  </p>
+                    {!showMoreOptions && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+                        Time defaults to 12:00 PM if not specified
+                      </p>
+                    )}
+                  </>
                 )}
               </>
             )}

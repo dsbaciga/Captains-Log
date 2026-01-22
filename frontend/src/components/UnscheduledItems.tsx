@@ -32,6 +32,7 @@ interface ActivityFormFields {
   category: string;
   locationId: number | undefined;
   parentId: number | undefined;
+  unscheduled: boolean;
   allDay: boolean;
   startDate: string;
   startTime: string;
@@ -86,6 +87,7 @@ const initialActivityFormState: ActivityFormFields = {
   category: "",
   locationId: undefined,
   parentId: undefined,
+  unscheduled: true, // Default to unscheduled in this modal
   allDay: false,
   startDate: "",
   startTime: "",
@@ -238,6 +240,8 @@ export default function UnscheduledItems({
     activityForm.handleChange("description", activity.description || "");
     activityForm.handleChange("category", activity.category || "");
     activityForm.handleChange("parentId", activity.parentId || undefined);
+    // Set unscheduled based on whether the activity has a start time
+    activityForm.handleChange("unscheduled", !activity.startTime);
     activityForm.handleChange("allDay", activity.allDay);
     activityForm.handleChange("timezone", activity.timezone || "");
     activityForm.handleChange("cost", activity.cost?.toString() || "");
@@ -422,22 +426,25 @@ export default function UnscheduledItems({
       let startTimeISO: string | null = null;
       let endTimeISO: string | null = null;
 
-      if (activityForm.values.allDay) {
-        if (activityForm.values.startDate) {
-          startTimeISO = `${activityForm.values.startDate}T00:00:00`;
-        }
-        if (activityForm.values.endDate) {
-          endTimeISO = `${activityForm.values.endDate}T23:59:59`;
-        }
-      } else {
-        if (
-          activityForm.values.startDate &&
-          activityForm.values.startTime
-        ) {
-          startTimeISO = `${activityForm.values.startDate}T${activityForm.values.startTime}:00`;
-        }
-        if (activityForm.values.endDate && activityForm.values.endTime) {
-          endTimeISO = `${activityForm.values.endDate}T${activityForm.values.endTime}:00`;
+      // Only process dates if not marked as unscheduled
+      if (!activityForm.values.unscheduled) {
+        if (activityForm.values.allDay) {
+          if (activityForm.values.startDate) {
+            startTimeISO = `${activityForm.values.startDate}T00:00:00`;
+          }
+          if (activityForm.values.endDate) {
+            endTimeISO = `${activityForm.values.endDate}T23:59:59`;
+          }
+        } else {
+          if (
+            activityForm.values.startDate &&
+            activityForm.values.startTime
+          ) {
+            startTimeISO = `${activityForm.values.startDate}T${activityForm.values.startTime}:00`;
+          }
+          if (activityForm.values.endDate && activityForm.values.endTime) {
+            endTimeISO = `${activityForm.values.endDate}T${activityForm.values.endTime}:00`;
+          }
         }
       }
 
@@ -922,129 +929,160 @@ export default function UnscheduledItems({
           </FormSection>
 
           <FormSection title="Schedule">
-            <div className="flex items-center gap-2 mb-4">
+            {/* Unscheduled Toggle */}
+            <div className="flex items-center gap-2 mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
               <input
                 type="checkbox"
-                id="allDay"
-                checked={activityForm.values.allDay}
-                onChange={(e) =>
-                  activityForm.handleChange("allDay", e.target.checked)
-                }
+                id="unscheduled-toggle"
+                checked={activityForm.values.unscheduled}
+                onChange={(e) => {
+                  activityForm.handleChange("unscheduled", e.target.checked);
+                  // Clear date fields when toggling to unscheduled
+                  if (e.target.checked) {
+                    activityForm.handleChange("startDate", "");
+                    activityForm.handleChange("startTime", "");
+                    activityForm.handleChange("endDate", "");
+                    activityForm.handleChange("endTime", "");
+                  }
+                }}
                 className="rounded"
               />
               <label
-                htmlFor="allDay"
+                htmlFor="unscheduled-toggle"
                 className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                All-day activity
+                Keep unscheduled (no date/time)
               </label>
             </div>
 
-            {activityForm.values.allDay ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="unscheduled-activity-start-date"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Start Date
-                  </label>
+            {/* Date/Time Fields - only shown when not unscheduled */}
+            {!activityForm.values.unscheduled && (
+              <>
+                <div className="flex items-center gap-2 mb-4">
                   <input
-                    type="date"
-                    id="unscheduled-activity-start-date"
-                    value={activityForm.values.startDate}
+                    type="checkbox"
+                    id="allDay"
+                    checked={activityForm.values.allDay}
                     onChange={(e) =>
-                      activityForm.handleChange("startDate", e.target.value)
+                      activityForm.handleChange("allDay", e.target.checked)
                     }
-                    className="input"
+                    className="rounded"
                   />
-                </div>
-                <div>
                   <label
-                    htmlFor="unscheduled-activity-end-date"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    htmlFor="allDay"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
-                    End Date
+                    All-day activity
                   </label>
-                  <input
-                    type="date"
-                    id="unscheduled-activity-end-date"
-                    value={activityForm.values.endDate}
-                    onChange={(e) =>
-                      activityForm.handleChange("endDate", e.target.value)
-                    }
-                    className="input"
-                  />
                 </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="unscheduled-activity-start-date-time"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Start Time
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      id="unscheduled-activity-start-date-time"
-                      value={activityForm.values.startDate}
-                      onChange={(e) =>
-                        activityForm.handleChange("startDate", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                    <input
-                      type="time"
-                      id="unscheduled-activity-start-time"
-                      aria-label="Start time"
-                      value={activityForm.values.startTime}
-                      onChange={(e) =>
-                        activityForm.handleChange("startTime", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label
-                    htmlFor="unscheduled-activity-end-date-time"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    End Time
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      id="unscheduled-activity-end-date-time"
-                      value={activityForm.values.endDate}
-                      onChange={(e) =>
-                        activityForm.handleChange("endDate", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                    <input
-                      type="time"
-                      id="unscheduled-activity-end-time"
-                      aria-label="End time"
-                      value={activityForm.values.endTime}
-                      onChange={(e) =>
-                        activityForm.handleChange("endTime", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
 
-            <TimezoneSelect
-              value={activityForm.values.timezone}
-              onChange={(value) => activityForm.handleChange("timezone", value)}
-              label="Timezone"
-            />
+                {activityForm.values.allDay ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="unscheduled-activity-start-date"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        Start Date
+                      </label>
+                      <input
+                        type="date"
+                        id="unscheduled-activity-start-date"
+                        value={activityForm.values.startDate}
+                        onChange={(e) =>
+                          activityForm.handleChange("startDate", e.target.value)
+                        }
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="unscheduled-activity-end-date"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        id="unscheduled-activity-end-date"
+                        value={activityForm.values.endDate}
+                        onChange={(e) =>
+                          activityForm.handleChange("endDate", e.target.value)
+                        }
+                        className="input"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="unscheduled-activity-start-date-time"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        Start Time
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="date"
+                          id="unscheduled-activity-start-date-time"
+                          value={activityForm.values.startDate}
+                          onChange={(e) =>
+                            activityForm.handleChange("startDate", e.target.value)
+                          }
+                          className="input flex-1"
+                        />
+                        <input
+                          type="time"
+                          id="unscheduled-activity-start-time"
+                          aria-label="Start time"
+                          value={activityForm.values.startTime}
+                          onChange={(e) =>
+                            activityForm.handleChange("startTime", e.target.value)
+                          }
+                          className="input flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="unscheduled-activity-end-date-time"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        End Time
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="date"
+                          id="unscheduled-activity-end-date-time"
+                          value={activityForm.values.endDate}
+                          onChange={(e) =>
+                            activityForm.handleChange("endDate", e.target.value)
+                          }
+                          className="input flex-1"
+                        />
+                        <input
+                          type="time"
+                          id="unscheduled-activity-end-time"
+                          aria-label="End time"
+                          value={activityForm.values.endTime}
+                          onChange={(e) =>
+                            activityForm.handleChange("endTime", e.target.value)
+                          }
+                          className="input flex-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <TimezoneSelect
+                  value={activityForm.values.timezone}
+                  onChange={(value) => activityForm.handleChange("timezone", value)}
+                  label="Timezone"
+                />
+              </>
+            )}
           </FormSection>
 
           <FormSection title="Booking & Cost">
