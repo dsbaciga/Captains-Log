@@ -25,6 +25,7 @@ import PhotoUpload from "../components/PhotoUpload";
 import PhotosMapView from "../components/PhotosMapView";
 import AlbumSuggestions from "../components/AlbumSuggestions";
 import Timeline from "../components/Timeline";
+import { DailyView } from "../components/daily-view";
 import PhotoTimeline from "../components/PhotoTimeline";
 import ActivityManager from "../components/ActivityManager";
 import UnscheduledItems from "../components/UnscheduledItems";
@@ -98,6 +99,9 @@ export default function TripDetailPage() {
   // Initialize activeTab from URL parameter or default to 'timeline'
   const initialTab = (searchParams.get("tab") as TabId) || "timeline";
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+
+  // Overview sub-view state (Timeline vs Day By Day)
+  const [overviewSubView, setOverviewSubView] = useState<'timeline' | 'daily'>('timeline');
 
   // Sync activeTab with URL when tab parameter changes externally (e.g., from EntityDetailModal navigation)
   useEffect(() => {
@@ -1217,22 +1221,86 @@ export default function TripDetailPage() {
                 />
               </div>
 
-              {/* Timeline */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                  Timeline
-                </h2>
-                <Timeline
-                  tripId={parseInt(id!)}
-                  tripTitle={trip.title}
-                  tripTimezone={trip.timezone || undefined}
-                  userTimezone={userTimezone || undefined}
-                  tripStartDate={trip.startDate || undefined}
-                  tripEndDate={trip.endDate || undefined}
-                  tripStatus={trip.status || undefined}
-                  onNavigateToTab={(tab) => changeTab(tab as TabId)}
-                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
-                />
+              {/* Overview Sub-tabs: Timeline | Day By Day */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                {/* Sub-tab navigation */}
+                <div className="border-b border-gray-200 dark:border-gray-700 px-6 pt-4">
+                  <nav className="flex gap-4" aria-label="Overview views">
+                    <button
+                      type="button"
+                      onClick={() => setOverviewSubView('timeline')}
+                      className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                        overviewSubView === 'timeline'
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                          />
+                        </svg>
+                        Timeline
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOverviewSubView('daily')}
+                      className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                        overviewSubView === 'daily'
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        Day By Day
+                      </div>
+                    </button>
+                  </nav>
+                </div>
+
+                {/* Sub-view content */}
+                <div className="p-6">
+                  {overviewSubView === 'timeline' ? (
+                    <>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                        Timeline
+                      </h2>
+                      <Timeline
+                        tripId={parseInt(id!)}
+                        tripTitle={trip.title}
+                        tripTimezone={trip.timezone || undefined}
+                        userTimezone={userTimezone || undefined}
+                        tripStartDate={trip.startDate || undefined}
+                        tripEndDate={trip.endDate || undefined}
+                        tripStatus={trip.status || undefined}
+                        onNavigateToTab={(tab) => changeTab(tab as TabId)}
+                        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
+                      />
+                    </>
+                  ) : (
+                    <DailyView
+                      tripId={parseInt(id!)}
+                      tripTimezone={trip.timezone || undefined}
+                      userTimezone={userTimezone || undefined}
+                      tripStartDate={trip.startDate || undefined}
+                      tripEndDate={trip.endDate || undefined}
+                      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
+                    />
+                  )}
+                </div>
               </div>
             </div>
           )}

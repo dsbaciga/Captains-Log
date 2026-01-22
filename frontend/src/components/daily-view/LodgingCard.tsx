@@ -1,0 +1,354 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { Lodging } from '../../types/lodging';
+import type { Location } from '../../types/location';
+import entityLinkService from '../../services/entityLink.service';
+import locationService from '../../services/location.service';
+import EmbeddedLocationCard from './EmbeddedLocationCard';
+import {
+  formatTime,
+  formatCurrency,
+  getTypeColors,
+  getLodgingIcon,
+  getTimezoneAbbr,
+} from './utils';
+
+interface LodgingCardProps {
+  lodging: Lodging;
+  tripId: number;
+  tripTimezone?: string;
+  dayContext?: {
+    isCheckInDay: boolean;
+    isCheckOutDay: boolean;
+    nightNumber?: number;
+    totalNights?: number;
+  };
+}
+
+export default function LodgingCard({
+  lodging,
+  tripId,
+  tripTimezone,
+  dayContext,
+}: LodgingCardProps) {
+  const navigate = useNavigate();
+  const colors = getTypeColors('lodging');
+  const [linkedLocations, setLinkedLocations] = useState<Location[]>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+
+  // Load linked locations
+  useEffect(() => {
+    const loadLinkedLocations = async () => {
+      setLoadingLinks(true);
+      try {
+        const links = await entityLinkService.getLinksFrom(
+          tripId,
+          'LODGING',
+          lodging.id,
+          'LOCATION'
+        );
+
+        // Get location IDs from the links
+        const locationIds = links
+          .filter((link) => link.targetType === 'LOCATION')
+          .map((link) => link.targetId);
+
+        if (locationIds.length > 0) {
+          // Fetch full location data for linked locations
+          const allLocations = await locationService.getLocationsByTrip(tripId);
+          const linkedLocs = allLocations.filter((loc) => locationIds.includes(loc.id));
+          setLinkedLocations(linkedLocs);
+        }
+      } catch (error) {
+        console.error('Error loading linked locations:', error);
+      } finally {
+        setLoadingLinks(false);
+      }
+    };
+
+    loadLinkedLocations();
+  }, [tripId, lodging.id]);
+
+  const handleEdit = () => {
+    navigate(`/trips/${tripId}?tab=lodging&edit=${lodging.id}`);
+  };
+
+  const timezone = lodging.timezone || tripTimezone;
+
+  // Format type display
+  const typeDisplay =
+    lodging.type.charAt(0).toUpperCase() +
+    lodging.type.slice(1).replace(/_/g, ' ');
+
+  // Calculate total nights
+  let totalNights: number | null = null;
+  if (lodging.checkInDate && lodging.checkOutDate) {
+    const checkIn = new Date(lodging.checkInDate);
+    const checkOut = new Date(lodging.checkOutDate);
+    totalNights = Math.round(
+      (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
+    );
+  }
+
+  // Determine what to show based on day context
+  const showCheckIn = dayContext?.isCheckInDay ?? true;
+  const showCheckOut = dayContext?.isCheckOutDay ?? false;
+  const showCost = dayContext?.isCheckInDay ?? true; // Only show cost on check-in day
+  const showConfirmation = dayContext?.isCheckInDay ?? true;
+
+  return (
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border ${colors.border} border-l-4 ${colors.accent} overflow-hidden hover:shadow-md transition-shadow`}
+    >
+      {/* Header */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {/* Icon */}
+            <div
+              className={`w-12 h-12 rounded-xl ${colors.icon} flex items-center justify-center flex-shrink-0`}
+            >
+              <span className="text-2xl">{getLodgingIcon(lodging.type)}</span>
+            </div>
+
+            {/* Main content */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {lodging.name}
+              </h3>
+
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                {typeDisplay}
+              </div>
+
+              {/* Night indicator for multi-day stays */}
+              {dayContext?.nightNumber && dayContext?.totalNights && (
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                      />
+                    </svg>
+                    Night {dayContext.nightNumber} of {dayContext.totalNights}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Cost and actions */}
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            {showCost && lodging.cost && lodging.currency && (
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {formatCurrency(lodging.cost, lodging.currency)}
+                {totalNights && totalNights > 1 && (
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-normal">
+                    {' '}
+                    / {totalNights} nights
+                  </span>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors"
+              title="Edit lodging"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Check-in / Check-out times */}
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          {/* Check-in */}
+          <div className={showCheckIn ? '' : 'opacity-50'}>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+              Check-in
+            </div>
+            {lodging.checkInDate ? (
+              <div>
+                <div className="font-semibold text-gray-900 dark:text-white">
+                  {new Date(lodging.checkInDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: timezone,
+                  })}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {formatTime(lodging.checkInDate, timezone)}
+                  {timezone && (
+                    <span className="text-gray-400 dark:text-gray-500 text-xs ml-1">
+                      {getTimezoneAbbr(timezone)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-400 dark:text-gray-500">Not set</div>
+            )}
+          </div>
+
+          {/* Check-out */}
+          <div className={showCheckOut ? '' : 'opacity-50'}>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+              Check-out
+            </div>
+            {lodging.checkOutDate ? (
+              <div>
+                <div className="font-semibold text-gray-900 dark:text-white">
+                  {new Date(lodging.checkOutDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: timezone,
+                  })}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {formatTime(lodging.checkOutDate, timezone)}
+                  {timezone && (
+                    <span className="text-gray-400 dark:text-gray-500 text-xs ml-1">
+                      {getTimezoneAbbr(timezone)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-400 dark:text-gray-500">Not set</div>
+            )}
+          </div>
+        </div>
+
+        {/* Address */}
+        {lodging.address && (
+          <div className="mt-3 flex items-start gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+            <svg
+              className="w-4 h-4 flex-shrink-0 mt-0.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span>{lodging.address}</span>
+          </div>
+        )}
+
+        {/* Confirmation number */}
+        {showConfirmation && lodging.confirmationNumber && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="font-mono">{lodging.confirmationNumber}</span>
+          </div>
+        )}
+
+        {/* Booking URL */}
+        {lodging.bookingUrl && (
+          <div className="mt-3">
+            <a
+              href={lodging.bookingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              View Booking
+            </a>
+          </div>
+        )}
+
+        {/* Notes */}
+        {lodging.notes && (
+          <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-start gap-2">
+              <svg
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+              <span>{lodging.notes}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Embedded location */}
+        {lodging.location && (
+          <EmbeddedLocationCard
+            location={lodging.location}
+            tripId={tripId}
+            label="Property Location"
+          />
+        )}
+
+        {/* Linked locations (from entity links) */}
+        {loadingLinks ? (
+          <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            Loading linked locations...
+          </div>
+        ) : (
+          linkedLocations.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Related Locations ({linkedLocations.length})
+              </div>
+              <div className="space-y-2">
+                {linkedLocations.map((loc) => (
+                  <EmbeddedLocationCard
+                    key={loc.id}
+                    location={loc}
+                    tripId={tripId}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}

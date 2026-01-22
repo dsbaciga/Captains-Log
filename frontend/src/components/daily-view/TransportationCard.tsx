@@ -1,0 +1,362 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { Transportation } from '../../types/transportation';
+import type { Location } from '../../types/location';
+import entityLinkService from '../../services/entityLink.service';
+import locationService from '../../services/location.service';
+import EmbeddedLocationCard from './EmbeddedLocationCard';
+import {
+  formatTime,
+  formatDuration,
+  formatCurrency,
+  getTypeColors,
+  getTransportationIcon,
+  getTimezoneAbbr,
+} from './utils';
+
+interface TransportationCardProps {
+  transportation: Transportation;
+  tripId: number;
+  tripTimezone?: string;
+}
+
+export default function TransportationCard({
+  transportation,
+  tripId,
+  tripTimezone,
+}: TransportationCardProps) {
+  const navigate = useNavigate();
+  const colors = getTypeColors('transportation');
+  const [linkedLocations, setLinkedLocations] = useState<Location[]>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+
+  // Load linked locations
+  useEffect(() => {
+    const loadLinkedLocations = async () => {
+      setLoadingLinks(true);
+      try {
+        const links = await entityLinkService.getLinksFrom(
+          tripId,
+          'TRANSPORTATION',
+          transportation.id,
+          'LOCATION'
+        );
+
+        // Get location IDs from the links
+        const locationIds = links
+          .filter((link) => link.targetType === 'LOCATION')
+          .map((link) => link.targetId);
+
+        if (locationIds.length > 0) {
+          // Fetch full location data for linked locations
+          const allLocations = await locationService.getLocationsByTrip(tripId);
+          const linkedLocs = allLocations.filter((loc) => locationIds.includes(loc.id));
+          setLinkedLocations(linkedLocs);
+        }
+      } catch (error) {
+        console.error('Error loading linked locations:', error);
+      } finally {
+        setLoadingLinks(false);
+      }
+    };
+
+    loadLinkedLocations();
+  }, [tripId, transportation.id]);
+
+  const handleEdit = () => {
+    navigate(`/trips/${tripId}?tab=transportation&edit=${transportation.id}`);
+  };
+
+  // Calculate duration
+  let durationMinutes: number | null = transportation.durationMinutes || null;
+  if (!durationMinutes && transportation.departureTime && transportation.arrivalTime) {
+    const start = new Date(transportation.departureTime);
+    const end = new Date(transportation.arrivalTime);
+    durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+  }
+
+  const startTz = transportation.startTimezone || tripTimezone;
+  const endTz = transportation.endTimezone || tripTimezone;
+
+  // Get from/to display names
+  const fromName =
+    transportation.fromLocation?.name ||
+    transportation.fromLocationName ||
+    'Unknown';
+  const toName =
+    transportation.toLocation?.name ||
+    transportation.toLocationName ||
+    'Unknown';
+
+  // Format type display
+  const typeDisplay =
+    transportation.type.charAt(0).toUpperCase() + transportation.type.slice(1);
+
+  return (
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border ${colors.border} border-l-4 ${colors.accent} overflow-hidden hover:shadow-md transition-shadow`}
+    >
+      {/* Header */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {/* Icon */}
+            <div
+              className={`w-12 h-12 rounded-xl ${colors.icon} flex items-center justify-center flex-shrink-0`}
+            >
+              <span className="text-2xl">{getTransportationIcon(transportation.type)}</span>
+            </div>
+
+            {/* Main content */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {typeDisplay}
+                {transportation.carrier && (
+                  <span className="text-gray-500 dark:text-gray-400 font-normal">
+                    {' '}
+                    · {transportation.carrier}
+                  </span>
+                )}
+              </h3>
+
+              {transportation.vehicleNumber && (
+                <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-mono">
+                  {transportation.vehicleNumber}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Cost and actions */}
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            {transportation.cost && transportation.currency && (
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                {formatCurrency(transportation.cost, transportation.currency)}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors"
+              title="Edit transportation"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Route display */}
+        <div className="mt-4 flex items-stretch gap-4">
+          {/* From */}
+          <div className="flex-1">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+              From
+            </div>
+            <div className="font-semibold text-gray-900 dark:text-white">{fromName}</div>
+            {transportation.departureTime && (
+              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                {formatTime(transportation.departureTime, startTz)}
+                {startTz && (
+                  <span className="text-gray-400 dark:text-gray-500 text-xs ml-1">
+                    {getTimezoneAbbr(startTz)}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Arrow */}
+          <div className="flex flex-col items-center justify-center">
+            <svg
+              className="w-6 h-6 text-gray-400 dark:text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 8l4 4m0 0l-4 4m4-4H3"
+              />
+            </svg>
+            {durationMinutes && durationMinutes > 0 && (
+              <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                {formatDuration(durationMinutes)}
+              </span>
+            )}
+          </div>
+
+          {/* To */}
+          <div className="flex-1 text-right">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+              To
+            </div>
+            <div className="font-semibold text-gray-900 dark:text-white">{toName}</div>
+            {transportation.arrivalTime && (
+              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                {formatTime(transportation.arrivalTime, endTz)}
+                {endTz && (
+                  <span className="text-gray-400 dark:text-gray-500 text-xs ml-1">
+                    {getTimezoneAbbr(endTz)}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Distance badge */}
+        {transportation.calculatedDistance && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
+              </svg>
+              {transportation.calculatedDistance.toFixed(1)} km
+            </span>
+            {transportation.distanceSource && (
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                ({transportation.distanceSource === 'route' ? 'road distance' : 'straight line'})
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Confirmation number */}
+        {transportation.confirmationNumber && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="font-mono">{transportation.confirmationNumber}</span>
+          </div>
+        )}
+
+        {/* Flight tracking info */}
+        {transportation.flightTracking && (
+          <div className="mt-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30">
+            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
+              Flight Status
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {transportation.flightTracking.status && (
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Status:</span>{' '}
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {transportation.flightTracking.status}
+                  </span>
+                </div>
+              )}
+              {transportation.flightTracking.gate && (
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Gate:</span>{' '}
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {transportation.flightTracking.gate}
+                  </span>
+                </div>
+              )}
+              {transportation.flightTracking.terminal && (
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Terminal:</span>{' '}
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {transportation.flightTracking.terminal}
+                  </span>
+                </div>
+              )}
+              {transportation.flightTracking.baggageClaim && (
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Baggage:</span>{' '}
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {transportation.flightTracking.baggageClaim}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Notes */}
+        {transportation.notes && (
+          <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-start gap-2">
+              <svg
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+              <span>{transportation.notes}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Embedded from/to locations */}
+        {transportation.fromLocation && (
+          <EmbeddedLocationCard
+            location={transportation.fromLocation}
+            tripId={tripId}
+            label="Departure Location"
+          />
+        )}
+
+        {transportation.toLocation && (
+          <EmbeddedLocationCard
+            location={transportation.toLocation}
+            tripId={tripId}
+            label="Arrival Location"
+          />
+        )}
+
+        {/* Linked locations (from entity links) */}
+        {loadingLinks ? (
+          <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            Loading linked locations...
+          </div>
+        ) : (
+          linkedLocations.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Related Locations ({linkedLocations.length})
+              </div>
+              <div className="space-y-2">
+                {linkedLocations.map((loc) => (
+                  <EmbeddedLocationCard
+                    key={loc.id}
+                    location={loc}
+                    tripId={tripId}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
