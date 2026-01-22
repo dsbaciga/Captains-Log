@@ -40,7 +40,7 @@ class TripValidatorService {
     issues.push(...this.checkMissingTransportation(trip));
     issues.push(...this.checkTimelineConflicts(trip));
     issues.push(...this.checkInvalidDates(trip));
-    issues.push(...this.checkMissingInformation(trip));
+    issues.push(...await this.checkMissingInformation(trip));
     issues.push(...this.checkEmptyDays(trip));
     issues.push(...await this.checkTravelTimeAlerts(trip));
 
@@ -175,11 +175,22 @@ class TripValidatorService {
     return issues;
   }
 
-  private checkMissingInformation(trip: any): ValidationIssue[] {
+  private async checkMissingInformation(trip: any): Promise<ValidationIssue[]> {
     const issues: ValidationIssue[] = [];
 
-    // Activities without locations
-    const activitiesWithoutLocation = trip.activities.filter((a: any) => !a.locationId);
+    // Activities without locations (now checked via EntityLink system)
+    const activityIds = trip.activities.map((a: any) => a.id);
+    const activityLocationLinks = await prisma.entityLink.findMany({
+      where: {
+        tripId: trip.id,
+        sourceType: 'ACTIVITY',
+        sourceId: { in: activityIds },
+        targetType: 'LOCATION',
+      },
+      select: { sourceId: true },
+    });
+    const activitiesWithLocation = new Set(activityLocationLinks.map(l => l.sourceId));
+    const activitiesWithoutLocation = trip.activities.filter((a: any) => !activitiesWithLocation.has(a.id));
     if (activitiesWithoutLocation.length > 0) {
       issues.push({
         severity: 'info',
@@ -267,20 +278,55 @@ class TripValidatorService {
   private async checkTravelTimeAlerts(trip: any): Promise<ValidationIssue[]> {
     const issues: ValidationIssue[] = [];
 
-    // Get activities with locations, sorted by time
-    const activitiesWithLocations = trip.activities
-      .filter((a: any) => a.startTime && a.endTime && a.locationId)
+    // Get activities with times, sorted by time
+    const activitiesWithTimes = trip.activities
+      .filter((a: any) => a.startTime && a.endTime)
       .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
-    // Fetch location details for activities
-    const activityIds = activitiesWithLocations.map((a: any) => a.id);
-    const activitiesWithFullLocation = await prisma.activity.findMany({
-      where: { id: { in: activityIds } },
-      include: {
-        location: true,
+    if (activitiesWithTimes.length < 2) {
+      return issues; // Need at least 2 activities for travel time analysis
+    }
+
+    // Get location links for these activities (via EntityLink system)
+    const activityIds = activitiesWithTimes.map((a: any) => a.id);
+    const locationLinks = await prisma.entityLink.findMany({
+      where: {
+        tripId: trip.id,
+        sourceType: 'ACTIVITY',
+        sourceId: { in: activityIds },
+        targetType: 'LOCATION',
       },
-      orderBy: { startTime: 'asc' },
     });
+
+    // Build a map of activity ID -> location ID
+    const activityLocationMap = new Map<number, number>();
+    locationLinks.forEach(link => {
+      activityLocationMap.set(link.sourceId, link.targetId);
+    });
+
+    // Filter to only activities that have linked locations
+    const activitiesWithLocationIds = activitiesWithTimes.filter((a: any) => activityLocationMap.has(a.id));
+
+    if (activitiesWithLocationIds.length < 2) {
+      return issues; // Need at least 2 activities with locations for travel time analysis
+    }
+
+    // Fetch the location details
+    const locationIds = [...new Set(activitiesWithLocationIds.map((a: any) => activityLocationMap.get(a.id)))];
+    const locations = await prisma.location.findMany({
+      where: { id: { in: locationIds as number[] } },
+    });
+    const locationMap = new Map(locations.map(l => [l.id, l]));
+
+    // Construct activities with location data attached (for travelTime.service)
+    const activitiesWithFullLocation = activitiesWithLocationIds.map((a: any) => ({
+      ...a,
+      location: locationMap.get(activityLocationMap.get(a.id)!) || null,
+    })).filter((a: any) => a.location !== null);
+
+    if (activitiesWithFullLocation.length < 2) {
+      return issues;
+    }
 
     // Analyze travel time between consecutive activities
     const alerts = travelTimeService.analyzeActivityTransitions(activitiesWithFullLocation);

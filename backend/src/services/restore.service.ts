@@ -200,12 +200,12 @@ export async function restoreFromBackup(
           }
 
           // Import activities (build ID mapping)
+          // Note: Location associations are now handled via EntityLink system (restored separately below)
           const activityMap = new Map<number, number>(); // old ID -> new ID
           for (const activityData of tripData.activities || []) {
             const activity = await tx.activity.create({
               data: {
                 tripId: trip.id,
-                locationId: activityData.locationId ? locationMap.get(activityData.locationId) : null,
                 parentId: null, // Set later in second pass
                 name: activityData.name,
                 description: activityData.description,
@@ -298,12 +298,12 @@ export async function restoreFromBackup(
           }
 
           // Import lodging
+          // Note: Location associations are now handled via EntityLink system (restored separately below)
           const lodgingMap = new Map<number, number>(); // old ID -> new ID
           for (const lodgingData of tripData.lodging || []) {
             const lodging = await tx.lodging.create({
               data: {
                 tripId: trip.id,
-                locationId: lodgingData.locationId ? locationMap.get(lodgingData.locationId) : null,
                 type: lodgingData.type,
                 name: lodgingData.name,
                 address: lodgingData.address,
@@ -340,18 +340,18 @@ export async function restoreFromBackup(
           }
 
           // Import photo albums
+          // Note: Location, Activity, and Lodging associations are now handled via EntityLink system (restored separately below)
+          const albumMap = new Map<number, number>(); // old ID -> new ID
           for (const albumData of tripData.photoAlbums || []) {
             const album = await tx.photoAlbum.create({
               data: {
                 tripId: trip.id,
                 name: albumData.name,
                 description: albumData.description,
-                locationId: albumData.locationId ? locationMap.get(albumData.locationId) : null,
-                activityId: albumData.activityId ? activityMap.get(albumData.activityId) : null,
-                lodgingId: albumData.lodgingId ? lodgingMap.get(albumData.lodgingId) : null,
                 coverPhotoId: albumData.coverPhotoId ? photoMap.get(albumData.coverPhotoId) : null,
               },
             });
+            albumMap.set(albumData.id, album.id);
 
             // Link photos to album
             if (albumData.photos && options.importPhotos) {
@@ -433,6 +433,48 @@ export async function restoreFromBackup(
                 },
               },
             });
+          }
+
+          // Import EntityLinks (relationships between entities)
+          // Helper function to map old IDs to new IDs based on entity type
+          const getNewEntityId = (entityType: string, oldId: number): number | null => {
+            switch (entityType) {
+              case 'LOCATION':
+                return locationMap.get(oldId) || null;
+              case 'PHOTO':
+                return photoMap.get(oldId) || null;
+              case 'ACTIVITY':
+                return activityMap.get(oldId) || null;
+              case 'TRANSPORTATION':
+                return transportationMap.get(oldId) || null;
+              case 'LODGING':
+                return lodgingMap.get(oldId) || null;
+              case 'PHOTO_ALBUM':
+                return albumMap.get(oldId) || null;
+              default:
+                return null;
+            }
+          };
+
+          for (const linkData of tripData.entityLinks || []) {
+            const newSourceId = getNewEntityId(linkData.sourceType, linkData.sourceId);
+            const newTargetId = getNewEntityId(linkData.targetType, linkData.targetId);
+
+            // Only create the link if both source and target entities were restored
+            if (newSourceId && newTargetId) {
+              await tx.entityLink.create({
+                data: {
+                  tripId: trip.id,
+                  sourceType: linkData.sourceType,
+                  sourceId: newSourceId,
+                  targetType: linkData.targetType,
+                  targetId: newTargetId,
+                  relationship: linkData.relationship,
+                  sortOrder: linkData.sortOrder,
+                  notes: linkData.notes,
+                },
+              });
+            }
           }
         }
       },

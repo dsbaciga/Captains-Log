@@ -390,22 +390,15 @@ export class TripService {
           },
         } : false,
         photos: data.copyEntities?.photos ? true : false,
-        activities: data.copyEntities?.activities ? {
-          include: {
-            location: true,
-          },
-        } : false,
+        // Note: Activity and Lodging locations are handled via EntityLink system (copied separately)
+        activities: data.copyEntities?.activities ? true : false,
         transportation: data.copyEntities?.transportation ? {
           include: {
             startLocation: true,
             endLocation: true,
           },
         } : false,
-        lodging: data.copyEntities?.lodging ? {
-          include: {
-            location: true,
-          },
-        } : false,
+        lodging: data.copyEntities?.lodging ? true : false,
         journalEntries: data.copyEntities?.journalEntries ? true : false,
         photoAlbums: data.copyEntities?.photoAlbums ? {
           include: {
