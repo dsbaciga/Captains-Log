@@ -23,7 +23,7 @@ export default function UnscheduledActivityCard({
             isCompact ? 'w-8 h-8' : 'w-9 h-9'
           } rounded-full bg-blue-500 text-white flex items-center justify-center`}
         >
-          <ActivityIcon className={isCompact ? 'w-4 h-4' : 'w-4 h-4'} />
+          <ActivityIcon className="w-4 h-4" />
         </div>
 
         {/* Content */}
@@ -54,7 +54,7 @@ export default function UnscheduledActivityCard({
                   isCompact ? 'text-xs' : 'text-sm'
                 }`}
               >
-                {activity.currency} {activity.cost.toFixed(2)}
+                {activity.currency} {Number(activity.cost).toFixed(2)}
               </div>
             )}
           </div>

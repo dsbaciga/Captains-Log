@@ -235,21 +235,28 @@ const Timeline = ({
       const locationMap: Record<number, number[]> = {};
 
       if (Array.isArray(activities)) {
+        // First pass: identify unscheduled activities
         for (const activity of activities) {
           if (!activity) continue;
           // An activity is unscheduled if it has no startTime and is not allDay
           if (!activity.startTime && !activity.allDay) {
             unscheduled.push(activity);
-            // Fetch linked locations for this activity
-            try {
-              const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
-              if (links && links.length > 0) {
-                locationMap[activity.id] = links.map(link => link.targetId);
-              }
-            } catch (err) {
-              logger.log(`Failed to fetch links for activity ${activity.id}`, { operation: 'loadTimelineData.activityLinks' });
-            }
           }
+        }
+
+        // Fetch linked locations for all unscheduled activities in parallel
+        if (unscheduled.length > 0) {
+          const linkPromises = unscheduled.map(activity =>
+            entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION')
+              .then(links => ({ activityId: activity.id, links }))
+              .catch(() => ({ activityId: activity.id, links: [] as { targetId: number }[] }))
+          );
+          const linkResults = await Promise.all(linkPromises);
+          linkResults.forEach(({ activityId, links }) => {
+            if (links && links.length > 0) {
+              locationMap[activityId] = links.map(link => link.targetId);
+            }
+          });
         }
       }
       setUnscheduledActivities(unscheduled);
