@@ -114,8 +114,13 @@ class PhotoService {
     return response.data;
   }
 
-  async getAlbumsByTrip(tripId: number): Promise<{ albums: PhotoAlbum[], unsortedCount: number, totalCount: number }> {
-    const response = await api.get(`/albums/trip/${tripId}`);
+  async getAlbumsByTrip(
+    tripId: number,
+    options?: { skip?: number; take?: number }
+  ): Promise<{ albums: PhotoAlbum[]; totalAlbums: number; hasMore: boolean; unsortedCount: number; totalCount: number }> {
+    const response = await api.get(`/albums/trip/${tripId}`, {
+      params: options,
+    });
     return response.data;
   }
 
