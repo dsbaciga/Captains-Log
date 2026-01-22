@@ -202,6 +202,8 @@ export default function ActivityForm({
         handleChange("unscheduled", true);
       }
     }
+    // Note: handleChange and reset are stable functions from useFormFields hook
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingActivity, editingLocationId, tripTimezone, defaultUnscheduled]);
 
   // Auto-fill: End Time = Start Time + 1 Hour (only when creating)
@@ -223,6 +225,8 @@ export default function ActivityForm({
         if (!values.endDate) handleChange("endDate", endDate);
       }
     }
+    // Note: handleChange is a stable function from useFormFields hook
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.startDate, values.startTime, values.allDay, values.unscheduled, editingActivity]);
 
   const handleLocationCreated = (locationId: number, locationName: string) => {

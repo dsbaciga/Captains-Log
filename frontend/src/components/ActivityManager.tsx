@@ -62,6 +62,7 @@ export default function ActivityManager({
   const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadUserCategories();
@@ -95,7 +96,9 @@ export default function ActivityManager({
       }
       setPendingEditId(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Note: handleEdit excluded intentionally - we only want to trigger when
+    // pendingEditId is set and items finish loading, not when handleEdit changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingEditId, manager.items, manager.loading]);
 
   const loadUserCategories = async () => {
@@ -154,6 +157,8 @@ export default function ActivityManager({
   };
 
   const handleFormSubmit = async (data: ActivityFormData, newLocationId: number | null) => {
+    setIsSubmitting(true);
+    try {
     if (manager.editingId) {
       // Update existing activity
       const updateData: UpdateActivityInput = {
@@ -197,6 +202,7 @@ export default function ActivityManager({
             invalidateLinkSummary();
           } catch (error) {
             console.error('Failed to update location link:', error);
+            toast.error('Activity saved but failed to update location link');
           }
         }
         resetForm();
@@ -237,6 +243,7 @@ export default function ActivityManager({
             invalidateLinkSummary();
           } catch (linkError) {
             console.error('Failed to create location link:', linkError);
+            toast.error('Activity saved but failed to link location');
           }
         }
 
@@ -254,6 +261,9 @@ export default function ActivityManager({
         console.error('Failed to create activity:', error);
         toast.error('Failed to add activity');
       }
+    }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -480,6 +490,7 @@ export default function ActivityManager({
             <button
               type="button"
               onClick={handleCloseForm}
+              disabled={isSubmitting}
               className="btn btn-secondary"
             >
               Cancel
@@ -487,21 +498,24 @@ export default function ActivityManager({
             {!manager.editingId && (
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={() => {
                   setKeepFormOpenAfterSave(true);
                   (document.getElementById('activity-form') as HTMLFormElement)?.requestSubmit();
                 }}
-                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                className="btn btn-secondary text-sm whitespace-nowrap"
               >
-                Save & Add Another
+                <span className="hidden sm:inline">Save & Add Another</span>
+                <span className="sm:hidden">+ Another</span>
               </button>
             )}
             <button
               type="submit"
               form="activity-form"
-              className="btn btn-primary"
+              disabled={isSubmitting}
+              className="btn btn-primary disabled:opacity-50"
             >
-              {manager.editingId ? "Update" : "Add"} Activity
+              {isSubmitting ? "Saving..." : manager.editingId ? "Update Activity" : "Add Activity"}
             </button>
           </>
         }

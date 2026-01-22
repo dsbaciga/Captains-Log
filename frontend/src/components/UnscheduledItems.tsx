@@ -22,6 +22,8 @@ import ActivityForm, { ActivityFormData } from "./forms/ActivityForm";
 interface UnscheduledItemsProps {
   tripId: number;
   locations: Location[];
+  tripTimezone?: string | null;
+  tripStartDate?: string | null;
   onUpdate?: () => void;
 }
 
@@ -100,9 +102,12 @@ const initialLodgingFormState: LodgingFormFields = {
 export default function UnscheduledItems({
   tripId,
   locations,
+  tripTimezone,
+  tripStartDate,
   onUpdate,
 }: UnscheduledItemsProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [allActivities, setAllActivities] = useState<Activity[]>([]); // For parent selection
   const [transportation, setTransportation] = useState<Transportation[]>([]);
   const [lodging, setLodging] = useState<Lodging[]>([]);
   const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
@@ -144,6 +149,9 @@ export default function UnscheduledItems({
           transportationService.getTransportationByTrip(tripId),
           lodgingService.getLodgingByTrip(tripId),
         ]);
+
+      // Store all activities for parent selection
+      setAllActivities(activitiesData);
 
       // Filter for unscheduled activities (no start time and not all day)
       const unscheduled = activitiesData.filter(
@@ -249,6 +257,7 @@ export default function UnscheduledItems({
             });
           } catch (linkError) {
             console.error('Failed to create location link:', linkError);
+            toast.error('Activity saved but failed to link location');
           }
         }
       } else if (editingId) {
@@ -292,6 +301,7 @@ export default function UnscheduledItems({
             }
           } catch (error) {
             console.error('Failed to update location link:', error);
+            toast.error('Activity saved but failed to update location link');
           }
         }
       }
@@ -303,6 +313,20 @@ export default function UnscheduledItems({
       toast.error("Failed to save activity");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteActivity = async (activityId: number) => {
+    if (!window.confirm('Delete this activity? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      await activityService.deleteActivity(activityId);
+      toast.success('Activity deleted');
+      loadAllData();
+      onUpdate?.();
+    } catch {
+      toast.error('Failed to delete activity');
     }
   };
 
@@ -719,7 +743,9 @@ export default function UnscheduledItems({
           tripId={tripId}
           locations={locations}
           activityCategories={activityCategories}
-          existingActivities={activities}
+          tripTimezone={tripTimezone}
+          tripStartDate={tripStartDate}
+          existingActivities={allActivities}
           editingActivity={editingActivity}
           editingLocationId={editingActivityLocationId}
           onSubmit={handleActivityFormSubmit}
@@ -1323,6 +1349,13 @@ export default function UnscheduledItems({
                           className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteActivity(activity.id)}
+                          type="button"
+                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          Delete
                         </button>
                       </div>
                     </div>

@@ -1750,6 +1750,8 @@ export default function TripDetailPage() {
             <UnscheduledItems
               tripId={trip.id}
               locations={locations}
+              tripTimezone={trip.timezone}
+              tripStartDate={trip.startDate}
               onUpdate={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
             />
             )}
