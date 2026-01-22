@@ -265,6 +265,53 @@ router.delete('/:id', photoController.deletePhoto);
 
 /**
  * @openapi
+ * /api/photos/trip/{tripId}/date-groupings:
+ *   get:
+ *     summary: Get photo date groupings (dates and counts for lazy loading)
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Date groupings with photo counts
+ */
+router.get('/trip/:tripId/date-groupings', photoController.getPhotoDateGroupings);
+
+/**
+ * @openapi
+ * /api/photos/trip/{tripId}/by-date/{date}:
+ *   get:
+ *     summary: Get photos for a specific date
+ *     tags: [Photos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Date in YYYY-MM-DD format
+ *     responses:
+ *       200:
+ *         description: Photos for the specified date
+ */
+router.get('/trip/:tripId/by-date/:date', photoController.getPhotosByDate);
+
+/**
+ * @openapi
  * /api/photos/trip/{tripId}/suggest-albums:
  *   get:
  *     summary: Get smart album suggestions based on photo clustering

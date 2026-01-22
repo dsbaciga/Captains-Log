@@ -25,6 +25,7 @@ import PhotoUpload from "../components/PhotoUpload";
 import PhotosMapView from "../components/PhotosMapView";
 import AlbumSuggestions from "../components/AlbumSuggestions";
 import Timeline from "../components/Timeline";
+import PhotoTimeline from "../components/PhotoTimeline";
 import ActivityManager from "../components/ActivityManager";
 import UnscheduledItems from "../components/UnscheduledItems";
 import TransportationManager from "../components/TransportationManager";
@@ -62,6 +63,7 @@ type TabId =
   | "timeline"
   | "locations"
   | "photos"
+  | "photo-timeline"
   | "journal"
   | "activities"
   | "transportation"
@@ -431,6 +433,20 @@ export default function TripDetailPage() {
                   strokeLinejoin="round"
                   strokeWidth={2}
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "photo-timeline",
+            label: "Photo Timeline",
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
             ),
@@ -1551,6 +1567,20 @@ export default function TripDetailPage() {
                 }}
               />
             )}
+          </div>
+        )}
+
+        {/* Photo Timeline Tab */}
+        {activeTab === "photo-timeline" && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              Photo Timeline
+            </h2>
+            <PhotoTimeline
+              tripId={trip.id}
+              tripTimezone={trip.timezone || undefined}
+              tripStartDate={trip.startDate || undefined}
+            />
           </div>
         )}
 

@@ -161,6 +161,20 @@ class PhotoService {
     await api.delete(`/albums/${albumId}/photos/${photoId}`);
   }
 
+  async getPhotoDateGroupings(tripId: number, timezone?: string): Promise<PhotoDateGroupingsResponse> {
+    const response = await api.get(`/photos/trip/${tripId}/date-groupings`, {
+      params: timezone ? { timezone } : undefined,
+    });
+    return response.data;
+  }
+
+  async getPhotosByDate(tripId: number, date: string, timezone?: string): Promise<PhotosByDateResponse> {
+    const response = await api.get(`/photos/trip/${tripId}/by-date/${date}`, {
+      params: timezone ? { timezone } : undefined,
+    });
+    return response.data;
+  }
+
   async getAlbumSuggestions(tripId: number): Promise<AlbumSuggestion[]> {
     const response = await api.get(`/photos/trip/${tripId}/suggest-albums`);
     return response.data;
@@ -173,6 +187,23 @@ class PhotoService {
     const response = await api.post(`/photos/trip/${tripId}/accept-suggestion`, suggestion);
     return response.data;
   }
+}
+
+export interface PhotoDateGrouping {
+  date: string; // YYYY-MM-DD format
+  count: number;
+}
+
+export interface PhotoDateGroupingsResponse {
+  groupings: PhotoDateGrouping[];
+  totalWithDates: number;
+  totalWithoutDates: number;
+}
+
+export interface PhotosByDateResponse {
+  photos: Photo[];
+  date: string;
+  count: number;
 }
 
 export interface AlbumSuggestion {
