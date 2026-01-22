@@ -193,12 +193,10 @@ model Location {
   category                 LocationCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   parent                   Location?             @relation("LocationChildren", fields: [parentId], references: [id], onDelete: SetNull)
   children                 Location[]            @relation("LocationChildren")
-  activities               Activity[]
-  lodging                  Lodging[]
+  // Note: Activity, Lodging, and PhotoAlbum associations are handled via EntityLink system, not direct FKs
   transportationStarts     Transportation[]      @relation("StartLocation")
   transportationEnds       Transportation[]      @relation("EndLocation")
   weatherData              WeatherData[]
-  photoAlbums              PhotoAlbum[]
 
   @@index([tripId])
   @@index([parentId])
@@ -253,17 +251,12 @@ model PhotoAlbum {
   tripId      Int      @map("trip_id")
   name        String   @db.VarChar(255)
   description String?  @db.Text
-  locationId  Int?     @map("location_id")
-  activityId  Int?     @map("activity_id")
-  lodgingId   Int?     @map("lodging_id")
   coverPhotoId Int?    @map("cover_photo_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   trip         Trip                   @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  location     Location?              @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  activity     Activity?              @relation(fields: [activityId], references: [id], onDelete: SetNull)
-  lodging      Lodging?               @relation(fields: [lodgingId], references: [id], onDelete: SetNull)
+  // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
   coverPhoto   Photo?                 @relation("AlbumCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
   photoAssignments PhotoAlbumAssignment[]
 
@@ -287,7 +280,6 @@ model PhotoAlbumAssignment {
 model Activity {
   id          Int       @id @default(autoincrement())
   tripId      Int       @map("trip_id")
-  locationId  Int?      @map("location_id")
   parentId    Int?      @map("parent_id")
   name        String    @db.VarChar(500)
   description String?   @db.Text
@@ -306,14 +298,12 @@ model Activity {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  // Note: Location association is handled via EntityLink system, not direct FK
   parent   Activity? @relation("ActivityChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children Activity[] @relation("ActivityChildren")
-  photoAlbums PhotoAlbum[]
 
   @@map("activities")
   @@index([tripId])
-  @@index([locationId])
   @@index([parentId])
   @@index([tripId, manualOrder])
 }
@@ -361,7 +351,6 @@ model Transportation {
 model Lodging {
   id                  Int       @id @default(autoincrement())
   tripId              Int       @map("trip_id")
-  locationId          Int?      @map("location_id")
   type                String    @db.VarChar(50)
   name                String    @db.VarChar(500)
   address             String?   @db.VarChar(1000)
@@ -377,8 +366,7 @@ model Lodging {
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  photoAlbums PhotoAlbum[]
+  // Note: Location association is handled via EntityLink system, not direct FK
 
   @@map("lodging")
 }

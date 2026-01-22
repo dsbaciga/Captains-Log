@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import entityLinkService from '../services/entityLink.service';
 import GeneralEntityPickerModal from './GeneralEntityPickerModal';
 import LinkEditModal from './LinkEditModal';
@@ -72,6 +73,10 @@ export default function LinkPanel({
     onSuccess: () => {
       refetch();
       onUpdate?.();
+    },
+    onError: (error: Error) => {
+      console.error('Failed to delete link:', error);
+      toast.error('Failed to remove link');
     },
   });
 

@@ -559,22 +559,32 @@ class WeatherService {
           lte: endOfDay,
         },
       },
-      include: {
-        location: true,
-      },
       orderBy: { startTime: 'asc' },
     });
 
-    if (
-      activity?.location?.latitude &&
-      activity.location?.longitude
-    ) {
-      return {
-        lat: parseFloat(activity.location.latitude.toString()),
-        lon: parseFloat(activity.location.longitude.toString()),
-        locationId: activity.location.id,
-        locationName: activity.location.name,
-      };
+    // Activity locations are now via EntityLink - fetch linked location
+    if (activity) {
+      const activityLocationLink = await prisma.entityLink.findFirst({
+        where: {
+          tripId,
+          sourceType: 'ACTIVITY',
+          sourceId: activity.id,
+          targetType: 'LOCATION',
+        },
+      });
+      if (activityLocationLink) {
+        const linkedLocation = await prisma.location.findUnique({
+          where: { id: activityLocationLink.targetId },
+        });
+        if (linkedLocation?.latitude && linkedLocation?.longitude) {
+          return {
+            lat: parseFloat(linkedLocation.latitude.toString()),
+            lon: parseFloat(linkedLocation.longitude.toString()),
+            locationId: linkedLocation.id,
+            locationName: linkedLocation.name,
+          };
+        }
+      }
     }
 
     // 3. Fallback: check lodging where user is staying on this day
@@ -587,22 +597,32 @@ class WeatherService {
         checkInDate: { lte: endOfDay },
         checkOutDate: { gte: startOfDay },
       },
-      include: {
-        location: true,
-      },
       orderBy: { checkInDate: 'asc' },
     });
 
-    if (
-      lodging?.location?.latitude &&
-      lodging.location?.longitude
-    ) {
-      return {
-        lat: parseFloat(lodging.location.latitude.toString()),
-        lon: parseFloat(lodging.location.longitude.toString()),
-        locationId: lodging.location.id,
-        locationName: lodging.location.name,
-      };
+    // Lodging locations are now via EntityLink - fetch linked location
+    if (lodging) {
+      const lodgingLocationLink = await prisma.entityLink.findFirst({
+        where: {
+          tripId,
+          sourceType: 'LODGING',
+          sourceId: lodging.id,
+          targetType: 'LOCATION',
+        },
+      });
+      if (lodgingLocationLink) {
+        const linkedLocation = await prisma.location.findUnique({
+          where: { id: lodgingLocationLink.targetId },
+        });
+        if (linkedLocation?.latitude && linkedLocation?.longitude) {
+          return {
+            lat: parseFloat(linkedLocation.latitude.toString()),
+            lon: parseFloat(linkedLocation.longitude.toString()),
+            locationId: linkedLocation.id,
+            locationName: linkedLocation.name,
+          };
+        }
+      }
     }
 
     // 4. Final fallback: use first location in entire trip
@@ -634,46 +654,64 @@ class WeatherService {
       };
     }
 
-    // 2. Fallback: check activities with locations
+    // 2. Fallback: check activities with linked locations (via EntityLink)
     const activity = await prisma.activity.findFirst({
       where: { tripId },
-      include: {
-        location: true,
-      },
       orderBy: { startTime: 'asc' },
     });
 
-    if (
-      activity?.location?.latitude &&
-      activity.location?.longitude
-    ) {
-      return {
-        lat: parseFloat(activity.location.latitude.toString()),
-        lon: parseFloat(activity.location.longitude.toString()),
-        locationId: activity.location.id,
-        locationName: activity.location.name,
-      };
+    if (activity) {
+      const activityLocationLink = await prisma.entityLink.findFirst({
+        where: {
+          tripId,
+          sourceType: 'ACTIVITY',
+          sourceId: activity.id,
+          targetType: 'LOCATION',
+        },
+      });
+      if (activityLocationLink) {
+        const linkedLocation = await prisma.location.findUnique({
+          where: { id: activityLocationLink.targetId },
+        });
+        if (linkedLocation?.latitude && linkedLocation?.longitude) {
+          return {
+            lat: parseFloat(linkedLocation.latitude.toString()),
+            lon: parseFloat(linkedLocation.longitude.toString()),
+            locationId: linkedLocation.id,
+            locationName: linkedLocation.name,
+          };
+        }
+      }
     }
 
-    // 3. Fallback: check lodging with locations
+    // 3. Fallback: check lodging with linked locations (via EntityLink)
     const lodging = await prisma.lodging.findFirst({
       where: { tripId },
-      include: {
-        location: true,
-      },
       orderBy: { checkInDate: 'asc' },
     });
 
-    if (
-      lodging?.location?.latitude &&
-      lodging.location?.longitude
-    ) {
-      return {
-        lat: parseFloat(lodging.location.latitude.toString()),
-        lon: parseFloat(lodging.location.longitude.toString()),
-        locationId: lodging.location.id,
-        locationName: lodging.location.name,
-      };
+    if (lodging) {
+      const lodgingLocationLink = await prisma.entityLink.findFirst({
+        where: {
+          tripId,
+          sourceType: 'LODGING',
+          sourceId: lodging.id,
+          targetType: 'LOCATION',
+        },
+      });
+      if (lodgingLocationLink) {
+        const linkedLocation = await prisma.location.findUnique({
+          where: { id: lodgingLocationLink.targetId },
+        });
+        if (linkedLocation?.latitude && linkedLocation?.longitude) {
+          return {
+            lat: parseFloat(linkedLocation.latitude.toString()),
+            lon: parseFloat(linkedLocation.longitude.toString()),
+            locationId: linkedLocation.id,
+            locationName: linkedLocation.name,
+          };
+        }
+      }
     }
 
     return null; // No coordinates available

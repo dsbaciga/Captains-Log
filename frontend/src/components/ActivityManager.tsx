@@ -243,7 +243,7 @@ export default function ActivityManager({
             invalidateLinkSummary();
           } catch (linkError) {
             console.error('Failed to create location link:', linkError);
-            toast.error('Activity saved but failed to link location');
+            toast.error('Activity created but failed to link location');
           }
         }
 

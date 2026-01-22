@@ -113,7 +113,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         },
         activities: {
           select: {
-            locationId: true,
+            id: true, // Needed for EntityLink lookup
             parentId: true,
             name: true,
             description: true,
@@ -146,7 +146,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         },
         lodging: {
           select: {
-            locationId: true,
+            id: true, // Needed for EntityLink lookup
             type: true,
             name: true,
             address: true,
@@ -214,6 +214,18 @@ export async function createBackup(userId: number): Promise<BackupData> {
                 checkedAt: true,
               },
             },
+          },
+        },
+        // EntityLinks - stores relationships between entities (photos↔locations, activities↔locations, etc.)
+        entityLinks: {
+          select: {
+            sourceType: true,
+            sourceId: true,
+            targetType: true,
+            targetId: true,
+            relationship: true,
+            sortOrder: true,
+            notes: true,
           },
         },
       },
@@ -288,12 +300,10 @@ export async function createBackup(userId: number): Promise<BackupData> {
           mood: j.mood,
           weatherNotes: j.weatherNotes,
         })),
+        // Note: Location, Activity, and Lodging associations are now handled via EntityLinks
         photoAlbums: trip.photoAlbums.map((a: any) => ({
           name: a.name,
           description: a.description,
-          locationId: a.locationId,
-          activityId: a.activityId,
-          lodgingId: a.lodgingId,
           coverPhotoId: a.coverPhotoId,
           photos: a.photoAssignments.map((p: any) => ({
             photoId: p.photoId,
@@ -311,6 +321,8 @@ export async function createBackup(userId: number): Promise<BackupData> {
           sortOrder: checklist.sortOrder,
           items: checklist.items,
         })),
+        // EntityLinks - stores relationships between entities
+        entityLinks: trip.entityLinks,
       })),
     };
 

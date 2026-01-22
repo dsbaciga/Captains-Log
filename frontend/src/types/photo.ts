@@ -25,30 +25,16 @@ export type Photo = {
   } | null;
 };
 
+// Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 export type PhotoAlbum = {
   id: number;
   tripId: number;
   name: string;
   description: string | null;
-  locationId: number | null;
-  activityId: number | null;
-  lodgingId: number | null;
   coverPhotoId: number | null;
   createdAt: string;
   updatedAt: string;
   coverPhoto?: Photo;
-  location?: {
-    id: number;
-    name: string;
-  };
-  activity?: {
-    id: number;
-    name: string;
-  };
-  lodging?: {
-    id: number;
-    name: string;
-  };
   _count?: {
     photos: number;
     photoAssignments: number;
@@ -88,22 +74,18 @@ export type UpdatePhotoInput = {
   longitude?: number | null;
 };
 
+// Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 export type CreateAlbumInput = {
   tripId: number;
   name: string;
   description?: string;
-  locationId?: number | null;
-  activityId?: number | null;
-  lodgingId?: number | null;
   coverPhotoId?: number;
 };
 
+// Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 export type UpdateAlbumInput = {
   name?: string;
   description?: string | null;
-  locationId?: number | null;
-  activityId?: number | null;
-  lodgingId?: number | null;
   coverPhotoId?: number | null;
 };
 

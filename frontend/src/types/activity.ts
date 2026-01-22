@@ -1,7 +1,7 @@
+// Note: Location association is handled via EntityLink system, not direct FK
 export type Activity = {
   id: number;
   tripId: number;
-  locationId: number | null;
   parentId: number | null;
   name: string;
   description: string | null;
@@ -18,13 +18,6 @@ export type Activity = {
   manualOrder: number | null;
   createdAt: string;
   updatedAt: string;
-  location?: {
-    id: number;
-    name: string;
-    address: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
-  };
   parent?: {
     id: number;
     name: string;
@@ -41,13 +34,6 @@ export type Activity = {
     currency: string | null;
     bookingReference: string | null;
     notes: string | null;
-    location?: {
-      id: number;
-      name: string;
-      address: string | null;
-      latitude?: number | null;
-      longitude?: number | null;
-    };
     photoAlbums?: {
       id: number;
       name: string;
@@ -67,9 +53,9 @@ export type Activity = {
   }[];
 };
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export type CreateActivityInput = {
   tripId: number;
-  locationId?: number;
   parentId?: number | null;
   name: string;
   description?: string;
@@ -85,8 +71,8 @@ export type CreateActivityInput = {
   notes?: string;
 };
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export type UpdateActivityInput = {
-  locationId?: number | null;
   parentId?: number | null;
   name?: string;
   description?: string | null;

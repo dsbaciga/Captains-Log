@@ -390,22 +390,15 @@ export class TripService {
           },
         } : false,
         photos: data.copyEntities?.photos ? true : false,
-        activities: data.copyEntities?.activities ? {
-          include: {
-            location: true,
-          },
-        } : false,
+        // Note: Activity and Lodging locations are handled via EntityLink system (copied separately)
+        activities: data.copyEntities?.activities ? true : false,
         transportation: data.copyEntities?.transportation ? {
           include: {
             startLocation: true,
             endLocation: true,
           },
         } : false,
-        lodging: data.copyEntities?.lodging ? {
-          include: {
-            location: true,
-          },
-        } : false,
+        lodging: data.copyEntities?.lodging ? true : false,
         journalEntries: data.copyEntities?.journalEntries ? true : false,
         photoAlbums: data.copyEntities?.photoAlbums ? {
           include: {
@@ -521,15 +514,14 @@ export class TripService {
     }
 
     // Copy activities (with parent-child hierarchy)
+    // Note: Location associations are handled via EntityLink system (copied separately below)
     if (data.copyEntities?.activities && sourceTrip.activities && Array.isArray(sourceTrip.activities)) {
       // First pass: activities without parent
       const activitiesWithoutParent = sourceTrip.activities.filter((act: any) => !act.parentId);
       for (const activity of activitiesWithoutParent) {
-        const newLocationId = activity.locationId ? locationIdMap.get(activity.locationId) : null;
         const newActivity = await prisma.activity.create({
           data: {
             tripId: newTrip.id,
-            locationId: newLocationId || null,
             name: activity.name,
             description: activity.description,
             category: activity.category,
@@ -551,12 +543,10 @@ export class TripService {
       // Second pass: child activities with updated parent references
       const activitiesWithParent = sourceTrip.activities.filter((act: any) => act.parentId);
       for (const activity of activitiesWithParent) {
-        const newLocationId = activity.locationId ? locationIdMap.get(activity.locationId) : null;
         const newParentId = activityIdMap.get(activity.parentId);
         const newActivity = await prisma.activity.create({
           data: {
             tripId: newTrip.id,
-            locationId: newLocationId || null,
             parentId: newParentId || null,
             name: activity.name,
             description: activity.description,
@@ -619,14 +609,12 @@ export class TripService {
     }
 
     // Copy lodging
+    // Note: Location associations are handled via EntityLink system (copied separately below)
     if (data.copyEntities?.lodging && sourceTrip.lodging && Array.isArray(sourceTrip.lodging)) {
       for (const lodging of sourceTrip.lodging) {
-        const newLocationId = lodging.locationId ? locationIdMap.get(lodging.locationId) : null;
-
         const newLodging = await prisma.lodging.create({
           data: {
             tripId: newTrip.id,
-            locationId: newLocationId || null,
             type: lodging.type,
             name: lodging.name,
             address: lodging.address,
@@ -645,11 +633,9 @@ export class TripService {
     }
 
     // Copy photo albums
+    // Note: Location, Activity, and Lodging associations are handled via EntityLink system (copied separately below)
     if (data.copyEntities?.photoAlbums && sourceTrip.photoAlbums && Array.isArray(sourceTrip.photoAlbums)) {
       for (const album of sourceTrip.photoAlbums) {
-        const newLocationId = album.locationId ? locationIdMap.get(album.locationId) : null;
-        const newActivityId = album.activityId ? activityIdMap.get(album.activityId) : null;
-        const newLodgingId = album.lodgingId ? lodgingIdMap.get(album.lodgingId) : null;
         const newCoverPhotoId = album.coverPhotoId ? photoIdMap.get(album.coverPhotoId) : null;
 
         const newAlbum = await prisma.photoAlbum.create({
@@ -657,9 +643,6 @@ export class TripService {
             tripId: newTrip.id,
             name: album.name,
             description: album.description,
-            locationId: newLocationId || null,
-            activityId: newActivityId || null,
-            lodgingId: newLodgingId || null,
             coverPhotoId: newCoverPhotoId || null,
           },
         });
@@ -767,6 +750,55 @@ export class TripService {
             });
           }
         }
+      }
+    }
+
+    // Copy entity links (must be done after all entities are copied)
+    // This preserves relationships like photos linked to locations, activities to locations, etc.
+    const entityLinks = await prisma.entityLink.findMany({
+      where: { tripId: sourceTripId },
+    });
+
+    // Helper function to map old IDs to new IDs based on entity type
+    const getNewId = (entityType: string, oldId: number): number | null => {
+      switch (entityType) {
+        case 'LOCATION':
+          return locationIdMap.get(oldId) || null;
+        case 'PHOTO':
+          return photoIdMap.get(oldId) || null;
+        case 'ACTIVITY':
+          return activityIdMap.get(oldId) || null;
+        case 'TRANSPORTATION':
+          return transportationIdMap.get(oldId) || null;
+        case 'LODGING':
+          return lodgingIdMap.get(oldId) || null;
+        case 'JOURNAL_ENTRY':
+          return journalIdMap.get(oldId) || null;
+        case 'PHOTO_ALBUM':
+          return albumIdMap.get(oldId) || null;
+        default:
+          return null;
+      }
+    };
+
+    for (const link of entityLinks) {
+      const newSourceId = getNewId(link.sourceType, link.sourceId);
+      const newTargetId = getNewId(link.targetType, link.targetId);
+
+      // Only create the link if both source and target entities were copied
+      if (newSourceId && newTargetId) {
+        await prisma.entityLink.create({
+          data: {
+            tripId: newTrip.id,
+            sourceType: link.sourceType,
+            sourceId: newSourceId,
+            targetType: link.targetType,
+            targetId: newTargetId,
+            relationship: link.relationship,
+            sortOrder: link.sortOrder,
+            notes: link.notes,
+          },
+        });
       }
     }
 

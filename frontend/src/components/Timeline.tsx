@@ -277,6 +277,8 @@ const Timeline = ({
       setActivityLocationMap(locationMap);
       logger.log(`Found ${unscheduled.length} unscheduled activities`, { operation: 'loadTimelineData.unscheduled' });
 
+      // Note: Lodging locations are already included in entityLocationLinksMap (fetched via bulk query)
+
       // Add activities
       logger.log('Processing activities array', {
         operation: 'loadTimelineData.activities',
@@ -503,14 +505,9 @@ const Timeline = ({
               title: lodge.name,
               subtitle: subtitle,
               description: lodge.address || undefined,
-              location: lodge.location?.name,
-              locationCoords:
-                lodge.location?.latitude && lodge.location?.longitude
-                  ? {
-                      latitude: Number(lodge.location.latitude),
-                      longitude: Number(lodge.location.longitude),
-                    }
-                  : undefined,
+              // Note: Location is now via EntityLink system (not pre-loaded for lodging yet)
+              location: undefined,
+              locationCoords: undefined,
               cost: isCheckInDay ? lodge.cost || undefined : undefined,
               currency: isCheckInDay ? lodge.currency || undefined : undefined,
               isAllDay: !isCheckInDay && !isCheckOutDay,
@@ -535,14 +532,9 @@ const Timeline = ({
             title: lodge.name,
             subtitle: lodge.type.charAt(0).toUpperCase() + lodge.type.slice(1).replace(/_/g, ' '),
             description: lodge.address || undefined,
-            location: lodge.location?.name,
-            locationCoords:
-              lodge.location?.latitude && lodge.location?.longitude
-                ? {
-                    latitude: Number(lodge.location.latitude),
-                    longitude: Number(lodge.location.longitude),
-                  }
-                : undefined,
+            // Note: Location is now via EntityLink system (not pre-loaded for lodging yet)
+            location: undefined,
+            locationCoords: undefined,
             cost: lodge.cost || undefined,
             currency: lodge.currency || undefined,
             confirmationNumber: lodge.confirmationNumber || undefined,
@@ -1009,47 +1001,36 @@ const Timeline = ({
   };
 
   // Helper to extract location IDs from timeline items
-  // This includes both direct location references AND entity-linked locations
+  // Note: Activity and Lodging locations are now handled via EntityLink system (no direct FKs)
+  // Transportation still has direct FKs for start/end locations
   const getLocationIdsFromItems = (items: TimelineItem[]): Set<number> => {
     const locationIds = new Set<number>();
     items.forEach((item) => {
       // Get location ID from the data object based on item type
       if (item.type === 'activity') {
         const activity = item.data as Activity;
-        if (activity.locationId) {
-          locationIds.add(activity.locationId);
-        }
-        // Also check the location object if it has an ID
-        if (activity.location?.id) {
-          locationIds.add(activity.location.id);
-        }
-        // Check entity links for this activity
+        // Activity locations are via EntityLink system
         const linkedLocs = entityLocationLinksMap[`ACTIVITY:${activity.id}`];
         if (linkedLocs) {
           linkedLocs.forEach(locId => locationIds.add(locId));
         }
       } else if (item.type === 'lodging') {
         const lodging = item.data as Lodging;
-        if (lodging.locationId) {
-          locationIds.add(lodging.locationId);
-        }
-        if (lodging.location?.id) {
-          locationIds.add(lodging.location.id);
-        }
-        // Check entity links for this lodging
+        // Lodging locations are via EntityLink system
         const linkedLocs = entityLocationLinksMap[`LODGING:${lodging.id}`];
         if (linkedLocs) {
           linkedLocs.forEach(locId => locationIds.add(locId));
         }
       } else if (item.type === 'transportation') {
         const trans = item.data as Transportation;
+        // Transportation still has direct FK references
         if (trans.fromLocationId) {
           locationIds.add(trans.fromLocationId);
         }
         if (trans.toLocationId) {
           locationIds.add(trans.toLocationId);
         }
-        // Check entity links for this transportation
+        // Also check entity links for transportation
         const linkedLocs = entityLocationLinksMap[`TRANSPORTATION:${trans.id}`];
         if (linkedLocs) {
           linkedLocs.forEach(locId => locationIds.add(locId));
