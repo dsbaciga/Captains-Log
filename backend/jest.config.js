@@ -21,4 +21,12 @@ module.exports = {
       statements: 50,
     },
   },
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.test.json',
+      },
+    ],
+  },
 };
