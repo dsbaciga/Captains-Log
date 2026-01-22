@@ -234,41 +234,10 @@ const Timeline = ({
       const items: TimelineItem[] = [];
       logger.log('📝 Starting timeline items processing', { operation: 'loadTimelineData.process' });
 
-      // Separate unscheduled activities and build location mapping
-      const unscheduled: Activity[] = [];
-      const locationMap: Record<number, number[]> = {};
-
-      if (Array.isArray(activities)) {
-        // First pass: identify unscheduled activities
-        for (const activity of activities) {
-          if (!activity) continue;
-          // An activity is unscheduled if it has no startTime and is not allDay
-          if (!activity.startTime && !activity.allDay) {
-            unscheduled.push(activity);
-          }
-        }
-
-        // Fetch linked locations for all unscheduled activities in parallel
-        if (unscheduled.length > 0) {
-          const linkPromises = unscheduled.map(activity =>
-            entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION')
-              .then(links => ({ activityId: activity.id, links }))
-              .catch(() => ({ activityId: activity.id, links: [] as { targetId: number }[] }))
-          );
-          const linkResults = await Promise.all(linkPromises);
-          linkResults.forEach(({ activityId, links }) => {
-            if (links && links.length > 0) {
-              locationMap[activityId] = links.map(link => link.targetId);
-            }
-          });
-        }
-      }
-      setUnscheduledActivities(unscheduled);
-      setActivityLocationMap(locationMap);
-      logger.log(`Found ${unscheduled.length} unscheduled activities`, { operation: 'loadTimelineData.unscheduled' });
-
-      // Build entity-to-location links map for all entities
-      // This allows us to find unscheduled activities that share linked locations with scheduled entities
+      // Build entity-to-location links map FIRST from the bulk fetch
+      // This map is used for:
+      // 1. Finding linked locations for unscheduled activities (avoids N+1 API calls)
+      // 2. Finding linked locations for scheduled entities when matching unscheduled activities to days
       const entityLinksMap: Record<string, number[]> = {};
       if (Array.isArray(locationLinks)) {
         for (const link of locationLinks) {
@@ -281,6 +250,32 @@ const Timeline = ({
       }
       setEntityLocationLinksMap(entityLinksMap);
       logger.log(`Built entity-location links map with ${Object.keys(entityLinksMap).length} entities`, { operation: 'loadTimelineData.entityLinks' });
+
+      // Separate unscheduled activities and build location mapping using the already-fetched links
+      const unscheduled: Activity[] = [];
+      const locationMap: Record<number, number[]> = {};
+
+      if (Array.isArray(activities)) {
+        // Identify unscheduled activities
+        for (const activity of activities) {
+          if (!activity) continue;
+          // An activity is unscheduled if it has no startTime and is not allDay
+          if (!activity.startTime && !activity.allDay) {
+            unscheduled.push(activity);
+          }
+        }
+
+        // Build activity location map from the already-fetched entityLinksMap (no extra API calls needed)
+        for (const activity of unscheduled) {
+          const linkedLocs = entityLinksMap[`ACTIVITY:${activity.id}`];
+          if (linkedLocs && linkedLocs.length > 0) {
+            locationMap[activity.id] = linkedLocs;
+          }
+        }
+      }
+      setUnscheduledActivities(unscheduled);
+      setActivityLocationMap(locationMap);
+      logger.log(`Found ${unscheduled.length} unscheduled activities`, { operation: 'loadTimelineData.unscheduled' });
 
       // Add activities
       logger.log('Processing activities array', {
