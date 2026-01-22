@@ -240,6 +240,7 @@ export default function LocationManager({
     return (
       <div key={location.id} className={isChild ? "" : "space-y-2"}>
         <div
+          data-entity-id={`location-${location.id}`}
           className={`border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow ${
             isChild
               ? "bg-gray-50 dark:bg-gray-700"

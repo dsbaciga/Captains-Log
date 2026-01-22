@@ -354,6 +354,7 @@ Tell your story!"
             return (
               <div
                 key={entry.id}
+                data-entity-id={`journal_entry-${entry.id}`}
                 className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow hover:shadow-lg transition-shadow"
               >
                 <div className="p-6">

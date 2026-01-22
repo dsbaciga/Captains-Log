@@ -267,7 +267,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
             }).map((companion) => {
               const isExpanded = expandedId === companion.id;
               return (
-                <div key={companion.id} className={`border rounded-lg p-4 ${
+                <div key={companion.id} data-entity-id={`companion-${companion.id}`} className={`border rounded-lg p-4 ${
                   companion.isMyself
                     ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
                     : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
