@@ -17,33 +17,17 @@ import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import FormModal from "./FormModal";
 import FormSection from "./FormSection";
+import ActivityForm, { ActivityFormData } from "./forms/ActivityForm";
 
 interface UnscheduledItemsProps {
   tripId: number;
   locations: Location[];
+  tripTimezone?: string | null;
+  tripStartDate?: string | null;
   onUpdate?: () => void;
 }
 
 type EntityType = "activity" | "transportation" | "lodging";
-
-interface ActivityFormFields {
-  name: string;
-  description: string;
-  category: string;
-  locationId: number | undefined;
-  parentId: number | undefined;
-  allDay: boolean;
-  startDate: string;
-  startTime: string;
-  endDate: string;
-  endTime: string;
-  timezone: string;
-  cost: string;
-  currency: string;
-  bookingUrl: string;
-  bookingReference: string;
-  notes: string;
-}
 
 interface TransportationFormFields {
   type: string;
@@ -79,25 +63,6 @@ interface LodgingFormFields {
   bookingUrl: string;
   notes: string;
 }
-
-const initialActivityFormState: ActivityFormFields = {
-  name: "",
-  description: "",
-  category: "",
-  locationId: undefined,
-  parentId: undefined,
-  allDay: false,
-  startDate: "",
-  startTime: "",
-  endDate: "",
-  endTime: "",
-  timezone: "",
-  cost: "",
-  currency: "USD",
-  bookingUrl: "",
-  bookingReference: "",
-  notes: "",
-};
 
 const initialTransportationFormState: TransportationFormFields = {
   type: "flight",
@@ -137,14 +102,15 @@ const initialLodgingFormState: LodgingFormFields = {
 export default function UnscheduledItems({
   tripId,
   locations,
+  tripTimezone,
+  tripStartDate,
   onUpdate,
 }: UnscheduledItemsProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [allActivities, setAllActivities] = useState<Activity[]>([]); // For parent selection
   const [transportation, setTransportation] = useState<Transportation[]>([]);
   const [lodging, setLodging] = useState<Lodging[]>([]);
-  const [activityCategories, setActivityCategories] = useState<
-    ActivityCategory[]
-  >([]);
+  const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
   const [activeSection, setActiveSection] = useState<EntityType>("activity");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingType, setEditingType] = useState<EntityType | null>(null);
@@ -152,13 +118,15 @@ export default function UnscheduledItems({
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Track original location ID when editing to detect changes (for entity linking)
-  const [originalActivityLocationId, setOriginalActivityLocationId] = useState<number | null>(null);
+  // Track original lodging location ID when editing to detect changes (for entity linking)
   const [originalLodgingLocationId, setOriginalLodgingLocationId] = useState<number | null>(null);
 
-  const activityForm = useFormFields<ActivityFormFields>(
-    initialActivityFormState
-  );
+  // Activity-specific state for shared form
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [editingActivityLocationId, setEditingActivityLocationId] = useState<number | null>(null);
+  const [originalActivityLocationId, setOriginalActivityLocationId] = useState<number | null>(null);
+  const [activityFormKey, setActivityFormKey] = useState(0);
+
   const transportationForm = useFormFields<TransportationFormFields>(
     initialTransportationFormState
   );
@@ -183,6 +151,9 @@ export default function UnscheduledItems({
           transportationService.getTransportationByTrip(tripId),
           lodgingService.getLodgingByTrip(tripId),
         ]);
+
+      // Store all activities for parent selection
+      setAllActivities(activitiesData);
 
       // Filter for unscheduled activities (no start time and not all day)
       const unscheduled = activitiesData.filter(
@@ -210,7 +181,6 @@ export default function UnscheduledItems({
   }, [loadAllData, loadUserCategories]);
 
   const resetForm = () => {
-    activityForm.reset();
     transportationForm.reset();
     lodgingForm.reset();
     setEditingId(null);
@@ -218,7 +188,10 @@ export default function UnscheduledItems({
     setIsCreating(false);
     setShowAddMenu(false);
     setShowFormModal(false);
+    setEditingActivity(null);
+    setEditingActivityLocationId(null);
     setOriginalActivityLocationId(null);
+    setActivityFormKey((k) => k + 1);
   };
 
   // Start creating a new entity of the specified type
@@ -232,72 +205,131 @@ export default function UnscheduledItems({
   };
 
   const handleEditActivity = async (activity: Activity) => {
-    setEditingId(activity.id);
-    setEditingType("activity");
-    setActiveSection("activity");
-    activityForm.handleChange("name", activity.name);
-    activityForm.handleChange("description", activity.description || "");
-    activityForm.handleChange("category", activity.category || "");
-    activityForm.handleChange("parentId", activity.parentId || undefined);
-    activityForm.handleChange("allDay", activity.allDay);
-    activityForm.handleChange("timezone", activity.timezone || "");
-    activityForm.handleChange("cost", activity.cost?.toString() || "");
-    activityForm.handleChange("currency", activity.currency || "USD");
-    activityForm.handleChange("bookingUrl", activity.bookingUrl || "");
-    activityForm.handleChange(
-      "bookingReference",
-      activity.bookingReference || ""
-    );
-    activityForm.handleChange("notes", activity.notes || "");
-
     // Fetch linked location via entity linking system
+    let locationId: number | null = null;
     try {
       const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
       if (links.length > 0 && links[0].targetId) {
-        activityForm.handleChange("locationId", links[0].targetId);
-        setOriginalActivityLocationId(links[0].targetId);
-      } else {
-        activityForm.handleChange("locationId", undefined);
-        setOriginalActivityLocationId(null);
+        locationId = links[0].targetId;
       }
     } catch {
       // If fetching links fails, proceed without location
-      activityForm.handleChange("locationId", undefined);
-      setOriginalActivityLocationId(null);
     }
 
-    // Handle date/time fields based on allDay flag
-    if (activity.allDay) {
-      activityForm.handleChange(
-        "startDate",
-        activity.startTime
-          ? new Date(activity.startTime).toISOString().slice(0, 10)
-          : ""
-      );
-      activityForm.handleChange(
-        "endDate",
-        activity.endTime
-          ? new Date(activity.endTime).toISOString().slice(0, 10)
-          : ""
-      );
-      activityForm.handleChange("startTime", "");
-      activityForm.handleChange("endTime", "");
-    } else {
-      const startDateTime = activity.startTime
-        ? new Date(activity.startTime).toISOString().slice(0, 16)
-        : "";
-      const endDateTime = activity.endTime
-        ? new Date(activity.endTime).toISOString().slice(0, 16)
-        : "";
-
-      activityForm.handleChange("startDate", startDateTime.slice(0, 10));
-      activityForm.handleChange("startTime", startDateTime.slice(11));
-      activityForm.handleChange("endDate", endDateTime.slice(0, 10));
-      activityForm.handleChange("endTime", endDateTime.slice(11));
-    }
-
-    // Open the form modal
+    setEditingId(activity.id);
+    setEditingType("activity");
+    setActiveSection("activity");
+    setEditingActivity(activity);
+    setEditingActivityLocationId(locationId);
+    setOriginalActivityLocationId(locationId);
     setShowFormModal(true);
+  };
+
+  const handleActivityFormSubmit = async (data: ActivityFormData, newLocationId: number | null) => {
+    setIsSubmitting(true);
+    try {
+      if (isCreating) {
+        // Create the activity
+        const createdActivity = await activityService.createActivity({
+          tripId,
+          name: data.name,
+          description: data.description || undefined,
+          category: data.category || undefined,
+          parentId: data.parentId,
+          allDay: data.allDay,
+          startTime: data.startTime || undefined,
+          endTime: data.endTime || undefined,
+          timezone: data.timezone || undefined,
+          cost: data.cost || undefined,
+          currency: data.currency || undefined,
+          bookingUrl: data.bookingUrl || undefined,
+          bookingReference: data.bookingReference || undefined,
+          notes: data.notes || undefined,
+        });
+        toast.success("Activity created");
+
+        // Create location link if a location was selected
+        if (newLocationId) {
+          try {
+            await entityLinkService.createLink(tripId, {
+              sourceType: 'ACTIVITY',
+              sourceId: createdActivity.id,
+              targetType: 'LOCATION',
+              targetId: newLocationId,
+            });
+          } catch (linkError) {
+            console.error('Failed to create location link:', linkError);
+            toast.error('Activity saved but failed to link location');
+          }
+        }
+      } else if (editingId) {
+        // Update the activity
+        await activityService.updateActivity(editingId, {
+          name: data.name,
+          description: data.description,
+          category: data.category,
+          parentId: data.parentId,
+          allDay: data.allDay,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          timezone: data.timezone,
+          cost: data.cost,
+          currency: data.currency,
+          bookingUrl: data.bookingUrl,
+          bookingReference: data.bookingReference,
+          notes: data.notes,
+        });
+        toast.success("Activity updated");
+
+        // Handle location link changes via entity linking
+        const locationChanged = newLocationId !== originalActivityLocationId;
+        if (locationChanged) {
+          try {
+            if (originalActivityLocationId) {
+              await entityLinkService.deleteLink(tripId, {
+                sourceType: 'ACTIVITY',
+                sourceId: editingId,
+                targetType: 'LOCATION',
+                targetId: originalActivityLocationId,
+              });
+            }
+            if (newLocationId) {
+              await entityLinkService.createLink(tripId, {
+                sourceType: 'ACTIVITY',
+                sourceId: editingId,
+                targetType: 'LOCATION',
+                targetId: newLocationId,
+              });
+            }
+          } catch (error) {
+            console.error('Failed to update location link:', error);
+            toast.error('Activity saved but failed to update location link');
+          }
+        }
+      }
+
+      resetForm();
+      loadAllData();
+      onUpdate?.();
+    } catch {
+      toast.error("Failed to save activity");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteActivity = async (activityId: number) => {
+    if (!window.confirm('Delete this activity? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      await activityService.deleteActivity(activityId);
+      toast.success('Activity deleted');
+      loadAllData();
+      onUpdate?.();
+    } catch {
+      toast.error('Failed to delete activity');
+    }
   };
 
   const handleEditTransportation = (transport: Transportation) => {
@@ -366,7 +398,6 @@ export default function UnscheduledItems({
       );
     }
 
-    // Open the form modal
     setShowFormModal(true);
   };
 
@@ -417,127 +448,7 @@ export default function UnscheduledItems({
       );
     }
 
-    // Open the form modal
     setShowFormModal(true);
-  };
-
-  const handleSubmitActivity = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!activityForm.values.name.trim()) {
-      toast.error("Name is required");
-      return;
-    }
-    if (!isCreating && !editingId) return;
-
-    setIsSubmitting(true);
-    try {
-      // Combine date and time fields into ISO strings
-      let startTimeISO: string | null = null;
-      let endTimeISO: string | null = null;
-
-      if (activityForm.values.allDay) {
-        if (activityForm.values.startDate) {
-          startTimeISO = `${activityForm.values.startDate}T00:00:00`;
-        }
-        if (activityForm.values.endDate) {
-          endTimeISO = `${activityForm.values.endDate}T23:59:59`;
-        }
-      } else {
-        if (
-          activityForm.values.startDate &&
-          activityForm.values.startTime
-        ) {
-          startTimeISO = `${activityForm.values.startDate}T${activityForm.values.startTime}:00`;
-        }
-        if (activityForm.values.endDate && activityForm.values.endTime) {
-          endTimeISO = `${activityForm.values.endDate}T${activityForm.values.endTime}:00`;
-        }
-      }
-
-      // Activity data without locationId (using entity links instead)
-      const updateData = {
-        name: activityForm.values.name,
-        description: activityForm.values.description || null,
-        category: activityForm.values.category || null,
-        parentId: activityForm.values.parentId || null,
-        allDay: activityForm.values.allDay,
-        startTime: startTimeISO,
-        endTime: endTimeISO,
-        timezone: activityForm.values.timezone || null,
-        cost: activityForm.values.cost
-          ? parseFloat(activityForm.values.cost)
-          : null,
-        currency: activityForm.values.currency || null,
-        bookingUrl: activityForm.values.bookingUrl || null,
-        bookingReference: activityForm.values.bookingReference || null,
-        notes: activityForm.values.notes || null,
-      };
-
-      const newLocationId = activityForm.values.locationId || null;
-
-      if (isCreating) {
-        // Create the activity first
-        const createdActivity = await activityService.createActivity({ ...updateData, tripId });
-        toast.success("Activity created");
-
-        // Create location link if a location was selected
-        if (newLocationId) {
-          try {
-            await entityLinkService.createLink(tripId, {
-              sourceType: 'ACTIVITY',
-              sourceId: createdActivity.id,
-              targetType: 'LOCATION',
-              targetId: newLocationId,
-            });
-          } catch (linkError) {
-            console.error('Failed to create location link:', linkError);
-            toast.error('Activity created but failed to link location');
-          }
-        }
-      } else {
-        // Update the activity
-        await activityService.updateActivity(editingId!, updateData);
-        toast.success("Activity updated");
-
-        // Handle location link changes via entity linking
-        const locationChanged = newLocationId !== originalActivityLocationId;
-
-        if (locationChanged) {
-          try {
-            // Remove old link if there was one
-            if (originalActivityLocationId) {
-              await entityLinkService.deleteLink(tripId, {
-                sourceType: 'ACTIVITY',
-                sourceId: editingId!,
-                targetType: 'LOCATION',
-                targetId: originalActivityLocationId,
-              });
-            }
-            // Create new link if there's a new location
-            if (newLocationId) {
-              await entityLinkService.createLink(tripId, {
-                sourceType: 'ACTIVITY',
-                sourceId: editingId!,
-                targetType: 'LOCATION',
-                targetId: newLocationId,
-              });
-            }
-          } catch (error) {
-            console.error('Failed to update location link:', error);
-            toast.error('Activity saved but failed to update location link');
-          }
-        }
-      }
-
-      resetForm();
-      loadAllData();
-      onUpdate?.();
-    } catch {
-      toast.error("Failed to save activity");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleSubmitTransportation = async (e: React.FormEvent) => {
@@ -861,13 +772,13 @@ export default function UnscheduledItems({
         </button>
       </div>
 
-      {/* Add/Edit Form - Activity Modal */}
+      {/* Activity Form Modal - Uses shared ActivityForm component */}
       <FormModal
         isOpen={showFormModal && editingType === "activity"}
         onClose={resetForm}
         title={isCreating ? "Add Activity" : "Edit Activity"}
         icon="🎯"
-        formId="activity-form"
+        formId="unscheduled-activity-form"
         footer={
           <>
             <button
@@ -880,7 +791,7 @@ export default function UnscheduledItems({
             </button>
             <button
               type="submit"
-              form="activity-form"
+              form="unscheduled-activity-form"
               disabled={isSubmitting}
               className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -889,265 +800,24 @@ export default function UnscheduledItems({
           </>
         }
       >
-        <form id="activity-form" onSubmit={handleSubmitActivity} className="space-y-6">
-          <FormSection title="Basic Information">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="unscheduled-activity-name"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  id="unscheduled-activity-name"
-                  value={activityForm.values.name}
-                  onChange={(e) =>
-                    activityForm.handleChange("name", e.target.value)
-                  }
-                  className="input"
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="unscheduled-activity-category"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Category
-                </label>
-                <select
-                  id="unscheduled-activity-category"
-                  value={activityForm.values.category}
-                  onChange={(e) =>
-                    activityForm.handleChange("category", e.target.value)
-                  }
-                  className="input"
-                >
-                  <option value="">-- Select Category --</option>
-                  {activityCategories.map((cat) => (
-                    <option key={cat.name} value={cat.name}>
-                      {cat.emoji} {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="unscheduled-activity-description"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Description
-              </label>
-              <textarea
-                id="unscheduled-activity-description"
-                value={activityForm.values.description}
-                onChange={(e) =>
-                  activityForm.handleChange("description", e.target.value)
-                }
-                className="input"
-                rows={2}
-                placeholder="Activity description"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="unscheduled-activity-location"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Location
-              </label>
-              <select
-                id="unscheduled-activity-location"
-                value={activityForm.values.locationId || ""}
-                onChange={(e) =>
-                  activityForm.handleChange(
-                    "locationId",
-                    e.target.value ? parseInt(e.target.value) : undefined
-                  )
-                }
-                className="input"
-              >
-                <option value="">-- Select Location --</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </FormSection>
-
-          <FormSection title="Schedule">
-            <div className="flex items-center gap-2 mb-4">
-              <input
-                type="checkbox"
-                id="allDay"
-                checked={activityForm.values.allDay}
-                onChange={(e) =>
-                  activityForm.handleChange("allDay", e.target.checked)
-                }
-                className="rounded"
-              />
-              <label
-                htmlFor="allDay"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                All-day activity
-              </label>
-            </div>
-
-            {activityForm.values.allDay ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="unscheduled-activity-start-date"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    id="unscheduled-activity-start-date"
-                    value={activityForm.values.startDate}
-                    onChange={(e) =>
-                      activityForm.handleChange("startDate", e.target.value)
-                    }
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="unscheduled-activity-end-date"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    id="unscheduled-activity-end-date"
-                    value={activityForm.values.endDate}
-                    onChange={(e) =>
-                      activityForm.handleChange("endDate", e.target.value)
-                    }
-                    className="input"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="unscheduled-activity-start-date-time"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Start Time
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      id="unscheduled-activity-start-date-time"
-                      value={activityForm.values.startDate}
-                      onChange={(e) =>
-                        activityForm.handleChange("startDate", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                    <input
-                      type="time"
-                      id="unscheduled-activity-start-time"
-                      aria-label="Start time"
-                      value={activityForm.values.startTime}
-                      onChange={(e) =>
-                        activityForm.handleChange("startTime", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label
-                    htmlFor="unscheduled-activity-end-date-time"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    End Time
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      id="unscheduled-activity-end-date-time"
-                      value={activityForm.values.endDate}
-                      onChange={(e) =>
-                        activityForm.handleChange("endDate", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                    <input
-                      type="time"
-                      id="unscheduled-activity-end-time"
-                      aria-label="End time"
-                      value={activityForm.values.endTime}
-                      onChange={(e) =>
-                        activityForm.handleChange("endTime", e.target.value)
-                      }
-                      className="input flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <TimezoneSelect
-              value={activityForm.values.timezone}
-              onChange={(value) => activityForm.handleChange("timezone", value)}
-              label="Timezone"
-            />
-          </FormSection>
-
-          <FormSection title="Booking & Cost">
-            <BookingFields
-              confirmationNumber={activityForm.values.bookingReference}
-              bookingUrl={activityForm.values.bookingUrl}
-              onConfirmationNumberChange={(value) =>
-                activityForm.handleChange("bookingReference", value)
-              }
-              onBookingUrlChange={(value) =>
-                activityForm.handleChange("bookingUrl", value)
-              }
-              confirmationLabel="Booking Reference"
-            />
-
-            <CostCurrencyFields
-              cost={activityForm.values.cost}
-              currency={activityForm.values.currency}
-              onCostChange={(value) => activityForm.handleChange("cost", value)}
-              onCurrencyChange={(value) =>
-                activityForm.handleChange("currency", value)
-              }
-            />
-          </FormSection>
-
-          <FormSection title="Notes">
-            <textarea
-              id="unscheduled-activity-notes"
-              value={activityForm.values.notes}
-              onChange={(e) =>
-                activityForm.handleChange("notes", e.target.value)
-              }
-              className="input"
-              rows={3}
-              placeholder="Additional notes..."
-            />
-          </FormSection>
-        </form>
+        <ActivityForm
+          key={activityFormKey}
+          formId="unscheduled-activity-form"
+          tripId={tripId}
+          locations={locations}
+          activityCategories={activityCategories}
+          tripTimezone={tripTimezone}
+          tripStartDate={tripStartDate}
+          existingActivities={allActivities}
+          editingActivity={editingActivity}
+          editingLocationId={editingActivityLocationId}
+          onSubmit={handleActivityFormSubmit}
+          defaultUnscheduled={true}
+          showMoreOptionsDefault={!!editingActivity}
+        />
       </FormModal>
 
-      {/* Add/Edit Form - Transportation Modal */}
+      {/* Transportation Form Modal */}
       <FormModal
         isOpen={showFormModal && editingType === "transportation"}
         onClose={resetForm}
@@ -1441,7 +1111,7 @@ export default function UnscheduledItems({
         </form>
       </FormModal>
 
-      {/* Add/Edit Form - Lodging Modal */}
+      {/* Lodging Form Modal */}
       <FormModal
         isOpen={showFormModal && editingType === "lodging"}
         onClose={resetForm}
@@ -1742,6 +1412,13 @@ export default function UnscheduledItems({
                           className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteActivity(activity.id)}
+                          type="button"
+                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          Delete
                         </button>
                       </div>
                     </div>

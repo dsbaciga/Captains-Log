@@ -1,6 +1,8 @@
 // Test setup file
 // This file runs before all tests
 
+import { jest } from '@jest/globals';
+
 // Set test environment variables
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret';

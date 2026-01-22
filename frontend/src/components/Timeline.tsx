@@ -79,7 +79,9 @@ const Timeline = ({
   // Unscheduled activities state
   const [unscheduledActivities, setUnscheduledActivities] = useState<Activity[]>([]);
   const [activityLocationMap, setActivityLocationMap] = useState<Record<number, number[]>>({});
-  const [lodgingLocationMap, setLodgingLocationMap] = useState<Record<number, number[]>>({});
+  // Entity-to-location links map for all entities (used to match unscheduled activities)
+  // Key format: "ENTITY_TYPE:ID", Value: array of linked location IDs
+  const [entityLocationLinksMap, setEntityLocationLinksMap] = useState<Record<string, number[]>>({});
 
   // Print state
   const [isPrinting, setIsPrinting] = useState(false);
@@ -202,12 +204,13 @@ const Timeline = ({
     try {
       logger.log('📡 Fetching timeline data from API...', { operation: 'loadTimelineData.fetch' });
 
-      const [activities, transportation, lodging, journal, weather] = await Promise.all([
+      const [activities, transportation, lodging, journal, weather, locationLinks] = await Promise.all([
         activityService.getActivitiesByTrip(tripId),
         transportationService.getTransportationByTrip(tripId),
         lodgingService.getLodgingByTrip(tripId),
         journalService.getJournalEntriesByTrip(tripId),
         weatherService.getWeatherForTrip(tripId).catch(() => []),
+        entityLinkService.getLinksByTargetType(tripId, 'LOCATION').catch(() => []),
       ]);
 
       logger.log('✅ API data received', {
@@ -231,12 +234,29 @@ const Timeline = ({
       const items: TimelineItem[] = [];
       logger.log('📝 Starting timeline items processing', { operation: 'loadTimelineData.process' });
 
-      // Separate unscheduled activities and build location mapping
+      // Build entity-to-location links map FIRST from the bulk fetch
+      // This map is used for:
+      // 1. Finding linked locations for unscheduled activities (avoids N+1 API calls)
+      // 2. Finding linked locations for scheduled entities when matching unscheduled activities to days
+      const entityLinksMap: Record<string, number[]> = {};
+      if (Array.isArray(locationLinks)) {
+        for (const link of locationLinks) {
+          const key = `${link.sourceType}:${link.sourceId}`;
+          if (!entityLinksMap[key]) {
+            entityLinksMap[key] = [];
+          }
+          entityLinksMap[key].push(link.targetId);
+        }
+      }
+      setEntityLocationLinksMap(entityLinksMap);
+      logger.log(`Built entity-location links map with ${Object.keys(entityLinksMap).length} entities`, { operation: 'loadTimelineData.entityLinks' });
+
+      // Separate unscheduled activities and build location mapping using the already-fetched links
       const unscheduled: Activity[] = [];
       const locationMap: Record<number, number[]> = {};
 
       if (Array.isArray(activities)) {
-        // First pass: identify unscheduled activities
+        // Identify unscheduled activities
         for (const activity of activities) {
           if (!activity) continue;
           // An activity is unscheduled if it has no startTime and is not allDay
@@ -245,42 +265,19 @@ const Timeline = ({
           }
         }
 
-        // Fetch linked locations for all unscheduled activities in parallel
-        if (unscheduled.length > 0) {
-          const linkPromises = unscheduled.map(activity =>
-            entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION')
-              .then(links => ({ activityId: activity.id, links }))
-              .catch(() => ({ activityId: activity.id, links: [] as { targetId: number }[] }))
-          );
-          const linkResults = await Promise.all(linkPromises);
-          linkResults.forEach(({ activityId, links }) => {
-            if (links && links.length > 0) {
-              locationMap[activityId] = links.map(link => link.targetId);
-            }
-          });
+        // Build activity location map from the already-fetched entityLinksMap (no extra API calls needed)
+        for (const activity of unscheduled) {
+          const linkedLocs = entityLinksMap[`ACTIVITY:${activity.id}`];
+          if (linkedLocs && linkedLocs.length > 0) {
+            locationMap[activity.id] = linkedLocs;
+          }
         }
       }
       setUnscheduledActivities(unscheduled);
       setActivityLocationMap(locationMap);
       logger.log(`Found ${unscheduled.length} unscheduled activities`, { operation: 'loadTimelineData.unscheduled' });
 
-      // Fetch linked locations for all lodging items in parallel
-      const lodgingLocMap: Record<number, number[]> = {};
-      if (Array.isArray(lodging) && lodging.length > 0) {
-        const lodgingLinkPromises = lodging.map(lodge =>
-          entityLinkService.getLinksFrom(tripId, 'LODGING', lodge.id, 'LOCATION')
-            .then(links => ({ lodgingId: lodge.id, links }))
-            .catch(() => ({ lodgingId: lodge.id, links: [] as { targetId: number }[] }))
-        );
-        const lodgingLinkResults = await Promise.all(lodgingLinkPromises);
-        lodgingLinkResults.forEach(({ lodgingId, links }) => {
-          if (links && links.length > 0) {
-            lodgingLocMap[lodgingId] = links.map(link => link.targetId);
-          }
-        });
-      }
-      setLodgingLocationMap(lodgingLocMap);
-      logger.log(`Found lodging locations for ${Object.keys(lodgingLocMap).length} lodgings`, { operation: 'loadTimelineData.lodgingLocations' });
+      // Note: Lodging locations are already included in entityLocationLinksMap (fetched via bulk query)
 
       // Add activities
       logger.log('Processing activities array', {
@@ -1004,31 +1001,47 @@ const Timeline = ({
   };
 
   // Helper to extract location IDs from timeline items
-  // Note: Activity and Lodging locations are now handled via EntityLink system
-  // This function extracts locations from transportation (which still has direct FKs)
-  // and from the activityLocationMap and lodgingLocationMap (populated from EntityLinks)
+  // Note: Activity and Lodging locations are now handled via EntityLink system (no direct FKs)
+  // Transportation still has direct FKs for start/end locations
   const getLocationIdsFromItems = (items: TimelineItem[]): Set<number> => {
     const locationIds = new Set<number>();
     items.forEach((item) => {
       // Get location ID from the data object based on item type
       if (item.type === 'activity') {
         const activity = item.data as Activity;
-        // Get linked locations from the activity location map (populated from EntityLinks)
-        const linkedLocationIds = activityLocationMap[activity.id] || [];
-        linkedLocationIds.forEach(id => locationIds.add(id));
+        // Activity locations are via EntityLink system
+        const linkedLocs = entityLocationLinksMap[`ACTIVITY:${activity.id}`];
+        if (linkedLocs) {
+          linkedLocs.forEach(locId => locationIds.add(locId));
+        }
+      } else if (item.type === 'lodging') {
+        const lodging = item.data as Lodging;
+        // Lodging locations are via EntityLink system
+        const linkedLocs = entityLocationLinksMap[`LODGING:${lodging.id}`];
+        if (linkedLocs) {
+          linkedLocs.forEach(locId => locationIds.add(locId));
+        }
       } else if (item.type === 'transportation') {
         const trans = item.data as Transportation;
+        // Transportation still has direct FK references
         if (trans.fromLocationId) {
           locationIds.add(trans.fromLocationId);
         }
         if (trans.toLocationId) {
           locationIds.add(trans.toLocationId);
         }
-      } else if (item.type === 'lodging') {
-        const lodge = item.data as Lodging;
-        // Get linked locations from the lodging location map (populated from EntityLinks)
-        const linkedLocationIds = lodgingLocationMap[lodge.id] || [];
-        linkedLocationIds.forEach(id => locationIds.add(id));
+        // Also check entity links for transportation
+        const linkedLocs = entityLocationLinksMap[`TRANSPORTATION:${trans.id}`];
+        if (linkedLocs) {
+          linkedLocs.forEach(locId => locationIds.add(locId));
+        }
+      } else if (item.type === 'journal') {
+        // Journal entries can also be linked to locations
+        const journal = item.data as { id: number };
+        const linkedLocs = entityLocationLinksMap[`JOURNAL_ENTRY:${journal.id}`];
+        if (linkedLocs) {
+          linkedLocs.forEach(locId => locationIds.add(locId));
+        }
       }
     });
     return locationIds;
@@ -1117,7 +1130,7 @@ const Timeline = ({
       return [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, lodgingLocationMap, logger]);
+  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, entityLocationLinksMap, logger]);
 
   // Weather refresh handler
   const handleRefreshWeather = async () => {

@@ -9,25 +9,17 @@ import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
-import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
-import FormSection, { CollapsibleSection } from "./FormSection";
+import ActivityForm, { ActivityFormData } from "./forms/ActivityForm";
 import {
   formatDateTimeInTimezone,
   formatDateInTimezone,
-  convertISOToDateTimeLocal,
-  convertDateTimeLocalToISO,
 } from "../utils/timezone";
-import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
-import TimezoneSelect from "./TimezoneSelect";
-import CostCurrencyFields from "./CostCurrencyFields";
-import BookingFields from "./BookingFields";
 import { ListItemSkeleton } from "./SkeletonLoader";
-import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
 interface ActivityManagerProps {
   tripId: number;
@@ -37,44 +29,6 @@ interface ActivityManagerProps {
   onUpdate?: () => void;
 }
 
-interface ActivityFormFields {
-  name: string;
-  description: string;
-  category: string;
-  locationId: number | undefined;
-  parentId: number | undefined;
-  allDay: boolean;
-  startDate: string;
-  startTime: string;
-  endDate: string;
-  endTime: string;
-  timezone: string;
-  cost: string;
-  currency: string;
-  bookingUrl: string;
-  bookingReference: string;
-  notes: string;
-}
-
-const initialFormState: ActivityFormFields = {
-  name: "",
-  description: "",
-  category: "",
-  locationId: undefined,
-  parentId: undefined,
-  allDay: false,
-  startDate: "",
-  startTime: "",
-  endDate: "",
-  endTime: "",
-  timezone: "",
-  cost: "",
-  currency: "USD",
-  bookingUrl: "",
-  bookingReference: "",
-  notes: "",
-};
-
 export default function ActivityManager({
   tripId,
   locations,
@@ -82,17 +36,6 @@ export default function ActivityManager({
   tripStartDate,
   onUpdate,
 }: ActivityManagerProps) {
-  // Compute initial form state with trip start date as default
-  const getInitialFormState = useMemo((): ActivityFormFields => {
-    const defaultDate = tripStartDate ? tripStartDate.slice(0, 10) : "";
-    return {
-      ...initialFormState,
-      startDate: defaultDate,
-      endDate: defaultDate,
-      currency: getLastUsedCurrency(), // Remember last-used currency
-    };
-  }, [tripStartDate]);
-
   // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
   const activityServiceAdapter = useMemo(() => ({
     getByTrip: activityService.getActivitiesByTrip,
@@ -111,19 +54,15 @@ export default function ActivityManager({
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activityCategories, setActivityCategories] = useState<
-    ActivityCategory[]
-  >([]);
-  const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
+  const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
-  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [pendingEditId, setPendingEditId] = useState<number | null>(null);
-  // Track original location ID when editing to detect changes (for entity linking)
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
-
-  const { values, handleChange, reset } =
-    useFormFields<ActivityFormFields>(getInitialFormState);
+  const [formKey, setFormKey] = useState(0); // Key to force form reset
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadUserCategories();
@@ -153,67 +92,14 @@ export default function ActivityManager({
     if (pendingEditId && manager.items.length > 0 && !manager.loading) {
       const item = manager.items.find((a) => a.id === pendingEditId);
       if (item) {
-        // Use handleEdit which handles location link fetching
         handleEdit(item);
       }
       setPendingEditId(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Note: handleEdit excluded intentionally - we only want to trigger when
+    // pendingEditId is set and items finish loading, not when handleEdit changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingEditId, manager.items, manager.loading]);
-
-  // Auto-fill: End Time = Start Time + 1 Hour
-  useEffect(() => {
-    // Only auto-fill when creating (not editing) and if not all-day
-    if (!manager.editingId && !values.allDay && values.startDate && values.startTime) {
-      // If end time is empty, calculate it as start + 1 hour
-      if (!values.endTime || !values.endDate) {
-        const [hours, minutes] = values.startTime.split(':').map(Number);
-        const newHours = (hours + 1) % 24; // Add 1 hour, wrap at midnight
-        const endTime = `${String(newHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-
-        // End date is same as start date (unless we wrapped past midnight)
-        let endDate = values.startDate;
-        if (newHours < hours) {
-          // We wrapped past midnight, increment date
-          const date = new Date(values.startDate);
-          date.setDate(date.getDate() + 1);
-          endDate = date.toISOString().slice(0, 10);
-        }
-
-        if (!values.endTime) handleChange('endTime', endTime);
-        if (!values.endDate) handleChange('endDate', endDate);
-      }
-    }
-  }, [values.startDate, values.startTime, values.allDay, manager.editingId]);
-
-  // Auto-fill: Sequential Activity Chaining - use last activity's end time as start time
-  useEffect(() => {
-    // Only when creating (not editing) and form just opened
-    if (!manager.editingId && manager.showForm && values.startDate === getInitialFormState.startDate) {
-      // Find the most recent activity (by end time)
-      const sortedActivities = [...manager.items]
-        .filter(a => a.endTime)
-        .sort((a, b) => new Date(b.endTime!).getTime() - new Date(a.endTime!).getTime());
-
-      if (sortedActivities.length > 0) {
-        const lastActivity = sortedActivities[0];
-        const effectiveTz = lastActivity.timezone || tripTimezone || 'UTC';
-
-        // Convert the last activity's end time to datetime-local format
-        const endDateTime = convertISOToDateTimeLocal(lastActivity.endTime!, effectiveTz);
-        const [date, time] = endDateTime.split('T');
-
-        // Auto-fill start date and time
-        handleChange('startDate', date);
-        handleChange('startTime', time);
-
-        // Also inherit timezone if set (location is now managed via entity links)
-        if (lastActivity.timezone && !values.timezone) {
-          handleChange('timezone', lastActivity.timezone);
-        }
-      }
-    }
-  }, [manager.showForm, manager.editingId]);
 
   const loadUserCategories = async () => {
     try {
@@ -225,7 +111,6 @@ export default function ActivityManager({
   };
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
-    // Add the new location to local state
     const newLocation: Location = {
       id: locationId,
       name: locationName,
@@ -242,157 +127,62 @@ export default function ActivityManager({
       updatedAt: new Date().toISOString(),
     };
     setLocalLocations([...localLocations, newLocation]);
-    handleChange("locationId", locationId);
-    setShowLocationQuickAdd(false);
   };
 
   const resetForm = () => {
-    reset();
-    manager.setEditingId(null);
-    setShowMoreOptions(false);
-    setKeepFormOpenAfterSave(false);
+    setEditingActivity(null);
+    setEditingLocationId(null);
     setOriginalLocationId(null);
+    setKeepFormOpenAfterSave(false);
+    setFormKey((k) => k + 1); // Force form component to reset
+    manager.setEditingId(null);
   };
 
   const handleEdit = async (activity: Activity) => {
-    setShowMoreOptions(true); // Always show all options when editing
-    handleChange("name", activity.name);
-    handleChange("description", activity.description || "");
-    handleChange("category", activity.category || "");
-    handleChange("parentId", activity.parentId || undefined);
-    handleChange("allDay", activity.allDay);
-    handleChange("timezone", activity.timezone || "");
-    handleChange("cost", activity.cost?.toString() || "");
-    handleChange("currency", activity.currency || "USD");
-    handleChange("bookingUrl", activity.bookingUrl || "");
-    handleChange("bookingReference", activity.bookingReference || "");
-    handleChange("notes", activity.notes || "");
-
     // Fetch linked location via entity linking system
+    let locationId: number | null = null;
     try {
       const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
       if (links.length > 0 && links[0].targetId) {
-        handleChange("locationId", links[0].targetId);
-        setOriginalLocationId(links[0].targetId);
-      } else {
-        handleChange("locationId", undefined);
-        setOriginalLocationId(null);
+        locationId = links[0].targetId;
       }
     } catch {
-      // If fetching links fails, just proceed without location
-      handleChange("locationId", undefined);
-      setOriginalLocationId(null);
+      // If fetching links fails, proceed without location
     }
 
-    // Determine effective timezone
-    const effectiveTz = activity.timezone || tripTimezone || 'UTC';
-
-    // Handle date/time fields based on allDay flag
-    if (activity.allDay) {
-      // For all-day events, populate just the date fields (convert to local time in timezone)
-      if (activity.startTime) {
-        const startDateTime = convertISOToDateTimeLocal(activity.startTime, effectiveTz);
-        handleChange("startDate", startDateTime.slice(0, 10));
-      } else {
-        handleChange("startDate", "");
-      }
-      if (activity.endTime) {
-        const endDateTime = convertISOToDateTimeLocal(activity.endTime, effectiveTz);
-        handleChange("endDate", endDateTime.slice(0, 10));
-      } else {
-        handleChange("endDate", "");
-      }
-      handleChange("startTime", "");
-      handleChange("endTime", "");
-    } else {
-      // For timed events, populate date-time fields (convert to local time in timezone)
-      if (activity.startTime) {
-        const startDateTime = convertISOToDateTimeLocal(activity.startTime, effectiveTz);
-        handleChange("startDate", startDateTime.slice(0, 10));
-        handleChange("startTime", startDateTime.slice(11));
-      } else {
-        handleChange("startDate", "");
-        handleChange("startTime", "");
-      }
-      if (activity.endTime) {
-        const endDateTime = convertISOToDateTimeLocal(activity.endTime, effectiveTz);
-        handleChange("endDate", endDateTime.slice(0, 10));
-        handleChange("endTime", endDateTime.slice(11));
-      } else {
-        handleChange("endDate", "");
-        handleChange("endTime", "");
-      }
-    }
-
+    setEditingActivity(activity);
+    setEditingLocationId(locationId);
+    setOriginalLocationId(locationId);
     manager.openEditForm(activity.id);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!values.name.trim()) {
-      toast.error("Name is required");
-      return;
-    }
-
-    // Determine effective timezone
-    const effectiveTz = values.timezone || tripTimezone || 'UTC';
-
-    // Combine date and time fields into ISO strings, converting from timezone to UTC
-    let startTimeISO: string | null = null;
-    let endTimeISO: string | null = null;
-
-    if (values.allDay) {
-      // For all-day events, use just the date (set time to 00:00 and 23:59:59 in the timezone)
-      if (values.startDate) {
-        const dateTimeLocal = `${values.startDate}T00:00`;
-        startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
-      }
-      if (values.endDate) {
-        const dateTimeLocal = `${values.endDate}T23:59`;
-        endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
-      }
-    } else {
-      // For timed events, combine date and time and convert to UTC
-      // If only date is provided without time, default to noon (12:00) to ensure it appears on timeline
-      if (values.startDate) {
-        const startTime = values.startTime || "12:00";
-        const dateTimeLocal = `${values.startDate}T${startTime}`;
-        startTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
-      }
-      if (values.endDate) {
-        const endTime = values.endTime || "12:00";
-        const dateTimeLocal = `${values.endDate}T${endTime}`;
-        endTimeISO = convertDateTimeLocalToISO(dateTimeLocal, effectiveTz);
-      }
-    }
-
+  const handleFormSubmit = async (data: ActivityFormData, newLocationId: number | null) => {
+    setIsSubmitting(true);
+    try {
     if (manager.editingId) {
-      // For updates, send null to clear empty fields (without locationId - using entity links)
-      const updateData = {
-        name: values.name,
-        description: values.description || null,
-        category: values.category || null,
-        parentId: values.parentId || null,
-        allDay: values.allDay,
-        startTime: startTimeISO,
-        endTime: endTimeISO,
-        timezone: values.timezone || null,
-        cost: values.cost ? parseFloat(values.cost) : null,
-        currency: values.currency || null,
-        bookingUrl: values.bookingUrl || null,
-        bookingReference: values.bookingReference || null,
-        notes: values.notes || null,
+      // Update existing activity
+      const updateData: UpdateActivityInput = {
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        parentId: data.parentId,
+        allDay: data.allDay,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        timezone: data.timezone,
+        cost: data.cost,
+        currency: data.currency,
+        bookingUrl: data.bookingUrl,
+        bookingReference: data.bookingReference,
+        notes: data.notes,
       };
+
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
         // Handle location link changes via entity linking
-        const newLocationId = values.locationId || null;
         const locationChanged = newLocationId !== originalLocationId;
-
         if (locationChanged) {
           try {
-            // Remove old link if there was one
             if (originalLocationId) {
               await entityLinkService.deleteLink(tripId, {
                 sourceType: 'ACTIVITY',
@@ -401,7 +191,6 @@ export default function ActivityManager({
                 targetId: originalLocationId,
               });
             }
-            // Create new link if there's a new location
             if (newLocationId) {
               await entityLinkService.createLink(tripId, {
                 sourceType: 'ACTIVITY',
@@ -416,42 +205,40 @@ export default function ActivityManager({
             toast.error('Activity saved but failed to update location link');
           }
         }
-
         resetForm();
         manager.closeForm();
       }
     } else {
-      // For creates, use undefined to omit optional fields (without locationId - using entity links)
-      const createData = {
+      // Create new activity
+      const createData: CreateActivityInput = {
         tripId,
-        name: values.name,
-        description: values.description || undefined,
-        category: values.category || undefined,
-        parentId: values.parentId,
-        allDay: values.allDay,
-        startTime: startTimeISO || undefined,
-        endTime: endTimeISO || undefined,
-        timezone: values.timezone || undefined,
-        cost: values.cost ? parseFloat(values.cost) : undefined,
-        currency: values.currency || undefined,
-        bookingUrl: values.bookingUrl || undefined,
-        bookingReference: values.bookingReference || undefined,
-        notes: values.notes || undefined,
+        name: data.name,
+        description: data.description || undefined,
+        category: data.category || undefined,
+        parentId: data.parentId,
+        allDay: data.allDay,
+        startTime: data.startTime || undefined,
+        endTime: data.endTime || undefined,
+        timezone: data.timezone || undefined,
+        cost: data.cost || undefined,
+        currency: data.currency || undefined,
+        bookingUrl: data.bookingUrl || undefined,
+        bookingReference: data.bookingReference || undefined,
+        notes: data.notes || undefined,
       };
 
       try {
-        // Call service directly to get the created activity ID for linking
         const createdActivity = await activityService.createActivity(createData);
         toast.success('Activity added successfully');
 
         // Create location link if a location was selected
-        if (values.locationId) {
+        if (newLocationId) {
           try {
             await entityLinkService.createLink(tripId, {
               sourceType: 'ACTIVITY',
               sourceId: createdActivity.id,
               targetType: 'LOCATION',
-              targetId: values.locationId,
+              targetId: newLocationId,
             });
             invalidateLinkSummary();
           } catch (linkError) {
@@ -460,27 +247,13 @@ export default function ActivityManager({
           }
         }
 
-        // Reload items and trigger parent update
         await manager.loadItems();
         onUpdate?.();
 
-        // Save currency for next time
-        if (values.currency) {
-          saveLastUsedCurrency(values.currency);
-        }
-
         if (keepFormOpenAfterSave) {
-          // Reset form but keep modal open for quick successive entries
-          reset();
-          setShowMoreOptions(false);
-          setKeepFormOpenAfterSave(false);
-          // Focus first input for quick data entry
-          setTimeout(() => {
-            const firstInput = document.querySelector<HTMLInputElement>('#activity-name');
-            firstInput?.focus();
-          }, 50);
+          resetForm();
+          // Keep modal open for quick successive entries
         } else {
-          // Standard flow: reset and close
           resetForm();
           manager.closeForm();
         }
@@ -488,6 +261,9 @@ export default function ActivityManager({
         console.error('Failed to create activity:', error);
         toast.error('Failed to add activity');
       }
+    }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -681,6 +457,11 @@ export default function ActivityManager({
     manager.closeForm();
   };
 
+  const handleOpenForm = () => {
+    resetForm();
+    manager.toggleForm();
+  };
+
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
@@ -689,10 +470,7 @@ export default function ActivityManager({
           Activities
         </h2>
         <button
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
+          onClick={handleOpenForm}
           className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
@@ -712,6 +490,7 @@ export default function ActivityManager({
             <button
               type="button"
               onClick={handleCloseForm}
+              disabled={isSubmitting}
               className="btn btn-secondary"
             >
               Cancel
@@ -719,345 +498,43 @@ export default function ActivityManager({
             {!manager.editingId && (
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={() => {
                   setKeepFormOpenAfterSave(true);
                   (document.getElementById('activity-form') as HTMLFormElement)?.requestSubmit();
                 }}
-                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                className="btn btn-secondary text-sm whitespace-nowrap"
               >
-                Save & Add Another
+                <span className="hidden sm:inline">Save & Add Another</span>
+                <span className="sm:hidden">+ Another</span>
               </button>
             )}
             <button
               type="submit"
               form="activity-form"
-              className="btn btn-primary"
+              disabled={isSubmitting}
+              className="btn btn-primary disabled:opacity-50"
             >
-              {manager.editingId ? "Update" : "Add"} Activity
+              {isSubmitting ? "Saving..." : manager.editingId ? "Update Activity" : "Add Activity"}
             </button>
           </>
         }
       >
-        <form id="activity-form" onSubmit={handleSubmit} className="space-y-6">
-          {/* SECTION 1: Basic Info (Name & Category) */}
-          <FormSection title="Basic Info" icon="🎯">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="activity-name"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  id="activity-name"
-                  value={values.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  className="input"
-                  required
-                  placeholder="Activity name"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="activity-category"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Category
-                </label>
-                <select
-                  id="activity-category"
-                  value={values.category}
-                  onChange={(e) => handleChange("category", e.target.value)}
-                  className="input"
-                >
-                  <option value="">-- Select Category --</option>
-                  {activityCategories.map((cat) => (
-                    <option key={cat.name} value={cat.name}>
-                      {cat.emoji} {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </FormSection>
-
-          {/* SECTION 2: Schedule */}
-          <FormSection title="Schedule" icon="🕐">
-            {/* All Day Toggle */}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="allDay"
-                checked={values.allDay}
-                onChange={(e) => handleChange("allDay", e.target.checked)}
-                className="rounded"
-              />
-              <label
-                htmlFor="allDay"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                All-day activity
-              </label>
-            </div>
-
-            {/* Date/Time Fields */}
-            {values.allDay ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="activity-start-date"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    id="activity-start-date"
-                    value={values.startDate}
-                    onChange={(e) => handleChange("startDate", e.target.value)}
-                    className="input"
-                  />
-                </div>
-                {showMoreOptions && (
-                  <div>
-                    <label
-                      htmlFor="activity-end-date"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      id="activity-end-date"
-                      value={values.endDate}
-                      onChange={(e) => handleChange("endDate", e.target.value)}
-                      className="input"
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="activity-start-date-time"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Start Time
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        id="activity-start-date-time"
-                        value={values.startDate}
-                        onChange={(e) =>
-                          handleChange("startDate", e.target.value)
-                        }
-                        className="input flex-1"
-                      />
-                      <input
-                        type="time"
-                        id="activity-start-time"
-                        aria-label="Start time"
-                        value={values.startTime}
-                        onChange={(e) =>
-                          handleChange("startTime", e.target.value)
-                        }
-                        className="input flex-1"
-                        placeholder="12:00"
-                      />
-                    </div>
-                  </div>
-                  {showMoreOptions && (
-                    <div>
-                      <label
-                        htmlFor="activity-end-date-time"
-                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >
-                        End Time
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="date"
-                          id="activity-end-date-time"
-                          value={values.endDate}
-                          onChange={(e) => handleChange("endDate", e.target.value)}
-                          className="input flex-1"
-                        />
-                        <input
-                          type="time"
-                          id="activity-end-time"
-                          aria-label="End time"
-                          value={values.endTime}
-                          onChange={(e) => handleChange("endTime", e.target.value)}
-                          className="input flex-1"
-                          placeholder="12:00"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {!showMoreOptions && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
-                    Time defaults to 12:00 PM if not specified
-                  </p>
-                )}
-              </>
-            )}
-          </FormSection>
-
-          {/* COLLAPSIBLE: More Options */}
-          <CollapsibleSection
-            title="More Options"
-            icon="⚙️"
-            isExpanded={showMoreOptions}
-            onToggle={() => setShowMoreOptions(!showMoreOptions)}
-            badge="description, location, cost"
-          >
-            {/* Description */}
-            <div>
-              <label
-                htmlFor="activity-description"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Description
-              </label>
-              <textarea
-                id="activity-description"
-                value={values.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-                className="input"
-                rows={2}
-                placeholder="Activity description"
-              />
-            </div>
-
-            {/* Location Section */}
-            <FormSection title="Location" icon="📍">
-              {showLocationQuickAdd ? (
-                <LocationQuickAdd
-                  tripId={tripId}
-                  onLocationCreated={handleLocationCreated}
-                  onCancel={() => setShowLocationQuickAdd(false)}
-                />
-              ) : (
-                <div className="flex gap-2">
-                  <select
-                    id="activity-location"
-                    value={values.locationId || ""}
-                    onChange={(e) =>
-                      handleChange(
-                        "locationId",
-                        e.target.value ? parseInt(e.target.value) : undefined
-                      )
-                    }
-                    className="input flex-1"
-                  >
-                    <option value="">-- Select Location --</option>
-                    {localLocations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowLocationQuickAdd(true)}
-                    className="btn btn-secondary whitespace-nowrap"
-                  >
-                    + New
-                  </button>
-                </div>
-              )}
-            </FormSection>
-
-            {/* Organization */}
-            <FormSection title="Organization" icon="📂">
-              <div>
-                <label
-                  htmlFor="activity-parent"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Parent Activity
-                </label>
-                <select
-                  id="activity-parent"
-                  value={values.parentId || ""}
-                  onChange={(e) =>
-                    handleChange(
-                      "parentId",
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
-                  className="input"
-                >
-                  <option value="">-- No Parent (Top Level) --</option>
-                  {topLevelActivities
-                    .filter((a) => a.id !== manager.editingId)
-                    .map((activity) => (
-                      <option key={activity.id} value={activity.id}>
-                        {activity.name}
-                      </option>
-                    ))}
-                </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Group this activity under another activity
-                </p>
-              </div>
-
-              <TimezoneSelect
-                value={values.timezone}
-                onChange={(value) => handleChange("timezone", value)}
-                label="Timezone"
-              />
-            </FormSection>
-
-            {/* Booking Section */}
-            <FormSection title="Booking Details" icon="🎫">
-              <BookingFields
-                confirmationNumber={values.bookingReference}
-                bookingUrl={values.bookingUrl}
-                onConfirmationNumberChange={(value) =>
-                  handleChange("bookingReference", value)
-                }
-                onBookingUrlChange={(value) => handleChange("bookingUrl", value)}
-                confirmationLabel="Booking Reference"
-              />
-            </FormSection>
-
-            {/* Cost Section */}
-            <FormSection title="Cost" icon="💰">
-              <CostCurrencyFields
-                cost={values.cost}
-                currency={values.currency}
-                onCostChange={(value) => handleChange("cost", value)}
-                onCurrencyChange={(value) => handleChange("currency", value)}
-              />
-            </FormSection>
-
-            {/* Notes */}
-            <div>
-              <label
-                htmlFor="activity-notes"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Notes
-              </label>
-              <textarea
-                id="activity-notes"
-                value={values.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-                className="input"
-                rows={3}
-                placeholder="Additional notes..."
-              />
-            </div>
-          </CollapsibleSection>
-        </form>
+        <ActivityForm
+          key={formKey}
+          formId="activity-form"
+          tripId={tripId}
+          locations={localLocations}
+          activityCategories={activityCategories}
+          tripTimezone={tripTimezone}
+          tripStartDate={tripStartDate}
+          existingActivities={manager.items}
+          editingActivity={editingActivity}
+          editingLocationId={editingLocationId}
+          onSubmit={handleFormSubmit}
+          onLocationCreated={handleLocationCreated}
+          defaultUnscheduled={false}
+        />
       </FormModal>
 
       {/* Activities List */}
@@ -1070,10 +547,7 @@ export default function ActivityManager({
             message="What Will You Discover?"
             subMessage="Plan your adventures - from guided tours and museum visits to local dining experiences and outdoor excursions. Every activity tells a story."
             actionLabel="Add Your First Activity"
-            onAction={() => {
-              resetForm();
-              manager.toggleForm();
-            }}
+            onAction={handleOpenForm}
           />
         ) : (
           topLevelActivities.map((activity) => renderActivity(activity))

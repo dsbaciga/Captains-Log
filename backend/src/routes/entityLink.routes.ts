@@ -14,6 +14,7 @@ router.post('/photos', entityLinkController.bulkLinkPhotos);
 
 // Query links
 router.get('/summary', entityLinkController.getTripLinkSummary);
+router.get('/target-type/:targetType', entityLinkController.getLinksByTargetType);
 router.get('/from/:entityType/:entityId', entityLinkController.getLinksFrom);
 router.get('/to/:entityType/:entityId', entityLinkController.getLinksTo);
 router.get('/entity/:entityType/:entityId', entityLinkController.getAllLinksForEntity);

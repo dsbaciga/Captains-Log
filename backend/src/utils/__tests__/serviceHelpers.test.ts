@@ -1,4 +1,40 @@
-import { Prisma } from '@prisma/client';
+// Mock @prisma/client BEFORE any imports that depend on it
+// This mock must be hoisted by Jest, so the factory cannot reference external variables
+jest.mock('@prisma/client', () => {
+  // Define MockDecimal inside the factory so it's available at hoist time
+  class MockDecimal {
+    private value: string;
+
+    constructor(value: string | number) {
+      this.value = String(value);
+    }
+
+    toString(): string {
+      return this.value;
+    }
+
+    toNumber(): number {
+      return parseFloat(this.value);
+    }
+
+    valueOf(): number {
+      return this.toNumber();
+    }
+  }
+
+  return {
+    Prisma: {
+      Decimal: MockDecimal,
+    },
+  };
+});
+
+// Mock the database config to avoid actual DB connections
+jest.mock('../../config/database', () => ({
+  __esModule: true,
+  default: {},
+}));
+
 import {
   buildUpdateData,
   buildConditionalUpdateData,
@@ -6,6 +42,10 @@ import {
   convertDecimals,
   verifyEntityAccess,
 } from '../serviceHelpers';
+
+// Use require to get the mocked Prisma (bypasses TypeScript's import type checking)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Prisma } = require('@prisma/client');
 
 describe('Service Helpers', () => {
   describe('buildUpdateData', () => {

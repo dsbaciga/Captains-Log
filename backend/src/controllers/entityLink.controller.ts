@@ -170,6 +170,27 @@ export const entityLinkController = {
   },
 
   /**
+   * Get all links targeting a specific entity type
+   * GET /api/trips/:tripId/links/target-type/:targetType
+   */
+  async getLinksByTargetType(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+      const tripId = parsePositiveInt(req.params.tripId, 'trip ID');
+      const targetType = entityTypeEnum.parse(req.params.targetType);
+
+      const links = await entityLinkService.getLinksByTargetType(
+        userId,
+        tripId,
+        targetType
+      );
+      res.json(links);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
    * Get link summary for entire trip
    * GET /api/trips/:tripId/links/summary
    */
