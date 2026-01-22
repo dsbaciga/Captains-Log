@@ -32,6 +32,13 @@ export default function EmbeddedLocationCard({
     navigate(`/trips/${tripId}?tab=locations#location-${location.id}`);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   // Get category info
   const categoryInfo = 'category' in location && location.category;
   const categoryIcon = categoryInfo && categoryInfo.icon ? categoryInfo.icon : '📍';
@@ -39,8 +46,12 @@ export default function EmbeddedLocationCard({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
-      className={`mt-3 p-3 rounded-lg border ${colors.bg} ${colors.border} cursor-pointer hover:shadow-md transition-shadow`}
+      onKeyDown={handleKeyDown}
+      aria-label={`View location: ${location.name}`}
+      className={`mt-3 p-3 rounded-lg border ${colors.bg} ${colors.border} cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
     >
       {label && (
         <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">

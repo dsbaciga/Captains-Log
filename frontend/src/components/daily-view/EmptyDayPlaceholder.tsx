@@ -2,13 +2,11 @@ import { useNavigate } from 'react-router-dom';
 
 interface EmptyDayPlaceholderProps {
   tripId: number;
-  date: string;
   dayNumber: number;
 }
 
 export default function EmptyDayPlaceholder({
   tripId,
-  date,
   dayNumber,
 }: EmptyDayPlaceholderProps) {
   const navigate = useNavigate();

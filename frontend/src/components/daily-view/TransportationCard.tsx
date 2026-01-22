@@ -1,9 +1,6 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Transportation } from '../../types/transportation';
 import type { Location } from '../../types/location';
-import entityLinkService from '../../services/entityLink.service';
-import locationService from '../../services/location.service';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
 import {
   formatTime,
@@ -18,50 +15,17 @@ interface TransportationCardProps {
   transportation: Transportation;
   tripId: number;
   tripTimezone?: string;
+  linkedLocations?: Location[];
 }
 
 export default function TransportationCard({
   transportation,
   tripId,
   tripTimezone,
+  linkedLocations = [],
 }: TransportationCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('transportation');
-  const [linkedLocations, setLinkedLocations] = useState<Location[]>([]);
-  const [loadingLinks, setLoadingLinks] = useState(false);
-
-  // Load linked locations
-  useEffect(() => {
-    const loadLinkedLocations = async () => {
-      setLoadingLinks(true);
-      try {
-        const links = await entityLinkService.getLinksFrom(
-          tripId,
-          'TRANSPORTATION',
-          transportation.id,
-          'LOCATION'
-        );
-
-        // Get location IDs from the links
-        const locationIds = links
-          .filter((link) => link.targetType === 'LOCATION')
-          .map((link) => link.targetId);
-
-        if (locationIds.length > 0) {
-          // Fetch full location data for linked locations
-          const allLocations = await locationService.getLocationsByTrip(tripId);
-          const linkedLocs = allLocations.filter((loc) => locationIds.includes(loc.id));
-          setLinkedLocations(linkedLocs);
-        }
-      } catch (error) {
-        console.error('Error loading linked locations:', error);
-      } finally {
-        setLoadingLinks(false);
-      }
-    };
-
-    loadLinkedLocations();
-  }, [tripId, transportation.id]);
 
   const handleEdit = () => {
     navigate(`/trips/${tripId}?tab=transportation&edit=${transportation.id}`);
@@ -334,27 +298,21 @@ export default function TransportationCard({
         )}
 
         {/* Linked locations (from entity links) */}
-        {loadingLinks ? (
-          <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-            Loading linked locations...
-          </div>
-        ) : (
-          linkedLocations.length > 0 && (
-            <div className="mt-3">
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                Related Locations ({linkedLocations.length})
-              </div>
-              <div className="space-y-2">
-                {linkedLocations.map((loc) => (
-                  <EmbeddedLocationCard
-                    key={loc.id}
-                    location={loc}
-                    tripId={tripId}
-                  />
-                ))}
-              </div>
+        {linkedLocations.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              Related Locations ({linkedLocations.length})
             </div>
-          )
+            <div className="space-y-2">
+              {linkedLocations.map((loc) => (
+                <EmbeddedLocationCard
+                  key={loc.id}
+                  location={loc}
+                  tripId={tripId}
+                />
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

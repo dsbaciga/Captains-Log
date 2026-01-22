@@ -5,11 +5,13 @@ import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
 import type { WeatherDisplay } from '../../types/weather';
+import type { EntityType } from '../../types/entityLink';
 import activityService from '../../services/activity.service';
 import transportationService from '../../services/transportation.service';
 import lodgingService from '../../services/lodging.service';
 import journalService from '../../services/journalEntry.service';
 import locationService from '../../services/location.service';
+import entityLinkService from '../../services/entityLink.service';
 import DayNavigator from './DayNavigator';
 import ActivityCard from './ActivityCard';
 import TransportationCard from './TransportationCard';
@@ -17,6 +19,9 @@ import LodgingCard from './LodgingCard';
 import JournalCard from './JournalCard';
 import EmptyDayPlaceholder from './EmptyDayPlaceholder';
 import { getTimezoneAbbr } from './utils';
+
+// Type for linked locations map: "ENTITY_TYPE:entityId" -> Location[]
+type LinkedLocationsMap = Record<string, Location[]>;
 
 interface DailyViewProps {
   tripId: number;
@@ -56,11 +61,13 @@ export default function DailyView({
   tripStartDate,
   tripEndDate,
   weather,
-  onRefresh,
 }: DailyViewProps) {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [allDays, setAllDays] = useState<DayData[]>([]);
+  const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [linkedLocationsMap, setLinkedLocationsMap] = useState<LinkedLocationsMap>({});
 
   // Generate all trip dates
   const generateAllTripDates = useCallback((): { dayNumber: number; dateKey: string; displayDate: string; date: Date }[] => {
@@ -130,18 +137,65 @@ export default function DailyView({
     }).format(d);
   };
 
+  // Helper to build entity key
+  const getEntityKey = useCallback((entityType: EntityType, entityId: number): string => {
+    return `${entityType}:${entityId}`;
+  }, []);
+
   // Load all data
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const [activities, transportation, lodging, journal, locations] = await Promise.all([
+        // Fetch all data including entity links in parallel
+        const [activities, transportation, lodging, journal, locations, linkSummary] = await Promise.all([
           activityService.getActivitiesByTrip(tripId),
           transportationService.getTransportationByTrip(tripId),
           lodgingService.getLodgingByTrip(tripId),
           journalService.getJournalEntriesByTrip(tripId),
           locationService.getLocationsByTrip(tripId),
+          entityLinkService.getTripLinkSummary(tripId).catch(() => ({})),
         ]);
+
+        // Store locations for later lookup
+        setAllLocations(locations);
+
+        // Build linked locations map by fetching links for entities that have location links
+        const locationsMap: LinkedLocationsMap = {};
+        const entityTypes: EntityType[] = ['ACTIVITY', 'TRANSPORTATION', 'LODGING', 'JOURNAL_ENTRY'];
+
+        // Get all entities that have location links based on link summary
+        const linkFetchPromises: Promise<void>[] = [];
+
+        for (const [key, summary] of Object.entries(linkSummary)) {
+          if (summary.linkCounts.LOCATION && summary.linkCounts.LOCATION > 0) {
+            const entityType = summary.entityType;
+            const entityId = summary.entityId;
+
+            if (entityTypes.includes(entityType)) {
+              linkFetchPromises.push(
+                entityLinkService.getLinksFrom(tripId, entityType, entityId, 'LOCATION')
+                  .then((links) => {
+                    const locationIds = links
+                      .filter((link) => link.targetType === 'LOCATION')
+                      .map((link) => link.targetId);
+                    const linkedLocs = locations.filter((loc) => locationIds.includes(loc.id));
+                    if (linkedLocs.length > 0) {
+                      locationsMap[getEntityKey(entityType, entityId)] = linkedLocs;
+                    }
+                  })
+                  .catch(() => {
+                    // Silently ignore individual link fetch failures
+                  })
+              );
+            }
+          }
+        }
+
+        // Wait for all link fetches to complete
+        await Promise.all(linkFetchPromises);
+        setLinkedLocationsMap(locationsMap);
 
         const tripDates = generateAllTripDates();
         const dayDataMap: Record<string, DayItem[]> = {};
@@ -304,15 +358,16 @@ export default function DailyView({
         });
 
         setAllDays(daysData);
-      } catch (error) {
-        console.error('Error loading daily view data:', error);
+      } catch (err) {
+        console.error('Error loading daily view data:', err);
+        setError('Failed to load trip data. Please try refreshing the page.');
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [tripId, generateAllTripDates, weather]);
+  }, [tripId, generateAllTripDates, weather, getEntityKey]);
 
   // Current day data
   const currentDay = allDays[currentDayIndex];
@@ -333,11 +388,31 @@ export default function DailyView({
     [allDays]
   );
 
+  // Helper to get linked locations for an entity
+  const getLinkedLocations = useCallback((entityType: EntityType, entityId: number): Location[] => {
+    const key = getEntityKey(entityType, entityId);
+    return linkedLocationsMap[key] || [];
+  }, [linkedLocationsMap, getEntityKey]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <span className="ml-3 text-gray-600 dark:text-gray-400">Loading day view...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Error Loading Data</h3>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md">{error}</p>
       </div>
     );
   }
@@ -453,50 +528,61 @@ export default function DailyView({
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <EmptyDayPlaceholder
               tripId={tripId}
-              date={currentDay.dateKey}
               dayNumber={currentDay.dayNumber}
             />
           </div>
         ) : (
-          currentDay?.items.map((item, index) => {
+          currentDay?.items.map((item) => {
             switch (item.type) {
-              case 'activity':
+              case 'activity': {
+                const activity = item.data as Activity;
                 return (
                   <ActivityCard
-                    key={`activity-${(item.data as Activity).id}-${index}`}
-                    activity={item.data as Activity}
+                    key={`activity-${activity.id}`}
+                    activity={activity}
                     tripId={tripId}
                     tripTimezone={tripTimezone}
+                    linkedLocations={getLinkedLocations('ACTIVITY', activity.id)}
                   />
                 );
-              case 'transportation':
+              }
+              case 'transportation': {
+                const transportation = item.data as Transportation;
                 return (
                   <TransportationCard
-                    key={`transportation-${(item.data as Transportation).id}-${index}`}
-                    transportation={item.data as Transportation}
+                    key={`transportation-${transportation.id}`}
+                    transportation={transportation}
                     tripId={tripId}
                     tripTimezone={tripTimezone}
+                    linkedLocations={getLinkedLocations('TRANSPORTATION', transportation.id)}
                   />
                 );
-              case 'lodging':
+              }
+              case 'lodging': {
+                const lodging = item.data as Lodging;
                 return (
                   <LodgingCard
-                    key={`lodging-${(item.data as Lodging).id}-${index}`}
-                    lodging={item.data as Lodging}
+                    key={`lodging-${lodging.id}-${item.lodgingContext?.nightNumber || 0}`}
+                    lodging={lodging}
                     tripId={tripId}
                     tripTimezone={tripTimezone}
                     dayContext={item.lodgingContext}
+                    linkedLocations={getLinkedLocations('LODGING', lodging.id)}
                   />
                 );
-              case 'journal':
+              }
+              case 'journal': {
+                const journal = item.data as JournalEntry;
                 return (
                   <JournalCard
-                    key={`journal-${(item.data as JournalEntry).id}-${index}`}
-                    journal={item.data as JournalEntry}
+                    key={`journal-${journal.id}`}
+                    journal={journal}
                     tripId={tripId}
                     tripTimezone={tripTimezone}
+                    linkedLocations={getLinkedLocations('JOURNAL_ENTRY', journal.id)}
                   />
                 );
+              }
               default:
                 return null;
             }
