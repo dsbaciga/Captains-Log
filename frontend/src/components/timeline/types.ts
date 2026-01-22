@@ -5,6 +5,9 @@ import type { JournalEntry } from '../../types/journalEntry';
 import type { WeatherDisplay } from '../../types/weather';
 import type { EntityLinkSummary } from '../../types/entityLink';
 
+// Re-export Activity type for use in other timeline components
+export type { Activity };
+
 export type TimelineItemType = 'activity' | 'transportation' | 'lodging' | 'journal';
 
 export type TransportationType =
@@ -74,6 +77,7 @@ export interface DayGroup {
   items: TimelineItem[];
   weather?: WeatherDisplay;
   stats: DayStats;
+  unscheduledActivities?: Activity[];
 }
 
 // Props interfaces for components
