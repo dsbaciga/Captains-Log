@@ -53,6 +53,7 @@ export default function PhotoGallery({
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editCaption, setEditCaption] = useState("");
+  const [editTakenAt, setEditTakenAt] = useState<string | null>(null);
   const [thumbnailCache, setThumbnailCache] = useState<ThumbnailCache>({});
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(
@@ -233,15 +234,17 @@ export default function PhotoGallery({
     }
   };
 
-  const handleUpdateCaption = async () => {
+  const handleSaveEdit = async () => {
     if (!selectedPhoto) return;
 
     try {
       await photoService.updatePhoto(selectedPhoto.id, {
         caption: editCaption || null,
+        takenAt: editTakenAt || null,
       });
       setIsEditMode(false);
       onPhotoUpdated?.();
+      toast.success("Photo updated");
     } catch {
       toast.error("Failed to update photo");
     }
@@ -854,6 +857,14 @@ export default function PhotoGallery({
           onNavigate={(photo) => setSelectedPhoto(photo)}
           onEdit={() => {
             setEditCaption(selectedPhoto.caption || "");
+            // Format takenAt for datetime-local input (YYYY-MM-DDTHH:mm)
+            if (selectedPhoto.takenAt) {
+              const date = new Date(selectedPhoto.takenAt);
+              const formatted = date.toISOString().slice(0, 16);
+              setEditTakenAt(formatted);
+            } else {
+              setEditTakenAt(null);
+            }
             setIsEditMode(true);
           }}
           onDelete={() => handleDelete(selectedPhoto.id)}
@@ -871,7 +882,9 @@ export default function PhotoGallery({
           editMode={isEditMode}
           editCaption={editCaption}
           onEditCaptionChange={setEditCaption}
-          onSaveCaption={handleUpdateCaption}
+          editTakenAt={editTakenAt}
+          onEditTakenAtChange={setEditTakenAt}
+          onSaveEdit={handleSaveEdit}
           onCancelEdit={() => setIsEditMode(false)}
           tripId={tripId}
           onPhotoLinksUpdated={onPhotoUpdated}
