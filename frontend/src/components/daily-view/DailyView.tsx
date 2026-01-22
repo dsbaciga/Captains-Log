@@ -18,7 +18,6 @@ import TransportationCard from './TransportationCard';
 import LodgingCard from './LodgingCard';
 import JournalCard from './JournalCard';
 import EmptyDayPlaceholder from './EmptyDayPlaceholder';
-import { getTimezoneAbbr } from './utils';
 
 // Type for linked locations map: "ENTITY_TYPE:entityId" -> Location[]
 type LinkedLocationsMap = Record<string, Location[]>;
@@ -435,92 +434,6 @@ export default function DailyView({
         onDayChange={handleDayChange}
         allDates={navigatorDates}
       />
-
-      {/* Day Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Day {currentDay?.dayNumber}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">{currentDay?.displayDate}</p>
-          </div>
-
-          {/* Weather badge if available */}
-          {currentDay?.weather && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
-              <span className="text-xl">{currentDay.weather.icon}</span>
-              <div className="text-sm">
-                <div className="font-medium">
-                  {currentDay.weather.high !== null && currentDay.weather.high !== undefined
-                    ? Math.round(currentDay.weather.high)
-                    : '--'}
-                  °
-                  {currentDay.weather.low !== null && currentDay.weather.low !== undefined && (
-                    <span className="text-blue-500 dark:text-blue-400">
-                      /{Math.round(currentDay.weather.low)}°
-                    </span>
-                  )}
-                </div>
-                {currentDay.weather.conditions && (
-                  <div className="text-xs text-blue-600 dark:text-blue-400">
-                    {currentDay.weather.conditions}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Timezone indicator */}
-          {tripTimezone && userTimezone && tripTimezone !== userTimezone && (
-            <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span className="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700">
-                {getTimezoneAbbr(tripTimezone)}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Day summary stats */}
-        {currentDay && currentDay.items.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(() => {
-              const stats = {
-                activities: currentDay.items.filter((i) => i.type === 'activity').length,
-                transportation: currentDay.items.filter((i) => i.type === 'transportation').length,
-                lodging: currentDay.items.filter((i) => i.type === 'lodging').length,
-                journal: currentDay.items.filter((i) => i.type === 'journal').length,
-              };
-
-              return (
-                <>
-                  {stats.activities > 0 && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                      {stats.activities} {stats.activities === 1 ? 'activity' : 'activities'}
-                    </span>
-                  )}
-                  {stats.transportation > 0 && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                      {stats.transportation}{' '}
-                      {stats.transportation === 1 ? 'transport' : 'transports'}
-                    </span>
-                  )}
-                  {stats.lodging > 0 && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                      {stats.lodging} {stats.lodging === 1 ? 'lodging' : 'lodgings'}
-                    </span>
-                  )}
-                  {stats.journal > 0 && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
-                      {stats.journal} {stats.journal === 1 ? 'journal' : 'journals'}
-                    </span>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        )}
-      </div>
 
       {/* Day Content */}
       <div className="space-y-4">
