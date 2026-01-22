@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import DayHeader from './DayHeader';
 import TimelineEventCard from './TimelineEventCard';
+import UnscheduledActivityCard from './UnscheduledActivityCard';
 import DayMiniMap from '../DayMiniMap';
 import { getConnectionInfo, getTimezoneAbbr } from './utils';
 import type { DayGroup, TimelineItem } from './types';
@@ -205,6 +206,42 @@ export default function TimelineDaySection({
                 })}
               </div>
             </div>
+
+            {/* Unscheduled Activities Section */}
+            {dayGroup.unscheduledActivities && dayGroup.unscheduledActivities.length > 0 && (
+              <div className={`${isCompact ? 'mt-3' : 'mt-4'} border-t border-gray-200 dark:border-gray-700 pt-4`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <svg
+                    className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Unscheduled Activities
+                  </h4>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    ({dayGroup.unscheduledActivities.length})
+                  </span>
+                </div>
+                <div className={`grid gap-2 ${isCompact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+                  {dayGroup.unscheduledActivities.map((activity) => (
+                    <UnscheduledActivityCard
+                      key={activity.id}
+                      activity={activity}
+                      isCompact={isCompact}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Mini Map */}
             {mapLocations.length > 0 && (

@@ -6,6 +6,7 @@ export { default as PhotoPreviewPopover } from './PhotoPreviewPopover';
 export { default as TimelineFilters } from './TimelineFilters';
 export { default as MobileTimezoneToggle } from './MobileTimezoneToggle';
 export { default as PrintableItinerary } from './PrintableItinerary';
+export { default as UnscheduledActivityCard } from './UnscheduledActivityCard';
 
 // Types
 export * from './types';

@@ -10,6 +10,7 @@ import transportationService from '../services/transportation.service';
 import lodgingService from '../services/lodging.service';
 import journalService from '../services/journalEntry.service';
 import weatherService from '../services/weather.service';
+import entityLinkService from '../services/entityLink.service';
 import { getWeatherIcon } from '../utils/weatherIcons';
 import toast from 'react-hot-toast';
 import { debugLogger } from '../utils/debugLogger';
@@ -74,6 +75,10 @@ const Timeline = ({
   });
 
   const [refreshingWeather, setRefreshingWeather] = useState(false);
+
+  // Unscheduled activities state
+  const [unscheduledActivities, setUnscheduledActivities] = useState<Activity[]>([]);
+  const [activityLocationMap, setActivityLocationMap] = useState<Record<number, number[]>>({});
 
   // Print state
   const [isPrinting, setIsPrinting] = useState(false);
@@ -224,6 +229,39 @@ const Timeline = ({
 
       const items: TimelineItem[] = [];
       logger.log('📝 Starting timeline items processing', { operation: 'loadTimelineData.process' });
+
+      // Separate unscheduled activities and build location mapping
+      const unscheduled: Activity[] = [];
+      const locationMap: Record<number, number[]> = {};
+
+      if (Array.isArray(activities)) {
+        // First pass: identify unscheduled activities
+        for (const activity of activities) {
+          if (!activity) continue;
+          // An activity is unscheduled if it has no startTime and is not allDay
+          if (!activity.startTime && !activity.allDay) {
+            unscheduled.push(activity);
+          }
+        }
+
+        // Fetch linked locations for all unscheduled activities in parallel
+        if (unscheduled.length > 0) {
+          const linkPromises = unscheduled.map(activity =>
+            entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION')
+              .then(links => ({ activityId: activity.id, links }))
+              .catch(() => ({ activityId: activity.id, links: [] as { targetId: number }[] }))
+          );
+          const linkResults = await Promise.all(linkPromises);
+          linkResults.forEach(({ activityId, links }) => {
+            if (links && links.length > 0) {
+              locationMap[activityId] = links.map(link => link.targetId);
+            }
+          });
+        }
+      }
+      setUnscheduledActivities(unscheduled);
+      setActivityLocationMap(locationMap);
+      logger.log(`Found ${unscheduled.length} unscheduled activities`, { operation: 'loadTimelineData.unscheduled' });
 
       // Add activities
       logger.log('Processing activities array', {
@@ -956,6 +994,53 @@ const Timeline = ({
     return stats;
   };
 
+  // Helper to extract location IDs from timeline items
+  const getLocationIdsFromItems = (items: TimelineItem[]): Set<number> => {
+    const locationIds = new Set<number>();
+    items.forEach((item) => {
+      // Get location ID from the data object based on item type
+      if (item.type === 'activity') {
+        const activity = item.data as Activity;
+        if (activity.locationId) {
+          locationIds.add(activity.locationId);
+        }
+        // Also check the location object if it has an ID
+        if (activity.location?.id) {
+          locationIds.add(activity.location.id);
+        }
+      } else if (item.type === 'lodging') {
+        const lodging = item.data as Lodging;
+        if (lodging.locationId) {
+          locationIds.add(lodging.locationId);
+        }
+        if (lodging.location?.id) {
+          locationIds.add(lodging.location.id);
+        }
+      } else if (item.type === 'transportation') {
+        const trans = item.data as Transportation;
+        if (trans.fromLocationId) {
+          locationIds.add(trans.fromLocationId);
+        }
+        if (trans.toLocationId) {
+          locationIds.add(trans.toLocationId);
+        }
+      }
+    });
+    return locationIds;
+  };
+
+  // Get unscheduled activities for a day based on linked locations
+  const getUnscheduledActivitiesForDay = (items: TimelineItem[]): Activity[] => {
+    const dayLocationIds = getLocationIdsFromItems(items);
+    if (dayLocationIds.size === 0) return [];
+
+    return unscheduledActivities.filter((activity) => {
+      const linkedLocationIds = activityLocationMap[activity.id] || [];
+      // Check if any of the activity's linked locations match the day's locations
+      return linkedLocationIds.some((locId) => dayLocationIds.has(locId));
+    });
+  };
+
   // Build day groups
   const dayGroups: DayGroup[] = useMemo(() => {
     logger.log('useMemo: dayGroups calculation started', {
@@ -994,12 +1079,16 @@ const Timeline = ({
             });
           }
 
+          // Get unscheduled activities linked to locations present on this day
+          const dayUnscheduled = getUnscheduledActivitiesForDay(items);
+
           const group = {
             dateKey,
             dayNumber: getDayNumber(dateKey),
             items,
             weather: dayWeather ? transformWeatherData(dayWeather) : undefined,
             stats: calculateDayStats(items),
+            unscheduledActivities: dayUnscheduled.length > 0 ? dayUnscheduled : undefined,
           };
 
           return group;
@@ -1023,7 +1112,7 @@ const Timeline = ({
       return [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, logger]);
+  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, logger]);
 
   // Weather refresh handler
   const handleRefreshWeather = async () => {
