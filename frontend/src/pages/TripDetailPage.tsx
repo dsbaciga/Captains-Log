@@ -1580,8 +1580,6 @@ export default function TripDetailPage() {
               tripId={trip.id}
               tripTimezone={trip.timezone || undefined}
               tripStartDate={trip.startDate || undefined}
-              tripEndDate={trip.endDate || undefined}
-              onPhotoUpdated={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
             />
           </div>
         )}
