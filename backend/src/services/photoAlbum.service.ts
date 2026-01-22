@@ -239,48 +239,62 @@ class PhotoAlbumService {
     return convertDecimals(album);
   }
 
-  async getAlbumsByTrip(userId: number, tripId: number) {
-    console.log('[PhotoAlbumService] getAlbumsByTrip called:', { userId, tripId });
+  async getAlbumsByTrip(
+    userId: number,
+    tripId: number,
+    options?: { skip?: number; take?: number }
+  ) {
+    console.log('[PhotoAlbumService] getAlbumsByTrip called:', { userId, tripId, options });
 
     // Verify user has access to trip
     await verifyTripAccess(userId, tripId);
     console.log('[PhotoAlbumService] verifyTripAccess passed');
 
-    const albums = await prisma.photoAlbum.findMany({
-      where: { tripId },
-      include: {
-        _count: {
-          select: { photoAssignments: true },
-        },
-        coverPhoto: true,
-        location: {
-          select: {
-            id: true,
-            name: true,
+    const skip = options?.skip ?? 0;
+    const take = options?.take ?? 30;
+
+    const where = { tripId };
+
+    const [albums, totalAlbums] = await Promise.all([
+      prisma.photoAlbum.findMany({
+        where,
+        include: {
+          _count: {
+            select: { photoAssignments: true },
+          },
+          coverPhoto: true,
+          location: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          activity: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          lodging: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          photoAssignments: {
+            take: 1,
+            orderBy: { createdAt: 'asc' },
+            include: {
+              photo: true,
+            },
           },
         },
-        activity: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        lodging: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        photoAssignments: {
-          take: 1,
-          orderBy: { createdAt: 'asc' },
-          include: {
-            photo: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.photoAlbum.count({ where }),
+    ]);
 
     // Calculate unsorted photos count
     // Total photos in trip minus unique photos that are in any album
@@ -314,8 +328,13 @@ class PhotoAlbumService {
       return albumCopy;
     });
 
+    const loadedCount = skip + albums.length;
+    const hasMore = loadedCount < totalAlbums;
+
     return {
       albums: albumsWithCovers.map(convertAlbumPhotoDecimals),
+      totalAlbums,
+      hasMore,
       unsortedCount,
       totalCount: totalPhotosCount,
     };

@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { PhotoAlbum, Photo, AlbumWithPhotos } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getFullAssetUrl } from '../lib/config';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
+import { usePagedPagination } from '../hooks/usePagedPagination';
 import toast from 'react-hot-toast';
 
 // Import reusable components
@@ -12,6 +13,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import LinkButton from '../components/LinkButton';
+import Pagination from '../components/Pagination';
 import { PhotoIcon } from '../components/icons';
 
 export default function AlbumsPage() {
@@ -20,8 +22,6 @@ export default function AlbumsPage() {
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const parsedTripId = tripId ? parseInt(tripId) : undefined;
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(parsedTripId);
-  const [albums, setAlbums] = useState<PhotoAlbum[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [albumName, setAlbumName] = useState('');
   const [albumDescription, setAlbumDescription] = useState('');
@@ -30,6 +30,27 @@ export default function AlbumsPage() {
   const [albumPhotos, setAlbumPhotos] = useState<Photo[]>([]);
   const [thumbnailCache, setThumbnailCache] = useState<{ [key: number]: string }>({});
   const blobUrlsRef = useRef<string[]>([]);
+
+  // Paged pagination for albums
+  const loadAlbumsPage = useCallback(
+    async (skip: number, take: number) => {
+      if (!tripId) {
+        return { items: [], total: 0, hasMore: false };
+      }
+      const data = await photoService.getAlbumsByTrip(parseInt(tripId), { skip, take });
+      return {
+        items: data.albums,
+        total: data.totalAlbums,
+        hasMore: data.hasMore,
+      };
+    },
+    [tripId]
+  );
+
+  const albumPagination = usePagedPagination<PhotoAlbum>(loadAlbumsPage, {
+    pageSize: 30,
+    onError: () => toast.error('Failed to load albums'),
+  });
 
   const getCoverPhotoUrl = (album: PhotoAlbum): string | null => {
     if (!album.coverPhoto) return null;
@@ -44,6 +65,14 @@ export default function AlbumsPage() {
     return getFullAssetUrl(path);
   };
 
+  // Load initial albums on mount or when tripId changes
+  useEffect(() => {
+    if (tripId) {
+      albumPagination.loadInitial();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId]);
+
   // Load thumbnails for album covers
   useEffect(() => {
     const loadCoverThumbnails = async () => {
@@ -53,7 +82,7 @@ export default function AlbumsPage() {
       const newUrls: { [key: number]: string } = {};
       const newBlobUrls: string[] = [];
 
-      for (const album of albums) {
+      for (const album of albumPagination.items) {
         const photo = album.coverPhoto;
         if (!photo || photo.source !== "immich" || !photo.thumbnailPath || thumbnailCache[photo.id]) {
           continue;
@@ -84,7 +113,7 @@ export default function AlbumsPage() {
       }
     };
 
-    if (albums.length > 0) {
+    if (albumPagination.items.length > 0) {
       loadCoverThumbnails();
     }
 
@@ -92,7 +121,7 @@ export default function AlbumsPage() {
       // Cleanup is handled by separate effect to avoid revoking active URLs
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [albums]);
+  }, [albumPagination.items]);
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
@@ -101,24 +130,6 @@ export default function AlbumsPage() {
       blobUrlsRef.current = [];
     };
   }, []);
-
-  useEffect(() => {
-    loadAlbums();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripId]);
-
-  const loadAlbums = async () => {
-    if (!tripId) return;
-
-    try {
-      const data = await photoService.getAlbumsByTrip(parseInt(tripId));
-      setAlbums(data.albums);
-    } catch (err) {
-      console.error('Failed to load albums:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleCreateAlbum = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +145,7 @@ export default function AlbumsPage() {
       setAlbumName('');
       setAlbumDescription('');
       setShowCreateForm(false);
-      loadAlbums();
+      albumPagination.reset();
     } catch {
       alert('Failed to create album');
     }
@@ -153,7 +164,8 @@ export default function AlbumsPage() {
 
     try {
       await photoService.deleteAlbum(albumId);
-      loadAlbums();
+      // Reload current page (or go to previous if this was the last item on the page)
+      albumPagination.loadPage(albumPagination.currentPage);
     } catch {
       alert('Failed to delete album');
     }
@@ -219,14 +231,14 @@ export default function AlbumsPage() {
       setShowCoverSelector(false);
       setSelectedAlbum(null);
       setAlbumPhotos([]);
-      loadAlbums();
+      albumPagination.loadPage(albumPagination.currentPage);
     } catch (err) {
       console.error('Failed to set cover photo:', err);
       toast.error('Failed to set cover photo');
     }
   };
 
-  if (isLoading) {
+  if (albumPagination.isLoadingInitial) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-[1600px] mx-auto px-6 py-8">
@@ -286,7 +298,7 @@ export default function AlbumsPage() {
         </div>
       )}
 
-      {albums.length === 0 ? (
+      {albumPagination.isEmpty ? (
         <EmptyState
           icon="📸"
           message="No albums yet"
@@ -295,8 +307,9 @@ export default function AlbumsPage() {
           onAction={() => setShowCreateForm(true)}
         />
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {albums.map((album) => (
+          {albumPagination.items.map((album) => (
             <div
               key={album.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow"
@@ -350,7 +363,7 @@ export default function AlbumsPage() {
                         linkSummary={getLinkSummary('PHOTO_ALBUM', album.id)}
                         onUpdate={() => {
                           invalidateLinkSummary();
-                          loadAlbums();
+                          albumPagination.loadPage(albumPagination.currentPage);
                         }}
                         size="sm"
                       />
@@ -374,6 +387,24 @@ export default function AlbumsPage() {
             </div>
           ))}
         </div>
+
+        {/* Pagination Controls */}
+        <Pagination
+          currentPage={albumPagination.currentPage}
+          totalPages={albumPagination.totalPages}
+          pageNumbers={albumPagination.pageNumbers}
+          onPageChange={albumPagination.goToPage}
+          onPrevious={albumPagination.previousPage}
+          onNext={albumPagination.nextPage}
+          hasPreviousPage={albumPagination.hasPreviousPage}
+          hasNextPage={albumPagination.hasNextPage}
+          loading={albumPagination.loading}
+          rangeStart={albumPagination.rangeStart}
+          rangeEnd={albumPagination.rangeEnd}
+          total={albumPagination.total}
+          className="mt-8"
+        />
+        </>
       )}
 
       {/* Cover Photo Selector Modal */}

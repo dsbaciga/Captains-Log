@@ -93,18 +93,38 @@ class PhotoAlbumController {
         throw new AppError('Invalid trip ID', 400);
       }
 
+      const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
+      const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+
       console.log('[PhotoAlbumController] getAlbumsByTrip called:', {
         userId: req.user.userId,
         tripId,
+        skip,
+        take,
         params: req.params,
       });
 
-      const albums = await photoAlbumService.getAlbumsByTrip(
+      const result = await photoAlbumService.getAlbumsByTrip(
         req.user.userId,
-        tripId
+        tripId,
+        { skip, take }
       );
 
-      res.json(albums);
+      // Transform cover photos for Immich compatibility
+      const transformedAlbums = result.albums.map((album: any) => {
+        if (album.coverPhoto) {
+          return {
+            ...album,
+            coverPhoto: transformPhoto(album.coverPhoto),
+          };
+        }
+        return album;
+      });
+
+      res.json({
+        ...result,
+        albums: transformedAlbums,
+      });
     } catch (error) {
       console.error('[PhotoAlbumController] getAlbumsByTrip error:', error);
       next(error);
