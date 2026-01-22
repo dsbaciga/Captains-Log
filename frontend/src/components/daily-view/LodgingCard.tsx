@@ -282,11 +282,13 @@ export default function LodgingCard({
 
         {/* Embedded location */}
         {lodging.location && (
-          <EmbeddedLocationCard
-            location={lodging.location}
-            tripId={tripId}
-            label="Property Location"
-          />
+          <div className="mt-3">
+            <EmbeddedLocationCard
+              location={lodging.location}
+              tripId={tripId}
+              label="Property Location"
+            />
+          </div>
         )}
 
         {/* Linked locations (from entity links) */}
@@ -295,7 +297,7 @@ export default function LodgingCard({
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Related Locations ({linkedLocations.length})
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {linkedLocations.map((loc) => (
                 <EmbeddedLocationCard
                   key={loc.id}

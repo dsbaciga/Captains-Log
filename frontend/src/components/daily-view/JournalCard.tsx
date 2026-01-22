@@ -136,7 +136,7 @@ export default function JournalCard({
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Related Locations ({linkedLocations.length})
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {linkedLocations.map((loc) => (
                 <EmbeddedLocationCard
                   key={loc.id}

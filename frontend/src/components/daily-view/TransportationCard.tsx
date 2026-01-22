@@ -282,19 +282,23 @@ export default function TransportationCard({
 
         {/* Embedded from/to locations */}
         {transportation.fromLocation && (
-          <EmbeddedLocationCard
-            location={transportation.fromLocation}
-            tripId={tripId}
-            label="Departure Location"
-          />
+          <div className="mt-3">
+            <EmbeddedLocationCard
+              location={transportation.fromLocation}
+              tripId={tripId}
+              label="Departure Location"
+            />
+          </div>
         )}
 
         {transportation.toLocation && (
-          <EmbeddedLocationCard
-            location={transportation.toLocation}
-            tripId={tripId}
-            label="Arrival Location"
-          />
+          <div className="mt-3">
+            <EmbeddedLocationCard
+              location={transportation.toLocation}
+              tripId={tripId}
+              label="Arrival Location"
+            />
+          </div>
         )}
 
         {/* Linked locations (from entity links) */}
@@ -303,7 +307,7 @@ export default function TransportationCard({
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Related Locations ({linkedLocations.length})
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {linkedLocations.map((loc) => (
                 <EmbeddedLocationCard
                   key={loc.id}
