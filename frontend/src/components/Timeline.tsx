@@ -489,14 +489,9 @@ const Timeline = ({
               title: lodge.name,
               subtitle: subtitle,
               description: lodge.address || undefined,
-              location: lodge.location?.name,
-              locationCoords:
-                lodge.location?.latitude && lodge.location?.longitude
-                  ? {
-                      latitude: Number(lodge.location.latitude),
-                      longitude: Number(lodge.location.longitude),
-                    }
-                  : undefined,
+              // Note: Location is now via EntityLink system (not pre-loaded for lodging yet)
+              location: undefined,
+              locationCoords: undefined,
               cost: isCheckInDay ? lodge.cost || undefined : undefined,
               currency: isCheckInDay ? lodge.currency || undefined : undefined,
               isAllDay: !isCheckInDay && !isCheckOutDay,
@@ -521,14 +516,9 @@ const Timeline = ({
             title: lodge.name,
             subtitle: lodge.type.charAt(0).toUpperCase() + lodge.type.slice(1).replace(/_/g, ' '),
             description: lodge.address || undefined,
-            location: lodge.location?.name,
-            locationCoords:
-              lodge.location?.latitude && lodge.location?.longitude
-                ? {
-                    latitude: Number(lodge.location.latitude),
-                    longitude: Number(lodge.location.longitude),
-                  }
-                : undefined,
+            // Note: Location is now via EntityLink system (not pre-loaded for lodging yet)
+            location: undefined,
+            locationCoords: undefined,
             cost: lodge.cost || undefined,
             currency: lodge.currency || undefined,
             confirmationNumber: lodge.confirmationNumber || undefined,

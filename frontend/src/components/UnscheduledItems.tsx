@@ -1878,14 +1878,8 @@ export default function UnscheduledItems({
                           </span>
                         </div>
 
+                        {/* Note: Location is now shown via EntityLink system */}
                         <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                          {lodgingItem.location && (
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">Location:</span>
-                              <span>{lodgingItem.location.name}</span>
-                            </div>
-                          )}
-
                           {lodgingItem.address && (
                             <div className="flex items-center gap-2">
                               <span className="font-medium">Address:</span>

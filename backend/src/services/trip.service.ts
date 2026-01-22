@@ -640,11 +640,9 @@ export class TripService {
     }
 
     // Copy photo albums
+    // Note: Location, Activity, and Lodging associations are handled via EntityLink system (copied separately below)
     if (data.copyEntities?.photoAlbums && sourceTrip.photoAlbums && Array.isArray(sourceTrip.photoAlbums)) {
       for (const album of sourceTrip.photoAlbums) {
-        const newLocationId = album.locationId ? locationIdMap.get(album.locationId) : null;
-        const newActivityId = album.activityId ? activityIdMap.get(album.activityId) : null;
-        const newLodgingId = album.lodgingId ? lodgingIdMap.get(album.lodgingId) : null;
         const newCoverPhotoId = album.coverPhotoId ? photoIdMap.get(album.coverPhotoId) : null;
 
         const newAlbum = await prisma.photoAlbum.create({
@@ -652,9 +650,6 @@ export class TripService {
             tripId: newTrip.id,
             name: album.name,
             description: album.description,
-            locationId: newLocationId || null,
-            activityId: newActivityId || null,
-            lodgingId: newLodgingId || null,
             coverPhotoId: newCoverPhotoId || null,
           },
         });
