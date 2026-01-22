@@ -2,7 +2,6 @@ import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
-import type { Location } from '../../types/location';
 
 /**
  * Format time for display
