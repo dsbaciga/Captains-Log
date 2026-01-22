@@ -441,16 +441,23 @@ class PhotoService {
 
   /**
    * Get photo date groupings for a trip (dates and counts only, for lazy loading)
+   * Groups photos by date in the specified timezone
    */
-  async getPhotoDateGroupings(userId: number, tripId: number) {
+  async getPhotoDateGroupings(userId: number, tripId: number, timezone?: string) {
     await verifyTripAccess(userId, tripId);
 
-    // Use raw SQL for efficient date grouping
-    const groupings = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-      SELECT DATE("taken_at") as date, COUNT(*) as count
+    // Default to UTC if no timezone specified
+    const tz = timezone || 'UTC';
+
+    // Use raw SQL for efficient date grouping with timezone conversion
+    // Convert from UTC (stored) to the trip's timezone for grouping
+    const groupings = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+      SELECT
+        TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}, 'YYYY-MM-DD') as date,
+        COUNT(*) as count
       FROM photos
       WHERE trip_id = ${tripId} AND "taken_at" IS NOT NULL
-      GROUP BY DATE("taken_at")
+      GROUP BY TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}, 'YYYY-MM-DD')
       ORDER BY date ASC
     `;
 
@@ -462,7 +469,7 @@ class PhotoService {
 
     return {
       groupings: groupings.map(g => ({
-        date: g.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        date: g.date, // Already formatted as YYYY-MM-DD
         count: Number(g.count),
       })),
       totalWithDates,
@@ -472,47 +479,69 @@ class PhotoService {
 
   /**
    * Get photos for a specific date (for lazy loading by day)
+   * Uses timezone to determine the day boundaries
    */
   async getPhotosByDate(
     userId: number,
     tripId: number,
-    date: string // YYYY-MM-DD format
+    date: string, // YYYY-MM-DD format
+    timezone?: string
   ) {
     await verifyTripAccess(userId, tripId);
 
-    // Parse date and create range for the full day
-    const startOfDay = new Date(date + 'T00:00:00.000Z');
-    const endOfDay = new Date(date + 'T23:59:59.999Z');
+    // Default to UTC if no timezone specified
+    const tz = timezone || 'UTC';
 
-    const photos = await prisma.photo.findMany({
-      where: {
-        tripId,
-        takenAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      include: {
-        albumAssignments: {
-          include: {
-            album: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: [
-        { takenAt: 'asc' },
-      ],
+    // Use raw SQL to query photos for the specific date in the given timezone
+    // This ensures we get the same photos that were grouped under this date
+    const photos = await prisma.$queryRaw<Array<any>>`
+      SELECT p.*,
+        json_agg(
+          DISTINCT jsonb_build_object(
+            'album', jsonb_build_object('id', a.id, 'name', a.name)
+          )
+        ) FILTER (WHERE a.id IS NOT NULL) as "albumAssignments"
+      FROM photos p
+      LEFT JOIN photo_album_assignments paa ON p.id = paa.photo_id
+      LEFT JOIN photo_albums a ON paa.album_id = a.id
+      WHERE p.trip_id = ${tripId}
+        AND p."taken_at" IS NOT NULL
+        AND TO_CHAR(p."taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}, 'YYYY-MM-DD') = ${date}
+      GROUP BY p.id
+      ORDER BY p."taken_at" ASC
+    `;
+
+    // Transform the raw results to match the expected format
+    const transformedPhotos = photos.map((photo: any) => {
+      const transformed = convertDecimals({
+        id: photo.id,
+        tripId: photo.trip_id,
+        source: photo.source,
+        immichAssetId: photo.immich_asset_id,
+        localPath: photo.local_path,
+        thumbnailPath: photo.thumbnail_path,
+        caption: photo.caption,
+        takenAt: photo.taken_at,
+        latitude: photo.latitude,
+        longitude: photo.longitude,
+        createdAt: photo.created_at,
+        updatedAt: photo.updated_at,
+      });
+
+      // Transform album assignments
+      if (photo.albumAssignments && Array.isArray(photo.albumAssignments)) {
+        transformed.albumAssignments = photo.albumAssignments.filter((a: any) => a.album?.id);
+      } else {
+        transformed.albumAssignments = [];
+      }
+
+      return transformed;
     });
 
     return {
-      photos: photos.map((photo: any) => convertDecimals(photo)),
+      photos: transformedPhotos,
       date,
-      count: photos.length,
+      count: transformedPhotos.length,
     };
   }
 

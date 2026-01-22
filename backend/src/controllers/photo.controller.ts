@@ -198,7 +198,13 @@ class PhotoController {
   async getPhotoDateGroupings(req: Request, res: Response, next: NextFunction) {
     try {
       const tripId = parseInt(req.params.tripId);
-      const result = await photoService.getPhotoDateGroupings(req.user!.userId, tripId);
+      const timezone = req.query.timezone as string | undefined;
+
+      const result = await photoService.getPhotoDateGroupings(
+        req.user!.userId,
+        tripId,
+        timezone
+      );
       res.json(result);
     } catch (error) {
       next(error);
@@ -209,13 +215,25 @@ class PhotoController {
     try {
       const tripId = parseInt(req.params.tripId);
       const date = req.params.date; // YYYY-MM-DD format
+      const timezone = req.query.timezone as string | undefined;
 
       // Validate date format
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         throw new AppError('Invalid date format. Use YYYY-MM-DD', 400);
       }
 
-      const result = await photoService.getPhotosByDate(req.user!.userId, tripId, date);
+      // Validate date is a valid calendar date
+      const parsedDate = new Date(date + 'T12:00:00Z');
+      if (isNaN(parsedDate.getTime())) {
+        throw new AppError('Invalid date value', 400);
+      }
+
+      const result = await photoService.getPhotosByDate(
+        req.user!.userId,
+        tripId,
+        date,
+        timezone
+      );
 
       // Transform photos for frontend
       const photosWithUrls = result.photos.map(transformPhoto);

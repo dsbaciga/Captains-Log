@@ -156,13 +156,17 @@ class PhotoService {
     await api.delete(`/albums/${albumId}/photos/${photoId}`);
   }
 
-  async getPhotoDateGroupings(tripId: number): Promise<PhotoDateGroupingsResponse> {
-    const response = await api.get(`/photos/trip/${tripId}/date-groupings`);
+  async getPhotoDateGroupings(tripId: number, timezone?: string): Promise<PhotoDateGroupingsResponse> {
+    const response = await api.get(`/photos/trip/${tripId}/date-groupings`, {
+      params: timezone ? { timezone } : undefined,
+    });
     return response.data;
   }
 
-  async getPhotosByDate(tripId: number, date: string): Promise<PhotosByDateResponse> {
-    const response = await api.get(`/photos/trip/${tripId}/by-date/${date}`);
+  async getPhotosByDate(tripId: number, date: string, timezone?: string): Promise<PhotosByDateResponse> {
+    const response = await api.get(`/photos/trip/${tripId}/by-date/${date}`, {
+      params: timezone ? { timezone } : undefined,
+    });
     return response.data;
   }
 

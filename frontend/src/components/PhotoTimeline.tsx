@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Photo } from '../types/photo';
 import photoService, { PhotoDateGrouping } from '../services/photo.service';
-import { getDateStringInTimezone, formatTime, getDayNumber } from './timeline/utils';
+import { formatTime, getDayNumber } from './timeline/utils';
 import { getFullAssetUrl } from '../lib/config';
 import PhotoLightbox from './PhotoLightbox';
 import toast from 'react-hot-toast';
@@ -25,6 +25,9 @@ interface DayGroupState {
 // Placeholder image for failed loads
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239CA3AF"%3E%3Cpath d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/%3E%3C/svg%3E';
 
+// Maximum number of days to keep photos loaded (memory management)
+const MAX_LOADED_DAYS = 10;
+
 export default function PhotoTimeline({
   tripId,
   tripTimezone,
@@ -36,60 +39,122 @@ export default function PhotoTimeline({
   const [totalWithoutDates, setTotalWithoutDates] = useState(0);
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [allLoadedPhotos, setAllLoadedPhotos] = useState<Photo[]>([]);
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+
+  // Track load order for memory management (LRU-style)
+  const loadOrderRef = useRef<string[]>([]);
+
+  // Track pending requests to prevent duplicates
+  const pendingRequestsRef = useRef<Set<string>>(new Set());
+
+  // Format date for display using the trip's timezone
+  const formatDateForDisplay = useCallback((dateStr: string): string => {
+    // Parse the YYYY-MM-DD date and format it for display
+    // Use noon UTC to avoid timezone edge cases when formatting
+    const date = new Date(dateStr + 'T12:00:00Z');
+
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC', // Use UTC since we're working with date-only values
+    };
+
+    return date.toLocaleDateString('en-US', options);
+  }, []);
 
   // Load date groupings (lightweight - just dates and counts)
   const loadDateGroupings = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await photoService.getPhotoDateGroupings(tripId);
+      // Pass timezone to get correct date groupings
+      const result = await photoService.getPhotoDateGroupings(tripId, tripTimezone);
 
       // Convert date groupings to day group state
-      const groups: DayGroupState[] = result.groupings.map((g: PhotoDateGrouping) => {
-        const date = new Date(g.date + 'T12:00:00'); // Use noon to avoid timezone issues
-        const dateKey = getDateStringInTimezone(date, tripTimezone);
-
-        return {
-          dateKey,
-          rawDate: g.date,
-          dayNumber: getDayNumber(dateKey, tripStartDate),
-          count: g.count,
-          photos: null, // Not loaded yet
-          loading: false,
-          error: false,
-        };
-      });
+      const groups: DayGroupState[] = result.groupings.map((g: PhotoDateGrouping) => ({
+        dateKey: formatDateForDisplay(g.date),
+        rawDate: g.date,
+        dayNumber: getDayNumber(g.date, tripStartDate),
+        count: g.count,
+        photos: null, // Not loaded yet
+        loading: false,
+        error: false,
+      }));
 
       setDayGroups(groups);
       setTotalWithDates(result.totalWithDates);
       setTotalWithoutDates(result.totalWithoutDates);
+
+      // Reset state when trip changes
+      setExpandedDays(new Set());
+      loadOrderRef.current = [];
+      pendingRequestsRef.current.clear();
+      setFailedImages(new Set());
     } catch (error) {
       console.error('Error loading date groupings:', error);
       toast.error('Failed to load photo timeline');
     } finally {
       setLoading(false);
     }
-  }, [tripId, tripTimezone, tripStartDate]);
+  }, [tripId, tripTimezone, tripStartDate, formatDateForDisplay]);
 
   useEffect(() => {
     loadDateGroupings();
   }, [loadDateGroupings]);
 
+  // Unload oldest days when we exceed the limit (memory management)
+  const manageMemory = useCallback((newlyLoadedDate: string) => {
+    // Add to load order
+    loadOrderRef.current = loadOrderRef.current.filter(d => d !== newlyLoadedDate);
+    loadOrderRef.current.push(newlyLoadedDate);
+
+    // If we exceed the limit, unload the oldest days
+    while (loadOrderRef.current.length > MAX_LOADED_DAYS) {
+      const oldestDate = loadOrderRef.current.shift();
+      if (oldestDate) {
+        setDayGroups(prev => prev.map(g =>
+          g.rawDate === oldestDate ? { ...g, photos: null } : g
+        ));
+      }
+    }
+  }, []);
+
   // Load photos for a specific day
   const loadPhotosForDay = useCallback(async (rawDate: string) => {
-    // Mark as loading
+    // Check if already loading (prevent duplicate requests)
+    if (pendingRequestsRef.current.has(rawDate)) {
+      return;
+    }
+
+    // Mark as pending
+    pendingRequestsRef.current.add(rawDate);
+
+    // Mark as loading in state
     setDayGroups(prev => prev.map(g =>
       g.rawDate === rawDate ? { ...g, loading: true, error: false } : g
     ));
 
     try {
-      const result = await photoService.getPhotosByDate(tripId, rawDate);
+      // Pass timezone to get photos for the correct day
+      const result = await photoService.getPhotosByDate(tripId, rawDate, tripTimezone);
 
       // Sort photos: no-time photos first, then by time
+      // Use defensive checks to handle potential null/undefined takenAt
       const sortedPhotos = [...result.photos].sort((a, b) => {
-        const aDate = new Date(a.takenAt!);
-        const bDate = new Date(b.takenAt!);
+        // Handle null/undefined takenAt defensively
+        if (!a.takenAt && !b.takenAt) return 0;
+        if (!a.takenAt) return -1;
+        if (!b.takenAt) return 1;
+
+        const aDate = new Date(a.takenAt);
+        const bDate = new Date(b.takenAt);
+
+        // Check for invalid dates
+        if (isNaN(aDate.getTime()) && isNaN(bDate.getTime())) return 0;
+        if (isNaN(aDate.getTime())) return -1;
+        if (isNaN(bDate.getTime())) return 1;
+
         const aHasTime = aDate.getUTCHours() !== 0 || aDate.getUTCMinutes() !== 0;
         const bHasTime = bDate.getUTCHours() !== 0 || bDate.getUTCMinutes() !== 0;
 
@@ -103,22 +168,21 @@ export default function PhotoTimeline({
         g.rawDate === rawDate ? { ...g, photos: sortedPhotos, loading: false } : g
       ));
 
-      // Add to allLoadedPhotos for lightbox navigation
-      setAllLoadedPhotos(prev => {
-        const existingIds = new Set(prev.map(p => p.id));
-        const newPhotos = sortedPhotos.filter(p => !existingIds.has(p.id));
-        return [...prev, ...newPhotos];
-      });
+      // Manage memory (unload old days if needed)
+      manageMemory(rawDate);
     } catch (error) {
       console.error(`Error loading photos for ${rawDate}:`, error);
       setDayGroups(prev => prev.map(g =>
         g.rawDate === rawDate ? { ...g, loading: false, error: true } : g
       ));
       toast.error(`Failed to load photos for ${rawDate}`);
+    } finally {
+      // Remove from pending
+      pendingRequestsRef.current.delete(rawDate);
     }
-  }, [tripId]);
+  }, [tripId, tripTimezone, manageMemory]);
 
-  // Toggle day expansion
+  // Toggle day expansion - fixed to avoid stale closure issues
   const toggleDay = useCallback((rawDate: string) => {
     setExpandedDays(prev => {
       const newSet = new Set(prev);
@@ -126,33 +190,43 @@ export default function PhotoTimeline({
         newSet.delete(rawDate);
       } else {
         newSet.add(rawDate);
-        // Load photos if not already loaded
-        const group = dayGroups.find(g => g.rawDate === rawDate);
-        if (group && group.photos === null && !group.loading) {
-          loadPhotosForDay(rawDate);
-        }
       }
       return newSet;
     });
-  }, [dayGroups, loadPhotosForDay]);
+  }, []);
+
+  // Effect to load photos when a day is expanded
+  useEffect(() => {
+    expandedDays.forEach(rawDate => {
+      const group = dayGroups.find(g => g.rawDate === rawDate);
+      if (group && group.photos === null && !group.loading && !group.error) {
+        loadPhotosForDay(rawDate);
+      }
+    });
+  }, [expandedDays, dayGroups, loadPhotosForDay]);
 
   // Expand all days
   const expandAllDays = useCallback(() => {
     const allDates = dayGroups.map(g => g.rawDate);
     setExpandedDays(new Set(allDates));
-
-    // Load photos for all days that haven't been loaded
-    dayGroups.forEach(group => {
-      if (group.photos === null && !group.loading) {
-        loadPhotosForDay(group.rawDate);
-      }
-    });
-  }, [dayGroups, loadPhotosForDay]);
+    // Photos will be loaded by the useEffect above
+  }, [dayGroups]);
 
   // Collapse all days
   const collapseAllDays = useCallback(() => {
     setExpandedDays(new Set());
   }, []);
+
+  // Get all loaded photos for lightbox navigation
+  const getAllLoadedPhotos = useCallback((): Photo[] => {
+    const allPhotos: Photo[] = [];
+    dayGroups.forEach(group => {
+      if (group.photos) {
+        allPhotos.push(...group.photos);
+      }
+    });
+    return allPhotos;
+  }, [dayGroups]);
 
   // Get photo URL
   const getPhotoUrl = (photo: Photo, thumbnail = true): string => {
@@ -191,13 +265,23 @@ export default function PhotoTimeline({
 
   // Handle image error
   const handleImageError = (photoId: number) => {
-    setFailedImages(prev => new Set(prev).add(photoId));
+    setFailedImages(prev => {
+      const newSet = new Set(prev);
+      // Limit failed images set size to prevent unbounded growth
+      if (newSet.size > 500) {
+        const arr = Array.from(newSet);
+        arr.splice(0, 100); // Remove oldest 100 entries
+        return new Set([...arr, photoId]);
+      }
+      return newSet.add(photoId);
+    });
   };
 
   // Format time for display
   const getTimeDisplay = (photo: Photo): string | null => {
     if (!photo.takenAt) return null;
     const photoDate = new Date(photo.takenAt);
+    if (isNaN(photoDate.getTime())) return null;
     if (photoDate.getUTCHours() === 0 && photoDate.getUTCMinutes() === 0) {
       return null;
     }
@@ -244,6 +328,8 @@ export default function PhotoTimeline({
       </div>
     );
   }
+
+  const allLoadedPhotos = getAllLoadedPhotos();
 
   return (
     <div className="photo-timeline">
@@ -301,12 +387,7 @@ export default function PhotoTimeline({
                       {dayGroup.dayNumber && dayGroup.dayNumber > 0
                         ? `Day ${dayGroup.dayNumber} - `
                         : ''}
-                      {new Date(dayGroup.rawDate + 'T12:00:00').toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
+                      {dayGroup.dateKey}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                       {dayGroup.count} {dayGroup.count === 1 ? 'photo' : 'photos'}
