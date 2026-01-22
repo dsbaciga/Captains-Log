@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import {
   PhotoSource,
@@ -449,15 +450,22 @@ class PhotoService {
     // Default to UTC if no timezone specified
     const tz = timezone || 'UTC';
 
+    // Validate timezone format to prevent SQL injection
+    // Valid timezones contain only alphanumeric, /, _, +, - characters
+    if (!/^[a-zA-Z0-9/_+-]+$/.test(tz)) {
+      throw new AppError('Invalid timezone format', 400);
+    }
+
     // Use raw SQL for efficient date grouping with timezone conversion
     // Convert from UTC (stored) to the trip's timezone for grouping
+    // Note: Using Prisma.raw for timezone since AT TIME ZONE requires a literal string
     const groupings = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
       SELECT
-        TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}, 'YYYY-MM-DD') as date,
+        TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}::text, 'YYYY-MM-DD') as date,
         COUNT(*) as count
       FROM photos
       WHERE trip_id = ${tripId} AND "taken_at" IS NOT NULL
-      GROUP BY TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}, 'YYYY-MM-DD')
+      GROUP BY TO_CHAR("taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}::text, 'YYYY-MM-DD')
       ORDER BY date ASC
     `;
 
@@ -492,8 +500,15 @@ class PhotoService {
     // Default to UTC if no timezone specified
     const tz = timezone || 'UTC';
 
+    // Validate timezone format to prevent SQL injection
+    // Valid timezones contain only alphanumeric, /, _, +, - characters
+    if (!/^[a-zA-Z0-9/_+-]+$/.test(tz)) {
+      throw new AppError('Invalid timezone format', 400);
+    }
+
     // Use raw SQL to query photos for the specific date in the given timezone
     // This ensures we get the same photos that were grouped under this date
+    // Note: Using ::text cast for timezone since AT TIME ZONE requires a string
     const photos = await prisma.$queryRaw<Array<any>>`
       SELECT p.*,
         json_agg(
@@ -506,7 +521,7 @@ class PhotoService {
       LEFT JOIN photo_albums a ON paa.album_id = a.id
       WHERE p.trip_id = ${tripId}
         AND p."taken_at" IS NOT NULL
-        AND TO_CHAR(p."taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}, 'YYYY-MM-DD') = ${date}
+        AND TO_CHAR(p."taken_at" AT TIME ZONE 'UTC' AT TIME ZONE ${tz}::text, 'YYYY-MM-DD') = ${date}
       GROUP BY p.id
       ORDER BY p."taken_at" ASC
     `;
