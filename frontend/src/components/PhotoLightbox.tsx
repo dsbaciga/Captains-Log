@@ -19,7 +19,9 @@ interface PhotoLightboxProps {
   editMode?: boolean;
   editCaption?: string;
   onEditCaptionChange?: (caption: string) => void;
-  onSaveCaption?: () => void;
+  editTakenAt?: string | null;
+  onEditTakenAtChange?: (date: string | null) => void;
+  onSaveEdit?: () => void;
   onCancelEdit?: () => void;
   tripId?: number;
   onPhotoLinksUpdated?: () => void;
@@ -38,7 +40,9 @@ export default function PhotoLightbox({
   editMode = false,
   editCaption = "",
   onEditCaptionChange,
-  onSaveCaption,
+  editTakenAt,
+  onEditTakenAtChange,
+  onSaveEdit,
   onCancelEdit,
   tripId,
   onPhotoLinksUpdated,
@@ -376,6 +380,7 @@ export default function PhotoLightbox({
           {editMode ? (
             /* Edit mode panel */
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 max-w-lg mx-auto">
+              {/* Caption field */}
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Caption
               </label>
@@ -387,10 +392,39 @@ export default function PhotoLightbox({
                 placeholder="Add a caption..."
                 autoFocus
               />
-              <div className="flex gap-2 mt-3">
+
+              {/* Date/Time field */}
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 mt-4">
+                Date & Time Taken
+              </label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="datetime-local"
+                  value={editTakenAt || ""}
+                  onChange={(e) => onEditTakenAtChange?.(e.target.value || null)}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                {editTakenAt && (
+                  <button
+                    type="button"
+                    onClick={() => onEditTakenAtChange?.(null)}
+                    className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                    title="Clear date"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Set when this photo was taken for timeline organization
+              </p>
+
+              <div className="flex gap-2 mt-4">
                 <button
                   type="button"
-                  onClick={onSaveCaption}
+                  onClick={onSaveEdit}
                   className="btn btn-primary text-sm"
                 >
                   Save
