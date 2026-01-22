@@ -121,38 +121,37 @@ export default function DayNavigator({
   }, [isDropdownOpen, focusedIndex, allDates, handleDaySelect]);
 
   return (
-    <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3">
-      {/* Left section: Previous button + Weather */}
-      <div className="flex items-center gap-3">
-        {/* Previous Day Button */}
-        <button
-          type="button"
-          onClick={handlePrevious}
-          disabled={!canGoBack}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            canGoBack
-              ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-          }`}
-          aria-label="Previous day"
+    <div className="grid grid-cols-[auto_1fr_auto_1fr_auto] items-center bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 gap-2">
+      {/* Column 1: Previous Day Button */}
+      <button
+        type="button"
+        onClick={handlePrevious}
+        disabled={!canGoBack}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+          canGoBack
+            ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+        }`}
+        aria-label="Previous day"
+      >
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          <span className="hidden sm:inline font-medium">Previous</span>
-        </button>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+        <span className="hidden sm:inline font-medium">Previous</span>
+      </button>
 
-        {/* Weather badge */}
+      {/* Column 2: Weather badge (centered in this column) */}
+      <div className="flex justify-center">
         {weather && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
             <span className="text-lg">{weather.icon}</span>
@@ -173,7 +172,7 @@ export default function DayNavigator({
         )}
       </div>
 
-      {/* Day Indicator - Clickable dropdown */}
+      {/* Column 3: Day Indicator - Clickable dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
           ref={triggerRef}
@@ -266,43 +265,42 @@ export default function DayNavigator({
         )}
       </div>
 
-      {/* Right section: Timezone + Next button */}
-      <div className="flex items-center gap-3">
-        {/* Timezone badge */}
+      {/* Column 4: Timezone badge (centered in this column) */}
+      <div className="flex justify-center">
         {tripTimezone && (
           <div className="hidden sm:flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400">
             {getTimezoneAbbr(tripTimezone)}
           </div>
         )}
-
-        {/* Next Day Button */}
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={!canGoForward}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            canGoForward
-              ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-          }`}
-          aria-label="Next day"
-        >
-          <span className="hidden sm:inline font-medium">Next</span>
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
       </div>
+
+      {/* Column 5: Next Day Button */}
+      <button
+        type="button"
+        onClick={handleNext}
+        disabled={!canGoForward}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+          canGoForward
+            ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+        }`}
+        aria-label="Next day"
+      >
+        <span className="hidden sm:inline font-medium">Next</span>
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+      </button>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
-import type { WeatherDisplay } from '../../types/weather';
+import type { WeatherData, WeatherDisplay } from '../../types/weather';
 import type { EntityType } from '../../types/entityLink';
 import activityService from '../../services/activity.service';
 import transportationService from '../../services/transportation.service';
@@ -12,6 +12,8 @@ import lodgingService from '../../services/lodging.service';
 import journalService from '../../services/journalEntry.service';
 import locationService from '../../services/location.service';
 import entityLinkService from '../../services/entityLink.service';
+import weatherService from '../../services/weather.service';
+import { getWeatherIcon } from '../../utils/weatherIcons';
 import DayNavigator from './DayNavigator';
 import ActivityCard from './ActivityCard';
 import TransportationCard from './TransportationCard';
@@ -28,7 +30,6 @@ interface DailyViewProps {
   userTimezone?: string;
   tripStartDate?: string;
   tripEndDate?: string;
-  weather?: Record<string, WeatherDisplay>;
   onRefresh?: () => void;
 }
 
@@ -56,16 +57,13 @@ interface DayData {
 export default function DailyView({
   tripId,
   tripTimezone,
-  userTimezone,
   tripStartDate,
   tripEndDate,
-  weather,
 }: DailyViewProps) {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allDays, setAllDays] = useState<DayData[]>([]);
-  const [allLocations, setAllLocations] = useState<Location[]>([]);
   const [linkedLocationsMap, setLinkedLocationsMap] = useState<LinkedLocationsMap>({});
 
   // Generate all trip dates
@@ -125,7 +123,7 @@ export default function DailyView({
   }, [tripStartDate, tripEndDate, tripTimezone]);
 
   // Get date string for comparison
-  const getDateString = (date: Date | string): string => {
+  const getDateString = useCallback((date: Date | string): string => {
     const d = typeof date === 'string' ? new Date(date) : date;
     return new Intl.DateTimeFormat('en-US', {
       timeZone: tripTimezone,
@@ -134,7 +132,7 @@ export default function DailyView({
       month: 'short',
       day: 'numeric',
     }).format(d);
-  };
+  }, [tripTimezone]);
 
   // Helper to build entity key
   const getEntityKey = useCallback((entityType: EntityType, entityId: number): string => {
@@ -147,18 +145,43 @@ export default function DailyView({
       setLoading(true);
       setError(null);
       try {
-        // Fetch all data including entity links in parallel
-        const [activities, transportation, lodging, journal, locations, linkSummary] = await Promise.all([
+        // Fetch all data including entity links and weather in parallel
+        const [activities, transportation, lodging, journal, locations, linkSummary, weather] = await Promise.all([
           activityService.getActivitiesByTrip(tripId),
           transportationService.getTransportationByTrip(tripId),
           lodgingService.getLodgingByTrip(tripId),
           journalService.getJournalEntriesByTrip(tripId),
           locationService.getLocationsByTrip(tripId),
           entityLinkService.getTripLinkSummary(tripId).catch(() => ({})),
+          weatherService.getWeatherForTrip(tripId).catch(() => [] as WeatherData[]),
         ]);
 
-        // Store locations for later lookup
-        setAllLocations(locations);
+        // Process weather data into a map by date key
+        const processedWeather: Record<string, WeatherDisplay> = {};
+        if (Array.isArray(weather)) {
+          weather.forEach((w) => {
+            if (w && w.date) {
+              // Parse the date as a local date to avoid timezone shifts
+              const dateStr = typeof w.date === 'string'
+                ? w.date.split('T')[0]
+                : new Date(w.date).toISOString().split('T')[0];
+              const [year, month, day] = dateStr.split('-').map(Number);
+              const localDate = new Date(year, month - 1, day, 12, 0, 0);
+              const dateKey = getDateString(localDate);
+              processedWeather[dateKey] = {
+                date: w.date,
+                high: w.temperatureHigh,
+                low: w.temperatureLow,
+                conditions: w.conditions,
+                icon: getWeatherIcon(w.conditions),
+                precipitation: w.precipitation,
+                humidity: w.humidity,
+                windSpeed: w.windSpeed,
+                locationName: w.locationName,
+              };
+            }
+          });
+        }
 
         // Build linked locations map by fetching links for entities that have location links
         const locationsMap: LinkedLocationsMap = {};
@@ -167,7 +190,7 @@ export default function DailyView({
         // Get all entities that have location links based on link summary
         const linkFetchPromises: Promise<void>[] = [];
 
-        for (const [key, summary] of Object.entries(linkSummary)) {
+        for (const [, summary] of Object.entries(linkSummary)) {
           if (summary.linkCounts.LOCATION && summary.linkCounts.LOCATION > 0) {
             const entityType = summary.entityType;
             const entityId = summary.entityId;
@@ -352,7 +375,7 @@ export default function DailyView({
             dateKey,
             displayDate,
             items,
-            weather: weather?.[dateKey],
+            weather: processedWeather[dateKey],
           };
         });
 
@@ -366,7 +389,7 @@ export default function DailyView({
     };
 
     loadData();
-  }, [tripId, generateAllTripDates, weather, getEntityKey]);
+  }, [tripId, generateAllTripDates, getEntityKey, getDateString]);
 
   // Current day data
   const currentDay = allDays[currentDayIndex];
