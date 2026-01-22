@@ -189,7 +189,7 @@ export default function DayNavigator({
           <div
             role="listbox"
             aria-label="Select a day"
-            className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 max-h-80 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+            className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-[calc(100vw-2rem)] sm:w-64 max-w-64 max-h-80 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
             onKeyDown={handleKeyDown}
           >
             <div className="p-2">

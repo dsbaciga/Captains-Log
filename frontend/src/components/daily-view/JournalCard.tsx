@@ -53,7 +53,7 @@ export default function JournalCard({
 
             {/* Main content */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                 {journal.title || 'Untitled Entry'}
               </h3>
 

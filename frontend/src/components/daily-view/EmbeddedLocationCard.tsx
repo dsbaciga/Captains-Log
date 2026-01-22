@@ -67,7 +67,7 @@ export default function EmbeddedLocationCard({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-gray-900 dark:text-white">
+          <h4 className="font-semibold text-gray-900 dark:text-white truncate">
             {location.name}
           </h4>
 
