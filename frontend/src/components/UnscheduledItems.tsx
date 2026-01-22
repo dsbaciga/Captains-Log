@@ -154,6 +154,7 @@ export default function UnscheduledItems({
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Track original location ID when editing to detect changes (for entity linking)
   const [originalActivityLocationId, setOriginalActivityLocationId] = useState<number | null>(null);
+  const [originalLodgingLocationId, setOriginalLodgingLocationId] = useState<number | null>(null);
 
   const activityForm = useFormFields<ActivityFormFields>(
     initialActivityFormState
@@ -369,16 +370,29 @@ export default function UnscheduledItems({
     setShowFormModal(true);
   };
 
-  const handleEditLodging = (lodgingItem: Lodging) => {
+  const handleEditLodging = async (lodgingItem: Lodging) => {
     setEditingId(lodgingItem.id);
     setEditingType("lodging");
     setActiveSection("lodging");
     lodgingForm.handleChange("type", lodgingItem.type);
     lodgingForm.handleChange("name", lodgingItem.name);
-    lodgingForm.handleChange(
-      "locationId",
-      lodgingItem.locationId || undefined
-    );
+
+    // Fetch linked location via entity linking system
+    try {
+      const links = await entityLinkService.getLinksFrom(tripId, 'LODGING', lodgingItem.id, 'LOCATION');
+      if (links.length > 0 && links[0].targetId) {
+        lodgingForm.handleChange("locationId", links[0].targetId);
+        setOriginalLodgingLocationId(links[0].targetId);
+      } else {
+        lodgingForm.handleChange("locationId", undefined);
+        setOriginalLodgingLocationId(null);
+      }
+    } catch {
+      // If fetching links fails, proceed without location
+      lodgingForm.handleChange("locationId", undefined);
+      setOriginalLodgingLocationId(null);
+    }
+
     lodgingForm.handleChange("address", lodgingItem.address || "");
     lodgingForm.handleChange("timezone", lodgingItem.timezone || "");
     lodgingForm.handleChange(
@@ -599,10 +613,10 @@ export default function UnscheduledItems({
 
     setIsSubmitting(true);
     try {
+      // Lodging data without locationId (using entity links instead)
       const updateData = {
         type: lodgingForm.values.type as LodgingType,
         name: lodgingForm.values.name,
-        locationId: lodgingForm.values.locationId || null,
         address: lodgingForm.values.address || null,
         checkInDate: lodgingForm.values.checkInDate || null,
         checkOutDate: lodgingForm.values.checkOutDate || null,
@@ -616,12 +630,60 @@ export default function UnscheduledItems({
         notes: lodgingForm.values.notes || null,
       };
 
+      const newLocationId = lodgingForm.values.locationId || null;
+
       if (isCreating) {
-        await lodgingService.createLodging({ ...updateData, tripId });
+        // Create the lodging first
+        const createdLodging = await lodgingService.createLodging({ ...updateData, tripId });
         toast.success("Lodging created");
+
+        // Then create location link if a location was selected
+        if (newLocationId) {
+          try {
+            await entityLinkService.createLink(tripId, {
+              sourceType: 'LODGING',
+              sourceId: createdLodging.id,
+              targetType: 'LOCATION',
+              targetId: newLocationId,
+            });
+          } catch (linkError) {
+            console.error('Failed to create location link:', linkError);
+            // Don't fail - lodging was created successfully
+          }
+        }
       } else {
+        // Update existing lodging
         await lodgingService.updateLodging(editingId!, updateData);
         toast.success("Lodging updated");
+
+        // Handle location link changes via entity linking
+        const locationChanged = newLocationId !== originalLodgingLocationId;
+
+        if (locationChanged) {
+          try {
+            // Remove old link if there was one
+            if (originalLodgingLocationId) {
+              await entityLinkService.deleteLink(tripId, {
+                sourceType: 'LODGING',
+                sourceId: editingId!,
+                targetType: 'LOCATION',
+                targetId: originalLodgingLocationId,
+              });
+            }
+            // Create new link if there's a new location
+            if (newLocationId) {
+              await entityLinkService.createLink(tripId, {
+                sourceType: 'LODGING',
+                sourceId: editingId!,
+                targetType: 'LOCATION',
+                targetId: newLocationId,
+              });
+            }
+          } catch (linkError) {
+            console.error('Failed to update location link:', linkError);
+            // Don't fail - lodging was saved successfully
+          }
+        }
       }
 
       resetForm();

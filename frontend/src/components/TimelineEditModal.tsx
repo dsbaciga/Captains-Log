@@ -56,6 +56,7 @@ export default function TimelineEditModal({
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   // Track original location ID to detect changes (for entity linking)
   const [originalActivityLocationId, setOriginalActivityLocationId] = useState<number | null>(null);
+  const [originalLodgingLocationId, setOriginalLodgingLocationId] = useState<number | null>(null);
 
   // Activity form state
   const [activityForm, setActivityForm] = useState({
@@ -271,13 +272,28 @@ export default function TimelineEditModal({
     });
   };
 
-  const initLodgingForm = (lodging: Lodging) => {
+  const initLodgingForm = async (lodging: Lodging) => {
     const effectiveTz = lodging.timezone || tripTimezone || "UTC";
+
+    // Fetch linked location via entity linking system
+    let linkedLocationId: number | undefined = undefined;
+    try {
+      const links = await entityLinkService.getLinksFrom(tripId, 'LODGING', lodging.id, 'LOCATION');
+      if (links.length > 0 && links[0].targetId) {
+        linkedLocationId = links[0].targetId;
+        setOriginalLodgingLocationId(links[0].targetId);
+      } else {
+        setOriginalLodgingLocationId(null);
+      }
+    } catch {
+      // If fetching links fails, proceed without location
+      setOriginalLodgingLocationId(null);
+    }
 
     setLodgingForm({
       type: lodging.type,
       name: lodging.name,
-      locationId: lodging.locationId || undefined,
+      locationId: linkedLocationId,
       address: lodging.address || "",
       checkInDate: lodging.checkInDate
         ? convertISOToDateTimeLocal(lodging.checkInDate, effectiveTz)
@@ -502,10 +518,10 @@ export default function TimelineEditModal({
       effectiveTz
     );
 
+    // Update lodging data (without locationId - using entity links)
     const updateData = {
       type: lodgingForm.type,
       name: lodgingForm.name,
-      locationId: lodgingForm.locationId || null,
       address: lodgingForm.address || null,
       checkInDate: checkInDateISO,
       checkOutDate: checkOutDateISO,
@@ -518,6 +534,36 @@ export default function TimelineEditModal({
     };
 
     await lodgingService.updateLodging(itemData.id, updateData);
+
+    // Handle location link changes via entity linking
+    const newLocationId = lodgingForm.locationId || null;
+    const locationChanged = newLocationId !== originalLodgingLocationId;
+
+    if (locationChanged) {
+      try {
+        // Remove old link if there was one
+        if (originalLodgingLocationId) {
+          await entityLinkService.deleteLink(tripId, {
+            sourceType: 'LODGING',
+            sourceId: itemData.id,
+            targetType: 'LOCATION',
+            targetId: originalLodgingLocationId,
+          });
+        }
+        // Create new link if there's a new location
+        if (newLocationId) {
+          await entityLinkService.createLink(tripId, {
+            sourceType: 'LODGING',
+            sourceId: itemData.id,
+            targetType: 'LOCATION',
+            targetId: newLocationId,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to update location link:', error);
+        // Don't fail - lodging was saved successfully
+      }
+    }
   };
 
   const submitJournal = async () => {

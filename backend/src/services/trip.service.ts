@@ -521,15 +521,14 @@ export class TripService {
     }
 
     // Copy activities (with parent-child hierarchy)
+    // Note: Location associations are handled via EntityLink system (copied separately below)
     if (data.copyEntities?.activities && sourceTrip.activities && Array.isArray(sourceTrip.activities)) {
       // First pass: activities without parent
       const activitiesWithoutParent = sourceTrip.activities.filter((act: any) => !act.parentId);
       for (const activity of activitiesWithoutParent) {
-        const newLocationId = activity.locationId ? locationIdMap.get(activity.locationId) : null;
         const newActivity = await prisma.activity.create({
           data: {
             tripId: newTrip.id,
-            locationId: newLocationId || null,
             name: activity.name,
             description: activity.description,
             category: activity.category,
@@ -551,12 +550,10 @@ export class TripService {
       // Second pass: child activities with updated parent references
       const activitiesWithParent = sourceTrip.activities.filter((act: any) => act.parentId);
       for (const activity of activitiesWithParent) {
-        const newLocationId = activity.locationId ? locationIdMap.get(activity.locationId) : null;
         const newParentId = activityIdMap.get(activity.parentId);
         const newActivity = await prisma.activity.create({
           data: {
             tripId: newTrip.id,
-            locationId: newLocationId || null,
             parentId: newParentId || null,
             name: activity.name,
             description: activity.description,
@@ -619,14 +616,12 @@ export class TripService {
     }
 
     // Copy lodging
+    // Note: Location associations are handled via EntityLink system (copied separately below)
     if (data.copyEntities?.lodging && sourceTrip.lodging && Array.isArray(sourceTrip.lodging)) {
       for (const lodging of sourceTrip.lodging) {
-        const newLocationId = lodging.locationId ? locationIdMap.get(lodging.locationId) : null;
-
         const newLodging = await prisma.lodging.create({
           data: {
             tripId: newTrip.id,
-            locationId: newLocationId || null,
             type: lodging.type,
             name: lodging.name,
             address: lodging.address,

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export const createActivitySchema = z.object({
   tripId: z.number(),
-  locationId: z.number().optional(),
   parentId: z.number().optional().nullable(),
   name: z.string().min(1).max(500),
   description: z.string().optional(),
@@ -18,8 +18,8 @@ export const createActivitySchema = z.object({
   notes: z.string().optional(),
 });
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export const updateActivitySchema = z.object({
-  locationId: z.number().optional().nullable(),
   parentId: z.number().optional().nullable(),
   name: z.string().min(1).max(500).optional(),
   description: z.string().optional().nullable(),

@@ -995,27 +995,18 @@ const Timeline = ({
   };
 
   // Helper to extract location IDs from timeline items
+  // Note: Activity and Lodging locations are now handled via EntityLink system
+  // This function extracts locations from transportation (which still has direct FKs)
+  // and from the activityLocationMap (populated from EntityLinks)
   const getLocationIdsFromItems = (items: TimelineItem[]): Set<number> => {
     const locationIds = new Set<number>();
     items.forEach((item) => {
       // Get location ID from the data object based on item type
       if (item.type === 'activity') {
         const activity = item.data as Activity;
-        if (activity.locationId) {
-          locationIds.add(activity.locationId);
-        }
-        // Also check the location object if it has an ID
-        if (activity.location?.id) {
-          locationIds.add(activity.location.id);
-        }
-      } else if (item.type === 'lodging') {
-        const lodging = item.data as Lodging;
-        if (lodging.locationId) {
-          locationIds.add(lodging.locationId);
-        }
-        if (lodging.location?.id) {
-          locationIds.add(lodging.location.id);
-        }
+        // Get linked locations from the activity location map (populated from EntityLinks)
+        const linkedLocationIds = activityLocationMap[activity.id] || [];
+        linkedLocationIds.forEach(id => locationIds.add(id));
       } else if (item.type === 'transportation') {
         const trans = item.data as Transportation;
         if (trans.fromLocationId) {
@@ -1025,6 +1016,8 @@ const Timeline = ({
           locationIds.add(trans.toLocationId);
         }
       }
+      // Note: Lodging locations are now via EntityLink but not pre-loaded yet
+      // TODO: Add lodging location map similar to activity location map if needed
     });
     return locationIds;
   };

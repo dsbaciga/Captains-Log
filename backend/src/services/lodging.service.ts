@@ -3,63 +3,31 @@ import {
   CreateLodgingInput,
   UpdateLodgingInput,
 } from '../types/lodging.types';
-import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
 import { photoAlbumsInclude } from '../utils/prismaIncludes';
+
+// Note: Location association is handled via EntityLink system, not direct FK
 
 class LodgingService {
   async createLodging(userId: number, data: CreateLodgingInput) {
     // Verify user owns the trip
     await verifyTripAccess(userId, data.tripId);
 
-    let locationId = data.locationId;
-
-    // Verify location belongs to trip if provided
-    if (locationId) {
-      await verifyLocationInTrip(locationId, data.tripId);
-    }
-    // If no locationId but address is provided, create a new location automatically
-    else if (!locationId && data.address) {
-      const newLocation = await prisma.location.create({
-        data: {
-          tripId: data.tripId,
-          name: data.name, // Use lodging name as location name
-          address: data.address,
-          latitude: null,
-          longitude: null,
-          categoryId: null,
-          visitDatetime: data.checkInDate ? new Date(data.checkInDate) : null,
-          visitDurationMinutes: null,
-          notes: null,
-        },
-      });
-      locationId = newLocation.id;
-    }
-
+    // Note: Location association is handled via EntityLink system after creation
     const lodging = await prisma.lodging.create({
       data: {
         tripId: data.tripId,
         type: data.type,
         name: data.name,
-        locationId: locationId || null,
         address: data.address || null,
         checkInDate: data.checkInDate ? new Date(data.checkInDate) : new Date(),
         checkOutDate: data.checkOutDate ? new Date(data.checkOutDate) : new Date(),
+        timezone: data.timezone || null,
         confirmationNumber: data.confirmationNumber || null,
         cost: data.cost || null,
         currency: data.currency || null,
         bookingUrl: data.bookingUrl || null,
         notes: data.notes || null,
-      },
-      include: {
-        location: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
       },
     });
 
@@ -70,18 +38,10 @@ class LodgingService {
     // Verify user has access to trip
     await verifyTripAccess(userId, tripId);
 
+    // Note: Location association is fetched via EntityLink system, not direct FK
     const lodgings = await prisma.lodging.findMany({
       where: { tripId },
       include: {
-        location: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
         photoAlbums: photoAlbumsInclude,
       },
       orderBy: [{ checkInDate: 'asc' }, { createdAt: 'asc' }],
@@ -91,11 +51,11 @@ class LodgingService {
   }
 
   async getLodgingById(userId: number, lodgingId: number) {
+    // Note: Location association is fetched via EntityLink system, not direct FK
     const lodging = await prisma.lodging.findUnique({
       where: { id: lodgingId },
       include: {
         trip: true,
-        location: true,
         photoAlbums: photoAlbumsInclude,
       },
     });
@@ -117,17 +77,12 @@ class LodgingService {
 
     await verifyEntityAccess(lodging, userId, 'Lodging');
 
-    // Verify location belongs to trip if provided
-    if (data.locationId !== undefined && data.locationId !== null) {
-      await verifyLocationInTrip(data.locationId, lodging!.tripId);
-    }
-
+    // Note: Location association is handled via EntityLink system, not direct FK
     const updatedLodging = await prisma.lodging.update({
       where: { id: lodgingId },
       data: {
         type: data.type,
         name: data.name,
-        locationId: data.locationId !== undefined ? data.locationId : undefined,
         address: data.address !== undefined ? data.address : undefined,
         ...(data.checkInDate !== undefined && data.checkInDate !== null
           ? { checkInDate: new Date(data.checkInDate) }
@@ -135,22 +90,12 @@ class LodgingService {
         ...(data.checkOutDate !== undefined && data.checkOutDate !== null
           ? { checkOutDate: new Date(data.checkOutDate) }
           : {}),
+        timezone: data.timezone !== undefined ? data.timezone : undefined,
         confirmationNumber: data.confirmationNumber !== undefined ? data.confirmationNumber : undefined,
         cost: data.cost !== undefined ? data.cost : undefined,
         currency: data.currency !== undefined ? data.currency : undefined,
         bookingUrl: data.bookingUrl !== undefined ? data.bookingUrl : undefined,
         notes: data.notes !== undefined ? data.notes : undefined,
-      },
-      include: {
-        location: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
       },
     });
 

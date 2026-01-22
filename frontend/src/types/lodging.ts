@@ -11,12 +11,12 @@ export type LodgingType =
   | 'friends_family'
   | 'other';
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export type Lodging = {
   id: number;
   tripId: number;
   type: LodgingType;
   name: string;
-  locationId: number | null;
   address: string | null;
   checkInDate: string | null;
   checkOutDate: string | null;
@@ -28,13 +28,6 @@ export type Lodging = {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
-  location?: {
-    id: number;
-    name: string;
-    address: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
-  };
   photoAlbums?: {
     id: number;
     name: string;
@@ -45,11 +38,11 @@ export type Lodging = {
   }[];
 };
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export type CreateLodgingInput = {
   tripId: number;
   type: LodgingType;
   name: string;
-  locationId?: number;
   address?: string;
   checkInDate?: string;
   checkOutDate?: string;
@@ -61,10 +54,10 @@ export type CreateLodgingInput = {
   notes?: string;
 };
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export type UpdateLodgingInput = {
   type?: LodgingType;
   name?: string;
-  locationId?: number | null;
   address?: string | null;
   checkInDate?: string | null;
   checkOutDate?: string | null;

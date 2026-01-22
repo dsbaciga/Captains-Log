@@ -16,15 +16,16 @@ export const LodgingType = {
 
 export type LodgingTypeEnum = typeof LodgingType[keyof typeof LodgingType];
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export interface Lodging {
   id: number;
   tripId: number;
   type: LodgingTypeEnum;
   name: string;
-  locationId: number | null;
   address: string | null;
   checkInDate: Date | null;
   checkOutDate: Date | null;
+  timezone: string | null;
   confirmationNumber: string | null;
   cost: number | null;
   currency: string | null;
@@ -34,13 +35,7 @@ export interface Lodging {
   updatedAt: Date;
 }
 
-export interface LodgingWithLocation extends Lodging {
-  location?: {
-    id: number;
-    name: string;
-  };
-}
-
+// Note: Location association is handled via EntityLink system, not direct FK
 // Validation schemas
 export const createLodgingSchema = z.object({
   tripId: z.number(),
@@ -58,10 +53,10 @@ export const createLodgingSchema = z.object({
     LodgingType.OTHER,
   ]),
   name: z.string().min(1).max(500),
-  locationId: z.number().optional(),
   address: z.string().max(1000).optional(),
   checkInDate: z.string().optional(),
   checkOutDate: z.string().optional(),
+  timezone: z.string().max(100).optional(),
   confirmationNumber: z.string().max(100).optional(),
   cost: z.number().min(0).optional(),
   currency: z.string().length(3).optional(),
@@ -69,6 +64,7 @@ export const createLodgingSchema = z.object({
   notes: z.string().max(2000).optional(),
 });
 
+// Note: Location association is handled via EntityLink system, not direct FK
 export const updateLodgingSchema = z.object({
   type: z.enum([
     LodgingType.HOTEL,
@@ -84,10 +80,10 @@ export const updateLodgingSchema = z.object({
     LodgingType.OTHER,
   ]).optional(),
   name: z.string().min(1).max(500).optional(),
-  locationId: z.number().optional().nullable(),
   address: z.string().max(1000).optional().nullable(),
   checkInDate: z.string().optional().nullable(),
   checkOutDate: z.string().optional().nullable(),
+  timezone: z.string().max(100).optional().nullable(),
   confirmationNumber: z.string().max(100).optional().nullable(),
   cost: z.number().min(0).optional().nullable(),
   currency: z.string().length(3).optional().nullable(),

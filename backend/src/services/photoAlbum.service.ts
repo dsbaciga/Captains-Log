@@ -10,6 +10,8 @@ import {
 } from '../types/photo.types';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
 
+// Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
+
 // Helper function to convert Decimal fields in photo objects
 function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(
   photo: T | null | undefined
@@ -98,27 +100,7 @@ class PhotoAlbumService {
           _count: {
             select: { photoAssignments: true },
           },
-          location: {
-            select: {
-              id: true,
-              name: true,
-              address: true,
-              latitude: true,
-              longitude: true,
-            },
-          },
-          activity: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          lodging: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
+          // Note: Location, Activity, and Lodging associations are fetched via EntityLink system
           photoAssignments: {
             take: 1,
             orderBy: { createdAt: 'asc' },
@@ -174,64 +156,16 @@ class PhotoAlbumService {
     // Verify user owns the trip
     await verifyTripAccess(userId, data.tripId);
 
-    // Verify location, activity, and lodging belong to the trip if provided
-    if (data.locationId) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: data.tripId },
-      });
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
-    }
-
-    if (data.activityId) {
-      const activity = await prisma.activity.findFirst({
-        where: { id: data.activityId, tripId: data.tripId },
-      });
-      if (!activity) {
-        throw new AppError('Activity not found or does not belong to trip', 404);
-      }
-    }
-
-    if (data.lodgingId) {
-      const lodging = await prisma.lodging.findFirst({
-        where: { id: data.lodgingId, tripId: data.tripId },
-      });
-      if (!lodging) {
-        throw new AppError('Lodging not found or does not belong to trip', 404);
-      }
-    }
-
+    // Note: Location, Activity, and Lodging associations are handled via EntityLink system after creation
     const album = await prisma.photoAlbum.create({
       data: {
         tripId: data.tripId,
         name: data.name,
         description: data.description || null,
-        locationId: data.locationId || null,
-        activityId: data.activityId || null,
-        lodgingId: data.lodgingId || null,
       },
       include: {
         _count: {
           select: { photoAssignments: true },
-        },
-        location: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        activity: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        lodging: {
-          select: {
-            id: true,
-            name: true,
-          },
         },
       },
     });
@@ -263,24 +197,7 @@ class PhotoAlbumService {
             select: { photoAssignments: true },
           },
           coverPhoto: true,
-          location: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          activity: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          lodging: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
+          // Note: Location, Activity, and Lodging associations are fetched via EntityLink system
           photoAssignments: {
             take: 1,
             orderBy: { createdAt: 'asc' },
@@ -349,30 +266,13 @@ class PhotoAlbumService {
     const take = options?.take || 40; // Default to 40 photos per page
     const orderBy = buildAlbumPhotoOrderBy(options?.sortBy, options?.sortOrder);
 
+    // Note: Location, Activity, and Lodging associations are fetched via EntityLink system
     const album = await prisma.photoAlbum.findUnique({
       where: { id: albumId },
       include: {
         trip: {
           select: {
             userId: true,
-          },
-        },
-        location: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        activity: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        lodging: {
-          select: {
-            id: true,
-            name: true,
           },
         },
         photoAssignments: {
@@ -429,34 +329,6 @@ class PhotoAlbumService {
     // Verify access
     const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
 
-    // Verify location, activity, and lodging belong to the trip if provided
-    if (data.locationId !== undefined && data.locationId !== null) {
-      const location = await prisma.location.findFirst({
-        where: { id: data.locationId, tripId: verifiedAlbum.tripId },
-      });
-      if (!location) {
-        throw new AppError('Location not found or does not belong to trip', 404);
-      }
-    }
-
-    if (data.activityId !== undefined && data.activityId !== null) {
-      const activity = await prisma.activity.findFirst({
-        where: { id: data.activityId, tripId: verifiedAlbum.tripId },
-      });
-      if (!activity) {
-        throw new AppError('Activity not found or does not belong to trip', 404);
-      }
-    }
-
-    if (data.lodgingId !== undefined && data.lodgingId !== null) {
-      const lodging = await prisma.lodging.findFirst({
-        where: { id: data.lodgingId, tripId: verifiedAlbum.tripId },
-      });
-      if (!lodging) {
-        throw new AppError('Lodging not found or does not belong to trip', 404);
-      }
-    }
-
     // Validate cover photo belongs to the same trip if provided
     if (data.coverPhotoId !== undefined && data.coverPhotoId !== null) {
       const coverPhoto = await prisma.photo.findFirst({
@@ -471,38 +343,18 @@ class PhotoAlbumService {
       }
     }
 
+    // Note: Location, Activity, and Lodging associations are handled via EntityLink system
     const updatedAlbum = await prisma.photoAlbum.update({
       where: { id: albumId },
       data: {
         name: data.name,
         description: data.description !== undefined ? data.description : undefined,
-        locationId: data.locationId !== undefined ? data.locationId : undefined,
-        activityId: data.activityId !== undefined ? data.activityId : undefined,
-        lodgingId: data.lodgingId !== undefined ? data.lodgingId : undefined,
         coverPhotoId:
           data.coverPhotoId !== undefined ? data.coverPhotoId : undefined,
       },
       include: {
         _count: {
           select: { photoAssignments: true },
-        },
-        location: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        activity: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        lodging: {
-          select: {
-            id: true,
-            name: true,
-          },
         },
         coverPhoto: true,
       },

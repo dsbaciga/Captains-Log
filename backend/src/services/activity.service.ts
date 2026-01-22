@@ -1,18 +1,15 @@
 import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
-import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
 import { photoAlbumsInclude } from '../utils/prismaIncludes';
+
+// Note: Location association is handled via EntityLink system, not direct FK
 
 class ActivityService {
   async createActivity(userId: number, data: CreateActivityInput) {
     // Verify user owns the trip
     await verifyTripAccess(userId, data.tripId);
-
-    // Verify location belongs to trip if provided
-    if (data.locationId) {
-      await verifyLocationInTrip(data.locationId, data.tripId);
-    }
 
     // Verify parent activity exists and belongs to same trip if provided
     if (data.parentId) {
@@ -25,10 +22,10 @@ class ActivityService {
       }
     }
 
+    // Note: Location association is handled via EntityLink system after creation
     const activity = await prisma.activity.create({
       data: {
         tripId: data.tripId,
-        locationId: data.locationId || null,
         parentId: data.parentId || null,
         name: data.name,
         description: data.description || null,
@@ -42,15 +39,6 @@ class ActivityService {
         notes: data.notes || null,
       },
       include: {
-        location: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
         parent: {
           select: {
             id: true,
@@ -67,18 +55,10 @@ class ActivityService {
     // Verify user has access to trip
     await verifyTripAccess(userId, tripId);
 
+    // Note: Location association is fetched via EntityLink system, not direct FK
     const activities = await prisma.activity.findMany({
       where: { tripId },
       include: {
-        location: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
         parent: {
           select: {
             id: true,
@@ -98,15 +78,6 @@ class ActivityService {
             currency: true,
             bookingReference: true,
             notes: true,
-            location: {
-              select: {
-                id: true,
-                name: true,
-                address: true,
-                latitude: true,
-                longitude: true,
-              },
-            },
             photoAlbums: photoAlbumsInclude,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
@@ -124,19 +95,11 @@ class ActivityService {
   }
 
   async getActivityById(userId: number, activityId: number) {
+    // Note: Location association is fetched via EntityLink system, not direct FK
     const activity = await prisma.activity.findUnique({
       where: { id: activityId },
       include: {
         trip: true,
-        location: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
         parent: {
           select: {
             id: true,
@@ -156,15 +119,6 @@ class ActivityService {
             currency: true,
             bookingReference: true,
             notes: true,
-            location: {
-              select: {
-                id: true,
-                name: true,
-                address: true,
-                latitude: true,
-                longitude: true,
-              },
-            },
             photoAlbums: photoAlbumsInclude,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
@@ -190,11 +144,6 @@ class ActivityService {
 
     await verifyEntityAccess(activity, userId, 'Activity');
 
-    // Verify location belongs to trip if provided
-    if (data.locationId) {
-      await verifyLocationInTrip(data.locationId, activity!.tripId);
-    }
-
     // Verify parent activity exists and belongs to same trip if provided
     if (data.parentId) {
       const parentActivity = await prisma.activity.findFirst({
@@ -211,10 +160,10 @@ class ActivityService {
       }
     }
 
+    // Note: Location association is handled via EntityLink system, not direct FK
     const updatedActivity = await prisma.activity.update({
       where: { id: activityId },
       data: {
-        locationId: data.locationId !== undefined ? data.locationId : undefined,
         parentId: data.parentId !== undefined ? data.parentId : undefined,
         name: data.name,
         description: data.description !== undefined ? data.description : undefined,
@@ -241,15 +190,6 @@ class ActivityService {
         notes: data.notes !== undefined ? data.notes : undefined,
       },
       include: {
-        location: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-          },
-        },
         parent: {
           select: {
             id: true,

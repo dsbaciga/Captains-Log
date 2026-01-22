@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import type { Lodging, LodgingType, CreateLodgingInput, UpdateLodgingInput } from "../types/lodging";
 import type { Location } from "../types/location";
 import lodgingService from "../services/lodging.service";
+import entityLinkService from "../services/entityLink.service";
 import toast from "react-hot-toast";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
@@ -21,6 +22,8 @@ import BookingFields from "./BookingFields";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
+// Note: Location association is handled via EntityLink system, not direct FK
+
 interface LodgingManagerProps {
   tripId: number;
   locations: Location[];
@@ -29,10 +32,11 @@ interface LodgingManagerProps {
   onUpdate?: () => void;
 }
 
+// Note: Location association is handled via EntityLink system, not direct FK
 interface LodgingFormFields {
   type: LodgingType;
   name: string;
-  locationId: number | undefined;
+  locationId: number | undefined; // Used for EntityLink, not direct FK
   address: string;
   checkInDate: string;
   checkOutDate: string;
@@ -47,7 +51,7 @@ interface LodgingFormFields {
 const initialFormState: LodgingFormFields = {
   type: "hotel",
   name: "",
-  locationId: undefined,
+  locationId: undefined, // Used for EntityLink, not direct FK
   address: "",
   checkInDate: "",
   checkOutDate: "",
@@ -106,6 +110,8 @@ export default function LodgingManager({
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [pendingEditId, setPendingEditId] = useState<number | null>(null);
+  // Track original location ID when editing to detect changes (for entity linking)
+  const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<LodgingFormFields>(getInitialFormState);
@@ -127,41 +133,18 @@ export default function LodgingManager({
     }
   }, [searchParams, setSearchParams]);
 
-  // Handle pending edit when items are loaded
+  // Handle pending edit when items are loaded (from URL ?edit=id parameter)
   useEffect(() => {
     if (pendingEditId && manager.items.length > 0 && !manager.loading) {
       const item = manager.items.find((l) => l.id === pendingEditId);
       if (item) {
-        setShowMoreOptions(true);
-        handleChange("type", item.type);
-        handleChange("name", item.name);
-        handleChange("locationId", item.locationId || undefined);
-        handleChange("address", item.address || "");
-
-        const effectiveTz = item.timezone || tripTimezone || 'UTC';
-        handleChange(
-          "checkInDate",
-          item.checkInDate
-            ? convertISOToDateTimeLocal(item.checkInDate, effectiveTz)
-            : ""
-        );
-        handleChange(
-          "checkOutDate",
-          item.checkOutDate
-            ? convertISOToDateTimeLocal(item.checkOutDate, effectiveTz)
-            : ""
-        );
-        handleChange("timezone", item.timezone || "");
-        handleChange("confirmationNumber", item.confirmationNumber || "");
-        handleChange("bookingUrl", item.bookingUrl || "");
-        handleChange("cost", item.cost?.toString() || "");
-        handleChange("currency", item.currency || "USD");
-        handleChange("notes", item.notes || "");
-        manager.openEditForm(item.id);
+        // Use handleEdit which handles location link fetching
+        handleEdit(item);
       }
       setPendingEditId(null);
     }
-  }, [pendingEditId, manager.items, manager.loading, tripTimezone]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEditId, manager.items, manager.loading]);
 
   // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
   useEffect(() => {
@@ -223,14 +206,30 @@ export default function LodgingManager({
     manager.setEditingId(null);
     setKeepFormOpenAfterSave(false);
     setShowMoreOptions(false);
+    setOriginalLocationId(null);
   };
 
-  const handleEdit = (lodging: Lodging) => {
+  const handleEdit = async (lodging: Lodging) => {
     setShowMoreOptions(true); // Always show all options when editing
     handleChange("type", lodging.type);
     handleChange("name", lodging.name);
-    handleChange("locationId", lodging.locationId || undefined);
     handleChange("address", lodging.address || "");
+
+    // Fetch linked location via entity linking system
+    try {
+      const links = await entityLinkService.getLinksFrom(tripId, 'LODGING', lodging.id, 'LOCATION');
+      if (links.length > 0 && links[0].targetId) {
+        handleChange("locationId", links[0].targetId);
+        setOriginalLocationId(links[0].targetId);
+      } else {
+        handleChange("locationId", undefined);
+        setOriginalLocationId(null);
+      }
+    } catch {
+      // If fetching links fails, just proceed without location
+      handleChange("locationId", undefined);
+      setOriginalLocationId(null);
+    }
 
     // Convert stored UTC times to local times in the specified timezone
     const effectiveTz = lodging.timezone || tripTimezone || 'UTC';
@@ -278,11 +277,10 @@ export default function LodgingManager({
     const checkOutDateISO = convertDateTimeLocalToISO(values.checkOutDate, effectiveTz);
 
     if (manager.editingId) {
-      // For updates, send null to clear empty fields
+      // For updates, send null to clear empty fields (without locationId - using entity links)
       const updateData = {
         type: values.type,
         name: values.name,
-        locationId: values.locationId || null,
         address: values.address || null,
         checkInDate: checkInDateISO,
         checkOutDate: checkOutDateISO,
@@ -295,16 +293,46 @@ export default function LodgingManager({
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
+        // Handle location link changes via entity linking
+        const newLocationId = values.locationId || null;
+        const locationChanged = newLocationId !== originalLocationId;
+
+        if (locationChanged) {
+          try {
+            // Remove old link if there was one
+            if (originalLocationId) {
+              await entityLinkService.deleteLink(tripId, {
+                sourceType: 'LODGING',
+                sourceId: manager.editingId,
+                targetType: 'LOCATION',
+                targetId: originalLocationId,
+              });
+            }
+            // Create new link if there's a new location
+            if (newLocationId) {
+              await entityLinkService.createLink(tripId, {
+                sourceType: 'LODGING',
+                sourceId: manager.editingId,
+                targetType: 'LOCATION',
+                targetId: newLocationId,
+              });
+            }
+            invalidateLinkSummary();
+          } catch (error) {
+            console.error('Failed to update location link:', error);
+            // Don't fail the whole operation - lodging was saved successfully
+          }
+        }
+
         resetForm();
         manager.closeForm();
       }
     } else {
-      // For creates, use undefined to omit optional fields
+      // For creates, use undefined to omit optional fields (without locationId - using entity links)
       const createData = {
         tripId,
         type: values.type,
         name: values.name,
-        locationId: values.locationId,
         address: values.address || undefined,
         checkInDate: checkInDateISO,
         checkOutDate: checkOutDateISO,
@@ -315,8 +343,32 @@ export default function LodgingManager({
         currency: values.currency || undefined,
         notes: values.notes || undefined,
       };
-      const success = await manager.handleCreate(createData);
-      if (success) {
+
+      try {
+        // Call service directly to get the created lodging ID for linking
+        const createdLodging = await lodgingService.createLodging(createData);
+        toast.success('Lodging added successfully');
+
+        // Create location link if a location was selected
+        if (values.locationId) {
+          try {
+            await entityLinkService.createLink(tripId, {
+              sourceType: 'LODGING',
+              sourceId: createdLodging.id,
+              targetType: 'LOCATION',
+              targetId: values.locationId,
+            });
+            invalidateLinkSummary();
+          } catch (linkError) {
+            console.error('Failed to create location link:', linkError);
+            // Don't fail - lodging was created successfully
+          }
+        }
+
+        // Reload items and trigger parent update
+        await manager.loadItems();
+        onUpdate?.();
+
         // Save currency for next time
         if (values.currency) {
           saveLastUsedCurrency(values.currency);
@@ -326,6 +378,7 @@ export default function LodgingManager({
           // Reset form but keep modal open for quick successive entries
           reset();
           setKeepFormOpenAfterSave(false);
+          setOriginalLocationId(null);
           // Focus first input for quick data entry
           setTimeout(() => {
             const firstInput = document.querySelector<HTMLInputElement>('#lodging-name');
@@ -336,6 +389,9 @@ export default function LodgingManager({
           resetForm();
           manager.closeForm();
         }
+      } catch (error) {
+        console.error('Failed to create lodging:', error);
+        toast.error('Failed to add lodging');
       }
     }
   };
@@ -680,15 +736,8 @@ export default function LodgingManager({
               </div>
 
               {/* Details grid - more compact on mobile */}
+              {/* Note: Location is shown via LinkedEntitiesDisplay below */}
               <div className="space-y-1.5 sm:space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                {/* Location */}
-                {lodging.location && (
-                  <div className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">Location:</span>
-                    <span>{lodging.location.name}</span>
-                  </div>
-                )}
-
                 {/* Address */}
                 {lodging.address && (
                   <div className="flex flex-wrap gap-x-2">

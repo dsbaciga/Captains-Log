@@ -22,14 +22,12 @@ export interface Photo {
   updatedAt: Date;
 }
 
+// Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 export interface PhotoAlbum {
   id: number;
   tripId: number;
   name: string;
   description: string | null;
-  locationId: number | null;
-  activityId: number | null;
-  lodgingId: number | null;
   coverPhotoId: number | null;
   createdAt: Date;
   updatedAt: Date;
@@ -82,22 +80,18 @@ export const updatePhotoSchema = z.object({
   longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
+// Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 export const createAlbumSchema = z.object({
   tripId: z.number(),
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  locationId: z.number().optional().nullable(),
-  activityId: z.number().optional().nullable(),
-  lodgingId: z.number().optional().nullable(),
   coverPhotoId: z.number().optional(),
 });
 
+// Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 export const updateAlbumSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional().nullable(),
-  locationId: z.number().optional().nullable(),
-  activityId: z.number().optional().nullable(),
-  lodgingId: z.number().optional().nullable(),
   coverPhotoId: z.number().optional().nullable(),
 });
 
