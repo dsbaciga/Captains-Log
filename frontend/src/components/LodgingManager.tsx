@@ -661,6 +661,7 @@ export default function LodgingManager({
           manager.items.map((lodging) => (
             <div
               key={lodging.id}
+              data-entity-id={`lodging-${lodging.id}`}
               className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
             >
               {/* Header with title and type */}

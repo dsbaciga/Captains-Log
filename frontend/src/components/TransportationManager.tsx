@@ -981,6 +981,7 @@ export default function TransportationManager({
           filteredItems.map((transportation) => (
             <div
               key={transportation.id}
+              data-entity-id={`transportation-${transportation.id}`}
               className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
             >
               {/* Route Map - Show for all transportation with route data */}

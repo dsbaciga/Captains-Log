@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   useParams,
   useNavigate,
@@ -46,9 +46,14 @@ import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
 import FloatingTripHeader from "../components/FloatingTripHeader";
 import type { PhotoAlbum } from "../types/photo";
 import { usePagination } from "../hooks/usePagination";
+import { useScrollToHighlight } from "../hooks/useScrollToHighlight";
+import { useSwipeGesture } from "../hooks/useSwipeGesture";
 import Breadcrumbs from "../components/Breadcrumbs";
 import TabGroup from "../components/TabGroup";
 import type { TabGroupItem } from "../components/TabGroup";
+import TripSidebar from "../components/TripSidebar";
+import NavigationLayoutToggle from "../components/NavigationLayoutToggle";
+import { useNavigationStore } from "../store/navigationStore";
 import TripStats from "../components/TripStats";
 import {
   formatTripDates,
@@ -101,6 +106,13 @@ export default function TripDetailPage() {
       setActiveTab(urlTab);
     }
   }, [searchParams, activeTab]);
+
+  // Enable scroll-to-highlight for entity link navigation
+  // When navigating from LinkPanel with hash like #activity-123, scrolls to and highlights the item
+  useScrollToHighlight({ scrollDelay: 300 });
+
+  // Navigation layout preference (tabs vs sidebar)
+  const { layout: navigationLayout } = useNavigationStore();
 
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
@@ -309,10 +321,48 @@ export default function TripDetailPage() {
   }, [tripId]);
 
   // Function to change tabs and update URL
-  const changeTab = (tab: TabId) => {
+  const changeTab = useCallback((tab: TabId) => {
     setActiveTab(tab);
     setSearchParams({ tab });
-  };
+  }, [setSearchParams]);
+
+  // Flat list of all tab IDs for swipe navigation (in display order)
+  const allTabIds: TabId[] = useMemo(() => [
+    "timeline",
+    "activities",
+    "transportation",
+    "lodging",
+    "unscheduled",
+    "photos",
+    "photo-timeline",
+    "journal",
+    "locations",
+    "companions",
+  ], []);
+
+  // Navigate to previous/next tab for swipe gestures
+  const navigateToPreviousTab = useCallback(() => {
+    const currentIndex = allTabIds.indexOf(activeTab);
+    if (currentIndex > 0) {
+      changeTab(allTabIds[currentIndex - 1]);
+    }
+  }, [activeTab, allTabIds, changeTab]);
+
+  const navigateToNextTab = useCallback(() => {
+    const currentIndex = allTabIds.indexOf(activeTab);
+    if (currentIndex < allTabIds.length - 1) {
+      changeTab(allTabIds[currentIndex + 1]);
+    }
+  }, [activeTab, allTabIds, changeTab]);
+
+  // Mobile swipe gestures for tab navigation
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: navigateToNextTab,
+    onSwipeRight: navigateToPreviousTab,
+  }, {
+    minSwipeDistance: 75, // Require slightly longer swipe to avoid accidental triggers
+    maxSwipeTime: 400,
+  });
 
   // Define the grouped tab configuration
   const tabGroups: TabGroupItem[] = useMemo(
@@ -1109,16 +1159,41 @@ export default function TripDetailPage() {
           )}
         </div>
 
-        {/* Grouped Tab Navigation */}
+        {/* Navigation Layout Toggle - Desktop only */}
+        <div className="hidden md:flex justify-end mb-2">
+          <NavigationLayoutToggle />
+        </div>
+
+        {/* Sidebar Layout Container - Desktop only when sidebar mode enabled */}
+        <div className={navigationLayout === 'sidebar' ? 'hidden md:flex md:gap-6' : ''}>
+          {/* Sidebar Navigation - Desktop only when sidebar layout selected */}
+          {navigationLayout === 'sidebar' && (
+            <TripSidebar
+              tabs={tabGroups}
+              activeTab={activeTab}
+              onTabChange={(tabId) => changeTab(tabId as TabId)}
+              className="sticky top-28 h-[calc(100vh-8rem)] rounded-lg shadow flex-shrink-0"
+            />
+          )}
+
+          {/* Main Content Column */}
+          <div className={navigationLayout === 'sidebar' ? 'flex-1 min-w-0' : ''}>
+
+        {/* Tab Navigation - Mobile always, Desktop only when tabs layout selected */}
         <TabGroup
           tabs={tabGroups}
           activeTab={activeTab}
           onTabChange={(tabId) => changeTab(tabId as TabId)}
-          className="mb-6 sticky top-28 sm:top-32 bg-gray-50 dark:bg-gray-900 z-10"
+          className={`mb-6 sticky top-28 sm:top-32 bg-gray-50 dark:bg-gray-900 z-10 ${
+            navigationLayout === 'sidebar' ? 'md:hidden' : ''
+          }`}
         />
 
-        {/* Tab Content with smooth transitions */}
-        <div className="transition-all duration-300 ease-in-out">
+        {/* Tab Content with smooth transitions - Swipe enabled on mobile */}
+        <div
+          className="transition-all duration-300 ease-in-out"
+          {...swipeHandlers}
+        >
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
             <div className="space-y-6 animate-fadeIn">
@@ -1663,6 +1738,10 @@ export default function TripDetailPage() {
             )}
           </div>
         )}
+        </div>
+          {/* Close Main Content Column */}
+          </div>
+        {/* Close Sidebar Layout Container */}
         </div>
       </main>
 
