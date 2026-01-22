@@ -73,7 +73,7 @@ export default function TransportationCard({
 
             {/* Main content */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                 {typeDisplay}
                 {transportation.carrier && (
                   <span className="text-gray-500 dark:text-gray-400 font-normal">
@@ -118,13 +118,13 @@ export default function TransportationCard({
         </div>
 
         {/* Route display */}
-        <div className="mt-4 flex items-stretch gap-4">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-stretch gap-3 sm:gap-4">
           {/* From */}
           <div className="flex-1">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
               From
             </div>
-            <div className="font-semibold text-gray-900 dark:text-white">{fromName}</div>
+            <div className="font-semibold text-gray-900 dark:text-white truncate">{fromName}</div>
             {transportation.departureTime && (
               <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                 {formatTime(transportation.departureTime, startTz)}
@@ -137,10 +137,10 @@ export default function TransportationCard({
             )}
           </div>
 
-          {/* Arrow */}
-          <div className="flex flex-col items-center justify-center">
+          {/* Arrow - horizontal on mobile, vertical on desktop */}
+          <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-0 py-1 sm:py-0">
             <svg
-              className="w-6 h-6 text-gray-400 dark:text-gray-500"
+              className="w-6 h-6 text-gray-400 dark:text-gray-500 rotate-90 sm:rotate-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -153,18 +153,18 @@ export default function TransportationCard({
               />
             </svg>
             {durationMinutes && durationMinutes > 0 && (
-              <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              <span className="text-xs text-gray-400 dark:text-gray-500 sm:mt-1">
                 {formatDuration(durationMinutes)}
               </span>
             )}
           </div>
 
           {/* To */}
-          <div className="flex-1 text-right">
+          <div className="flex-1 sm:text-right">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
               To
             </div>
-            <div className="font-semibold text-gray-900 dark:text-white">{toName}</div>
+            <div className="font-semibold text-gray-900 dark:text-white truncate">{toName}</div>
             {transportation.arrivalTime && (
               <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                 {formatTime(transportation.arrivalTime, endTz)}
@@ -217,11 +217,11 @@ export default function TransportationCard({
 
         {/* Flight tracking info */}
         {transportation.flightTracking && (
-          <div className="mt-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30">
+          <div className="mt-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 overflow-hidden">
             <div className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
               Flight Status
             </div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               {transportation.flightTracking.status && (
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Status:</span>{' '}
@@ -282,19 +282,23 @@ export default function TransportationCard({
 
         {/* Embedded from/to locations */}
         {transportation.fromLocation && (
-          <EmbeddedLocationCard
-            location={transportation.fromLocation}
-            tripId={tripId}
-            label="Departure Location"
-          />
+          <div className="mt-3">
+            <EmbeddedLocationCard
+              location={transportation.fromLocation}
+              tripId={tripId}
+              label="Departure Location"
+            />
+          </div>
         )}
 
         {transportation.toLocation && (
-          <EmbeddedLocationCard
-            location={transportation.toLocation}
-            tripId={tripId}
-            label="Arrival Location"
-          />
+          <div className="mt-3">
+            <EmbeddedLocationCard
+              location={transportation.toLocation}
+              tripId={tripId}
+              label="Arrival Location"
+            />
+          </div>
         )}
 
         {/* Linked locations (from entity links) */}
@@ -303,7 +307,7 @@ export default function TransportationCard({
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Related Locations ({linkedLocations.length})
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {linkedLocations.map((loc) => (
                 <EmbeddedLocationCard
                   key={loc.id}

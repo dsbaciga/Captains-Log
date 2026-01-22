@@ -77,7 +77,7 @@ export default function LodgingCard({
 
             {/* Main content */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                 {lodging.name}
               </h3>
 
@@ -137,7 +137,7 @@ export default function LodgingCard({
         </div>
 
         {/* Check-in / Check-out times */}
-        <div className="mt-4 grid grid-cols-2 gap-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-4">
           {/* Check-in */}
           <div className={showCheckIn ? '' : 'opacity-50'}>
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
@@ -282,11 +282,13 @@ export default function LodgingCard({
 
         {/* Embedded location */}
         {lodging.location && (
-          <EmbeddedLocationCard
-            location={lodging.location}
-            tripId={tripId}
-            label="Property Location"
-          />
+          <div className="mt-3">
+            <EmbeddedLocationCard
+              location={lodging.location}
+              tripId={tripId}
+              label="Property Location"
+            />
+          </div>
         )}
 
         {/* Linked locations (from entity links) */}
@@ -295,7 +297,7 @@ export default function LodgingCard({
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Related Locations ({linkedLocations.length})
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {linkedLocations.map((loc) => (
                 <EmbeddedLocationCard
                   key={loc.id}

@@ -58,7 +58,7 @@ export default function ActivityCard({
 
             {/* Main content */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                 {activity.name}
               </h3>
 
@@ -170,11 +170,13 @@ export default function ActivityCard({
 
         {/* Embedded location from activity.location */}
         {activity.location && (
-          <EmbeddedLocationCard
-            location={activity.location}
-            tripId={tripId}
-            label="Location"
-          />
+          <div className="mt-3">
+            <EmbeddedLocationCard
+              location={activity.location}
+              tripId={tripId}
+              label="Location"
+            />
+          </div>
         )}
 
         {/* Linked locations (from entity links) */}
@@ -183,7 +185,7 @@ export default function ActivityCard({
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Related Locations ({linkedLocations.length})
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {linkedLocations.map((loc) => (
                 <EmbeddedLocationCard
                   key={loc.id}
