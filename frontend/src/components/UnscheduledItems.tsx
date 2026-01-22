@@ -492,7 +492,7 @@ export default function UnscheduledItems({
             });
           } catch (linkError) {
             console.error('Failed to create location link:', linkError);
-            // Don't fail - activity was created successfully
+            toast.error('Activity created but failed to link location');
           }
         }
       } else {
@@ -525,7 +525,7 @@ export default function UnscheduledItems({
             }
           } catch (error) {
             console.error('Failed to update location link:', error);
-            // Don't fail - activity was saved successfully
+            toast.error('Activity saved but failed to update location link');
           }
         }
       }
@@ -648,7 +648,7 @@ export default function UnscheduledItems({
             });
           } catch (linkError) {
             console.error('Failed to create location link:', linkError);
-            // Don't fail - lodging was created successfully
+            toast.error('Lodging created but failed to link location');
           }
         }
       } else {
@@ -681,7 +681,7 @@ export default function UnscheduledItems({
             }
           } catch (linkError) {
             console.error('Failed to update location link:', linkError);
-            // Don't fail - lodging was saved successfully
+            toast.error('Lodging saved but failed to update location link');
           }
         }
       }

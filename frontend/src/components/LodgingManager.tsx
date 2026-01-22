@@ -320,7 +320,7 @@ export default function LodgingManager({
             invalidateLinkSummary();
           } catch (error) {
             console.error('Failed to update location link:', error);
-            // Don't fail the whole operation - lodging was saved successfully
+            toast.error('Lodging saved but failed to update location link');
           }
         }
 
@@ -361,7 +361,7 @@ export default function LodgingManager({
             invalidateLinkSummary();
           } catch (linkError) {
             console.error('Failed to create location link:', linkError);
-            // Don't fail - lodging was created successfully
+            toast.error('Lodging created but failed to link location');
           }
         }
 

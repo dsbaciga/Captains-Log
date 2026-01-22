@@ -760,6 +760,55 @@ export class TripService {
       }
     }
 
+    // Copy entity links (must be done after all entities are copied)
+    // This preserves relationships like photos linked to locations, activities to locations, etc.
+    const entityLinks = await prisma.entityLink.findMany({
+      where: { tripId: sourceTripId },
+    });
+
+    // Helper function to map old IDs to new IDs based on entity type
+    const getNewId = (entityType: string, oldId: number): number | null => {
+      switch (entityType) {
+        case 'LOCATION':
+          return locationIdMap.get(oldId) || null;
+        case 'PHOTO':
+          return photoIdMap.get(oldId) || null;
+        case 'ACTIVITY':
+          return activityIdMap.get(oldId) || null;
+        case 'TRANSPORTATION':
+          return transportationIdMap.get(oldId) || null;
+        case 'LODGING':
+          return lodgingIdMap.get(oldId) || null;
+        case 'JOURNAL_ENTRY':
+          return journalIdMap.get(oldId) || null;
+        case 'PHOTO_ALBUM':
+          return albumIdMap.get(oldId) || null;
+        default:
+          return null;
+      }
+    };
+
+    for (const link of entityLinks) {
+      const newSourceId = getNewId(link.sourceType, link.sourceId);
+      const newTargetId = getNewId(link.targetType, link.targetId);
+
+      // Only create the link if both source and target entities were copied
+      if (newSourceId && newTargetId) {
+        await prisma.entityLink.create({
+          data: {
+            tripId: newTrip.id,
+            sourceType: link.sourceType,
+            sourceId: newSourceId,
+            targetType: link.targetType,
+            targetId: newTargetId,
+            relationship: link.relationship,
+            sortOrder: link.sortOrder,
+            notes: link.notes,
+          },
+        });
+      }
+    }
+
     // Return the new trip with basic includes
     const duplicatedTrip = await prisma.trip.findUnique({
       where: { id: newTrip.id },

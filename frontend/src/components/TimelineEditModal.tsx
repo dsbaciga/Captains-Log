@@ -450,7 +450,7 @@ export default function TimelineEditModal({
         }
       } catch (error) {
         console.error('Failed to update location link:', error);
-        // Don't fail - activity was saved successfully
+        toast.error('Activity saved but failed to update location link');
       }
     }
   };
@@ -561,7 +561,7 @@ export default function TimelineEditModal({
         }
       } catch (error) {
         console.error('Failed to update location link:', error);
-        // Don't fail - lodging was saved successfully
+        toast.error('Lodging saved but failed to update location link');
       }
     }
   };

@@ -79,6 +79,7 @@ const Timeline = ({
   // Unscheduled activities state
   const [unscheduledActivities, setUnscheduledActivities] = useState<Activity[]>([]);
   const [activityLocationMap, setActivityLocationMap] = useState<Record<number, number[]>>({});
+  const [lodgingLocationMap, setLodgingLocationMap] = useState<Record<number, number[]>>({});
 
   // Print state
   const [isPrinting, setIsPrinting] = useState(false);
@@ -262,6 +263,24 @@ const Timeline = ({
       setUnscheduledActivities(unscheduled);
       setActivityLocationMap(locationMap);
       logger.log(`Found ${unscheduled.length} unscheduled activities`, { operation: 'loadTimelineData.unscheduled' });
+
+      // Fetch linked locations for all lodging items in parallel
+      const lodgingLocMap: Record<number, number[]> = {};
+      if (Array.isArray(lodging) && lodging.length > 0) {
+        const lodgingLinkPromises = lodging.map(lodge =>
+          entityLinkService.getLinksFrom(tripId, 'LODGING', lodge.id, 'LOCATION')
+            .then(links => ({ lodgingId: lodge.id, links }))
+            .catch(() => ({ lodgingId: lodge.id, links: [] as { targetId: number }[] }))
+        );
+        const lodgingLinkResults = await Promise.all(lodgingLinkPromises);
+        lodgingLinkResults.forEach(({ lodgingId, links }) => {
+          if (links && links.length > 0) {
+            lodgingLocMap[lodgingId] = links.map(link => link.targetId);
+          }
+        });
+      }
+      setLodgingLocationMap(lodgingLocMap);
+      logger.log(`Found lodging locations for ${Object.keys(lodgingLocMap).length} lodgings`, { operation: 'loadTimelineData.lodgingLocations' });
 
       // Add activities
       logger.log('Processing activities array', {
@@ -987,7 +1006,7 @@ const Timeline = ({
   // Helper to extract location IDs from timeline items
   // Note: Activity and Lodging locations are now handled via EntityLink system
   // This function extracts locations from transportation (which still has direct FKs)
-  // and from the activityLocationMap (populated from EntityLinks)
+  // and from the activityLocationMap and lodgingLocationMap (populated from EntityLinks)
   const getLocationIdsFromItems = (items: TimelineItem[]): Set<number> => {
     const locationIds = new Set<number>();
     items.forEach((item) => {
@@ -1005,9 +1024,12 @@ const Timeline = ({
         if (trans.toLocationId) {
           locationIds.add(trans.toLocationId);
         }
+      } else if (item.type === 'lodging') {
+        const lodge = item.data as Lodging;
+        // Get linked locations from the lodging location map (populated from EntityLinks)
+        const linkedLocationIds = lodgingLocationMap[lodge.id] || [];
+        linkedLocationIds.forEach(id => locationIds.add(id));
       }
-      // Note: Lodging locations are now via EntityLink but not pre-loaded yet
-      // TODO: Add lodging location map similar to activity location map if needed
     });
     return locationIds;
   };
@@ -1095,7 +1117,7 @@ const Timeline = ({
       return [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, logger]);
+  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, lodgingLocationMap, logger]);
 
   // Weather refresh handler
   const handleRefreshWeather = async () => {

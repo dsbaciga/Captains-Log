@@ -413,7 +413,7 @@ export default function ActivityManager({
             invalidateLinkSummary();
           } catch (error) {
             console.error('Failed to update location link:', error);
-            // Don't fail the whole operation - activity was saved successfully
+            toast.error('Activity saved but failed to update location link');
           }
         }
 
@@ -456,7 +456,7 @@ export default function ActivityManager({
             invalidateLinkSummary();
           } catch (linkError) {
             console.error('Failed to create location link:', linkError);
-            // Don't fail - activity was created successfully
+            toast.error('Activity created but failed to link location');
           }
         }
 
