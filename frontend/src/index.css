@@ -227,6 +227,19 @@
     }
   }
 
+  /* Reduced motion support for scroll-highlight */
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-highlight {
+      animation: none;
+      outline: 3px solid rgba(59, 130, 246, 0.6);
+      outline-offset: 2px;
+    }
+
+    .dark .scroll-highlight {
+      outline-color: rgba(251, 191, 36, 0.6);
+    }
+  }
+
   /* Floating action button */
   .fab {
     @apply fixed bottom-6 right-6 z-40

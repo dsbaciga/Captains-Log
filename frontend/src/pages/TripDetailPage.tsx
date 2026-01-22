@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   useParams,
   useNavigate,
@@ -113,44 +113,6 @@ export default function TripDetailPage() {
 
   // Navigation layout preference (tabs vs sidebar)
   const { layout: navigationLayout } = useNavigationStore();
-
-  // Flat list of all tab IDs for swipe navigation (in display order)
-  const allTabIds: TabId[] = useMemo(() => [
-    "timeline",
-    "activities",
-    "transportation",
-    "lodging",
-    "unscheduled",
-    "photos",
-    "photo-timeline",
-    "journal",
-    "locations",
-    "companions",
-  ], []);
-
-  // Navigate to previous/next tab for swipe gestures
-  const navigateToPreviousTab = () => {
-    const currentIndex = allTabIds.indexOf(activeTab);
-    if (currentIndex > 0) {
-      changeTab(allTabIds[currentIndex - 1]);
-    }
-  };
-
-  const navigateToNextTab = () => {
-    const currentIndex = allTabIds.indexOf(activeTab);
-    if (currentIndex < allTabIds.length - 1) {
-      changeTab(allTabIds[currentIndex + 1]);
-    }
-  };
-
-  // Mobile swipe gestures for tab navigation
-  const swipeHandlers = useSwipeGesture({
-    onSwipeLeft: navigateToNextTab,
-    onSwipeRight: navigateToPreviousTab,
-  }, {
-    minSwipeDistance: 75, // Require slightly longer swipe to avoid accidental triggers
-    maxSwipeTime: 400,
-  });
 
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
@@ -359,10 +321,48 @@ export default function TripDetailPage() {
   }, [tripId]);
 
   // Function to change tabs and update URL
-  const changeTab = (tab: TabId) => {
+  const changeTab = useCallback((tab: TabId) => {
     setActiveTab(tab);
     setSearchParams({ tab });
-  };
+  }, [setSearchParams]);
+
+  // Flat list of all tab IDs for swipe navigation (in display order)
+  const allTabIds: TabId[] = useMemo(() => [
+    "timeline",
+    "activities",
+    "transportation",
+    "lodging",
+    "unscheduled",
+    "photos",
+    "photo-timeline",
+    "journal",
+    "locations",
+    "companions",
+  ], []);
+
+  // Navigate to previous/next tab for swipe gestures
+  const navigateToPreviousTab = useCallback(() => {
+    const currentIndex = allTabIds.indexOf(activeTab);
+    if (currentIndex > 0) {
+      changeTab(allTabIds[currentIndex - 1]);
+    }
+  }, [activeTab, allTabIds, changeTab]);
+
+  const navigateToNextTab = useCallback(() => {
+    const currentIndex = allTabIds.indexOf(activeTab);
+    if (currentIndex < allTabIds.length - 1) {
+      changeTab(allTabIds[currentIndex + 1]);
+    }
+  }, [activeTab, allTabIds, changeTab]);
+
+  // Mobile swipe gestures for tab navigation
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: navigateToNextTab,
+    onSwipeRight: navigateToPreviousTab,
+  }, {
+    minSwipeDistance: 75, // Require slightly longer swipe to avoid accidental triggers
+    maxSwipeTime: 400,
+  });
 
   // Define the grouped tab configuration
   const tabGroups: TabGroupItem[] = useMemo(

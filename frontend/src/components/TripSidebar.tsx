@@ -114,7 +114,7 @@ export default function TripSidebar({
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 overflow-y-auto py-2">
+      <nav className="flex-1 overflow-y-auto py-2" aria-label="Trip sections">
         {tabs.map((tab) => {
           const isActive = isTabActive(tab);
           const isExpanded = expandedGroups.has(tab.id);
@@ -217,27 +217,6 @@ export default function TripSidebar({
         })}
       </nav>
 
-      {/* Layout Toggle Hint (collapsed state) */}
-      {sidebarCollapsed && (
-        <div className="p-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col items-center gap-1">
-            {tabs.slice(0, 4).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab)}
-                className={`p-2 rounded-lg transition-colors ${
-                  isTabActive(tab)
-                    ? 'bg-primary-50 dark:bg-gold/10 text-primary-600 dark:text-gold'
-                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-                title={tab.label}
-              >
-                <span className="w-5 h-5">{tab.icon}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

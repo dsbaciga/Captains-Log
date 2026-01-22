@@ -38,6 +38,7 @@ export function useScrollToHighlight(options: UseScrollToHighlightOptions = {}) 
   const location = useLocation();
   const lastProcessedHash = useRef<string>('');
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Parse entity info from hash (e.g., #activity-123 -> { type: 'activity', id: '123' })
   const parseHash = useCallback((hash: string) => {
@@ -87,9 +88,15 @@ export function useScrollToHighlight(options: UseScrollToHighlightOptions = {}) 
     // Add highlight class
     element.classList.add('scroll-highlight');
 
-    // Remove highlight after duration
-    setTimeout(() => {
+    // Clear any existing highlight timeout
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current);
+    }
+
+    // Remove highlight after duration (tracked for cleanup)
+    highlightTimeoutRef.current = setTimeout(() => {
       element.classList.remove('scroll-highlight');
+      highlightTimeoutRef.current = null;
     }, highlightDuration);
 
     return true;
@@ -133,10 +140,13 @@ export function useScrollToHighlight(options: UseScrollToHighlightOptions = {}) 
       scrollToElement(entityInfo.fullId);
     }, scrollDelay);
 
-    // Cleanup timeout on unmount
+    // Cleanup timeouts on unmount
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
       }
     };
   }, [location.hash, enabled, parseHash, scrollToElement, scrollDelay]);
