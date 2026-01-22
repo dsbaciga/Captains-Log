@@ -439,6 +439,83 @@ class PhotoService {
     return convertDecimals(updatedPhoto);
   }
 
+  /**
+   * Get photo date groupings for a trip (dates and counts only, for lazy loading)
+   */
+  async getPhotoDateGroupings(userId: number, tripId: number) {
+    await verifyTripAccess(userId, tripId);
+
+    // Use raw SQL for efficient date grouping
+    const groupings = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+      SELECT DATE("taken_at") as date, COUNT(*) as count
+      FROM photos
+      WHERE trip_id = ${tripId} AND "taken_at" IS NOT NULL
+      GROUP BY DATE("taken_at")
+      ORDER BY date ASC
+    `;
+
+    // Get total count of photos with dates
+    const totalWithDates = groupings.reduce((sum, g) => sum + Number(g.count), 0);
+
+    // Get total count of all photos
+    const totalAll = await prisma.photo.count({ where: { tripId } });
+
+    return {
+      groupings: groupings.map(g => ({
+        date: g.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        count: Number(g.count),
+      })),
+      totalWithDates,
+      totalWithoutDates: totalAll - totalWithDates,
+    };
+  }
+
+  /**
+   * Get photos for a specific date (for lazy loading by day)
+   */
+  async getPhotosByDate(
+    userId: number,
+    tripId: number,
+    date: string // YYYY-MM-DD format
+  ) {
+    await verifyTripAccess(userId, tripId);
+
+    // Parse date and create range for the full day
+    const startOfDay = new Date(date + 'T00:00:00.000Z');
+    const endOfDay = new Date(date + 'T23:59:59.999Z');
+
+    const photos = await prisma.photo.findMany({
+      where: {
+        tripId,
+        takenAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      include: {
+        albumAssignments: {
+          include: {
+            album: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { takenAt: 'asc' },
+      ],
+    });
+
+    return {
+      photos: photos.map((photo: any) => convertDecimals(photo)),
+      date,
+      count: photos.length,
+    };
+  }
+
   async deletePhoto(userId: number, photoId: number) {
     const photo = await prisma.photo.findUnique({
       where: { id: photoId },

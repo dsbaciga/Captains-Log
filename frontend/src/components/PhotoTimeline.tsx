@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Photo } from '../types/photo';
-import photoService from '../services/photo.service';
+import photoService, { PhotoDateGrouping } from '../services/photo.service';
 import { getDateStringInTimezone, formatTime, getDayNumber } from './timeline/utils';
 import { getFullAssetUrl } from '../lib/config';
 import PhotoLightbox from './PhotoLightbox';
@@ -12,10 +12,14 @@ interface PhotoTimelineProps {
   tripStartDate?: string;
 }
 
-interface PhotoDayGroup {
-  dateKey: string;
+interface DayGroupState {
+  dateKey: string; // Formatted display date
+  rawDate: string; // YYYY-MM-DD for API calls
   dayNumber: number | null;
-  photos: Photo[];
+  count: number;
+  photos: Photo[] | null; // null = not loaded yet
+  loading: boolean;
+  error: boolean;
 }
 
 // Placeholder image for failed loads
@@ -26,134 +30,129 @@ export default function PhotoTimeline({
   tripTimezone,
   tripStartDate,
 }: PhotoTimelineProps) {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [dayGroups, setDayGroups] = useState<DayGroupState[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState<string>('');
-  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  const [totalWithDates, setTotalWithDates] = useState(0);
+  const [totalWithoutDates, setTotalWithoutDates] = useState(0);
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [allLoadedPhotos, setAllLoadedPhotos] = useState<Photo[]>([]);
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
 
-  // Load all photos for the trip
-  const loadPhotos = useCallback(async () => {
+  // Load date groupings (lightweight - just dates and counts)
+  const loadDateGroupings = useCallback(async () => {
     setLoading(true);
-    setLoadingProgress('Loading photos...');
     try {
-      // Fetch photos in batches
-      let allPhotos: Photo[] = [];
-      let hasMore = true;
-      let skip = 0;
-      const take = 100;
+      const result = await photoService.getPhotoDateGroupings(tripId);
 
-      while (hasMore) {
-        const result = await photoService.getPhotosByTrip(tripId, {
-          skip,
-          take,
-          sortBy: 'date',
-          sortOrder: 'asc',
-        });
-        allPhotos = [...allPhotos, ...result.photos];
-        hasMore = result.hasMore;
-        skip += take;
+      // Convert date groupings to day group state
+      const groups: DayGroupState[] = result.groupings.map((g: PhotoDateGrouping) => {
+        const date = new Date(g.date + 'T12:00:00'); // Use noon to avoid timezone issues
+        const dateKey = getDateStringInTimezone(date, tripTimezone);
 
-        // Update progress
-        setLoadingProgress(`Loaded ${allPhotos.length} photos...`);
+        return {
+          dateKey,
+          rawDate: g.date,
+          dayNumber: getDayNumber(dateKey, tripStartDate),
+          count: g.count,
+          photos: null, // Not loaded yet
+          loading: false,
+          error: false,
+        };
+      });
 
-        // Safety limit to prevent memory issues
-        if (allPhotos.length > 5000) {
-          toast('Showing first 5000 photos', { icon: 'ℹ️' });
-          break;
-        }
-      }
-
-      // Filter to only photos with takenAt date
-      const photosWithDate = allPhotos.filter((p) => p.takenAt);
-      setPhotos(photosWithDate);
+      setDayGroups(groups);
+      setTotalWithDates(result.totalWithDates);
+      setTotalWithoutDates(result.totalWithoutDates);
     } catch (error) {
-      console.error('Error loading photos:', error);
-      toast.error('Failed to load photos. Please try again.');
+      console.error('Error loading date groupings:', error);
+      toast.error('Failed to load photo timeline');
     } finally {
       setLoading(false);
-      setLoadingProgress('');
+    }
+  }, [tripId, tripTimezone, tripStartDate]);
+
+  useEffect(() => {
+    loadDateGroupings();
+  }, [loadDateGroupings]);
+
+  // Load photos for a specific day
+  const loadPhotosForDay = useCallback(async (rawDate: string) => {
+    // Mark as loading
+    setDayGroups(prev => prev.map(g =>
+      g.rawDate === rawDate ? { ...g, loading: true, error: false } : g
+    ));
+
+    try {
+      const result = await photoService.getPhotosByDate(tripId, rawDate);
+
+      // Sort photos: no-time photos first, then by time
+      const sortedPhotos = [...result.photos].sort((a, b) => {
+        const aDate = new Date(a.takenAt!);
+        const bDate = new Date(b.takenAt!);
+        const aHasTime = aDate.getUTCHours() !== 0 || aDate.getUTCMinutes() !== 0;
+        const bHasTime = bDate.getUTCHours() !== 0 || bDate.getUTCMinutes() !== 0;
+
+        if (!aHasTime && bHasTime) return -1;
+        if (aHasTime && !bHasTime) return 1;
+        return aDate.getTime() - bDate.getTime();
+      });
+
+      // Update the day group with loaded photos
+      setDayGroups(prev => prev.map(g =>
+        g.rawDate === rawDate ? { ...g, photos: sortedPhotos, loading: false } : g
+      ));
+
+      // Add to allLoadedPhotos for lightbox navigation
+      setAllLoadedPhotos(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const newPhotos = sortedPhotos.filter(p => !existingIds.has(p.id));
+        return [...prev, ...newPhotos];
+      });
+    } catch (error) {
+      console.error(`Error loading photos for ${rawDate}:`, error);
+      setDayGroups(prev => prev.map(g =>
+        g.rawDate === rawDate ? { ...g, loading: false, error: true } : g
+      ));
+      toast.error(`Failed to load photos for ${rawDate}`);
     }
   }, [tripId]);
 
-  useEffect(() => {
-    loadPhotos();
-  }, [loadPhotos]);
-
-  // Group photos by day
-  const dayGroups = useMemo(() => {
-    const grouped: Record<string, Photo[]> = {};
-
-    photos.forEach((photo) => {
-      if (!photo.takenAt) return;
-
-      const photoDate = new Date(photo.takenAt);
-      const dateKey = getDateStringInTimezone(photoDate, tripTimezone);
-
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(photo);
-    });
-
-    // Sort photos within each day by time (photos without specific time first, then by time)
-    // Note: We detect "no time" by checking if time is exactly midnight (00:00).
-    // This heuristic may incorrectly classify photos actually taken at midnight.
-    Object.keys(grouped).forEach((dateKey) => {
-      grouped[dateKey].sort((a, b) => {
-        const aDate = new Date(a.takenAt!);
-        const bDate = new Date(b.takenAt!);
-
-        const aHasTime = aDate.getHours() !== 0 || aDate.getMinutes() !== 0;
-        const bHasTime = bDate.getHours() !== 0 || bDate.getMinutes() !== 0;
-
-        // Photos without time come first
-        if (!aHasTime && bHasTime) return -1;
-        if (aHasTime && !bHasTime) return 1;
-
-        // Both have time or both don't - sort by timestamp
-        return aDate.getTime() - bDate.getTime();
-      });
-    });
-
-    // Sort days chronologically and create day groups
-    const sortedKeys = Object.keys(grouped).sort((a, b) => {
-      return new Date(a).getTime() - new Date(b).getTime();
-    });
-
-    const groups: PhotoDayGroup[] = sortedKeys.map((dateKey) => ({
-      dateKey,
-      dayNumber: getDayNumber(dateKey, tripStartDate),
-      photos: grouped[dateKey],
-    }));
-
-    return groups;
-  }, [photos, tripTimezone, tripStartDate]);
-
-  // Toggle day collapse
-  const toggleDay = (dateKey: string) => {
-    setCollapsedDays((prev) => {
+  // Toggle day expansion
+  const toggleDay = useCallback((rawDate: string) => {
+    setExpandedDays(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(dateKey)) {
-        newSet.delete(dateKey);
+      if (newSet.has(rawDate)) {
+        newSet.delete(rawDate);
       } else {
-        newSet.add(dateKey);
+        newSet.add(rawDate);
+        // Load photos if not already loaded
+        const group = dayGroups.find(g => g.rawDate === rawDate);
+        if (group && group.photos === null && !group.loading) {
+          loadPhotosForDay(rawDate);
+        }
       }
       return newSet;
     });
-  };
+  }, [dayGroups, loadPhotosForDay]);
 
   // Expand all days
-  const expandAllDays = () => {
-    setCollapsedDays(new Set());
-  };
+  const expandAllDays = useCallback(() => {
+    const allDates = dayGroups.map(g => g.rawDate);
+    setExpandedDays(new Set(allDates));
+
+    // Load photos for all days that haven't been loaded
+    dayGroups.forEach(group => {
+      if (group.photos === null && !group.loading) {
+        loadPhotosForDay(group.rawDate);
+      }
+    });
+  }, [dayGroups, loadPhotosForDay]);
 
   // Collapse all days
-  const collapseAllDays = () => {
-    const allDateKeys = dayGroups.map((g) => g.dateKey);
-    setCollapsedDays(new Set(allDateKeys));
-  };
+  const collapseAllDays = useCallback(() => {
+    setExpandedDays(new Set());
+  }, []);
 
   // Get photo URL
   const getPhotoUrl = (photo: Photo, thumbnail = true): string => {
@@ -161,16 +160,15 @@ export default function PhotoTimeline({
       const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.localPath;
       return getFullAssetUrl(path) || '';
     }
-    // For Immich, use thumbnailPath
     return getFullAssetUrl(photo.thumbnailPath) || '';
   };
 
-  // Handle photo click - open lightbox
+  // Handle photo click
   const handlePhotoClick = (photo: Photo) => {
     setSelectedPhoto(photo);
   };
 
-  // Handle keyboard interaction on photo items
+  // Handle keyboard interaction
   const handlePhotoKeyDown = (event: React.KeyboardEvent, photo: Photo) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -191,21 +189,18 @@ export default function PhotoTimeline({
     return getFullAssetUrl(photo.thumbnailPath) || null;
   };
 
-  // Handle image load error
+  // Handle image error
   const handleImageError = (photoId: number) => {
-    setFailedImages((prev) => new Set(prev).add(photoId));
+    setFailedImages(prev => new Set(prev).add(photoId));
   };
 
   // Format time for display
   const getTimeDisplay = (photo: Photo): string | null => {
     if (!photo.takenAt) return null;
-
     const photoDate = new Date(photo.takenAt);
-    // Check if time is midnight (likely no time recorded)
-    if (photoDate.getHours() === 0 && photoDate.getMinutes() === 0) {
+    if (photoDate.getUTCHours() === 0 && photoDate.getUTCMinutes() === 0) {
       return null;
     }
-
     return formatTime(photoDate, tripTimezone);
   };
 
@@ -213,12 +208,12 @@ export default function PhotoTimeline({
     return (
       <div className="text-center py-8 text-gray-900 dark:text-white">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p>{loadingProgress || 'Loading photo timeline...'}</p>
+        <p>Loading photo timeline...</p>
       </div>
     );
   }
 
-  if (photos.length === 0) {
+  if (dayGroups.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
         <svg
@@ -241,6 +236,11 @@ export default function PhotoTimeline({
           <br />
           Upload photos with EXIF data or manually set the date.
         </p>
+        {totalWithoutDates > 0 && (
+          <p className="text-sm mt-2 text-gray-400">
+            {totalWithoutDates} photos without dates are not shown.
+          </p>
+        )}
       </div>
     );
   }
@@ -250,8 +250,13 @@ export default function PhotoTimeline({
       {/* Controls */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          {photos.length} {photos.length === 1 ? 'photo' : 'photos'} across{' '}
+          {totalWithDates} {totalWithDates === 1 ? 'photo' : 'photos'} across{' '}
           {dayGroups.length} {dayGroups.length === 1 ? 'day' : 'days'}
+          {totalWithoutDates > 0 && (
+            <span className="ml-2 text-gray-400">
+              ({totalWithoutDates} undated)
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -274,19 +279,19 @@ export default function PhotoTimeline({
       {/* Day Groups */}
       <div className="space-y-6">
         {dayGroups.map((dayGroup) => {
-          const isCollapsed = collapsedDays.has(dayGroup.dateKey);
-          const dayContentId = `day-content-${dayGroup.dateKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
+          const isExpanded = expandedDays.has(dayGroup.rawDate);
+          const dayContentId = `day-content-${dayGroup.rawDate}`;
 
           return (
             <div
-              key={dayGroup.dateKey}
+              key={dayGroup.rawDate}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
               {/* Day Header */}
               <button
                 type="button"
-                onClick={() => toggleDay(dayGroup.dateKey)}
-                aria-expanded={!isCollapsed}
+                onClick={() => toggleDay(dayGroup.rawDate)}
+                aria-expanded={isExpanded}
                 aria-controls={dayContentId}
                 className="w-full bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-700 px-4 py-3 text-left hover:from-gray-100 hover:to-gray-150 dark:hover:from-gray-750 dark:hover:to-gray-700 transition-colors"
               >
@@ -296,7 +301,7 @@ export default function PhotoTimeline({
                       {dayGroup.dayNumber && dayGroup.dayNumber > 0
                         ? `Day ${dayGroup.dayNumber} - `
                         : ''}
-                      {new Date(dayGroup.dateKey).toLocaleDateString('en-US', {
+                      {new Date(dayGroup.rawDate + 'T12:00:00').toLocaleDateString('en-US', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -304,14 +309,16 @@ export default function PhotoTimeline({
                       })}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                      {dayGroup.photos.length}{' '}
-                      {dayGroup.photos.length === 1 ? 'photo' : 'photos'}
+                      {dayGroup.count} {dayGroup.count === 1 ? 'photo' : 'photos'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {dayGroup.loading && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    )}
                     <svg
                       className={`w-5 h-5 text-gray-400 transition-transform ${
-                        isCollapsed ? '' : 'rotate-180'
+                        isExpanded ? 'rotate-180' : ''
                       }`}
                       fill="none"
                       viewBox="0 0 24 24"
@@ -330,52 +337,80 @@ export default function PhotoTimeline({
               </button>
 
               {/* Photo Grid */}
-              {!isCollapsed && (
+              {isExpanded && (
                 <div id={dayContentId} className="p-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                    {dayGroup.photos.map((photo) => {
-                      const timeDisplay = getTimeDisplay(photo);
-                      const hasFailed = failedImages.has(photo.id);
+                  {dayGroup.loading && !dayGroup.photos && (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-sm">Loading photos...</p>
+                    </div>
+                  )}
 
-                      return (
-                        <div
-                          key={photo.id}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => handlePhotoClick(photo)}
-                          onKeyDown={(e) => handlePhotoKeyDown(e, photo)}
-                          className="group relative aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                          aria-label={photo.caption || `Photo from ${dayGroup.dateKey}${timeDisplay ? ` at ${timeDisplay}` : ''}`}
-                        >
-                          <img
-                            src={hasFailed ? PLACEHOLDER_IMAGE : getPhotoUrl(photo, true)}
-                            alt={photo.caption || 'Trip photo'}
-                            className={`w-full h-full object-cover ${hasFailed ? 'p-4 bg-gray-200 dark:bg-gray-600' : ''}`}
-                            loading="lazy"
-                            onError={() => handleImageError(photo.id)}
-                          />
+                  {dayGroup.error && (
+                    <div className="text-center py-8 text-red-500">
+                      <p className="text-sm">Failed to load photos</p>
+                      <button
+                        type="button"
+                        onClick={() => loadPhotosForDay(dayGroup.rawDate)}
+                        className="mt-2 text-sm text-blue-600 hover:underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
 
-                          {/* Time overlay */}
-                          {timeDisplay && !hasFailed && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
-                              <span className="text-xs text-white font-medium">
-                                {timeDisplay}
-                              </span>
-                            </div>
-                          )}
+                  {dayGroup.photos && dayGroup.photos.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                      {dayGroup.photos.map((photo) => {
+                        const timeDisplay = getTimeDisplay(photo);
+                        const hasFailed = failedImages.has(photo.id);
 
-                          {/* Caption tooltip on hover */}
-                          {photo.caption && !hasFailed && (
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
-                              <p className="text-white text-xs text-center line-clamp-3">
-                                {photo.caption}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                        return (
+                          <div
+                            key={photo.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handlePhotoClick(photo)}
+                            onKeyDown={(e) => handlePhotoKeyDown(e, photo)}
+                            className="group relative aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                            aria-label={photo.caption || `Photo from ${dayGroup.dateKey}${timeDisplay ? ` at ${timeDisplay}` : ''}`}
+                          >
+                            <img
+                              src={hasFailed ? PLACEHOLDER_IMAGE : getPhotoUrl(photo, true)}
+                              alt={photo.caption || 'Trip photo'}
+                              className={`w-full h-full object-cover ${hasFailed ? 'p-4 bg-gray-200 dark:bg-gray-600' : ''}`}
+                              loading="lazy"
+                              onError={() => handleImageError(photo.id)}
+                            />
+
+                            {/* Time overlay */}
+                            {timeDisplay && !hasFailed && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                                <span className="text-xs text-white font-medium">
+                                  {timeDisplay}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Caption tooltip on hover */}
+                            {photo.caption && !hasFailed && (
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                                <p className="text-white text-xs text-center line-clamp-3">
+                                  {photo.caption}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {dayGroup.photos && dayGroup.photos.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p className="text-sm">No photos for this day</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -387,7 +422,7 @@ export default function PhotoTimeline({
       {selectedPhoto && (
         <PhotoLightbox
           photo={selectedPhoto}
-          photos={photos}
+          photos={allLoadedPhotos.length > 0 ? allLoadedPhotos : [selectedPhoto]}
           getPhotoUrl={getLightboxPhotoUrl}
           onClose={() => setSelectedPhoto(null)}
           onNavigate={handleNavigate}

@@ -195,6 +195,41 @@ class PhotoController {
     }
   }
 
+  async getPhotoDateGroupings(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tripId = parseInt(req.params.tripId);
+      const result = await photoService.getPhotoDateGroupings(req.user!.userId, tripId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getPhotosByDate(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tripId = parseInt(req.params.tripId);
+      const date = req.params.date; // YYYY-MM-DD format
+
+      // Validate date format
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new AppError('Invalid date format. Use YYYY-MM-DD', 400);
+      }
+
+      const result = await photoService.getPhotosByDate(req.user!.userId, tripId, date);
+
+      // Transform photos for frontend
+      const photosWithUrls = result.photos.map(transformPhoto);
+
+      res.json({
+        photos: photosWithUrls,
+        date: result.date,
+        count: result.count,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getAlbumSuggestions(req: Request, res: Response, next: NextFunction) {
     try {
       const tripId = parseInt(req.params.tripId);
