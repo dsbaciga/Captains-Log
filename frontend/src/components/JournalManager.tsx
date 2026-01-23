@@ -1,4 +1,4 @@
-import { useState, useId, useMemo, useEffect, useCallback } from "react";
+import { useState, useId, useMemo, useCallback } from "react";
 import type { JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput } from "../types/journalEntry";
 import journalEntryService from "../services/journalEntry.service";
 import toast from "react-hot-toast";
@@ -7,6 +7,7 @@ import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
 import { useFormFields } from "../hooks/useFormFields";
+import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
@@ -63,6 +64,23 @@ export default function JournalManager({
 
   const { values: formValues, setField, resetFields, setAllFields } = useFormFields(initialFormValues);
 
+  // Create wrappers for useFormReset hook
+  const setShowForm = useCallback((show: boolean) => {
+    if (show) {
+      if (!manager.showForm) manager.toggleForm();
+    } else {
+      manager.closeForm();
+    }
+  }, [manager]);
+
+  // Use useFormReset for consistent form state management
+  const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
+    initialState: initialFormValues,
+    setFormData: setAllFields,
+    setEditingId: manager.setEditingId,
+    setShowForm,
+  });
+
   // Generate IDs for accessibility
   const titleFieldId = useId();
   const entryDateFieldId = useId();
@@ -78,11 +96,17 @@ export default function JournalManager({
     loading: manager.loading,
   });
 
-  const resetForm = () => {
-    resetFields();
-    manager.setEditingId(null);
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
     setKeepFormOpenAfterSave(false);
-  };
+  }, [baseResetForm]);
+
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+  }, [baseOpenCreateForm]);
 
   const handleEdit = (entry: JournalEntry) => {
     setAllFields({
@@ -171,11 +195,8 @@ export default function JournalManager({
     return text.substring(0, maxLength) + "...";
   };
 
-  const handleCloseForm = () => {
-    resetFields();
-    manager.setEditingId(null);
-    manager.closeForm();
-  };
+  // resetForm already closes the form via useFormReset
+  const handleCloseForm = resetForm;
 
   return (
     <div className="space-y-6">
@@ -186,10 +207,7 @@ export default function JournalManager({
         </h2>
         <button
           type="button"
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
+          onClick={openCreateForm}
           className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
@@ -317,10 +335,7 @@ Tell your story!"
           message="Tell Your Story"
           subMessage="Every journey has a story worth telling. Write about your experiences, capture the emotions, and preserve the small moments that make travel unforgettable. Your future self will thank you."
           actionLabel="Write Your First Entry"
-          onAction={() => {
-            resetFields();
-            manager.toggleForm();
-          }}
+          onAction={openCreateForm}
         />
       ) : (
         <div className="space-y-4">

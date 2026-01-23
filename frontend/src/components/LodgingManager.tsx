@@ -11,6 +11,7 @@ import FormModal from "./FormModal";
 import FormSection, { CollapsibleSection } from "./FormSection";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
+import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
@@ -111,8 +112,25 @@ export default function LodgingManager({
   // Track original location ID when editing to detect changes (for entity linking)
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
 
-  const { values, handleChange, reset } =
+  const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
+
+  // Create wrappers for useFormReset hook
+  const setShowForm = useCallback((show: boolean) => {
+    if (show) {
+      if (!manager.showForm) manager.toggleForm();
+    } else {
+      manager.closeForm();
+    }
+  }, [manager]);
+
+  // Use useFormReset for consistent form state management
+  const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
+    initialState: getInitialFormState,
+    setFormData: setAllFields,
+    setEditingId: manager.setEditingId,
+    setShowForm,
+  });
 
   // Sync localLocations with locations prop
   useEffect(() => {
@@ -184,13 +202,21 @@ export default function LodgingManager({
     setShowLocationQuickAdd(false);
   };
 
-  const resetForm = () => {
-    reset();
-    manager.setEditingId(null);
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
     setKeepFormOpenAfterSave(false);
     setShowMoreOptions(false);
     setOriginalLocationId(null);
-  };
+  }, [baseResetForm]);
+
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
+    setOriginalLocationId(null);
+  }, [baseOpenCreateForm]);
 
   const handleEdit = async (lodging: Lodging) => {
     setShowMoreOptions(true); // Always show all options when editing
@@ -417,10 +443,8 @@ export default function LodgingManager({
     });
   };
 
-  const handleCloseForm = () => {
-    resetForm();
-    manager.closeForm();
-  };
+  // resetForm already closes the form via useFormReset
+  const handleCloseForm = resetForm;
 
   return (
     <div className="space-y-6">
@@ -430,10 +454,7 @@ export default function LodgingManager({
           Lodging
         </h2>
         <button
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
+          onClick={openCreateForm}
           className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
@@ -691,10 +712,7 @@ export default function LodgingManager({
             message="Where Will You Stay?"
             subMessage="From boutique hotels and cozy Airbnbs to camping under the stars - add your accommodations to keep all your booking details in one place."
             actionLabel="Add Your First Stay"
-            onAction={() => {
-              resetForm();
-              manager.toggleForm();
-            }}
+            onAction={openCreateForm}
           />
         ) : (
           manager.items.map((lodging) => (

@@ -13,6 +13,7 @@ import FormModal from "./FormModal";
 import FormSection, { CollapsibleSection } from "./FormSection";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
+import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
@@ -112,8 +113,25 @@ export default function TransportationManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const { values, handleChange, reset } =
+  const { values, handleChange, reset, setAllFields } =
     useFormFields<TransportationFormFields>(getInitialFormState);
+
+  // Create wrappers for useFormReset hook
+  const setShowForm = useCallback((show: boolean) => {
+    if (show) {
+      if (!manager.showForm) manager.toggleForm();
+    } else {
+      manager.closeForm();
+    }
+  }, [manager]);
+
+  // Use useFormReset for consistent form state management
+  const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
+    initialState: getInitialFormState,
+    setFormData: setAllFields,
+    setEditingId: manager.setEditingId,
+    setShowForm,
+  });
 
   const [showFromLocationQuickAdd, setShowFromLocationQuickAdd] = useState(false);
   const [showToLocationQuickAdd, setShowToLocationQuickAdd] = useState(false);
@@ -209,12 +227,19 @@ export default function TransportationManager({
     return { all: manager.items.length, upcoming, historical };
   }, [manager.items]);
 
-  const resetForm = () => {
-    reset();
-    manager.setEditingId(null);
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
     setKeepFormOpenAfterSave(false);
     setShowMoreOptions(false);
-  };
+  }, [baseResetForm]);
+
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
+  }, [baseOpenCreateForm]);
 
   const handleFromLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
@@ -486,10 +511,8 @@ export default function TransportationManager({
     );
   };
 
-  const handleCloseForm = () => {
-    resetForm();
-    manager.closeForm();
-  };
+  // resetForm already closes the form via useFormReset
+  const handleCloseForm = resetForm;
 
   return (
     <div className="space-y-6">
@@ -499,10 +522,7 @@ export default function TransportationManager({
           Transportation
         </h2>
         <button
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
+          onClick={openCreateForm}
           className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
@@ -932,10 +952,7 @@ export default function TransportationManager({
             message="Plan Your Journey"
             subMessage="How will you get there? Add flights, trains, road trips, and more. Track departure times, booking confirmations, and never miss a connection."
             actionLabel="Add Transportation"
-            onAction={() => {
-              resetForm();
-              manager.toggleForm();
-            }}
+            onAction={openCreateForm}
           />
         ) : filteredItems.length === 0 ? (
           <EmptyState

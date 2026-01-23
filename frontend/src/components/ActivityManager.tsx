@@ -15,6 +15,7 @@ import {
   formatDateInTimezone,
 } from "../utils/timezone";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useFormReset } from "../hooks/useFormReset";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -61,6 +62,38 @@ export default function ActivityManager({
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Create wrappers for useFormReset hook
+  // ActivityManager uses editingActivity instead of form fields, so we adapt the pattern
+  const setShowForm = useCallback((show: boolean) => {
+    if (show) {
+      if (!manager.showForm) manager.toggleForm();
+    } else {
+      manager.closeForm();
+    }
+  }, [manager]);
+
+  // Define a setter for the edit state that resets all editing-related state
+  const setEditState = useCallback((state: { activity: Activity | null; locationId: number | null } | null) => {
+    if (state === null) {
+      setEditingActivity(null);
+      setEditingLocationId(null);
+      setOriginalLocationId(null);
+      setFormKey((k) => k + 1); // Force form component to reset
+    } else {
+      setEditingActivity(state.activity);
+      setEditingLocationId(state.locationId);
+      setOriginalLocationId(state.locationId);
+    }
+  }, []);
+
+  // Use useFormReset for consistent form state management
+  const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
+    initialState: null as { activity: Activity | null; locationId: number | null } | null,
+    setFormData: setEditState,
+    setEditingId: manager.setEditingId,
+    setShowForm,
+  });
 
   useEffect(() => {
     loadUserCategories();
@@ -109,14 +142,17 @@ export default function ActivityManager({
     setLocalLocations([...localLocations, newLocation]);
   };
 
-  const resetForm = () => {
-    setEditingActivity(null);
-    setEditingLocationId(null);
-    setOriginalLocationId(null);
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
     setKeepFormOpenAfterSave(false);
-    setFormKey((k) => k + 1); // Force form component to reset
-    manager.setEditingId(null);
-  };
+  }, [baseResetForm]);
+
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+  }, [baseOpenCreateForm]);
 
   const handleEdit = async (activity: Activity) => {
     // Fetch linked location via entity linking system
@@ -434,15 +470,11 @@ export default function ActivityManager({
     );
   };
 
-  const handleCloseForm = () => {
-    resetForm();
-    manager.closeForm();
-  };
+  // resetForm already closes the form via useFormReset
+  const handleCloseForm = resetForm;
 
-  const handleOpenForm = () => {
-    resetForm();
-    manager.toggleForm();
-  };
+  // handleOpenForm uses the dedicated openCreateForm function
+  const handleOpenForm = openCreateForm;
 
   return (
     <div className="space-y-6">
