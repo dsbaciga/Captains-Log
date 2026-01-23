@@ -122,9 +122,9 @@ export default function AlbumsSidebar({
 
       {/* Sidebar - Desktop fixed, Mobile drawer */}
       <div className={`
-        w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto
+        w-64 md:w-48 lg:w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto
         md:static md:translate-x-0
-        fixed top-0 left-0 h-full z-50 transform transition-transform duration-300 ease-in-out
+        fixed top-0 left-0 h-full z-40 transform transition-transform duration-300 ease-in-out
         ${isMobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
       <div className="p-4 space-y-2">

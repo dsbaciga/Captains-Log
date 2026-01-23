@@ -90,22 +90,30 @@ class WeatherService {
 
     // Fetch or retrieve weather for each date
     // Each day gets its own coordinates based on locations/activities/lodging for that day
-    const weatherData = await Promise.all(
-      dates.map(async (date) => {
-        // Get coordinates for this specific day
-        const coordinates = await this.getTripCoordinates(tripId, date);
-        const dateString = date.toISOString().split('T')[0];
+    let weatherData: (Awaited<ReturnType<typeof this.getWeatherForDate>> | null)[];
+    try {
+      weatherData = await Promise.all(
+        dates.map(async (date) => {
+          // Get coordinates for this specific day
+          const coordinates = await this.getTripCoordinates(tripId, date);
+          const dateString = date.toISOString().split('T')[0];
 
-        if (!coordinates) {
-          console.warn(`No coordinates available for ${dateString}`);
-          return null;
-        }
+          if (!coordinates) {
+            console.warn(`No coordinates available for ${dateString}`);
+            return null;
+          }
 
-        console.log(`[Weather] ${dateString}: Using location "${coordinates.locationName || 'Unknown'}" (lat: ${coordinates.lat.toFixed(4)}, lon: ${coordinates.lon.toFixed(4)})`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Weather] ${dateString}: Using location "${coordinates.locationName || 'Unknown'}" (lat: ${coordinates.lat.toFixed(4)}, lon: ${coordinates.lon.toFixed(4)})`);
+          }
 
-        return this.getWeatherForDate(tripId, coordinates, date, apiKey);
-      })
-    );
+          return this.getWeatherForDate(tripId, coordinates, date, apiKey);
+        })
+      );
+    } catch (error) {
+      console.error(`Failed to fetch weather data for trip ${tripId}:`, error);
+      throw new Error('Failed to fetch weather data for trip: ' + (error as Error).message);
+    }
 
     return convertDecimals(weatherData.filter((w) => w !== null));
   }
@@ -307,20 +315,22 @@ class WeatherService {
       const dayData = data.daily[dayIndex];
 
       // Debug: log what the API returns including temperature data
-      console.log(`Weather API response for day ${dayIndex}:`, {
-        date: targetDate.toISOString().split('T')[0],
-        conditions: dayData.weather[0]?.description,
-        temp: {
-          max: dayData.temp.max,
-          min: dayData.temp.min,
-          day: dayData.temp.day,
-        },
-        pop: dayData.pop,
-        rain: dayData.rain,
-        snow: dayData.snow,
-        hasRainField: 'rain' in dayData,
-        hasSnowField: 'snow' in dayData,
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Weather API response for day ${dayIndex}:`, {
+          date: targetDate.toISOString().split('T')[0],
+          conditions: dayData.weather[0]?.description,
+          temp: {
+            max: dayData.temp.max,
+            min: dayData.temp.min,
+            day: dayData.temp.day,
+          },
+          pop: dayData.pop,
+          rain: dayData.rain,
+          snow: dayData.snow,
+          hasRainField: 'rain' in dayData,
+          hasSnowField: 'snow' in dayData,
+        });
+      }
 
       // Calculate total precipitation (rain + snow) in mm
       // Note: rain/snow fields are only present when there's measurable precipitation
@@ -400,12 +410,14 @@ class WeatherService {
       }
 
       // Debug: log historical precipitation calculation
-      console.log(`Historical weather for ${targetDate.toISOString().split('T')[0]}:`, {
-        hourlyRecords: hourlyData.length,
-        recordsWithRain: hourlyData.filter(h => h.rain?.['1h']).length,
-        recordsWithSnow: hourlyData.filter(h => h.snow?.['1h']).length,
-        totalPrecipitation,
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Historical weather for ${targetDate.toISOString().split('T')[0]}:`, {
+          hourlyRecords: hourlyData.length,
+          recordsWithRain: hourlyData.filter(h => h.rain?.['1h']).length,
+          recordsWithSnow: hourlyData.filter(h => h.snow?.['1h']).length,
+          totalPrecipitation,
+        });
+      }
 
       // Get the most common weather condition
       const weatherDescriptions = hourlyData
@@ -806,7 +818,9 @@ class WeatherService {
     // Verify user owns the trip
     await verifyTripAccess(userId, tripId);
 
-    console.log(`[Weather] Refreshing all weather data for trip ${tripId}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Weather] Refreshing all weather data for trip ${tripId}`);
+    }
 
     // Delete all cached weather data for this trip
     const deletedCount = await prisma.weatherData.deleteMany({
@@ -815,7 +829,9 @@ class WeatherService {
       },
     });
 
-    console.log(`[Weather] Deleted ${deletedCount.count} cached weather records`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Weather] Deleted ${deletedCount.count} cached weather records`);
+    }
 
     // Fetch fresh weather data (will use new locations if entities were added)
     return await this.getWeatherForTrip(tripId, userId);

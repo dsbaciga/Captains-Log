@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  nullableOptional,
+  optionalTimezone,
+} from '../utils/zodHelpers';
 
 // Trip status enum
 export const TripStatus = {
@@ -75,10 +79,10 @@ export const createTripSchema = z.object({
 
 export const updateTripSchema = z.object({
   title: z.string().min(1).max(500).optional(),
-  description: z.string().nullable().optional(),
-  startDate: z.string().nullable().optional(),
-  endDate: z.string().nullable().optional(),
-  timezone: z.string().max(100).nullable().optional(),
+  description: nullableOptional(z.string()),
+  startDate: nullableOptional(z.string()),
+  endDate: nullableOptional(z.string()),
+  timezone: optionalTimezone(100),
   status: z.enum([
     TripStatus.DREAM,
     TripStatus.PLANNING,

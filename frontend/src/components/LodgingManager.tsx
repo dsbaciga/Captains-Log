@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Lodging, LodgingType, CreateLodgingInput, UpdateLodgingInput } from "../types/lodging";
 import type { Location } from "../types/location";
 import lodgingService from "../services/lodging.service";
@@ -12,9 +11,11 @@ import FormModal from "./FormModal";
 import FormSection, { CollapsibleSection } from "./FormSection";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
+import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -104,112 +105,40 @@ export default function LodgingManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
   // Track original location ID when editing to detect changes (for entity linking)
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
 
-  const { values, handleChange, reset } =
+  const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
+
+  // Create wrappers for useFormReset hook
+  const setShowForm = useCallback((show: boolean) => {
+    if (show) {
+      if (!manager.showForm) manager.toggleForm();
+    } else {
+      manager.closeForm();
+    }
+  }, [manager]);
+
+  // Use useFormReset for consistent form state management
+  const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
+    initialState: getInitialFormState,
+    setFormData: setAllFields,
+    setEditingId: manager.setEditingId,
+    setShowForm,
+  });
 
   // Sync localLocations with locations prop
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
 
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Handle pending edit when items are loaded (from URL ?edit=id parameter)
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((l) => l.id === pendingEditId);
-      if (item) {
-        // Use handleEdit which handles location link fetching
-        handleEdit(item);
-      }
-      setPendingEditId(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEditId, manager.items, manager.loading]);
-
-  // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
-  useEffect(() => {
-    // Only when creating (not editing) and form just opened
-    if (!manager.editingId && manager.showForm && values.checkInDate === getInitialFormState.checkInDate) {
-      // Find the most recent lodging (by check-out time)
-      const sortedLodgings = [...manager.items]
-        .filter(l => l.checkOutDate)
-        .sort((a, b) => new Date(b.checkOutDate!).getTime() - new Date(a.checkOutDate!).getTime());
-
-      if (sortedLodgings.length > 0) {
-        const lastLodging = sortedLodgings[0];
-        const effectiveTz = lastLodging.timezone || tripTimezone || 'UTC';
-
-        // Convert the last lodging's check-out time to datetime-local format
-        const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOutDate!, effectiveTz);
-
-        // Use check-out as new check-in
-        handleChange('checkInDate', checkOutDateTime);
-
-        // Set check-out to next day at 11:00 AM
-        const checkOutDate = new Date(checkOutDateTime);
-        checkOutDate.setDate(checkOutDate.getDate() + 1);
-        const nextDayCheckOut = `${checkOutDate.toISOString().slice(0, 10)}T11:00`;
-        handleChange('checkOutDate', nextDayCheckOut);
-
-        // Inherit timezone if set
-        if (lastLodging.timezone && !values.timezone) {
-          handleChange('timezone', lastLodging.timezone);
-        }
-      }
-    }
-  }, [manager.showForm, manager.editingId]);
-
-  const handleLocationCreated = (locationId: number, locationName: string) => {
-    // Add the new location to local state
-    const newLocation: Location = {
-      id: locationId,
-      name: locationName,
-      tripId,
-      parentId: null,
-      address: null,
-      latitude: null,
-      longitude: null,
-      categoryId: null,
-      visitDatetime: null,
-      visitDurationMinutes: null,
-      notes: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setLocalLocations([...localLocations, newLocation]);
-    handleChange("locationId", locationId);
-    setShowLocationQuickAdd(false);
-  };
-
-  const resetForm = () => {
-    reset();
-    manager.setEditingId(null);
-    setKeepFormOpenAfterSave(false);
-    setShowMoreOptions(false);
-    setOriginalLocationId(null);
-  };
-
-  const handleEdit = async (lodging: Lodging) => {
+  // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
+  const handleEdit = useCallback(async (lodging: Lodging) => {
     setShowMoreOptions(true); // Always show all options when editing
     handleChange("type", lodging.type);
     handleChange("name", lodging.name);
@@ -253,7 +182,89 @@ export default function LodgingManager({
     handleChange("currency", lodging.currency || "USD");
     handleChange("notes", lodging.notes || "");
     manager.openEditForm(lodging.id);
+  }, [tripId, handleChange, tripTimezone, manager]);
+
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((lodging: Lodging) => {
+    handleEdit(lodging);
+  }, [handleEdit]);
+
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
+
+  // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
+  useEffect(() => {
+    // Only when creating (not editing) and form just opened
+    if (!manager.editingId && manager.showForm && values.checkInDate === getInitialFormState.checkInDate) {
+      // Find the most recent lodging (by check-out time)
+      const sortedLodgings = [...manager.items]
+        .filter(l => l.checkOutDate)
+        .sort((a, b) => new Date(b.checkOutDate!).getTime() - new Date(a.checkOutDate!).getTime());
+
+      if (sortedLodgings.length > 0) {
+        const lastLodging = sortedLodgings[0];
+        const effectiveTz = lastLodging.timezone || tripTimezone || 'UTC';
+
+        // Convert the last lodging's check-out time to datetime-local format
+        const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOutDate!, effectiveTz);
+
+        // Use check-out as new check-in
+        handleChange('checkInDate', checkOutDateTime);
+
+        // Set check-out to next day at 11:00 AM
+        const checkOutDate = new Date(checkOutDateTime);
+        checkOutDate.setDate(checkOutDate.getDate() + 1);
+        const nextDayCheckOut = `${checkOutDate.toISOString().slice(0, 10)}T11:00`;
+        handleChange('checkOutDate', nextDayCheckOut);
+
+        // Inherit timezone if set
+        if (lastLodging.timezone && !values.timezone) {
+          handleChange('timezone', lastLodging.timezone);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manager.showForm, manager.editingId]);
+
+  const handleLocationCreated = (locationId: number, locationName: string) => {
+    // Add the new location to local state
+    const newLocation: Location = {
+      id: locationId,
+      name: locationName,
+      tripId,
+      parentId: null,
+      address: null,
+      latitude: null,
+      longitude: null,
+      categoryId: null,
+      visitDatetime: null,
+      visitDurationMinutes: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalLocations([...localLocations, newLocation]);
+    handleChange("locationId", locationId);
+    setShowLocationQuickAdd(false);
   };
+
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
+    setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
+    setOriginalLocationId(null);
+  }, [baseResetForm]);
+
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
+    setOriginalLocationId(null);
+  }, [baseOpenCreateForm]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -434,10 +445,8 @@ export default function LodgingManager({
     });
   };
 
-  const handleCloseForm = () => {
-    resetForm();
-    manager.closeForm();
-  };
+  // resetForm already closes the form via useFormReset
+  const handleCloseForm = resetForm;
 
   return (
     <div className="space-y-6">
@@ -447,10 +456,7 @@ export default function LodgingManager({
           Lodging
         </h2>
         <button
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
+          onClick={openCreateForm}
           className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
@@ -708,10 +714,7 @@ export default function LodgingManager({
             message="Where Will You Stay?"
             subMessage="From boutique hotels and cozy Airbnbs to camping under the stars - add your accommodations to keep all your booking details in one place."
             actionLabel="Add Your First Stay"
-            onAction={() => {
-              resetForm();
-              manager.toggleForm();
-            }}
+            onAction={openCreateForm}
           />
         ) : (
           manager.items.map((lodging) => (
@@ -828,12 +831,14 @@ export default function LodgingManager({
                 <button
                   onClick={() => handleEdit(lodging)}
                   className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                  aria-label={`Edit lodging ${lodging.name}`}
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(lodging.id)}
                   className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                  aria-label={`Delete lodging ${lodging.name}`}
                 >
                   Delete
                 </button>

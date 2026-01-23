@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import collaborationService from '../services/collaboration.service';
 import type {
   Collaborator,
@@ -41,14 +41,7 @@ export default function CollaboratorsManager({
 
   const canManageCollaborators = isOwner || userPermission === 'admin';
 
-  useEffect(() => {
-    loadCollaborators();
-    if (canManageCollaborators) {
-      loadPendingInvitations();
-    }
-  }, [tripId, canManageCollaborators]);
-
-  const loadCollaborators = async () => {
+  const loadCollaborators = useCallback(async () => {
     try {
       const response = await collaborationService.getCollaborators(tripId);
       setCollaborators(response.collaborators);
@@ -59,16 +52,23 @@ export default function CollaboratorsManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [tripId]);
 
-  const loadPendingInvitations = async () => {
+  const loadPendingInvitations = useCallback(async () => {
     try {
       const invitations = await collaborationService.getTripInvitations(tripId);
       setPendingInvitations(invitations);
     } catch (err) {
       console.error('Failed to load invitations:', err);
     }
-  };
+  }, [tripId]);
+
+  useEffect(() => {
+    loadCollaborators();
+    if (canManageCollaborators) {
+      loadPendingInvitations();
+    }
+  }, [tripId, canManageCollaborators, loadCollaborators, loadPendingInvitations]);
 
   const handleUpdatePermission = async (collaborator: Collaborator, newPermission: PermissionLevel) => {
     try {

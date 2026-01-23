@@ -1,5 +1,4 @@
-import { useState, useId, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useId, useMemo, useCallback } from "react";
 import type { JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput } from "../types/journalEntry";
 import journalEntryService from "../services/journalEntry.service";
 import toast from "react-hot-toast";
@@ -8,9 +7,11 @@ import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
 import { useFormFields } from "../hooks/useFormFields";
+import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 
 interface JournalManagerProps {
   tripId: number;
@@ -50,10 +51,8 @@ export default function JournalManager({
   // Link summary hook for displaying link counts
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
   // Use the new useFormFields hook to manage all form state
   // Memoize initial form values to include trip start date as default
@@ -65,50 +64,30 @@ export default function JournalManager({
 
   const { values: formValues, setField, resetFields, setAllFields } = useFormFields(initialFormValues);
 
+  // Create wrappers for useFormReset hook
+  const setShowForm = useCallback((show: boolean) => {
+    if (show) {
+      if (!manager.showForm) manager.toggleForm();
+    } else {
+      manager.closeForm();
+    }
+  }, [manager]);
+
+  // Use useFormReset for consistent form state management
+  const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
+    initialState: initialFormValues,
+    setFormData: setAllFields,
+    setEditingId: manager.setEditingId,
+    setShowForm,
+  });
+
   // Generate IDs for accessibility
   const titleFieldId = useId();
   const entryDateFieldId = useId();
   const contentFieldId = useId();
 
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Handle pending edit when items are loaded
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((j) => j.id === pendingEditId);
-      if (item) {
-        setAllFields({
-          title: item.title || "",
-          content: item.content,
-          entryDate: item.date
-            ? new Date(item.date).toISOString().slice(0, 16)
-            : "",
-        });
-        manager.openEditForm(item.id);
-        setExpandedId(null);
-      }
-      setPendingEditId(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEditId, manager.items, manager.loading, setAllFields]);
-
-  const resetForm = () => {
-    resetFields();
-    manager.setEditingId(null);
-    setKeepFormOpenAfterSave(false);
-  };
-
-  const handleEdit = (entry: JournalEntry) => {
+  // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
+  const handleEdit = useCallback((entry: JournalEntry) => {
     setAllFields({
       title: entry.title || "",
       content: entry.content,
@@ -118,7 +97,29 @@ export default function JournalManager({
     });
     manager.openEditForm(entry.id);
     setExpandedId(null);
-  };
+  }, [setAllFields, manager]);
+
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((entry: JournalEntry) => {
+    handleEdit(entry);
+  }, [handleEdit]);
+
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
+
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
+    setKeepFormOpenAfterSave(false);
+  }, [baseResetForm]);
+
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+  }, [baseOpenCreateForm]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,11 +196,8 @@ export default function JournalManager({
     return text.substring(0, maxLength) + "...";
   };
 
-  const handleCloseForm = () => {
-    resetFields();
-    manager.setEditingId(null);
-    manager.closeForm();
-  };
+  // resetForm already closes the form via useFormReset
+  const handleCloseForm = resetForm;
 
   return (
     <div className="space-y-6">
@@ -210,10 +208,7 @@ export default function JournalManager({
         </h2>
         <button
           type="button"
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
+          onClick={openCreateForm}
           className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
@@ -341,10 +336,7 @@ Tell your story!"
           message="Tell Your Story"
           subMessage="Every journey has a story worth telling. Write about your experiences, capture the emotions, and preserve the small moments that make travel unforgettable. Your future self will thank you."
           actionLabel="Write Your First Entry"
-          onAction={() => {
-            resetFields();
-            manager.toggleForm();
-          }}
+          onAction={openCreateForm}
         />
       ) : (
         <div className="space-y-4">
@@ -380,6 +372,7 @@ Tell your story!"
                         type="button"
                         onClick={() => handleEdit(entry)}
                         className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap text-sm sm:text-base"
+                        aria-label={`Edit journal entry ${entry.title || 'Untitled Entry'}`}
                       >
                         Edit
                       </button>
@@ -387,6 +380,7 @@ Tell your story!"
                         type="button"
                         onClick={() => handleDelete(entry.id)}
                         className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap text-sm sm:text-base"
+                        aria-label={`Delete journal entry ${entry.title || 'Untitled Entry'}`}
                       >
                         Delete
                       </button>
@@ -408,6 +402,8 @@ Tell your story!"
                         setExpandedId(isExpanded ? null : entry.id)
                       }
                       className="mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 text-sm font-medium"
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? `Collapse ${entry.title || 'entry'} content` : `Expand ${entry.title || 'entry'} content`}
                     >
                       {isExpanded ? "Show less" : "Read more →"}
                     </button>

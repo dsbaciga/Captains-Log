@@ -1,4 +1,11 @@
 import { z } from 'zod';
+import {
+  optionalLatitude,
+  optionalLongitude,
+  optionalDatetime,
+  optionalStringWithMax,
+  optionalNumber,
+} from '../utils/zodHelpers';
 
 export const PhotoSource = {
   LOCAL: 'local',
@@ -57,9 +64,9 @@ export const linkImmichPhotoSchema = z.object({
   tripId: z.number(),
   immichAssetId: z.string().min(1),
   caption: z.string().max(1000).optional(),
-  takenAt: z.string().optional().nullable(),
-  latitude: z.number().min(-90).max(90).optional().nullable(),
-  longitude: z.number().min(-180).max(180).optional().nullable(),
+  takenAt: optionalDatetime(),
+  latitude: optionalLatitude(),
+  longitude: optionalLongitude(),
 });
 
 export const linkImmichPhotoBatchSchema = z.object({
@@ -67,17 +74,17 @@ export const linkImmichPhotoBatchSchema = z.object({
   assets: z.array(z.object({
     immichAssetId: z.string().min(1),
     caption: z.string().max(1000).optional(),
-    takenAt: z.string().optional().nullable(),
-    latitude: z.number().min(-90).max(90).optional().nullable(),
-    longitude: z.number().min(-180).max(180).optional().nullable(),
+    takenAt: optionalDatetime(),
+    latitude: optionalLatitude(),
+    longitude: optionalLongitude(),
   })).min(1),
 });
 
 export const updatePhotoSchema = z.object({
-  caption: z.string().max(1000).optional().nullable(),
-  takenAt: z.string().optional().nullable(),
-  latitude: z.number().min(-90).max(90).optional().nullable(),
-  longitude: z.number().min(-180).max(180).optional().nullable(),
+  caption: optionalStringWithMax(1000),
+  takenAt: optionalDatetime(),
+  latitude: optionalLatitude(),
+  longitude: optionalLongitude(),
 });
 
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
@@ -91,8 +98,8 @@ export const createAlbumSchema = z.object({
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 export const updateAlbumSchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  description: z.string().max(2000).optional().nullable(),
-  coverPhotoId: z.number().optional().nullable(),
+  description: optionalStringWithMax(2000),
+  coverPhotoId: optionalNumber(),
 });
 
 export const addPhotosToAlbumSchema = z.object({

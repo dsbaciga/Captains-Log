@@ -3,6 +3,72 @@ import { AppError } from '../middleware/errorHandler';
 import { CreateChecklist, UpdateChecklist, UpdateChecklistItem, ChecklistWithItems, ChecklistType } from '../types/checklist.types';
 import { DEFAULT_AIRPORTS, DEFAULT_COUNTRIES, DEFAULT_CITIES, DEFAULT_US_STATES } from '../data/checklist-defaults';
 
+// Type for checklist item metadata shapes
+interface AirportMetadata {
+  code: string;
+  city: string;
+  country: string;
+}
+
+interface StateMetadata {
+  code: string;
+  name: string;
+}
+
+// Type for JSON values from Prisma
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+// Helper to safely get metadata values from JSON field
+function getMetadataValue<T>(metadata: JsonValue, key: keyof T): unknown {
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    return (metadata as Record<string, unknown>)[key as string];
+  }
+  return undefined;
+}
+
+// Type for checklist with items from Prisma query
+interface ChecklistFromPrisma {
+  id: number;
+  userId: number;
+  tripId: number | null;
+  name: string;
+  description: string | null;
+  type: string;
+  isDefault: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  items: Array<{
+    id: number;
+    checklistId: number;
+    name: string;
+    description: string | null;
+    isChecked: boolean;
+    isDefault: boolean;
+    sortOrder: number;
+    metadata: JsonValue;
+    checkedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}
+
+// Type for trips with locations and transportation
+interface TripWithRelations {
+  id: number;
+  locations: Array<{
+    id: number;
+    name: string;
+    address: string | null;
+  }>;
+  transportation: Array<{
+    id: number;
+    type: string;
+    startLocationText: string | null;
+    endLocationText: string | null;
+  }>;
+}
+
 class ChecklistService {
   /**
    * Get all checklists for a user
@@ -24,12 +90,12 @@ class ChecklistService {
         { sortOrder: 'asc' },
         { name: 'asc' },
       ],
-    });
+    }) as ChecklistFromPrisma[];
 
     // Add stats to each checklist
-    return checklists.map((checklist: any) => {
+    return checklists.map((checklist: ChecklistFromPrisma) => {
       const total = checklist.items.length;
-      const checked = checklist.items.filter((item: any) => item.isChecked).length;
+      const checked = checklist.items.filter((item) => item.isChecked).length;
       return {
         ...checklist,
         stats: {
@@ -63,12 +129,12 @@ class ChecklistService {
         { sortOrder: 'asc' },
         { name: 'asc' },
       ],
-    });
+    }) as ChecklistFromPrisma[];
 
     // Add stats to each checklist
-    return checklists.map((checklist: any) => {
+    return checklists.map((checklist: ChecklistFromPrisma) => {
       const total = checklist.items.length;
-      const checked = checklist.items.filter((item: any) => item.isChecked).length;
+      const checked = checklist.items.filter((item) => item.isChecked).length;
       return {
         ...checklist,
         stats: {
@@ -95,14 +161,14 @@ class ChecklistService {
           ],
         },
       },
-    });
+    }) as ChecklistFromPrisma | null;
 
     if (!checklist) {
       throw new AppError('Checklist not found', 404);
     }
 
     const total = checklist.items.length;
-    const checked = checklist.items.filter((item: any) => item.isChecked).length;
+    const checked = checklist.items.filter((item) => item.isChecked).length;
 
     return {
       ...checklist,
@@ -120,7 +186,7 @@ class ChecklistService {
   async createChecklist(userId: number, data: CreateChecklist): Promise<ChecklistWithItems> {
     const { items, tripId, ...checklistData } = data;
 
-    const createData: any = {
+    const createData = {
       name: checklistData.name,
       description: checklistData.description,
       type: checklistData.type,
@@ -129,6 +195,7 @@ class ChecklistService {
       user: {
         connect: { id: userId },
       },
+      ...(tripId !== null && tripId !== undefined ? { tripId } : {}),
       items: items
         ? {
             create: items.map((item, index) => ({
@@ -136,16 +203,11 @@ class ChecklistService {
               description: item.description ?? null,
               isDefault: item.isDefault ?? false,
               sortOrder: item.sortOrder ?? index,
-              metadata: item.metadata ?? undefined,
+              metadata: item.metadata ?? null,
             })),
           }
         : undefined,
     };
-
-    // Only add tripId if it's defined and not null
-    if (tripId !== null && tripId !== undefined) {
-      createData.tripId = tripId;
-    }
 
     const checklist = await prisma.checklist.create({
       data: createData,
@@ -214,7 +276,7 @@ class ChecklistService {
   async addChecklistItem(
     checklistId: number,
     userId: number,
-    itemData: { name: string; description?: string | null; metadata?: any }
+    itemData: { name: string; description?: string | null; metadata?: Record<string, unknown> }
   ) {
     // Verify checklist ownership
     const checklist = await prisma.checklist.findFirst({
@@ -426,7 +488,7 @@ class ChecklistService {
     const checklists = await prisma.checklist.findMany({
       where: { userId },
       include: { items: true },
-    });
+    }) as ChecklistFromPrisma[];
 
     // Get user's trips with locations and transportation
     const trips = await prisma.trip.findMany({
@@ -440,15 +502,15 @@ class ChecklistService {
           where: { type: 'Flight' },
         },
       },
-    });
+    }) as TripWithRelations[];
 
     // Process Airports checklist
-    const airportsChecklist = checklists.find((c: any) => c.type === 'airports');
+    const airportsChecklist = checklists.find((c) => c.type === 'airports');
     if (airportsChecklist) {
       const visitedAirportCodes = new Set<string>();
 
-      trips.forEach((trip: any) => {
-        trip.transportation.forEach((t: any) => {
+      trips.forEach((trip) => {
+        trip.transportation.forEach((t) => {
           // Extract airport codes from location text (e.g., "LAX - Los Angeles" -> "LAX")
           if (t.startLocationText) {
             const match = t.startLocationText.match(/\(([A-Z]{3})\)/);
@@ -464,8 +526,8 @@ class ChecklistService {
       // Check off visited airports
       for (const item of airportsChecklist.items) {
         if (!item.isChecked && item.metadata && typeof item.metadata === 'object' && 'code' in item.metadata) {
-          const code = (item.metadata as any).code;
-          if (visitedAirportCodes.has(code)) {
+          const code = getMetadataValue<AirportMetadata>(item.metadata, 'code') as string;
+          if (code && visitedAirportCodes.has(code)) {
             await prisma.checklistItem.update({
               where: { id: item.id },
               data: { isChecked: true, checkedAt: new Date() },
@@ -477,15 +539,15 @@ class ChecklistService {
     }
 
     // Process Countries checklist
-    const countriesChecklist = checklists.find((c: any) => c.type === 'countries');
+    const countriesChecklist = checklists.find((c) => c.type === 'countries');
     if (countriesChecklist) {
       const visitedCountries = new Set<string>();
 
-      trips.forEach((trip: any) => {
-        trip.locations.forEach((location: any) => {
+      trips.forEach((trip) => {
+        trip.locations.forEach((location) => {
           // Extract country from address (simple heuristic - last part after comma)
           if (location.address) {
-            const parts = location.address.split(',').map((p: any) => p.trim());
+            const parts = location.address.split(',').map((p) => p.trim());
             if (parts.length > 0) {
               const country = parts[parts.length - 1];
               visitedCountries.add(country);
@@ -516,15 +578,15 @@ class ChecklistService {
     }
 
     // Process Cities checklist
-    const citiesChecklist = checklists.find((c: any) => c.type === 'cities');
+    const citiesChecklist = checklists.find((c) => c.type === 'cities');
     if (citiesChecklist) {
       const visitedCities = new Set<string>();
 
-      trips.forEach((trip: any) => {
-        trip.locations.forEach((location: any) => {
+      trips.forEach((trip) => {
+        trip.locations.forEach((location) => {
           // Extract city from address or location name
           if (location.address) {
-            const parts = location.address.split(',').map((p: any) => p.trim());
+            const parts = location.address.split(',').map((p) => p.trim());
             if (parts.length >= 2) {
               const city = parts[0]; // First part is usually the city
               visitedCities.add(city);
@@ -557,17 +619,17 @@ class ChecklistService {
     }
 
     // Process US States checklist
-    const usStatesChecklist = checklists.find((c: any) => c.type === 'us_states');
+    const usStatesChecklist = checklists.find((c) => c.type === 'us_states');
     if (usStatesChecklist) {
       const visitedStates = new Set<string>();
 
-      trips.forEach((trip: any) => {
-        trip.locations.forEach((location: any) => {
+      trips.forEach((trip) => {
+        trip.locations.forEach((location) => {
           // Extract state from address
           if (location.address) {
-            const parts = location.address.split(',').map((p: any) => p.trim());
+            const parts = location.address.split(',').map((p) => p.trim());
             // Look for state codes or names in address parts
-            parts.forEach((part: any) => {
+            parts.forEach((part) => {
               // Check if it matches a state code (2 letters)
               if (/^[A-Z]{2}$/.test(part)) {
                 visitedStates.add(part);
@@ -582,23 +644,25 @@ class ChecklistService {
       // Check off visited states
       for (const item of usStatesChecklist.items) {
         if (!item.isChecked && item.metadata && typeof item.metadata === 'object' && 'code' in item.metadata) {
-          const code = (item.metadata as any).code;
-          const name = (item.metadata as any).name;
+          const code = getMetadataValue<StateMetadata>(item.metadata, 'code') as string | undefined;
+          const name = getMetadataValue<StateMetadata>(item.metadata, 'name') as string | undefined;
 
-          // Check if state code or name is in visited states
-          const isVisited = Array.from(visitedStates).some(vs =>
-            vs === code ||
-            vs.toLowerCase() === name.toLowerCase() ||
-            vs.toLowerCase().includes(name.toLowerCase()) ||
-            name.toLowerCase().includes(vs.toLowerCase())
-          );
+          if (code && name) {
+            // Check if state code or name is in visited states
+            const isVisited = Array.from(visitedStates).some(vs =>
+              vs === code ||
+              vs.toLowerCase() === name.toLowerCase() ||
+              vs.toLowerCase().includes(name.toLowerCase()) ||
+              name.toLowerCase().includes(vs.toLowerCase())
+            );
 
-          if (isVisited) {
-            await prisma.checklistItem.update({
-              where: { id: item.id },
-              data: { isChecked: true, checkedAt: new Date() },
-            });
-            updated++;
+            if (isVisited) {
+              await prisma.checklistItem.update({
+                where: { id: item.id },
+                data: { isChecked: true, checkedAt: new Date() },
+              });
+              updated++;
+            }
           }
         }
       }
@@ -635,9 +699,9 @@ class ChecklistService {
         type: { in: types },
       },
       select: { type: true },
-    });
+    }) as Array<{ type: string }>;
 
-    const existingTypes = new Set(existing.map((c: any) => c.type));
+    const existingTypes = new Set(existing.map((c) => c.type));
 
     for (const type of types) {
       if (existingTypes.has(type)) {
@@ -781,9 +845,9 @@ class ChecklistService {
         isDefault: true,
       },
       select: { type: true },
-    });
+    }) as Array<{ type: string }>;
 
-    const existingTypes = new Set(existing.map((c: any) => c.type));
+    const existingTypes = new Set(existing.map((c) => c.type));
 
     return [
       {
@@ -827,9 +891,9 @@ class ChecklistService {
         isDefault: true,
       },
       select: { type: true },
-    });
+    }) as Array<{ type: string }>;
 
-    const existingTypes = new Set(existing.map((c: any) => c.type));
+    const existingTypes = new Set(existing.map((c) => c.type));
 
     // Restore missing Airports checklist
     if (!existingTypes.has('airports')) {

@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  optionalNullable,
+  requiredStringWithMax,
+  optionalDatetime,
+} from '../utils/zodHelpers';
 
 export interface JournalEntry {
   id: number;
@@ -16,16 +21,16 @@ export interface JournalEntry {
 // Validation schemas
 export const createJournalEntrySchema = z.object({
   tripId: z.number(),
-  title: z.string().min(1).max(500),
+  title: requiredStringWithMax(500),
   content: z.string().min(1),
   entryDate: z.string().optional(),
   entryType: z.string().optional(), // Optional, defaults to 'daily' in service
 });
 
 export const updateJournalEntrySchema = z.object({
-  title: z.string().min(1).max(500).optional().nullable(),
+  title: optionalNullable(requiredStringWithMax(500)),
   content: z.string().min(1).optional(),
-  entryDate: z.string().optional().nullable(),
+  entryDate: optionalDatetime(),
 });
 
 export type CreateJournalEntryInput = z.infer<typeof createJournalEntrySchema>;

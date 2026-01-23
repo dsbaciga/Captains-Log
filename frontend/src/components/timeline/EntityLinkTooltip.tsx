@@ -90,7 +90,7 @@ export default function EntityLinkTooltip({
       {showTooltip && (
         <div
           ref={tooltipRef}
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20 pointer-events-none"
         >
           <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg py-2 px-3 shadow-lg whitespace-nowrap max-w-xs">
             {isLoading ? (

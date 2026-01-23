@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Activity, CreateActivityInput, UpdateActivityInput } from "../types/activity";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
@@ -16,7 +15,9 @@ import {
   formatDateInTimezone,
 } from "../utils/timezone";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
+import { useFormReset } from "../hooks/useFormReset";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
@@ -53,16 +54,46 @@ export default function ActivityManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Create wrappers for useFormReset hook
+  // ActivityManager uses editingActivity instead of form fields, so we adapt the pattern
+  const setShowForm = useCallback((show: boolean) => {
+    if (show) {
+      if (!manager.showForm) manager.toggleForm();
+    } else {
+      manager.closeForm();
+    }
+  }, [manager]);
+
+  // Define a setter for the edit state that resets all editing-related state
+  const setEditState = useCallback((state: { activity: Activity | null; locationId: number | null } | null) => {
+    if (state === null) {
+      setEditingActivity(null);
+      setEditingLocationId(null);
+      setOriginalLocationId(null);
+      setFormKey((k) => k + 1); // Force form component to reset
+    } else {
+      setEditingActivity(state.activity);
+      setEditingLocationId(state.locationId);
+      setOriginalLocationId(state.locationId);
+    }
+  }, []);
+
+  // Use useFormReset for consistent form state management
+  const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
+    initialState: null as { activity: Activity | null; locationId: number | null } | null,
+    setFormData: setEditState,
+    setEditingId: manager.setEditingId,
+    setShowForm,
+  });
 
   useEffect(() => {
     loadUserCategories();
@@ -73,33 +104,34 @@ export default function ActivityManager({
     setLocalLocations(locations);
   }, [locations]);
 
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      // Clear the edit param from URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      // Set pending edit ID to be handled when items are loaded
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Handle pending edit when items are loaded (from URL ?edit=id parameter)
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((a) => a.id === pendingEditId);
-      if (item) {
-        handleEdit(item);
+  // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
+  const handleEdit = useCallback(async (activity: Activity) => {
+    // Fetch linked location via entity linking system
+    let locationId: number | null = null;
+    try {
+      const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
+      if (links.length > 0 && links[0].targetId) {
+        locationId = links[0].targetId;
       }
-      setPendingEditId(null);
+    } catch {
+      // If fetching links fails, proceed without location
     }
-    // Note: handleEdit excluded intentionally - we only want to trigger when
-    // pendingEditId is set and items finish loading, not when handleEdit changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEditId, manager.items, manager.loading]);
+
+    setEditingActivity(activity);
+    setEditingLocationId(locationId);
+    setOriginalLocationId(locationId);
+    manager.openEditForm(activity.id);
+  }, [tripId, manager]);
+
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((activity: Activity) => {
+    handleEdit(activity);
+  }, [handleEdit]);
+
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
 
   const loadUserCategories = async () => {
     try {
@@ -129,32 +161,17 @@ export default function ActivityManager({
     setLocalLocations([...localLocations, newLocation]);
   };
 
-  const resetForm = () => {
-    setEditingActivity(null);
-    setEditingLocationId(null);
-    setOriginalLocationId(null);
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
     setKeepFormOpenAfterSave(false);
-    setFormKey((k) => k + 1); // Force form component to reset
-    manager.setEditingId(null);
-  };
+  }, [baseResetForm]);
 
-  const handleEdit = async (activity: Activity) => {
-    // Fetch linked location via entity linking system
-    let locationId: number | null = null;
-    try {
-      const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
-      if (links.length > 0 && links[0].targetId) {
-        locationId = links[0].targetId;
-      }
-    } catch {
-      // If fetching links fails, proceed without location
-    }
-
-    setEditingActivity(activity);
-    setEditingLocationId(locationId);
-    setOriginalLocationId(locationId);
-    manager.openEditForm(activity.id);
-  };
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+  }, [baseOpenCreateForm]);
 
   const handleFormSubmit = async (data: ActivityFormData, newLocationId: number | null) => {
     setIsSubmitting(true);
@@ -431,12 +448,14 @@ export default function ActivityManager({
           <button
             onClick={() => handleEdit(activity)}
             className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+            aria-label={`Edit activity ${activity.name}`}
           >
             Edit
           </button>
           <button
             onClick={() => handleDelete(activity.id)}
             className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+            aria-label={`Delete activity ${activity.name}`}
           >
             Delete
           </button>
@@ -452,15 +471,11 @@ export default function ActivityManager({
     );
   };
 
-  const handleCloseForm = () => {
-    resetForm();
-    manager.closeForm();
-  };
+  // resetForm already closes the form via useFormReset
+  const handleCloseForm = resetForm;
 
-  const handleOpenForm = () => {
-    resetForm();
-    manager.toggleForm();
-  };
+  // handleOpenForm uses the dedicated openCreateForm function
+  const handleOpenForm = openCreateForm;
 
   return (
     <div className="space-y-6">

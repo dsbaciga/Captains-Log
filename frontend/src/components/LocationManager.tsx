@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Location, CreateLocationInput, UpdateLocationInput, LocationCategory } from "../types/location";
 import locationService from "../services/location.service";
 import toast from "react-hot-toast";
@@ -14,6 +13,8 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useEntityLinking } from "../hooks/useEntityLinking";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import LocationSearchMap from "./LocationSearchMap";
@@ -65,51 +66,40 @@ export default function LocationManager({
 
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
+  const { openLinkPanel, closeLinkPanel, linkingEntityId, showLinkPanel } = useEntityLinking({
+    entityType: 'LOCATION',
+    tripId,
+  });
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
-  const [linkPanelLocation, setLinkPanelLocation] = useState<Location | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<LocationFormFields>(initialFormState);
 
+  // Destructure stable method for dependency array
+  const { openEditForm } = manager;
+
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((location: Location) => {
+    handleChange("name", location.name);
+    handleChange("address", location.address || "");
+    handleChange("notes", location.notes || "");
+    handleChange("latitude", location.latitude || undefined);
+    handleChange("longitude", location.longitude || undefined);
+    handleChange("parentId", location.parentId || undefined);
+    handleChange("categoryId", location.categoryId || undefined);
+    openEditForm(location.id);
+  }, [handleChange, openEditForm]);
+
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
+
   useEffect(() => {
     loadCategories();
   }, []);
-
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      // Clear the edit param from URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      // Set pending edit ID to be handled when items are loaded
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Handle pending edit when items are loaded
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((loc) => loc.id === pendingEditId);
-      if (item) {
-        handleChange("name", item.name);
-        handleChange("address", item.address || "");
-        handleChange("notes", item.notes || "");
-        handleChange("latitude", item.latitude || undefined);
-        handleChange("longitude", item.longitude || undefined);
-        handleChange("parentId", item.parentId || undefined);
-        handleChange("categoryId", item.categoryId || undefined);
-        manager.openEditForm(item.id);
-      }
-      setPendingEditId(null);
-    }
-  }, [pendingEditId, manager.items, manager.loading]);
 
   const loadCategories = async () => {
     try {
@@ -306,7 +296,7 @@ export default function LocationManager({
                       entityType="LOCATION"
                       entityId={location.id}
                       photoCount={photoCount}
-                      onViewAll={() => setLinkPanelLocation(location)}
+                      onViewAll={() => openLinkPanel(location.id)}
                     >
                       <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 cursor-pointer">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -330,12 +320,14 @@ export default function LocationManager({
               <button
                 onClick={() => handleEdit(location)}
                 className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                aria-label={`Edit location ${location.name}`}
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(location.id)}
                 className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                aria-label={`Delete location ${location.name}`}
               >
                 Delete
               </button>
@@ -579,12 +571,12 @@ export default function LocationManager({
       )}
 
       {/* Link Panel for viewing all photos */}
-      {linkPanelLocation && (
+      {showLinkPanel && linkingEntityId && (
         <LinkPanel
           tripId={tripId}
           entityType="LOCATION"
-          entityId={linkPanelLocation.id}
-          onClose={() => setLinkPanelLocation(null)}
+          entityId={linkingEntityId}
+          onClose={closeLinkPanel}
           onUpdate={invalidateLinkSummary}
         />
       )}

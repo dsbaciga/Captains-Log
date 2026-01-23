@@ -60,24 +60,7 @@ export function useScrollToHighlight(options: UseScrollToHighlightOptions = {}) 
     return null;
   }, []);
 
-  // Scroll to and highlight element
-  const scrollToElement = useCallback((entityId: string) => {
-    // Look for element with data-entity-id attribute
-    const element = document.querySelector(`[data-entity-id="${entityId}"]`);
-
-    if (!element) {
-      // Try finding by id attribute as fallback
-      const elementById = document.getElementById(entityId);
-      if (!elementById) {
-        console.debug(`[useScrollToHighlight] Element not found: ${entityId}`);
-        return false;
-      }
-      return scrollAndHighlight(elementById);
-    }
-
-    return scrollAndHighlight(element);
-  }, []);
-
+  // Scroll and highlight helper function
   const scrollAndHighlight = useCallback((element: Element) => {
     // Scroll to element
     element.scrollIntoView({
@@ -101,6 +84,24 @@ export function useScrollToHighlight(options: UseScrollToHighlightOptions = {}) 
 
     return true;
   }, [scrollBehavior, scrollBlock, highlightDuration]);
+
+  // Scroll to and highlight element
+  const scrollToElement = useCallback((entityId: string) => {
+    // Look for element with data-entity-id attribute
+    const element = document.querySelector(`[data-entity-id="${entityId}"]`);
+
+    if (!element) {
+      // Try finding by id attribute as fallback
+      const elementById = document.getElementById(entityId);
+      if (!elementById) {
+        console.debug(`[useScrollToHighlight] Element not found: ${entityId}`);
+        return false;
+      }
+      return scrollAndHighlight(elementById);
+    }
+
+    return scrollAndHighlight(element);
+  }, [scrollAndHighlight]);
 
   // Manual trigger function (useful for programmatic navigation)
   const scrollToEntity = useCallback((entityType: string, entityId: number | string) => {

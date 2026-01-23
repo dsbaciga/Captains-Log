@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import entityLinkService from '../../services/entityLink.service';
 import { getFullAssetUrl } from '../../lib/config';
+import { useDropdownPosition } from '../../hooks/useDropdownPosition';
 import type { EntityType } from '../../types/entityLink';
 import type { PhotoSource } from '../../types/photo';
 
@@ -35,6 +36,14 @@ export default function PhotoPreviewPopover({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const blobUrlsRef = useRef<string[]>([]);
+
+  // Use dropdown position hook for optimal popover placement
+  const { triggerRef, position } = useDropdownPosition<HTMLDivElement>({
+    isOpen,
+    dropdownHeight: 180, // Approximate height of popover
+    dropdownWidth: 192, // w-48 = 192px
+    viewportPadding: 16,
+  });
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
@@ -131,13 +140,32 @@ export default function PhotoPreviewPopover({
     onViewAll();
   };
 
+  // Build position classes based on calculated position
+  const verticalClass = position.openUpward ? 'bottom-full mb-2' : 'top-full mt-2';
+  const arrowClass = position.openUpward
+    ? 'absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700 transform rotate-45'
+    : 'absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-gray-800 border-l border-t border-gray-200 dark:border-gray-700 transform rotate-45';
+
   return (
     <div
+      ref={triggerRef}
       className="relative inline-block"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div onClick={handleClick} className="cursor-pointer">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        aria-label={`View ${photoCount} photos`}
+        className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky rounded"
+      >
         {children}
       </div>
 
@@ -145,12 +173,12 @@ export default function PhotoPreviewPopover({
       {isOpen && (
         <div
           ref={popoverRef}
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+          className={`absolute z-20 ${verticalClass} left-1/2 -translate-x-1/2 w-48 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700`}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
           {/* Arrow */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700 transform rotate-45" />
+          <div className={arrowClass} />
 
           {loading ? (
             <div className="flex items-center justify-center h-20">

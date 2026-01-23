@@ -527,7 +527,7 @@ export default function PhotoLightbox({
                     type="button"
                     onClick={handleZoomOut}
                     disabled={zoom <= 1}
-                    className="p-2 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     aria-label="Zoom out"
                   >
                     <svg
@@ -552,7 +552,7 @@ export default function PhotoLightbox({
                     type="button"
                     onClick={handleZoomIn}
                     disabled={zoom >= 4}
-                    className="p-2 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     aria-label="Zoom in"
                   >
                     <svg
@@ -574,7 +574,7 @@ export default function PhotoLightbox({
                     <button
                       type="button"
                       onClick={resetZoom}
-                      className="p-2 text-white hover:bg-white/20 border-l border-white/20 transition-colors"
+                      className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:bg-white/20 border-l border-white/20 transition-colors"
                       aria-label="Reset zoom"
                     >
                       <svg

@@ -18,6 +18,31 @@
   }
 }
 
+/*
+ * =============================================================================
+ * Z-INDEX HIERARCHY
+ * =============================================================================
+ * Use these z-index values consistently across the application to prevent
+ * stacking conflicts. Higher values appear above lower values.
+ *
+ * z-0        : Base content (default stacking)
+ * z-10       : Sticky headers, badges, and inline overlays
+ * z-20       : Dropdowns, popovers, tooltips (within page content)
+ * z-30       : Mobile bottom navigation
+ * z-40       : Navbar, sidebars, floating action buttons
+ * z-50       : Standard modals and dialogs
+ * z-[60]     : Global search backdrop
+ * z-[70]     : Global search results, mobile menu drawer
+ * z-[80]     : Form modals, entity pickers, album modals
+ * z-[90]     : Link panels, Immich browser, entity picker modals
+ * z-[95]     : Emoji picker (above other modals)
+ * z-[100]    : Photo lightbox, confirm dialogs, toast notifications, skip-link
+ * z-[101-102]: Photo details panel (backdrop and sidebar)
+ * z-[200]    : Drag-drop upload overlay (highest priority)
+ * z-[1000]   : Location search map dropdown (within map context)
+ * =============================================================================
+ */
+
 @layer components {
   .btn {
     @apply px-4 py-2 rounded-lg font-medium font-body transition-all duration-200;
@@ -322,7 +347,7 @@
 
   /* Tooltip */
   .tooltip {
-    @apply absolute z-50 px-3 py-2 text-sm font-medium text-white
+    @apply absolute z-20 px-3 py-2 text-sm font-medium text-white
            bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg
            opacity-0 invisible
            transition-all duration-200 pointer-events-none;

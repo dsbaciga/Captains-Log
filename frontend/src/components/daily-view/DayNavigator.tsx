@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { WeatherDisplay } from '../../types/weather';
 import { getTimezoneAbbr } from './utils';
+import { useDropdownPosition } from '../../hooks/useDropdownPosition';
 
 interface DayNavigatorProps {
   currentDay: number;
@@ -24,8 +25,22 @@ export default function DayNavigator({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const buttonTriggerRef = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Use dropdown position hook for optimal menu placement
+  const { triggerRef: positionTriggerRef, position } = useDropdownPosition<HTMLButtonElement>({
+    isOpen: isDropdownOpen,
+    dropdownHeight: 320, // max-h-80 = 320px
+    dropdownWidth: 256, // w-64 = 256px
+    viewportPadding: 16,
+  });
+
+  // Combine refs for the trigger button
+  const setTriggerRefs = useCallback((el: HTMLButtonElement | null) => {
+    buttonTriggerRef.current = el;
+    (positionTriggerRef as React.MutableRefObject<HTMLButtonElement | null>).current = el;
+  }, [positionTriggerRef]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -92,7 +107,7 @@ export default function DayNavigator({
       case 'Escape':
         e.preventDefault();
         setIsDropdownOpen(false);
-        triggerRef.current?.focus();
+        buttonTriggerRef.current?.focus();
         break;
       case 'ArrowDown':
         e.preventDefault();
@@ -175,7 +190,7 @@ export default function DayNavigator({
       {/* Column 3: Day Indicator - Clickable dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
-          ref={triggerRef}
+          ref={setTriggerRefs}
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           onKeyDown={handleKeyDown}
@@ -217,7 +232,7 @@ export default function DayNavigator({
           <div
             role="listbox"
             aria-label="Select a day"
-            className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-[calc(100vw-2rem)] sm:w-64 max-w-64 max-h-80 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+            className={`absolute ${position.openUpward ? 'bottom-full mb-2' : 'top-full mt-2'} left-1/2 transform -translate-x-1/2 w-[calc(100vw-2rem)] sm:w-64 max-w-64 max-h-80 overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20`}
             onKeyDown={handleKeyDown}
           >
             <div className="p-2">

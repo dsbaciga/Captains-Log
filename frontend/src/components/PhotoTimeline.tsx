@@ -4,6 +4,7 @@ import photoService, { PhotoDateGrouping } from '../services/photo.service';
 import { formatTime, getDayNumber } from './timeline/utils';
 import { getFullAssetUrl } from '../lib/config';
 import PhotoLightbox from './PhotoLightbox';
+import EmptyState, { EmptyIllustrations } from './EmptyState';
 import toast from 'react-hot-toast';
 
 interface PhotoTimelineProps {
@@ -299,33 +300,11 @@ export default function PhotoTimeline({
 
   if (dayGroups.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-        <svg
-          className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-        <p className="text-lg font-medium mb-2">No dated photos</p>
-        <p className="text-sm">
-          Photos need a "taken at" date to appear in the timeline.
-          <br />
-          Upload photos with EXIF data or manually set the date.
-        </p>
-        {totalWithoutDates > 0 && (
-          <p className="text-sm mt-2 text-gray-400">
-            {totalWithoutDates} photos without dates are not shown.
-          </p>
-        )}
-      </div>
+      <EmptyState
+        icon={<EmptyIllustrations.NoPhotos />}
+        message="No dated photos"
+        subMessage={`Photos need a "taken at" date to appear in the timeline. Upload photos with EXIF data or manually set the date.${totalWithoutDates > 0 ? ` (${totalWithoutDates} photos without dates are not shown)` : ''}`}
+      />
     );
   }
 

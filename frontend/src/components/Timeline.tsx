@@ -26,6 +26,7 @@ import {
 } from './timeline/index';
 import type { TimelineItem, TimelineItemType, DayGroup, DayStats, UnscheduledActivityWithLocation } from './timeline/types';
 import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
+import EmptyState from './EmptyState';
 
 interface TimelineProps {
   tripId: number;
@@ -1285,10 +1286,10 @@ const Timeline = ({
 
   if (timelineItems.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-        No timeline items yet. Add activities, transportation, lodging, or journal entries to see
-        them here.
-      </div>
+      <EmptyState.Compact
+        icon="📅"
+        message="No timeline items yet. Add activities, transportation, lodging, or journal entries to see them here."
+      />
     );
   }
 

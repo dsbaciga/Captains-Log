@@ -181,7 +181,7 @@ export class LocationService {
     });
 
     // Verify access
-    await verifyEntityAccess(location, userId, 'Location');
+    const verifiedLocation = await verifyEntityAccess(location, userId, 'Location');
 
     // If updating parentId, verify it exists and belongs to the same trip
     if (data.parentId !== undefined && data.parentId !== null) {
@@ -193,7 +193,7 @@ export class LocationService {
       const parent = await prisma.location.findFirst({
         where: {
           id: data.parentId,
-          tripId: location!.tripId,
+          tripId: verifiedLocation.tripId,
         },
       });
 
@@ -231,18 +231,20 @@ export class LocationService {
     return convertDecimals(updatedLocation);
   }
 
-  // Helper method to get all descendants of a location
+  // Helper method to get all descendants of a location using recursive CTE
+  // This is O(1) queries instead of O(n) for the recursive approach
   private async getDescendants(locationId: number): Promise<{ id: number }[]> {
-    const children = await prisma.location.findMany({
-      where: { parentId: locationId },
-      select: { id: true },
-    });
-
-    const descendants = [...children];
-    for (const child of children) {
-      const childDescendants = await this.getDescendants(child.id);
-      descendants.push(...childDescendants);
-    }
+    const descendants = await prisma.$queryRaw<{ id: number }[]>`
+      WITH RECURSIVE descendants AS (
+        -- Base case: direct children of the location
+        SELECT id FROM "locations" WHERE "parentId" = ${locationId}
+        UNION ALL
+        -- Recursive case: children of descendants
+        SELECT l.id FROM "locations" l
+        INNER JOIN descendants d ON l."parentId" = d.id
+      )
+      SELECT id FROM descendants
+    `;
 
     return descendants;
   }

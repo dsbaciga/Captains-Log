@@ -3,7 +3,7 @@ import {
   CreateTransportationInput,
   UpdateTransportationInput,
 } from '../types/transportation.types';
-import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecimals } from '../utils/serviceHelpers';
 import { locationWithAddressSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
@@ -59,11 +59,11 @@ class TransportationService {
 
     // Verify locations belong to trip if provided
     if (data.fromLocationId) {
-      await verifyLocationInTrip(data.fromLocationId, data.tripId);
+      await verifyEntityInTrip('location', data.fromLocationId, data.tripId);
     }
 
     if (data.toLocationId) {
-      await verifyLocationInTrip(data.toLocationId, data.tripId);
+      await verifyEntityInTrip('location', data.toLocationId, data.tripId);
     }
 
     const transportation = await prisma.transportation.create({
@@ -155,7 +155,9 @@ class TransportationService {
   private async enhanceTransportations(transportations: any[]) {
     // Enhance with computed fields and map to frontend format
     const now = new Date();
-    const enhancedTransportations = await Promise.all(transportations.map(async (t) => {
+    let enhancedTransportations: Record<string, any>[];
+    try {
+      enhancedTransportations = await Promise.all(transportations.map(async (t) => {
       const mapped = mapTransportationToFrontend(t);
 
       // Calculate route if we have coordinates
@@ -182,7 +184,9 @@ class TransportationService {
         // Always attempt for car/bike/walk types, even if distance was calculated with Haversine
         // The routing service will use cache if available and handle fallbacks gracefully
         if (t.type === 'car' || t.type === 'bicycle' || t.type === 'bike' || t.type === 'walk' || t.type === 'walking') {
-          console.log(`[Transportation Service] Fetching route geometry for ${t.type} transportation (id: ${t.id})`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Transportation Service] Fetching route geometry for ${t.type} transportation (id: ${t.id})`);
+          }
           try {
             // Determine routing profile based on transportation type
             let profile: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car';
@@ -205,9 +209,11 @@ class TransportationService {
             );
 
             if (route.geometry) {
-              console.log(`[Transportation Service] Route geometry obtained: ${route.geometry.length} coordinates, source: ${route.source}`);
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[Transportation Service] Route geometry obtained: ${route.geometry.length} coordinates, source: ${route.source}`);
+              }
               mapped.route.geometry = route.geometry;
-            } else {
+            } else if (process.env.NODE_ENV === 'development') {
               console.log(`[Transportation Service] No geometry returned (source: ${route.source})`);
             }
           } catch (error) {
@@ -238,6 +244,10 @@ class TransportationService {
 
       return mapped;
     }));
+    } catch (error) {
+      console.error('Failed to enhance transportation data:', error);
+      throw new Error('Failed to enhance transportation data: ' + (error as Error).message);
+    }
 
     return enhancedTransportations;
   }
@@ -288,11 +298,11 @@ class TransportationService {
 
     // Verify locations belong to trip if provided
     if (data.fromLocationId !== undefined && data.fromLocationId !== null) {
-      await verifyLocationInTrip(data.fromLocationId, verifiedTransportation.tripId);
+      await verifyEntityInTrip('location', data.fromLocationId, verifiedTransportation.tripId);
     }
 
     if (data.toLocationId !== undefined && data.toLocationId !== null) {
-      await verifyLocationInTrip(data.toLocationId, verifiedTransportation.tripId);
+      await verifyEntityInTrip('location', data.toLocationId, verifiedTransportation.tripId);
     }
 
     const updatedTransportation = await prisma.transportation.update({
@@ -420,9 +430,11 @@ class TransportationService {
         },
       });
 
-      console.log(
-        `[Transportation Service] Calculated ${route.source} distance for transportation ${transportationId}: ${route.distance.toFixed(2)} km`
-      );
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          `[Transportation Service] Calculated ${route.source} distance for transportation ${transportationId}: ${route.distance.toFixed(2)} km`
+        );
+      }
     } catch (error) {
       console.error('[Transportation Service] Failed to calculate route distance:', error);
       // Don't throw - route calculation failure shouldn't break the request

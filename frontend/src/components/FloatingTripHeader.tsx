@@ -26,7 +26,9 @@ export default function FloatingTripHeader({ trip, observeRef }: FloatingTripHea
       {
         // Trigger when header completely leaves viewport
         threshold: 0,
-        rootMargin: '-80px 0px 0px 0px', // Account for navbar height
+        // Use mobile navbar height (64px/h-16) as minimum to ensure no gap
+        // On desktop (80px/h-20), floating header appears 16px early which is preferable
+        rootMargin: '-64px 0px 0px 0px',
       }
     );
 

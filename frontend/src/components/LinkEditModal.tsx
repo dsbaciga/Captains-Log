@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
 import type { EnrichedEntityLink, LinkRelationship } from '../types/entityLink';
@@ -9,6 +9,9 @@ import {
   getRelationshipLabel,
 } from '../lib/entityConfig';
 import toast from 'react-hot-toast';
+
+/** Selector for all focusable elements within a modal */
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface LinkEditModalProps {
   tripId: number;
@@ -25,17 +28,56 @@ export default function LinkEditModal({
 }: LinkEditModalProps) {
   const [relationship, setRelationship] = useState<LinkRelationship>(link.relationship);
   const [notes, setNotes] = useState(link.notes || '');
+  const modalRef = useRef<HTMLDivElement>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
 
-  // Handle Escape key to close modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
+  // Handle keyboard events including focus trap
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Escape to close
+    if (e.key === 'Escape') {
+      onClose();
+      return;
+    }
+
+    // Focus trap - keep Tab navigation within the modal
+    if (e.key === 'Tab' && modalRef.current) {
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
       }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    }
   }, [onClose]);
+
+  // Focus management and keyboard handling
+  useEffect(() => {
+    // Store the currently focused element to restore later
+    triggerElementRef.current = document.activeElement as HTMLElement;
+
+    // Focus the first focusable input (the select dropdown)
+    setTimeout(() => {
+      const firstInput = modalRef.current?.querySelector<HTMLElement>('select, input, textarea');
+      firstInput?.focus();
+    }, 0);
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      // Return focus to the trigger element
+      triggerElementRef.current?.focus();
+    };
+  }, [handleKeyDown]);
 
   const updateMutation = useMutation({
     mutationFn: () =>
@@ -64,11 +106,20 @@ export default function LinkEditModal({
   const targetName = link.targetEntity?.name || link.targetEntity?.title || link.targetEntity?.caption || `ID: ${link.targetId}`;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[90] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 z-[90] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="link-edit-title"
+    >
+      <div
+        ref={modalRef}
+        tabIndex={-1}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 id="link-edit-title" className="text-lg font-semibold text-gray-900 dark:text-white">
             Edit Link
           </h3>
           <button

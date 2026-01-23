@@ -19,6 +19,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';
 import ScrollToTop from './components/ScrollToTop';
+import ErrorBoundary from './components/ErrorBoundary';
 import { debugLogger } from './utils/debugLogger';
 
 // Create a client
@@ -75,118 +76,132 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ScrollToTop />
-        <Toaster position="top-right" containerClassName="z-[100]" />
-        {/* Skip to content link for accessibility */}
-        <a href="#main-content" className="skip-link">
-          Skip to main content
-        </a>
-        <Navbar />
-        <main id="main-content" className="pt-16 sm:pt-20 pb-16 md:pb-0" tabIndex={-1}>
-          <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trips"
-          element={
-            <ProtectedRoute>
-              <TripsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trips/new"
-          element={
-            <ProtectedRoute>
-              <TripFormPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trips/:id"
-          element={
-            <ProtectedRoute>
-              <TripDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trips/:id/edit"
-          element={
-            <ProtectedRoute>
-              <TripFormPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trips/:tripId/albums/:albumId"
-          element={
-            <ProtectedRoute>
-              <AlbumDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/albums"
-          element={
-            <ProtectedRoute>
-              <GlobalAlbumsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/companions"
-          element={
-            <ProtectedRoute>
-              <CompanionsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/places-visited"
-          element={
-            <ProtectedRoute>
-              <PlacesVisitedPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/checklists"
-          element={
-            <ProtectedRoute>
-              <ChecklistsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/checklists/:id"
-          element={
-            <ProtectedRoute>
-              <ChecklistDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
-        </Routes>
-      </main>
-      <MobileBottomNav />
-    </BrowserRouter>
+        <ErrorBoundary
+          onError={(error, errorInfo) => {
+            debugLogger.error('ErrorBoundary caught error', error, {
+              component: 'App',
+              operation: 'ErrorBoundary',
+              data: { componentStack: errorInfo.componentStack },
+            });
+          }}
+        >
+          <ScrollToTop />
+          <Toaster position="top-right" containerClassName="z-[100]" />
+          {/* Skip to content link for accessibility */}
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
+          <Navbar />
+          <main id="main-content" className="pt-16 sm:pt-20 pb-16 md:pb-0" tabIndex={-1}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trips"
+                element={
+                  <ProtectedRoute>
+                    <TripsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trips/new"
+                element={
+                  <ProtectedRoute>
+                    <TripFormPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trips/:id"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <TripDetailPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trips/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <TripFormPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trips/:tripId/albums/:albumId"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <AlbumDetailPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/albums"
+                element={
+                  <ProtectedRoute>
+                    <GlobalAlbumsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/companions"
+                element={
+                  <ProtectedRoute>
+                    <CompanionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/places-visited"
+                element={
+                  <ProtectedRoute>
+                    <PlacesVisitedPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/checklists"
+                element={
+                  <ProtectedRoute>
+                    <ChecklistsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/checklists/:id"
+                element={
+                  <ProtectedRoute>
+                    <ChecklistDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </main>
+          <MobileBottomNav />
+        </ErrorBoundary>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

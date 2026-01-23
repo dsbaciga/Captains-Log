@@ -125,7 +125,7 @@ export default function TransportationStats({
             Flight Statistics
           </h3>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 {flightStats.count}
@@ -212,7 +212,7 @@ export default function TransportationStats({
               <span>{getTypeLabel(type)} Statistics</span>
             </h3>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4">
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                   {stats.count}
