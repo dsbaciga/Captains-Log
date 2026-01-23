@@ -1,8 +1,8 @@
 import { ActivityIcon, LocationIcon } from './icons';
-import type { Activity } from './types';
+import type { UnscheduledActivityWithLocation } from './types';
 
 interface UnscheduledActivityCardProps {
-  activity: Activity;
+  activity: UnscheduledActivityWithLocation;
   isCompact?: boolean;
 }
 
@@ -59,15 +59,17 @@ export default function UnscheduledActivityCard({
             )}
           </div>
 
-          {/* Location */}
-          {activity.location && (
+          {/* Linked Location(s) */}
+          {activity.linkedLocations && activity.linkedLocations.length > 0 && (
             <div
               className={`flex items-center gap-1.5 text-gray-600 dark:text-gray-400 ${
                 isCompact ? 'mt-1 text-xs' : 'mt-1.5 text-sm'
               }`}
             >
               <LocationIcon className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="truncate">{activity.location.name}</span>
+              <span className="truncate">
+                {activity.linkedLocations.map(loc => loc.name).join(', ')}
+              </span>
             </div>
           )}
 
