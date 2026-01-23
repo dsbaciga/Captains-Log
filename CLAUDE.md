@@ -9,7 +9,7 @@ The reference folder is organized into three categories:
 ### Architecture Documentation (`reference/app_architecture/`)
 - [FRONTEND_ARCHITECTURE.md](reference/app_architecture/FRONTEND_ARCHITECTURE.md) - **Detailed frontend architecture guide covering component patterns, state management, data flow, routing, and best practices.**
 - [BACKEND_ARCHITECTURE.md](reference/app_architecture/BACKEND_ARCHITECTURE.md) - **Detailed backend architecture guide covering layered architecture, database patterns, authentication, validation, error handling, and best practices.**
-- [STYLE_GUIDE.md](reference/app_architecture/STYLE_GUIDE.md) - **UI design system and visual conventions including colors, typography, components, dark mode patterns, animations, and accessibility guidelines.**
+- [STYLE_GUIDE.md](reference/app_architecture/STYLE_GUIDE.md) - **REQUIRED READING for UI work. Complete design system covering colors (Compass Gold palette), typography, component classes, dark mode, animations, and accessibility. Always consult before creating or modifying UI components.**
 
 ### Development Tracking (`reference/development/`)
 - [IMPLEMENTATION_STATUS.md](reference/development/IMPLEMENTATION_STATUS.md) - **Current project status, completed features, and remaining work. Update this file whenever significant features are completed or new issues are discovered.**
@@ -340,6 +340,43 @@ Check running servers: `netstat -ano | findstr "LISTENING" | findstr ":3000 :500
    - Create TypeScript types in `src/types/<feature>.ts`
    - Create service in `src/services/<feature>.service.ts`
    - Create components/pages as needed
+   - **Follow the Style Guide** for all UI components (see below)
+
+### Working with UI Components
+
+**IMPORTANT: Always consult the Style Guide when creating or modifying UI components.**
+
+Before writing any frontend UI code, read [reference/app_architecture/STYLE_GUIDE.md](reference/app_architecture/STYLE_GUIDE.md) to ensure consistency with the design system.
+
+**Mandatory Style Guide Usage**:
+
+1. **Colors**: Use the Compass Gold palette (`primary-*`, `accent-*`, `gold`) - never hardcode hex values
+2. **Typography**: Use `font-display` (Crimson Pro) for headings, `font-body` (Manrope) for text
+3. **Components**: Use existing CSS classes (`.btn-primary`, `.card`, `.input`, etc.) before creating custom styles
+4. **Dark Mode**: Always pair light/dark classes (e.g., `bg-white dark:bg-navy-800`)
+5. **Animations**: Use defined animations (`animate-fade-in`, `animate-scale-in`, etc.)
+6. **Accessibility**: Follow touch target sizes (44x44px), focus indicators, and reduced motion support
+
+**Quick Reference - Common Classes**:
+
+| Need | Use |
+|------|-----|
+| Primary button | `.btn-primary` |
+| Secondary button | `.btn-secondary` |
+| Form input | `.input` |
+| Card container | `.card` or `.card-interactive` |
+| Loading spinner | `<LoadingSpinner />` component |
+| Empty state | `<EmptyState />` component |
+| Skeleton loading | `<SkeletonCard />`, `<SkeletonGrid />` |
+
+**Key Style Guide Sections**:
+
+- **Color System**: Primary colors, status colors, dark mode colors
+- **Components**: Buttons, inputs, cards, modals, tabs, empty states, loading states
+- **Animations**: Hover effects, feedback animations, stagger delays
+- **Utility Classes**: Responsive typography, visual effects, CSS variable utilities
+
+See the full [STYLE_GUIDE.md](reference/app_architecture/STYLE_GUIDE.md) for complete documentation including code examples.
 
 ### Database Changes
 
