@@ -1,6 +1,19 @@
 import axios from 'axios';
+import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Retry configuration for rate limiting (429) errors
+const MAX_RETRIES = 4;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
+interface RetryConfig extends InternalAxiosRequestConfig {
+  _retryCount?: number;
+  _retry?: boolean;
+}
+
+// Helper to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -22,13 +35,36 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor to handle token refresh and rate limiting
 axiosInstance.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  async (error: AxiosError) => {
+    const originalRequest = error.config as RetryConfig;
 
-    // If error is 401 and we haven't tried to refresh yet
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    // Handle rate limiting (429 Too Many Requests) with exponential backoff
+    if (error.response?.status === 429) {
+      const retryCount = originalRequest._retryCount || 0;
+
+      if (retryCount < MAX_RETRIES) {
+        originalRequest._retryCount = retryCount + 1;
+
+        // Calculate delay with exponential backoff: 1s, 2s, 4s, 8s
+        const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+
+        console.log(`Rate limited (429). Retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+
+        await delay(retryDelay);
+        return axiosInstance(originalRequest);
+      }
+
+      console.error(`Rate limit retry exhausted after ${MAX_RETRIES} attempts`);
+    }
+
+    // Handle 401 (Unauthorized) - token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 

@@ -33,6 +33,44 @@ interface ThumbnailCache {
   [photoId: number]: string; // Maps photo ID to blob URL
 }
 
+// Helper function for delays
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Fetch with retry logic for rate limiting (429 errors)
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 4,
+  initialDelay = 1000
+): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+
+      // If rate limited, wait and retry
+      if (response.status === 429 && attempt < maxRetries) {
+        const retryDelay = initialDelay * Math.pow(2, attempt);
+        console.log(`[PhotoGallery] Rate limited (429). Retrying in ${retryDelay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await delay(retryDelay);
+        continue;
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < maxRetries) {
+        const retryDelay = initialDelay * Math.pow(2, attempt);
+        console.log(`[PhotoGallery] Fetch error. Retrying in ${retryDelay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await delay(retryDelay);
+      }
+    }
+  }
+
+  throw lastError || new Error('Fetch failed after retries');
+}
+
 export default function PhotoGallery({
   photos,
   albums,
@@ -135,6 +173,9 @@ export default function PhotoGallery({
         return;
       }
 
+      // Small delay between thumbnail fetches to avoid rate limiting
+      const THUMBNAIL_FETCH_DELAY = 50; // 50ms between requests
+
       for (const photo of photos) {
         // Skip if already cached, currently fetching, or not an Immich photo
         if (
@@ -158,7 +199,7 @@ export default function PhotoGallery({
             fullUrl
           );
 
-          const response = await fetch(fullUrl, {
+          const response = await fetchWithRetry(fullUrl, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -171,6 +212,9 @@ export default function PhotoGallery({
             fetchingPhotos.current.delete(photo.id);
             continue;
           }
+
+          // Add small delay before next fetch to avoid rate limiting
+          await delay(THUMBNAIL_FETCH_DELAY);
 
           const blob = await response.blob();
           const blobUrl = URL.createObjectURL(blob);

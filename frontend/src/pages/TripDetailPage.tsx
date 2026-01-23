@@ -1582,17 +1582,23 @@ export default function TripDetailPage() {
                     }
                     onLoadAllPhotos={async () => {
                       // Load all remaining photos for current view
+                      // Add small delay between requests to avoid rate limiting
+                      const throttleDelay = () => new Promise(resolve => setTimeout(resolve, 100));
+
                       if (selectedAlbumId === null) {
                         while (photosPagination.hasMore) {
                           await photosPagination.loadMore();
+                          await throttleDelay();
                         }
                       } else if (selectedAlbumId === -1) {
                         while (unsortedPagination.hasMore) {
                           await unsortedPagination.loadMore();
+                          await throttleDelay();
                         }
                       } else {
                         while (albumPhotosPagination.hasMore) {
                           await albumPhotosPagination.loadMore();
+                          await throttleDelay();
                         }
                       }
                     }}
