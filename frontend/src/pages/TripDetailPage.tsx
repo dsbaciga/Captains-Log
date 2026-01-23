@@ -197,11 +197,11 @@ export default function TripDetailPage() {
 
   const { albums = [], unsortedCount: unsortedPhotosCount = 0, totalCount: totalPhotosCount = 0 } = albumsData || {};
   
-  const activitiesCount = useMemo(() => activitiesData?.filter(a => a.startTime || a.allDay).length || 0, [activitiesData]);
+  const activitiesCount = useMemo(() => activitiesData?.length || 0, [activitiesData]);
   const unscheduledActivitiesCount = useMemo(() => activitiesData?.filter(a => !a.startTime && !a.allDay).length || 0, [activitiesData]);
-  const transportationCount = useMemo(() => transportationData?.filter(t => t.departureTime).length || 0, [transportationData]);
+  const transportationCount = useMemo(() => transportationData?.length || 0, [transportationData]);
   const unscheduledTransportationCount = useMemo(() => transportationData?.filter(t => !t.departureTime).length || 0, [transportationData]);
-  const lodgingCount = useMemo(() => lodgingData?.filter(l => l.checkInDate).length || 0, [lodgingData]);
+  const lodgingCount = useMemo(() => lodgingData?.length || 0, [lodgingData]);
   const unscheduledLodgingCount = useMemo(() => lodgingData?.filter(l => !l.checkInDate).length || 0, [lodgingData]);
   const unscheduledCount = useMemo(() => unscheduledActivitiesCount + unscheduledTransportationCount + unscheduledLodgingCount, [unscheduledActivitiesCount, unscheduledTransportationCount, unscheduledLodgingCount]);
   const journalCount = useMemo(() => journalData?.length || 0, [journalData]);
