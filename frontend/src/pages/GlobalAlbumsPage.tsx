@@ -12,6 +12,7 @@ import tagService from "../services/tag.service";
 import type { TripTag } from "../types/tag";
 import EmptyState, { EmptyIllustrations } from "../components/EmptyState";
 import { formatTripDates } from "../utils/dateFormat";
+import LinkButton from "../components/LinkButton";
 
 type SortOption =
   | "tripDate-desc"
@@ -726,6 +727,22 @@ export default function GlobalAlbumsPage() {
                                 <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-md text-white text-xs font-medium">
                                   {photoCount} photo
                                   {photoCount !== 1 ? "s" : ""}
+                                </div>
+
+                                {/* Link Button */}
+                                <div
+                                  className="absolute top-2 left-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <LinkButton
+                                    tripId={album.trip.id}
+                                    entityType="PHOTO_ALBUM"
+                                    entityId={album.id}
+                                    onUpdate={() => {
+                                      albumPagination.loadPage(albumPagination.currentPage);
+                                    }}
+                                    size="sm"
+                                  />
                                 </div>
                               </div>
 
