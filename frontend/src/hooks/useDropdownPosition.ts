@@ -144,12 +144,8 @@ export function getDropdownPositionClasses(
     ? `bottom-full ${marginBottom}`
     : `top-full ${marginTop}`;
 
-  let horizontalClass = 'left-0';
-  if (position.alignRight) {
-    horizontalClass = 'right-0';
-  } else if (position.alignLeft) {
-    horizontalClass = 'left-0';
-  }
+  // Default to left-aligned; only change to right if explicitly needed
+  const horizontalClass = position.alignRight ? 'right-0' : 'left-0';
 
   return `${verticalClass} ${horizontalClass}`;
 }

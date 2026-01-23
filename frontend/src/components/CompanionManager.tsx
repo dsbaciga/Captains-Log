@@ -6,6 +6,7 @@ import { useManagerCRUD } from '../hooks/useManagerCRUD';
 import { useFormReset } from '../hooks/useFormReset';
 import CompanionAvatar from './CompanionAvatar';
 import Modal from './Modal';
+import EmptyState from './EmptyState';
 
 interface CompanionFormData {
   name: string;
@@ -268,10 +269,10 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Companions on this trip</h3>
         {manager.items.length === 0 ? (
-          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-            <div className="text-4xl mb-2">👥</div>
-            <p>No companions added yet</p>
-          </div>
+          <EmptyState.Compact
+            icon="👥"
+            message="No companions added yet"
+          />
         ) : (
           <div className="space-y-3">
             {/* Sort companions to show "Myself" first */}

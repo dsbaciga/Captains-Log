@@ -134,13 +134,15 @@ export default function Modal({
 
   // Focus management and return focus on close
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (isOpen) {
       // Store the currently focused element to restore later
       triggerElementRef.current = document.activeElement as HTMLElement;
 
       if (focusFirstInput && !hasFocusedRef.current) {
         // Focus the first focusable input element (better UX for forms)
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           const firstInput = modalRef.current?.querySelector<HTMLElement>(
             'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])'
           );
@@ -155,16 +157,19 @@ export default function Modal({
         }, 0);
       } else if (!focusFirstInput) {
         // Focus the first focusable element or the modal container itself
-        const timeoutId = setTimeout(() => {
+        timeoutId = setTimeout(() => {
           const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
           (firstFocusable || modalRef.current)?.focus();
         }, 0);
-        return () => clearTimeout(timeoutId);
       }
     } else {
       // Reset the flag when modal closes
       hasFocusedRef.current = false;
     }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [isOpen, focusFirstInput]);
 
   // Handle keyboard events, body scroll, and restore focus on unmount
@@ -250,7 +255,8 @@ Modal.Simple = function SimpleModal({
   children,
   maxWidth = 'md',
   className = '',
-}: Pick<ModalProps, 'isOpen' | 'onClose' | 'children' | 'maxWidth' | 'className'>) {
+  zIndex = 80,
+}: Pick<ModalProps, 'isOpen' | 'onClose' | 'children' | 'maxWidth' | 'className' | 'zIndex'>) {
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
 
@@ -283,12 +289,14 @@ Modal.Simple = function SimpleModal({
   );
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (isOpen) {
       // Store the currently focused element to restore later
       triggerElementRef.current = document.activeElement as HTMLElement;
 
       // Focus the first focusable element or the modal container
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
         (firstFocusable || modalRef.current)?.focus();
       }, 0);
@@ -297,6 +305,7 @@ Modal.Simple = function SimpleModal({
       document.body.style.overflow = 'hidden';
 
       return () => {
+        if (timeoutId) clearTimeout(timeoutId);
         document.removeEventListener('keydown', handleKeyDown);
         document.body.style.overflow = '';
         // Return focus to the trigger element
@@ -309,7 +318,8 @@ Modal.Simple = function SimpleModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex }}
       role="dialog"
       aria-modal="true"
     >

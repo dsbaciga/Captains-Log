@@ -15,9 +15,9 @@ import { AppError } from './errors';
  * const id = parseId(req.params.id);
  */
 export function parseId(value: string, paramName: string = 'id'): number {
-  const parsed = parseInt(value, 10);
-  if (isNaN(parsed)) {
-    throw new AppError(`Invalid ${paramName}: must be a number`, 400);
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new AppError(`Invalid ${paramName}: must be a positive integer`, 400);
   }
   return parsed;
 }

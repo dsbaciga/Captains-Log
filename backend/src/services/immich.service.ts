@@ -87,19 +87,39 @@ class ImmichService {
       console.error('[Immich Service] Connection error:', errorCode, '-', errorMessage);
 
       if (axiosError.code === 'ECONNREFUSED') {
-        throw new AppError(`Cannot connect to Immich at ${apiUrl}. Server refused connection. Check if Immich is running and accessible from this container.`, 400);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Immich Service] Cannot connect to Immich at ${apiUrl}: Server refused connection`);
+        }
+        throw new AppError('Cannot connect to Immich server. Please check your configuration and ensure the server is running.', 400);
       } else if (axiosError.code === 'ENOTFOUND') {
-        throw new AppError(`Cannot resolve hostname: ${apiUrl}. DNS resolution failed. Check network configuration.`, 400);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Immich Service] Cannot resolve hostname for ${apiUrl}: DNS resolution failed`);
+        }
+        throw new AppError('Cannot connect to Immich server. Please check your configuration and network settings.', 400);
       } else if (axiosError.code === 'ETIMEDOUT') {
-        throw new AppError(`Connection to Immich timed out after 30 seconds. Check network firewall rules.`, 408);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Immich Service] Connection to ${apiUrl} timed out after 30 seconds`);
+        }
+        throw new AppError('Connection to Immich server timed out. Please check network firewall rules.', 408);
       } else if (axiosError.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || axiosError.code === 'CERT_HAS_EXPIRED' || axiosError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
-        throw new AppError(`SSL certificate error: ${axiosError.code}. The SSL certificate for ${apiUrl} is invalid or self-signed.`, 400);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Immich Service] SSL certificate error for ${apiUrl}: ${axiosError.code}`);
+        }
+        throw new AppError('SSL certificate error. The Immich server has an invalid or self-signed certificate.', 400);
       } else if (axiosError.response?.status === 401 || axiosError.response?.status === 403) {
         throw new AppError('Invalid Immich API key. Check your API key in user settings.', 401);
       } else if (axiosError.response?.status === 404) {
-        throw new AppError(`Immich API endpoint not found. Check that the URL is correct and points to your Immich server (not just a web page). URL: ${apiUrl}`, 404);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Immich Service] API endpoint not found at ${apiUrl}`);
+        }
+        throw new AppError('Immich API endpoint not found. Please check that your URL is correct and points to your Immich server.', 404);
       }
-      throw new AppError(`Failed to connect to Immich: ${errorMessage} (Code: ${errorCode})`, 400);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Immich Service] Connection failed to ${apiUrl}: ${errorMessage} (Code: ${errorCode})`);
+      } else {
+        console.error(`[Immich Service] Connection failed: ${errorMessage} (Code: ${errorCode})`);
+      }
+      throw new AppError('Failed to connect to Immich server. Please check your configuration.', 400);
     }
   }
 

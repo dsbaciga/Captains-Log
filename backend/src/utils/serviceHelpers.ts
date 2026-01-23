@@ -56,6 +56,9 @@ export async function verifyEntityInTrip(
   tripId: number
 ): Promise<void> {
   const config = entityConfigs[entityType];
+  // TypeScript cannot infer the correct model type from a dynamic key lookup.
+  // The entityConfigs mapping ensures config.model is always a valid Prisma model name,
+  // so this cast is safe. Prisma's generated types don't support dynamic model access.
   const model = prisma[config.model] as any;
 
   const entity = await model.findFirst({
@@ -83,6 +86,9 @@ export async function verifyEntityAccessById<T = any>(
   userId: number
 ): Promise<T> {
   const config = entityConfigs[entityType];
+  // TypeScript cannot infer the correct model type from a dynamic key lookup.
+  // The entityConfigs mapping ensures config.model is always a valid Prisma model name,
+  // so this cast is safe. Prisma's generated types don't support dynamic model access.
   const model = prisma[config.model] as any;
 
   const entity = await model.findFirst({

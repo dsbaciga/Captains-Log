@@ -206,19 +206,25 @@ class PhotoService {
       existingPhotos.map((p) => p.immichAssetId).filter((id): id is string => id !== null)
     );
 
-    console.log(`[PhotoService] Found ${existingAssetIds.size} existing Immich photos for trip ${data.tripId}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[PhotoService] Found ${existingAssetIds.size} existing Immich photos for trip ${data.tripId}`);
+    }
 
     // Filter out assets that are already linked to this trip
     const assetsToLink = data.assets.filter((asset) => !existingAssetIds.has(asset.immichAssetId));
 
     if (assetsToLink.length < data.assets.length) {
       const skippedCount = data.assets.length - assetsToLink.length;
-      console.log(`[PhotoService] Skipping ${skippedCount} already-linked photos`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[PhotoService] Skipping ${skippedCount} already-linked photos`);
+      }
       results.total = assetsToLink.length; // Update total to reflect actual photos to link
     }
 
     if (assetsToLink.length === 0) {
-      console.log(`[PhotoService] No new photos to link - all ${data.assets.length} photos are already linked`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[PhotoService] No new photos to link - all ${data.assets.length} photos are already linked`);
+      }
       return results;
     }
 
@@ -245,16 +251,20 @@ class PhotoService {
         });
 
         results.successful += result.count;
-        console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos`);
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, errorMessage);
+        console.error(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed: ${errorMessage}`);
         results.failed += batch.length;
         results.errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${errorMessage}`);
       }
     }
 
-    console.log(`[PhotoService] Batch linking complete: ${results.successful} successful, ${results.failed} failed`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[PhotoService] Batch linking complete: ${results.successful} successful, ${results.failed} failed`);
+    }
     return results;
   }
 

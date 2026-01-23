@@ -416,12 +416,13 @@ export class ImmichController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        console.log('[Thumbnail Proxy] Unauthorized - no userId');
         throw new AppError('Unauthorized', 401);
       }
 
       const { assetId } = req.params;
-      console.log(`[Thumbnail Proxy] Request for asset: ${assetId} from user: ${userId}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Thumbnail Proxy] Request for asset: ${assetId} from user: ${userId}`);
+      }
 
       // Get user's Immich settings
       const user = await prisma.user.findUnique({
@@ -430,12 +431,12 @@ export class ImmichController {
       });
 
       if (!user?.immichApiUrl || !user?.immichApiKey) {
-        console.log('[Thumbnail Proxy] Immich settings not configured for user');
         throw new AppError('Immich settings not configured', 400);
       }
 
-      console.log(`[Thumbnail Proxy] Using Immich URL: ${user.immichApiUrl}`);
-      console.log(`[Thumbnail Proxy] Fetching thumbnail stream for asset: ${assetId}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Thumbnail Proxy] Fetching thumbnail stream for asset: ${assetId}`);
+      }
 
       // Fetch thumbnail from Immich and stream it
       const thumbnail = await immichService.getAssetThumbnailStream(
@@ -444,7 +445,9 @@ export class ImmichController {
         assetId
       );
 
-      console.log(`[Thumbnail Proxy] Successfully fetched thumbnail, content-type: ${thumbnail.contentType}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Thumbnail Proxy] Successfully fetched thumbnail, content-type: ${thumbnail.contentType}`);
+      }
 
       // Set appropriate headers
       res.setHeader('Content-Type', thumbnail.contentType);
@@ -452,11 +455,11 @@ export class ImmichController {
 
       // Pipe the stream to response
       thumbnail.stream.pipe(res);
-
-      console.log(`[Thumbnail Proxy] Stream piped to response for asset: ${assetId}`);
     } catch (error: any) {
-      console.error(`[Thumbnail Proxy] Error fetching thumbnail:`, error.message);
-      console.error(`[Thumbnail Proxy] Error details:`, error.response?.data || error);
+      // Log error in development only to avoid leaking Immich API response data
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Thumbnail Proxy] Error fetching thumbnail for asset ${req.params?.assetId}:`, error.message);
+      }
       res.status(error.statusCode || 500).json({
         status: 'error',
         message: error.message || 'Failed to fetch thumbnail',

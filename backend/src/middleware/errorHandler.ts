@@ -31,6 +31,10 @@ const sanitizeForLogging = (obj: Record<string, any> | undefined): Record<string
       sanitized[key] = '[REDACTED]';
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       sanitized[key] = sanitizeForLogging(value);
+    } else if (Array.isArray(value)) {
+      sanitized[key] = value.map(item =>
+        typeof item === 'object' && item !== null ? sanitizeForLogging(item) : item
+      );
     } else {
       sanitized[key] = value;
     }
@@ -67,8 +71,12 @@ export const errorHandler = (
     });
   }
 
-  // Prisma errors
-  if ((err as any).code) {
+  // Prisma errors - check for Prisma-specific error codes (P2xxx format)
+  // This prevents false positives from other errors that have a 'code' property
+  const errorCode = (err as any).code;
+  const isPrismaError = typeof errorCode === 'string' && /^P\d{4}$/.test(errorCode);
+
+  if (isPrismaError) {
     const prismaError = err as any;
 
     // P2002: Unique constraint violation

@@ -10,6 +10,7 @@ interface FormModalProps {
   footer?: ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl";
   formId?: string; // Optional form ID for Ctrl+S keyboard shortcut
+  zIndex?: number; // Z-index for the modal (default: 80)
 }
 
 /**
@@ -49,6 +50,7 @@ export default function FormModal({
   footer,
   maxWidth = "4xl",
   formId,
+  zIndex,
 }: FormModalProps) {
   return (
     <Modal
@@ -59,6 +61,7 @@ export default function FormModal({
       footer={footer}
       maxWidth={maxWidth}
       formId={formId}
+      zIndex={zIndex}
       focusFirstInput={true}
       animate={true}
       closeOnBackdropClick={true}

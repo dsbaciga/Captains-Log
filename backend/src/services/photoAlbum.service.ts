@@ -178,11 +178,15 @@ class PhotoAlbumService {
     tripId: number,
     options?: { skip?: number; take?: number }
   ) {
-    console.log('[PhotoAlbumService] getAlbumsByTrip called:', { userId, tripId, options });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[PhotoAlbumService] getAlbumsByTrip called:', { userId, tripId, options });
+    }
 
     // Verify user has access to trip
     await verifyTripAccess(userId, tripId);
-    console.log('[PhotoAlbumService] verifyTripAccess passed');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[PhotoAlbumService] verifyTripAccess passed');
+    }
 
     const skip = options?.skip ?? 0;
     const take = options?.take ?? 30;
@@ -299,15 +303,17 @@ class PhotoAlbumService {
     const loadedCount = skip + album.photoAssignments.length;
     const totalCount = album._count.photoAssignments;
 
-    console.log('[PhotoAlbumService] getAlbumById pagination:', {
-      albumId,
-      skip,
-      take,
-      returnedPhotos: album.photoAssignments.length,
-      loadedCount,
-      totalCount,
-      hasMore: loadedCount < totalCount,
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[PhotoAlbumService] getAlbumById pagination:', {
+        albumId,
+        skip,
+        take,
+        returnedPhotos: album.photoAssignments.length,
+        loadedCount,
+        totalCount,
+        hasMore: loadedCount < totalCount,
+      });
+    }
 
     return {
       ...album,

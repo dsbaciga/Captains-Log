@@ -62,13 +62,17 @@ class RoutingService {
     to: RouteCoordinates,
     profile: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car'
   ): Promise<RouteResult> {
-    console.log(`[Routing Service] calculateRoute called: profile=${profile}, from=(${from.latitude}, ${from.longitude}), to=(${to.latitude}, ${to.longitude})`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Routing Service] calculateRoute called: profile=${profile}, from=(${from.latitude}, ${from.longitude}), to=(${to.latitude}, ${to.longitude})`);
+    }
 
     // Check cache first
     const cached = await this.getCachedRoute(from, to, profile);
     if (cached) {
       const hasGeometry = cached.routeGeometry && Array.isArray(cached.routeGeometry) && cached.routeGeometry.length > 0;
-      console.log(`[Routing Service] Using cached route (hasGeometry: ${hasGeometry}, points: ${hasGeometry ? cached.routeGeometry.length : 0})`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Routing Service] Using cached route (hasGeometry: ${hasGeometry}, points: ${hasGeometry ? cached.routeGeometry.length : 0})`);
+      }
       return {
         distance: cached.distance,
         duration: cached.duration,
@@ -81,11 +85,15 @@ class RoutingService {
     // Try to fetch from OpenRouteService
     // Check for truthy API key (not undefined, null, or empty string)
     if (this.API_KEY && this.API_KEY.trim().length > 0) {
-      console.log(`[Routing Service] API key present (length: ${this.API_KEY.length}), fetching from OpenRouteService...`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Routing Service] API key configured, fetching from OpenRouteService...`);
+      }
       try {
         const routeData = await this.fetchRouteFromAPI(from, to, profile);
         const hasGeometry = routeData.geometry && routeData.geometry.length > 0;
-        console.log(`[Routing Service] API response received: distance=${routeData.distance.toFixed(2)}km, hasGeometry=${hasGeometry}, points=${hasGeometry ? routeData.geometry!.length : 0}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Routing Service] API response received: distance=${routeData.distance.toFixed(2)}km, hasGeometry=${hasGeometry}, points=${hasGeometry ? routeData.geometry!.length : 0}`);
+        }
 
         // Cache the result
         await this.cacheRoute(from, to, routeData.distance, routeData.duration, profile, routeData.geometry);
@@ -139,8 +147,10 @@ class RoutingService {
       [to.longitude, to.latitude],
     ];
 
-    console.log(`[Routing Service] Calling API: ${url}`);
-    console.log(`[Routing Service] Request coordinates: ${JSON.stringify(coordinates)}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Routing Service] Calling API: ${url}`);
+      console.log(`[Routing Service] Request coordinates: ${JSON.stringify(coordinates)}`);
+    }
 
     try {
       const response = await axios.post<OpenRouteServiceResponse>(
@@ -155,7 +165,9 @@ class RoutingService {
         }
       );
 
-      console.log(`[Routing Service] API response status: ${response.status}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Routing Service] API response status: ${response.status}`);
+      }
 
       if (!response.data.routes || response.data.routes.length === 0) {
         console.warn('[Routing Service] API returned empty routes array');
@@ -164,7 +176,9 @@ class RoutingService {
 
       const route = response.data.routes[0];
       const geometryCoords = route.geometry?.coordinates;
-      console.log(`[Routing Service] Route summary: distance=${route.summary.distance}m, duration=${route.summary.duration}s, geometry type=${route.geometry?.type}, coords count=${geometryCoords?.length || 0}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Routing Service] Route summary: distance=${route.summary.distance}m, duration=${route.summary.duration}s, geometry type=${route.geometry?.type}, coords count=${geometryCoords?.length || 0}`);
+      }
 
       return {
         distance: route.summary.distance / 1000, // Convert meters to kilometers
@@ -172,12 +186,16 @@ class RoutingService {
         geometry: geometryCoords, // Array of [longitude, latitude]
       };
     } catch (error: any) {
-      console.error(`[Routing Service] API error details:`, {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-      });
+      // Log error details in development only to avoid leaking API response data
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Routing Service] API error details:`, {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          message: error.message,
+        });
+      } else {
+        console.error(`[Routing Service] API error: ${error.response?.status || 'N/A'} - ${error.message}`);
+      }
 
       if (error.response?.status === 401 || error.response?.status === 403) {
         throw new AppError('Invalid OpenRouteService API key', 401);
@@ -337,7 +355,9 @@ class RoutingService {
         },
       });
 
-      console.log(`[Routing Service] Cleaned up ${result.count} old cache entries`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Routing Service] Cleaned up ${result.count} old cache entries`);
+      }
       return result.count;
     } catch (error) {
       console.error('[Routing Service] Error cleaning cache:', error);
