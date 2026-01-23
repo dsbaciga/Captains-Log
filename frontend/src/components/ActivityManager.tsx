@@ -107,7 +107,7 @@ export default function ActivityManager({
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((activity: Activity) => {
     handleEdit(activity);
-  }, []);
+  }, [handleEdit]);
 
   // Handle URL-based edit navigation (e.g., from EntityDetailModal)
   useEditFromUrlParam(manager.items, handleEditFromUrl, {
@@ -154,7 +154,7 @@ export default function ActivityManager({
     setKeepFormOpenAfterSave(false);
   }, [baseOpenCreateForm]);
 
-  const handleEdit = async (activity: Activity) => {
+  const handleEdit = useCallback(async (activity: Activity) => {
     // Fetch linked location via entity linking system
     let locationId: number | null = null;
     try {
@@ -170,7 +170,7 @@ export default function ActivityManager({
     setEditingLocationId(locationId);
     setOriginalLocationId(locationId);
     manager.openEditForm(activity.id);
-  };
+  }, [tripId, manager]);
 
   const handleFormSubmit = async (data: ActivityFormData, newLocationId: number | null) => {
     setIsSubmitting(true);

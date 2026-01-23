@@ -237,10 +237,10 @@ export class LocationService {
     const descendants = await prisma.$queryRaw<{ id: number }[]>`
       WITH RECURSIVE descendants AS (
         -- Base case: direct children of the location
-        SELECT id FROM "Location" WHERE "parentId" = ${locationId}
+        SELECT id FROM "locations" WHERE "parentId" = ${locationId}
         UNION ALL
         -- Recursive case: children of descendants
-        SELECT l.id FROM "Location" l
+        SELECT l.id FROM "locations" l
         INNER JOIN descendants d ON l."parentId" = d.id
       )
       SELECT id FROM descendants

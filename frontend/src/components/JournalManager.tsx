@@ -89,7 +89,7 @@ export default function JournalManager({
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((entry: JournalEntry) => {
     handleEdit(entry);
-  }, []);
+  }, [handleEdit]);
 
   // Handle URL-based edit navigation (e.g., from EntityDetailModal)
   useEditFromUrlParam(manager.items, handleEditFromUrl, {
@@ -108,7 +108,7 @@ export default function JournalManager({
     setKeepFormOpenAfterSave(false);
   }, [baseOpenCreateForm]);
 
-  const handleEdit = (entry: JournalEntry) => {
+  const handleEdit = useCallback((entry: JournalEntry) => {
     setAllFields({
       title: entry.title || "",
       content: entry.content,
@@ -118,7 +118,7 @@ export default function JournalManager({
     });
     manager.openEditForm(entry.id);
     setExpandedId(null);
-  };
+  }, [setAllFields, manager]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

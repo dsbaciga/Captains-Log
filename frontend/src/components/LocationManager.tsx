@@ -77,6 +77,9 @@ export default function LocationManager({
   const { values, handleChange, reset } =
     useFormFields<LocationFormFields>(initialFormState);
 
+  // Destructure stable method for dependency array
+  const { openEditForm } = manager;
+
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((location: Location) => {
     handleChange("name", location.name);
@@ -86,8 +89,8 @@ export default function LocationManager({
     handleChange("longitude", location.longitude || undefined);
     handleChange("parentId", location.parentId || undefined);
     handleChange("categoryId", location.categoryId || undefined);
-    manager.openEditForm(location.id);
-  }, [handleChange, manager]);
+    openEditForm(location.id);
+  }, [handleChange, openEditForm]);
 
   // Handle URL-based edit navigation (e.g., from EntityDetailModal)
   useEditFromUrlParam(manager.items, handleEditFromUrl, {

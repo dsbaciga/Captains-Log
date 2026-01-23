@@ -140,7 +140,7 @@ export default function LodgingManager({
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((lodging: Lodging) => {
     handleEdit(lodging);
-  }, []);
+  }, [handleEdit]);
 
   // Handle URL-based edit navigation (e.g., from EntityDetailModal)
   useEditFromUrlParam(manager.items, handleEditFromUrl, {
@@ -218,7 +218,7 @@ export default function LodgingManager({
     setOriginalLocationId(null);
   }, [baseOpenCreateForm]);
 
-  const handleEdit = async (lodging: Lodging) => {
+  const handleEdit = useCallback(async (lodging: Lodging) => {
     setShowMoreOptions(true); // Always show all options when editing
     handleChange("type", lodging.type);
     handleChange("name", lodging.name);
@@ -262,7 +262,7 @@ export default function LodgingManager({
     handleChange("currency", lodging.currency || "USD");
     handleChange("notes", lodging.notes || "");
     manager.openEditForm(lodging.id);
-  };
+  }, [tripId, handleChange, tripTimezone, manager]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

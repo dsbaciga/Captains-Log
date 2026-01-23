@@ -142,7 +142,7 @@ export default function TransportationManager({
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((transportation: Transportation) => {
     handleEdit(transportation);
-  }, []);
+  }, [handleEdit]);
 
   // Handle URL-based edit navigation (e.g., from EntityDetailModal)
   useEditFromUrlParam(manager.items, handleEditFromUrl, {
@@ -285,7 +285,7 @@ export default function TransportationManager({
     setShowToLocationQuickAdd(false);
   };
 
-  const handleEdit = (transportation: Transportation) => {
+  const handleEdit = useCallback((transportation: Transportation) => {
     setShowMoreOptions(true); // Always show all options when editing
     handleChange("type", transportation.type);
     handleChange("fromLocationId", transportation.fromLocationId || undefined);
@@ -318,7 +318,7 @@ export default function TransportationManager({
     handleChange("currency", transportation.currency || "USD");
     handleChange("notes", transportation.notes || "");
     manager.openEditForm(transportation.id);
-  };
+  }, [handleChange, tripTimezone, manager]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -516,6 +516,27 @@ export class TripService {
     return convertDecimals(updatedTrip);
   }
 
+  /**
+   * Duplicates a trip with all its entities while maintaining relationships.
+   *
+   * ID MAPPING STRATEGY:
+   * After bulk inserting entities via createMany(), we need to rebuild the old ID -> new ID
+   * mappings to preserve relationships (e.g., photo-location links, parent-child hierarchies).
+   *
+   * IMPORTANT: We use COMPOSITE KEYS instead of single-field keys to handle duplicate names.
+   * For example, a trip might have multiple locations named "Hotel Lobby" (one at each hotel).
+   * Using name alone would cause Map to overwrite, losing all but one mapping.
+   *
+   * Composite keys used per entity type:
+   * - Locations: name + latitude + longitude
+   * - Activities: name + cost + manualOrder
+   * - Lodging: name + address + confirmationNumber
+   * - Journal entries: title + entryType + content prefix (50 chars)
+   * - Albums: name + description prefix (50 chars)
+   * - Checklists: name + type + description prefix (50 chars)
+   * - Photos: localPath + immichAssetId (already unique per source)
+   * - Transportation: type + referenceNumber + company + startLocationText
+   */
   async duplicateTrip(userId: number, sourceTripId: number, data: DuplicateTripInput) {
     // Verify ownership of source trip
     const sourceTrip = await prisma.trip.findFirst({
@@ -608,14 +629,23 @@ export class TripService {
             notes: location.notes,
           })),
         });
-        // Query back to build ID map (match by name within the new trip)
+        // Query back to build ID map using composite key for uniqueness
+        // Note: Using name + coordinates as composite key to handle duplicate names
+        // (e.g., multiple locations named "Hotel Lobby" at different coordinates)
         const newLocations = await prisma.location.findMany({
           where: { tripId: newTrip.id },
-          select: { id: true, name: true },
+          select: { id: true, name: true, latitude: true, longitude: true },
         });
-        const newLocationsByName = new Map(newLocations.map(l => [l.name, l.id]));
+        const buildLocationKey = (name: string, lat: DecimalValue | null, lng: DecimalValue | null) =>
+          `${name}|${lat ?? ''}|${lng ?? ''}`;
+        const newLocationsByKey = new Map<string, number>(
+          newLocations.map((l): [string, number] => [
+            buildLocationKey(l.name, l.latitude, l.longitude), l.id
+          ])
+        );
         for (const location of locationsWithoutParent) {
-          const newId = newLocationsByName.get(location.name);
+          const key = buildLocationKey(location.name, location.latitude, location.longitude);
+          const newId = newLocationsByKey.get(key);
           if (newId) locationIdMap.set(location.id, newId);
         }
       }
@@ -697,14 +727,23 @@ export class TripService {
             manualOrder: activity.manualOrder,
           })),
         });
-        // Query back to build ID map
+        // Query back to build ID map using composite key for uniqueness
+        // Note: Using name + cost + manualOrder as composite key to handle duplicate names
+        // (e.g., multiple activities named "Breakfast" at different costs/order)
         const newActivities = await prisma.activity.findMany({
           where: { tripId: newTrip.id },
-          select: { id: true, name: true },
+          select: { id: true, name: true, cost: true, manualOrder: true },
         });
-        const newActivitiesByName = new Map(newActivities.map(a => [a.name, a.id]));
+        const buildActivityKey = (name: string, cost: DecimalValue | null, manualOrder: number | null) =>
+          `${name}|${cost ?? ''}|${manualOrder ?? ''}`;
+        const newActivitiesByKey = new Map<string, number>(
+          newActivities.map((a): [string, number] => [
+            buildActivityKey(a.name, a.cost, a.manualOrder), a.id
+          ])
+        );
         for (const activity of activitiesWithoutParent) {
-          const newId = newActivitiesByName.get(activity.name);
+          const key = buildActivityKey(activity.name, activity.cost, activity.manualOrder);
+          const newId = newActivitiesByKey.get(key);
           if (newId) activityIdMap.set(activity.id, newId);
         }
       }
@@ -808,14 +847,19 @@ export class TripService {
             notes: lodging.notes,
           })),
         });
-        // Query back and build ID map
+        // Query back and build ID map using composite key for uniqueness
+        // Note: Using name + address + confirmationNumber to handle duplicate names
+        // (e.g., staying at same hotel chain in different cities)
         const newLodgings = await prisma.lodging.findMany({
           where: { tripId: newTrip.id },
-          select: { id: true, name: true, address: true },
+          select: { id: true, name: true, address: true, confirmationNumber: true },
         });
+        const buildLodgingKey = (name: string, address: string | null, confirmationNumber: string | null) =>
+          `${name}|${address ?? ''}|${confirmationNumber ?? ''}`;
         for (const oldLodging of lodgings) {
+          const key = buildLodgingKey(oldLodging.name, oldLodging.address, oldLodging.confirmationNumber);
           const newLodging = newLodgings.find(
-            (l) => l.name === oldLodging.name && l.address === oldLodging.address
+            (l) => buildLodgingKey(l.name, l.address, l.confirmationNumber) === key
           );
           if (newLodging) lodgingIdMap.set(oldLodging.id, newLodging.id);
         }
@@ -837,14 +881,19 @@ export class TripService {
             weatherNotes: journal.weatherNotes,
           })),
         });
-        // Query back and build ID map
+        // Query back and build ID map using composite key for uniqueness
+        // Note: Using title + entryType + content prefix to handle duplicate titles
+        // (e.g., multiple journal entries titled "Day 1" with different content)
         const newJournals = await prisma.journalEntry.findMany({
           where: { tripId: newTrip.id },
-          select: { id: true, title: true, entryType: true },
+          select: { id: true, title: true, entryType: true, content: true },
         });
+        const buildJournalKey = (title: string | null, entryType: string, content: string | null) =>
+          `${title ?? ''}|${entryType}|${(content ?? '').slice(0, 50)}`;
         for (const oldJournal of journals) {
+          const key = buildJournalKey(oldJournal.title, oldJournal.entryType, oldJournal.content);
           const newJournal = newJournals.find(
-            (j) => j.title === oldJournal.title && j.entryType === oldJournal.entryType
+            (j) => buildJournalKey(j.title, j.entryType, j.content) === key
           );
           if (newJournal) journalIdMap.set(oldJournal.id, newJournal.id);
         }
@@ -864,13 +913,17 @@ export class TripService {
             coverPhotoId: null, // Set later after we have the mapping
           })),
         });
-        // Query back and build ID map
+        // Query back and build ID map using composite key for uniqueness
+        // Note: Using name + description prefix to handle duplicate album names
         const newAlbums = await prisma.photoAlbum.findMany({
           where: { tripId: newTrip.id },
-          select: { id: true, name: true },
+          select: { id: true, name: true, description: true },
         });
+        const buildAlbumKey = (name: string, description: string | null) =>
+          `${name}|${(description ?? '').slice(0, 50)}`;
         for (const oldAlbum of albums) {
-          const newAlbum = newAlbums.find((a) => a.name === oldAlbum.name);
+          const key = buildAlbumKey(oldAlbum.name, oldAlbum.description);
+          const newAlbum = newAlbums.find((a) => buildAlbumKey(a.name, a.description) === key);
           if (newAlbum) albumIdMap.set(oldAlbum.id, newAlbum.id);
         }
 
@@ -969,13 +1022,17 @@ export class TripService {
             sortOrder: checklist.sortOrder,
           })),
         });
-        // Query back new checklists
+        // Query back new checklists using composite key for uniqueness
+        // Note: Using name + type + description prefix to handle duplicate checklist names
         const newChecklists = await prisma.checklist.findMany({
           where: { tripId: newTrip.id },
-          select: { id: true, name: true },
+          select: { id: true, name: true, type: true, description: true },
         });
+        const buildChecklistKey = (name: string, type: string, description: string | null) =>
+          `${name}|${type}|${(description ?? '').slice(0, 50)}`;
         const checklistIdMap = new Map(checklists.map((c) => {
-          const newChecklist = newChecklists.find((nc) => nc.name === c.name);
+          const key = buildChecklistKey(c.name, c.type, c.description);
+          const newChecklist = newChecklists.find((nc) => buildChecklistKey(nc.name, nc.type, nc.description) === key);
           return [c.id, newChecklist?.id] as [number, number | undefined];
         }));
 
