@@ -8,6 +8,11 @@ import type { EntityLinkSummary } from '../../types/entityLink';
 // Re-export Activity type for use in other timeline components
 export type { Activity };
 
+// Activity with linked location info for unscheduled activities display
+export interface UnscheduledActivityWithLocation extends Activity {
+  linkedLocations?: { id: number; name: string }[];
+}
+
 export type TimelineItemType = 'activity' | 'transportation' | 'lodging' | 'journal';
 
 export type TransportationType =
@@ -77,7 +82,7 @@ export interface DayGroup {
   items: TimelineItem[];
   weather?: WeatherDisplay;
   stats: DayStats;
-  unscheduledActivities?: Activity[];
+  unscheduledActivities?: UnscheduledActivityWithLocation[];
 }
 
 // Props interfaces for components

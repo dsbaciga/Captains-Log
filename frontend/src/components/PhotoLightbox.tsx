@@ -5,6 +5,7 @@ import { useSwipeGesture } from "../hooks/useSwipeGesture";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
+import PhotoDetailsPanel from "./PhotoDetailsPanel";
 
 interface PhotoLightboxProps {
   photo: Photo;
@@ -52,6 +53,7 @@ export default function PhotoLightbox({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [showControls, setShowControls] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,6 +67,7 @@ export default function PhotoLightbox({
   const resetZoom = useCallback(() => {
     setZoom(1);
     setPosition({ x: 0, y: 0 });
+    setShowDetails(false);
   }, []);
 
   const handlePrev = useCallback(() => {
@@ -124,7 +127,11 @@ export default function PhotoLightbox({
 
       switch (e.key) {
         case "Escape":
-          onClose();
+          if (showDetails) {
+            setShowDetails(false);
+          } else {
+            onClose();
+          }
           break;
         case "ArrowLeft":
           handlePrev();
@@ -142,6 +149,10 @@ export default function PhotoLightbox({
         case "0":
           resetZoom();
           break;
+        case "i":
+        case "I":
+          setShowDetails((prev) => !prev);
+          break;
       }
     };
 
@@ -155,6 +166,7 @@ export default function PhotoLightbox({
     handleZoomIn,
     handleZoomOut,
     resetZoom,
+    showDetails,
   ]);
 
   // Mouse wheel zoom
@@ -588,6 +600,29 @@ export default function PhotoLightbox({
 
                 {/* Action buttons */}
                 <div className="flex gap-2">
+                  {/* Details button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowDetails(true)}
+                    className="p-3 text-white bg-black/50 hover:bg-white/20 rounded-lg transition-colors"
+                    aria-label="View photo details"
+                    title="View details"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </button>
                   {onEdit && (
                     <button
                       type="button"
@@ -685,8 +720,15 @@ export default function PhotoLightbox({
           showControls ? "opacity-100" : "opacity-0"
         }`}
       >
-        <p>← → Navigate &bull; + - Zoom &bull; 0 Reset &bull; ESC Close</p>
+        <p>← → Navigate &bull; + - Zoom &bull; 0 Reset &bull; i Info &bull; ESC Close</p>
       </div>
+
+      {/* Photo Details Panel */}
+      <PhotoDetailsPanel
+        photo={photo}
+        isOpen={showDetails}
+        onClose={() => setShowDetails(false)}
+      />
     </div>,
     document.body
   );

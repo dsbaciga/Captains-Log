@@ -11,6 +11,7 @@ import lodgingService from '../services/lodging.service';
 import journalService from '../services/journalEntry.service';
 import weatherService from '../services/weather.service';
 import entityLinkService from '../services/entityLink.service';
+import locationService from '../services/location.service';
 import { getWeatherIcon } from '../utils/weatherIcons';
 import toast from 'react-hot-toast';
 import { debugLogger } from '../utils/debugLogger';
@@ -23,7 +24,7 @@ import {
   PrintableItinerary,
   getDateStringInTimezone,
 } from './timeline/index';
-import type { TimelineItem, TimelineItemType, DayGroup, DayStats } from './timeline/types';
+import type { TimelineItem, TimelineItemType, DayGroup, DayStats, UnscheduledActivityWithLocation } from './timeline/types';
 import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
 
 interface TimelineProps {
@@ -55,8 +56,8 @@ const Timeline = ({
   onNavigateToTab: _onNavigateToTab,
   onRefresh,
 }: TimelineProps) => {
-  // Create scoped logger for this component
-  const logger = debugLogger.createScopedLogger('Timeline');
+  // Create scoped logger for this component - memoized to prevent unnecessary re-renders
+  const logger = useMemo(() => debugLogger.createScopedLogger('Timeline'), []);
   const navigate = useNavigate();
 
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
@@ -82,6 +83,8 @@ const Timeline = ({
   // Entity-to-location links map for all entities (used to match unscheduled activities)
   // Key format: "ENTITY_TYPE:ID", Value: array of linked location IDs
   const [entityLocationLinksMap, setEntityLocationLinksMap] = useState<Record<string, number[]>>({});
+  // Location lookup map for displaying location names
+  const [locationLookup, setLocationLookup] = useState<Record<number, { id: number; name: string }>>({});
 
   // Print state
   const [isPrinting, setIsPrinting] = useState(false);
@@ -204,13 +207,14 @@ const Timeline = ({
     try {
       logger.log('📡 Fetching timeline data from API...', { operation: 'loadTimelineData.fetch' });
 
-      const [activities, transportation, lodging, journal, weather, locationLinks] = await Promise.all([
+      const [activities, transportation, lodging, journal, weather, locationLinks, locations] = await Promise.all([
         activityService.getActivitiesByTrip(tripId),
         transportationService.getTransportationByTrip(tripId),
         lodgingService.getLodgingByTrip(tripId),
         journalService.getJournalEntriesByTrip(tripId),
         weatherService.getWeatherForTrip(tripId).catch(() => []),
         entityLinkService.getLinksByTargetType(tripId, 'LOCATION').catch(() => []),
+        locationService.getLocationsByTrip(tripId).catch(() => []),
       ]);
 
       logger.log('✅ API data received', {
@@ -249,7 +253,23 @@ const Timeline = ({
         }
       }
       setEntityLocationLinksMap(entityLinksMap);
-      logger.log(`Built entity-location links map with ${Object.keys(entityLinksMap).length} entities`, { operation: 'loadTimelineData.entityLinks' });
+      logger.log(`Built entity-location links map with ${Object.keys(entityLinksMap).length} entities`, {
+        operation: 'loadTimelineData.entityLinks',
+        data: {
+          entityLinksMapKeys: Object.keys(entityLinksMap),
+          entityLinksMap: entityLinksMap,
+        }
+      });
+
+      // Build location lookup map for displaying location names
+      const locLookup: Record<number, { id: number; name: string }> = {};
+      if (Array.isArray(locations)) {
+        for (const loc of locations) {
+          locLookup[loc.id] = { id: loc.id, name: loc.name };
+        }
+      }
+      setLocationLookup(locLookup);
+      logger.log(`Built location lookup with ${Object.keys(locLookup).length} locations`, { operation: 'loadTimelineData.locations' });
 
       // Separate unscheduled activities and build location mapping using the already-fetched links
       const unscheduled: Activity[] = [];
@@ -275,7 +295,13 @@ const Timeline = ({
       }
       setUnscheduledActivities(unscheduled);
       setActivityLocationMap(locationMap);
-      logger.log(`Found ${unscheduled.length} unscheduled activities`, { operation: 'loadTimelineData.unscheduled' });
+      logger.log(`Found ${unscheduled.length} unscheduled activities`, {
+        operation: 'loadTimelineData.unscheduled',
+        data: {
+          unscheduledIds: unscheduled.map(a => a.id),
+          activityLocationMap: locationMap,
+        }
+      });
 
       // Note: Lodging locations are already included in entityLocationLinksMap (fetched via bulk query)
 
@@ -1048,15 +1074,51 @@ const Timeline = ({
   };
 
   // Get unscheduled activities for a day based on linked locations
-  const getUnscheduledActivitiesForDay = (items: TimelineItem[]): Activity[] => {
+  const getUnscheduledActivitiesForDay = (items: TimelineItem[]): UnscheduledActivityWithLocation[] => {
     const dayLocationIds = getLocationIdsFromItems(items);
-    if (dayLocationIds.size === 0) return [];
 
-    return unscheduledActivities.filter((activity) => {
-      const linkedLocationIds = activityLocationMap[activity.id] || [];
-      // Check if any of the activity's linked locations match the day's locations
-      return linkedLocationIds.some((locId) => dayLocationIds.has(locId));
+    // Debug logging for unscheduled activities matching
+    logger.log('getUnscheduledActivitiesForDay', {
+      operation: 'unscheduled.matching',
+      data: {
+        scheduledItemsCount: items.length,
+        dayLocationIds: Array.from(dayLocationIds),
+        unscheduledCount: unscheduledActivities.length,
+        activityLocationMapKeys: Object.keys(activityLocationMap),
+      }
     });
+
+    if (dayLocationIds.size === 0) {
+      logger.log('No location IDs found for day - skipping unscheduled matching', { operation: 'unscheduled.matching' });
+      return [];
+    }
+
+    const matched = unscheduledActivities
+      .filter((activity) => {
+        const linkedLocationIds = activityLocationMap[activity.id] || [];
+        const hasMatch = linkedLocationIds.some((locId) => dayLocationIds.has(locId));
+        if (linkedLocationIds.length > 0) {
+          logger.log(`Checking activity ${activity.id} (${activity.name})`, {
+            operation: 'unscheduled.matching.activity',
+            data: { linkedLocationIds, hasMatch }
+          });
+        }
+        return hasMatch;
+      })
+      .map((activity): UnscheduledActivityWithLocation => {
+        // Add linked location info to the activity
+        const linkedLocationIds = activityLocationMap[activity.id] || [];
+        const linkedLocations = linkedLocationIds
+          .map((locId) => locationLookup[locId])
+          .filter(Boolean);
+        return {
+          ...activity,
+          linkedLocations: linkedLocations.length > 0 ? linkedLocations : undefined,
+        };
+      });
+
+    logger.log(`Matched ${matched.length} unscheduled activities for day`, { operation: 'unscheduled.matching.result' });
+    return matched;
   };
 
   // Build day groups
@@ -1130,7 +1192,7 @@ const Timeline = ({
       return [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, entityLocationLinksMap, logger]);
+  }, [sortedDateKeys, allGroupedItems, weatherData, summaryMap, tripStartDate, unscheduledActivities, activityLocationMap, entityLocationLinksMap, locationLookup, logger]);
 
   // Weather refresh handler
   const handleRefreshWeather = async () => {
