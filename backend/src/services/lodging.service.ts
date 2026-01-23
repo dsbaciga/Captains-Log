@@ -4,7 +4,6 @@ import {
   UpdateLodgingInput,
 } from '../types/lodging.types';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
-import { photoAlbumsInclude } from '../utils/prismaIncludes';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
@@ -41,9 +40,6 @@ class LodgingService {
     // Note: Location association is fetched via EntityLink system, not direct FK
     const lodgings = await prisma.lodging.findMany({
       where: { tripId },
-      include: {
-        photoAlbums: photoAlbumsInclude,
-      },
       orderBy: [{ checkInDate: 'asc' }, { createdAt: 'asc' }],
     });
 
@@ -56,7 +52,6 @@ class LodgingService {
       where: { id: lodgingId },
       include: {
         trip: true,
-        photoAlbums: photoAlbumsInclude,
       },
     });
 

@@ -2,7 +2,6 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput } from '../types/location.types';
 import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals } from '../utils/serviceHelpers';
-import { photoAlbumsInclude } from '../utils/prismaIncludes';
 
 export class LocationService {
   async createLocation(userId: number, data: CreateLocationInput) {
@@ -91,7 +90,6 @@ export class LocationService {
             category: true,
           },
         },
-        photoAlbums: photoAlbumsInclude,
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -150,7 +148,6 @@ export class LocationService {
             category: true,
           },
         },
-        photoAlbums: photoAlbumsInclude,
         trip: {
           select: {
             userId: true,
