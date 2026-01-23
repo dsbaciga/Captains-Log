@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import companionService from "../services/companion.service";
 import { useAuthStore } from "../store/authStore";
 import toast from "react-hot-toast";

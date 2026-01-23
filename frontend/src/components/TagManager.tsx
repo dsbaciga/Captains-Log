@@ -47,7 +47,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [showTagForm, setShowTagForm] = useState(false);
 
-  const { resetForm, openCreateForm, openEditForm } = useFormReset({
+  const { resetForm, openEditForm } = useFormReset({
     initialState: initialFormState,
     setFormData,
     setEditingId: setEditingTagId,

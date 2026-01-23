@@ -137,87 +137,7 @@ export default function LodgingManager({
     setLocalLocations(locations);
   }, [locations]);
 
-  // Stable callback for URL-based edit navigation
-  const handleEditFromUrl = useCallback((lodging: Lodging) => {
-    handleEdit(lodging);
-  }, [handleEdit]);
-
-  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
-  useEditFromUrlParam(manager.items, handleEditFromUrl, {
-    loading: manager.loading,
-  });
-
-  // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
-  useEffect(() => {
-    // Only when creating (not editing) and form just opened
-    if (!manager.editingId && manager.showForm && values.checkInDate === getInitialFormState.checkInDate) {
-      // Find the most recent lodging (by check-out time)
-      const sortedLodgings = [...manager.items]
-        .filter(l => l.checkOutDate)
-        .sort((a, b) => new Date(b.checkOutDate!).getTime() - new Date(a.checkOutDate!).getTime());
-
-      if (sortedLodgings.length > 0) {
-        const lastLodging = sortedLodgings[0];
-        const effectiveTz = lastLodging.timezone || tripTimezone || 'UTC';
-
-        // Convert the last lodging's check-out time to datetime-local format
-        const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOutDate!, effectiveTz);
-
-        // Use check-out as new check-in
-        handleChange('checkInDate', checkOutDateTime);
-
-        // Set check-out to next day at 11:00 AM
-        const checkOutDate = new Date(checkOutDateTime);
-        checkOutDate.setDate(checkOutDate.getDate() + 1);
-        const nextDayCheckOut = `${checkOutDate.toISOString().slice(0, 10)}T11:00`;
-        handleChange('checkOutDate', nextDayCheckOut);
-
-        // Inherit timezone if set
-        if (lastLodging.timezone && !values.timezone) {
-          handleChange('timezone', lastLodging.timezone);
-        }
-      }
-    }
-  }, [manager.showForm, manager.editingId]);
-
-  const handleLocationCreated = (locationId: number, locationName: string) => {
-    // Add the new location to local state
-    const newLocation: Location = {
-      id: locationId,
-      name: locationName,
-      tripId,
-      parentId: null,
-      address: null,
-      latitude: null,
-      longitude: null,
-      categoryId: null,
-      visitDatetime: null,
-      visitDurationMinutes: null,
-      notes: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setLocalLocations([...localLocations, newLocation]);
-    handleChange("locationId", locationId);
-    setShowLocationQuickAdd(false);
-  };
-
-  // Extended reset that also clears additional local state
-  const resetForm = useCallback(() => {
-    baseResetForm();
-    setKeepFormOpenAfterSave(false);
-    setShowMoreOptions(false);
-    setOriginalLocationId(null);
-  }, [baseResetForm]);
-
-  // Open create form with clean state
-  const openCreateForm = useCallback(() => {
-    baseOpenCreateForm();
-    setKeepFormOpenAfterSave(false);
-    setShowMoreOptions(false);
-    setOriginalLocationId(null);
-  }, [baseOpenCreateForm]);
-
+  // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
   const handleEdit = useCallback(async (lodging: Lodging) => {
     setShowMoreOptions(true); // Always show all options when editing
     handleChange("type", lodging.type);
@@ -263,6 +183,88 @@ export default function LodgingManager({
     handleChange("notes", lodging.notes || "");
     manager.openEditForm(lodging.id);
   }, [tripId, handleChange, tripTimezone, manager]);
+
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((lodging: Lodging) => {
+    handleEdit(lodging);
+  }, [handleEdit]);
+
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
+
+  // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
+  useEffect(() => {
+    // Only when creating (not editing) and form just opened
+    if (!manager.editingId && manager.showForm && values.checkInDate === getInitialFormState.checkInDate) {
+      // Find the most recent lodging (by check-out time)
+      const sortedLodgings = [...manager.items]
+        .filter(l => l.checkOutDate)
+        .sort((a, b) => new Date(b.checkOutDate!).getTime() - new Date(a.checkOutDate!).getTime());
+
+      if (sortedLodgings.length > 0) {
+        const lastLodging = sortedLodgings[0];
+        const effectiveTz = lastLodging.timezone || tripTimezone || 'UTC';
+
+        // Convert the last lodging's check-out time to datetime-local format
+        const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOutDate!, effectiveTz);
+
+        // Use check-out as new check-in
+        handleChange('checkInDate', checkOutDateTime);
+
+        // Set check-out to next day at 11:00 AM
+        const checkOutDate = new Date(checkOutDateTime);
+        checkOutDate.setDate(checkOutDate.getDate() + 1);
+        const nextDayCheckOut = `${checkOutDate.toISOString().slice(0, 10)}T11:00`;
+        handleChange('checkOutDate', nextDayCheckOut);
+
+        // Inherit timezone if set
+        if (lastLodging.timezone && !values.timezone) {
+          handleChange('timezone', lastLodging.timezone);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manager.showForm, manager.editingId]);
+
+  const handleLocationCreated = (locationId: number, locationName: string) => {
+    // Add the new location to local state
+    const newLocation: Location = {
+      id: locationId,
+      name: locationName,
+      tripId,
+      parentId: null,
+      address: null,
+      latitude: null,
+      longitude: null,
+      categoryId: null,
+      visitDatetime: null,
+      visitDurationMinutes: null,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalLocations([...localLocations, newLocation]);
+    handleChange("locationId", locationId);
+    setShowLocationQuickAdd(false);
+  };
+
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
+    setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
+    setOriginalLocationId(null);
+  }, [baseResetForm]);
+
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
+    setOriginalLocationId(null);
+  }, [baseOpenCreateForm]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

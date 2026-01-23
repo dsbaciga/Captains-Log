@@ -104,6 +104,25 @@ export default function ActivityManager({
     setLocalLocations(locations);
   }, [locations]);
 
+  // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
+  const handleEdit = useCallback(async (activity: Activity) => {
+    // Fetch linked location via entity linking system
+    let locationId: number | null = null;
+    try {
+      const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
+      if (links.length > 0 && links[0].targetId) {
+        locationId = links[0].targetId;
+      }
+    } catch {
+      // If fetching links fails, proceed without location
+    }
+
+    setEditingActivity(activity);
+    setEditingLocationId(locationId);
+    setOriginalLocationId(locationId);
+    manager.openEditForm(activity.id);
+  }, [tripId, manager]);
+
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((activity: Activity) => {
     handleEdit(activity);
@@ -153,24 +172,6 @@ export default function ActivityManager({
     baseOpenCreateForm();
     setKeepFormOpenAfterSave(false);
   }, [baseOpenCreateForm]);
-
-  const handleEdit = useCallback(async (activity: Activity) => {
-    // Fetch linked location via entity linking system
-    let locationId: number | null = null;
-    try {
-      const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
-      if (links.length > 0 && links[0].targetId) {
-        locationId = links[0].targetId;
-      }
-    } catch {
-      // If fetching links fails, proceed without location
-    }
-
-    setEditingActivity(activity);
-    setEditingLocationId(locationId);
-    setOriginalLocationId(locationId);
-    manager.openEditForm(activity.id);
-  }, [tripId, manager]);
 
   const handleFormSubmit = async (data: ActivityFormData, newLocationId: number | null) => {
     setIsSubmitting(true);

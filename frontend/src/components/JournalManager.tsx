@@ -86,6 +86,19 @@ export default function JournalManager({
   const entryDateFieldId = useId();
   const contentFieldId = useId();
 
+  // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
+  const handleEdit = useCallback((entry: JournalEntry) => {
+    setAllFields({
+      title: entry.title || "",
+      content: entry.content,
+      entryDate: entry.date
+        ? new Date(entry.date).toISOString().slice(0, 16)
+        : "",
+    });
+    manager.openEditForm(entry.id);
+    setExpandedId(null);
+  }, [setAllFields, manager]);
+
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((entry: JournalEntry) => {
     handleEdit(entry);
@@ -107,18 +120,6 @@ export default function JournalManager({
     baseOpenCreateForm();
     setKeepFormOpenAfterSave(false);
   }, [baseOpenCreateForm]);
-
-  const handleEdit = useCallback((entry: JournalEntry) => {
-    setAllFields({
-      title: entry.title || "",
-      content: entry.content,
-      entryDate: entry.date
-        ? new Date(entry.date).toISOString().slice(0, 16)
-        : "",
-    });
-    manager.openEditForm(entry.id);
-    setExpandedId(null);
-  }, [setAllFields, manager]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

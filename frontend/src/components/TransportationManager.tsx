@@ -139,6 +139,42 @@ export default function TransportationManager({
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
 
+  // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
+  const handleEdit = useCallback((transportation: Transportation) => {
+    setShowMoreOptions(true); // Always show all options when editing
+    handleChange("type", transportation.type);
+    handleChange("fromLocationId", transportation.fromLocationId || undefined);
+    handleChange("toLocationId", transportation.toLocationId || undefined);
+    handleChange("fromLocationName", transportation.fromLocationName || "");
+    handleChange("toLocationName", transportation.toLocationName || "");
+
+    // Convert stored UTC times to local times in their respective timezones
+    const effectiveStartTz = transportation.startTimezone || tripTimezone || 'UTC';
+    const effectiveEndTz = transportation.endTimezone || tripTimezone || 'UTC';
+
+    handleChange(
+      "departureTime",
+      transportation.departureTime
+        ? convertISOToDateTimeLocal(transportation.departureTime, effectiveStartTz)
+        : ""
+    );
+    handleChange(
+      "arrivalTime",
+      transportation.arrivalTime
+        ? convertISOToDateTimeLocal(transportation.arrivalTime, effectiveEndTz)
+        : ""
+    );
+    handleChange("startTimezone", transportation.startTimezone || "");
+    handleChange("endTimezone", transportation.endTimezone || "");
+    handleChange("carrier", transportation.carrier || "");
+    handleChange("vehicleNumber", transportation.vehicleNumber || "");
+    handleChange("confirmationNumber", transportation.confirmationNumber || "");
+    handleChange("cost", transportation.cost?.toString() || "");
+    handleChange("currency", transportation.currency || "USD");
+    handleChange("notes", transportation.notes || "");
+    manager.openEditForm(transportation.id);
+  }, [handleChange, tripTimezone, manager]);
+
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((transportation: Transportation) => {
     handleEdit(transportation);
@@ -154,12 +190,14 @@ export default function TransportationManager({
     if (values.fromLocationId && !values.startTimezone && tripTimezone) {
       handleChange("startTimezone", tripTimezone);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.fromLocationId, tripTimezone]);
 
   useEffect(() => {
     if (values.toLocationId && !values.endTimezone && tripTimezone) {
       handleChange("endTimezone", tripTimezone);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.toLocationId, tripTimezone]);
 
   // Sync localLocations with locations prop
@@ -206,6 +244,7 @@ export default function TransportationManager({
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.showForm, manager.editingId]);
 
   // Filter transportation based on active tab
@@ -284,41 +323,6 @@ export default function TransportationManager({
     handleChange("toLocationId", locationId);
     setShowToLocationQuickAdd(false);
   };
-
-  const handleEdit = useCallback((transportation: Transportation) => {
-    setShowMoreOptions(true); // Always show all options when editing
-    handleChange("type", transportation.type);
-    handleChange("fromLocationId", transportation.fromLocationId || undefined);
-    handleChange("toLocationId", transportation.toLocationId || undefined);
-    handleChange("fromLocationName", transportation.fromLocationName || "");
-    handleChange("toLocationName", transportation.toLocationName || "");
-
-    // Convert stored UTC times to local times in their respective timezones
-    const effectiveStartTz = transportation.startTimezone || tripTimezone || 'UTC';
-    const effectiveEndTz = transportation.endTimezone || tripTimezone || 'UTC';
-
-    handleChange(
-      "departureTime",
-      transportation.departureTime
-        ? convertISOToDateTimeLocal(transportation.departureTime, effectiveStartTz)
-        : ""
-    );
-    handleChange(
-      "arrivalTime",
-      transportation.arrivalTime
-        ? convertISOToDateTimeLocal(transportation.arrivalTime, effectiveEndTz)
-        : ""
-    );
-    handleChange("startTimezone", transportation.startTimezone || "");
-    handleChange("endTimezone", transportation.endTimezone || "");
-    handleChange("carrier", transportation.carrier || "");
-    handleChange("vehicleNumber", transportation.vehicleNumber || "");
-    handleChange("confirmationNumber", transportation.confirmationNumber || "");
-    handleChange("cost", transportation.cost?.toString() || "");
-    handleChange("currency", transportation.currency || "USD");
-    handleChange("notes", transportation.notes || "");
-    manager.openEditForm(transportation.id);
-  }, [handleChange, tripTimezone, manager]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

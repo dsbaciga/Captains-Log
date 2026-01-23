@@ -35,6 +35,7 @@ export default function TripSidebar({
     if (activeGroup && !expandedGroups.has(activeGroup.id)) {
       setExpandedGroups((prev) => new Set([...prev, activeGroup.id]));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, tabs]);
 
   const toggleGroup = (groupId: string) => {

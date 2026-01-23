@@ -675,9 +675,11 @@ export default function PhotoGallery({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    selectionMode
-                      ? togglePhotoSelection(photo.id, e.shiftKey)
-                      : setSelectedPhoto(photo);
+                    if (selectionMode) {
+                      togglePhotoSelection(photo.id, e.shiftKey);
+                    } else {
+                      setSelectedPhoto(photo);
+                    }
                   }
                 }}
               >
@@ -785,9 +787,11 @@ export default function PhotoGallery({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    selectionMode
-                      ? togglePhotoSelection(photo.id, e.shiftKey)
-                      : setSelectedPhoto(photo);
+                    if (selectionMode) {
+                      togglePhotoSelection(photo.id, e.shiftKey);
+                    } else {
+                      setSelectedPhoto(photo);
+                    }
                   }
                 }}
               >
