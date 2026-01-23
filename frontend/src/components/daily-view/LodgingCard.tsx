@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import type { Lodging } from '../../types/lodging';
 import type { Location } from '../../types/location';
+import type { PhotoAlbum } from '../../types/photo';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
+import EmbeddedAlbumCard from './EmbeddedAlbumCard';
 import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import {
   formatTime,
@@ -22,6 +24,7 @@ interface LodgingCardProps {
     totalNights?: number;
   };
   linkedLocations?: Location[];
+  linkedAlbums?: PhotoAlbum[];
 }
 
 export default function LodgingCard({
@@ -30,6 +33,7 @@ export default function LodgingCard({
   tripTimezone,
   dayContext,
   linkedLocations = [],
+  linkedAlbums = [],
 }: LodgingCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('lodging');
@@ -310,12 +314,30 @@ export default function LodgingCard({
           </div>
         )}
 
-        {/* Other linked entities (albums, photos, etc.) */}
+        {/* Linked albums */}
+        {linkedAlbums.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              Related Albums ({linkedAlbums.length})
+            </div>
+            <div className="space-y-3">
+              {linkedAlbums.map((album) => (
+                <EmbeddedAlbumCard
+                  key={album.id}
+                  album={album}
+                  tripId={tripId}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Other linked entities (photos, etc.) */}
         <LinkedEntitiesDisplay
           tripId={tripId}
           entityType="LODGING"
           entityId={lodging.id}
-          excludeTypes={['LOCATION']}
+          excludeTypes={['LOCATION', 'PHOTO_ALBUM']}
           compact
         />
       </div>

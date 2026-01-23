@@ -78,7 +78,7 @@ export function getTimezoneAbbr(timezone?: string): string {
 /**
  * Get type-specific colors
  */
-export function getTypeColors(type: 'activity' | 'transportation' | 'lodging' | 'journal' | 'location') {
+export function getTypeColors(type: 'activity' | 'transportation' | 'lodging' | 'journal' | 'location' | 'photo' | 'album') {
   switch (type) {
     case 'activity':
       return {
@@ -119,6 +119,15 @@ export function getTypeColors(type: 'activity' | 'transportation' | 'lodging' | 
         accent: 'border-l-red-500',
         icon: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
         text: 'text-red-700 dark:text-red-300',
+      };
+    case 'photo':
+    case 'album':
+      return {
+        bg: 'bg-pink-50 dark:bg-pink-900/20',
+        border: 'border-pink-200 dark:border-pink-800',
+        accent: 'border-l-pink-500',
+        icon: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400',
+        text: 'text-pink-700 dark:text-pink-300',
       };
     default:
       return {
