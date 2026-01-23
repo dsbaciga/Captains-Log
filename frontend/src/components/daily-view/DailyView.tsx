@@ -78,10 +78,12 @@ export default function DailyView({
   const [allDays, setAllDays] = useState<DayData[]>([]);
   const [linkedLocationsMap, setLinkedLocationsMap] = useState<LinkedLocationsMap>({});
   const [linkedAlbumsMap, setLinkedAlbumsMap] = useState<LinkedAlbumsMap>({});
-  const [unscheduledActivities, setUnscheduledActivities] = useState<Activity[]>([]);
-  const [activityLocationMap, setActivityLocationMap] = useState<Record<number, number[]>>({});
-  const [entityLocationIdsMap, setEntityLocationIdsMap] = useState<EntityLocationIdsMap>({});
-  const [locationLookup, setLocationLookup] = useState<Record<number, { id: number; name: string }>>({});
+  // Note: These state variables store computed data that may be used in future features
+  // The setters are called but values are currently unused (data is embedded in DayData instead)
+  const [, setUnscheduledActivities] = useState<Activity[]>([]);
+  const [, setActivityLocationMap] = useState<Record<number, number[]>>({});
+  const [, setEntityLocationIdsMap] = useState<EntityLocationIdsMap>({});
+  const [, setLocationLookup] = useState<Record<number, { id: number; name: string }>>({});
 
   // Generate all trip dates
   const generateAllTripDates = useCallback((): { dayNumber: number; dateKey: string; displayDate: string; date: Date }[] => {

@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import { useFormFields } from "../hooks/useFormFields";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
+import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import FormModal from "./FormModal";
@@ -1403,6 +1404,14 @@ export default function UnscheduledItems({
                             </div>
                           )}
                         </div>
+
+                        {/* Linked entities display */}
+                        <LinkedEntitiesDisplay
+                          tripId={tripId}
+                          entityType="ACTIVITY"
+                          entityId={activity.id}
+                          compact
+                        />
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
@@ -1513,6 +1522,14 @@ export default function UnscheduledItems({
                             </div>
                           )}
                         </div>
+
+                        {/* Linked entities display */}
+                        <LinkedEntitiesDisplay
+                          tripId={tripId}
+                          entityType="TRANSPORTATION"
+                          entityId={transport.id}
+                          compact
+                        />
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
@@ -1603,6 +1620,14 @@ export default function UnscheduledItems({
                             </div>
                           )}
                         </div>
+
+                        {/* Linked entities display */}
+                        <LinkedEntitiesDisplay
+                          tripId={tripId}
+                          entityType="LODGING"
+                          entityId={lodgingItem.id}
+                          compact
+                        />
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
