@@ -27,6 +27,13 @@ import EmptyDayPlaceholder from './EmptyDayPlaceholder';
 type LinkedLocationsMap = Record<string, Location[]>;
 // Type for linked albums map: "ENTITY_TYPE:entityId" -> PhotoAlbum[]
 type LinkedAlbumsMap = Record<string, PhotoAlbum[]>;
+// Type for entity-location ID map: "ENTITY_TYPE:entityId" -> locationId[]
+type EntityLocationIdsMap = Record<string, number[]>;
+
+// Unscheduled activity with linked location info for display
+interface UnscheduledActivityWithLocation extends Activity {
+  linkedLocations?: { id: number; name: string }[];
+}
 
 interface DailyViewProps {
   tripId: number;
@@ -56,6 +63,7 @@ interface DayData {
   displayDate: string;
   items: DayItem[];
   weather?: WeatherDisplay;
+  unscheduledActivities?: UnscheduledActivityWithLocation[];
 }
 
 export default function DailyView({
@@ -70,6 +78,10 @@ export default function DailyView({
   const [allDays, setAllDays] = useState<DayData[]>([]);
   const [linkedLocationsMap, setLinkedLocationsMap] = useState<LinkedLocationsMap>({});
   const [linkedAlbumsMap, setLinkedAlbumsMap] = useState<LinkedAlbumsMap>({});
+  const [unscheduledActivities, setUnscheduledActivities] = useState<Activity[]>([]);
+  const [activityLocationMap, setActivityLocationMap] = useState<Record<number, number[]>>({});
+  const [entityLocationIdsMap, setEntityLocationIdsMap] = useState<EntityLocationIdsMap>({});
+  const [locationLookup, setLocationLookup] = useState<Record<number, { id: number; name: string }>>({});
 
   // Generate all trip dates
   const generateAllTripDates = useCallback((): { dayNumber: number; dateKey: string; displayDate: string; date: Date }[] => {
@@ -151,7 +163,7 @@ export default function DailyView({
       setError(null);
       try {
         // Fetch all data including entity links and weather in parallel
-        const [activities, transportation, lodging, journal, locations, albumsResult, linkSummary, weather] = await Promise.all([
+        const [activities, transportation, lodging, journal, locations, albumsResult, linkSummary, weather, locationLinks] = await Promise.all([
           activityService.getActivitiesByTrip(tripId),
           transportationService.getTransportationByTrip(tripId),
           lodgingService.getLodgingByTrip(tripId),
@@ -160,9 +172,52 @@ export default function DailyView({
           photoService.getAlbumsByTrip(tripId).catch(() => ({ albums: [] as PhotoAlbum[] })),
           entityLinkService.getTripLinkSummary(tripId).catch(() => ({})),
           weatherService.getWeatherForTrip(tripId).catch(() => [] as WeatherData[]),
+          entityLinkService.getLinksByTargetType(tripId, 'LOCATION').catch(() => []),
         ]);
 
         const albums = albumsResult.albums;
+
+        // Build entity-to-location IDs map from the bulk fetch (for unscheduled activity matching)
+        const entityLocIdsMap: EntityLocationIdsMap = {};
+        if (Array.isArray(locationLinks)) {
+          for (const link of locationLinks) {
+            const key = `${link.sourceType}:${link.sourceId}`;
+            if (!entityLocIdsMap[key]) {
+              entityLocIdsMap[key] = [];
+            }
+            entityLocIdsMap[key].push(link.targetId);
+          }
+        }
+        setEntityLocationIdsMap(entityLocIdsMap);
+
+        // Build location lookup map for displaying location names
+        const locLookup: Record<number, { id: number; name: string }> = {};
+        if (Array.isArray(locations)) {
+          for (const loc of locations) {
+            locLookup[loc.id] = { id: loc.id, name: loc.name };
+          }
+        }
+        setLocationLookup(locLookup);
+
+        // Identify unscheduled activities and build activity-location map
+        const unscheduled: Activity[] = [];
+        const actLocMap: Record<number, number[]> = {};
+        if (Array.isArray(activities)) {
+          for (const activity of activities) {
+            if (!activity) continue;
+            // An activity is unscheduled if it has no startTime and is not allDay
+            if (!activity.startTime && !activity.allDay) {
+              unscheduled.push(activity);
+              // Get linked locations for this unscheduled activity
+              const linkedLocs = entityLocIdsMap[`ACTIVITY:${activity.id}`];
+              if (linkedLocs && linkedLocs.length > 0) {
+                actLocMap[activity.id] = linkedLocs;
+              }
+            }
+          }
+        }
+        setUnscheduledActivities(unscheduled);
+        setActivityLocationMap(actLocMap);
 
         // Process weather data into a map by date key
         const processedWeather: Record<string, WeatherDisplay> = {};
@@ -394,11 +449,85 @@ export default function DailyView({
           }
         });
 
+        // Helper to get location IDs from scheduled items on a day
+        const getLocationIdsFromItems = (items: DayItem[]): Set<number> => {
+          const locationIds = new Set<number>();
+          items.forEach((item) => {
+            if (item.type === 'activity') {
+              const activity = item.data as Activity;
+              const linkedLocs = entityLocIdsMap[`ACTIVITY:${activity.id}`];
+              if (linkedLocs) {
+                linkedLocs.forEach(locId => locationIds.add(locId));
+              }
+            } else if (item.type === 'lodging') {
+              const lodgingItem = item.data as Lodging;
+              const linkedLocs = entityLocIdsMap[`LODGING:${lodgingItem.id}`];
+              if (linkedLocs) {
+                linkedLocs.forEach(locId => locationIds.add(locId));
+              }
+            } else if (item.type === 'transportation') {
+              const trans = item.data as Transportation;
+              // Transportation has direct FK references
+              if (trans.fromLocationId) {
+                locationIds.add(trans.fromLocationId);
+              }
+              if (trans.toLocationId) {
+                locationIds.add(trans.toLocationId);
+              }
+              // Also check entity links for transportation
+              const linkedLocs = entityLocIdsMap[`TRANSPORTATION:${trans.id}`];
+              if (linkedLocs) {
+                linkedLocs.forEach(locId => locationIds.add(locId));
+              }
+            } else if (item.type === 'journal') {
+              const journal = item.data as JournalEntry;
+              const linkedLocs = entityLocIdsMap[`JOURNAL_ENTRY:${journal.id}`];
+              if (linkedLocs) {
+                linkedLocs.forEach(locId => locationIds.add(locId));
+              }
+            } else if (item.type === 'location') {
+              const loc = item.data as Location;
+              locationIds.add(loc.id);
+            }
+          });
+          return locationIds;
+        };
+
+        // Helper to get unscheduled activities for a day based on linked locations
+        const getUnscheduledActivitiesForDay = (items: DayItem[]): UnscheduledActivityWithLocation[] => {
+          const dayLocationIds = getLocationIdsFromItems(items);
+
+          if (dayLocationIds.size === 0) {
+            return [];
+          }
+
+          const matched = unscheduled
+            .filter((activity) => {
+              const linkedLocationIds = actLocMap[activity.id] || [];
+              return linkedLocationIds.some((locId) => dayLocationIds.has(locId));
+            })
+            .map((activity): UnscheduledActivityWithLocation => {
+              const linkedLocationIds = actLocMap[activity.id] || [];
+              const linkedLocs = linkedLocationIds
+                .map((locId) => locLookup[locId])
+                .filter(Boolean);
+              return {
+                ...activity,
+                linkedLocations: linkedLocs.length > 0 ? linkedLocs : undefined,
+              };
+            });
+
+          return matched;
+        };
+
         // Build final day data array
         const daysData: DayData[] = tripDates.map(({ dayNumber, dateKey, displayDate }) => {
           const items = dayDataMap[dateKey] || [];
           // Sort items chronologically
           items.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+
+          // Get unscheduled activities linked to locations on this day
+          const dayUnscheduled = getUnscheduledActivitiesForDay(items);
 
           return {
             dayNumber,
@@ -406,6 +535,7 @@ export default function DailyView({
             displayDate,
             items,
             weather: processedWeather[dateKey],
+            unscheduledActivities: dayUnscheduled.length > 0 ? dayUnscheduled : undefined,
           };
         });
 
@@ -565,6 +695,96 @@ export default function DailyView({
                 return null;
             }
           })
+        )}
+
+        {/* Unscheduled Activities Section */}
+        {currentDay?.unscheduledActivities && currentDay.unscheduledActivities.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <svg
+                className="w-5 h-5 text-amber-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Unscheduled Activities
+              </h3>
+              <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                {currentDay.unscheduledActivities.length}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              These activities are linked to locations on this day but don't have scheduled times.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {currentDay.unscheduledActivities.map((activity) => (
+                <div
+                  key={`unscheduled-${activity.id}`}
+                  className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800/30"
+                >
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <svg
+                      className="w-4 h-4 text-amber-600 dark:text-amber-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {activity.name}
+                    </h4>
+                    {activity.category && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {activity.category}
+                      </p>
+                    )}
+                    {activity.linkedLocations && activity.linkedLocations.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-600 dark:text-gray-400">
+                        <svg
+                          className="w-3 h-3 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        <span className="truncate">
+                          {activity.linkedLocations.map(loc => loc.name).join(', ')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
