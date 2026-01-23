@@ -2,6 +2,23 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Validate required JWT secrets
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+  throw new Error(
+    'JWT_SECRET environment variable is required. ' +
+    'Set it in your .env file or environment variables.'
+  );
+}
+
+const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+if (!jwtRefreshSecret) {
+  throw new Error(
+    'JWT_REFRESH_SECRET environment variable is required. ' +
+    'Set it in your .env file or environment variables.'
+  );
+}
+
 export const config = {
   // Server
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -13,9 +30,9 @@ export const config = {
 
   // JWT
   jwt: {
-    secret: process.env.JWT_SECRET || 'jwt-secret-key',
+    secret: jwtSecret,
     expiresIn: process.env.JWT_EXPIRES_IN || '15m',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'refresh-secret-key',
+    refreshSecret: jwtRefreshSecret,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 

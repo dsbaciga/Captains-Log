@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Location, CreateLocationInput, UpdateLocationInput, LocationCategory } from "../types/location";
 import locationService from "../services/location.service";
 import toast from "react-hot-toast";
@@ -14,6 +13,7 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import LocationSearchMap from "./LocationSearchMap";
@@ -66,50 +66,33 @@ export default function LocationManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
   const [linkPanelLocation, setLinkPanelLocation] = useState<Location | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<LocationFormFields>(initialFormState);
 
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((location: Location) => {
+    handleChange("name", location.name);
+    handleChange("address", location.address || "");
+    handleChange("notes", location.notes || "");
+    handleChange("latitude", location.latitude || undefined);
+    handleChange("longitude", location.longitude || undefined);
+    handleChange("parentId", location.parentId || undefined);
+    handleChange("categoryId", location.categoryId || undefined);
+    manager.openEditForm(location.id);
+  }, [handleChange, manager]);
+
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
+
   useEffect(() => {
     loadCategories();
   }, []);
-
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      // Clear the edit param from URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      // Set pending edit ID to be handled when items are loaded
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Handle pending edit when items are loaded
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((loc) => loc.id === pendingEditId);
-      if (item) {
-        handleChange("name", item.name);
-        handleChange("address", item.address || "");
-        handleChange("notes", item.notes || "");
-        handleChange("latitude", item.latitude || undefined);
-        handleChange("longitude", item.longitude || undefined);
-        handleChange("parentId", item.parentId || undefined);
-        handleChange("categoryId", item.categoryId || undefined);
-        manager.openEditForm(item.id);
-      }
-      setPendingEditId(null);
-    }
-  }, [pendingEditId, manager.items, manager.loading]);
 
   const loadCategories = async () => {
     try {

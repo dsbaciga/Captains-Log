@@ -1204,7 +1204,7 @@ export default function TripDetailPage() {
               tabs={tabGroups}
               activeTab={activeTab}
               onTabChange={(tabId) => changeTab(tabId as TabId)}
-              className="sticky top-28 h-[calc(100vh-8rem)] rounded-lg shadow flex-shrink-0"
+              className="sticky top-32 h-[calc(100vh-8rem)] rounded-lg shadow flex-shrink-0"
             />
           )}
 
@@ -1360,9 +1360,10 @@ export default function TripDetailPage() {
             )}
 
             {/* Mobile Albums Drawer Toggle Button */}
+            {/* Position accounts for MobileBottomNav (h-16 = 4rem) plus padding */}
             <button
               onClick={() => setShowAlbumsMobileDrawer(true)}
-              className="md:hidden fixed bottom-24 left-6 z-30 p-4 bg-blue-600 dark:bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+              className="md:hidden fixed bottom-20 left-6 z-30 p-4 bg-blue-600 dark:bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
               aria-label="Open albums"
             >
               <svg

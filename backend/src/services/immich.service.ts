@@ -61,7 +61,6 @@ class ImmichService {
     // (e.g., https://immich.example.com, NOT https://immich.example.com/api)
     // All endpoint paths in this service include /api/ prefix
     const baseURL = apiUrl.trim();
-    console.log('Creating Immich client with baseURL:', baseURL);
     return axios.create({
       baseURL,
       headers: {
@@ -78,19 +77,11 @@ class ImmichService {
   async testConnection(apiUrl: string, apiKey: string): Promise<boolean> {
     try {
       const client = this.createClient(apiUrl, apiKey);
-      console.log('[Immich Service] Testing connection to:', apiUrl);
-      console.log('[Immich Service] Full URL:', `${apiUrl}/api/server/ping`);
       const response = await client.get('/api/server/ping');
-      console.log('[Immich Service] Connection test successful, status:', response.status);
       return response.status === 200;
     } catch (error: any) {
-      console.error('[Immich Service] Connection error details:');
-      console.error('  - Error message:', error.message);
-      console.error('  - Error code:', error.code);
-      console.error('  - URL attempted:', apiUrl);
-      console.error('  - Response status:', error.response?.status);
-      console.error('  - Response data:', error.response?.data);
-      console.error('  - Full error:', error);
+      // Log error details without exposing full URLs or API keys
+      console.error('[Immich Service] Connection error:', error.code || 'Unknown', '-', error.message);
 
       if (error.code === 'ECONNREFUSED') {
         throw new AppError(`Cannot connect to Immich at ${apiUrl}. Server refused connection. Check if Immich is running and accessible from this container.`, 400);
@@ -155,10 +146,7 @@ class ImmichService {
         total: assets.length,
       };
     } catch (error: any) {
-      console.error('[Immich Service] Error fetching assets:', error.message);
-      console.error('[Immich Service] Error code:', error.code);
-      console.error('[Immich Service] Response status:', error.response?.status);
-      console.error('[Immich Service] Response data:', error.response?.data);
+      console.error('[Immich Service] Error fetching assets:', error.code || 'Unknown', '-', error.message);
       throw new AppError(`Failed to fetch assets from Immich: ${error.message}`, 500);
     }
   }
@@ -207,28 +195,18 @@ class ImmichService {
   ): Promise<{ stream: any; contentType: string }> {
     try {
       const client = this.createClient(apiUrl, apiKey);
-      const fullUrl = `${client.defaults.baseURL}/api/assets/${assetId}/thumbnail`;
-      console.log(`[Immich Service] Fetching thumbnail from: ${fullUrl}`);
 
       const response = await client.get(`/api/assets/${assetId}/thumbnail`, {
         params: { size: 'preview' }, // Required query parameter for Immich API
         responseType: 'stream',
       });
 
-      console.log(`[Immich Service] Thumbnail fetch successful, status: ${response.status}`);
-      console.log(`[Immich Service] Content-Type: ${response.headers['content-type']}`);
-
       return {
         stream: response.data,
         contentType: response.headers['content-type'] || 'image/jpeg',
       };
     } catch (error: any) {
-      console.error('[Immich Service] Error fetching thumbnail stream:', error.message);
-      console.error('[Immich Service] Asset ID:', assetId);
-      console.error('[Immich Service] API URL:', apiUrl);
-      console.error('[Immich Service] Full URL attempted:', `${apiUrl}/api/assets/${assetId}/thumbnail`);
-      console.error('[Immich Service] Response status:', error.response?.status);
-      console.error('[Immich Service] Response data:', error.response?.data);
+      console.error('[Immich Service] Error fetching thumbnail:', error.code || 'Unknown', '-', error.message);
       throw new AppError('Failed to fetch thumbnail from Immich', 500);
     }
   }
@@ -337,9 +315,6 @@ class ImmichService {
   ): Promise<{ assets: ImmichAsset[]; total: number }> {
     try {
       const client = this.createClient(apiUrl, apiKey);
-      console.log('Fetching assets by date range from:', apiUrl);
-      console.log('Date range:', startDate, 'to', endDate);
-      console.log('Pagination options:', options);
 
       // Fetch all pages from Immich using nextPage cursor
       let allAssets: ImmichAsset[] = [];
@@ -347,7 +322,6 @@ class ImmichService {
       let pageNum = 1;
 
       do {
-        console.log(`Fetching page ${pageNum}${nextPage ? ` with cursor: ${nextPage}` : ' (initial)'}`);
         const requestBody: any = {
           takenAfter: startDate,
           takenBefore: endDate,
@@ -359,7 +333,6 @@ class ImmichService {
 
         const response = await client.post('/api/search/metadata', requestBody);
         const pageAssets = response.data.assets?.items || response.data.assets || [];
-        console.log(`Page ${pageNum}: received ${pageAssets.length} assets`);
 
         allAssets = allAssets.concat(pageAssets);
         nextPage = response.data.assets?.nextPage || null;
@@ -367,23 +340,16 @@ class ImmichService {
 
         // Safety check to avoid infinite loops
         if (pageNum > 100) {
-          console.warn('Reached maximum page limit (100), stopping pagination');
+          console.warn('[Immich Service] Reached maximum page limit (100), stopping pagination');
           break;
         }
       } while (nextPage);
-
-      console.log(`Total assets fetched from Immich: ${allAssets.length}`);
 
       // Apply our own pagination (only if pagination options are provided)
       if (options && (options.skip !== undefined || options.take !== undefined)) {
         const skip = options.skip || 0;
         const take = options.take || 100;
         const paginatedAssets = allAssets.slice(skip, skip + take);
-        console.log(`Returning ${paginatedAssets.length} assets (skip: ${skip}, take: ${take})`);
-
-        if (paginatedAssets.length > 0) {
-          console.log('First asset sample:', { id: paginatedAssets[0].id, type: paginatedAssets[0].type });
-        }
 
         return {
           assets: paginatedAssets,
@@ -392,19 +358,12 @@ class ImmichService {
       }
 
       // No pagination requested - return all assets
-      console.log(`No pagination requested, returning all ${allAssets.length} assets`);
-      if (allAssets.length > 0) {
-        console.log('First asset sample:', { id: allAssets[0].id, type: allAssets[0].type });
-      }
-
       return {
         assets: allAssets,
         total: allAssets.length,
       };
     } catch (error: any) {
-      console.error('Error fetching assets by date range:', error.message);
-      console.error('Request URL was:', error.config?.url);
-      console.error('Full error:', error.response?.status, error.response?.data);
+      console.error('[Immich Service] Error fetching assets by date range:', error.code || 'Unknown', '-', error.message);
       throw new AppError('Failed to fetch assets by date range', 500);
     }
   }

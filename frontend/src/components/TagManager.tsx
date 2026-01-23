@@ -4,7 +4,7 @@ import type { Tag, TripTag } from "../types/tag";
 import toast from "react-hot-toast";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import FormModal from "./FormModal";
+import Modal from "./Modal";
 import {
   DEFAULT_TAG_COLORS,
   DEFAULT_TAG_COLOR,
@@ -176,12 +176,15 @@ export default function TagManager({ tripId }: TagManagerProps) {
       </div>
 
       {/* Create/Edit Tag Form Modal */}
-      <FormModal
+      <Modal
         isOpen={manager.showForm}
         onClose={cancelForm}
         title={editingTag ? "Edit Tag" : "Create Tag"}
         icon="🏷️"
         maxWidth="lg"
+        formId="tag-form"
+        focusFirstInput
+        animate
         footer={
           <>
             <button
@@ -250,7 +253,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
             />
           </div>
         </form>
-      </FormModal>
+      </Modal>
 
       {/* Trip Tags */}
       <div className="mb-6">

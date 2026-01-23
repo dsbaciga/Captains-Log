@@ -201,7 +201,7 @@ export default function CompanionAvatar({
       </button>
 
       {editable && showMenu && (
-        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[160px]">
+        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20 min-w-[160px]">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}

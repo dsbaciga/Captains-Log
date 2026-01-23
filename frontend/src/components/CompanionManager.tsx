@@ -4,7 +4,7 @@ import type { Companion } from '../types/companion';
 import toast from 'react-hot-toast';
 import { useManagerCRUD } from '../hooks/useManagerCRUD';
 import CompanionAvatar from './CompanionAvatar';
-import FormModal from './FormModal';
+import Modal from './Modal';
 
 interface CompanionManagerProps {
   tripId: number;
@@ -158,12 +158,15 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
       </div>
 
       {/* Create/Edit Companion Form Modal */}
-      <FormModal
+      <Modal
         isOpen={manager.showForm}
         onClose={resetForm}
         title={editingCompanion ? "Edit Companion" : "Add Companion"}
         icon="👥"
         maxWidth="lg"
+        formId="companion-form"
+        focusFirstInput
+        animate
         footer={
           <>
             <button
@@ -247,7 +250,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
             />
           </div>
         </form>
-      </FormModal>
+      </Modal>
 
       {/* Trip Companions */}
       <div className="mb-6">

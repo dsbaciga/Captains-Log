@@ -27,6 +27,13 @@ export interface ModalProps {
   closeOnEscape?: boolean;
   /** Z-index for the modal (default: 80) */
   zIndex?: number;
+  // Form-specific props (for form modals)
+  /** Form ID for Ctrl+S keyboard shortcut to submit */
+  formId?: string;
+  /** Whether to focus the first input element instead of the modal container */
+  focusFirstInput?: boolean;
+  /** Whether to show entrance animation */
+  animate?: boolean;
 }
 
 const maxWidthClasses = {
@@ -73,8 +80,12 @@ export default function Modal({
   closeOnBackdropClick = true,
   closeOnEscape = true,
   zIndex = 80,
+  formId,
+  focusFirstInput = false,
+  animate = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const hasFocusedRef = useRef(false);
 
   // Handle keyboard events
   const handleKeyDown = useCallback(
@@ -82,23 +93,44 @@ export default function Modal({
       if (e.key === 'Escape' && closeOnEscape) {
         onClose();
       }
+      // Ctrl+S or Cmd+S to save form (only if formId is provided)
+      if (formId && (e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault(); // Prevent browser's save dialog
+        const form = document.getElementById(formId) as HTMLFormElement;
+        if (form) {
+          form.requestSubmit(); // Use requestSubmit to trigger validation
+        }
+      }
     },
-    [onClose, closeOnEscape]
+    [onClose, closeOnEscape, formId]
   );
 
-  // Focus modal when it first opens (only on isOpen change)
+  // Focus management when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Small delay to ensure modal is rendered
-      const timeoutId = setTimeout(() => {
-        modalRef.current?.focus();
-      }, 0);
-
-      return () => clearTimeout(timeoutId);
+      if (focusFirstInput && !hasFocusedRef.current) {
+        // Focus the first focusable input element (better UX for forms)
+        setTimeout(() => {
+          const firstInput = modalRef.current?.querySelector<HTMLElement>(
+            'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])'
+          );
+          firstInput?.focus();
+          hasFocusedRef.current = true;
+        }, 0);
+      } else if (!focusFirstInput) {
+        // Focus the modal container itself
+        const timeoutId = setTimeout(() => {
+          modalRef.current?.focus();
+        }, 0);
+        return () => clearTimeout(timeoutId);
+      }
+    } else {
+      // Reset the flag when modal closes
+      hasFocusedRef.current = false;
     }
-  }, [isOpen]);
+  }, [isOpen, focusFirstInput]);
 
-  // Handle keyboard events
+  // Handle keyboard events and body scroll
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
@@ -132,7 +164,7 @@ export default function Modal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-hidden flex flex-col ${className}`}
+        className={`relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-hidden flex flex-col ${animate ? 'animate-in fade-in zoom-in-95 duration-200' : ''} ${className}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gold/20 flex-shrink-0">
@@ -160,7 +192,7 @@ export default function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gold/20 flex-shrink-0 bg-gray-50 dark:bg-navy-800/50">
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gold/20 flex-shrink-0 bg-gray-50 dark:bg-navy-800/50">
             {footer}
           </div>
         )}
