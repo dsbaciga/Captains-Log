@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
+import type { PhotoAlbum } from '../../types/photo';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
+import EmbeddedAlbumCard from './EmbeddedAlbumCard';
+import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import { getTypeColors, getMoodEmoji } from './utils';
 
 interface JournalCardProps {
@@ -10,12 +13,14 @@ interface JournalCardProps {
   tripId: number;
   tripTimezone?: string;
   linkedLocations?: Location[];
+  linkedAlbums?: PhotoAlbum[];
 }
 
 export default function JournalCard({
   journal,
   tripId,
   linkedLocations = [],
+  linkedAlbums = [],
 }: JournalCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('journal');
@@ -132,7 +137,7 @@ export default function JournalCard({
 
         {/* Linked locations */}
         {linkedLocations.length > 0 && (
-          <div className="mt-4">
+          <div className="mt-3">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Related Locations ({linkedLocations.length})
             </div>
@@ -147,6 +152,33 @@ export default function JournalCard({
             </div>
           </div>
         )}
+
+        {/* Linked albums */}
+        {linkedAlbums.length > 0 && (
+          <div className="mt-4">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              Related Albums ({linkedAlbums.length})
+            </div>
+            <div className="space-y-3">
+              {linkedAlbums.map((album) => (
+                <EmbeddedAlbumCard
+                  key={album.id}
+                  album={album}
+                  tripId={tripId}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Other linked entities (photos, etc.) */}
+        <LinkedEntitiesDisplay
+          tripId={tripId}
+          entityType="JOURNAL_ENTRY"
+          entityId={journal.id}
+          excludeTypes={['LOCATION', 'PHOTO_ALBUM']}
+          compact
+        />
       </div>
     </div>
   );

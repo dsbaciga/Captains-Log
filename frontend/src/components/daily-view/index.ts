@@ -5,5 +5,6 @@ export { default as TransportationCard } from './TransportationCard';
 export { default as LodgingCard } from './LodgingCard';
 export { default as JournalCard } from './JournalCard';
 export { default as EmbeddedLocationCard } from './EmbeddedLocationCard';
+export { default as EmbeddedAlbumCard } from './EmbeddedAlbumCard';
 export { default as EmptyDayPlaceholder } from './EmptyDayPlaceholder';
 export * from './utils';

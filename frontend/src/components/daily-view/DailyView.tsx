@@ -4,6 +4,7 @@ import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
+import type { PhotoAlbum } from '../../types/photo';
 import type { WeatherData, WeatherDisplay } from '../../types/weather';
 import type { EntityType } from '../../types/entityLink';
 import activityService from '../../services/activity.service';
@@ -11,6 +12,7 @@ import transportationService from '../../services/transportation.service';
 import lodgingService from '../../services/lodging.service';
 import journalService from '../../services/journalEntry.service';
 import locationService from '../../services/location.service';
+import photoService from '../../services/photo.service';
 import entityLinkService from '../../services/entityLink.service';
 import weatherService from '../../services/weather.service';
 import { getWeatherIcon } from '../../utils/weatherIcons';
@@ -23,6 +25,8 @@ import EmptyDayPlaceholder from './EmptyDayPlaceholder';
 
 // Type for linked locations map: "ENTITY_TYPE:entityId" -> Location[]
 type LinkedLocationsMap = Record<string, Location[]>;
+// Type for linked albums map: "ENTITY_TYPE:entityId" -> PhotoAlbum[]
+type LinkedAlbumsMap = Record<string, PhotoAlbum[]>;
 
 interface DailyViewProps {
   tripId: number;
@@ -65,6 +69,7 @@ export default function DailyView({
   const [error, setError] = useState<string | null>(null);
   const [allDays, setAllDays] = useState<DayData[]>([]);
   const [linkedLocationsMap, setLinkedLocationsMap] = useState<LinkedLocationsMap>({});
+  const [linkedAlbumsMap, setLinkedAlbumsMap] = useState<LinkedAlbumsMap>({});
 
   // Generate all trip dates
   const generateAllTripDates = useCallback((): { dayNumber: number; dateKey: string; displayDate: string; date: Date }[] => {
@@ -146,15 +151,18 @@ export default function DailyView({
       setError(null);
       try {
         // Fetch all data including entity links and weather in parallel
-        const [activities, transportation, lodging, journal, locations, linkSummary, weather] = await Promise.all([
+        const [activities, transportation, lodging, journal, locations, albumsResult, linkSummary, weather] = await Promise.all([
           activityService.getActivitiesByTrip(tripId),
           transportationService.getTransportationByTrip(tripId),
           lodgingService.getLodgingByTrip(tripId),
           journalService.getJournalEntriesByTrip(tripId),
           locationService.getLocationsByTrip(tripId),
+          photoService.getAlbumsByTrip(tripId).catch(() => ({ albums: [] as PhotoAlbum[] })),
           entityLinkService.getTripLinkSummary(tripId).catch(() => ({})),
           weatherService.getWeatherForTrip(tripId).catch(() => [] as WeatherData[]),
         ]);
+
+        const albums = albumsResult.albums;
 
         // Process weather data into a map by date key
         const processedWeather: Record<string, WeatherDisplay> = {};
@@ -183,41 +191,63 @@ export default function DailyView({
           });
         }
 
-        // Build linked locations map by fetching links for entities that have location links
+        // Build linked locations and albums maps by fetching links for entities
         const locationsMap: LinkedLocationsMap = {};
+        const albumsMap: LinkedAlbumsMap = {};
         const entityTypes: EntityType[] = ['ACTIVITY', 'TRANSPORTATION', 'LODGING', 'JOURNAL_ENTRY'];
 
-        // Get all entities that have location links based on link summary
+        // Get all entities that have location or album links based on link summary
         const linkFetchPromises: Promise<void>[] = [];
 
         for (const [, summary] of Object.entries(linkSummary)) {
-          if (summary.linkCounts.LOCATION && summary.linkCounts.LOCATION > 0) {
-            const entityType = summary.entityType;
-            const entityId = summary.entityId;
+          const entityType = summary.entityType;
+          const entityId = summary.entityId;
 
-            if (entityTypes.includes(entityType)) {
-              linkFetchPromises.push(
-                entityLinkService.getLinksFrom(tripId, entityType, entityId, 'LOCATION')
-                  .then((links) => {
-                    const locationIds = links
-                      .filter((link) => link.targetType === 'LOCATION')
-                      .map((link) => link.targetId);
-                    const linkedLocs = locations.filter((loc) => locationIds.includes(loc.id));
-                    if (linkedLocs.length > 0) {
-                      locationsMap[getEntityKey(entityType, entityId)] = linkedLocs;
-                    }
-                  })
-                  .catch(() => {
-                    // Silently ignore individual link fetch failures
-                  })
-              );
-            }
+          if (!entityTypes.includes(entityType)) continue;
+
+          // Fetch location links
+          if (summary.linkCounts.LOCATION && summary.linkCounts.LOCATION > 0) {
+            linkFetchPromises.push(
+              entityLinkService.getLinksFrom(tripId, entityType, entityId, 'LOCATION')
+                .then((links) => {
+                  const locationIds = links
+                    .filter((link) => link.targetType === 'LOCATION')
+                    .map((link) => link.targetId);
+                  const linkedLocs = locations.filter((loc) => locationIds.includes(loc.id));
+                  if (linkedLocs.length > 0) {
+                    locationsMap[getEntityKey(entityType, entityId)] = linkedLocs;
+                  }
+                })
+                .catch(() => {
+                  // Silently ignore individual link fetch failures
+                })
+            );
+          }
+
+          // Fetch album links
+          if (summary.linkCounts.PHOTO_ALBUM && summary.linkCounts.PHOTO_ALBUM > 0) {
+            linkFetchPromises.push(
+              entityLinkService.getLinksFrom(tripId, entityType, entityId, 'PHOTO_ALBUM')
+                .then((links) => {
+                  const albumIds = links
+                    .filter((link) => link.targetType === 'PHOTO_ALBUM')
+                    .map((link) => link.targetId);
+                  const linkedAlbums = albums.filter((album) => albumIds.includes(album.id));
+                  if (linkedAlbums.length > 0) {
+                    albumsMap[getEntityKey(entityType, entityId)] = linkedAlbums;
+                  }
+                })
+                .catch(() => {
+                  // Silently ignore individual link fetch failures
+                })
+            );
           }
         }
 
         // Wait for all link fetches to complete
         await Promise.all(linkFetchPromises);
         setLinkedLocationsMap(locationsMap);
+        setLinkedAlbumsMap(albumsMap);
 
         const tripDates = generateAllTripDates();
         const dayDataMap: Record<string, DayItem[]> = {};
@@ -416,6 +446,12 @@ export default function DailyView({
     return linkedLocationsMap[key] || [];
   }, [linkedLocationsMap, getEntityKey]);
 
+  // Helper to get linked albums for an entity
+  const getLinkedAlbums = useCallback((entityType: EntityType, entityId: number): PhotoAlbum[] => {
+    const key = getEntityKey(entityType, entityId);
+    return linkedAlbumsMap[key] || [];
+  }, [linkedAlbumsMap, getEntityKey]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -481,6 +517,7 @@ export default function DailyView({
                     tripId={tripId}
                     tripTimezone={tripTimezone}
                     linkedLocations={getLinkedLocations('ACTIVITY', activity.id)}
+                    linkedAlbums={getLinkedAlbums('ACTIVITY', activity.id)}
                   />
                 );
               }
@@ -493,6 +530,7 @@ export default function DailyView({
                     tripId={tripId}
                     tripTimezone={tripTimezone}
                     linkedLocations={getLinkedLocations('TRANSPORTATION', transportation.id)}
+                    linkedAlbums={getLinkedAlbums('TRANSPORTATION', transportation.id)}
                   />
                 );
               }
@@ -506,6 +544,7 @@ export default function DailyView({
                     tripTimezone={tripTimezone}
                     dayContext={item.lodgingContext}
                     linkedLocations={getLinkedLocations('LODGING', lodging.id)}
+                    linkedAlbums={getLinkedAlbums('LODGING', lodging.id)}
                   />
                 );
               }
@@ -518,6 +557,7 @@ export default function DailyView({
                     tripId={tripId}
                     tripTimezone={tripTimezone}
                     linkedLocations={getLinkedLocations('JOURNAL_ENTRY', journal.id)}
+                    linkedAlbums={getLinkedAlbums('JOURNAL_ENTRY', journal.id)}
                   />
                 );
               }
