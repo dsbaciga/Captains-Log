@@ -2,7 +2,6 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
-import { photoAlbumsInclude } from '../utils/prismaIncludes';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
@@ -78,11 +77,9 @@ class ActivityService {
             currency: true,
             bookingReference: true,
             notes: true,
-            photoAlbums: photoAlbumsInclude,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
-        photoAlbums: photoAlbumsInclude,
       },
       orderBy: [
         { manualOrder: { sort: 'asc', nulls: 'last' } },
@@ -119,11 +116,9 @@ class ActivityService {
             currency: true,
             bookingReference: true,
             notes: true,
-            photoAlbums: photoAlbumsInclude,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
-        photoAlbums: photoAlbumsInclude,
       },
     });
 
