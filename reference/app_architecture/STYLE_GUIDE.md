@@ -15,6 +15,8 @@ This document defines the visual design system and UI conventions used throughou
 9. [Responsive Design](#responsive-design)
 10. [Accessibility](#accessibility)
 11. [Print Styles](#print-styles)
+12. [Utility Classes](#utility-classes)
+13. [Quick Reference](#quick-reference)
 
 ---
 
@@ -238,6 +240,39 @@ Responsive grids for card displays:
 <label class="label label-required">Required Field</label>
 ```
 
+### Form Validation
+
+**Error State** (`.input-error`):
+
+```html
+<input type="text" class="input input-error" />
+<p class="error-message">This field is required</p>
+```
+
+- Red border replaces primary border
+- Use with `.error-message` for validation text
+
+**Floating Labels** (`.input-float`, `.label-float`):
+
+```html
+<div class="input-group">
+  <input type="text" class="input-float" placeholder=" " />
+  <label class="label-float">Trip Name</label>
+</div>
+```
+
+- Label floats up on focus or when input has value
+- Requires placeholder=" " for CSS :placeholder-shown detection
+
+**Button Loading State** (`.btn-loading`):
+
+```html
+<button class="btn-primary btn-loading">
+  <span class="btn-text">Save</span>
+  <span class="btn-spinner"><LoadingSpinner.Inline /></span>
+</button>
+```
+
 ### Cards
 
 **Standard Card** (`.card`):
@@ -306,9 +341,10 @@ Use `TabGroup` component for tabbed navigation:
 
 ### Empty States
 
-Use `EmptyState` component:
+Use `EmptyState` component (`src/components/EmptyState.tsx`):
 
 ```tsx
+// With emoji icon
 <EmptyState
   icon="🗺️"
   message="No trips yet"
@@ -316,28 +352,95 @@ Use `EmptyState` component:
   actionLabel="Create Trip"
   onAction={handleCreate}
 />
+
+// With link action instead of button
+<EmptyState
+  icon="✈️"
+  message="No trips yet"
+  actionLabel="Create your first trip"
+  actionHref="/trips/new"
+/>
+
+// With SVG illustration
+<EmptyState
+  icon={<EmptyIllustrations.NoPhotos />}
+  message="No photos yet"
+  subMessage="Upload your first photo"
+/>
+
+// Compact inline variant
+<EmptyState.Compact icon="📭" message="No items found" />
 ```
 
-- Bouncing icon animation
-- Centered layout
-- Optional action button
+**Available SVG Illustrations** (`EmptyIllustrations`):
+
+- `NoTrips`, `NoPhotos`, `NoActivities`, `NoTransportation`
+- `NoLodging`, `NoJournalEntries`, `NoCompanions`, `NoTags`, `NoLocations`
+
+Features:
+- Bouncing icon animation (`animate-bounce-slow`)
+- Centered layout with backdrop blur
+- Optional action button or link
+- Compact variant for inline use
 
 ### Loading States
 
-**Spinner**:
+**Spinner** (`src/components/LoadingSpinner.tsx`):
 
 ```tsx
+// Basic spinner with size and color
 <LoadingSpinner size="md" color="primary" />
-<LoadingSpinner.FullPage />
+
+// With accessible label text
+<LoadingSpinner size="lg" label="Loading trips..." />
+
+// Full page centered loading
+<LoadingSpinner.FullPage message="Loading your data..." />
+
+// Inline spinner for buttons/small areas
 <LoadingSpinner.Inline />
 ```
 
-**Skeleton Loaders**:
+| Prop | Values | Default |
+|------|--------|---------|
+| `size` | `'sm'`, `'md'`, `'lg'`, `'xl'` | `'md'` |
+| `color` | `'primary'`, `'white'`, `'current'` | `'primary'` |
+| `label` | string | undefined |
+
+**Skeleton Loaders** (`src/components/Skeleton.tsx`):
 
 ```tsx
+// Card skeleton with optional image and custom line count
+<SkeletonCard hasImage lines={3} />
+
+// List item with optional icon
+<SkeletonListItem hasIcon />
+
+// Form field (label + input)
+<SkeletonFormField />
+
+// Text line with custom width
+<SkeletonText width="w-2/3" />
+
+// Title/heading skeleton
+<SkeletonTitle width="w-1/2" />
+
+// Avatar/image placeholder
+<SkeletonAvatar size="md" />
+
+// Grid of skeleton cards
+<SkeletonGrid count={6} columns={3} hasImage />
+```
+
+Or use the default export for compound component pattern:
+
+```tsx
+import Skeleton from '@/components/Skeleton';
+
 <Skeleton.Card lines={3} />
 <Skeleton.ListItem />
 <Skeleton.FormField />
+<Skeleton.Grid count={6} columns={3} />
 ```
 
 ### Floating Action Button
@@ -446,6 +549,46 @@ For sequential animations:
 .stagger-5 { animation-delay: 0.5s; }
 ```
 
+### Feedback Animations
+
+**Success Flash** (`.success-flash`):
+
+```html
+<div class="card success-flash">Saved successfully!</div>
+```
+
+- Green background tint with pulse animation
+- Use for successful form submissions
+
+**Error Shake** (`.error-shake`):
+
+```html
+<div class="input-group error-shake">...</div>
+```
+
+- Horizontal shake animation (0.5s)
+- Use for validation errors
+
+**Scroll Highlight** (`.scroll-highlight`):
+
+```html
+<div class="card scroll-highlight">Navigated item</div>
+```
+
+- Blue pulse glow (light mode) / Gold pulse glow (dark mode)
+- 2-second animation for drawing attention to navigated elements
+- Respects `prefers-reduced-motion` with static outline fallback
+
+**Additional Animations**:
+
+| Class | Effect |
+|-------|--------|
+| `animate-fade-in-up` | Fade in + slide up (0.6s) |
+| `animate-float` | Gentle floating motion (6s loop) |
+| `animate-slide-in` | Slide from left (0.4s) |
+| `animate-slide-in-down` | Slide from top (0.3s) |
+| `page-enter` | Page transition fade + slide (0.3s) |
+
 ---
 
 ## Icons
@@ -468,9 +611,11 @@ import { MapPinIcon, CalendarIcon, PhotoIcon } from '@/components/icons';
 
 ### Available Icons
 
-Core: `CloseIcon`, `SearchIcon`, `FilterIcon`, `PlusIcon`, `TrashIcon`, `EditIcon`
-Content: `PhotoIcon`, `MapPinIcon`, `CalendarIcon`, `ChevronRight`, `ChevronDown`
-Status: `Spinner` (with `animate-spin`)
+| Category | Icons |
+|----------|-------|
+| Core | `CloseIcon`, `SearchIcon`, `FilterIcon`, `PlusIcon`, `TrashIcon`, `EditIcon` |
+| Content | `PhotoIcon`, `MapPinIcon`, `CalendarIcon`, `ChevronRightIcon`, `ChevronDownIcon` |
+| Status | `SpinnerIcon` (includes `animate-spin` automatically) |
 
 ### Icon Colors
 
@@ -585,26 +730,144 @@ The timeline export uses print-optimized styles:
 
 ---
 
+## Utility Classes
+
+### Responsive Typography
+
+```html
+<!-- Hero text (3xl to 7xl) -->
+<h1 class="text-responsive-hero">Welcome</h1>
+
+<!-- Title text (xl to 3xl) -->
+<h2 class="text-responsive-title">Section Title</h2>
+
+<!-- Subtitle text (base to xl) -->
+<p class="text-responsive-subtitle">Description</p>
+```
+
+### Visual Effects
+
+| Class | Effect |
+|-------|--------|
+| `.text-gradient` | Gradient text (primary to accent) |
+| `.glass` | Glassmorphism with backdrop blur |
+| `.shimmer` | Loading shimmer animation |
+| `.ripple` | Click ripple effect |
+
+### Scrolling & Layout
+
+| Class | Effect |
+|-------|--------|
+| `.scrollbar-hide` | Hide scrollbar while keeping scroll functionality |
+| `.safe-area-inset-bottom` | Padding for notched devices (iOS) |
+| `.safe-area-bottom` | Alias for safe area padding |
+| `.safe-area-bottom-nav` | Safe area + nav height padding |
+
+### CSS Variable Utilities
+
+These classes use CSS custom properties for dynamic values:
+
+```html
+<!-- Dynamic map height -->
+<div class="map-container-dynamic" style="--map-height: 400px">
+
+<!-- Cover photo background -->
+<div class="cover-photo-bg" style="--cover-photo-url: url(...)">
+
+<!-- Tag with custom colors -->
+<span class="tag-colored" style="--tag-bg-color: #3B82F6; --tag-text-color: #FFF">
+
+<!-- Progress bar -->
+<div class="progress-bar" style="--progress-width: 75%">
+```
+
+### Accessibility
+
+**Skip Link** (`.skip-link`):
+
+```html
+<a href="#main-content" class="skip-link">Skip to main content</a>
+```
+
+- Hidden by default, visible on focus
+- Allows keyboard users to skip navigation
+
+**Reduced Motion Support**:
+
+All animations respect `prefers-reduced-motion: reduce`:
+- Animation durations reduced to near-zero
+- Scroll behavior set to auto
+- `.scroll-highlight` uses static outline instead of animation
+
+---
+
 ## Quick Reference
 
 ### CSS Classes Cheat Sheet
+
+**Buttons & Forms**:
 
 | Purpose | Class |
 |---------|-------|
 | Primary button | `.btn-primary` |
 | Secondary button | `.btn-secondary` |
 | Danger button | `.btn-danger` |
+| Button loading state | `.btn-loading` |
 | Form input | `.input` |
+| Input error state | `.input-error` |
+| Floating input | `.input-float` |
 | Form label | `.label` |
+| Floating label | `.label-float` |
 | Required label | `.label-required` |
+| Error message | `.error-message` |
+
+**Layout & Cards**:
+
+| Purpose | Class |
+|---------|-------|
 | Card | `.card` |
 | Interactive card | `.card-interactive` |
 | FAB | `.fab` |
 | Tab | `.tab` |
 | Active tab | `.tab-active` |
+| Badge | `.badge` |
+| Tooltip | `.tooltip` |
+| Tooltip trigger | `.tooltip-trigger` |
+| Skip link | `.skip-link` |
+
+**Visual Effects**:
+
+| Purpose | Class |
+|---------|-------|
 | Gradient text | `.text-gradient` |
 | Glass effect | `.glass` |
 | Loading shimmer | `.shimmer` |
+| Click ripple | `.ripple` |
+| Hide scrollbar | `.scrollbar-hide` |
+
+**Animations**:
+
+| Purpose | Class |
+|---------|-------|
+| Success feedback | `.success-flash` |
+| Error shake | `.error-shake` |
+| Scroll highlight | `.scroll-highlight` |
+| Page transition | `.page-enter` |
+| Fade in up | `.animate-fade-in-up` |
+| Float | `.animate-float` |
+| Slide in | `.animate-slide-in` |
+| Slide in down | `.animate-slide-in-down` |
+
+**Responsive Typography**:
+
+| Purpose | Class |
+|---------|-------|
+| Hero text | `.text-responsive-hero` |
+| Title text | `.text-responsive-title` |
+| Subtitle text | `.text-responsive-subtitle` |
+| Trip hero title | `.trip-title-hero` |
+| Trip card title | `.trip-title-card` |
+| Trip compact title | `.trip-title-compact` |
 
 ### Files Reference
 
