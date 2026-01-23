@@ -93,10 +93,38 @@ export class TripService {
       }
     }
 
-    // Fetch all matching trips (without pagination) to sort properly
-    const [allTrips, total] = await Promise.all([
+    // Build orderBy based on sort option (database-level sorting)
+    let orderBy: any[];
+    if (sortOption === 'startDate-desc') {
+      // Newest first: nulls last, then by date desc, then by createdAt desc
+      orderBy = [
+        { startDate: { sort: 'desc', nulls: 'last' } },
+        { createdAt: 'desc' },
+      ];
+    } else if (sortOption === 'startDate-asc') {
+      // Oldest first: nulls last, then by date asc
+      orderBy = [
+        { startDate: { sort: 'asc', nulls: 'last' } },
+        { createdAt: 'asc' },
+      ];
+    } else if (sortOption === 'title-asc') {
+      orderBy = [{ title: 'asc' }];
+    } else if (sortOption === 'title-desc') {
+      orderBy = [{ title: 'desc' }];
+    } else if (sortOption === 'status') {
+      orderBy = [{ status: 'asc' }, { createdAt: 'desc' }];
+    } else {
+      // Default fallback
+      orderBy = [{ startDate: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }];
+    }
+
+    // Fetch trips with database-level pagination and sorting
+    const [trips, total] = await Promise.all([
       prisma.trip.findMany({
         where,
+        orderBy,
+        skip,
+        take: limit,
         include: {
           coverPhoto: true,
           tagAssignments: {
@@ -119,64 +147,8 @@ export class TripService {
       prisma.trip.count({ where }),
     ]);
 
-    // Apply sorting based on sort option
-    let sortedTrips = [...allTrips];
-
-    if (sortOption === 'startDate-desc') {
-      // Smart sorting for default: newest first by start date
-      // Active trips (Dream, Planning, Planned, In Progress) without dates go first
-      // Then trips with dates (newest first)
-      // Then Completed/Cancelled trips without dates go last
-      sortedTrips.sort((a, b) => {
-        const activeStatuses = [TripStatus.DREAM, TripStatus.PLANNING, TripStatus.PLANNED, TripStatus.IN_PROGRESS];
-        const aIsActive = activeStatuses.includes(a.status as any);
-        const bIsActive = activeStatuses.includes(b.status as any);
-        const aHasDate = !!a.startDate;
-        const bHasDate = !!b.startDate;
-
-        // Active trips without dates go first
-        if (aIsActive && !aHasDate && bIsActive && !bHasDate) return 0;
-        if (aIsActive && !aHasDate) return -1;
-        if (bIsActive && !bHasDate) return 1;
-
-        // Both have dates - sort by date (newest first)
-        if (aHasDate && bHasDate) {
-          return new Date(b.startDate!).getTime() - new Date(a.startDate!).getTime();
-        }
-
-        // One has date, other doesn't (but not active without date)
-        // Trips with dates come before Completed/Cancelled trips without dates
-        if (aHasDate && !bHasDate) return -1;
-        if (!aHasDate && bHasDate) return 1;
-
-        // Both don't have dates and aren't active - sort by status then createdAt
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-    } else if (sortOption === 'startDate-asc') {
-      // Oldest first - trips without dates go to the end
-      sortedTrips.sort((a, b) => {
-        const aHasDate = !!a.startDate;
-        const bHasDate = !!b.startDate;
-
-        if (!aHasDate && !bHasDate) return 0;
-        if (!aHasDate) return 1;
-        if (!bHasDate) return -1;
-
-        return new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime();
-      });
-    } else if (sortOption === 'title-asc') {
-      sortedTrips.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (sortOption === 'title-desc') {
-      sortedTrips.sort((a, b) => b.title.localeCompare(a.title));
-    } else if (sortOption === 'status') {
-      sortedTrips.sort((a, b) => a.status.localeCompare(b.status));
-    }
-
-    // Apply pagination after sorting
-    const paginatedTrips = sortedTrips.slice(skip, skip + limit);
-
     return {
-      trips: paginatedTrips.map((trip) => convertDecimals(trip)),
+      trips: trips.map((trip) => convertDecimals(trip)),
       total,
       page,
       limit,
@@ -450,28 +422,37 @@ export class TripService {
     const journalIdMap = new Map<number, number>();
     const albumIdMap = new Map<number, number>();
 
-    // Copy locations (with parent-child hierarchy)
+    // Copy locations (with parent-child hierarchy) - requires sequential for parent references
     if (data.copyEntities?.locations && sourceTrip.locations && Array.isArray(sourceTrip.locations)) {
-      // First pass: copy locations without parent references
+      // First pass: bulk insert locations without parent references
       const locationsWithoutParent = sourceTrip.locations.filter((loc: any) => !loc.parentId);
-      for (const location of locationsWithoutParent) {
-        const newLocation = await prisma.location.create({
-          data: {
+      if (locationsWithoutParent.length > 0) {
+        await prisma.location.createMany({
+          data: locationsWithoutParent.map((location: any) => ({
             tripId: newTrip.id,
             name: location.name,
             address: location.address,
             latitude: location.latitude,
             longitude: location.longitude,
             categoryId: location.categoryId,
-            visitDatetime: null, // Clear dates for duplicated trip
+            visitDatetime: null,
             visitDurationMinutes: location.visitDurationMinutes,
             notes: location.notes,
-          },
+          })),
         });
-        locationIdMap.set(location.id, newLocation.id);
+        // Query back to build ID map (match by name within the new trip)
+        const newLocations = await prisma.location.findMany({
+          where: { tripId: newTrip.id },
+          select: { id: true, name: true },
+        });
+        const newLocationsByName = new Map(newLocations.map(l => [l.name, l.id]));
+        for (const location of locationsWithoutParent) {
+          const newId = newLocationsByName.get(location.name);
+          if (newId) locationIdMap.set(location.id, newId);
+        }
       }
 
-      // Second pass: copy child locations with updated parent references
+      // Second pass: child locations need sequential creation due to parent FK
       const locationsWithParent = sourceTrip.locations.filter((loc: any) => loc.parentId);
       for (const location of locationsWithParent) {
         const newParentId = locationIdMap.get(location.parentId);
@@ -493,11 +474,12 @@ export class TripService {
       }
     }
 
-    // Copy photos
+    // Copy photos using bulk insert
     if (data.copyEntities?.photos && sourceTrip.photos && Array.isArray(sourceTrip.photos)) {
-      for (const photo of sourceTrip.photos) {
-        const newPhoto = await prisma.photo.create({
-          data: {
+      const photos = sourceTrip.photos as any[];
+      if (photos.length > 0) {
+        await prisma.photo.createMany({
+          data: photos.map((photo: any) => ({
             tripId: newTrip.id,
             source: photo.source,
             immichAssetId: photo.immichAssetId,
@@ -507,26 +489,35 @@ export class TripService {
             latitude: photo.latitude,
             longitude: photo.longitude,
             takenAt: photo.takenAt,
-          },
+          })),
         });
-        photoIdMap.set(photo.id, newPhoto.id);
+        // Query back and build ID map using localPath/immichAssetId as unique identifiers
+        const newPhotos = await prisma.photo.findMany({
+          where: { tripId: newTrip.id },
+          select: { id: true, localPath: true, immichAssetId: true },
+        });
+        for (const oldPhoto of photos) {
+          const newPhoto = newPhotos.find(
+            (p) => p.localPath === oldPhoto.localPath && p.immichAssetId === oldPhoto.immichAssetId
+          );
+          if (newPhoto) photoIdMap.set(oldPhoto.id, newPhoto.id);
+        }
       }
     }
 
     // Copy activities (with parent-child hierarchy)
-    // Note: Location associations are handled via EntityLink system (copied separately below)
     if (data.copyEntities?.activities && sourceTrip.activities && Array.isArray(sourceTrip.activities)) {
-      // First pass: activities without parent
+      // First pass: bulk insert activities without parent
       const activitiesWithoutParent = sourceTrip.activities.filter((act: any) => !act.parentId);
-      for (const activity of activitiesWithoutParent) {
-        const newActivity = await prisma.activity.create({
-          data: {
+      if (activitiesWithoutParent.length > 0) {
+        await prisma.activity.createMany({
+          data: activitiesWithoutParent.map((activity: any) => ({
             tripId: newTrip.id,
             name: activity.name,
             description: activity.description,
             category: activity.category,
             allDay: activity.allDay,
-            startTime: null, // Clear dates
+            startTime: null,
             endTime: null,
             timezone: activity.timezone,
             cost: activity.cost,
@@ -535,12 +526,21 @@ export class TripService {
             bookingReference: activity.bookingReference,
             notes: activity.notes,
             manualOrder: activity.manualOrder,
-          },
+          })),
         });
-        activityIdMap.set(activity.id, newActivity.id);
+        // Query back to build ID map
+        const newActivities = await prisma.activity.findMany({
+          where: { tripId: newTrip.id },
+          select: { id: true, name: true },
+        });
+        const newActivitiesByName = new Map(newActivities.map(a => [a.name, a.id]));
+        for (const activity of activitiesWithoutParent) {
+          const newId = newActivitiesByName.get(activity.name);
+          if (newId) activityIdMap.set(activity.id, newId);
+        }
       }
 
-      // Second pass: child activities with updated parent references
+      // Second pass: child activities need sequential creation due to parent FK
       const activitiesWithParent = sourceTrip.activities.filter((act: any) => act.parentId);
       for (const activity of activitiesWithParent) {
         const newParentId = activityIdMap.get(activity.parentId);
@@ -567,21 +567,19 @@ export class TripService {
       }
     }
 
-    // Copy transportation (preserve connection groups)
+    // Copy transportation using bulk insert
     if (data.copyEntities?.transportation && sourceTrip.transportation && Array.isArray(sourceTrip.transportation)) {
-      for (const transport of sourceTrip.transportation) {
-        const newStartLocationId = transport.startLocationId ? locationIdMap.get(transport.startLocationId) : null;
-        const newEndLocationId = transport.endLocationId ? locationIdMap.get(transport.endLocationId) : null;
-
-        const newTransport = await prisma.transportation.create({
-          data: {
+      const transportations = sourceTrip.transportation as any[];
+      if (transportations.length > 0) {
+        await prisma.transportation.createMany({
+          data: transportations.map((transport: any) => ({
             tripId: newTrip.id,
             type: transport.type,
-            startLocationId: newStartLocationId || null,
+            startLocationId: transport.startLocationId ? locationIdMap.get(transport.startLocationId) || null : null,
             startLocationText: transport.startLocationText,
-            endLocationId: newEndLocationId || null,
+            endLocationId: transport.endLocationId ? locationIdMap.get(transport.endLocationId) || null : null,
             endLocationText: transport.endLocationText,
-            scheduledStart: null, // Clear dates
+            scheduledStart: null,
             scheduledEnd: null,
             startTimezone: transport.startTimezone,
             endTimezone: transport.endTimezone,
@@ -597,28 +595,41 @@ export class TripService {
             status: 'on_time',
             delayMinutes: null,
             notes: transport.notes,
-            connectionGroupId: transport.connectionGroupId, // Preserve connection groups
+            connectionGroupId: transport.connectionGroupId,
             isAutoGenerated: transport.isAutoGenerated,
             calculatedDistance: transport.calculatedDistance,
             calculatedDuration: transport.calculatedDuration,
             distanceSource: transport.distanceSource,
-          },
+          })),
         });
-        transportationIdMap.set(transport.id, newTransport.id);
+        // Query back and build ID map using type + referenceNumber + company as identifier
+        const newTransports = await prisma.transportation.findMany({
+          where: { tripId: newTrip.id },
+          select: { id: true, type: true, referenceNumber: true, company: true, startLocationText: true },
+        });
+        for (const oldTransport of transportations) {
+          const newTransport = newTransports.find(
+            (t) => t.type === oldTransport.type &&
+                   t.referenceNumber === oldTransport.referenceNumber &&
+                   t.company === oldTransport.company &&
+                   t.startLocationText === oldTransport.startLocationText
+          );
+          if (newTransport) transportationIdMap.set(oldTransport.id, newTransport.id);
+        }
       }
     }
 
-    // Copy lodging
-    // Note: Location associations are handled via EntityLink system (copied separately below)
+    // Copy lodging using bulk insert
     if (data.copyEntities?.lodging && sourceTrip.lodging && Array.isArray(sourceTrip.lodging)) {
-      for (const lodging of sourceTrip.lodging) {
-        const newLodging = await prisma.lodging.create({
-          data: {
+      const lodgings = sourceTrip.lodging as any[];
+      if (lodgings.length > 0) {
+        await prisma.lodging.createMany({
+          data: lodgings.map((lodging: any) => ({
             tripId: newTrip.id,
             type: lodging.type,
             name: lodging.name,
             address: lodging.address,
-            checkInDate: new Date(), // Placeholder - user will update
+            checkInDate: new Date(),
             checkOutDate: new Date(),
             timezone: lodging.timezone,
             confirmationNumber: lodging.confirmationNumber,
@@ -626,84 +637,138 @@ export class TripService {
             cost: lodging.cost,
             currency: lodging.currency,
             notes: lodging.notes,
-          },
+          })),
         });
-        lodgingIdMap.set(lodging.id, newLodging.id);
-      }
-    }
-
-    // Copy photo albums
-    // Note: Location, Activity, and Lodging associations are handled via EntityLink system (copied separately below)
-    if (data.copyEntities?.photoAlbums && sourceTrip.photoAlbums && Array.isArray(sourceTrip.photoAlbums)) {
-      for (const album of sourceTrip.photoAlbums) {
-        const newCoverPhotoId = album.coverPhotoId ? photoIdMap.get(album.coverPhotoId) : null;
-
-        const newAlbum = await prisma.photoAlbum.create({
-          data: {
-            tripId: newTrip.id,
-            name: album.name,
-            description: album.description,
-            coverPhotoId: newCoverPhotoId || null,
-          },
+        // Query back and build ID map
+        const newLodgings = await prisma.lodging.findMany({
+          where: { tripId: newTrip.id },
+          select: { id: true, name: true, address: true },
         });
-        albumIdMap.set(album.id, newAlbum.id);
-
-        // Copy photo album assignments
-        if (album.photoAssignments && Array.isArray(album.photoAssignments)) {
-          for (const assignment of album.photoAssignments) {
-            const newPhotoId = photoIdMap.get(assignment.photoId);
-            if (newPhotoId) {
-              await prisma.photoAlbumAssignment.create({
-                data: {
-                  albumId: newAlbum.id,
-                  photoId: newPhotoId,
-                  sortOrder: assignment.sortOrder,
-                },
-              });
-            }
-          }
+        for (const oldLodging of lodgings) {
+          const newLodging = newLodgings.find(
+            (l) => l.name === oldLodging.name && l.address === oldLodging.address
+          );
+          if (newLodging) lodgingIdMap.set(oldLodging.id, newLodging.id);
         }
       }
     }
 
-    // Copy journal entries
+    // Copy journal entries using bulk insert
     if (data.copyEntities?.journalEntries && sourceTrip.journalEntries && Array.isArray(sourceTrip.journalEntries)) {
-      for (const journal of sourceTrip.journalEntries) {
-        const newJournal = await prisma.journalEntry.create({
-          data: {
+      const journals = sourceTrip.journalEntries as any[];
+      if (journals.length > 0) {
+        await prisma.journalEntry.createMany({
+          data: journals.map((journal: any) => ({
             tripId: newTrip.id,
-            date: null, // Clear dates
+            date: null,
             title: journal.title,
             content: journal.content,
             entryType: journal.entryType,
             mood: journal.mood,
             weatherNotes: journal.weatherNotes,
-          },
+          })),
         });
-        journalIdMap.set(journal.id, newJournal.id);
+        // Query back and build ID map
+        const newJournals = await prisma.journalEntry.findMany({
+          where: { tripId: newTrip.id },
+          select: { id: true, title: true, entryType: true },
+        });
+        for (const oldJournal of journals) {
+          const newJournal = newJournals.find(
+            (j) => j.title === oldJournal.title && j.entryType === oldJournal.entryType
+          );
+          if (newJournal) journalIdMap.set(oldJournal.id, newJournal.id);
+        }
       }
     }
 
-    // Copy tags
+    // Copy photo albums (need to process individually for photo assignments, but bulk insert assignments)
+    if (data.copyEntities?.photoAlbums && sourceTrip.photoAlbums && Array.isArray(sourceTrip.photoAlbums)) {
+      const albums = sourceTrip.photoAlbums as any[];
+      if (albums.length > 0) {
+        // Create albums without cover photos first
+        await prisma.photoAlbum.createMany({
+          data: albums.map((album: any) => ({
+            tripId: newTrip.id,
+            name: album.name,
+            description: album.description,
+            coverPhotoId: null, // Set later after we have the mapping
+          })),
+        });
+        // Query back and build ID map
+        const newAlbums = await prisma.photoAlbum.findMany({
+          where: { tripId: newTrip.id },
+          select: { id: true, name: true },
+        });
+        for (const oldAlbum of albums) {
+          const newAlbum = newAlbums.find((a) => a.name === oldAlbum.name);
+          if (newAlbum) albumIdMap.set(oldAlbum.id, newAlbum.id);
+        }
+
+        // Update cover photos now that we have mappings
+        const coverPhotoUpdates = albums
+          .filter((album: any) => album.coverPhotoId && photoIdMap.get(album.coverPhotoId))
+          .map((album: any) => {
+            const newAlbumId = albumIdMap.get(album.id);
+            const newCoverPhotoId = photoIdMap.get(album.coverPhotoId);
+            if (newAlbumId && newCoverPhotoId) {
+              return prisma.photoAlbum.update({
+                where: { id: newAlbumId },
+                data: { coverPhotoId: newCoverPhotoId },
+              });
+            }
+            return null;
+          })
+          .filter((update): update is NonNullable<typeof update> => update !== null);
+        if (coverPhotoUpdates.length > 0) {
+          await Promise.all(coverPhotoUpdates);
+        }
+
+        // Bulk insert photo album assignments
+        const allAssignments: { albumId: number; photoId: number; sortOrder: number | null }[] = [];
+        for (const album of albums) {
+          const newAlbumId = albumIdMap.get(album.id);
+          if (newAlbumId && album.photoAssignments && Array.isArray(album.photoAssignments)) {
+            for (const assignment of album.photoAssignments) {
+              const newPhotoId = photoIdMap.get(assignment.photoId);
+              if (newPhotoId) {
+                allAssignments.push({
+                  albumId: newAlbumId,
+                  photoId: newPhotoId,
+                  sortOrder: assignment.sortOrder,
+                });
+              }
+            }
+          }
+        }
+        if (allAssignments.length > 0) {
+          await prisma.photoAlbumAssignment.createMany({ data: allAssignments });
+        }
+      }
+    }
+
+    // Copy tags using bulk insert
     if (data.copyEntities?.tags && sourceTrip.tagAssignments && Array.isArray(sourceTrip.tagAssignments)) {
-      for (const tagAssignment of sourceTrip.tagAssignments) {
-        await prisma.tripTagAssignment.create({
-          data: {
+      const tagAssignments = sourceTrip.tagAssignments as any[];
+      if (tagAssignments.length > 0) {
+        await prisma.tripTagAssignment.createMany({
+          data: tagAssignments.map((ta: any) => ({
             tripId: newTrip.id,
-            tagId: tagAssignment.tagId,
-          },
+            tagId: ta.tagId,
+          })),
         });
       }
     }
 
-    // Copy companions
+    // Copy companions using bulk insert
     if (data.copyEntities?.companions && sourceTrip.companionAssignments && Array.isArray(sourceTrip.companionAssignments)) {
-      for (const companionAssignment of sourceTrip.companionAssignments) {
-        await prisma.tripCompanion.create({
-          data: {
+      const companionAssignments = sourceTrip.companionAssignments as any[];
+      if (companionAssignments.length > 0) {
+        await prisma.tripCompanion.createMany({
+          data: companionAssignments.map((ca: any) => ({
             tripId: newTrip.id,
-            companionId: companionAssignment.companionId,
-          },
+            companionId: ca.companionId,
+          })),
         });
       }
     } else {
@@ -719,11 +784,13 @@ export class TripService {
       }
     }
 
-    // Copy checklists
+    // Copy checklists (need sequential for parent-child relationship with items)
     if (data.copyEntities?.checklists && sourceTrip.checklists && Array.isArray(sourceTrip.checklists)) {
-      for (const checklist of sourceTrip.checklists) {
-        const newChecklist = await prisma.checklist.create({
-          data: {
+      const checklists = sourceTrip.checklists as any[];
+      if (checklists.length > 0) {
+        // Create all checklists first
+        await prisma.checklist.createMany({
+          data: checklists.map((checklist: any) => ({
             userId,
             tripId: newTrip.id,
             name: checklist.name,
@@ -731,30 +798,43 @@ export class TripService {
             type: checklist.type,
             isDefault: checklist.isDefault,
             sortOrder: checklist.sortOrder,
-          },
+          })),
         });
+        // Query back new checklists
+        const newChecklists = await prisma.checklist.findMany({
+          where: { tripId: newTrip.id },
+          select: { id: true, name: true },
+        });
+        const checklistIdMap = new Map(checklists.map((c: any) => {
+          const newChecklist = newChecklists.find((nc) => nc.name === c.name);
+          return [c.id, newChecklist?.id] as [number, number | undefined];
+        }));
 
-        // Copy checklist items
-        if (checklist.items && Array.isArray(checklist.items)) {
-          for (const item of checklist.items) {
-            await prisma.checklistItem.create({
-              data: {
-                checklistId: newChecklist.id,
+        // Bulk insert all checklist items
+        const allItems: any[] = [];
+        for (const checklist of checklists) {
+          const newChecklistId = checklistIdMap.get(checklist.id);
+          if (newChecklistId && checklist.items && Array.isArray(checklist.items)) {
+            for (const item of checklist.items) {
+              allItems.push({
+                checklistId: newChecklistId,
                 name: item.name,
                 description: item.description,
-                isChecked: false, // Reset checked state
+                isChecked: false,
                 isDefault: item.isDefault,
                 sortOrder: item.sortOrder,
                 metadata: item.metadata,
-              },
-            });
+              });
+            }
           }
+        }
+        if (allItems.length > 0) {
+          await prisma.checklistItem.createMany({ data: allItems });
         }
       }
     }
 
-    // Copy entity links (must be done after all entities are copied)
-    // This preserves relationships like photos linked to locations, activities to locations, etc.
+    // Copy entity links using bulk insert (must be done after all entities are copied)
     const entityLinks = await prisma.entityLink.findMany({
       where: { tripId: sourceTripId },
     });
@@ -781,14 +861,13 @@ export class TripService {
       }
     };
 
-    for (const link of entityLinks) {
-      const newSourceId = getNewId(link.sourceType, link.sourceId);
-      const newTargetId = getNewId(link.targetType, link.targetId);
-
-      // Only create the link if both source and target entities were copied
-      if (newSourceId && newTargetId) {
-        await prisma.entityLink.create({
-          data: {
+    // Build array of valid entity links for bulk insert
+    const validLinks = entityLinks
+      .map((link) => {
+        const newSourceId = getNewId(link.sourceType, link.sourceId);
+        const newTargetId = getNewId(link.targetType, link.targetId);
+        if (newSourceId && newTargetId) {
+          return {
             tripId: newTrip.id,
             sourceType: link.sourceType,
             sourceId: newSourceId,
@@ -797,9 +876,14 @@ export class TripService {
             relationship: link.relationship,
             sortOrder: link.sortOrder,
             notes: link.notes,
-          },
-        });
-      }
+          };
+        }
+        return null;
+      })
+      .filter((link): link is NonNullable<typeof link> => link !== null);
+
+    if (validLinks.length > 0) {
+      await prisma.entityLink.createMany({ data: validLinks });
     }
 
     // Return the new trip with basic includes

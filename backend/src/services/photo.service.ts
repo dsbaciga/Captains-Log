@@ -90,7 +90,8 @@ class PhotoService {
         }
       }
     } catch (error) {
-      // Continue without EXIF data if parsing fails
+      // Continue without EXIF data if parsing fails - log for debugging
+      console.error('[PhotoService] Failed to parse EXIF data:', error instanceof Error ? error.message : error);
     }
 
     const photo = await prisma.photo.create({
@@ -262,27 +263,34 @@ class PhotoService {
     const take = options?.take || 40; // Default to 40 photos per page
     const orderBy = buildPhotoOrderBy(options?.sortBy, options?.sortOrder);
 
-    const [photos, total] = await Promise.all([
-      prisma.photo.findMany({
-        where: { tripId },
-        include: {
-          albumAssignments: {
-            include: {
-              album: {
-                select: {
-                  id: true,
-                  name: true,
+    let photos: any[];
+    let total: number;
+    try {
+      [photos, total] = await Promise.all([
+        prisma.photo.findMany({
+          where: { tripId },
+          include: {
+            albumAssignments: {
+              include: {
+                album: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy,
-        skip,
-        take,
-      }),
-      prisma.photo.count({ where: { tripId } }),
-    ]);
+          orderBy,
+          skip,
+          take,
+        }),
+        prisma.photo.count({ where: { tripId } }),
+      ]);
+    } catch (error) {
+      console.error(`[PhotoService] Failed to fetch photos for trip ${tripId}:`, error instanceof Error ? error.message : error);
+      throw new AppError('Failed to fetch photos for trip', 500);
+    }
 
     return {
       photos: photos.map((photo: any) => convertDecimals(photo)),
@@ -339,39 +347,46 @@ class PhotoService {
     const photoIdsInAlbums = photosInAlbums.map((p: any) => p.photoId);
 
     // Get photos that are NOT in the photoIdsInAlbums array
-    const [photos, total] = await Promise.all([
-      prisma.photo.findMany({
-        where: {
-          tripId,
-          id: {
-            notIn: photoIdsInAlbums,
+    let photos: any[];
+    let total: number;
+    try {
+      [photos, total] = await Promise.all([
+        prisma.photo.findMany({
+          where: {
+            tripId,
+            id: {
+              notIn: photoIdsInAlbums,
+            },
           },
-        },
-        include: {
-          albumAssignments: {
-            include: {
-              album: {
-                select: {
-                  id: true,
-                  name: true,
+          include: {
+            albumAssignments: {
+              include: {
+                album: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy,
-        skip,
-        take,
-      }),
-      prisma.photo.count({
-        where: {
-          tripId,
-          id: {
-            notIn: photoIdsInAlbums,
+          orderBy,
+          skip,
+          take,
+        }),
+        prisma.photo.count({
+          where: {
+            tripId,
+            id: {
+              notIn: photoIdsInAlbums,
+            },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
+    } catch (error) {
+      console.error(`[PhotoService] Failed to fetch unsorted photos for trip ${tripId}:`, error instanceof Error ? error.message : error);
+      throw new AppError('Failed to fetch unsorted photos for trip', 500);
+    }
 
     return {
       photos: photos.map((photo: any) => convertDecimals(photo)),
@@ -577,7 +592,8 @@ class PhotoService {
         const filepath = path.join(process.cwd(), verifiedPhoto.localPath);
         await fs.unlink(filepath);
       } catch (error) {
-        // Continue even if file deletion fails
+        // Continue even if file deletion fails - log for debugging
+        console.error(`[PhotoService] Failed to delete photo file ${verifiedPhoto.localPath}:`, error instanceof Error ? error.message : error);
       }
 
       if (verifiedPhoto.thumbnailPath) {
@@ -585,7 +601,8 @@ class PhotoService {
           const thumbnailPath = path.join(process.cwd(), verifiedPhoto.thumbnailPath);
           await fs.unlink(thumbnailPath);
         } catch (error) {
-          // Continue even if file deletion fails
+          // Continue even if thumbnail deletion fails - log for debugging
+          console.error(`[PhotoService] Failed to delete thumbnail ${verifiedPhoto.thumbnailPath}:`, error instanceof Error ? error.message : error);
         }
       }
     }

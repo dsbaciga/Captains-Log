@@ -231,18 +231,20 @@ export class LocationService {
     return convertDecimals(updatedLocation);
   }
 
-  // Helper method to get all descendants of a location
+  // Helper method to get all descendants of a location using recursive CTE
+  // This is O(1) queries instead of O(n) for the recursive approach
   private async getDescendants(locationId: number): Promise<{ id: number }[]> {
-    const children = await prisma.location.findMany({
-      where: { parentId: locationId },
-      select: { id: true },
-    });
-
-    const descendants = [...children];
-    for (const child of children) {
-      const childDescendants = await this.getDescendants(child.id);
-      descendants.push(...childDescendants);
-    }
+    const descendants = await prisma.$queryRaw<{ id: number }[]>`
+      WITH RECURSIVE descendants AS (
+        -- Base case: direct children of the location
+        SELECT id FROM "Location" WHERE "parentId" = ${locationId}
+        UNION ALL
+        -- Recursive case: children of descendants
+        SELECT l.id FROM "Location" l
+        INNER JOIN descendants d ON l."parentId" = d.id
+      )
+      SELECT id FROM descendants
+    `;
 
     return descendants;
   }

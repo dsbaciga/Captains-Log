@@ -140,6 +140,175 @@ async function getEntityDetails(
 }
 
 /**
+ * Batch verify that multiple entities exist within a trip
+ * Groups by entity type to minimize queries
+ */
+async function batchVerifyEntitiesInTrip(
+  tripId: number,
+  entities: Array<{ entityType: EntityType; entityId: number }>
+): Promise<void> {
+  if (entities.length === 0) return;
+
+  // Group entities by type
+  const byType = new Map<EntityType, number[]>();
+  for (const { entityType, entityId } of entities) {
+    if (!byType.has(entityType)) {
+      byType.set(entityType, []);
+    }
+    byType.get(entityType)!.push(entityId);
+  }
+
+  // Batch verify each type
+  for (const [entityType, ids] of byType) {
+    const uniqueIds = [...new Set(ids)];
+    let foundCount = 0;
+
+    switch (entityType) {
+      case 'PHOTO':
+        foundCount = await prisma.photo.count({ where: { id: { in: uniqueIds }, tripId } });
+        break;
+      case 'LOCATION':
+        foundCount = await prisma.location.count({ where: { id: { in: uniqueIds }, tripId } });
+        break;
+      case 'ACTIVITY':
+        foundCount = await prisma.activity.count({ where: { id: { in: uniqueIds }, tripId } });
+        break;
+      case 'LODGING':
+        foundCount = await prisma.lodging.count({ where: { id: { in: uniqueIds }, tripId } });
+        break;
+      case 'TRANSPORTATION':
+        foundCount = await prisma.transportation.count({ where: { id: { in: uniqueIds }, tripId } });
+        break;
+      case 'JOURNAL_ENTRY':
+        foundCount = await prisma.journalEntry.count({ where: { id: { in: uniqueIds }, tripId } });
+        break;
+      case 'PHOTO_ALBUM':
+        foundCount = await prisma.photoAlbum.count({ where: { id: { in: uniqueIds }, tripId } });
+        break;
+      default:
+        throw new AppError(`Unknown entity type: ${entityType}`, 400);
+    }
+
+    if (foundCount !== uniqueIds.length) {
+      throw new AppError(
+        `One or more ${entityType} entities not found in trip ${tripId}`,
+        404
+      );
+    }
+  }
+}
+
+/**
+ * Batch fetch entity details for multiple entities
+ * Returns a map of "entityType:entityId" -> EntityDetails
+ */
+async function batchGetEntityDetails(
+  entities: Array<{ entityType: EntityType; entityId: number }>
+): Promise<Map<string, EntityDetails>> {
+  const result = new Map<string, EntityDetails>();
+  if (entities.length === 0) return result;
+
+  // Group entities by type
+  const byType = new Map<EntityType, number[]>();
+  for (const { entityType, entityId } of entities) {
+    if (!byType.has(entityType)) {
+      byType.set(entityType, []);
+    }
+    byType.get(entityType)!.push(entityId);
+  }
+
+  // Batch fetch each type
+  for (const [entityType, ids] of byType) {
+    const uniqueIds = [...new Set(ids)];
+
+    switch (entityType) {
+      case 'PHOTO': {
+        const photos = await prisma.photo.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, caption: true, thumbnailPath: true },
+        });
+        for (const photo of photos) {
+          result.set(`PHOTO:${photo.id}`, {
+            id: photo.id,
+            caption: photo.caption || undefined,
+            thumbnailPath: photo.thumbnailPath || undefined,
+          });
+        }
+        break;
+      }
+      case 'LOCATION': {
+        const locations = await prisma.location.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true },
+        });
+        for (const location of locations) {
+          result.set(`LOCATION:${location.id}`, { id: location.id, name: location.name });
+        }
+        break;
+      }
+      case 'ACTIVITY': {
+        const activities = await prisma.activity.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true },
+        });
+        for (const activity of activities) {
+          result.set(`ACTIVITY:${activity.id}`, { id: activity.id, name: activity.name });
+        }
+        break;
+      }
+      case 'LODGING': {
+        const lodgings = await prisma.lodging.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true },
+        });
+        for (const lodging of lodgings) {
+          result.set(`LODGING:${lodging.id}`, { id: lodging.id, name: lodging.name });
+        }
+        break;
+      }
+      case 'TRANSPORTATION': {
+        const transports = await prisma.transportation.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, type: true, company: true },
+        });
+        for (const transport of transports) {
+          result.set(`TRANSPORTATION:${transport.id}`, {
+            id: transport.id,
+            name: `${transport.type}${transport.company ? ` - ${transport.company}` : ''}`,
+          });
+        }
+        break;
+      }
+      case 'JOURNAL_ENTRY': {
+        const journals = await prisma.journalEntry.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, title: true },
+        });
+        for (const journal of journals) {
+          result.set(`JOURNAL_ENTRY:${journal.id}`, {
+            id: journal.id,
+            title: journal.title || undefined,
+          });
+        }
+        break;
+      }
+      case 'PHOTO_ALBUM': {
+        const albums = await prisma.photoAlbum.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true },
+        });
+        for (const album of albums) {
+          result.set(`PHOTO_ALBUM:${album.id}`, { id: album.id, name: album.name });
+        }
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
  * Determines the default relationship type based on source and target entity types
  */
 function getDefaultRelationship(
@@ -231,10 +400,12 @@ export const entityLinkService = {
     // Verify source entity exists
     await verifyEntityInTrip(data.tripId, data.sourceType, data.sourceId);
 
-    // Verify all target entities exist
-    for (const target of data.targets) {
-      await verifyEntityInTrip(data.tripId, target.targetType, target.targetId);
-    }
+    // Batch verify all target entities exist
+    const targetEntities = data.targets.map(target => ({
+      entityType: target.targetType,
+      entityId: target.targetId,
+    }));
+    await batchVerifyEntitiesInTrip(data.tripId, targetEntities);
 
     let created = 0;
     let skipped = 0;
@@ -298,10 +469,12 @@ export const entityLinkService = {
     // Verify target entity exists
     await verifyEntityInTrip(data.tripId, data.targetType, data.targetId);
 
-    // Verify all photos exist
-    for (const photoId of data.photoIds) {
-      await verifyEntityInTrip(data.tripId, 'PHOTO', photoId);
-    }
+    // Batch verify all photos exist
+    const photoEntities = data.photoIds.map(photoId => ({
+      entityType: 'PHOTO' as EntityType,
+      entityId: photoId,
+    }));
+    await batchVerifyEntitiesInTrip(data.tripId, photoEntities);
 
     let created = 0;
     let skipped = 0;
@@ -367,18 +540,24 @@ export const entityLinkService = {
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
 
+    // Batch fetch all target entity details
+    const targetEntities = links.map(link => ({
+      entityType: link.targetType as EntityType,
+      entityId: link.targetId,
+    }));
+    const detailsMap = await batchGetEntityDetails(targetEntities);
+
     // Enrich with target entity details
-    const enrichedLinks: EnrichedEntityLink[] = [];
-    for (const link of links) {
-      const targetEntity = await getEntityDetails(link.targetType as EntityType, link.targetId);
-      enrichedLinks.push({
+    const enrichedLinks: EnrichedEntityLink[] = links.map(link => {
+      const targetEntity = detailsMap.get(`${link.targetType}:${link.targetId}`);
+      return {
         ...link,
         sourceType: link.sourceType as EntityType,
         targetType: link.targetType as EntityType,
         relationship: link.relationship as LinkRelationship,
         targetEntity: targetEntity || undefined,
-      });
-    }
+      };
+    });
 
     return enrichedLinks;
   },
@@ -407,18 +586,24 @@ export const entityLinkService = {
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
 
+    // Batch fetch all source entity details
+    const sourceEntities = links.map(link => ({
+      entityType: link.sourceType as EntityType,
+      entityId: link.sourceId,
+    }));
+    const detailsMap = await batchGetEntityDetails(sourceEntities);
+
     // Enrich with source entity details
-    const enrichedLinks: EnrichedEntityLink[] = [];
-    for (const link of links) {
-      const sourceEntity = await getEntityDetails(link.sourceType as EntityType, link.sourceId);
-      enrichedLinks.push({
+    const enrichedLinks: EnrichedEntityLink[] = links.map(link => {
+      const sourceEntity = detailsMap.get(`${link.sourceType}:${link.sourceId}`);
+      return {
         ...link,
         sourceType: link.sourceType as EntityType,
         targetType: link.targetType as EntityType,
         relationship: link.relationship as LinkRelationship,
         sourceEntity: sourceEntity || undefined,
-      });
-    }
+      };
+    });
 
     return enrichedLinks;
   },
@@ -438,10 +623,17 @@ export const entityLinkService = {
   }> {
     await verifyTripAccess(userId, tripId);
 
-    const [linksFrom, linksTo] = await Promise.all([
-      this.getLinksFrom(userId, { tripId, sourceType: entityType, sourceId: entityId }),
-      this.getLinksTo(userId, { tripId, targetType: entityType, targetId: entityId }),
-    ]);
+    let linksFrom: EnrichedEntityLink[];
+    let linksTo: EnrichedEntityLink[];
+    try {
+      [linksFrom, linksTo] = await Promise.all([
+        this.getLinksFrom(userId, { tripId, sourceType: entityType, sourceId: entityId }),
+        this.getLinksTo(userId, { tripId, targetType: entityType, targetId: entityId }),
+      ]);
+    } catch (error) {
+      console.error(`Failed to fetch links for entity ${entityType}:${entityId} in trip ${tripId}:`, error);
+      throw new AppError('Failed to fetch entity links: ' + (error as Error).message, 500);
+    }
 
     // Build summary counts
     const linkCounts: { [key in EntityType]?: number } = {};

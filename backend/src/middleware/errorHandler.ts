@@ -6,19 +6,53 @@ import { AppError as UtilsAppError } from '../utils/errors';
 // Re-export AppError from utils/errors for backwards compatibility
 export { AppError } from '../utils/errors';
 
+// Sensitive field names that should never be logged
+const SENSITIVE_FIELDS = new Set([
+  'password',
+  'token',
+  'accesstoken',
+  'refreshtoken',
+  'apikey',
+  'api_key',
+  'secret',
+  'authorization',
+  'credential',
+  'credentials',
+]);
+
+// Sanitize an object by redacting sensitive fields
+const sanitizeForLogging = (obj: Record<string, any> | undefined): Record<string, any> | undefined => {
+  if (!obj || typeof obj !== 'object') return undefined;
+
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const lowerKey = key.toLowerCase();
+    if (SENSITIVE_FIELDS.has(lowerKey) || lowerKey.includes('password') || lowerKey.includes('secret') || lowerKey.includes('token') || lowerKey.includes('apikey')) {
+      sanitized[key] = '[REDACTED]';
+    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+      sanitized[key] = sanitizeForLogging(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
+
 export const errorHandler = (
   err: Error,
   req: Request,
   res: Response,
   _next: NextFunction
 ) => {
-  // Enhanced logging with full error details
+  // Enhanced logging with error details (sensitive data redacted)
   logger.error('Error occurred:', {
     message: err.message,
     stack: err.stack,
     url: req.url,
     method: req.method,
-    body: req.body,
+    params: req.params,
+    // Only log sanitized body in development for debugging
+    body: process.env.NODE_ENV === 'development' ? sanitizeForLogging(req.body) : undefined,
     // Prisma errors have a 'code' property
     code: (err as any).code,
     meta: (err as any).meta,

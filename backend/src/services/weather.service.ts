@@ -90,22 +90,28 @@ class WeatherService {
 
     // Fetch or retrieve weather for each date
     // Each day gets its own coordinates based on locations/activities/lodging for that day
-    const weatherData = await Promise.all(
-      dates.map(async (date) => {
-        // Get coordinates for this specific day
-        const coordinates = await this.getTripCoordinates(tripId, date);
-        const dateString = date.toISOString().split('T')[0];
+    let weatherData: (Awaited<ReturnType<typeof this.getWeatherForDate>> | null)[];
+    try {
+      weatherData = await Promise.all(
+        dates.map(async (date) => {
+          // Get coordinates for this specific day
+          const coordinates = await this.getTripCoordinates(tripId, date);
+          const dateString = date.toISOString().split('T')[0];
 
-        if (!coordinates) {
-          console.warn(`No coordinates available for ${dateString}`);
-          return null;
-        }
+          if (!coordinates) {
+            console.warn(`No coordinates available for ${dateString}`);
+            return null;
+          }
 
-        console.log(`[Weather] ${dateString}: Using location "${coordinates.locationName || 'Unknown'}" (lat: ${coordinates.lat.toFixed(4)}, lon: ${coordinates.lon.toFixed(4)})`);
+          console.log(`[Weather] ${dateString}: Using location "${coordinates.locationName || 'Unknown'}" (lat: ${coordinates.lat.toFixed(4)}, lon: ${coordinates.lon.toFixed(4)})`);
 
-        return this.getWeatherForDate(tripId, coordinates, date, apiKey);
-      })
-    );
+          return this.getWeatherForDate(tripId, coordinates, date, apiKey);
+        })
+      );
+    } catch (error) {
+      console.error(`Failed to fetch weather data for trip ${tripId}:`, error);
+      throw new Error('Failed to fetch weather data for trip: ' + (error as Error).message);
+    }
 
     return convertDecimals(weatherData.filter((w) => w !== null));
   }

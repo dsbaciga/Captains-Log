@@ -155,7 +155,9 @@ class TransportationService {
   private async enhanceTransportations(transportations: any[]) {
     // Enhance with computed fields and map to frontend format
     const now = new Date();
-    const enhancedTransportations = await Promise.all(transportations.map(async (t) => {
+    let enhancedTransportations: Record<string, any>[];
+    try {
+      enhancedTransportations = await Promise.all(transportations.map(async (t) => {
       const mapped = mapTransportationToFrontend(t);
 
       // Calculate route if we have coordinates
@@ -238,6 +240,10 @@ class TransportationService {
 
       return mapped;
     }));
+    } catch (error) {
+      console.error('Failed to enhance transportation data:', error);
+      throw new Error('Failed to enhance transportation data: ' + (error as Error).message);
+    }
 
     return enhancedTransportations;
   }
