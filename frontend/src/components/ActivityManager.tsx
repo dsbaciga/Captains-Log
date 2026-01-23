@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Activity, CreateActivityInput, UpdateActivityInput } from "../types/activity";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
@@ -17,6 +16,7 @@ import {
 } from "../utils/timezone";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
@@ -53,11 +53,9 @@ export default function ActivityManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
@@ -73,33 +71,15 @@ export default function ActivityManager({
     setLocalLocations(locations);
   }, [locations]);
 
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      // Clear the edit param from URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      // Set pending edit ID to be handled when items are loaded
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((activity: Activity) => {
+    handleEdit(activity);
+  }, []);
 
-  // Handle pending edit when items are loaded (from URL ?edit=id parameter)
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((a) => a.id === pendingEditId);
-      if (item) {
-        handleEdit(item);
-      }
-      setPendingEditId(null);
-    }
-    // Note: handleEdit excluded intentionally - we only want to trigger when
-    // pendingEditId is set and items finish loading, not when handleEdit changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEditId, manager.items, manager.loading]);
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
 
   const loadUserCategories = async () => {
     try {
@@ -431,12 +411,14 @@ export default function ActivityManager({
           <button
             onClick={() => handleEdit(activity)}
             className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+            aria-label={`Edit activity ${activity.name}`}
           >
             Edit
           </button>
           <button
             onClick={() => handleDelete(activity.id)}
             className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+            aria-label={`Delete activity ${activity.name}`}
           >
             Delete
           </button>

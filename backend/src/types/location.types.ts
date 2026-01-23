@@ -1,10 +1,21 @@
 import { z } from 'zod';
+import {
+  optionalNullable,
+  optionalNumericId,
+  requiredStringWithMax,
+  optionalStringWithMax,
+  optionalLatitude,
+  optionalLongitude,
+  optionalDatetime,
+  optionalNotes,
+  optionalPositiveNumber,
+} from '../utils/zodHelpers';
 
 // Validation schemas
 export const createLocationSchema = z.object({
   tripId: z.number(),
   parentId: z.number().optional(),
-  name: z.string().min(1).max(500),
+  name: requiredStringWithMax(500),
   address: z.string().optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -15,27 +26,27 @@ export const createLocationSchema = z.object({
 });
 
 export const updateLocationSchema = z.object({
-  parentId: z.number().nullable().optional(),
-  name: z.string().min(1).max(500).optional(),
-  address: z.string().nullable().optional(),
-  latitude: z.number().min(-90).max(90).nullable().optional(),
-  longitude: z.number().min(-180).max(180).nullable().optional(),
-  categoryId: z.number().nullable().optional(),
-  visitDatetime: z.string().nullable().optional(),
-  visitDurationMinutes: z.number().min(0).nullable().optional(),
-  notes: z.string().nullable().optional(),
+  parentId: optionalNumericId(),
+  name: optionalNullable(requiredStringWithMax(500)),
+  address: optionalNotes(), // String, optional, nullable
+  latitude: optionalLatitude(),
+  longitude: optionalLongitude(),
+  categoryId: optionalNumericId(),
+  visitDatetime: optionalDatetime(),
+  visitDurationMinutes: optionalPositiveNumber(),
+  notes: optionalNotes(),
 });
 
 export const createLocationCategorySchema = z.object({
-  name: z.string().min(1).max(255),
-  icon: z.string().max(100).optional(),
-  color: z.string().max(7).optional(), // Hex color code
+  name: requiredStringWithMax(255),
+  icon: optionalStringWithMax(100),
+  color: optionalStringWithMax(7), // Hex color code
 });
 
 export const updateLocationCategorySchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  icon: z.string().max(100).nullable().optional(),
-  color: z.string().max(7).nullable().optional(),
+  name: optionalNullable(requiredStringWithMax(255)),
+  icon: optionalStringWithMax(100),
+  color: optionalStringWithMax(7),
 });
 
 // Types

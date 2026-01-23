@@ -14,6 +14,7 @@ import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useEntityLinking } from "../hooks/useEntityLinking";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import LocationSearchMap from "./LocationSearchMap";
@@ -65,10 +66,13 @@ export default function LocationManager({
 
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
+  const { openLinkPanel, closeLinkPanel, linkingEntityId, showLinkPanel } = useEntityLinking({
+    entityType: 'LOCATION',
+    tripId,
+  });
 
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
-  const [linkPanelLocation, setLinkPanelLocation] = useState<Location | null>(null);
 
   const { values, handleChange, reset } =
     useFormFields<LocationFormFields>(initialFormState);
@@ -289,7 +293,7 @@ export default function LocationManager({
                       entityType="LOCATION"
                       entityId={location.id}
                       photoCount={photoCount}
-                      onViewAll={() => setLinkPanelLocation(location)}
+                      onViewAll={() => openLinkPanel(location.id)}
                     >
                       <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 cursor-pointer">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -313,12 +317,14 @@ export default function LocationManager({
               <button
                 onClick={() => handleEdit(location)}
                 className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                aria-label={`Edit location ${location.name}`}
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(location.id)}
                 className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                aria-label={`Delete location ${location.name}`}
               >
                 Delete
               </button>
@@ -562,12 +568,12 @@ export default function LocationManager({
       )}
 
       {/* Link Panel for viewing all photos */}
-      {linkPanelLocation && (
+      {showLinkPanel && linkingEntityId && (
         <LinkPanel
           tripId={tripId}
           entityType="LOCATION"
-          entityId={linkPanelLocation.id}
-          onClose={() => setLinkPanelLocation(null)}
+          entityId={linkingEntityId}
+          onClose={closeLinkPanel}
           onUpdate={invalidateLinkSummary}
         />
       )}

@@ -1,5 +1,4 @@
-import { useState, useId, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useId, useMemo, useEffect, useCallback } from "react";
 import type { JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput } from "../types/journalEntry";
 import journalEntryService from "../services/journalEntry.service";
 import toast from "react-hot-toast";
@@ -11,6 +10,7 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 
 interface JournalManagerProps {
   tripId: number;
@@ -50,10 +50,8 @@ export default function JournalManager({
   // Link summary hook for displaying link counts
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
   // Use the new useFormFields hook to manage all form state
   // Memoize initial form values to include trip start date as default
@@ -70,37 +68,15 @@ export default function JournalManager({
   const entryDateFieldId = useId();
   const contentFieldId = useId();
 
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((entry: JournalEntry) => {
+    handleEdit(entry);
+  }, []);
 
-  // Handle pending edit when items are loaded
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((j) => j.id === pendingEditId);
-      if (item) {
-        setAllFields({
-          title: item.title || "",
-          content: item.content,
-          entryDate: item.date
-            ? new Date(item.date).toISOString().slice(0, 16)
-            : "",
-        });
-        manager.openEditForm(item.id);
-        setExpandedId(null);
-      }
-      setPendingEditId(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEditId, manager.items, manager.loading, setAllFields]);
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
 
   const resetForm = () => {
     resetFields();
@@ -380,6 +356,7 @@ Tell your story!"
                         type="button"
                         onClick={() => handleEdit(entry)}
                         className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 whitespace-nowrap text-sm sm:text-base"
+                        aria-label={`Edit journal entry ${entry.title || 'Untitled Entry'}`}
                       >
                         Edit
                       </button>
@@ -387,6 +364,7 @@ Tell your story!"
                         type="button"
                         onClick={() => handleDelete(entry.id)}
                         className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 whitespace-nowrap text-sm sm:text-base"
+                        aria-label={`Delete journal entry ${entry.title || 'Untitled Entry'}`}
                       >
                         Delete
                       </button>
@@ -408,6 +386,8 @@ Tell your story!"
                         setExpandedId(isExpanded ? null : entry.id)
                       }
                       className="mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 text-sm font-medium"
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? `Collapse ${entry.title || 'entry'} content` : `Expand ${entry.title || 'entry'} content`}
                     >
                       {isExpanded ? "Show less" : "Read more →"}
                     </button>

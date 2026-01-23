@@ -181,7 +181,7 @@ export class LocationService {
     });
 
     // Verify access
-    await verifyEntityAccess(location, userId, 'Location');
+    const verifiedLocation = await verifyEntityAccess(location, userId, 'Location');
 
     // If updating parentId, verify it exists and belongs to the same trip
     if (data.parentId !== undefined && data.parentId !== null) {
@@ -193,7 +193,7 @@ export class LocationService {
       const parent = await prisma.location.findFirst({
         where: {
           id: data.parentId,
-          tripId: location!.tripId,
+          tripId: verifiedLocation.tripId,
         },
       });
 

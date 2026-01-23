@@ -153,7 +153,19 @@ export default function PhotoPreviewPopover({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div onClick={handleClick} className="cursor-pointer">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        aria-label={`View ${photoCount} photos`}
+        className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky rounded"
+      >
         {children}
       </div>
 

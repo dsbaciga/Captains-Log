@@ -1,5 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import type {
   Transportation,
   TransportationType,
@@ -17,6 +16,7 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -112,7 +112,6 @@ export default function TransportationManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const { values, handleChange, reset } =
     useFormFields<TransportationFormFields>(getInitialFormState);
 
@@ -121,60 +120,16 @@ export default function TransportationManager({
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((transportation: Transportation) => {
+    handleEdit(transportation);
+  }, []);
 
-  // Handle pending edit when items are loaded
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((t) => t.id === pendingEditId);
-      if (item) {
-        setShowMoreOptions(true);
-        handleChange("type", item.type);
-        handleChange("fromLocationId", item.fromLocationId || undefined);
-        handleChange("toLocationId", item.toLocationId || undefined);
-        handleChange("fromLocationName", item.fromLocationName || "");
-        handleChange("toLocationName", item.toLocationName || "");
-
-        const effectiveStartTz = item.startTimezone || tripTimezone || 'UTC';
-        const effectiveEndTz = item.endTimezone || tripTimezone || 'UTC';
-
-        handleChange(
-          "departureTime",
-          item.departureTime
-            ? convertISOToDateTimeLocal(item.departureTime, effectiveStartTz)
-            : ""
-        );
-        handleChange(
-          "arrivalTime",
-          item.arrivalTime
-            ? convertISOToDateTimeLocal(item.arrivalTime, effectiveEndTz)
-            : ""
-        );
-        handleChange("startTimezone", item.startTimezone || "");
-        handleChange("endTimezone", item.endTimezone || "");
-        handleChange("carrier", item.carrier || "");
-        handleChange("vehicleNumber", item.vehicleNumber || "");
-        handleChange("confirmationNumber", item.confirmationNumber || "");
-        handleChange("cost", item.cost?.toString() || "");
-        handleChange("currency", item.currency || "USD");
-        handleChange("notes", item.notes || "");
-        manager.openEditForm(item.id);
-      }
-      setPendingEditId(null);
-    }
-  }, [pendingEditId, manager.items, manager.loading, tripTimezone]);
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
 
   // Smart timezone inference: auto-populate timezones when locations are selected
   useEffect(() => {
@@ -562,7 +517,7 @@ export default function TransportationManager({
 
       {/* Filter Tabs */}
       {manager.items.length > 0 && (
-        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700" role="tablist" aria-label="Transportation filters">
           <button
             onClick={() => setActiveTab("all")}
             className={`px-4 py-2 font-medium text-sm transition-colors ${
@@ -570,6 +525,9 @@ export default function TransportationManager({
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
+            role="tab"
+            aria-selected={activeTab === "all"}
+            aria-label={`Show all transportation (${counts.all})`}
           >
             All {counts.all > 0 && `(${counts.all})`}
           </button>
@@ -580,6 +538,9 @@ export default function TransportationManager({
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
+            role="tab"
+            aria-selected={activeTab === "upcoming"}
+            aria-label={`Show upcoming transportation (${counts.upcoming})`}
           >
             Upcoming {counts.upcoming > 0 && `(${counts.upcoming})`}
           </button>
@@ -590,6 +551,9 @@ export default function TransportationManager({
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
+            role="tab"
+            aria-selected={activeTab === "historical"}
+            aria-label={`Show historical transportation (${counts.historical})`}
           >
             Historical {counts.historical > 0 && `(${counts.historical})`}
           </button>
@@ -774,6 +738,7 @@ export default function TransportationManager({
                       onClick={() => handleChange("departureTime", "")}
                       className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       title="Clear departure time"
+                      aria-label="Clear departure time"
                     >
                       ✕
                     </button>
@@ -810,6 +775,7 @@ export default function TransportationManager({
                       onClick={() => handleChange("arrivalTime", "")}
                       className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       title="Clear arrival time"
+                      aria-label="Clear arrival time"
                     >
                       ✕
                     </button>
@@ -1161,12 +1127,14 @@ export default function TransportationManager({
                 <button
                   onClick={() => handleEdit(transportation)}
                   className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                  aria-label={`Edit ${transportation.type} transportation`}
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(transportation.id)}
                   className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                  aria-label={`Delete ${transportation.type} transportation`}
                 >
                   Delete
                 </button>

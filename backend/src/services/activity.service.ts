@@ -131,7 +131,7 @@ class ActivityService {
       include: { trip: true },
     });
 
-    await verifyEntityAccess(activity, userId, 'Activity');
+    const verifiedActivity = await verifyEntityAccess(activity, userId, 'Activity');
 
     // Verify parent activity exists and belongs to same trip if provided
     if (data.parentId) {
@@ -139,7 +139,7 @@ class ActivityService {
       if (data.parentId === activityId) {
         throw new AppError('Activity cannot be its own parent', 400);
       }
-      await verifyEntityInTrip('activity', data.parentId, activity!.tripId);
+      await verifyEntityInTrip('activity', data.parentId, verifiedActivity.tripId);
     }
 
     // Note: Location association is handled via EntityLink system, not direct FK

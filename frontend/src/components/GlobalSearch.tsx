@@ -212,6 +212,7 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -232,6 +233,7 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
           onFocus={() => setShowResults(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search trips, locations, photos..."
+          aria-label="Search trips, locations, photos"
           className={`
             w-full pl-10 pr-12 py-3
             border-2 border-gray-300 dark:border-gray-600
@@ -254,8 +256,9 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
                 setResults([]);
               }}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              aria-label="Clear search"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

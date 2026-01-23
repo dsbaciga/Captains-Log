@@ -1,7 +1,19 @@
 import prisma from '../config/database';
-import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import { verifyTripAccess } from '../utils/serviceHelpers';
+
+// Type for Prisma transaction client
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+// Prisma-like filter types
+interface EntityLinkWhereInput {
+  tripId?: number;
+  sourceType?: string;
+  sourceId?: number;
+  targetType?: string;
+  targetId?: number;
+  [key: string]: unknown;
+}
 import type {
   EntityType,
   LinkRelationship,
@@ -20,12 +32,15 @@ import type {
 // Entity details return type
 type EntityDetails = { id: number; name?: string; title?: string; caption?: string; thumbnailPath?: string };
 
+// Generic entity record type returned from findFirst/findUnique
+type EntityRecord = { id: number } & Record<string, unknown>;
+
 /**
  * Configuration for entity type operations
  * Maps entity types to their verification and details functions
  */
 const ENTITY_CONFIG: Record<EntityType, {
-  findInTrip: (tripId: number, entityId: number) => Promise<any>;
+  findInTrip: (tripId: number, entityId: number) => Promise<EntityRecord | null>;
   getDetails: (entityId: number) => Promise<EntityDetails | null>;
 }> = {
   PHOTO: {
@@ -152,10 +167,12 @@ async function batchVerifyEntitiesInTrip(
   // Group entities by type
   const byType = new Map<EntityType, number[]>();
   for (const { entityType, entityId } of entities) {
-    if (!byType.has(entityType)) {
-      byType.set(entityType, []);
+    const existing = byType.get(entityType);
+    if (existing) {
+      existing.push(entityId);
+    } else {
+      byType.set(entityType, [entityId]);
     }
-    byType.get(entityType)!.push(entityId);
   }
 
   // Batch verify each type
@@ -211,10 +228,12 @@ async function batchGetEntityDetails(
   // Group entities by type
   const byType = new Map<EntityType, number[]>();
   for (const { entityType, entityId } of entities) {
-    if (!byType.has(entityType)) {
-      byType.set(entityType, []);
+    const existing = byType.get(entityType);
+    if (existing) {
+      existing.push(entityId);
+    } else {
+      byType.set(entityType, [entityId]);
     }
-    byType.get(entityType)!.push(entityId);
   }
 
   // Batch fetch each type
@@ -411,7 +430,7 @@ export const entityLinkService = {
     let skipped = 0;
 
     // Create links in a transaction
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx: TransactionClient) => {
       for (const target of data.targets) {
         // Skip self-links
         if (data.sourceType === target.targetType && data.sourceId === target.targetId) {
@@ -481,7 +500,7 @@ export const entityLinkService = {
 
     const relationship = data.relationship || getDefaultRelationship('PHOTO', data.targetType);
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx: TransactionClient) => {
       for (const photoId of data.photoIds) {
         // Check if link already exists
         const existing = await tx.entityLink.findFirst({
@@ -525,7 +544,7 @@ export const entityLinkService = {
   ): Promise<EnrichedEntityLink[]> {
     await verifyTripAccess(userId, data.tripId);
 
-    const where: any = {
+    const where: EntityLinkWhereInput = {
       tripId: data.tripId,
       sourceType: data.sourceType,
       sourceId: data.sourceId,
@@ -571,7 +590,7 @@ export const entityLinkService = {
   ): Promise<EnrichedEntityLink[]> {
     await verifyTripAccess(userId, data.tripId);
 
-    const where: any = {
+    const where: EntityLinkWhereInput = {
       tripId: data.tripId,
       targetType: data.targetType,
       targetId: data.targetId,
@@ -767,7 +786,7 @@ export const entityLinkService = {
     tripId: number,
     entityType: EntityType,
     entityId: number
-  ): Promise<any[]> {
+  ) {
     await verifyTripAccess(userId, tripId);
 
     // Get links where photos are linked to this entity
@@ -782,7 +801,7 @@ export const entityLinkService = {
     });
 
     // Fetch the actual photos
-    const photoIds = links.map((l: any) => l.sourceId);
+    const photoIds = links.map((l) => l.sourceId);
     if (photoIds.length === 0) return [];
 
     const photos = await prisma.photo.findMany({
@@ -790,8 +809,8 @@ export const entityLinkService = {
     });
 
     // Maintain sort order from links
-    const photoMap = new Map(photos.map((p: any) => [p.id, p]));
-    return photoIds.map((id: number) => photoMap.get(id)).filter(Boolean);
+    const photoMap = new Map(photos.map((p) => [p.id, p]));
+    return photoIds.map((id) => photoMap.get(id)).filter((p): p is NonNullable<typeof p> => p !== undefined);
   },
 
   /**
@@ -843,30 +862,32 @@ export const entityLinkService = {
     for (const link of links) {
       // Count for source entity
       const sourceKey = `${link.sourceType}:${link.sourceId}`;
-      if (!summaryMap.has(sourceKey)) {
-        summaryMap.set(sourceKey, {
+      let sourceSummary = summaryMap.get(sourceKey);
+      if (!sourceSummary) {
+        sourceSummary = {
           entityType: link.sourceType as EntityType,
           entityId: link.sourceId,
           linkCounts: {},
           totalLinks: 0,
-        });
+        };
+        summaryMap.set(sourceKey, sourceSummary);
       }
-      const sourceSummary = summaryMap.get(sourceKey)!;
       sourceSummary.linkCounts[link.targetType as EntityType] =
         (sourceSummary.linkCounts[link.targetType as EntityType] || 0) + 1;
       sourceSummary.totalLinks++;
 
       // Count for target entity
       const targetKey = `${link.targetType}:${link.targetId}`;
-      if (!summaryMap.has(targetKey)) {
-        summaryMap.set(targetKey, {
+      let targetSummary = summaryMap.get(targetKey);
+      if (!targetSummary) {
+        targetSummary = {
           entityType: link.targetType as EntityType,
           entityId: link.targetId,
           linkCounts: {},
           totalLinks: 0,
-        });
+        };
+        summaryMap.set(targetKey, targetSummary);
       }
-      const targetSummary = summaryMap.get(targetKey)!;
       targetSummary.linkCounts[link.sourceType as EntityType] =
         (targetSummary.linkCounts[link.sourceType as EntityType] || 0) + 1;
       targetSummary.totalLinks++;

@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { companionService } from '../services/companion.service';
 import { createCompanionSchema, updateCompanionSchema, linkCompanionToTripSchema } from '../types/companion.types';
+import { requireUserId } from '../utils/controllerHelpers';
 
 export const companionController = {
   async createCompanion(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const data = createCompanionSchema.parse(req.body);
       const companion = await companionService.createCompanion(userId, data);
       res.status(201).json(companion);
@@ -16,7 +17,7 @@ export const companionController = {
 
   async getCompanionsByUser(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const companions = await companionService.getCompanionsByUser(userId);
       res.json(companions);
     } catch (error) {
@@ -26,7 +27,7 @@ export const companionController = {
 
   async getCompanionById(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const companionId = parseInt(req.params.id);
       const companion = await companionService.getCompanionById(userId, companionId);
       res.json(companion);
@@ -37,7 +38,7 @@ export const companionController = {
 
   async updateCompanion(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const companionId = parseInt(req.params.id);
       const data = updateCompanionSchema.parse(req.body);
       const companion = await companionService.updateCompanion(userId, companionId, data);
@@ -49,7 +50,7 @@ export const companionController = {
 
   async deleteCompanion(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const companionId = parseInt(req.params.id);
       await companionService.deleteCompanion(userId, companionId);
       res.status(204).send();
@@ -60,7 +61,7 @@ export const companionController = {
 
   async linkCompanionToTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const data = linkCompanionToTripSchema.parse(req.body);
       const link = await companionService.linkCompanionToTrip(userId, data);
       res.status(201).json(link);
@@ -71,7 +72,7 @@ export const companionController = {
 
   async unlinkCompanionFromTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const tripId = parseInt(req.params.tripId);
       const companionId = parseInt(req.params.companionId);
       await companionService.unlinkCompanionFromTrip(userId, tripId, companionId);
@@ -83,7 +84,7 @@ export const companionController = {
 
   async getCompanionsByTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const tripId = parseInt(req.params.tripId);
       const companions = await companionService.getCompanionsByTrip(userId, tripId);
       res.json(companions);
@@ -94,11 +95,11 @@ export const companionController = {
 
   async uploadAvatar(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const companionId = parseInt(req.params.id);
 
       if (!req.file) {
-        res.status(400).json({ error: 'No file uploaded' });
+        res.status(400).json({ status: 'error', message: 'No file uploaded' });
         return;
       }
 
@@ -111,12 +112,12 @@ export const companionController = {
 
   async setImmichAvatar(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const companionId = parseInt(req.params.id);
       const { immichAssetId } = req.body;
 
       if (!immichAssetId) {
-        res.status(400).json({ error: 'immichAssetId is required' });
+        res.status(400).json({ status: 'error', message: 'immichAssetId is required' });
         return;
       }
 
@@ -129,7 +130,7 @@ export const companionController = {
 
   async deleteAvatar(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const companionId = parseInt(req.params.id);
       const companion = await companionService.deleteAvatar(userId, companionId);
       res.json(companion);

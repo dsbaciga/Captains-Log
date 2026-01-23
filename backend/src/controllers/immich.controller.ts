@@ -29,7 +29,7 @@ export class ImmichController {
       });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to test Immich connection',
       });
     }
@@ -99,7 +99,7 @@ export class ImmichController {
       res.json({ assets: assetsWithUrls, total: result.total });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to fetch Immich assets',
       });
     }
@@ -151,7 +151,7 @@ export class ImmichController {
       res.json(assetWithUrls);
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to fetch Immich asset',
       });
     }
@@ -201,7 +201,7 @@ export class ImmichController {
       res.json({ assets: assetsWithUrls });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to search Immich assets',
       });
     }
@@ -237,7 +237,7 @@ export class ImmichController {
       res.json({ albums });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to fetch Immich albums',
       });
     }
@@ -292,7 +292,7 @@ export class ImmichController {
       res.json(albumWithUrls);
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to fetch Immich album',
       });
     }
@@ -356,7 +356,7 @@ export class ImmichController {
       res.json({ assets: assetsWithUrls, total: result.total });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to fetch assets by date range',
       });
     }
@@ -403,7 +403,7 @@ export class ImmichController {
       });
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to get asset URLs',
       });
     }
@@ -458,7 +458,7 @@ export class ImmichController {
       console.error(`[Thumbnail Proxy] Error fetching thumbnail:`, error.message);
       console.error(`[Thumbnail Proxy] Error details:`, error.response?.data || error);
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to fetch thumbnail',
       });
     }
@@ -501,7 +501,7 @@ export class ImmichController {
       file.stream.pipe(res);
     } catch (error: any) {
       res.status(error.statusCode || 500).json({
-        success: false,
+        status: 'error',
         message: error.message || 'Failed to fetch original file',
       });
     }

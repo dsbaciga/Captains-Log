@@ -1,4 +1,15 @@
 import { z } from 'zod';
+import {
+  optionalNullable,
+  requiredStringWithMax,
+  optionalStringWithMax,
+  optionalDatetime,
+  optionalTimezone,
+  optionalPositiveNumber,
+  optionalCurrencyCode,
+  optionalUrl,
+  optionalNotesWithMax,
+} from '../utils/zodHelpers';
 
 export const LodgingType = {
   HOTEL: 'hotel',
@@ -15,6 +26,21 @@ export const LodgingType = {
 } as const;
 
 export type LodgingTypeEnum = typeof LodgingType[keyof typeof LodgingType];
+
+// Lodging type enum schema (reusable)
+const lodgingTypeEnum = z.enum([
+  LodgingType.HOTEL,
+  LodgingType.HOSTEL,
+  LodgingType.AIRBNB,
+  LodgingType.VACATION_RENTAL,
+  LodgingType.CAMPING,
+  LodgingType.RESORT,
+  LodgingType.MOTEL,
+  LodgingType.BED_AND_BREAKFAST,
+  LodgingType.APARTMENT,
+  LodgingType.FRIENDS_FAMILY,
+  LodgingType.OTHER,
+]);
 
 // Note: Location association is handled via EntityLink system, not direct FK
 export interface Lodging {
@@ -39,20 +65,8 @@ export interface Lodging {
 // Validation schemas
 export const createLodgingSchema = z.object({
   tripId: z.number(),
-  type: z.enum([
-    LodgingType.HOTEL,
-    LodgingType.HOSTEL,
-    LodgingType.AIRBNB,
-    LodgingType.VACATION_RENTAL,
-    LodgingType.CAMPING,
-    LodgingType.RESORT,
-    LodgingType.MOTEL,
-    LodgingType.BED_AND_BREAKFAST,
-    LodgingType.APARTMENT,
-    LodgingType.FRIENDS_FAMILY,
-    LodgingType.OTHER,
-  ]),
-  name: z.string().min(1).max(500),
+  type: lodgingTypeEnum,
+  name: requiredStringWithMax(500),
   address: z.string().max(1000).optional(),
   checkInDate: z.string().optional(),
   checkOutDate: z.string().optional(),
@@ -66,29 +80,17 @@ export const createLodgingSchema = z.object({
 
 // Note: Location association is handled via EntityLink system, not direct FK
 export const updateLodgingSchema = z.object({
-  type: z.enum([
-    LodgingType.HOTEL,
-    LodgingType.HOSTEL,
-    LodgingType.AIRBNB,
-    LodgingType.VACATION_RENTAL,
-    LodgingType.CAMPING,
-    LodgingType.RESORT,
-    LodgingType.MOTEL,
-    LodgingType.BED_AND_BREAKFAST,
-    LodgingType.APARTMENT,
-    LodgingType.FRIENDS_FAMILY,
-    LodgingType.OTHER,
-  ]).optional(),
-  name: z.string().min(1).max(500).optional(),
-  address: z.string().max(1000).optional().nullable(),
-  checkInDate: z.string().optional().nullable(),
-  checkOutDate: z.string().optional().nullable(),
-  timezone: z.string().max(100).optional().nullable(),
-  confirmationNumber: z.string().max(100).optional().nullable(),
-  cost: z.number().min(0).optional().nullable(),
-  currency: z.string().length(3).optional().nullable(),
-  bookingUrl: z.string().url().max(1000).optional().nullable(),
-  notes: z.string().max(2000).optional().nullable(),
+  type: lodgingTypeEnum.optional(),
+  name: optionalNullable(requiredStringWithMax(500)),
+  address: optionalStringWithMax(1000),
+  checkInDate: optionalDatetime(),
+  checkOutDate: optionalDatetime(),
+  timezone: optionalTimezone(),
+  confirmationNumber: optionalStringWithMax(100),
+  cost: optionalPositiveNumber(),
+  currency: optionalCurrencyCode(),
+  bookingUrl: optionalUrl(1000),
+  notes: optionalNotesWithMax(2000),
 });
 
 export type CreateLodgingInput = z.infer<typeof createLodgingSchema>;

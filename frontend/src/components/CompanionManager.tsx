@@ -3,8 +3,16 @@ import companionService from '../services/companion.service';
 import type { Companion } from '../types/companion';
 import toast from 'react-hot-toast';
 import { useManagerCRUD } from '../hooks/useManagerCRUD';
+import { useFormReset } from '../hooks/useFormReset';
 import CompanionAvatar from './CompanionAvatar';
 import Modal from './Modal';
+
+interface CompanionFormData {
+  name: string;
+  email: string;
+  phone: string;
+  notes: string;
+}
 
 interface CompanionManagerProps {
   tripId: number;
@@ -26,13 +34,23 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
   });
 
   const [companions, setCompanions] = useState<Companion[]>([]);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [notes, setNotes] = useState('');
-  const [editingCompanion, setEditingCompanion] = useState<Companion | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Form state management using useFormReset hook
+  // Before: 5 separate state variables + 6-line resetForm + 5-line startEdit
+  // After: 1 formData state + useFormReset hook handles reset/open logic
+  const initialFormState: CompanionFormData = { name: '', email: '', phone: '', notes: '' };
+  const [formData, setFormData] = useState<CompanionFormData>(initialFormState);
+  const [editingCompanionId, setEditingCompanionId] = useState<number | null>(null);
+  const [showCompanionForm, setShowCompanionForm] = useState(false);
+
+  const { resetForm, openCreateForm, openEditForm } = useFormReset({
+    initialState: initialFormState,
+    setFormData,
+    setEditingId: setEditingCompanionId,
+    setShowForm: setShowCompanionForm,
+  });
 
   useEffect(() => {
     loadAllCompanions();
@@ -51,10 +69,10 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
     e.preventDefault();
     try {
       const newCompanion = await companionService.createCompanion({
-        name,
-        email: email || undefined,
-        phone: phone || undefined,
-        notes: notes || undefined,
+        name: formData.name,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        notes: formData.notes || undefined,
       });
       toast.success('Companion created');
       resetForm();
@@ -68,14 +86,14 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
 
   const handleUpdateCompanion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingCompanion) return;
+    if (!editingCompanionId) return;
 
     try {
-      await companionService.updateCompanion(editingCompanion.id, {
-        name,
-        email: email || null,
-        phone: phone || null,
-        notes: notes || null,
+      await companionService.updateCompanion(editingCompanionId, {
+        name: formData.name,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        notes: formData.notes || null,
       });
       toast.success('Companion updated');
       resetForm();
@@ -114,23 +132,17 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
     }
   };
 
+  // startEdit now uses openEditForm from useFormReset hook - reduces 6 lines to 1 call
   const startEdit = (companion: Companion) => {
-    setEditingCompanion(companion);
-    setName(companion.name);
-    setEmail(companion.email || '');
-    setPhone(companion.phone || '');
-    setNotes(companion.notes || '');
-    manager.openCreateForm();
+    openEditForm(companion.id, {
+      name: companion.name,
+      email: companion.email || '',
+      phone: companion.phone || '',
+      notes: companion.notes || '',
+    });
   };
 
-  const resetForm = () => {
-    manager.closeForm();
-    setEditingCompanion(null);
-    setName('');
-    setEmail('');
-    setPhone('');
-    setNotes('');
-  };
+  // resetForm is now provided by useFormReset hook - eliminates 6 lines of boilerplate
 
   if (manager.loading) {
     return <div className="text-center py-4">Loading companions...</div>;
@@ -150,7 +162,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
       <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">Travel Companions</h2>
         <button
-          onClick={() => manager.openCreateForm()}
+          onClick={openCreateForm}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           + Add New Companion
@@ -159,9 +171,9 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
 
       {/* Create/Edit Companion Form Modal */}
       <Modal
-        isOpen={manager.showForm}
+        isOpen={showCompanionForm}
         onClose={resetForm}
-        title={editingCompanion ? "Edit Companion" : "Add Companion"}
+        title={editingCompanionId ? "Edit Companion" : "Add Companion"}
         icon="👥"
         maxWidth="lg"
         formId="companion-form"
@@ -181,14 +193,14 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
               form="companion-form"
               className="btn btn-primary"
             >
-              {editingCompanion ? 'Update' : 'Add'} Companion
+              {editingCompanionId ? 'Update' : 'Add'} Companion
             </button>
           </>
         }
       >
         <form
           id="companion-form"
-          onSubmit={editingCompanion ? handleUpdateCompanion : handleCreateCompanion}
+          onSubmit={editingCompanionId ? handleUpdateCompanion : handleCreateCompanion}
           className="space-y-4"
         >
           <div>
@@ -198,8 +210,8 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
             <input
               type="text"
               id="companion-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="input"
               placeholder="John Doe"
               maxLength={100}
@@ -214,8 +226,8 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
               <input
                 type="email"
                 id="companion-email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="input"
                 placeholder="john@example.com"
               />
@@ -227,8 +239,8 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
               <input
                 type="tel"
                 id="companion-phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="input"
                 placeholder="+1 (555) 123-4567"
                 maxLength={20}
@@ -241,8 +253,8 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
             </label>
             <textarea
               id="companion-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="input"
               rows={3}
               placeholder="Additional information..."
@@ -325,12 +337,14 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
                       <button
                         onClick={() => startEdit(companion)}
                         className="px-3 py-1 text-xs sm:text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                        aria-label={`Edit companion ${companion.name}`}
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleUnlinkCompanion(companion.id)}
                         className="px-3 py-1 text-xs sm:text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                        aria-label={`Remove companion ${companion.name} from trip`}
                       >
                         Remove
                       </button>
@@ -391,6 +405,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
                         setSearchQuery(''); // Clear search after adding
                       }}
                       className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                      aria-label={`Add ${companion.name} to trip`}
                     >
                       Add to Trip
                     </button>

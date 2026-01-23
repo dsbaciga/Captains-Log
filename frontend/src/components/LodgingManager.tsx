@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Lodging, LodgingType, CreateLodgingInput, UpdateLodgingInput } from "../types/lodging";
 import type { Location } from "../types/location";
 import lodgingService from "../services/lodging.service";
@@ -15,6 +14,7 @@ import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -104,12 +104,10 @@ export default function LodgingManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
   // Track original location ID when editing to detect changes (for entity linking)
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
 
@@ -121,30 +119,15 @@ export default function LodgingManager({
     setLocalLocations(locations);
   }, [locations]);
 
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((lodging: Lodging) => {
+    handleEdit(lodging);
+  }, []);
 
-  // Handle pending edit when items are loaded (from URL ?edit=id parameter)
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((l) => l.id === pendingEditId);
-      if (item) {
-        // Use handleEdit which handles location link fetching
-        handleEdit(item);
-      }
-      setPendingEditId(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEditId, manager.items, manager.loading]);
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
 
   // Auto-fill: Sequential Lodging Chaining - next check-in = previous check-out
   useEffect(() => {
@@ -828,12 +811,14 @@ export default function LodgingManager({
                 <button
                   onClick={() => handleEdit(lodging)}
                   className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                  aria-label={`Edit lodging ${lodging.name}`}
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(lodging.id)}
                   className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                  aria-label={`Delete lodging ${lodging.name}`}
                 >
                   Delete
                 </button>

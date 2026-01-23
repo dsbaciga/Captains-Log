@@ -1,6 +1,12 @@
 import prisma from '../config/database';
-import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
+
+// Type alias for Prisma decimal fields
+type DecimalValue = number | string | { toNumber(): number };
+
+// Use require for Prisma.raw to avoid type import issues
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Prisma } = require('@prisma/client');
 import {
   PhotoSource,
   UploadPhotoInput,
@@ -197,7 +203,7 @@ class PhotoService {
     });
 
     const existingAssetIds = new Set(
-      existingPhotos.map((p: any) => p.immichAssetId).filter((id: any): id is string => id !== null)
+      existingPhotos.map((p) => p.immichAssetId).filter((id): id is string => id !== null)
     );
 
     console.log(`[PhotoService] Found ${existingAssetIds.size} existing Immich photos for trip ${data.tripId}`);
@@ -240,10 +246,11 @@ class PhotoService {
 
         results.successful += result.count;
         console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos`);
-      } catch (error: any) {
-        console.error(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, error.message);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, errorMessage);
         results.failed += batch.length;
-        results.errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
+        results.errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${errorMessage}`);
       }
     }
 
@@ -263,10 +270,8 @@ class PhotoService {
     const take = options?.take || 40; // Default to 40 photos per page
     const orderBy = buildPhotoOrderBy(options?.sortBy, options?.sortOrder);
 
-    let photos: any[];
-    let total: number;
     try {
-      [photos, total] = await Promise.all([
+      const [photos, total] = await Promise.all([
         prisma.photo.findMany({
           where: { tripId },
           include: {
@@ -287,16 +292,16 @@ class PhotoService {
         }),
         prisma.photo.count({ where: { tripId } }),
       ]);
+
+      return {
+        photos: photos.map((photo) => convertDecimals(photo)),
+        total,
+        hasMore: skip + photos.length < total,
+      };
     } catch (error) {
       console.error(`[PhotoService] Failed to fetch photos for trip ${tripId}:`, error instanceof Error ? error.message : error);
       throw new AppError('Failed to fetch photos for trip', 500);
     }
-
-    return {
-      photos: photos.map((photo: any) => convertDecimals(photo)),
-      total,
-      hasMore: skip + photos.length < total,
-    };
   }
 
   async getImmichAssetIdsByTrip(userId: number, tripId: number): Promise<string[]> {
@@ -316,7 +321,7 @@ class PhotoService {
       },
     });
 
-    return photos.map((p: any) => p.immichAssetId).filter((id: any): id is string => id !== null);
+    return photos.map((p) => p.immichAssetId).filter((id): id is string => id !== null);
   }
 
   async getUnsortedPhotosByTrip(
@@ -344,13 +349,11 @@ class PhotoService {
       distinct: ['photoId'],
     });
 
-    const photoIdsInAlbums = photosInAlbums.map((p: any) => p.photoId);
+    const photoIdsInAlbums = photosInAlbums.map((p) => p.photoId);
 
     // Get photos that are NOT in the photoIdsInAlbums array
-    let photos: any[];
-    let total: number;
     try {
-      [photos, total] = await Promise.all([
+      const [photos, total] = await Promise.all([
         prisma.photo.findMany({
           where: {
             tripId,
@@ -383,16 +386,16 @@ class PhotoService {
           },
         }),
       ]);
+
+      return {
+        photos: photos.map((photo) => convertDecimals(photo)),
+        total,
+        hasMore: skip + photos.length < total,
+      };
     } catch (error) {
       console.error(`[PhotoService] Failed to fetch unsorted photos for trip ${tripId}:`, error instanceof Error ? error.message : error);
       throw new AppError('Failed to fetch unsorted photos for trip', 500);
     }
-
-    return {
-      photos: photos.map((photo: any) => convertDecimals(photo)),
-      total,
-      hasMore: skip + photos.length < total,
-    };
   }
 
   async getPhotoById(userId: number, photoId: number) {
@@ -522,11 +525,28 @@ class PhotoService {
       throw new AppError('Invalid timezone format', 400);
     }
 
+    // Raw query result type
+    interface RawPhotoResult {
+      id: number;
+      trip_id: number;
+      source: string;
+      immich_asset_id: string | null;
+      local_path: string | null;
+      thumbnail_path: string | null;
+      caption: string | null;
+      taken_at: Date | null;
+      latitude: DecimalValue | null;
+      longitude: DecimalValue | null;
+      created_at: Date;
+      updated_at: Date;
+      albumAssignments: Array<{ album: { id: number; name: string } | null }> | null;
+    }
+
     // Use raw SQL to query photos for the specific date in the given timezone
     // This ensures we get the same photos that were grouped under this date
     // Note: Using Prisma.raw for timezone since AT TIME ZONE requires a literal string
     // The timezone is already validated above, so it's safe to use Prisma.raw
-    const photos = await prisma.$queryRaw<Array<any>>`
+    const photos = await prisma.$queryRaw<RawPhotoResult[]>`
       SELECT p.*,
         json_agg(
           DISTINCT jsonb_build_object(
@@ -544,8 +564,8 @@ class PhotoService {
     `;
 
     // Transform the raw results to match the expected format
-    const transformedPhotos = photos.map((photo: any) => {
-      const transformed = convertDecimals({
+    const transformedPhotos = photos.map((photo) => {
+      const basePhoto = convertDecimals({
         id: photo.id,
         tripId: photo.trip_id,
         source: photo.source,
@@ -561,13 +581,14 @@ class PhotoService {
       });
 
       // Transform album assignments
-      if (photo.albumAssignments && Array.isArray(photo.albumAssignments)) {
-        transformed.albumAssignments = photo.albumAssignments.filter((a: any) => a.album?.id);
-      } else {
-        transformed.albumAssignments = [];
-      }
+      const albumAssignments = photo.albumAssignments && Array.isArray(photo.albumAssignments)
+        ? photo.albumAssignments.filter((a: { album: { id: number; name: string } | null }) => a.album?.id)
+        : [];
 
-      return transformed;
+      return {
+        ...basePhoto,
+        albumAssignments,
+      };
     });
 
     return {

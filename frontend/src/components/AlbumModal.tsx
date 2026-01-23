@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { PhotoAlbum } from "../types/photo";
 import LinkButton from "./LinkButton";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+
+/** Selector for all focusable elements within a modal */
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface AlbumModalProps {
   album?: PhotoAlbum; // If provided, we're editing; otherwise creating
@@ -24,11 +27,61 @@ export default function AlbumModal({
   const [name, setName] = useState(album?.name || "");
   const [description, setDescription] = useState(album?.description || "");
   const [saving, setSaving] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
 
   // Fetch link summary for this album
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
   const isEdit = !!album;
+
+  // Handle keyboard events including focus trap
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Escape to close
+    if (e.key === 'Escape') {
+      onClose();
+      return;
+    }
+
+    // Focus trap - keep Tab navigation within the modal
+    if (e.key === 'Tab' && modalRef.current) {
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }, [onClose]);
+
+  // Focus management and keyboard handling
+  useEffect(() => {
+    // Store the currently focused element to restore later
+    triggerElementRef.current = document.activeElement as HTMLElement;
+
+    // Focus the first input (the name input has autoFocus, but this ensures it)
+    setTimeout(() => {
+      const firstInput = modalRef.current?.querySelector<HTMLElement>('input, select, textarea');
+      firstInput?.focus();
+    }, 0);
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      // Return focus to the trigger element
+      triggerElementRef.current?.focus();
+    };
+  }, [handleKeyDown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,11 +102,20 @@ export default function AlbumModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="album-modal-title"
+    >
+      <div
+        ref={modalRef}
+        tabIndex={-1}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          <h2 id="album-modal-title" className="text-xl font-bold text-gray-900 dark:text-white">
             {isEdit ? "Edit Album" : "Create Album"}
           </h2>
           <button
