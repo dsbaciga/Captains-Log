@@ -649,7 +649,7 @@ export default function PhotoGallery({
 
       {/* Grid View */}
       {viewMode === "grid" && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
           {sortedPhotos.map((photo, index) => {
             const thumbnailUrl = getThumbnailUrl(photo);
             const isSelected = selectedPhotoIds.has(photo.id);

@@ -12,6 +12,95 @@ import { Prisma } from '@prisma/client';
  */
 
 /**
+ * Entity types that support ownership verification
+ */
+export type VerifiableEntityType =
+  | 'location'
+  | 'photo'
+  | 'activity'
+  | 'lodging'
+  | 'transportation'
+  | 'journalEntry'
+  | 'album';
+
+/**
+ * Configuration for each entity type's Prisma model and display name
+ */
+interface EntityConfig {
+  model: keyof typeof prisma;
+  displayName: string;
+}
+
+const entityConfigs: Record<VerifiableEntityType, EntityConfig> = {
+  location: { model: 'location', displayName: 'Location' },
+  photo: { model: 'photo', displayName: 'Photo' },
+  activity: { model: 'activity', displayName: 'Activity' },
+  lodging: { model: 'lodging', displayName: 'Lodging' },
+  transportation: { model: 'transportation', displayName: 'Transportation' },
+  journalEntry: { model: 'journalEntry', displayName: 'Journal entry' },
+  album: { model: 'photoAlbum', displayName: 'Album' },
+};
+
+/**
+ * Generic function to verify entity exists and belongs to a specific trip
+ * Consolidates verifyLocationInTrip, verifyPhotoInTrip, etc.
+ *
+ * @param entityType - The type of entity to verify
+ * @param entityId - The ID of the entity
+ * @param tripId - The trip ID to verify against
+ * @throws {AppError} 404 if entity not found or doesn't belong to trip
+ */
+export async function verifyEntityInTrip(
+  entityType: VerifiableEntityType,
+  entityId: number,
+  tripId: number
+): Promise<void> {
+  const config = entityConfigs[entityType];
+  const model = prisma[config.model] as any;
+
+  const entity = await model.findFirst({
+    where: { id: entityId, tripId },
+  });
+
+  if (!entity) {
+    throw new AppError(`${config.displayName} not found or does not belong to trip`, 404);
+  }
+}
+
+/**
+ * Generic function to verify entity exists and user owns the associated trip
+ * Consolidates verifyAlbumAccess, verifyActivityAccess, verifyLodgingAccess, etc.
+ *
+ * @param entityType - The type of entity to verify
+ * @param entityId - The ID of the entity
+ * @param userId - The user ID to verify ownership against
+ * @throws {AppError} 404 if entity not found or access denied
+ * @returns The entity with trip included if verification passes
+ */
+export async function verifyEntityAccessById<T = any>(
+  entityType: VerifiableEntityType,
+  entityId: number,
+  userId: number
+): Promise<T> {
+  const config = entityConfigs[entityType];
+  const model = prisma[config.model] as any;
+
+  const entity = await model.findFirst({
+    where: {
+      id: entityId,
+      trip: { userId },
+    },
+    include: { trip: true },
+  });
+
+  if (!entity) {
+    throw new AppError(`${config.displayName} not found or access denied`, 404);
+  }
+
+  return entity as T;
+}
+
+/**
  * Verifies user owns the trip
  * @throws {AppError} 404 if trip not found or access denied
  * @returns The trip if access is granted
@@ -55,119 +144,73 @@ export async function verifyEntityAccess<T extends { trip: { userId: number } }>
 /**
  * Verifies location belongs to specified trip
  * @throws {AppError} 404 if location not found or doesn't belong to trip
+ * @deprecated Use verifyEntityInTrip('location', locationId, tripId) instead
  */
 export async function verifyLocationInTrip(
   locationId: number,
   tripId: number
 ): Promise<void> {
-  const location = await prisma.location.findFirst({
-    where: { id: locationId, tripId },
-  });
-
-  if (!location) {
-    throw new AppError('Location not found or does not belong to trip', 404);
-  }
+  return verifyEntityInTrip('location', locationId, tripId);
 }
 
 /**
  * Verifies photo belongs to specified trip
  * @throws {AppError} 404 if photo not found or doesn't belong to trip
+ * @deprecated Use verifyEntityInTrip('photo', photoId, tripId) instead
  */
 export async function verifyPhotoInTrip(
   photoId: number,
   tripId: number
 ): Promise<void> {
-  const photo = await prisma.photo.findFirst({
-    where: { id: photoId, tripId },
-  });
-
-  if (!photo) {
-    throw new AppError('Photo not found or does not belong to trip', 404);
-  }
+  return verifyEntityInTrip('photo', photoId, tripId);
 }
 
 /**
  * Verifies album belongs to user
  * @throws {AppError} 404 if album not found, 403 if access denied
+ * @deprecated Use verifyEntityAccessById('album', albumId, userId) instead
  */
 export async function verifyAlbumAccess(
   albumId: number,
   userId: number
 ): Promise<void> {
-  const album = await prisma.photoAlbum.findFirst({
-    where: {
-      id: albumId,
-      trip: { userId }
-    },
-    include: { trip: true }
-  });
-
-  if (!album) {
-    throw new AppError('Album not found or access denied', 404);
-  }
+  await verifyEntityAccessById('album', albumId, userId);
 }
 
 /**
  * Verifies activity belongs to user's trip
  * @throws {AppError} 404 if not found, 403 if access denied
+ * @deprecated Use verifyEntityAccessById('activity', activityId, userId) instead
  */
 export async function verifyActivityAccess(
   activityId: number,
   userId: number
 ): Promise<void> {
-  const activity = await prisma.activity.findFirst({
-    where: {
-      id: activityId,
-      trip: { userId }
-    },
-    include: { trip: true }
-  });
-
-  if (!activity) {
-    throw new AppError('Activity not found or access denied', 404);
-  }
+  await verifyEntityAccessById('activity', activityId, userId);
 }
 
 /**
  * Verifies lodging belongs to user's trip
  * @throws {AppError} 404 if not found, 403 if access denied
+ * @deprecated Use verifyEntityAccessById('lodging', lodgingId, userId) instead
  */
 export async function verifyLodgingAccess(
   lodgingId: number,
   userId: number
 ): Promise<void> {
-  const lodging = await prisma.lodging.findFirst({
-    where: {
-      id: lodgingId,
-      trip: { userId }
-    },
-    include: { trip: true }
-  });
-
-  if (!lodging) {
-    throw new AppError('Lodging not found or access denied', 404);
-  }
+  await verifyEntityAccessById('lodging', lodgingId, userId);
 }
 
 /**
  * Verifies transportation belongs to user's trip
  * @throws {AppError} 404 if not found, 403 if access denied
+ * @deprecated Use verifyEntityAccessById('transportation', transportationId, userId) instead
  */
 export async function verifyTransportationAccess(
   transportationId: number,
   userId: number
 ): Promise<void> {
-  const transportation = await prisma.transportation.findFirst({
-    where: {
-      id: transportationId,
-      trip: { userId }
-    },
-    include: { trip: true }
-  });
-
-  if (!transportation) {
-    throw new AppError('Transportation not found or access denied', 404);
-  }
+  await verifyEntityAccessById('transportation', transportationId, userId);
 }
 
 /**

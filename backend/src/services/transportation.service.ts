@@ -3,7 +3,7 @@ import {
   CreateTransportationInput,
   UpdateTransportationInput,
 } from '../types/transportation.types';
-import { verifyTripAccess, verifyEntityAccess, verifyLocationInTrip, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecimals } from '../utils/serviceHelpers';
 import { locationWithAddressSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
@@ -59,11 +59,11 @@ class TransportationService {
 
     // Verify locations belong to trip if provided
     if (data.fromLocationId) {
-      await verifyLocationInTrip(data.fromLocationId, data.tripId);
+      await verifyEntityInTrip('location', data.fromLocationId, data.tripId);
     }
 
     if (data.toLocationId) {
-      await verifyLocationInTrip(data.toLocationId, data.tripId);
+      await verifyEntityInTrip('location', data.toLocationId, data.tripId);
     }
 
     const transportation = await prisma.transportation.create({
@@ -294,11 +294,11 @@ class TransportationService {
 
     // Verify locations belong to trip if provided
     if (data.fromLocationId !== undefined && data.fromLocationId !== null) {
-      await verifyLocationInTrip(data.fromLocationId, verifiedTransportation.tripId);
+      await verifyEntityInTrip('location', data.fromLocationId, verifiedTransportation.tripId);
     }
 
     if (data.toLocationId !== undefined && data.toLocationId !== null) {
-      await verifyLocationInTrip(data.toLocationId, verifiedTransportation.tripId);
+      await verifyEntityInTrip('location', data.toLocationId, verifiedTransportation.tripId);
     }
 
     const updatedTransportation = await prisma.transportation.update({

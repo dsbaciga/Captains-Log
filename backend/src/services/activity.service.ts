@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
-import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecimals } from '../utils/serviceHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
@@ -12,13 +12,7 @@ class ActivityService {
 
     // Verify parent activity exists and belongs to same trip if provided
     if (data.parentId) {
-      const parentActivity = await prisma.activity.findFirst({
-        where: { id: data.parentId, tripId: data.tripId },
-      });
-
-      if (!parentActivity) {
-        throw new AppError('Parent activity not found or does not belong to trip', 404);
-      }
+      await verifyEntityInTrip('activity', data.parentId, data.tripId);
     }
 
     // Note: Location association is handled via EntityLink system after creation
@@ -141,18 +135,11 @@ class ActivityService {
 
     // Verify parent activity exists and belongs to same trip if provided
     if (data.parentId) {
-      const parentActivity = await prisma.activity.findFirst({
-        where: { id: data.parentId, tripId: activity!.tripId },
-      });
-
-      if (!parentActivity) {
-        throw new AppError('Parent activity not found or does not belong to trip', 404);
-      }
-
       // Prevent circular reference - activity cannot be its own parent
       if (data.parentId === activityId) {
         throw new AppError('Activity cannot be its own parent', 400);
       }
+      await verifyEntityInTrip('activity', data.parentId, activity!.tripId);
     }
 
     // Note: Location association is handled via EntityLink system, not direct FK

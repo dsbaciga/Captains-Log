@@ -9,6 +9,7 @@ import {
   acceptAlbumSuggestionSchema,
 } from '../types/photo.types';
 import { AppError } from '../utils/errors';
+import { parseId } from '../utils/parseId';
 
 // Helper function to add Immich URLs for photos and transform album assignments
 function transformPhoto(photo: any) {
@@ -93,7 +94,7 @@ class PhotoController {
 
   async getPhotosByTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const tripId = parseInt(req.params.tripId);
+      const tripId = parseId(req.params.tripId, 'tripId');
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
       const sortBy = req.query.sortBy as string | undefined;
@@ -121,7 +122,7 @@ class PhotoController {
 
   async getImmichAssetIdsByTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const tripId = parseInt(req.params.tripId);
+      const tripId = parseId(req.params.tripId, 'tripId');
       const assetIds = await photoService.getImmichAssetIdsByTrip(req.user!.userId, tripId);
       res.json({ assetIds });
     } catch (error) {
@@ -131,7 +132,7 @@ class PhotoController {
 
   async getUnsortedPhotosByTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const tripId = parseInt(req.params.tripId);
+      const tripId = parseId(req.params.tripId, 'tripId');
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
       const sortBy = req.query.sortBy as string | undefined;
@@ -159,7 +160,7 @@ class PhotoController {
 
   async getPhotoById(req: Request, res: Response, next: NextFunction) {
     try {
-      const photoId = parseInt(req.params.id);
+      const photoId = parseId(req.params.id);
       const photo = await photoService.getPhotoById(req.user!.userId, photoId);
 
       res.json(transformPhoto(photo));
@@ -170,7 +171,7 @@ class PhotoController {
 
   async updatePhoto(req: Request, res: Response, next: NextFunction) {
     try {
-      const photoId = parseInt(req.params.id);
+      const photoId = parseId(req.params.id);
       const validatedData = updatePhotoSchema.parse(req.body);
       const photo = await photoService.updatePhoto(
         req.user!.userId,
@@ -186,7 +187,7 @@ class PhotoController {
 
   async deletePhoto(req: Request, res: Response, next: NextFunction) {
     try {
-      const photoId = parseInt(req.params.id);
+      const photoId = parseId(req.params.id);
       await photoService.deletePhoto(req.user!.userId, photoId);
 
       res.status(204).send();
@@ -197,7 +198,7 @@ class PhotoController {
 
   async getPhotoDateGroupings(req: Request, res: Response, next: NextFunction) {
     try {
-      const tripId = parseInt(req.params.tripId);
+      const tripId = parseId(req.params.tripId, 'tripId');
       const timezone = req.query.timezone as string | undefined;
 
       const result = await photoService.getPhotoDateGroupings(
@@ -213,7 +214,7 @@ class PhotoController {
 
   async getPhotosByDate(req: Request, res: Response, next: NextFunction) {
     try {
-      const tripId = parseInt(req.params.tripId);
+      const tripId = parseId(req.params.tripId, 'tripId');
       const date = req.params.date; // YYYY-MM-DD format
       const timezone = req.query.timezone as string | undefined;
 
@@ -250,7 +251,7 @@ class PhotoController {
 
   async getAlbumSuggestions(req: Request, res: Response, next: NextFunction) {
     try {
-      const tripId = parseInt(req.params.tripId);
+      const tripId = parseId(req.params.tripId, 'tripId');
       const suggestions = await albumSuggestionService.getAlbumSuggestions(
         req.user!.userId,
         tripId
@@ -264,7 +265,7 @@ class PhotoController {
 
   async acceptAlbumSuggestion(req: Request, res: Response, next: NextFunction) {
     try {
-      const tripId = parseInt(req.params.tripId);
+      const tripId = parseId(req.params.tripId, 'tripId');
 
       // Validate input with Zod schema
       const validationResult = acceptAlbumSuggestionSchema.safeParse(req.body);

@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import companionService from "../services/companion.service";
 import { useAuthStore } from "../store/authStore";
 import toast from "react-hot-toast";
 import type { Companion } from "../types/companion";
 import { getFullAssetUrl } from "../lib/config";
+import { useDropdownPosition } from "../hooks/useDropdownPosition";
 
 interface CompanionAvatarProps {
   companion: Companion;
@@ -34,6 +35,14 @@ export default function CompanionAvatar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { accessToken } = useAuthStore();
+
+  // Use dropdown position hook for optimal menu placement
+  const { triggerRef, position } = useDropdownPosition<HTMLButtonElement>({
+    isOpen: showMenu,
+    dropdownHeight: 150, // Approximate height of menu
+    dropdownWidth: 160,
+    viewportPadding: 16,
+  });
 
   // Load avatar with auth token if it's an Immich URL
   useEffect(() => {
@@ -171,9 +180,14 @@ export default function CompanionAvatar({
     </span>
   );
 
+  // Build position classes based on calculated position
+  const verticalClass = position.openUpward ? "bottom-full mb-1" : "top-full mt-1";
+  const horizontalClass = position.alignRight ? "right-0" : "left-0";
+
   return (
     <div className="relative" ref={menuRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => editable && setShowMenu(!showMenu)}
         disabled={!editable || uploading}
@@ -201,7 +215,7 @@ export default function CompanionAvatar({
       </button>
 
       {editable && showMenu && (
-        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20 min-w-[160px]">
+        <div className={`absolute ${verticalClass} ${horizontalClass} bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20 min-w-[160px]`}>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}

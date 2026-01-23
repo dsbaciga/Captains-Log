@@ -6,7 +6,14 @@ export class SearchService {
   async globalSearch(userId: number, query: GlobalSearchQuery) {
     const { q, type, limit: limitStr } = query;
     const limit = parseInt(limitStr);
-    
+
+    // When searching all types, fetch proportionally from each to avoid over-fetching
+    // We fetch slightly more per type to handle uneven distribution
+    const entityTypes = ['trip', 'location', 'journal', 'photo'];
+    const perTypeLimit = type === 'all'
+      ? Math.ceil(limit / entityTypes.length) + 2  // +2 buffer for uneven distribution
+      : limit;
+
     const results: SearchResult[] = [];
 
     // Search for trips
@@ -19,7 +26,7 @@ export class SearchService {
             { description: { contains: q, mode: 'insensitive' } },
           ],
         },
-        take: limit,
+        take: perTypeLimit,
         orderBy: { updatedAt: 'desc' },
       });
 
@@ -46,7 +53,7 @@ export class SearchService {
             { notes: { contains: q, mode: 'insensitive' } },
           ],
         },
-        take: limit,
+        take: perTypeLimit,
         include: { trip: true },
         orderBy: { updatedAt: 'desc' },
       });
@@ -73,7 +80,7 @@ export class SearchService {
             { content: { contains: q, mode: 'insensitive' } },
           ],
         },
-        take: limit,
+        take: perTypeLimit,
         include: { trip: true },
         orderBy: { updatedAt: 'desc' },
       });
@@ -97,7 +104,7 @@ export class SearchService {
           trip: { userId },
           caption: { contains: q, mode: 'insensitive' },
         },
-        take: limit,
+        take: perTypeLimit,
         include: { trip: true },
         orderBy: { updatedAt: 'desc' },
       });

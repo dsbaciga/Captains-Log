@@ -4,6 +4,7 @@ import tripValidatorService from '../services/tripValidator.service';
 import { createTripSchema, updateTripSchema, getTripQuerySchema, duplicateTripSchema } from '../types/trip.types';
 import { z } from 'zod';
 import logger from '../config/logger';
+import { parseId } from '../utils/parseId';
 
 export class TripController {
   async createTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -53,7 +54,7 @@ export class TripController {
         return;
       }
 
-      const tripId = parseInt(req.params.id);
+      const tripId = parseId(req.params.id, 'tripId');
       const trip = await tripService.getTripById(req.user.userId, tripId);
 
       res.status(200).json({
@@ -72,7 +73,7 @@ export class TripController {
         return;
       }
 
-      const tripId = parseInt(req.params.id);
+      const tripId = parseId(req.params.id, 'tripId');
       const validatedData = updateTripSchema.parse(req.body);
       const trip = await tripService.updateTrip(req.user.userId, tripId, validatedData);
 
@@ -94,7 +95,7 @@ export class TripController {
         return;
       }
 
-      const tripId = parseInt(req.params.id);
+      const tripId = parseId(req.params.id, 'tripId');
       const result = await tripService.deleteTrip(req.user.userId, tripId);
 
       logger.info(`Trip deleted: ${tripId} by user ${req.user.userId}`);
@@ -115,7 +116,7 @@ export class TripController {
         return;
       }
 
-      const tripId = parseInt(req.params.id);
+      const tripId = parseId(req.params.id, 'tripId');
       const schema = z.object({
         photoId: z.number().nullable(),
       });
@@ -141,7 +142,7 @@ export class TripController {
         return;
       }
 
-      const tripId = parseInt(req.params.id);
+      const tripId = parseId(req.params.id, 'tripId');
       const validation = await tripValidatorService.validateTrip(tripId);
 
       logger.info(`Trip validation performed for trip ${tripId}`);
@@ -162,7 +163,7 @@ export class TripController {
         return;
       }
 
-      const tripId = parseInt(req.params.id);
+      const tripId = parseId(req.params.id, 'tripId');
       const validatedData = duplicateTripSchema.parse(req.body);
       const trip = await tripService.duplicateTrip(req.user.userId, tripId, validatedData);
 

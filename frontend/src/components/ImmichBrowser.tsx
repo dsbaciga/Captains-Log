@@ -481,7 +481,7 @@ export default function ImmichBrowser({
               <p className="text-gray-600 dark:text-gray-400">Loading...</p>
             </div>
           ) : view === "albums" ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
               {filteredAlbums.map((album) => (
                 <div
                   key={album.id}
@@ -594,7 +594,7 @@ export default function ImmichBrowser({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
 
                 {displayAssets.map((asset) => {
                   const blobUrl = thumbnailCache[asset.id];
