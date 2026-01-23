@@ -47,25 +47,37 @@ export default function PhotoDetailsPanel({ photo, isOpen, onClose }: PhotoDetai
 
   // Fetch Immich data when panel opens for Immich photos
   useEffect(() => {
+    let isCancelled = false;
+
     if (isOpen && photo.source === 'immich' && photo.immichAssetId) {
       setLoading(true);
       setError(null);
       immichService
         .getAssetById(photo.immichAssetId)
         .then((data) => {
-          setImmichData(data);
+          if (!isCancelled) {
+            setImmichData(data);
+          }
         })
         .catch((err) => {
-          console.error('Failed to fetch Immich asset:', err);
-          setError('Failed to load photo details from Immich');
+          if (!isCancelled) {
+            console.error('Failed to fetch Immich asset:', err);
+            setError('Failed to load photo details from Immich');
+          }
         })
         .finally(() => {
-          setLoading(false);
+          if (!isCancelled) {
+            setLoading(false);
+          }
         });
     } else {
       setImmichData(null);
     }
-  }, [isOpen, photo.source, photo.immichAssetId]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, photo.id, photo.source, photo.immichAssetId]);
 
   // Format exposure time (e.g., "1/1000" or "1.5")
   const formatExposure = (exposure: string | undefined) => {

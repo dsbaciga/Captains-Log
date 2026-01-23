@@ -56,8 +56,8 @@ const Timeline = ({
   onNavigateToTab: _onNavigateToTab,
   onRefresh,
 }: TimelineProps) => {
-  // Create scoped logger for this component
-  const logger = debugLogger.createScopedLogger('Timeline');
+  // Create scoped logger for this component - memoized to prevent unnecessary re-renders
+  const logger = useMemo(() => debugLogger.createScopedLogger('Timeline'), []);
   const navigate = useNavigate();
 
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
