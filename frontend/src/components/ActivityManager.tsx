@@ -62,6 +62,7 @@ export default function ActivityManager({
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sortBy, setSortBy] = useState<"date" | "category">("date");
 
   // Create wrappers for useFormReset hook
   // ActivityManager uses editingActivity instead of form fields, so we adapt the pattern
@@ -286,6 +287,36 @@ export default function ActivityManager({
 
   // Filter top-level activities (no parent)
   const topLevelActivities = manager.items.filter((a) => !a.parentId);
+
+  // Split into scheduled and unscheduled
+  const scheduledActivities = topLevelActivities.filter((a) => a.startTime);
+  const unscheduledActivities = topLevelActivities.filter((a) => !a.startTime);
+
+  // Sort activities based on sortBy
+  const sortActivities = (activities: Activity[]) => {
+    if (sortBy === "category") {
+      return [...activities].sort((a, b) => {
+        const catA = a.category || "";
+        const catB = b.category || "";
+        if (catA === catB) {
+          return a.name.localeCompare(b.name);
+        }
+        // Items without category go last
+        if (!catA) return 1;
+        if (!catB) return -1;
+        return catA.localeCompare(catB);
+      });
+    }
+    // Default: sort by date
+    return [...activities].sort((a, b) => {
+      const dateA = a.startTime ? new Date(a.startTime).getTime() : 0;
+      const dateB = b.startTime ? new Date(b.startTime).getTime() : 0;
+      return dateA - dateB;
+    });
+  };
+
+  const sortedScheduledActivities = sortActivities(scheduledActivities);
+  const sortedUnscheduledActivities = sortActivities(unscheduledActivities);
 
   // Get children for a parent activity
   const getChildren = (parentId: number) => {
@@ -552,22 +583,68 @@ export default function ActivityManager({
         />
       </FormModal>
 
+      {/* Sort Control */}
+      {topLevelActivities.length > 0 && (
+        <div className="flex items-center gap-2">
+          <label htmlFor="activity-sort" className="text-sm text-gray-600 dark:text-gray-400">
+            Sort by:
+          </label>
+          <select
+            id="activity-sort"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "date" | "category")}
+            className="input py-1 px-2 text-sm w-auto"
+          >
+            <option value="date">Date</option>
+            <option value="category">Category</option>
+          </select>
+        </div>
+      )}
+
       {/* Activities List */}
-      <div className="space-y-4">
-        {manager.loading ? (
-          <ListItemSkeleton count={3} />
-        ) : topLevelActivities.length === 0 ? (
-          <EmptyState
-            icon={<EmptyIllustrations.NoActivities />}
-            message="What Will You Discover?"
-            subMessage="Plan your adventures - from guided tours and museum visits to local dining experiences and outdoor excursions. Every activity tells a story."
-            actionLabel="Add Your First Activity"
-            onAction={handleOpenForm}
-          />
-        ) : (
-          topLevelActivities.map((activity) => renderActivity(activity))
-        )}
-      </div>
+      {manager.loading ? (
+        <ListItemSkeleton count={3} />
+      ) : topLevelActivities.length === 0 ? (
+        <EmptyState
+          icon={<EmptyIllustrations.NoActivities />}
+          message="What Will You Discover?"
+          subMessage="Plan your adventures - from guided tours and museum visits to local dining experiences and outdoor excursions. Every activity tells a story."
+          actionLabel="Add Your First Activity"
+          onAction={handleOpenForm}
+        />
+      ) : (
+        <>
+          {/* Scheduled Activities */}
+          {sortedScheduledActivities.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <span>📅</span> Scheduled Activities
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                  ({sortedScheduledActivities.length})
+                </span>
+              </h3>
+              <div className="space-y-4">
+                {sortedScheduledActivities.map((activity) => renderActivity(activity))}
+              </div>
+            </div>
+          )}
+
+          {/* Unscheduled Activities */}
+          {sortedUnscheduledActivities.length > 0 && (
+            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                <span>📋</span> Unscheduled Activities
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                  ({sortedUnscheduledActivities.length})
+                </span>
+              </h3>
+              <div className="space-y-4">
+                {sortedUnscheduledActivities.map((activity) => renderActivity(activity))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
