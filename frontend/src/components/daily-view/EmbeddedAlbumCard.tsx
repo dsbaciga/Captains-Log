@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { PhotoAlbum } from '../../types/photo';
 import { getFullAssetUrl } from '../../lib/config';
@@ -19,6 +19,7 @@ export default function EmbeddedAlbumCard({
   const colors = getTypeColors('photo');
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [loadingCover, setLoadingCover] = useState(false);
+  const blobUrlRef = useRef<string | null>(null);
 
   // Load cover photo
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function EmbeddedAlbumCard({
           if (response.ok) {
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
+            blobUrlRef.current = blobUrl;
             setCoverUrl(blobUrl);
           }
         } catch (error) {
@@ -64,12 +66,12 @@ export default function EmbeddedAlbumCard({
 
     // Cleanup blob URL on unmount
     return () => {
-      if (coverUrl && coverUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(coverUrl);
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [album.coverPhoto?.id]);
+  }, [album.coverPhoto?.id, album.id]);
 
   const handleClick = () => {
     navigate(`/trips/${tripId}/albums/${album.id}`);

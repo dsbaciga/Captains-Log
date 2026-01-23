@@ -137,7 +137,7 @@ export default function JournalCard({
 
         {/* Linked locations */}
         {linkedLocations.length > 0 && (
-          <div className="mt-4">
+          <div className="mt-3">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Related Locations ({linkedLocations.length})
             </div>

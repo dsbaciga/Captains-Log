@@ -683,11 +683,18 @@ export default function GlobalAlbumsPage() {
                             album._count?.photoAssignments || 0;
 
                           return (
-                            <button
+                            <div
                               key={album.id}
-                              type="button"
+                              role="button"
+                              tabIndex={0}
                               onClick={() => handleAlbumClick(album)}
-                              className="group text-left focus:outline-none"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  handleAlbumClick(album);
+                                }
+                              }}
+                              className="group text-left focus:outline-none cursor-pointer"
                             >
                               {/* Album Cover */}
                               <div className="aspect-square rounded-xl overflow-hidden bg-parchment dark:bg-navy-700 shadow-md group-hover:shadow-xl group-focus-visible:shadow-xl group-focus-visible:ring-2 group-focus-visible:ring-primary-500 dark:group-focus-visible:ring-sky transition-all duration-300 group-hover:scale-[1.02] group-focus-visible:scale-[1.02] relative">
@@ -759,7 +766,7 @@ export default function GlobalAlbumsPage() {
                                 {album.name}, {photoCount} photo
                                 {photoCount !== 1 ? "s" : ""}
                               </span>
-                            </button>
+                            </div>
                           );
                         })}
                       </div>
