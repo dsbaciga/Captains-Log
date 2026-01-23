@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
+import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import { getTypeColors, getMoodEmoji } from './utils';
 
 interface JournalCardProps {
@@ -147,6 +148,15 @@ export default function JournalCard({
             </div>
           </div>
         )}
+
+        {/* Other linked entities (albums, photos, etc.) */}
+        <LinkedEntitiesDisplay
+          tripId={tripId}
+          entityType="JOURNAL_ENTRY"
+          entityId={journal.id}
+          excludeTypes={['LOCATION']}
+          compact
+        />
       </div>
     </div>
   );

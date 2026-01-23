@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Activity } from '../../types/activity';
 import type { Location } from '../../types/location';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
+import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import {
   formatTime,
   formatDuration,
@@ -196,6 +197,15 @@ export default function ActivityCard({
             </div>
           </div>
         )}
+
+        {/* Other linked entities (albums, photos, etc.) */}
+        <LinkedEntitiesDisplay
+          tripId={tripId}
+          entityType="ACTIVITY"
+          entityId={activity.id}
+          excludeTypes={['LOCATION']}
+          compact
+        />
 
         {/* Sub-activities */}
         {activity.children && activity.children.length > 0 && (

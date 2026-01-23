@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Lodging } from '../../types/lodging';
 import type { Location } from '../../types/location';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
+import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import {
   formatTime,
   formatCurrency,
@@ -308,6 +309,15 @@ export default function LodgingCard({
             </div>
           </div>
         )}
+
+        {/* Other linked entities (albums, photos, etc.) */}
+        <LinkedEntitiesDisplay
+          tripId={tripId}
+          entityType="LODGING"
+          entityId={lodging.id}
+          excludeTypes={['LOCATION']}
+          compact
+        />
       </div>
     </div>
   );
