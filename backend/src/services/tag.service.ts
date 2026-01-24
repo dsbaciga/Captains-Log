@@ -160,8 +160,8 @@ export const tagService = {
       include: {
         tag: true,
       },
-    });
+    }) as Array<{ tag: { id: number; name: string; userId: number; color: string | null; textColor: string | null } }>;
 
-    return tripTags.map((tt: any) => tt.tag);
+    return tripTags.map((tt) => tt.tag);
   },
 };

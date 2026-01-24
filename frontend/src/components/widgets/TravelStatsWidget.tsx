@@ -220,7 +220,7 @@ export default function TravelStatsWidget() {
           <Skeleton className="w-10 h-10 rounded-lg" />
           <Skeleton className="h-6 w-32 rounded" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-24 w-full rounded-xl" />
           ))}

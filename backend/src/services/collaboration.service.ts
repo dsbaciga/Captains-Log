@@ -77,8 +77,8 @@ export const collaborationService = {
       return { isOwner: true, permissionLevel: PermissionLevel.ADMIN };
     }
 
-    const collaborator = trip.collaborators[0];
-    if (collaborator) {
+    if (trip.collaborators.length > 0) {
+      const collaborator = trip.collaborators[0];
       return {
         isOwner: false,
         permissionLevel: collaborator.permissionLevel as PermissionLevelType,

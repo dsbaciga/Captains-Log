@@ -1,16 +1,22 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect, useId, useCallback } from "react";
 import tagService from "../services/tag.service";
 import type { Tag, TripTag } from "../types/tag";
 import toast from "react-hot-toast";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import FormModal from "./FormModal";
+import { useFormReset } from "../hooks/useFormReset";
+import Modal from "./Modal";
 import {
   DEFAULT_TAG_COLORS,
   DEFAULT_TAG_COLOR,
   DEFAULT_TEXT_COLOR,
   getRandomTagColor,
 } from "../utils/tagColors";
+
+interface TagFormData {
+  name: string;
+  color: string;
+}
 
 interface TagManagerProps {
   tripId: number;
@@ -32,11 +38,28 @@ export default function TagManager({ tripId }: TagManagerProps) {
 
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [tags, setTags] = useState<Tag[]>([]);
-  const [tagName, setTagName] = useState("");
-  const [tagColor, setTagColor] = useState(getRandomTagColor);
-  const [editingTag, setEditingTag] = useState<Tag | TripTag | null>(null);
   const tagNameId = useId();
   const tagColorId = useId();
+
+  // Form state management using useFormReset hook
+  const initialFormState: TagFormData = { name: "", color: getRandomTagColor() };
+  const [formData, setFormData] = useState<TagFormData>(initialFormState);
+  const [editingTagId, setEditingTagId] = useState<number | null>(null);
+  const [showTagForm, setShowTagForm] = useState(false);
+
+  const { resetForm, openEditForm } = useFormReset({
+    initialState: initialFormState,
+    setFormData,
+    setEditingId: setEditingTagId,
+    setShowForm: setShowTagForm,
+  });
+
+  // Custom openCreateForm that generates a new random color each time
+  const openCreateFormWithRandomColor = useCallback(() => {
+    setFormData({ name: "", color: getRandomTagColor() });
+    setEditingTagId(null);
+    setShowTagForm(true);
+  }, []);
 
   // Reload tags when navigating between trips to ensure fresh data
   useEffect(() => {
@@ -56,14 +79,12 @@ export default function TagManager({ tripId }: TagManagerProps) {
     e.preventDefault();
     try {
       const newTag = await tagService.createTag({
-        name: tagName,
-        color: tagColor,
+        name: formData.name,
+        color: formData.color,
         textColor: DEFAULT_TEXT_COLOR,
       });
       toast.success("Tag created");
-      setTagName("");
-      setTagColor(getRandomTagColor());
-      manager.closeForm();
+      resetForm();
       await loadAllTags();
       // Automatically link the new tag to this trip
       await handleLinkTag(newTag.id);
@@ -74,17 +95,15 @@ export default function TagManager({ tripId }: TagManagerProps) {
 
   const handleUpdateTag = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingTag) return;
+    if (!editingTagId) return;
 
     try {
-      await tagService.updateTag(editingTag.id, {
-        name: tagName,
-        color: tagColor,
+      await tagService.updateTag(editingTagId, {
+        name: formData.name,
+        color: formData.color,
       });
       toast.success("Tag updated");
-      setEditingTag(null);
-      setTagName("");
-      setTagColor(getRandomTagColor());
+      resetForm();
       loadAllTags();
       manager.loadItems();
     } catch {
@@ -136,19 +155,13 @@ export default function TagManager({ tripId }: TagManagerProps) {
     }
   };
 
+  // startEdit now uses openEditForm from useFormReset hook - reduces 4 lines to 1 call
   const startEdit = (tag: Tag | TripTag) => {
-    setEditingTag(tag);
-    setTagName(tag.name);
-    setTagColor(tag.color || DEFAULT_TAG_COLOR);
-    manager.openCreateForm();
+    openEditForm(tag.id, { name: tag.name, color: tag.color || DEFAULT_TAG_COLOR });
   };
 
-  const cancelForm = () => {
-    manager.closeForm();
-    setEditingTag(null);
-    setTagName("");
-    setTagColor(getRandomTagColor());
-  };
+  // cancelForm is now just resetForm from useFormReset hook - reduces 4 lines to 1 call
+  const cancelForm = resetForm;
 
   if (manager.loading) {
     return <div className="text-center py-4">Loading tags...</div>;
@@ -165,10 +178,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
           Tags
         </h2>
         <button
-          onClick={() => {
-            setTagColor(getRandomTagColor());
-            manager.openCreateForm();
-          }}
+          onClick={openCreateFormWithRandomColor}
           className="btn btn-primary whitespace-nowrap flex-shrink-0"
         >
           + Create Tag
@@ -176,12 +186,15 @@ export default function TagManager({ tripId }: TagManagerProps) {
       </div>
 
       {/* Create/Edit Tag Form Modal */}
-      <FormModal
-        isOpen={manager.showForm}
+      <Modal
+        isOpen={showTagForm}
         onClose={cancelForm}
-        title={editingTag ? "Edit Tag" : "Create Tag"}
+        title={editingTagId ? "Edit Tag" : "Create Tag"}
         icon="🏷️"
         maxWidth="lg"
+        formId="tag-form"
+        focusFirstInput
+        animate
         footer={
           <>
             <button
@@ -196,14 +209,14 @@ export default function TagManager({ tripId }: TagManagerProps) {
               form="tag-form"
               className="btn btn-primary"
             >
-              {editingTag ? "Update" : "Create"} Tag
+              {editingTagId ? "Update" : "Create"} Tag
             </button>
           </>
         }
       >
         <form
           id="tag-form"
-          onSubmit={editingTag ? handleUpdateTag : handleCreateTag}
+          onSubmit={editingTagId ? handleUpdateTag : handleCreateTag}
           className="space-y-4"
         >
           <div>
@@ -213,8 +226,8 @@ export default function TagManager({ tripId }: TagManagerProps) {
             <input
               type="text"
               id={tagNameId}
-              value={tagName}
-              onChange={(e) => setTagName(e.target.value)}
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="input"
               placeholder="Adventure, Beach, Food..."
               maxLength={50}
@@ -230,9 +243,9 @@ export default function TagManager({ tripId }: TagManagerProps) {
                 <button
                   key={color}
                   type="button"
-                  onClick={() => setTagColor(color)}
+                  onClick={() => setFormData({ ...formData, color })}
                   className={`w-10 h-10 rounded-full border-2 ${
-                    tagColor === color ? "border-gray-900 dark:border-white" : "border-gray-300 dark:border-gray-600"
+                    formData.color === color ? "border-gray-900 dark:border-white" : "border-gray-300 dark:border-gray-600"
                   }`}
                   aria-label={`Select color ${color}`}
                   title={`Select color ${color}`}
@@ -243,14 +256,14 @@ export default function TagManager({ tripId }: TagManagerProps) {
             <input
               type="color"
               id={tagColorId}
-              value={tagColor}
-              onChange={(e) => setTagColor(e.target.value)}
+              value={formData.color}
+              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
               className="mt-2 h-10 w-32 cursor-pointer"
               aria-label="Custom color picker"
             />
           </div>
         </form>
-      </FormModal>
+      </Modal>
 
       {/* Trip Tags */}
       <div className="mb-6">
@@ -301,9 +314,10 @@ export default function TagManager({ tripId }: TagManagerProps) {
                 onClick={() => handleLinkTag(tag.id)}
                 className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-medium hover:opacity-80"
                 style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR }}
+                aria-label={`Add tag ${tag.name} to trip`}
               >
                 <span>{tag.name}</span>
-                <span>+</span>
+                <span aria-hidden="true">+</span>
               </button>
             ))}
           </div>
@@ -338,12 +352,14 @@ export default function TagManager({ tripId }: TagManagerProps) {
                   <button
                     onClick={() => startEdit(tag)}
                     className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                    aria-label={`Edit tag ${tag.name}`}
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDeleteTag(tag.id)}
                     className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
+                    aria-label={`Delete tag ${tag.name}`}
                   >
                     Delete
                   </button>

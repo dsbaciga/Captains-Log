@@ -1,14 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { useThemeStore } from "../store/themeStore";
 import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { theme } = useThemeStore();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -109,7 +107,7 @@ export default function Navbar() {
   );
 
   return (
-    <nav className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md shadow-sm border-b border-primary-500/10 dark:border-gold/20 fixed top-0 left-0 right-0 z-50">
+    <nav className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md shadow-sm border-b border-primary-500/10 dark:border-gold/20 fixed top-0 left-0 right-0 z-40">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo / Brand */}
@@ -183,7 +181,7 @@ export default function Navbar() {
               </button>
 
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-xl py-2 z-50 border-2 border-primary-500/10 dark:border-gold/20 backdrop-blur-sm">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-xl py-2 z-20 border-2 border-primary-500/10 dark:border-gold/20 backdrop-blur-sm">
                   <Link
                     to="/settings"
                     className="block px-4 py-2.5 text-sm font-body text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-700 hover:text-primary-600 dark:hover:text-gold transition-colors"
@@ -263,15 +261,12 @@ export default function Navbar() {
       {/* Mobile Menu Drawer */}
       <div
         ref={mobileMenuRef}
-        className={`fixed top-0 right-0 bottom-0 w-72 bg-white dark:bg-navy-900 shadow-2xl z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed top-0 right-0 bottom-0 w-64 sm:w-72 bg-white dark:bg-navy-900 shadow-2xl z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
           showMobileMenu ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div
           className="relative flex flex-col h-full bg-white dark:bg-navy-900"
-          style={{
-            backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff'
-          }}
         >
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-primary-500/10 dark:border-gold/20 bg-white dark:bg-navy-900">

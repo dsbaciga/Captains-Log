@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import {
+  optionalStringWithMax,
+} from '../utils/zodHelpers';
 
 // Entity types that can be linked
 export const entityTypeEnum = z.enum([
@@ -91,7 +94,7 @@ export type DeleteEntityLinkInput = z.infer<typeof deleteEntityLinkSchema>;
 // Update a link (relationship and notes only)
 export const updateEntityLinkSchema = z.object({
   relationship: linkRelationshipEnum.optional(),
-  notes: z.string().max(1000).nullable().optional(),
+  notes: optionalStringWithMax(1000),
 });
 
 export type UpdateEntityLinkInput = z.infer<typeof updateEntityLinkSchema>;

@@ -242,6 +242,8 @@ model Photo {
   albumAssignments       PhotoAlbumAssignment[]
 
   @@index([tripId, takenAt])
+  @@index([tripId])
+  @@index([takenAt])
   @@index([coordinates], type: Gist)
   @@map("photos")
 }
@@ -260,6 +262,7 @@ model PhotoAlbum {
   coverPhoto   Photo?                 @relation("AlbumCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
   photoAssignments PhotoAlbumAssignment[]
 
+  @@index([tripId])
   @@map("photo_albums")
 }
 
@@ -274,6 +277,8 @@ model PhotoAlbumAssignment {
   photo Photo      @relation(fields: [photoId], references: [id], onDelete: Cascade)
 
   @@unique([albumId, photoId])
+  @@index([albumId])
+  @@index([photoId])
   @@map("photo_album_assignments")
 }
 
@@ -306,6 +311,7 @@ model Activity {
   @@index([tripId])
   @@index([parentId])
   @@index([tripId, manualOrder])
+  @@index([startTime])
 }
 
 model Transportation {
@@ -345,6 +351,9 @@ model Transportation {
   endLocation    Location?        @relation("EndLocation", fields: [endLocationId], references: [id], onDelete: SetNull)
   flightTracking FlightTracking?
 
+  @@index([tripId])
+  @@index([scheduledStart])
+  @@index([connectionGroupId])
   @@map("transportation")
 }
 
@@ -368,6 +377,9 @@ model Lodging {
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   // Note: Location association is handled via EntityLink system, not direct FK
 
+  @@index([tripId])
+  @@index([checkInDate])
+  @@index([checkOutDate])
   @@map("lodging")
 }
 
@@ -531,5 +543,11 @@ model EntityLink {
   @@index([tripId, sourceType, sourceId])
   // Index for querying "what is linked TO this entity"
   @@index([tripId, targetType, targetId])
+  // Index for querying by source entity without tripId
+  @@index([sourceType, sourceId])
+  // Index for querying by target entity without tripId
+  @@index([targetType, targetId])
+  // Index for trip-level queries
+  @@index([tripId])
   @@map("entity_links")
 }

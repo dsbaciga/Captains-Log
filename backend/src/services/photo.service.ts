@@ -1,6 +1,12 @@
 import prisma from '../config/database';
-import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
+
+// Type alias for Prisma decimal fields
+type DecimalValue = number | string | { toNumber(): number };
+
+// Use require for Prisma.raw to avoid type import issues
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Prisma } = require('@prisma/client');
 import {
   PhotoSource,
   UploadPhotoInput,
@@ -90,7 +96,8 @@ class PhotoService {
         }
       }
     } catch (error) {
-      // Continue without EXIF data if parsing fails
+      // Continue without EXIF data if parsing fails - log for debugging
+      console.error('[PhotoService] Failed to parse EXIF data:', error instanceof Error ? error.message : error);
     }
 
     const photo = await prisma.photo.create({
@@ -196,22 +203,28 @@ class PhotoService {
     });
 
     const existingAssetIds = new Set(
-      existingPhotos.map((p: any) => p.immichAssetId).filter((id: any): id is string => id !== null)
+      existingPhotos.map((p) => p.immichAssetId).filter((id): id is string => id !== null)
     );
 
-    console.log(`[PhotoService] Found ${existingAssetIds.size} existing Immich photos for trip ${data.tripId}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[PhotoService] Found ${existingAssetIds.size} existing Immich photos for trip ${data.tripId}`);
+    }
 
     // Filter out assets that are already linked to this trip
     const assetsToLink = data.assets.filter((asset) => !existingAssetIds.has(asset.immichAssetId));
 
     if (assetsToLink.length < data.assets.length) {
       const skippedCount = data.assets.length - assetsToLink.length;
-      console.log(`[PhotoService] Skipping ${skippedCount} already-linked photos`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[PhotoService] Skipping ${skippedCount} already-linked photos`);
+      }
       results.total = assetsToLink.length; // Update total to reflect actual photos to link
     }
 
     if (assetsToLink.length === 0) {
-      console.log(`[PhotoService] No new photos to link - all ${data.assets.length} photos are already linked`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[PhotoService] No new photos to link - all ${data.assets.length} photos are already linked`);
+      }
       return results;
     }
 
@@ -238,15 +251,20 @@ class PhotoService {
         });
 
         results.successful += result.count;
-        console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos`);
-      } catch (error: any) {
-        console.error(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, error.message);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos`);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed: ${errorMessage}`);
         results.failed += batch.length;
-        results.errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
+        results.errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${errorMessage}`);
       }
     }
 
-    console.log(`[PhotoService] Batch linking complete: ${results.successful} successful, ${results.failed} failed`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[PhotoService] Batch linking complete: ${results.successful} successful, ${results.failed} failed`);
+    }
     return results;
   }
 
@@ -262,33 +280,38 @@ class PhotoService {
     const take = options?.take || 40; // Default to 40 photos per page
     const orderBy = buildPhotoOrderBy(options?.sortBy, options?.sortOrder);
 
-    const [photos, total] = await Promise.all([
-      prisma.photo.findMany({
-        where: { tripId },
-        include: {
-          albumAssignments: {
-            include: {
-              album: {
-                select: {
-                  id: true,
-                  name: true,
+    try {
+      const [photos, total] = await Promise.all([
+        prisma.photo.findMany({
+          where: { tripId },
+          include: {
+            albumAssignments: {
+              include: {
+                album: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy,
-        skip,
-        take,
-      }),
-      prisma.photo.count({ where: { tripId } }),
-    ]);
+          orderBy,
+          skip,
+          take,
+        }),
+        prisma.photo.count({ where: { tripId } }),
+      ]);
 
-    return {
-      photos: photos.map((photo: any) => convertDecimals(photo)),
-      total,
-      hasMore: skip + photos.length < total,
-    };
+      return {
+        photos: photos.map((photo) => convertDecimals(photo)),
+        total,
+        hasMore: skip + photos.length < total,
+      };
+    } catch (error) {
+      console.error(`[PhotoService] Failed to fetch photos for trip ${tripId}:`, error instanceof Error ? error.message : error);
+      throw new AppError('Failed to fetch photos for trip', 500);
+    }
   }
 
   async getImmichAssetIdsByTrip(userId: number, tripId: number): Promise<string[]> {
@@ -308,7 +331,7 @@ class PhotoService {
       },
     });
 
-    return photos.map((p: any) => p.immichAssetId).filter((id: any): id is string => id !== null);
+    return photos.map((p) => p.immichAssetId).filter((id): id is string => id !== null);
   }
 
   async getUnsortedPhotosByTrip(
@@ -336,48 +359,53 @@ class PhotoService {
       distinct: ['photoId'],
     });
 
-    const photoIdsInAlbums = photosInAlbums.map((p: any) => p.photoId);
+    const photoIdsInAlbums = photosInAlbums.map((p) => p.photoId);
 
     // Get photos that are NOT in the photoIdsInAlbums array
-    const [photos, total] = await Promise.all([
-      prisma.photo.findMany({
-        where: {
-          tripId,
-          id: {
-            notIn: photoIdsInAlbums,
+    try {
+      const [photos, total] = await Promise.all([
+        prisma.photo.findMany({
+          where: {
+            tripId,
+            id: {
+              notIn: photoIdsInAlbums,
+            },
           },
-        },
-        include: {
-          albumAssignments: {
-            include: {
-              album: {
-                select: {
-                  id: true,
-                  name: true,
+          include: {
+            albumAssignments: {
+              include: {
+                album: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy,
-        skip,
-        take,
-      }),
-      prisma.photo.count({
-        where: {
-          tripId,
-          id: {
-            notIn: photoIdsInAlbums,
+          orderBy,
+          skip,
+          take,
+        }),
+        prisma.photo.count({
+          where: {
+            tripId,
+            id: {
+              notIn: photoIdsInAlbums,
+            },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
-    return {
-      photos: photos.map((photo: any) => convertDecimals(photo)),
-      total,
-      hasMore: skip + photos.length < total,
-    };
+      return {
+        photos: photos.map((photo) => convertDecimals(photo)),
+        total,
+        hasMore: skip + photos.length < total,
+      };
+    } catch (error) {
+      console.error(`[PhotoService] Failed to fetch unsorted photos for trip ${tripId}:`, error instanceof Error ? error.message : error);
+      throw new AppError('Failed to fetch unsorted photos for trip', 500);
+    }
   }
 
   async getPhotoById(userId: number, photoId: number) {
@@ -507,11 +535,28 @@ class PhotoService {
       throw new AppError('Invalid timezone format', 400);
     }
 
+    // Raw query result type
+    interface RawPhotoResult {
+      id: number;
+      trip_id: number;
+      source: string;
+      immich_asset_id: string | null;
+      local_path: string | null;
+      thumbnail_path: string | null;
+      caption: string | null;
+      taken_at: Date | null;
+      latitude: DecimalValue | null;
+      longitude: DecimalValue | null;
+      created_at: Date;
+      updated_at: Date;
+      albumAssignments: Array<{ album: { id: number; name: string } | null }> | null;
+    }
+
     // Use raw SQL to query photos for the specific date in the given timezone
     // This ensures we get the same photos that were grouped under this date
     // Note: Using Prisma.raw for timezone since AT TIME ZONE requires a literal string
     // The timezone is already validated above, so it's safe to use Prisma.raw
-    const photos = await prisma.$queryRaw<Array<any>>`
+    const photos = await prisma.$queryRaw<RawPhotoResult[]>`
       SELECT p.*,
         json_agg(
           DISTINCT jsonb_build_object(
@@ -529,8 +574,8 @@ class PhotoService {
     `;
 
     // Transform the raw results to match the expected format
-    const transformedPhotos = photos.map((photo: any) => {
-      const transformed = convertDecimals({
+    const transformedPhotos = photos.map((photo) => {
+      const basePhoto = convertDecimals({
         id: photo.id,
         tripId: photo.trip_id,
         source: photo.source,
@@ -546,13 +591,14 @@ class PhotoService {
       });
 
       // Transform album assignments
-      if (photo.albumAssignments && Array.isArray(photo.albumAssignments)) {
-        transformed.albumAssignments = photo.albumAssignments.filter((a: any) => a.album?.id);
-      } else {
-        transformed.albumAssignments = [];
-      }
+      const albumAssignments = photo.albumAssignments && Array.isArray(photo.albumAssignments)
+        ? photo.albumAssignments.filter((a: { album: { id: number; name: string } | null }) => a.album?.id)
+        : [];
 
-      return transformed;
+      return {
+        ...basePhoto,
+        albumAssignments,
+      };
     });
 
     return {
@@ -577,7 +623,8 @@ class PhotoService {
         const filepath = path.join(process.cwd(), verifiedPhoto.localPath);
         await fs.unlink(filepath);
       } catch (error) {
-        // Continue even if file deletion fails
+        // Continue even if file deletion fails - log for debugging
+        console.error(`[PhotoService] Failed to delete photo file ${verifiedPhoto.localPath}:`, error instanceof Error ? error.message : error);
       }
 
       if (verifiedPhoto.thumbnailPath) {
@@ -585,7 +632,8 @@ class PhotoService {
           const thumbnailPath = path.join(process.cwd(), verifiedPhoto.thumbnailPath);
           await fs.unlink(thumbnailPath);
         } catch (error) {
-          // Continue even if file deletion fails
+          // Continue even if thumbnail deletion fails - log for debugging
+          console.error(`[PhotoService] Failed to delete thumbnail ${verifiedPhoto.thumbnailPath}:`, error instanceof Error ? error.message : error);
         }
       }
     }

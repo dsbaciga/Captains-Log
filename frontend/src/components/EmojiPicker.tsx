@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import EmojiPickerReact from "emoji-picker-react";
+import { useDropdownPosition } from "../hooks/useDropdownPosition";
 
 interface EmojiPickerProps {
   value: string;
@@ -10,6 +11,20 @@ interface EmojiPickerProps {
 export default function EmojiPicker({ value, onChange, className = "" }: EmojiPickerProps) {
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Use dropdown position hook to determine optimal placement
+  const { triggerRef, position } = useDropdownPosition<HTMLButtonElement>({
+    isOpen: showPicker,
+    dropdownHeight: 400,
+    dropdownWidth: 300,
+    viewportPadding: 16,
+  });
+
+  // Merge refs for the container
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    // Update pickerRef for click outside detection
+    (pickerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -31,9 +46,14 @@ export default function EmojiPicker({ value, onChange, className = "" }: EmojiPi
     setShowPicker(false);
   };
 
+  // Build position classes based on calculated position
+  const verticalClass = position.openUpward ? "bottom-full mb-2" : "top-full mt-2";
+  const horizontalClass = position.alignRight ? "right-0" : "left-0";
+
   return (
-    <div className="relative" ref={pickerRef}>
+    <div className="relative" ref={containerRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setShowPicker(!showPicker)}
         className={`text-2xl hover:scale-110 transition-transform ${className}`}
@@ -41,13 +61,16 @@ export default function EmojiPicker({ value, onChange, className = "" }: EmojiPi
         {value || "😀"}
       </button>
       {showPicker && (
-        <div className="absolute z-[95] mt-2">
+        <div
+          className={`absolute z-[95] ${verticalClass} ${horizontalClass}`}
+          style={position.maxHeight ? { maxHeight: position.maxHeight } : undefined}
+        >
           <EmojiPickerReact
             onEmojiClick={handleEmojiClick}
             searchDisabled={false}
             skinTonesDisabled
             width={300}
-            height={400}
+            height={position.maxHeight ? Math.min(400, position.maxHeight) : 400}
           />
         </div>
       )}

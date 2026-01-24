@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import locationService from '../services/location.service';
 import { createLocationSchema, updateLocationSchema, createLocationCategorySchema, updateLocationCategorySchema } from '../types/location.types';
 import logger from '../config/logger';
+import { parseId } from '../utils/parseId';
 
 export class LocationController {
   async createLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -32,7 +33,7 @@ export class LocationController {
         return;
       }
 
-      const tripId = parseInt(req.params.tripId);
+      const tripId = parseId(req.params.tripId, 'tripId');
       const locations = await locationService.getLocationsByTrip(req.user.userId, tripId);
 
       res.status(200).json({
@@ -51,7 +52,7 @@ export class LocationController {
         return;
       }
 
-      const locationId = parseInt(req.params.id);
+      const locationId = parseId(req.params.id);
       const location = await locationService.getLocationById(req.user.userId, locationId);
 
       res.status(200).json({
@@ -70,7 +71,7 @@ export class LocationController {
         return;
       }
 
-      const locationId = parseInt(req.params.id);
+      const locationId = parseId(req.params.id);
       const validatedData = updateLocationSchema.parse(req.body);
       const location = await locationService.updateLocation(req.user.userId, locationId, validatedData);
 
@@ -92,7 +93,7 @@ export class LocationController {
         return;
       }
 
-      const locationId = parseInt(req.params.id);
+      const locationId = parseId(req.params.id);
       const result = await locationService.deleteLocation(req.user.userId, locationId);
 
       logger.info(`Location deleted: ${locationId} by user ${req.user.userId}`);
@@ -151,7 +152,7 @@ export class LocationController {
         return;
       }
 
-      const categoryId = parseInt(req.params.id);
+      const categoryId = parseId(req.params.id, 'categoryId');
       const validatedData = updateLocationCategorySchema.parse(req.body);
       const category = await locationService.updateCategory(req.user.userId, categoryId, validatedData);
 
@@ -171,7 +172,7 @@ export class LocationController {
         return;
       }
 
-      const categoryId = parseInt(req.params.id);
+      const categoryId = parseId(req.params.id, 'categoryId');
       const result = await locationService.deleteCategory(req.user.userId, categoryId);
 
       res.status(200).json({

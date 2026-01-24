@@ -15,6 +15,7 @@ import AviationstackSettings from "../components/AviationstackSettings";
 import OpenRouteServiceSettings from "../components/OpenRouteServiceSettings";
 import EmojiPicker from "../components/EmojiPicker";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { getRandomTagColor } from "../utils/tagColors";
 
 type TabType = "account" | "tags-categories" | "integrations" | "backup";
 
@@ -39,7 +40,7 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [tags, setTags] = useState<TripTag[]>([]);
   const [newTagName, setNewTagName] = useState("");
-  const [newTagColor, setNewTagColor] = useState("#3B82F6");
+  const [newTagColor, setNewTagColor] = useState(getRandomTagColor);
   const [newTagTextColor, setNewTagTextColor] = useState("#FFFFFF");
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editingTagColor, setEditingTagColor] = useState("#3B82F6");
@@ -115,7 +116,7 @@ export default function SettingsPage() {
         textColor: newTagTextColor,
       });
       setNewTagName("");
-      setNewTagColor("#3B82F6");
+      setNewTagColor(getRandomTagColor());
       setNewTagTextColor("#FFFFFF");
       await loadTags();
       toast.success("Tag created");

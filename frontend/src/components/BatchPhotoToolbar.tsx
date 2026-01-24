@@ -118,7 +118,7 @@ export default function BatchPhotoToolbar({
                 {selectedCount < totalCount && (
                   <button
                     onClick={onSelectAll}
-                    className="p-2 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
                     title="Select all"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

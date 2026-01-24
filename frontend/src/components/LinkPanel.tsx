@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -18,6 +18,9 @@ import {
   getEntityDisplayName,
 } from '../lib/entityConfig';
 
+/** Selector for all focusable elements within a modal */
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 interface LinkPanelProps {
   tripId: number;
   entityType: EntityType;
@@ -36,6 +39,8 @@ export default function LinkPanel({
   const navigate = useNavigate();
   const [showAddLinkModal, setShowAddLinkModal] = useState(false);
   const [editingLink, setEditingLink] = useState<EnrichedEntityLink | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
 
   // Navigate to the linked entity's location in the trip detail page
   const handleNavigateToEntity = (linkedEntityType: EntityType, linkedEntityId: number) => {
@@ -122,16 +127,53 @@ export default function LinkPanel({
     }
   }, [isLoading, linksData]);
 
-  // Handle Escape key to close modal (only when sub-modals are closed)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showAddLinkModal && !editingLink) {
-        onClose();
+  // Handle keyboard events including focus trap
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Escape to close (only when sub-modals are closed)
+    if (e.key === 'Escape' && !showAddLinkModal && !editingLink) {
+      onClose();
+      return;
+    }
+
+    // Focus trap - keep Tab navigation within the panel (only when sub-modals are closed)
+    if (e.key === 'Tab' && panelRef.current && !showAddLinkModal && !editingLink) {
+      const focusableElements = panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
       }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    }
   }, [onClose, showAddLinkModal, editingLink]);
+
+  // Focus management and keyboard handling
+  useEffect(() => {
+    // Store the currently focused element to restore later
+    triggerElementRef.current = document.activeElement as HTMLElement;
+
+    // Focus the first focusable element (Add Link button)
+    setTimeout(() => {
+      const firstFocusable = panelRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      firstFocusable?.focus();
+    }, 0);
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      // Return focus to the trigger element
+      triggerElementRef.current?.focus();
+    };
+  }, [handleKeyDown]);
 
   // Get all linked entity IDs grouped by type to filter from picker
   // Uses Map<EntityType, Set<number>> to properly track IDs per entity type
@@ -163,12 +205,21 @@ export default function LinkPanel({
   const currentEntityConfig = ENTITY_TYPE_CONFIG[entityType];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[90] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 z-[90] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="link-panel-title"
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 id="link-panel-title" className="text-lg font-semibold text-gray-900 dark:text-white">
               {currentEntityConfig.emoji} Links
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">

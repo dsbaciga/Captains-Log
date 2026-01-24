@@ -35,6 +35,7 @@ export default function TripSidebar({
     if (activeGroup && !expandedGroups.has(activeGroup.id)) {
       setExpandedGroups((prev) => new Set([...prev, activeGroup.id]));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, tabs]);
 
   const toggleGroup = (groupId: string) => {
@@ -79,7 +80,7 @@ export default function TripSidebar({
   return (
     <div
       className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
+        sidebarCollapsed ? 'w-16' : 'w-48 lg:w-64'
       } ${className}`}
     >
       {/* Collapse Toggle */}
@@ -91,7 +92,7 @@ export default function TripSidebar({
         )}
         <button
           onClick={toggleSidebar}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >

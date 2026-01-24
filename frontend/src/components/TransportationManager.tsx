@@ -1,5 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import type {
   Transportation,
   TransportationType,
@@ -14,9 +13,11 @@ import FormModal from "./FormModal";
 import FormSection, { CollapsibleSection } from "./FormSection";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
+import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -71,6 +72,7 @@ const initialFormState: TransportationFormFields = {
 };
 
 type FilterTab = "all" | "upcoming" | "historical";
+type SortBy = "date" | "type";
 
 export default function TransportationManager({
   tripId,
@@ -80,6 +82,7 @@ export default function TransportationManager({
   onUpdate,
 }: TransportationManagerProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const [sortBy, setSortBy] = useState<SortBy>("date");
 
   // Compute initial form state with trip start date as default
   const getInitialFormState = useMemo((): TransportationFormFields => {
@@ -112,81 +115,91 @@ export default function TransportationManager({
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { values, handleChange, reset } =
+  const { values, handleChange, reset, setAllFields } =
     useFormFields<TransportationFormFields>(getInitialFormState);
+
+  // Create wrappers for useFormReset hook
+  const setShowForm = useCallback((show: boolean) => {
+    if (show) {
+      if (!manager.showForm) manager.toggleForm();
+    } else {
+      manager.closeForm();
+    }
+  }, [manager]);
+
+  // Use useFormReset for consistent form state management
+  const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
+    initialState: getInitialFormState,
+    setFormData: setAllFields,
+    setEditingId: manager.setEditingId,
+    setShowForm,
+  });
 
   const [showFromLocationQuickAdd, setShowFromLocationQuickAdd] = useState(false);
   const [showToLocationQuickAdd, setShowToLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
 
-  // Handle edit param from URL (for navigating from EntityDetailModal)
-  useEffect(() => {
-    const editId = searchParams.get("edit");
-    if (editId) {
-      const itemId = parseInt(editId, 10);
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("edit");
-      setSearchParams(newParams, { replace: true });
-      setPendingEditId(itemId);
-    }
-  }, [searchParams, setSearchParams]);
+  // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
+  const handleEdit = useCallback((transportation: Transportation) => {
+    setShowMoreOptions(true); // Always show all options when editing
+    handleChange("type", transportation.type);
+    handleChange("fromLocationId", transportation.fromLocationId || undefined);
+    handleChange("toLocationId", transportation.toLocationId || undefined);
+    handleChange("fromLocationName", transportation.fromLocationName || "");
+    handleChange("toLocationName", transportation.toLocationName || "");
 
-  // Handle pending edit when items are loaded
-  useEffect(() => {
-    if (pendingEditId && manager.items.length > 0 && !manager.loading) {
-      const item = manager.items.find((t) => t.id === pendingEditId);
-      if (item) {
-        setShowMoreOptions(true);
-        handleChange("type", item.type);
-        handleChange("fromLocationId", item.fromLocationId || undefined);
-        handleChange("toLocationId", item.toLocationId || undefined);
-        handleChange("fromLocationName", item.fromLocationName || "");
-        handleChange("toLocationName", item.toLocationName || "");
+    // Convert stored UTC times to local times in their respective timezones
+    const effectiveStartTz = transportation.startTimezone || tripTimezone || 'UTC';
+    const effectiveEndTz = transportation.endTimezone || tripTimezone || 'UTC';
 
-        const effectiveStartTz = item.startTimezone || tripTimezone || 'UTC';
-        const effectiveEndTz = item.endTimezone || tripTimezone || 'UTC';
+    handleChange(
+      "departureTime",
+      transportation.departureTime
+        ? convertISOToDateTimeLocal(transportation.departureTime, effectiveStartTz)
+        : ""
+    );
+    handleChange(
+      "arrivalTime",
+      transportation.arrivalTime
+        ? convertISOToDateTimeLocal(transportation.arrivalTime, effectiveEndTz)
+        : ""
+    );
+    handleChange("startTimezone", transportation.startTimezone || "");
+    handleChange("endTimezone", transportation.endTimezone || "");
+    handleChange("carrier", transportation.carrier || "");
+    handleChange("vehicleNumber", transportation.vehicleNumber || "");
+    handleChange("confirmationNumber", transportation.confirmationNumber || "");
+    handleChange("cost", transportation.cost?.toString() || "");
+    handleChange("currency", transportation.currency || "USD");
+    handleChange("notes", transportation.notes || "");
+    manager.openEditForm(transportation.id);
+  }, [handleChange, tripTimezone, manager]);
 
-        handleChange(
-          "departureTime",
-          item.departureTime
-            ? convertISOToDateTimeLocal(item.departureTime, effectiveStartTz)
-            : ""
-        );
-        handleChange(
-          "arrivalTime",
-          item.arrivalTime
-            ? convertISOToDateTimeLocal(item.arrivalTime, effectiveEndTz)
-            : ""
-        );
-        handleChange("startTimezone", item.startTimezone || "");
-        handleChange("endTimezone", item.endTimezone || "");
-        handleChange("carrier", item.carrier || "");
-        handleChange("vehicleNumber", item.vehicleNumber || "");
-        handleChange("confirmationNumber", item.confirmationNumber || "");
-        handleChange("cost", item.cost?.toString() || "");
-        handleChange("currency", item.currency || "USD");
-        handleChange("notes", item.notes || "");
-        manager.openEditForm(item.id);
-      }
-      setPendingEditId(null);
-    }
-  }, [pendingEditId, manager.items, manager.loading, tripTimezone]);
+  // Stable callback for URL-based edit navigation
+  const handleEditFromUrl = useCallback((transportation: Transportation) => {
+    handleEdit(transportation);
+  }, [handleEdit]);
+
+  // Handle URL-based edit navigation (e.g., from EntityDetailModal)
+  useEditFromUrlParam(manager.items, handleEditFromUrl, {
+    loading: manager.loading,
+  });
 
   // Smart timezone inference: auto-populate timezones when locations are selected
   useEffect(() => {
     if (values.fromLocationId && !values.startTimezone && tripTimezone) {
       handleChange("startTimezone", tripTimezone);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.fromLocationId, tripTimezone]);
 
   useEffect(() => {
     if (values.toLocationId && !values.endTimezone && tripTimezone) {
       handleChange("endTimezone", tripTimezone);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.toLocationId, tripTimezone]);
 
   // Sync localLocations with locations prop
@@ -233,33 +246,76 @@ export default function TransportationManager({
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.showForm, manager.editingId]);
 
-  // Filter transportation based on active tab
-  const filteredItems = useMemo(() => {
-    if (activeTab === "all") return manager.items;
-    if (activeTab === "upcoming") {
-      return manager.items.filter((t) => t.isUpcoming);
+  // Sort function
+  const sortItems = (items: Transportation[]) => {
+    if (sortBy === "type") {
+      return [...items].sort((a, b) => {
+        if (a.type === b.type) {
+          // Secondary sort by departure time
+          const dateA = a.departureTime ? new Date(a.departureTime).getTime() : Infinity;
+          const dateB = b.departureTime ? new Date(b.departureTime).getTime() : Infinity;
+          return dateA - dateB;
+        }
+        return a.type.localeCompare(b.type);
+      });
     }
-    if (activeTab === "historical") {
-      return manager.items.filter((t) => !t.isUpcoming);
-    }
-    return manager.items;
-  }, [manager.items, activeTab]);
+    // Default: sort by departure time
+    return [...items].sort((a, b) => {
+      const dateA = a.departureTime ? new Date(a.departureTime).getTime() : Infinity;
+      const dateB = b.departureTime ? new Date(b.departureTime).getTime() : Infinity;
+      return dateA - dateB;
+    });
+  };
 
-  // Calculate counts for tab badges
-  const counts = useMemo(() => {
-    const upcoming = manager.items.filter((t) => t.isUpcoming).length;
-    const historical = manager.items.filter((t) => !t.isUpcoming).length;
-    return { all: manager.items.length, upcoming, historical };
+  // Split into scheduled (has departure time) and unscheduled
+  const scheduledItems = useMemo(() => {
+    return manager.items.filter((t) => t.departureTime);
   }, [manager.items]);
 
-  const resetForm = () => {
-    reset();
-    manager.setEditingId(null);
+  const unscheduledItems = useMemo(() => {
+    return manager.items.filter((t) => !t.departureTime);
+  }, [manager.items]);
+
+  // Filter scheduled transportation based on active tab
+  const filteredScheduledItems = useMemo(() => {
+    if (activeTab === "all") return sortItems(scheduledItems);
+    if (activeTab === "upcoming") {
+      return sortItems(scheduledItems.filter((t) => t.isUpcoming));
+    }
+    if (activeTab === "historical") {
+      return sortItems(scheduledItems.filter((t) => !t.isUpcoming));
+    }
+    return sortItems(scheduledItems);
+  }, [scheduledItems, activeTab, sortBy]);
+
+  // Sorted unscheduled items
+  const sortedUnscheduledItems = useMemo(() => {
+    return sortItems(unscheduledItems);
+  }, [unscheduledItems, sortBy]);
+
+  // Calculate counts for tab badges (only scheduled items)
+  const counts = useMemo(() => {
+    const upcoming = scheduledItems.filter((t) => t.isUpcoming).length;
+    const historical = scheduledItems.filter((t) => !t.isUpcoming).length;
+    return { all: scheduledItems.length, upcoming, historical };
+  }, [scheduledItems]);
+
+  // Extended reset that also clears additional local state
+  const resetForm = useCallback(() => {
+    baseResetForm();
     setKeepFormOpenAfterSave(false);
     setShowMoreOptions(false);
-  };
+  }, [baseResetForm]);
+
+  // Open create form with clean state
+  const openCreateForm = useCallback(() => {
+    baseOpenCreateForm();
+    setKeepFormOpenAfterSave(false);
+    setShowMoreOptions(false);
+  }, [baseOpenCreateForm]);
 
   const handleFromLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
@@ -303,41 +359,6 @@ export default function TransportationManager({
     setLocalLocations([...localLocations, newLocation]);
     handleChange("toLocationId", locationId);
     setShowToLocationQuickAdd(false);
-  };
-
-  const handleEdit = (transportation: Transportation) => {
-    setShowMoreOptions(true); // Always show all options when editing
-    handleChange("type", transportation.type);
-    handleChange("fromLocationId", transportation.fromLocationId || undefined);
-    handleChange("toLocationId", transportation.toLocationId || undefined);
-    handleChange("fromLocationName", transportation.fromLocationName || "");
-    handleChange("toLocationName", transportation.toLocationName || "");
-
-    // Convert stored UTC times to local times in their respective timezones
-    const effectiveStartTz = transportation.startTimezone || tripTimezone || 'UTC';
-    const effectiveEndTz = transportation.endTimezone || tripTimezone || 'UTC';
-
-    handleChange(
-      "departureTime",
-      transportation.departureTime
-        ? convertISOToDateTimeLocal(transportation.departureTime, effectiveStartTz)
-        : ""
-    );
-    handleChange(
-      "arrivalTime",
-      transportation.arrivalTime
-        ? convertISOToDateTimeLocal(transportation.arrivalTime, effectiveEndTz)
-        : ""
-    );
-    handleChange("startTimezone", transportation.startTimezone || "");
-    handleChange("endTimezone", transportation.endTimezone || "");
-    handleChange("carrier", transportation.carrier || "");
-    handleChange("vehicleNumber", transportation.vehicleNumber || "");
-    handleChange("confirmationNumber", transportation.confirmationNumber || "");
-    handleChange("cost", transportation.cost?.toString() || "");
-    handleChange("currency", transportation.currency || "USD");
-    handleChange("notes", transportation.notes || "");
-    manager.openEditForm(transportation.id);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -531,10 +552,8 @@ export default function TransportationManager({
     );
   };
 
-  const handleCloseForm = () => {
-    resetForm();
-    manager.closeForm();
-  };
+  // resetForm already closes the form via useFormReset
+  const handleCloseForm = resetForm;
 
   return (
     <div className="space-y-6">
@@ -544,10 +563,7 @@ export default function TransportationManager({
           Transportation
         </h2>
         <button
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
+          onClick={openCreateForm}
           className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
           <span className="sm:hidden">+ Add</span>
@@ -562,7 +578,7 @@ export default function TransportationManager({
 
       {/* Filter Tabs */}
       {manager.items.length > 0 && (
-        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700" role="tablist" aria-label="Transportation filters">
           <button
             onClick={() => setActiveTab("all")}
             className={`px-4 py-2 font-medium text-sm transition-colors ${
@@ -570,6 +586,9 @@ export default function TransportationManager({
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
+            role="tab"
+            aria-selected={activeTab === "all"}
+            aria-label={`Show all transportation (${counts.all})`}
           >
             All {counts.all > 0 && `(${counts.all})`}
           </button>
@@ -580,6 +599,9 @@ export default function TransportationManager({
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
+            role="tab"
+            aria-selected={activeTab === "upcoming"}
+            aria-label={`Show upcoming transportation (${counts.upcoming})`}
           >
             Upcoming {counts.upcoming > 0 && `(${counts.upcoming})`}
           </button>
@@ -590,9 +612,30 @@ export default function TransportationManager({
                 ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
+            role="tab"
+            aria-selected={activeTab === "historical"}
+            aria-label={`Show historical transportation (${counts.historical})`}
           >
             Historical {counts.historical > 0 && `(${counts.historical})`}
           </button>
+        </div>
+      )}
+
+      {/* Sort Control */}
+      {manager.items.length > 0 && (
+        <div className="flex items-center gap-2">
+          <label htmlFor="transportation-sort" className="text-sm text-gray-600 dark:text-gray-400">
+            Sort by:
+          </label>
+          <select
+            id="transportation-sort"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className="input py-1 px-2 text-sm w-auto"
+          >
+            <option value="date">Departure Date</option>
+            <option value="type">Type</option>
+          </select>
         </div>
       )}
 
@@ -774,6 +817,7 @@ export default function TransportationManager({
                       onClick={() => handleChange("departureTime", "")}
                       className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       title="Clear departure time"
+                      aria-label="Clear departure time"
                     >
                       ✕
                     </button>
@@ -810,6 +854,7 @@ export default function TransportationManager({
                       onClick={() => handleChange("arrivalTime", "")}
                       className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       title="Clear arrival time"
+                      aria-label="Clear arrival time"
                     >
                       ✕
                     </button>
@@ -959,221 +1004,318 @@ export default function TransportationManager({
         </FormModal>
 
       {/* Transportation List */}
-      <div className="space-y-4">
-        {manager.items.length === 0 ? (
-          <EmptyState
-            icon={<EmptyIllustrations.NoTransportation />}
-            message="Plan Your Journey"
-            subMessage="How will you get there? Add flights, trains, road trips, and more. Track departure times, booking confirmations, and never miss a connection."
-            actionLabel="Add Transportation"
-            onAction={() => {
-              resetForm();
-              manager.toggleForm();
-            }}
-          />
-        ) : filteredItems.length === 0 ? (
-          <EmptyState
-            icon="🔍"
-            message={`No ${activeTab} transportation`}
-            subMessage={`Try selecting a different filter`}
-          />
-        ) : (
-          filteredItems.map((transportation) => (
-            <div
-              key={transportation.id}
-              data-entity-id={`transportation-${transportation.id}`}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
-            >
-              {/* Route Map - Show for all transportation with route data */}
-              {transportation.route && (
-                <div className="mb-3 sm:mb-4 -mx-3 sm:mx-0 -mt-3 sm:mt-0">
-                  <FlightRouteMap
-                    route={transportation.route}
-                    height="200px"
-                    transportationType={transportation.type as "flight" | "train" | "bus" | "car" | "ferry" | "bicycle" | "walk" | "other"}
-                  />
+      {manager.items.length === 0 ? (
+        <EmptyState
+          icon={<EmptyIllustrations.NoTransportation />}
+          message="Plan Your Journey"
+          subMessage="How will you get there? Add flights, trains, road trips, and more. Track departure times, booking confirmations, and never miss a connection."
+          actionLabel="Add Transportation"
+          onAction={openCreateForm}
+        />
+      ) : (
+        <>
+          {/* Scheduled Transportation */}
+          {scheduledItems.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <span>📅</span> Scheduled Transportation
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                  ({filteredScheduledItems.length})
+                </span>
+              </h3>
+              {filteredScheduledItems.length === 0 ? (
+                <EmptyState.Compact
+                  icon="🔍"
+                  message={`No ${activeTab} transportation`}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {filteredScheduledItems.map((transportation) => (
+                    <TransportationItem
+                      key={transportation.id}
+                      transportation={transportation}
+                      tripId={tripId}
+                      getTypeIcon={getTypeIcon}
+                      getStatusBadge={getStatusBadge}
+                      getLocationDisplay={getLocationDisplay}
+                      formatDateTime={formatDateTime}
+                      formatDuration={formatDuration}
+                      formatDistance={formatDistance}
+                      getLinkSummary={getLinkSummary}
+                      invalidateLinkSummary={invalidateLinkSummary}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
                 </div>
               )}
+            </div>
+          )}
 
-              {/* Header with icon, type, carrier, and status */}
-              <div className="flex items-start gap-2 mb-3 flex-wrap">
-                <span className="text-xl sm:text-2xl">
-                  {getTypeIcon(transportation.type)}
+          {/* Unscheduled Transportation */}
+          {sortedUnscheduledItems.length > 0 && (
+            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                <span>📋</span> Unscheduled Transportation
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                  ({sortedUnscheduledItems.length})
                 </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white capitalize">
-                      {transportation.type}
-                    </h3>
-                    {transportation.carrier && (
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        - {transportation.carrier}
-                      </span>
-                    )}
-                    {transportation.vehicleNumber && (
-                      <span className="text-xs text-gray-500 dark:text-gray-500">
-                        #{transportation.vehicleNumber}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1">
-                    {getStatusBadge(transportation)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Details */}
-              <div className="space-y-1.5 sm:space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                {/* Route */}
-                <div className="flex flex-wrap gap-x-2">
-                  <span className="font-medium">Route:</span>
-                  <span>
-                    {getLocationDisplay(
-                      transportation.fromLocation,
-                      transportation.fromLocationName,
-                      transportation.fromLocationId,
-                      transportation.type
-                    )}{" "}
-                    →{" "}
-                    {getLocationDisplay(
-                      transportation.toLocation,
-                      transportation.toLocationName,
-                      transportation.toLocationId,
-                      transportation.type
-                    )}
-                  </span>
-                </div>
-
-                {/* Departure */}
-                {transportation.departureTime && (
-                  <div className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">Departure:</span>
-                    <span>
-                      {formatDateTime(
-                        transportation.departureTime,
-                        transportation.startTimezone
-                      )}
-                    </span>
-                  </div>
-                )}
-
-                {/* Arrival */}
-                {transportation.arrivalTime && (
-                  <div className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">Arrival:</span>
-                    <span>
-                      {formatDateTime(
-                        transportation.arrivalTime,
-                        transportation.endTimezone
-                      )}
-                    </span>
-                  </div>
-                )}
-
-                {/* Duration */}
-                {transportation.durationMinutes && (
-                  <div className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">Duration:</span>
-                    <span>{formatDuration(transportation.durationMinutes)}</span>
-                  </div>
-                )}
-
-                {/* Distance */}
-                {transportation.calculatedDistance && (
-                  <div className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">Distance:</span>
-                    <span>{formatDistance(transportation.calculatedDistance)}</span>
-                  </div>
-                )}
-
-                {/* Flight Tracking Info */}
-                {transportation.flightTracking && (
-                  <>
-                    {transportation.flightTracking.gate && (
-                      <div className="flex flex-wrap gap-x-2">
-                        <span className="font-medium">Gate:</span>
-                        <span>{transportation.flightTracking.gate}</span>
-                      </div>
-                    )}
-                    {transportation.flightTracking.terminal && (
-                      <div className="flex flex-wrap gap-x-2">
-                        <span className="font-medium">Terminal:</span>
-                        <span>{transportation.flightTracking.terminal}</span>
-                      </div>
-                    )}
-                    {transportation.flightTracking.baggageClaim && (
-                      <div className="flex flex-wrap gap-x-2">
-                        <span className="font-medium">Baggage:</span>
-                        <span>{transportation.flightTracking.baggageClaim}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Confirmation Number */}
-                {transportation.confirmationNumber && (
-                  <div className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">Confirmation:</span>
-                    <span>{transportation.confirmationNumber}</span>
-                  </div>
-                )}
-
-                {/* Cost */}
-                {transportation.cost && (
-                  <div className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">Cost:</span>
-                    <span>
-                      {transportation.currency} {transportation.cost}
-                    </span>
-                  </div>
-                )}
-
-                {/* Notes */}
-                {transportation.notes && (
-                  <div className="mt-2">
-                    <span className="font-medium">Notes:</span>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:line-clamp-none">
-                      {transportation.notes}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Linked Entities */}
-              <LinkedEntitiesDisplay
-                tripId={tripId}
-                entityType="TRANSPORTATION"
-                entityId={transportation.id}
-                compact
-              />
-
-              {/* Actions - bottom row */}
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                <LinkButton
-                  tripId={tripId}
-                  entityType="TRANSPORTATION"
-                  entityId={transportation.id}
-                  linkSummary={getLinkSummary('TRANSPORTATION', transportation.id)}
-                  onUpdate={invalidateLinkSummary}
-                  size="sm"
-                />
-                <div className="flex-1" />
-                <button
-                  onClick={() => handleEdit(transportation)}
-                  className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(transportation.id)}
-                  className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
-                >
-                  Delete
-                </button>
+              </h3>
+              <div className="space-y-4">
+                {sortedUnscheduledItems.map((transportation) => (
+                  <TransportationItem
+                    key={transportation.id}
+                    transportation={transportation}
+                    tripId={tripId}
+                    getTypeIcon={getTypeIcon}
+                    getStatusBadge={getStatusBadge}
+                    getLocationDisplay={getLocationDisplay}
+                    formatDateTime={formatDateTime}
+                    formatDuration={formatDuration}
+                    formatDistance={formatDistance}
+                    getLinkSummary={getLinkSummary}
+                    invalidateLinkSummary={invalidateLinkSummary}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
               </div>
             </div>
-          ))
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// Extracted TransportationItem component to avoid code duplication
+interface TransportationItemProps {
+  transportation: Transportation;
+  tripId: number;
+  getTypeIcon: (type: TransportationType) => string;
+  getStatusBadge: (transportation: Transportation) => React.ReactNode;
+  getLocationDisplay: (
+    location: { name: string } | null | undefined,
+    locationName: string | null | undefined,
+    locationId: number | null | undefined,
+    transportType: string
+  ) => string;
+  formatDateTime: (dateTime: string | null, timezone?: string | null) => string;
+  formatDuration: (minutes: number) => string;
+  formatDistance: (kilometers: number | null | undefined) => string;
+  getLinkSummary: (entityType: string, entityId: number) => { total: number } | undefined;
+  invalidateLinkSummary: () => void;
+  onEdit: (transportation: Transportation) => void;
+  onDelete: (id: number) => void;
+}
+
+function TransportationItem({
+  transportation,
+  tripId,
+  getTypeIcon,
+  getStatusBadge,
+  getLocationDisplay,
+  formatDateTime,
+  formatDuration,
+  formatDistance,
+  getLinkSummary,
+  invalidateLinkSummary,
+  onEdit,
+  onDelete,
+}: TransportationItemProps) {
+  return (
+    <div
+      data-entity-id={`transportation-${transportation.id}`}
+      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
+    >
+      {/* Route Map - Show for all transportation with route data */}
+      {transportation.route && (
+        <div className="mb-3 sm:mb-4 -mx-3 sm:mx-0 -mt-3 sm:mt-0">
+          <FlightRouteMap
+            route={transportation.route}
+            height="200px"
+            transportationType={transportation.type as "flight" | "train" | "bus" | "car" | "ferry" | "bicycle" | "walk" | "other"}
+          />
+        </div>
+      )}
+
+      {/* Header with icon, type, carrier, and status */}
+      <div className="flex items-start gap-2 mb-3 flex-wrap">
+        <span className="text-xl sm:text-2xl">
+          {getTypeIcon(transportation.type)}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white capitalize">
+              {transportation.type}
+            </h3>
+            {transportation.carrier && (
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                - {transportation.carrier}
+              </span>
+            )}
+            {transportation.vehicleNumber && (
+              <span className="text-xs text-gray-500 dark:text-gray-500">
+                #{transportation.vehicleNumber}
+              </span>
+            )}
+          </div>
+          <div className="mt-1">
+            {getStatusBadge(transportation)}
+          </div>
+        </div>
+      </div>
+
+      {/* Details */}
+      <div className="space-y-1.5 sm:space-y-2 text-sm text-gray-700 dark:text-gray-300">
+        {/* Route */}
+        <div className="flex flex-wrap gap-x-2">
+          <span className="font-medium">Route:</span>
+          <span>
+            {getLocationDisplay(
+              transportation.fromLocation,
+              transportation.fromLocationName,
+              transportation.fromLocationId,
+              transportation.type
+            )}{" "}
+            →{" "}
+            {getLocationDisplay(
+              transportation.toLocation,
+              transportation.toLocationName,
+              transportation.toLocationId,
+              transportation.type
+            )}
+          </span>
+        </div>
+
+        {/* Departure */}
+        {transportation.departureTime && (
+          <div className="flex flex-wrap gap-x-2">
+            <span className="font-medium">Departure:</span>
+            <span>
+              {formatDateTime(
+                transportation.departureTime,
+                transportation.startTimezone
+              )}
+            </span>
+          </div>
         )}
+
+        {/* Arrival */}
+        {transportation.arrivalTime && (
+          <div className="flex flex-wrap gap-x-2">
+            <span className="font-medium">Arrival:</span>
+            <span>
+              {formatDateTime(
+                transportation.arrivalTime,
+                transportation.endTimezone
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Duration */}
+        {transportation.durationMinutes && (
+          <div className="flex flex-wrap gap-x-2">
+            <span className="font-medium">Duration:</span>
+            <span>{formatDuration(transportation.durationMinutes)}</span>
+          </div>
+        )}
+
+        {/* Distance */}
+        {transportation.calculatedDistance && (
+          <div className="flex flex-wrap gap-x-2">
+            <span className="font-medium">Distance:</span>
+            <span>{formatDistance(transportation.calculatedDistance)}</span>
+          </div>
+        )}
+
+        {/* Flight Tracking Info */}
+        {transportation.flightTracking && (
+          <>
+            {transportation.flightTracking.gate && (
+              <div className="flex flex-wrap gap-x-2">
+                <span className="font-medium">Gate:</span>
+                <span>{transportation.flightTracking.gate}</span>
+              </div>
+            )}
+            {transportation.flightTracking.terminal && (
+              <div className="flex flex-wrap gap-x-2">
+                <span className="font-medium">Terminal:</span>
+                <span>{transportation.flightTracking.terminal}</span>
+              </div>
+            )}
+            {transportation.flightTracking.baggageClaim && (
+              <div className="flex flex-wrap gap-x-2">
+                <span className="font-medium">Baggage:</span>
+                <span>{transportation.flightTracking.baggageClaim}</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Confirmation Number */}
+        {transportation.confirmationNumber && (
+          <div className="flex flex-wrap gap-x-2">
+            <span className="font-medium">Confirmation:</span>
+            <span>{transportation.confirmationNumber}</span>
+          </div>
+        )}
+
+        {/* Cost */}
+        {transportation.cost && (
+          <div className="flex flex-wrap gap-x-2">
+            <span className="font-medium">Cost:</span>
+            <span>
+              {transportation.currency} {transportation.cost}
+            </span>
+          </div>
+        )}
+
+        {/* Notes */}
+        {transportation.notes && (
+          <div className="mt-2">
+            <span className="font-medium">Notes:</span>
+            <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:line-clamp-none">
+              {transportation.notes}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Linked Entities */}
+      <LinkedEntitiesDisplay
+        tripId={tripId}
+        entityType="TRANSPORTATION"
+        entityId={transportation.id}
+        compact
+      />
+
+      {/* Actions - bottom row */}
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <LinkButton
+          tripId={tripId}
+          entityType="TRANSPORTATION"
+          entityId={transportation.id}
+          linkSummary={getLinkSummary('TRANSPORTATION', transportation.id)}
+          onUpdate={invalidateLinkSummary}
+          size="sm"
+        />
+        <div className="flex-1" />
+        <button
+          onClick={() => onEdit(transportation)}
+          className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+          aria-label={`Edit ${transportation.type} transportation`}
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => onDelete(transportation.id)}
+          className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+          aria-label={`Delete ${transportation.type} transportation`}
+        >
+          Delete
+        </button>
       </div>
     </div>
   );

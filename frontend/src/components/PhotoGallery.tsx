@@ -552,12 +552,15 @@ export default function PhotoGallery({
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
               }`}
               title="Grid view"
+              aria-label="Grid view"
+              aria-pressed={viewMode === "grid"}
             >
               <svg
                 className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -575,12 +578,15 @@ export default function PhotoGallery({
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
               }`}
               title="List view"
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
             >
               <svg
                 className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -649,19 +655,33 @@ export default function PhotoGallery({
 
       {/* Grid View */}
       {viewMode === "grid" && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
           {sortedPhotos.map((photo, index) => {
             const thumbnailUrl = getThumbnailUrl(photo);
             const isSelected = selectedPhotoIds.has(photo.id);
             return (
               <div
                 key={photo.id}
-                className="relative group cursor-pointer aspect-square overflow-hidden rounded-xl bg-parchment dark:bg-navy-800 shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-100"
+                role="button"
+                tabIndex={0}
+                aria-label={photo.caption || `Photo ${index + 1}`}
+                aria-pressed={selectionMode ? isSelected : undefined}
+                className="relative group cursor-pointer aspect-square overflow-hidden rounded-xl bg-parchment dark:bg-navy-800 shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-100 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky focus:ring-offset-2"
                 onClick={(e) =>
                   selectionMode
                     ? togglePhotoSelection(photo.id, e.shiftKey)
                     : setSelectedPhoto(photo)
                 }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (selectionMode) {
+                      togglePhotoSelection(photo.id, e.shiftKey);
+                    } else {
+                      setSelectedPhoto(photo);
+                    }
+                  }
+                }}
               >
                 {thumbnailUrl ? (
                   <ProgressiveImage
@@ -748,18 +768,32 @@ export default function PhotoGallery({
       {/* List View */}
       {viewMode === "list" && (
         <div className="space-y-3">
-          {sortedPhotos.map((photo) => {
+          {sortedPhotos.map((photo, index) => {
             const thumbnailUrl = getThumbnailUrl(photo);
             const isSelected = selectedPhotoIds.has(photo.id);
             return (
               <div
                 key={photo.id}
-                className="relative group cursor-pointer bg-white dark:bg-navy-800 rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-primary-200 dark:hover:border-sky/30"
+                role="button"
+                tabIndex={0}
+                aria-label={photo.caption || `Photo ${index + 1}`}
+                aria-pressed={selectionMode ? isSelected : undefined}
+                className="relative group cursor-pointer bg-white dark:bg-navy-800 rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-primary-200 dark:hover:border-sky/30 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky focus:ring-offset-2"
                 onClick={(e) =>
                   selectionMode
                     ? togglePhotoSelection(photo.id, e.shiftKey)
                     : setSelectedPhoto(photo)
                 }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (selectionMode) {
+                      togglePhotoSelection(photo.id, e.shiftKey);
+                    } else {
+                      setSelectedPhoto(photo);
+                    }
+                  }
+                }}
               >
                 <div className="flex items-center gap-4">
                   {/* Selection checkbox */}

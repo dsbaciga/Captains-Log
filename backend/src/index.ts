@@ -38,25 +38,51 @@ const packageJson = JSON.parse(
 const app: Application = express();
 
 // Security middleware
+const isProduction = config.nodeEnv === 'production';
+
+// Build CSP img-src directive - only include localhost in development
+const imgSrcDirective = isProduction
+  ? ["'self'", 'data:']
+  : ["'self'", 'data:', 'http://localhost:5000'];
+
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        'img-src': ["'self'", 'data:', 'http://localhost:5000'],
+        'img-src': imgSrcDirective,
       },
     },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
-app.use(cors());
+// CORS configuration - use CORS_ORIGIN env var in production
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()).filter(Boolean)
+    : ['http://localhost:3000', 'http://localhost:5173'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
-// Rate limiting
+// Rate limiting - stricter limits for auth routes to prevent brute force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // Limit each IP to 15 login/register attempts per 15 minutes
+  message: 'Too many authentication attempts from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// General API rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // Limit each IP to 1000 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
 });
+
+// Apply stricter rate limiting to auth routes first
+app.use('/api/auth', authLimiter);
 app.use('/api', limiter);
 
 // Body parsing middleware

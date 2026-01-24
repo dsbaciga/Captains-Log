@@ -96,13 +96,14 @@ class PhotoAlbumController {
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
 
-      console.log('[PhotoAlbumController] getAlbumsByTrip called:', {
-        userId: req.user.userId,
-        tripId,
-        skip,
-        take,
-        params: req.params,
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[PhotoAlbumController] getAlbumsByTrip called:', {
+          userId: req.user.userId,
+          tripId,
+          skip,
+          take,
+        });
+      }
 
       const result = await photoAlbumService.getAlbumsByTrip(
         req.user.userId,
@@ -126,7 +127,9 @@ class PhotoAlbumController {
         albums: transformedAlbums,
       });
     } catch (error) {
-      console.error('[PhotoAlbumController] getAlbumsByTrip error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[PhotoAlbumController] getAlbumsByTrip error:', error);
+      }
       next(error);
     }
   }
@@ -157,16 +160,17 @@ class PhotoAlbumController {
       };
       delete (transformed as any).photoAssignments;
 
-      console.log('Album transformation result:', {
-        albumId,
-        skip,
-        take,
-        originalPhotoAssignmentsCount: album.photoAssignments?.length || 0,
-        transformedPhotosCount: transformed.photos.length,
-        hasMore: transformed.hasMore,
-        total: transformed.total,
-        firstPhoto: transformed.photos[0],
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Album transformation result:', {
+          albumId,
+          skip,
+          take,
+          originalPhotoAssignmentsCount: album.photoAssignments?.length || 0,
+          transformedPhotosCount: transformed.photos.length,
+          hasMore: transformed.hasMore,
+          total: transformed.total,
+        });
+      }
 
       res.json(transformed);
     } catch (error) {

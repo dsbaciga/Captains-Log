@@ -1,4 +1,13 @@
 import { z } from 'zod';
+import {
+  optionalNumber,
+  optionalStringWithMax,
+  optionalDatetime,
+  optionalTimezone,
+  optionalPositiveNumber,
+  optionalCurrencyCode,
+  optionalNotesWithMax,
+} from '../utils/zodHelpers';
 
 export const TransportationType = {
   FLIGHT: 'flight',
@@ -108,20 +117,20 @@ export const updateTransportationSchema = z.object({
     TransportationType.WALK,
     TransportationType.OTHER,
   ]).optional(),
-  fromLocationId: z.number().optional().nullable(),
-  toLocationId: z.number().optional().nullable(),
-  fromLocationName: z.string().max(500).optional().nullable(),
-  toLocationName: z.string().max(500).optional().nullable(),
-  departureTime: z.string().optional().nullable(),
-  arrivalTime: z.string().optional().nullable(),
-  startTimezone: z.string().max(100).optional().nullable(),
-  endTimezone: z.string().max(100).optional().nullable(),
-  carrier: z.string().max(200).optional().nullable(),
-  vehicleNumber: z.string().max(100).optional().nullable(),
-  confirmationNumber: z.string().max(100).optional().nullable(),
-  cost: z.number().min(0).optional().nullable(),
-  currency: z.string().length(3).optional().nullable(),
-  notes: z.string().max(2000).optional().nullable(),
+  fromLocationId: optionalNumber(),
+  toLocationId: optionalNumber(),
+  fromLocationName: optionalStringWithMax(500),
+  toLocationName: optionalStringWithMax(500),
+  departureTime: optionalDatetime(),
+  arrivalTime: optionalDatetime(),
+  startTimezone: optionalTimezone(100),
+  endTimezone: optionalTimezone(100),
+  carrier: optionalStringWithMax(200),
+  vehicleNumber: optionalStringWithMax(100),
+  confirmationNumber: optionalStringWithMax(100),
+  cost: optionalPositiveNumber(),
+  currency: optionalCurrencyCode(),
+  notes: optionalNotesWithMax(2000),
 });
 
 export type CreateTransportationInput = z.infer<typeof createTransportationSchema>;

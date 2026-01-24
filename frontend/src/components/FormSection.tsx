@@ -75,6 +75,8 @@ export function CollapsibleSection({
         type="button"
         onClick={onToggle}
         className="w-full flex items-center justify-between py-2 px-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+        aria-expanded={isExpanded}
+        aria-label={isExpanded ? `Collapse ${title}` : `Expand ${title}`}
       >
         <div className="flex items-center gap-2">
           {icon && <span>{icon}</span>}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { EntityType } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG, LINKABLE_ENTITY_TYPES } from '../lib/entityConfig';
 import { useEntityFetcher, useEntityFilter } from '../hooks/useEntityFetcher';
@@ -7,6 +7,9 @@ import toast from 'react-hot-toast';
 
 // Threshold for showing search bar
 const SEARCH_THRESHOLD = 5;
+
+/** Selector for all focusable elements within a modal */
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface GeneralEntityPickerModalProps {
   tripId: number;
@@ -30,17 +33,56 @@ export default function GeneralEntityPickerModal({
   const [linking, setLinking] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
 
-  // Handle Escape key to close modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
+  // Handle keyboard events including focus trap
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Escape to close
+    if (e.key === 'Escape') {
+      onClose();
+      return;
+    }
+
+    // Focus trap - keep Tab navigation within the modal
+    if (e.key === 'Tab' && modalRef.current) {
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
       }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    }
   }, [onClose]);
+
+  // Focus management and keyboard handling
+  useEffect(() => {
+    // Store the currently focused element to restore later
+    triggerElementRef.current = document.activeElement as HTMLElement;
+
+    // Focus the first focusable element
+    setTimeout(() => {
+      const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      firstFocusable?.focus();
+    }, 0);
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      // Return focus to the trigger element
+      triggerElementRef.current?.focus();
+    };
+  }, [handleKeyDown]);
 
   // Use shared hook for entity fetching (with pagination support for photos)
   const { entities, loading, loadingMore, hasMore, total, loadMore } = useEntityFetcher(tripId, selectedType);
@@ -144,12 +186,21 @@ export default function GeneralEntityPickerModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[90] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 z-[90] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="entity-picker-title"
+    >
+      <div
+        ref={modalRef}
+        tabIndex={-1}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 id="entity-picker-title" className="text-lg font-semibold text-gray-900 dark:text-white">
               Link to...
             </h3>
             {selectedType && (

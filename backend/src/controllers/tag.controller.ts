@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { tagService } from '../services/tag.service';
 import { createTagSchema, updateTagSchema, linkTagToTripSchema } from '../types/tag.types';
+import { requireUserId } from '../utils/controllerHelpers';
 
 export const tagController = {
   async createTag(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const data = createTagSchema.parse(req.body);
       const tag = await tagService.createTag(userId, data);
       res.status(201).json(tag);
@@ -16,7 +17,7 @@ export const tagController = {
 
   async getTagsByUser(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const tags = await tagService.getTagsByUser(userId);
       res.json(tags);
     } catch (error) {
@@ -26,7 +27,7 @@ export const tagController = {
 
   async getTagById(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const tagId = parseInt(req.params.id);
       const tag = await tagService.getTagById(userId, tagId);
       res.json(tag);
@@ -37,7 +38,7 @@ export const tagController = {
 
   async updateTag(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const tagId = parseInt(req.params.id);
       const data = updateTagSchema.parse(req.body);
       const tag = await tagService.updateTag(userId, tagId, data);
@@ -49,7 +50,7 @@ export const tagController = {
 
   async deleteTag(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const tagId = parseInt(req.params.id);
       await tagService.deleteTag(userId, tagId);
       res.status(204).send();
@@ -60,7 +61,7 @@ export const tagController = {
 
   async linkTagToTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const data = linkTagToTripSchema.parse(req.body);
       const link = await tagService.linkTagToTrip(userId, data);
       res.status(201).json(link);
@@ -71,7 +72,7 @@ export const tagController = {
 
   async unlinkTagFromTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const tripId = parseInt(req.params.tripId);
       const tagId = parseInt(req.params.tagId);
       await tagService.unlinkTagFromTrip(userId, tripId, tagId);
@@ -83,7 +84,7 @@ export const tagController = {
 
   async getTagsByTrip(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = requireUserId(req);
       const tripId = parseInt(req.params.tripId);
       const tags = await tagService.getTagsByTrip(userId, tripId);
       res.json(tags);

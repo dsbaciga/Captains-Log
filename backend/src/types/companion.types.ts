@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  optionalNullable,
+  optionalStringWithMax,
+} from '../utils/zodHelpers';
 
 export const createCompanionSchema = z.object({
   name: z.string().min(1).max(100),
@@ -10,11 +14,11 @@ export const createCompanionSchema = z.object({
 
 export const updateCompanionSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  email: z.string().email().optional().nullable(),
-  phone: z.string().max(20).optional().nullable(),
-  notes: z.string().max(1000).optional().nullable(),
-  relationship: z.string().max(255).optional().nullable(),
-  avatarUrl: z.string().max(500).optional().nullable(),
+  email: optionalNullable(z.string().email()),
+  phone: optionalStringWithMax(20),
+  notes: optionalStringWithMax(1000),
+  relationship: optionalStringWithMax(255),
+  avatarUrl: optionalStringWithMax(500),
 });
 
 export const linkCompanionToTripSchema = z.object({

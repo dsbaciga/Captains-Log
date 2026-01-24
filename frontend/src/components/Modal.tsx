@@ -27,7 +27,17 @@ export interface ModalProps {
   closeOnEscape?: boolean;
   /** Z-index for the modal (default: 80) */
   zIndex?: number;
+  // Form-specific props (for form modals)
+  /** Form ID for Ctrl+S keyboard shortcut to submit */
+  formId?: string;
+  /** Whether to focus the first input element instead of the modal container */
+  focusFirstInput?: boolean;
+  /** Whether to show entrance animation */
+  animate?: boolean;
 }
+
+/** Selector for all focusable elements within a modal */
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const maxWidthClasses = {
   sm: 'max-w-sm',
@@ -73,32 +83,96 @@ export default function Modal({
   closeOnBackdropClick = true,
   closeOnEscape = true,
   zIndex = 80,
+  formId,
+  focusFirstInput = false,
+  animate = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const hasFocusedRef = useRef(false);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
 
-  // Handle keyboard events
+  // Handle keyboard events including focus trap
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // Escape to close
       if (e.key === 'Escape' && closeOnEscape) {
         onClose();
+        return;
+      }
+
+      // Ctrl+S or Cmd+S to save form (only if formId is provided)
+      if (formId && (e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault(); // Prevent browser's save dialog
+        const form = document.getElementById(formId) as HTMLFormElement;
+        if (form) {
+          form.requestSubmit(); // Use requestSubmit to trigger validation
+        }
+        return;
+      }
+
+      // Focus trap - keep Tab navigation within the modal
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          // Shift+Tab from first element - go to last
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          // Tab from last element - go to first
+          e.preventDefault();
+          firstElement.focus();
+        }
       }
     },
-    [onClose, closeOnEscape]
+    [onClose, closeOnEscape, formId]
   );
 
-  // Focus modal when it first opens (only on isOpen change)
+  // Focus management and return focus on close
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (isOpen) {
-      // Small delay to ensure modal is rendered
-      const timeoutId = setTimeout(() => {
-        modalRef.current?.focus();
-      }, 0);
+      // Store the currently focused element to restore later
+      triggerElementRef.current = document.activeElement as HTMLElement;
 
-      return () => clearTimeout(timeoutId);
+      if (focusFirstInput && !hasFocusedRef.current) {
+        // Focus the first focusable input element (better UX for forms)
+        timeoutId = setTimeout(() => {
+          const firstInput = modalRef.current?.querySelector<HTMLElement>(
+            'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])'
+          );
+          if (firstInput) {
+            firstInput.focus();
+          } else {
+            // Fallback to first focusable element or modal itself
+            const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+            (firstFocusable || modalRef.current)?.focus();
+          }
+          hasFocusedRef.current = true;
+        }, 0);
+      } else if (!focusFirstInput) {
+        // Focus the first focusable element or the modal container itself
+        timeoutId = setTimeout(() => {
+          const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+          (firstFocusable || modalRef.current)?.focus();
+        }, 0);
+      }
+    } else {
+      // Reset the flag when modal closes
+      hasFocusedRef.current = false;
     }
-  }, [isOpen]);
 
-  // Handle keyboard events
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isOpen, focusFirstInput]);
+
+  // Handle keyboard events, body scroll, and restore focus on unmount
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
@@ -107,6 +181,8 @@ export default function Modal({
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
         document.body.style.overflow = '';
+        // Return focus to the trigger element when modal closes
+        triggerElementRef.current?.focus();
       };
     }
   }, [isOpen, handleKeyDown]);
@@ -132,7 +208,7 @@ export default function Modal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-hidden flex flex-col ${className}`}
+        className={`relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-hidden flex flex-col ${animate ? 'animate-in fade-in zoom-in-95 duration-200' : ''} ${className}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gold/20 flex-shrink-0">
@@ -160,7 +236,7 @@ export default function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gold/20 flex-shrink-0 bg-gray-50 dark:bg-navy-800/50">
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gold/20 flex-shrink-0 bg-gray-50 dark:bg-navy-800/50">
             {footer}
           </div>
         )}
@@ -179,24 +255,61 @@ Modal.Simple = function SimpleModal({
   children,
   maxWidth = 'md',
   className = '',
-}: Pick<ModalProps, 'isOpen' | 'onClose' | 'children' | 'maxWidth' | 'className'>) {
+  zIndex = 80,
+}: Pick<ModalProps, 'isOpen' | 'onClose' | 'children' | 'maxWidth' | 'className' | 'zIndex'>) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // Escape to close
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+
+      // Focus trap - keep Tab navigation within the modal
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
       }
     },
     [onClose]
   );
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (isOpen) {
+      // Store the currently focused element to restore later
+      triggerElementRef.current = document.activeElement as HTMLElement;
+
+      // Focus the first focusable element or the modal container
+      timeoutId = setTimeout(() => {
+        const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+        (firstFocusable || modalRef.current)?.focus();
+      }, 0);
+
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
 
       return () => {
+        if (timeoutId) clearTimeout(timeoutId);
         document.removeEventListener('keydown', handleKeyDown);
         document.body.style.overflow = '';
+        // Return focus to the trigger element
+        triggerElementRef.current?.focus();
       };
     }
   }, [isOpen, handleKeyDown]);
@@ -205,7 +318,8 @@ Modal.Simple = function SimpleModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex }}
       role="dialog"
       aria-modal="true"
     >
@@ -215,6 +329,8 @@ Modal.Simple = function SimpleModal({
         aria-hidden="true"
       />
       <div
+        ref={modalRef}
+        tabIndex={-1}
         className={`relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-auto ${className}`}
       >
         {children}

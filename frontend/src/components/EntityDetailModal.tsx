@@ -450,6 +450,7 @@ export default function EntityDetailModal({
 }: EntityDetailModalProps) {
   const navigate = useNavigate();
   const modalRef = useRef<HTMLDivElement>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
 
   const config = ENTITY_TYPE_CONFIG[entityType];
@@ -501,6 +502,9 @@ export default function EntityDetailModal({
 
   useEffect(() => {
     if (isOpen) {
+      // Store the currently focused element to restore later
+      triggerElementRef.current = document.activeElement as HTMLElement;
+
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
 
@@ -513,6 +517,8 @@ export default function EntityDetailModal({
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
         document.body.style.overflow = '';
+        // Return focus to the trigger element
+        triggerElementRef.current?.focus();
       };
     }
   }, [isOpen, handleKeyDown]);

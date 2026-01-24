@@ -217,9 +217,9 @@ export const companionService = {
       include: {
         companion: true,
       },
-    });
+    }) as Array<{ companion: { id: number; name: string; userId: number } }>;
 
-    return tripCompanions.map((tc: any) => tc.companion);
+    return tripCompanions.map((tc) => tc.companion);
   },
 
   // Upload avatar for a companion

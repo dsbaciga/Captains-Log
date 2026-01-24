@@ -1,41 +1,45 @@
 import { z } from 'zod';
+import {
+  nullableOptional,
+  optionalStringWithMax,
+} from '../utils/zodHelpers';
 
 // Zod Schemas
 export const ChecklistItemSchema = z.object({
   id: z.number().optional(),
   name: z.string().min(1).max(500),
-  description: z.string().nullable().optional(),
+  description: nullableOptional(z.string()),
   isChecked: z.boolean().optional(),
   isDefault: z.boolean().optional(),
   sortOrder: z.number().optional(),
-  metadata: z.record(z.any()).nullable().optional(),
-  checkedAt: z.string().nullable().optional(),
+  metadata: nullableOptional(z.record(z.any())),
+  checkedAt: nullableOptional(z.string()),
 });
 
 export const CreateChecklistSchema = z.object({
   name: z.string().min(1).max(500),
-  description: z.string().nullable().optional(),
+  description: nullableOptional(z.string()),
   type: z.enum(['custom', 'airports', 'countries', 'cities', 'us_states']),
-  tripId: z.number().nullable().optional(),
+  tripId: nullableOptional(z.number()),
   isDefault: z.boolean().optional(),
   sortOrder: z.number().optional(),
   items: z.array(ChecklistItemSchema).optional(),
 });
 
 export const UpdateChecklistSchema = z.object({
-  name: z.string().min(1).max(500).nullable().optional(),
-  description: z.string().nullable().optional(),
-  type: z.enum(['custom', 'airports', 'countries', 'cities', 'us_states']).nullable().optional(),
-  tripId: z.number().nullable().optional(),
-  sortOrder: z.number().nullable().optional(),
+  name: nullableOptional(z.string().min(1).max(500)),
+  description: nullableOptional(z.string()),
+  type: nullableOptional(z.enum(['custom', 'airports', 'countries', 'cities', 'us_states'])),
+  tripId: nullableOptional(z.number()),
+  sortOrder: nullableOptional(z.number()),
 });
 
 export const UpdateChecklistItemSchema = z.object({
-  name: z.string().min(1).max(500).nullable().optional(),
-  description: z.string().nullable().optional(),
-  isChecked: z.boolean().nullable().optional(),
-  sortOrder: z.number().nullable().optional(),
-  metadata: z.record(z.any()).nullable().optional(),
+  name: nullableOptional(z.string().min(1).max(500)),
+  description: nullableOptional(z.string()),
+  isChecked: nullableOptional(z.boolean()),
+  sortOrder: nullableOptional(z.number()),
+  metadata: nullableOptional(z.record(z.any())),
 });
 
 export const BulkUpdateChecklistItemsSchema = z.object({

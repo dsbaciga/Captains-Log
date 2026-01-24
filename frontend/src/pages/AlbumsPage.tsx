@@ -456,7 +456,7 @@ export default function AlbumsPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4">
                   {albumPhotos.map((photo) => {
                     const isCurrentCover = selectedAlbum.coverPhotoId === photo.id;
                     let photoUrl: string | null = null;

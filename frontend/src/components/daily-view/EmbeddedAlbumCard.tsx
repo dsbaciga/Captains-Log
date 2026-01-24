@@ -71,6 +71,8 @@ export default function EmbeddedAlbumCard({
         blobUrlRef.current = null;
       }
     };
+    // Using coverPhoto?.id intentionally to avoid unnecessary re-fetches when object reference changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [album.coverPhoto?.id, album.id]);
 
   const handleClick = () => {
