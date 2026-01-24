@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { config } from '../config';
+import logger from '../config/logger';
 
 const REFRESH_TOKEN_COOKIE_NAME = 'refreshToken';
 
@@ -8,6 +9,10 @@ const REFRESH_TOKEN_COOKIE_NAME = 'refreshToken';
  * This prevents JavaScript from accessing the token, protecting against XSS attacks.
  */
 export const setRefreshTokenCookie = (res: Response, token: string): void => {
+  if (process.env.NODE_ENV === 'development') {
+    logger.debug(`Setting refresh token cookie: secure=${config.cookie.secure}, sameSite=${config.cookie.sameSite}, domain=${config.cookie.domain || '(not set)'}`);
+  }
+
   res.cookie(REFRESH_TOKEN_COOKIE_NAME, token, {
     httpOnly: true,
     secure: config.cookie.secure,

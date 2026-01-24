@@ -2,9 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import authService from '../services/auth.service';
 import { registerSchema, loginSchema } from '../types/auth.types';
 import { setRefreshTokenCookie, clearRefreshTokenCookie, getRefreshTokenFromCookie } from '../utils/cookies';
-import { verifyRefreshToken } from '../utils/jwt';
+import { generateCsrfToken, setCsrfCookie, clearCsrfCookie } from '../utils/csrf';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../config/logger';
+import { blacklistToken, isBlacklisted } from '../services/tokenBlacklist.service';
 
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
@@ -17,6 +18,10 @@ export class AuthController {
 
       // Set refresh token in httpOnly cookie
       setRefreshTokenCookie(res, result.refreshToken);
+
+      // Set CSRF token in regular cookie for defense-in-depth
+      const csrfToken = generateCsrfToken();
+      setCsrfCookie(res, csrfToken);
 
       logger.info(`New user registered: ${result.user.email}`);
 
@@ -44,6 +49,10 @@ export class AuthController {
       // Set refresh token in httpOnly cookie
       setRefreshTokenCookie(res, result.refreshToken);
 
+      // Set CSRF token in regular cookie for defense-in-depth
+      const csrfToken = generateCsrfToken();
+      setCsrfCookie(res, csrfToken);
+
       logger.info(`User logged in: ${result.user.email}`);
 
       // Return access token in body (NOT refresh token - it's in the cookie)
@@ -68,11 +77,22 @@ export class AuthController {
         throw new AppError('No refresh token provided', 401);
       }
 
+      // Check if token has been blacklisted (e.g., user logged out)
+      if (isBlacklisted(refreshToken)) {
+        clearRefreshTokenCookie(res);
+        clearCsrfCookie(res);
+        throw new AppError('Token has been revoked', 401);
+      }
+
       // Refresh token
       const result = await authService.refreshToken(refreshToken);
 
       // Set new refresh token in cookie (token rotation)
       setRefreshTokenCookie(res, result.refreshToken);
+
+      // Rotate CSRF token on refresh for additional security
+      const csrfToken = generateCsrfToken();
+      setCsrfCookie(res, csrfToken);
 
       res.status(200).json({
         status: 'success',
@@ -107,10 +127,20 @@ export class AuthController {
     }
   }
 
-  async logout(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      // Blacklist the refresh token to enable immediate revocation
+      const refreshToken = getRefreshTokenFromCookie(req.cookies);
+      if (refreshToken) {
+        blacklistToken(refreshToken);
+        logger.debug('Refresh token blacklisted on logout');
+      }
+
       // Clear the refresh token cookie
       clearRefreshTokenCookie(res);
+
+      // Clear the CSRF token cookie
+      clearCsrfCookie(res);
 
       res.status(200).json({
         status: 'success',
@@ -138,27 +168,39 @@ export class AuthController {
         return;
       }
 
-      try {
-        // Verify the refresh token and get user data
-        const decoded = verifyRefreshToken(refreshToken);
-        const user = await authService.getCurrentUser(decoded.userId);
+      // Check if token has been blacklisted (e.g., user logged out)
+      if (isBlacklisted(refreshToken)) {
+        clearRefreshTokenCookie(res);
+        clearCsrfCookie(res);
+        res.status(200).json({
+          status: 'success',
+          data: null, // Token was revoked, treat as no session
+        });
+        return;
+      }
 
-        // Get new tokens (rotation)
+      try {
+        // Get new tokens and user data (single verification in authService.refreshToken)
         const result = await authService.refreshToken(refreshToken);
 
         // Set new refresh token in cookie
         setRefreshTokenCookie(res, result.refreshToken);
 
+        // Set CSRF token in regular cookie for defense-in-depth
+        const csrfToken = generateCsrfToken();
+        setCsrfCookie(res, csrfToken);
+
         res.status(200).json({
           status: 'success',
           data: {
-            user,
+            user: result.user,
             accessToken: result.accessToken,
           },
         });
       } catch (tokenError) {
-        // Invalid/expired token - clear the bad cookie
+        // Invalid/expired token - clear the bad cookies
         clearRefreshTokenCookie(res);
+        clearCsrfCookie(res);
         res.status(200).json({
           status: 'success',
           data: null,

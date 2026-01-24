@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { getCsrfToken } from '../utils/csrf';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -18,6 +19,20 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // In-memory token storage (NOT in localStorage - immune to XSS)
 let accessToken: string | null = null;
 
+// Refresh race condition protection
+// When multiple 401s occur simultaneously, only one refresh happens
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+  refreshSubscribers.push(cb);
+};
+
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach(cb => cb(token));
+  refreshSubscribers = [];
+};
+
 // Token getter/setter for use by auth store
 export const getAccessToken = (): string | null => accessToken;
 export const setAccessToken = (token: string | null): void => {
@@ -33,12 +48,21 @@ const axiosInstance = axios.create({
   withCredentials: true, // CRITICAL: Send cookies with requests
 });
 
-// Request interceptor to add auth token from memory
+// Request interceptor to add auth token from memory and CSRF token
 axiosInstance.interceptors.request.use(
   (config) => {
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+
+    // Add CSRF token for state-changing requests (non-GET/HEAD/OPTIONS)
+    if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['x-csrf-token'] = csrfToken;
+      }
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -75,7 +99,18 @@ axiosInstance.interceptors.response.use(
 
     // Handle 401 (Unauthorized) - try cookie-based refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // If a refresh is already in progress, wait for it to complete
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(axiosInstance(originalRequest));
+          });
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         // Refresh using httpOnly cookie (no body needed, cookie is sent automatically)
@@ -88,19 +123,25 @@ axiosInstance.interceptors.response.use(
         const newAccessToken = data.data?.accessToken;
         if (newAccessToken) {
           setAccessToken(newAccessToken);
+          isRefreshing = false;
+          onRefreshed(newAccessToken);
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return axiosInstance(originalRequest);
         }
         throw new Error('No access token in refresh response');
       } catch (refreshError) {
-        // Refresh failed - clear token and redirect
+        // Refresh failed - clear token, subscribers, and redirect
+        isRefreshing = false;
+        refreshSubscribers = [];
         setAccessToken(null);
 
         // Import dynamically to avoid circular dependency
         const { useAuthStore } = await import('../store/authStore');
         useAuthStore.getState().clearAuth();
 
-        window.location.href = '/login';
+        // Preserve the current URL for redirect after login
+        const currentPath = window.location.pathname + window.location.search;
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
         return Promise.reject(refreshError);
       }
     }

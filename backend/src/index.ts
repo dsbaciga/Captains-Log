@@ -63,6 +63,7 @@ const corsOptions = {
     ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()).filter(Boolean)
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
+  exposedHeaders: ['Set-Cookie'],
 };
 app.use(cors(corsOptions));
 
@@ -75,6 +76,15 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Separate rate limiter for silent-refresh (more lenient as it's called on every page load)
+const silentRefreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60, // Allow 60 requests per 15 minutes (4 per minute for page navigation)
+  message: 'Too many refresh attempts from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // General API rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -82,9 +92,16 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
 });
 
-// Apply stricter rate limiting to auth routes first
+// Apply silent-refresh rate limiter before auth limiter (more specific route first)
+app.use('/api/auth/silent-refresh', silentRefreshLimiter);
+// Apply stricter rate limiting to other auth routes
 app.use('/api/auth', authLimiter);
 app.use('/api', limiter);
+
+// CSRF validation can be enabled for additional security (defense-in-depth):
+// import { validateCsrf } from './utils/csrf';
+// app.use('/api', validateCsrf);
+// Note: Frontend must send x-csrf-token header matching the csrf-token cookie
 
 // Body parsing middleware
 app.use(express.json());

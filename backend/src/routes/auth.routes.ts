@@ -139,12 +139,11 @@ router.get('/me', authenticate, authController.getCurrentUser);
  *   post:
  *     summary: Logout from the application
  *     tags: [Authentication]
- *     security:
- *       - bearerAuth: []
+ *     description: Clears the refresh token cookie. No authentication required - this allows logout even with an expired access token.
  *     responses:
  *       200:
  *         description: Logout successful
  */
-router.post('/logout', authenticate, authController.logout);
+router.post('/logout', authController.logout);
 
 export default router;

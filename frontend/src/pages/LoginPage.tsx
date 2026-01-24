@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const { login, isLoading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +17,9 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       toast.success('Login successful!');
-      navigate('/dashboard');
+      // Navigate to redirect URL if provided, otherwise go to dashboard
+      const redirectUrl = searchParams.get('redirect') || '/dashboard';
+      navigate(redirectUrl);
     } catch {
       toast.error(error || 'Login failed');
     }
