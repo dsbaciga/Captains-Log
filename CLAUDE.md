@@ -728,6 +728,44 @@ All backend responses follow this structure:
 - PostGIS extension enables spatial queries (not heavily used yet)
 - Nominatim service for geocoding addresses to coordinates
 
+### TypeScript Best Practices
+
+**Avoid using the `any` type.** The `any` type bypasses TypeScript's type checking and defeats the purpose of using TypeScript. Instead:
+
+- Use proper types or interfaces for known structures
+- Use `unknown` when the type is truly unknown (requires type narrowing before use)
+- Use generics for reusable components/functions
+- Use union types (e.g., `string | number`) for values that can be multiple types
+- Use type assertions (`as Type`) sparingly and only when you're certain of the type
+
+**Examples:**
+
+```typescript
+// ❌ Bad - avoids type checking
+function processData(data: any) { ... }
+
+// ✅ Good - explicit interface
+interface UserData {
+  id: string;
+  name: string;
+}
+function processData(data: UserData) { ... }
+
+// ✅ Good - use unknown + type narrowing
+function processUnknown(data: unknown) {
+  if (typeof data === 'string') {
+    // data is now typed as string
+  }
+}
+
+// ✅ Good - generics for flexibility
+function getFirst<T>(items: T[]): T | undefined {
+  return items[0];
+}
+```
+
+If you encounter existing `any` types in the codebase, consider refactoring them to proper types when working in that area.
+
 ## Markdown Formatting Guidelines
 
 When creating or editing Markdown files, follow these formatting conventions for proper rendering:
