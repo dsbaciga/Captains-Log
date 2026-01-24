@@ -98,10 +98,10 @@ app.use('/api/auth/silent-refresh', silentRefreshLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api', limiter);
 
-// CSRF validation can be enabled for additional security (defense-in-depth):
-// import { validateCsrf } from './utils/csrf';
-// app.use('/api', validateCsrf);
-// Note: Frontend must send x-csrf-token header matching the csrf-token cookie
+// CSRF validation for defense-in-depth (prevents cross-site request forgery)
+// Auth routes are excluded since they bootstrap the CSRF token
+import { validateCsrf } from './utils/csrf';
+app.use('/api', validateCsrf);
 
 // Body parsing middleware
 app.use(express.json());

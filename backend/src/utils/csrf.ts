@@ -46,10 +46,17 @@ export const clearCsrfCookie = (res: Response): void => {
  * Middleware to validate CSRF token.
  * Compares the token in the cookie with the token in the request header.
  * Skips validation for safe HTTP methods (GET, HEAD, OPTIONS).
+ * Skips validation for auth routes (login/register/refresh bootstrap the CSRF token).
  */
 export const validateCsrf = (req: Request, res: Response, next: NextFunction): void => {
   // Skip CSRF validation for GET, HEAD, OPTIONS (safe methods)
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+
+  // Skip CSRF validation for auth routes (these bootstrap the CSRF token)
+  // Login, register, refresh, and silent-refresh set the CSRF cookie
+  if (req.path.startsWith('/auth/')) {
     return next();
   }
 
