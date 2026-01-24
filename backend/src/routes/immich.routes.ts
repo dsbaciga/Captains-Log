@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import immichController from '../controllers/immich.controller';
+import { immichController } from '../controllers/immich.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();

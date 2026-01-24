@@ -1,98 +1,62 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import authService from '../services/auth.service';
 import { registerSchema, loginSchema, refreshTokenSchema } from '../types/auth.types';
+import { asyncHandler } from '../utils/asyncHandler';
+import { requireUserId } from '../utils/controllerHelpers';
 import logger from '../config/logger';
 
-export class AuthController {
-  async register(req: Request, res: Response, next: NextFunction) {
-    try {
-      // Validate request body
-      const validatedData = registerSchema.parse(req.body);
+export const authController = {
+  register: asyncHandler(async (req: Request, res: Response) => {
+    const validatedData = registerSchema.parse(req.body);
+    const result = await authService.register(validatedData);
 
-      // Register user
-      const result = await authService.register(validatedData);
+    logger.info(`New user registered: ${result.user.email}`);
 
-      logger.info(`New user registered: ${result.user.email}`);
+    res.status(201).json({
+      status: 'success',
+      data: result,
+    });
+  }),
 
-      res.status(201).json({
-        status: 'success',
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  login: asyncHandler(async (req: Request, res: Response) => {
+    const validatedData = loginSchema.parse(req.body);
+    const result = await authService.login(validatedData);
 
-  async login(req: Request, res: Response, next: NextFunction) {
-    try {
-      // Validate request body
-      const validatedData = loginSchema.parse(req.body);
+    logger.info(`User logged in: ${result.user.email}`);
 
-      // Login user
-      const result = await authService.login(validatedData);
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  }),
 
-      logger.info(`User logged in: ${result.user.email}`);
+  refreshToken: asyncHandler(async (req: Request, res: Response) => {
+    const { refreshToken } = refreshTokenSchema.parse(req.body);
+    const result = await authService.refreshToken(refreshToken);
 
-      res.status(200).json({
-        status: 'success',
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  }),
 
-  async refreshToken(req: Request, res: Response, next: NextFunction) {
-    try {
-      // Validate request body
-      const { refreshToken } = refreshTokenSchema.parse(req.body);
+  getCurrentUser: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const user = await authService.getCurrentUser(userId);
 
-      // Refresh token
-      const result = await authService.refreshToken(refreshToken);
+    res.status(200).json({
+      status: 'success',
+      data: user,
+    });
+  }),
 
-      res.status(200).json({
-        status: 'success',
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  logout: asyncHandler(async (_req: Request, res: Response) => {
+    // In a stateless JWT system, logout is handled client-side
+    // If you implement token blacklisting, add that logic here
 
-  async getCurrentUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({
-          status: 'error',
-          message: 'Unauthorized',
-        });
-        return;
-      }
-
-      const user = await authService.getCurrentUser(req.user.userId);
-
-      res.status(200).json({
-        status: 'success',
-        data: user,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async logout(_req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      // In a stateless JWT system, logout is handled client-side
-      // If you implement token blacklisting, add that logic here
-
-      res.status(200).json({
-        status: 'success',
-        message: 'Logged out successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-
-export default new AuthController();
+    res.status(200).json({
+      status: 'success',
+      message: 'Logged out successfully',
+    });
+  }),
+};

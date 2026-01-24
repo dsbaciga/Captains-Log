@@ -4,7 +4,7 @@ import {
   CreateTransportationInput,
   UpdateTransportationInput,
 } from '../types/transportation.types';
-import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecimals, cleanupEntityLinks, buildConditionalUpdateData } from '../utils/serviceHelpers';
 import { locationWithAddressSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
@@ -376,35 +376,38 @@ class TransportationService {
       await verifyEntityInTrip('location', data.toLocationId, verifiedTransportation.tripId);
     }
 
+    // Map frontend field names to database field names
+    const mappedData = {
+      type: data.type,
+      startLocationId: data.fromLocationId,
+      endLocationId: data.toLocationId,
+      startLocationText: data.fromLocationName,
+      endLocationText: data.toLocationName,
+      scheduledStart: data.departureTime,
+      scheduledEnd: data.arrivalTime,
+      startTimezone: data.startTimezone,
+      endTimezone: data.endTimezone,
+      company: data.carrier,
+      referenceNumber: data.vehicleNumber,
+      bookingReference: data.confirmationNumber,
+      cost: data.cost,
+      currency: data.currency,
+      notes: data.notes,
+    };
+
+    // Transformer for datetime fields: convert string to Date, or null if empty/falsy
+    const dateTimeTransformer = (val: string | null | undefined) => val ? new Date(val) : null;
+
+    const updateData = buildConditionalUpdateData(mappedData, {
+      transformers: {
+        scheduledStart: dateTimeTransformer,
+        scheduledEnd: dateTimeTransformer,
+      },
+    });
+
     const updatedTransportation = await prisma.transportation.update({
       where: { id: transportationId },
-      data: {
-        type: data.type,
-        startLocationId: data.fromLocationId !== undefined ? data.fromLocationId : undefined,
-        endLocationId: data.toLocationId !== undefined ? data.toLocationId : undefined,
-        startLocationText: data.fromLocationName !== undefined ? data.fromLocationName : undefined,
-        endLocationText: data.toLocationName !== undefined ? data.toLocationName : undefined,
-        scheduledStart:
-          data.departureTime !== undefined
-            ? data.departureTime
-              ? new Date(data.departureTime)
-              : null
-            : undefined,
-        scheduledEnd:
-          data.arrivalTime !== undefined
-            ? data.arrivalTime
-              ? new Date(data.arrivalTime)
-              : null
-            : undefined,
-        startTimezone: data.startTimezone !== undefined ? data.startTimezone : undefined,
-        endTimezone: data.endTimezone !== undefined ? data.endTimezone : undefined,
-        company: data.carrier !== undefined ? data.carrier : undefined,
-        referenceNumber: data.vehicleNumber !== undefined ? data.vehicleNumber : undefined,
-        bookingReference: data.confirmationNumber !== undefined ? data.confirmationNumber : undefined,
-        cost: data.cost !== undefined ? data.cost : undefined,
-        currency: data.currency !== undefined ? data.currency : undefined,
-        notes: data.notes !== undefined ? data.notes : undefined,
-      },
+      data: updateData,
       include: {
         startLocation: {
           select: locationWithAddressSelect,
@@ -543,15 +546,7 @@ class TransportationService {
     const verifiedTransportation = await verifyEntityAccess(transportation, userId, 'Transportation');
 
     // Clean up entity links before deleting
-    await prisma.entityLink.deleteMany({
-      where: {
-        tripId: verifiedTransportation.tripId,
-        OR: [
-          { sourceType: 'TRANSPORTATION', sourceId: transportationId },
-          { targetType: 'TRANSPORTATION', targetId: transportationId },
-        ],
-      },
-    });
+    await cleanupEntityLinks(verifiedTransportation.tripId, 'TRANSPORTATION', transportationId);
 
     await prisma.transportation.delete({
       where: { id: transportationId },

@@ -80,3 +80,90 @@ export const locationWithCategoryInclude = {
     select: tripAccessSelect,
   },
 } as const;
+
+// ============================================================================
+// Activity Patterns
+// ============================================================================
+
+/**
+ * Parent activity select (minimal info for nested activities)
+ * Used in: activity.service.ts
+ *
+ * Provides only essential parent activity info to avoid circular includes.
+ */
+export const parentActivitySelect = {
+  id: true,
+  name: true,
+} as const;
+
+/**
+ * Child activity select (detailed info for sub-activities)
+ * Used in: activity.service.ts
+ *
+ * Provides comprehensive child activity details including location and albums.
+ */
+export const childActivitySelect = {
+  id: true,
+  name: true,
+  description: true,
+  startTime: true,
+  endTime: true,
+  timezone: true,
+  category: true,
+  cost: true,
+  currency: true,
+  bookingReference: true,
+  notes: true,
+  status: true,
+  location: { select: locationWithAddressSelect },
+  photoAlbums: photoAlbumsInclude,
+} as const;
+
+/**
+ * Full activity include (for single activity queries)
+ * Used in: activity.service.ts
+ *
+ * Provides complete activity details with parent, children, location, and albums.
+ */
+export const activityFullInclude = {
+  location: { select: locationWithAddressSelect },
+  parent: { select: parentActivitySelect },
+  children: {
+    select: childActivitySelect,
+    orderBy: [{ startTime: 'asc' as const }, { createdAt: 'asc' as const }],
+  },
+  photoAlbums: photoAlbumsInclude,
+} as const;
+
+// ============================================================================
+// Checklist Patterns
+// ============================================================================
+
+/**
+ * Checklist item select (for checklist items)
+ * Used in: checklist.service.ts
+ *
+ * Provides all fields needed for checklist item display and management.
+ */
+export const checklistItemSelect = {
+  id: true,
+  name: true,
+  description: true,
+  isChecked: true,
+  sortOrder: true,
+  isDefault: true,
+  metadata: true,
+} as const;
+
+/**
+ * Checklist with items include (for fetching checklists with their items)
+ * Used in: checklist.service.ts
+ *
+ * Provides checklist with all items sorted by sortOrder.
+ */
+export const checklistWithItemsInclude = {
+  items: {
+    select: checklistItemSelect,
+    orderBy: { sortOrder: 'asc' as const },
+  },
+} as const;

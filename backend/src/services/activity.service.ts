@@ -1,7 +1,14 @@
 import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
-import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecimals } from '../utils/serviceHelpers';
+import {
+  verifyTripAccess,
+  verifyEntityAccess,
+  verifyEntityInTrip,
+  convertDecimals,
+  buildConditionalUpdateData,
+  cleanupEntityLinks,
+} from '../utils/serviceHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
@@ -143,34 +150,16 @@ class ActivityService {
     }
 
     // Note: Location association is handled via EntityLink system, not direct FK
+    const updateData = buildConditionalUpdateData(data, {
+      transformers: {
+        startTime: (val) => (val ? new Date(val) : null),
+        endTime: (val) => (val ? new Date(val) : null),
+      },
+    });
+
     const updatedActivity = await prisma.activity.update({
       where: { id: activityId },
-      data: {
-        parentId: data.parentId !== undefined ? data.parentId : undefined,
-        name: data.name,
-        description: data.description !== undefined ? data.description : undefined,
-        category: data.category !== undefined ? data.category : undefined,
-        allDay: data.allDay !== undefined ? data.allDay : undefined,
-        startTime:
-          data.startTime !== undefined
-            ? data.startTime
-              ? new Date(data.startTime)
-              : null
-            : undefined,
-        endTime:
-          data.endTime !== undefined
-            ? data.endTime
-              ? new Date(data.endTime)
-              : null
-            : undefined,
-        timezone: data.timezone !== undefined ? data.timezone : undefined,
-        cost: data.cost !== undefined ? data.cost : undefined,
-        currency: data.currency !== undefined ? data.currency : undefined,
-        bookingUrl: data.bookingUrl !== undefined ? data.bookingUrl : undefined,
-        bookingReference:
-          data.bookingReference !== undefined ? data.bookingReference : undefined,
-        notes: data.notes !== undefined ? data.notes : undefined,
-      },
+      data: updateData,
       include: {
         parent: {
           select: {
@@ -193,15 +182,7 @@ class ActivityService {
     const verifiedActivity = await verifyEntityAccess(activity, userId, 'Activity');
 
     // Clean up entity links before deleting
-    await prisma.entityLink.deleteMany({
-      where: {
-        tripId: verifiedActivity.tripId,
-        OR: [
-          { sourceType: 'ACTIVITY', sourceId: activityId },
-          { targetType: 'ACTIVITY', targetId: activityId },
-        ],
-      },
-    });
+    await cleanupEntityLinks(verifiedActivity.tripId, 'ACTIVITY', activityId);
 
     await prisma.activity.delete({
       where: { id: activityId },

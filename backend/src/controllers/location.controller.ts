@@ -1,206 +1,120 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import locationService from '../services/location.service';
-import { createLocationSchema, updateLocationSchema, createLocationCategorySchema, updateLocationCategorySchema } from '../types/location.types';
-import logger from '../config/logger';
+import {
+  createLocationSchema,
+  updateLocationSchema,
+  createLocationCategorySchema,
+  updateLocationCategorySchema,
+} from '../types/location.types';
+import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
+import { requireUserId } from '../utils/controllerHelpers';
+import logger from '../config/logger';
 
-export class LocationController {
-  async createLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
+export const locationController = {
+  createLocation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const data = createLocationSchema.parse(req.body);
+    const location = await locationService.createLocation(userId, data);
+    logger.info(`Location created: ${location.id} by user ${userId}`);
+    res.status(201).json({
+      status: 'success',
+      data: location,
+    });
+  }),
 
-      const validatedData = createLocationSchema.parse(req.body);
-      const location = await locationService.createLocation(req.user.userId, validatedData);
+  getLocationsByTrip: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const locations = await locationService.getLocationsByTrip(userId, tripId);
+    res.json({
+      status: 'success',
+      data: locations,
+    });
+  }),
 
-      logger.info(`Location created: ${location.id} by user ${req.user.userId}`);
+  getLocationById: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const locationId = parseId(req.params.id);
+    const location = await locationService.getLocationById(userId, locationId);
+    res.json({
+      status: 'success',
+      data: location,
+    });
+  }),
 
-      res.status(201).json({
-        status: 'success',
-        data: location,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  updateLocation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const locationId = parseId(req.params.id);
+    const data = updateLocationSchema.parse(req.body);
+    const location = await locationService.updateLocation(userId, locationId, data);
+    logger.info(`Location updated: ${location.id} by user ${userId}`);
+    res.json({
+      status: 'success',
+      data: location,
+    });
+  }),
 
-  async getLocationsByTrip(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
-
-      const tripId = parseId(req.params.tripId, 'tripId');
-      const locations = await locationService.getLocationsByTrip(req.user.userId, tripId);
-
-      res.status(200).json({
-        status: 'success',
-        data: locations,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getLocationById(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
-
-      const locationId = parseId(req.params.id);
-      const location = await locationService.getLocationById(req.user.userId, locationId);
-
-      res.status(200).json({
-        status: 'success',
-        data: location,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async updateLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
-
-      const locationId = parseId(req.params.id);
-      const validatedData = updateLocationSchema.parse(req.body);
-      const location = await locationService.updateLocation(req.user.userId, locationId, validatedData);
-
-      logger.info(`Location updated: ${location.id} by user ${req.user.userId}`);
-
-      res.status(200).json({
-        status: 'success',
-        data: location,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async deleteLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
-
-      const locationId = parseId(req.params.id);
-      const result = await locationService.deleteLocation(req.user.userId, locationId);
-
-      logger.info(`Location deleted: ${locationId} by user ${req.user.userId}`);
-
-      res.status(200).json({
-        status: 'success',
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  deleteLocation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const locationId = parseId(req.params.id);
+    const result = await locationService.deleteLocation(userId, locationId);
+    logger.info(`Location deleted: ${locationId} by user ${userId}`);
+    res.json({
+      status: 'success',
+      data: result,
+    });
+  }),
 
   // Location Categories
-  async getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
+  getCategories: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const categories = await locationService.getCategories(userId);
+    res.json({
+      status: 'success',
+      data: categories,
+    });
+  }),
 
-      const categories = await locationService.getCategories(req.user.userId);
+  createCategory: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const data = createLocationCategorySchema.parse(req.body);
+    const category = await locationService.createCategory(userId, data);
+    res.status(201).json({
+      status: 'success',
+      data: category,
+    });
+  }),
 
-      res.status(200).json({
-        status: 'success',
-        data: categories,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  updateCategory: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const categoryId = parseId(req.params.id, 'categoryId');
+    const data = updateLocationCategorySchema.parse(req.body);
+    const category = await locationService.updateCategory(userId, categoryId, data);
+    res.json({
+      status: 'success',
+      data: category,
+    });
+  }),
 
-  async createCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
+  deleteCategory: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const categoryId = parseId(req.params.id, 'categoryId');
+    const result = await locationService.deleteCategory(userId, categoryId);
+    res.json({
+      status: 'success',
+      data: result,
+    });
+  }),
 
-      const validatedData = createLocationCategorySchema.parse(req.body);
-      const category = await locationService.createCategory(req.user.userId, validatedData);
+  getAllVisitedLocations: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const locations = await locationService.getAllVisitedLocations(userId);
+    res.json({
+      status: 'success',
+      data: locations,
+    });
+  }),
+};
 
-      res.status(201).json({
-        status: 'success',
-        data: category,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
-
-      const categoryId = parseId(req.params.id, 'categoryId');
-      const validatedData = updateLocationCategorySchema.parse(req.body);
-      const category = await locationService.updateCategory(req.user.userId, categoryId, validatedData);
-
-      res.status(200).json({
-        status: 'success',
-        data: category,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async deleteCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
-
-      const categoryId = parseId(req.params.id, 'categoryId');
-      const result = await locationService.deleteCategory(req.user.userId, categoryId);
-
-      res.status(200).json({
-        status: 'success',
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getAllVisitedLocations(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
-
-      const locations = await locationService.getAllVisitedLocations(req.user.userId);
-
-      res.status(200).json({
-        status: 'success',
-        data: locations,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-
-export default new LocationController();
+export default locationController;

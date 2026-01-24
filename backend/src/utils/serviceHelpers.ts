@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from './errors';
-import { Prisma } from '@prisma/client';
+import { EntityType, Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaModelDelegate } from '../types/prisma-helpers';
 
@@ -391,4 +391,28 @@ export function convertDecimals<T>(obj: T): T {
   }
 
   return obj;
+}
+
+/**
+ * Cleans up all entity links associated with an entity before deletion.
+ * This removes links where the entity is either the source or target.
+ *
+ * @param tripId - The trip ID the entity belongs to
+ * @param entityType - The type of entity being deleted
+ * @param entityId - The ID of the entity being deleted
+ */
+export async function cleanupEntityLinks(
+  tripId: number,
+  entityType: EntityType,
+  entityId: number
+): Promise<void> {
+  await prisma.entityLink.deleteMany({
+    where: {
+      tripId,
+      OR: [
+        { sourceType: entityType, sourceId: entityId },
+        { targetType: entityType, targetId: entityId },
+      ],
+    },
+  });
 }
