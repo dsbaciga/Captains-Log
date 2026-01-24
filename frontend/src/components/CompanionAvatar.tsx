@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import companionService from "../services/companion.service";
-import { useAuthStore } from "../store/authStore";
+import { getAccessToken } from "../lib/axios";
 import toast from "react-hot-toast";
 import type { Companion } from "../types/companion";
 import { getFullAssetUrl } from "../lib/config";
@@ -34,7 +34,6 @@ export default function CompanionAvatar({
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { accessToken } = useAuthStore();
 
   // Use dropdown position hook for optimal menu placement
   const { triggerRef, position } = useDropdownPosition<HTMLButtonElement>({
@@ -58,6 +57,7 @@ export default function CompanionAvatar({
           const fullUrl = getFullAssetUrl(companion.avatarUrl);
           if (!fullUrl) return;
 
+          const accessToken = getAccessToken();
           const response = await fetch(fullUrl, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -79,7 +79,7 @@ export default function CompanionAvatar({
 
     loadAvatar();
     // Cleanup is handled in a separate effect to avoid stale closure
-  }, [companion.avatarUrl, accessToken]);
+  }, [companion.avatarUrl]);
 
   // Cleanup blob URL when component unmounts or avatar changes
   useEffect(() => {

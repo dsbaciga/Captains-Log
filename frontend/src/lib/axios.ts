@@ -15,20 +15,29 @@ interface RetryConfig extends InternalAxiosRequestConfig {
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// In-memory token storage (NOT in localStorage - immune to XSS)
+let accessToken: string | null = null;
+
+// Token getter/setter for use by auth store
+export const getAccessToken = (): string | null => accessToken;
+export const setAccessToken = (token: string | null): void => {
+  accessToken = token;
+};
+
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 120000, // 2 minutes default timeout
+  withCredentials: true, // CRITICAL: Send cookies with requests
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token from memory
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -64,35 +73,33 @@ axiosInstance.interceptors.response.use(
       console.error(`Rate limit retry exhausted after ${MAX_RETRIES} attempts`);
     }
 
-    // Handle 401 (Unauthorized) - token refresh
+    // Handle 401 (Unauthorized) - try cookie-based refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token');
+        // Refresh using httpOnly cookie (no body needed, cookie is sent automatically)
+        const { data } = await axios.post(
+          `${API_URL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+
+        const newAccessToken = data.data?.accessToken;
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return axiosInstance(originalRequest);
         }
-
-        // Try to refresh the token
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken, refreshToken: newRefreshToken } = data.data;
-
-        // Update tokens in storage
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
-
-        // Retry the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return axiosInstance(originalRequest);
+        throw new Error('No access token in refresh response');
       } catch (refreshError) {
-        // Refresh failed, clear tokens and redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
+        // Refresh failed - clear token and redirect
+        setAccessToken(null);
+
+        // Import dynamically to avoid circular dependency
+        const { useAuthStore } = await import('../store/authStore');
+        useAuthStore.getState().clearAuth();
+
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
