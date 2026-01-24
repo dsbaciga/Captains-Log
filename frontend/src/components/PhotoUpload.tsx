@@ -325,7 +325,7 @@ export default function PhotoUpload({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,video/*"
+          accept="image/*,video/*,.dng"
           multiple
           onChange={handleFileInputChange}
           className="hidden"
@@ -346,7 +346,7 @@ export default function PhotoUpload({
           <div className="hidden md:block">
             <DragDropUpload
               onFilesSelected={handleFilesDropped}
-              accept="image/*,video/*"
+              accept="image/*,video/*,.dng"
               multiple
               disabled={isUploading}
               text="Drag and drop photos or videos here"
@@ -477,7 +477,7 @@ export default function PhotoUpload({
       {isDraggingFiles && (
         <DragDropUpload
           onFilesSelected={handleFilesDropped}
-          accept="image/*,video/*"
+          accept="image/*,video/*,.dng"
           multiple
           overlay
         />
