@@ -99,39 +99,62 @@ echo "========================================="
 # In production, these should already exist from Dockerfile.prod
 # This handles development and edge cases where they may not exist
 
+# On TrueNAS and similar systems, bind mounts may replace the directories
+# created during Docker build. We need to handle this gracefully.
+
+UPLOAD_DIRS="/app/uploads/temp /app/uploads/photos"
+UPLOAD_READY=true
+
 # Only attempt chown if running as root (uid 0)
 # Non-root users (like 'node' in production) cannot change ownership
 if [ "$(id -u)" = "0" ]; then
   # Running as root - can create dirs and fix permissions
-  mkdir -p /app/uploads/temp /app/uploads/photos
+  for dir in $UPLOAD_DIRS; do
+    if [ ! -d "$dir" ]; then
+      mkdir -p "$dir" 2>/dev/null || true
+    fi
+  done
   chown -R node:node /app/uploads 2>/dev/null || true
-  chmod -R 755 /app/uploads
+  chmod -R 755 /app/uploads 2>/dev/null || true
 else
   # Running as non-root - directories should already exist from Dockerfile
-  # Try to create them but don't fail if we can't (they should already exist)
-  mkdir -p /app/uploads/temp /app/uploads/photos 2>/dev/null || {
-    # mkdir failed - check if directories already exist
-    if [ ! -d /app/uploads/temp ] || [ ! -d /app/uploads/photos ]; then
-      echo "⚠ Warning: Could not create upload directories."
-      echo "  Current user: $(id)"
-      echo "  If this is production, ensure the Docker image was built with the directories."
+  # or the host volume. Try to create them silently if they don't exist.
+  for dir in $UPLOAD_DIRS; do
+    if [ ! -d "$dir" ]; then
+      # Use subshell to ensure errors are fully captured and suppressed
+      ( mkdir -p "$dir" ) 2>/dev/null || true
     fi
-  }
+  done
 fi
 
+# Verify the directories exist (they might have been pre-created on host)
+for dir in $UPLOAD_DIRS; do
+  if [ ! -d "$dir" ]; then
+    UPLOAD_READY=false
+  fi
+done
+
 # Verify the upload directory is writable
-if ! touch /app/uploads/temp/.write-test 2>/dev/null; then
-  echo "✗ ERROR: Upload directory /app/uploads/temp is not writable"
+if [ "$UPLOAD_READY" = "true" ] && touch /app/uploads/temp/.write-test 2>/dev/null; then
+  rm -f /app/uploads/temp/.write-test
+  echo "✓ Upload directories ready."
+else
+  echo ""
+  echo "⚠ WARNING: Upload directories not fully accessible."
   echo "  Current user: $(id)"
-  echo "  Directory permissions:"
+  echo "  Directory status:"
   ls -la /app/uploads/ 2>/dev/null || echo "  Cannot list /app/uploads/"
   echo ""
-  echo "  To fix this in production, rebuild the Docker image or run:"
-  echo "    docker exec -u root <container> chown -R node:node /app/uploads"
-  exit 1
+  echo "  For TrueNAS/NAS systems, fix host directory permissions:"
+  echo "    sudo chown -R 1000:1000 /mnt/pool/captains-log/uploads"
+  echo "    sudo chmod -R 755 /mnt/pool/captains-log/uploads"
+  echo ""
+  echo "  Or set container to run as root temporarily to fix permissions:"
+  echo "    docker exec -u root captains-log-backend chown -R node:node /app/uploads"
+  echo ""
+  echo "  Continuing startup - photo uploads may fail until permissions are fixed."
+  echo ""
 fi
-rm -f /app/uploads/temp/.write-test
-echo "✓ Upload directories ready."
 
 echo "========================================="
 echo "Starting Application..."
