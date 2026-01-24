@@ -268,30 +268,63 @@ class PhotoService {
           // Don't reject - allow upload but warn in logs (preserving existing behavior)
         }
       } else {
-        // Create image thumbnail - read from the moved file
-        const thumbnailFilename = `thumb-${filename.replace(ext, '.jpg')}`;
-        const thumbnailPath = path.join(THUMBNAIL_DIR, thumbnailFilename);
+        // Check if this is a DNG (raw) file - Sharp doesn't support DNG
+        const isDng = validation.mime === 'image/x-adobe-dng';
 
-        await sharp(filepath)
-          .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
-          .jpeg({ quality: 80 })
-          .toFile(thumbnailPath);
+        if (isDng) {
+          // DNG files: Sharp doesn't support them for thumbnail generation
+          // Use exifr for EXIF extraction which does support DNG
+          console.log('[PhotoService] DNG file detected - using exifr for metadata extraction');
 
-        thumbnailPathUrl = `/uploads/thumbnails/${thumbnailFilename}`;
+          try {
+            const exifr = (await import('exifr')).default;
+            const exifData = await exifr.parse(filepath, {
+              pick: ['GPSLatitude', 'GPSLongitude', 'DateTimeOriginal', 'CreateDate'],
+            });
 
-        // Extract EXIF data for GPS coordinates if available
-        try {
-          const metadata = await sharp(filepath).metadata();
-          if (metadata.exif) {
-            // Parse EXIF data for GPS and date
-            // Note: More robust EXIF parsing could be added with exif-parser library
-            if (!takenAt && metadata.exif) {
-              // Extract date from EXIF if available
+            if (exifData) {
+              if (!latitude && exifData.GPSLatitude != null) {
+                latitude = exifData.GPSLatitude;
+              }
+              if (!longitude && exifData.GPSLongitude != null) {
+                longitude = exifData.GPSLongitude;
+              }
+              if (!takenAt && (exifData.DateTimeOriginal || exifData.CreateDate)) {
+                takenAt = new Date(exifData.DateTimeOriginal || exifData.CreateDate);
+              }
             }
+          } catch (error) {
+            console.error('[PhotoService] Failed to parse DNG EXIF data:', error instanceof Error ? error.message : error);
           }
-        } catch (error) {
-          // Continue without EXIF data if parsing fails - log for debugging
-          console.error('[PhotoService] Failed to parse EXIF data:', error instanceof Error ? error.message : error);
+
+          // No thumbnail for DNG files - browsers can't display them anyway
+          thumbnailPathUrl = null;
+        } else {
+          // Create image thumbnail for standard formats - read from the moved file
+          const thumbnailFilename = `thumb-${filename.replace(ext, '.jpg')}`;
+          const thumbnailPath = path.join(THUMBNAIL_DIR, thumbnailFilename);
+
+          await sharp(filepath)
+            .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toFile(thumbnailPath);
+
+          thumbnailPathUrl = `/uploads/thumbnails/${thumbnailFilename}`;
+
+          // Extract EXIF data for GPS coordinates if available
+          try {
+            const metadata = await sharp(filepath).metadata();
+            if (metadata.exif) {
+              // Parse EXIF data for GPS and date
+              // Note: More robust EXIF parsing could be added with exif-parser library
+              if (!takenAt && metadata.exif) {
+                // Extract date from EXIF if available
+              }
+            }
+          } catch (error) {
+            // Continue without EXIF data if parsing fails - log for debugging
+            console.error('[PhotoService] Failed to parse EXIF data:', error instanceof Error ? error.message : error);
+          }
         }
       }
 
