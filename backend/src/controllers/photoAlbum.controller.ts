@@ -4,33 +4,12 @@ import {
   createAlbumSchema,
   updateAlbumSchema,
   addPhotosToAlbumSchema,
-  PhotoAlbum,
+  PhotoWithOptionalAlbums,
+  TransformedPhoto,
+  PhotoSortByType,
+  SortOrderType,
 } from '../types/photo.types';
 import { AppError } from '../utils/errors';
-
-// Type for photo input that may have album assignments
-interface PhotoWithOptionalAlbums {
-  id: number;
-  tripId: number;
-  source: string;
-  immichAssetId?: string | null;
-  localPath?: string | null;
-  thumbnailPath?: string | null;
-  caption?: string | null;
-  takenAt?: Date | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  albumAssignments?: Array<{
-    album: PhotoAlbum;
-    addedAt?: Date;
-  }>;
-  [key: string]: unknown;
-}
-
-// Type for transformed photo output
-interface TransformedPhoto extends Omit<PhotoWithOptionalAlbums, 'albumAssignments'> {
-  albums?: Array<{ album: PhotoAlbum }>;
-}
 
 // Type for album with optional cover photo
 interface AlbumWithCoverPhoto {
@@ -175,8 +154,8 @@ class PhotoAlbumController {
       const albumId = parseInt(req.params.id);
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
-      const sortBy = req.query.sortBy as string | undefined;
-      const sortOrder = req.query.sortOrder as string | undefined;
+      const sortBy = req.query.sortBy as PhotoSortByType | undefined;
+      const sortOrder = req.query.sortOrder as SortOrderType | undefined;
 
       const album = await photoAlbumService.getAlbumById(
         req.user!.userId,
@@ -185,16 +164,16 @@ class PhotoAlbumController {
       );
 
       // Transform photoAssignments to photos for frontend compatibility
-      // photoAssignments is an array of { photo: Photo, addedAt: Date }
+      // photoAssignments is an array of { photo: Photo, createdAt: Date }
       // We need to extract and transform each photo object
       const photoAssignments = album.photoAssignments as Array<{
         photo: PhotoWithOptionalAlbums;
-        addedAt: Date;
+        createdAt: Date;
       }> | undefined;
 
       const photos = photoAssignments?.map((assignment) => ({
         photo: transformPhoto(assignment.photo),
-        addedAt: assignment.addedAt,
+        createdAt: assignment.createdAt,
       })) || [];
 
       // Build response without photoAssignments

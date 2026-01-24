@@ -44,14 +44,28 @@ const sanitizeForLogging = (obj: Record<string, unknown> | undefined): Record<st
 };
 
 /**
- * Type guard for checking if an error has operational properties (like AppError)
+ * Type for operational errors with status code
  */
-function isOperationalError(err: unknown): err is { isOperational: boolean; statusCode: number; message: string } {
+interface OperationalError {
+  isOperational: boolean;
+  statusCode: number;
+  message: string;
+}
+
+/**
+ * Type guard for checking if an error has operational properties (like AppError)
+ * Validates that statusCode is within valid HTTP status code range (100-599)
+ */
+function isOperationalError(err: unknown): err is OperationalError {
   return (
     err !== null &&
     typeof err === 'object' &&
     'isOperational' in err &&
-    'statusCode' in err
+    (err as OperationalError).isOperational === true &&
+    'statusCode' in err &&
+    typeof (err as OperationalError).statusCode === 'number' &&
+    (err as OperationalError).statusCode >= 100 &&
+    (err as OperationalError).statusCode <= 599
   );
 }
 
@@ -62,7 +76,9 @@ export const errorHandler = (
   _next: NextFunction
 ) => {
   // Extract Prisma error properties if available
-  const prismaErrorInfo = isPrismaError(err) ? { code: err.code, meta: err.meta } : {};
+  const prismaErrorInfo = isPrismaError(err)
+    ? { code: (err as PrismaError).code, meta: (err as PrismaError).meta }
+    : {};
 
   // Enhanced logging with error details (sensitive data redacted)
   logger.error('Error occurred:', {

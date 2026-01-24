@@ -1,7 +1,6 @@
 import prisma from '../config/database';
 import travelTimeService from './travelTime.service';
 import { TripWithRelations } from '../types/prisma-helpers';
-import { Activity, Location, Lodging } from '@prisma/client';
 
 export interface ValidationIssue {
   severity: 'critical' | 'warning' | 'info';
@@ -11,9 +10,20 @@ export interface ValidationIssue {
   suggestion?: string;
 }
 
-/** Activity with location attached for travel time analysis */
-interface ActivityWithLocation extends Activity {
-  location: Location | null;
+/**
+ * Activity with location attached for travel time analysis.
+ * This interface is compatible with travelTimeService.analyzeActivityTransitions.
+ */
+interface ActivityWithLocation {
+  id: number;
+  name: string;
+  startTime: Date | null;
+  endTime: Date | null;
+  location: {
+    id: number;
+    latitude: unknown;
+    longitude: unknown;
+  } | null;
 }
 
 export interface ValidationResult {
@@ -76,7 +86,7 @@ class TripValidatorService {
 
     // Get all days covered by lodging
     const lodgingDays = new Set<string>();
-    trip.lodging.forEach((lodging: Lodging) => {
+    trip.lodging.forEach((lodging) => {
       if (lodging.checkInDate && lodging.checkOutDate) {
         const checkIn = new Date(lodging.checkInDate);
         const checkOut = new Date(lodging.checkOutDate);
@@ -323,14 +333,26 @@ class TripValidatorService {
     const locations = await prisma.location.findMany({
       where: { id: { in: locationIds as number[] } },
     });
-    const locationMap = new Map(locations.map(l => [l.id, l]));
+
+    // Create a lookup map for locations
+    type LocationData = { id: number; latitude: unknown; longitude: unknown };
+    const locationMap = new Map<number, LocationData>();
+    for (const loc of locations) {
+      locationMap.set(loc.id, { id: loc.id, latitude: loc.latitude, longitude: loc.longitude });
+    }
 
     // Construct activities with location data attached (for travelTime.service)
-    const activitiesWithFullLocation: ActivityWithLocation[] = activitiesWithLocationIds
-      .map((a) => ({
-        ...a,
-        location: locationMap.get(activityLocationMap.get(a.id)!) || null,
-      }))
+    const activitiesWithFullLocation = activitiesWithLocationIds
+      .map((a) => {
+        const loc = locationMap.get(activityLocationMap.get(a.id)!);
+        return {
+          id: a.id,
+          name: a.name,
+          startTime: a.startTime,
+          endTime: a.endTime,
+          location: loc || null,
+        };
+      })
       .filter((a): a is ActivityWithLocation => a.location !== null);
 
     if (activitiesWithFullLocation.length < 2) {

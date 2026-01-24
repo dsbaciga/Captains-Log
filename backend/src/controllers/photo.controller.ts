@@ -7,35 +7,14 @@ import {
   linkImmichPhotoBatchSchema,
   updatePhotoSchema,
   acceptAlbumSuggestionSchema,
-  PhotoAlbum,
+  PhotoWithOptionalAlbums,
+  TransformedPhoto,
+  PhotoSortByType,
+  SortOrderType,
 } from '../types/photo.types';
 import { AppError } from '../utils/errors';
 import { parseId } from '../utils/parseId';
 import { requireUserId } from '../utils/controllerHelpers';
-
-// Type for photo input that may have album assignments
-interface PhotoWithOptionalAlbums {
-  id: number;
-  tripId: number;
-  source: string;
-  immichAssetId?: string | null;
-  localPath?: string | null;
-  thumbnailPath?: string | null;
-  caption?: string | null;
-  takenAt?: Date | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  albumAssignments?: Array<{
-    album: PhotoAlbum;
-    addedAt?: Date;
-  }>;
-  [key: string]: unknown;
-}
-
-// Type for transformed photo output
-interface TransformedPhoto extends Omit<PhotoWithOptionalAlbums, 'albumAssignments'> {
-  albums?: Array<{ album: PhotoAlbum }>;
-}
 
 // Helper function to add Immich URLs for photos and transform album assignments
 function transformPhoto(photo: PhotoWithOptionalAlbums): TransformedPhoto {
@@ -123,8 +102,8 @@ class PhotoController {
       const tripId = parseId(req.params.tripId, 'tripId');
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
-      const sortBy = req.query.sortBy as string | undefined;
-      const sortOrder = req.query.sortOrder as string | undefined;
+      const sortBy = req.query.sortBy as PhotoSortByType | undefined;
+      const sortOrder = req.query.sortOrder as SortOrderType | undefined;
 
       const result = await photoService.getPhotosByTrip(requireUserId(req), tripId, {
         skip,
@@ -161,8 +140,8 @@ class PhotoController {
       const tripId = parseId(req.params.tripId, 'tripId');
       const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
       const take = req.query.take ? parseInt(req.query.take as string) : undefined;
-      const sortBy = req.query.sortBy as string | undefined;
-      const sortOrder = req.query.sortOrder as string | undefined;
+      const sortBy = req.query.sortBy as PhotoSortByType | undefined;
+      const sortOrder = req.query.sortOrder as SortOrderType | undefined;
 
       const result = await photoService.getUnsortedPhotosByTrip(requireUserId(req), tripId, {
         skip,

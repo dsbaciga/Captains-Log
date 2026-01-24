@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from './errors';
 import { Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaModelDelegate } from '../types/prisma-helpers';
 
 /**
@@ -334,15 +335,33 @@ export async function verifyEntityOwnership<T extends { trip: { userId: number }
 }
 
 /**
- * Recursively converts Decimal objects (from Prisma) to numbers
- * Useful for ensuring JSON responses have numbers instead of Decimal objects
+ * Utility type that transforms Decimal properties to number recursively.
+ * This accurately represents the runtime transformation performed by convertDecimals.
+ * Use this type when you need type-accurate representation of converted data.
  *
- * Note: This function uses type assertions because TypeScript cannot track
- * the recursive type transformation from Decimal to number while maintaining
- * the original object structure. The runtime behavior is correct.
+ * @example
+ * type ConvertedLocation = ConvertDecimalsToNumbers<Location>;
+ * // latitude: number (instead of Decimal)
+ */
+export type ConvertDecimalsToNumbers<T> = T extends Decimal
+  ? number
+  : T extends Array<infer U>
+    ? ConvertDecimalsToNumbers<U>[]
+    : T extends object
+      ? { [K in keyof T]: ConvertDecimalsToNumbers<T[K]> }
+      : T;
+
+/**
+ * Recursively converts Decimal objects (from Prisma) to numbers.
+ * Useful for ensuring JSON responses have numbers instead of Decimal objects.
+ *
+ * Note: At runtime, Decimal fields become numbers. The return type is `T` for
+ * backward compatibility, but callers should be aware that Decimal properties
+ * will be numbers at runtime. Use `ConvertDecimalsToNumbers<T>` utility type
+ * when you need type-accurate representation.
  *
  * @param obj - The object or array containing Decimal fields
- * @returns The object with Decimals converted to numbers
+ * @returns The object with Decimals converted to numbers (typed as T for compatibility)
  */
 export function convertDecimals<T>(obj: T): T {
   if (obj === null || obj === undefined) {
@@ -350,7 +369,6 @@ export function convertDecimals<T>(obj: T): T {
   }
 
   if (obj instanceof Prisma.Decimal) {
-    // Decimal -> number conversion; T is expected to accept number in practice
     return Number(obj) as T;
   }
 
@@ -359,7 +377,6 @@ export function convertDecimals<T>(obj: T): T {
   }
 
   if (Array.isArray(obj)) {
-    // Recursively convert array elements
     return obj.map((item) => convertDecimals(item)) as T;
   }
 

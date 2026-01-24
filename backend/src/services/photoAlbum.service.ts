@@ -14,9 +14,16 @@ import { WithOptionalCoordinates } from '../types/prisma-helpers';
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 
 // Helper function to convert Decimal fields in photo objects
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(photo: T): T;
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(photo: T | null): T | null;
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(photo: T | undefined): T | undefined;
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(photo: T | null | undefined): T | null | undefined;
 function convertPhotoDecimals<T extends WithOptionalCoordinates>(
   photo: T | null | undefined
 ): T | null | undefined {
+  if (photo === null || photo === undefined) {
+    return photo;
+  }
   return convertDecimals(photo);
 }
 

@@ -330,6 +330,7 @@ class TransportationService {
           select: {
             id: true,
             name: true,
+            address: true,
             latitude: true,
             longitude: true,
           },
@@ -338,6 +339,7 @@ class TransportationService {
           select: {
             id: true,
             name: true,
+            address: true,
             latitude: true,
             longitude: true,
           },
