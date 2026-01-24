@@ -264,6 +264,7 @@ export default function PhotoLightbox({
               className="max-w-full max-h-full object-contain select-none"
               controls
               autoPlay
+              muted
               playsInline
               onClick={(e) => e.stopPropagation()}
             >

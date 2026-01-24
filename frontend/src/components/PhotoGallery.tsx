@@ -36,6 +36,18 @@ interface ThumbnailCache {
 // Helper function for delays
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Format duration in seconds to HH:MM:SS or MM:SS format
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
 // Fetch with retry logic for rate limiting (429 errors)
 async function fetchWithRetry(
   url: string,
@@ -724,7 +736,7 @@ export default function PhotoGallery({
                 {/* Video duration badge */}
                 {photo.mediaType === 'video' && photo.duration && (
                   <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded font-mono z-10">
-                    {Math.floor(photo.duration / 60)}:{String(photo.duration % 60).padStart(2, '0')}
+                    {formatDuration(photo.duration)}
                   </div>
                 )}
 
@@ -930,7 +942,7 @@ export default function PhotoGallery({
                             Video
                             {photo.duration && (
                               <span className="font-mono">
-                                ({Math.floor(photo.duration / 60)}:{String(photo.duration % 60).padStart(2, '0')})
+                                ({formatDuration(photo.duration)})
                               </span>
                             )}
                           </span>

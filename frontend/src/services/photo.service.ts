@@ -47,6 +47,8 @@ class PhotoService {
     tripId: number;
     assets: Array<{
       immichAssetId: string;
+      mediaType?: 'image' | 'video';
+      duration?: number;
       caption?: string;
       takenAt?: string | null;
       latitude?: number | null;
