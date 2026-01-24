@@ -4,12 +4,48 @@ import {
   createAlbumSchema,
   updateAlbumSchema,
   addPhotosToAlbumSchema,
+  PhotoAlbum,
 } from '../types/photo.types';
 import { AppError } from '../utils/errors';
 
+// Type for photo input that may have album assignments
+interface PhotoWithOptionalAlbums {
+  id: number;
+  tripId: number;
+  source: string;
+  immichAssetId?: string | null;
+  localPath?: string | null;
+  thumbnailPath?: string | null;
+  caption?: string | null;
+  takenAt?: Date | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  albumAssignments?: Array<{
+    album: PhotoAlbum;
+    addedAt?: Date;
+  }>;
+  [key: string]: unknown;
+}
+
+// Type for transformed photo output
+interface TransformedPhoto extends Omit<PhotoWithOptionalAlbums, 'albumAssignments'> {
+  albums?: Array<{ album: PhotoAlbum }>;
+}
+
+// Type for album with optional cover photo
+interface AlbumWithCoverPhoto {
+  id: number;
+  tripId: number;
+  name: string;
+  description?: string | null;
+  coverPhoto?: PhotoWithOptionalAlbums | null;
+  _count?: { photoAssignments: number };
+  [key: string]: unknown;
+}
+
 // Helper function to add Immich URLs for photos and transform album assignments
-function transformPhoto(photo: any) {
-  const transformed: any = { ...photo };
+function transformPhoto(photo: PhotoWithOptionalAlbums): TransformedPhoto {
+  const transformed: TransformedPhoto = { ...photo };
 
   // Transform Immich paths
   if (photo.source === 'immich' && photo.immichAssetId) {
@@ -19,10 +55,10 @@ function transformPhoto(photo: any) {
 
   // Transform albumAssignments to albums for frontend compatibility
   if (photo.albumAssignments) {
-    transformed.albums = photo.albumAssignments.map((assignment: any) => ({
+    transformed.albums = photo.albumAssignments.map((assignment) => ({
       album: assignment.album,
     }));
-    delete transformed.albumAssignments;
+    delete (transformed as { albumAssignments?: unknown }).albumAssignments;
   }
 
   return transformed;
@@ -49,7 +85,7 @@ class PhotoAlbumController {
       });
 
       // Transform cover photos for Immich compatibility
-      const transformedAlbums = result.albums.map((album: any) => {
+      const transformedAlbums = result.albums.map((album: AlbumWithCoverPhoto) => {
         if (album.coverPhoto) {
           return {
             ...album,
@@ -112,7 +148,7 @@ class PhotoAlbumController {
       );
 
       // Transform cover photos for Immich compatibility
-      const transformedAlbums = result.albums.map((album: any) => {
+      const transformedAlbums = result.albums.map((album: AlbumWithCoverPhoto) => {
         if (album.coverPhoto) {
           return {
             ...album,
@@ -151,24 +187,32 @@ class PhotoAlbumController {
       // Transform photoAssignments to photos for frontend compatibility
       // photoAssignments is an array of { photo: Photo, addedAt: Date }
       // We need to extract and transform each photo object
+      const photoAssignments = album.photoAssignments as Array<{
+        photo: PhotoWithOptionalAlbums;
+        addedAt: Date;
+      }> | undefined;
+
+      const photos = photoAssignments?.map((assignment) => ({
+        photo: transformPhoto(assignment.photo),
+        addedAt: assignment.addedAt,
+      })) || [];
+
+      // Build response without photoAssignments
+      const { photoAssignments: _, ...albumWithoutAssignments } = album;
       const transformed = {
-        ...album,
-        photos: album.photoAssignments?.map((assignment: any) => ({
-          photo: transformPhoto(assignment.photo),
-          addedAt: assignment.addedAt,
-        })) || [],
+        ...albumWithoutAssignments,
+        photos,
       };
-      delete (transformed as any).photoAssignments;
 
       if (process.env.NODE_ENV === 'development') {
         console.log('Album transformation result:', {
           albumId,
           skip,
           take,
-          originalPhotoAssignmentsCount: album.photoAssignments?.length || 0,
-          transformedPhotosCount: transformed.photos.length,
-          hasMore: transformed.hasMore,
-          total: transformed.total,
+          originalPhotoAssignmentsCount: photoAssignments?.length || 0,
+          transformedPhotosCount: photos.length,
+          hasMore: (album as { hasMore?: boolean }).hasMore,
+          total: (album as { total?: number }).total,
         });
       }
 

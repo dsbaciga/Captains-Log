@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import {
   CreateTransportationInput,
   UpdateTransportationInput,
@@ -7,8 +8,76 @@ import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecima
 import { locationWithAddressSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
+// Type for location with address fields (from locationWithAddressSelect)
+interface LocationWithAddress {
+  id: number;
+  name: string;
+  address: string | null;
+  latitude: Prisma.Decimal | null;
+  longitude: Prisma.Decimal | null;
+}
+
+// Type for transportation with included relations
+type TransportationWithRelations = Prisma.TransportationGetPayload<{
+  include: {
+    startLocation: { select: typeof locationWithAddressSelect };
+    endLocation: { select: typeof locationWithAddressSelect };
+    flightTracking: true;
+  };
+}>;
+
+// Type for the frontend-mapped transportation object
+interface TransportationFrontend {
+  id: number;
+  tripId: number;
+  type: string;
+  fromLocationId: number | null;
+  toLocationId: number | null;
+  fromLocationName: string | null;
+  toLocationName: string | null;
+  departureTime: Date | null;
+  arrivalTime: Date | null;
+  startTimezone: string | null;
+  endTimezone: string | null;
+  carrier: string | null;
+  vehicleNumber: string | null;
+  confirmationNumber: string | null;
+  cost: number | null;
+  currency: string | null;
+  notes: string | null;
+  connectionGroupId: string | null;
+  calculatedDistance: number | null;
+  calculatedDuration: number | null;
+  distanceSource: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  fromLocation: {
+    id: number;
+    name: string;
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+  toLocation: {
+    id: number;
+    name: string;
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+  flightTracking: Prisma.FlightTrackingGetPayload<object> | null;
+  route?: {
+    from: { name: string; latitude: number; longitude: number };
+    to: { name: string; latitude: number; longitude: number };
+    geometry?: number[][];
+  };
+  durationMinutes?: number;
+  isUpcoming?: boolean;
+  isInProgress?: boolean;
+}
+
 // Helper to map database fields to frontend field names
-const mapTransportationToFrontend = (t: any): Record<string, any> => {
+const mapTransportationToFrontend = (t: TransportationWithRelations): TransportationFrontend => {
   const converted = convertDecimals(t);
   return {
     id: converted.id,
@@ -132,7 +201,7 @@ class TransportationService {
       select: { id: true },
     });
 
-    const tripIds = trips.map((t: any) => t.id);
+    const tripIds = trips.map((t) => t.id);
 
     // Get all transportation for user's trips
     const transportations = await prisma.transportation.findMany({
@@ -152,10 +221,10 @@ class TransportationService {
     return await this.enhanceTransportations(transportations);
   }
 
-  private async enhanceTransportations(transportations: any[]) {
+  private async enhanceTransportations(transportations: TransportationWithRelations[]): Promise<TransportationFrontend[]> {
     // Enhance with computed fields and map to frontend format
     const now = new Date();
-    let enhancedTransportations: Record<string, any>[];
+    let enhancedTransportations: TransportationFrontend[];
     try {
       enhancedTransportations = await Promise.all(transportations.map(async (t) => {
       const mapped = mapTransportationToFrontend(t);

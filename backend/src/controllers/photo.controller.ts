@@ -7,14 +7,39 @@ import {
   linkImmichPhotoBatchSchema,
   updatePhotoSchema,
   acceptAlbumSuggestionSchema,
+  PhotoAlbum,
 } from '../types/photo.types';
 import { AppError } from '../utils/errors';
 import { parseId } from '../utils/parseId';
 import { requireUserId } from '../utils/controllerHelpers';
 
+// Type for photo input that may have album assignments
+interface PhotoWithOptionalAlbums {
+  id: number;
+  tripId: number;
+  source: string;
+  immichAssetId?: string | null;
+  localPath?: string | null;
+  thumbnailPath?: string | null;
+  caption?: string | null;
+  takenAt?: Date | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  albumAssignments?: Array<{
+    album: PhotoAlbum;
+    addedAt?: Date;
+  }>;
+  [key: string]: unknown;
+}
+
+// Type for transformed photo output
+interface TransformedPhoto extends Omit<PhotoWithOptionalAlbums, 'albumAssignments'> {
+  albums?: Array<{ album: PhotoAlbum }>;
+}
+
 // Helper function to add Immich URLs for photos and transform album assignments
-function transformPhoto(photo: any) {
-  const transformed: any = { ...photo };
+function transformPhoto(photo: PhotoWithOptionalAlbums): TransformedPhoto {
+  const transformed: TransformedPhoto = { ...photo };
 
   // Transform Immich paths
   if (photo.source === 'immich' && photo.immichAssetId) {
@@ -24,10 +49,10 @@ function transformPhoto(photo: any) {
 
   // Transform albumAssignments to albums for frontend compatibility
   if (photo.albumAssignments) {
-    transformed.albums = photo.albumAssignments.map((assignment: any) => ({
+    transformed.albums = photo.albumAssignments.map((assignment) => ({
       album: assignment.album,
     }));
-    delete transformed.albumAssignments;
+    delete (transformed as { albumAssignments?: unknown }).albumAssignments;
   }
 
   return transformed;

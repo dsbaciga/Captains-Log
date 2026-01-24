@@ -4,13 +4,28 @@ import { BackupData, BACKUP_VERSION, RestoreOptions } from '../types/backup.type
 import { AppError } from '../utils/errors';
 
 /**
+ * Statistics returned after a restore operation
+ */
+interface RestoreStats {
+  tripsImported: number;
+  locationsImported: number;
+  photosImported: number;
+  activitiesImported: number;
+  transportationImported: number;
+  lodgingImported: number;
+  journalEntriesImported: number;
+  tagsImported: number;
+  companionsImported: number;
+}
+
+/**
  * Restore user data from a backup
  */
 export async function restoreFromBackup(
   userId: number,
   backupData: BackupData,
   options: RestoreOptions = { clearExistingData: true, importPhotos: true }
-): Promise<{ success: boolean; message: string; stats: any }> {
+): Promise<{ success: boolean; message: string; stats: RestoreStats }> {
   // Validate backup version
   if (backupData.version !== BACKUP_VERSION) {
     throw new AppError(
@@ -34,7 +49,7 @@ export async function restoreFromBackup(
   try {
     // Use a transaction to ensure atomicity
     await prisma.$transaction(
-      async (tx: any) => {
+      async (tx) => {
         // Step 1: Clear existing data if requested
         if (options.clearExistingData) {
           await clearUserData(userId, tx);

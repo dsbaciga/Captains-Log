@@ -1,12 +1,19 @@
 import prisma from '../config/database';
 import travelTimeService from './travelTime.service';
+import { TripWithRelations } from '../types/prisma-helpers';
+import { Activity, Location, Lodging } from '@prisma/client';
 
 export interface ValidationIssue {
   severity: 'critical' | 'warning' | 'info';
   type: string;
   message: string;
-  affectedItems?: any[];
+  affectedItems?: (string | number)[];
   suggestion?: string;
+}
+
+/** Activity with location attached for travel time analysis */
+interface ActivityWithLocation extends Activity {
+  location: Location | null;
 }
 
 export interface ValidationResult {
@@ -56,7 +63,7 @@ class TripValidatorService {
     };
   }
 
-  private checkMissingLodging(trip: any): ValidationIssue[] {
+  private checkMissingLodging(trip: TripWithRelations): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     if (!trip.startDate || !trip.endDate) {
@@ -69,7 +76,7 @@ class TripValidatorService {
 
     // Get all days covered by lodging
     const lodgingDays = new Set<string>();
-    trip.lodging.forEach((lodging: any) => {
+    trip.lodging.forEach((lodging: Lodging) => {
       if (lodging.checkInDate && lodging.checkOutDate) {
         const checkIn = new Date(lodging.checkInDate);
         const checkOut = new Date(lodging.checkOutDate);
@@ -104,7 +111,7 @@ class TripValidatorService {
     return issues;
   }
 
-  private checkMissingTransportation(trip: any): ValidationIssue[] {
+  private checkMissingTransportation(trip: TripWithRelations): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     // If trip has multiple locations but no transportation
@@ -120,13 +127,13 @@ class TripValidatorService {
     return issues;
   }
 
-  private checkTimelineConflicts(trip: any): ValidationIssue[] {
+  private checkTimelineConflicts(trip: TripWithRelations): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     // Check for overlapping activities
     const timedActivities = trip.activities
-      .filter((a: any) => a.startTime && a.endTime && !a.allDay)
-      .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+      .filter((a) => a.startTime && a.endTime && !a.allDay)
+      .sort((a, b) => new Date(a.startTime!).getTime() - new Date(b.startTime!).getTime());
 
     for (let i = 0; i < timedActivities.length - 1; i++) {
       const current = timedActivities[i];
@@ -146,7 +153,7 @@ class TripValidatorService {
     return issues;
   }
 
-  private checkInvalidDates(trip: any): ValidationIssue[] {
+  private checkInvalidDates(trip: TripWithRelations): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     if (!trip.startDate || !trip.endDate) {
@@ -157,7 +164,7 @@ class TripValidatorService {
     const end = new Date(trip.endDate);
 
     // Check activities outside trip dates
-    trip.activities.forEach((activity: any) => {
+    trip.activities.forEach((activity) => {
       if (activity.startTime) {
         const activityDate = new Date(activity.startTime);
         if (activityDate < start || activityDate > end) {
@@ -175,11 +182,11 @@ class TripValidatorService {
     return issues;
   }
 
-  private async checkMissingInformation(trip: any): Promise<ValidationIssue[]> {
+  private async checkMissingInformation(trip: TripWithRelations): Promise<ValidationIssue[]> {
     const issues: ValidationIssue[] = [];
 
     // Activities without locations (now checked via EntityLink system)
-    const activityIds = trip.activities.map((a: any) => a.id);
+    const activityIds = trip.activities.map((a) => a.id);
     const activityLocationLinks = await prisma.entityLink.findMany({
       where: {
         tripId: trip.id,
@@ -190,7 +197,7 @@ class TripValidatorService {
       select: { sourceId: true },
     });
     const activitiesWithLocation = new Set(activityLocationLinks.map(l => l.sourceId));
-    const activitiesWithoutLocation = trip.activities.filter((a: any) => !activitiesWithLocation.has(a.id));
+    const activitiesWithoutLocation = trip.activities.filter((a) => !activitiesWithLocation.has(a.id));
     if (activitiesWithoutLocation.length > 0) {
       issues.push({
         severity: 'info',
@@ -201,7 +208,7 @@ class TripValidatorService {
     }
 
     // Activities without times
-    const activitiesWithoutTime = trip.activities.filter((a: any) => !a.startTime && !a.allDay);
+    const activitiesWithoutTime = trip.activities.filter((a) => !a.startTime && !a.allDay);
     if (activitiesWithoutTime.length > 0) {
       issues.push({
         severity: 'info',
@@ -214,7 +221,7 @@ class TripValidatorService {
     return issues;
   }
 
-  private checkEmptyDays(trip: any): ValidationIssue[] {
+  private checkEmptyDays(trip: TripWithRelations): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     if (!trip.startDate || !trip.endDate) {
@@ -226,7 +233,7 @@ class TripValidatorService {
 
     // Get all days with activities
     const daysWithActivities = new Set<string>();
-    trip.activities.forEach((activity: any) => {
+    trip.activities.forEach((activity) => {
       if (activity.startTime) {
         const activityDate = new Date(activity.startTime);
         daysWithActivities.add(activityDate.toDateString());
@@ -275,20 +282,20 @@ class TripValidatorService {
     return Math.max(0, score);
   }
 
-  private async checkTravelTimeAlerts(trip: any): Promise<ValidationIssue[]> {
+  private async checkTravelTimeAlerts(trip: TripWithRelations): Promise<ValidationIssue[]> {
     const issues: ValidationIssue[] = [];
 
     // Get activities with times, sorted by time
     const activitiesWithTimes = trip.activities
-      .filter((a: any) => a.startTime && a.endTime)
-      .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+      .filter((a) => a.startTime && a.endTime)
+      .sort((a, b) => new Date(a.startTime!).getTime() - new Date(b.startTime!).getTime());
 
     if (activitiesWithTimes.length < 2) {
       return issues; // Need at least 2 activities for travel time analysis
     }
 
     // Get location links for these activities (via EntityLink system)
-    const activityIds = activitiesWithTimes.map((a: any) => a.id);
+    const activityIds = activitiesWithTimes.map((a) => a.id);
     const locationLinks = await prisma.entityLink.findMany({
       where: {
         tripId: trip.id,
@@ -305,24 +312,26 @@ class TripValidatorService {
     });
 
     // Filter to only activities that have linked locations
-    const activitiesWithLocationIds = activitiesWithTimes.filter((a: any) => activityLocationMap.has(a.id));
+    const activitiesWithLocationIds = activitiesWithTimes.filter((a) => activityLocationMap.has(a.id));
 
     if (activitiesWithLocationIds.length < 2) {
       return issues; // Need at least 2 activities with locations for travel time analysis
     }
 
     // Fetch the location details
-    const locationIds = [...new Set(activitiesWithLocationIds.map((a: any) => activityLocationMap.get(a.id)))];
+    const locationIds = [...new Set(activitiesWithLocationIds.map((a) => activityLocationMap.get(a.id)))];
     const locations = await prisma.location.findMany({
       where: { id: { in: locationIds as number[] } },
     });
     const locationMap = new Map(locations.map(l => [l.id, l]));
 
     // Construct activities with location data attached (for travelTime.service)
-    const activitiesWithFullLocation = activitiesWithLocationIds.map((a: any) => ({
-      ...a,
-      location: locationMap.get(activityLocationMap.get(a.id)!) || null,
-    })).filter((a: any) => a.location !== null);
+    const activitiesWithFullLocation: ActivityWithLocation[] = activitiesWithLocationIds
+      .map((a) => ({
+        ...a,
+        location: locationMap.get(activityLocationMap.get(a.id)!) || null,
+      }))
+      .filter((a): a is ActivityWithLocation => a.location !== null);
 
     if (activitiesWithFullLocation.length < 2) {
       return issues;

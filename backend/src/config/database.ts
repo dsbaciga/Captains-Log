@@ -54,7 +54,15 @@ export async function checkDatabaseConnection(retries = 5, interval = 5000): Pro
 
 // Log queries in development
 if (process.env.NODE_ENV === 'development') {
-  (prismaClient as any).$on('query', (e: any) => {
+  // Prisma query event type
+  interface PrismaQueryEvent {
+    query: string;
+    params: string;
+    duration: number;
+    target: string;
+  }
+
+  prismaClient.$on('query', (e: PrismaQueryEvent) => {
     logger.debug('Query: ' + e.query);
     logger.debug('Duration: ' + e.duration + 'ms');
   });

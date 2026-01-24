@@ -2,8 +2,9 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { WeatherDataInput } from '../types/weather.types';
 import config from '../config';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { verifyTripAccess, convertDecimals } from '../utils/serviceHelpers';
+import { isAxiosError } from '../types/prisma-helpers';
 
 interface OpenWeatherResponse {
   daily: {
@@ -335,8 +336,18 @@ class WeatherService {
       // Calculate total precipitation (rain + snow) in mm
       // Note: rain/snow fields are only present when there's measurable precipitation
       // The API returns these as numbers (daily totals) for One Call API 3.0
-      const rainAmount = (typeof dayData.rain === 'number' ? dayData.rain : (dayData.rain as any)?.['1h'] || 0);
-      const snowAmount = (typeof dayData.snow === 'number' ? dayData.snow : (dayData.snow as any)?.['1h'] || 0);
+      const getRainAmount = (rain: number | { '1h'?: number } | undefined): number => {
+        if (rain === undefined) return 0;
+        if (typeof rain === 'number') return rain;
+        return rain['1h'] || 0;
+      };
+      const getSnowAmount = (snow: number | { '1h'?: number } | undefined): number => {
+        if (snow === undefined) return 0;
+        if (typeof snow === 'number') return snow;
+        return snow['1h'] || 0;
+      };
+      const rainAmount = getRainAmount(dayData.rain);
+      const snowAmount = getSnowAmount(dayData.snow);
       const totalPrecipitation = rainAmount + snowAmount;
 
       return {
@@ -349,8 +360,8 @@ class WeatherService {
         humidity: dayData.humidity,
         windSpeed: Math.round(dayData.wind_speed * 10) / 10, // Round to 1 decimal
       };
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 401) {
         throw new AppError('Invalid OpenWeatherMap API key', 500);
       }
       throw error;
@@ -435,14 +446,16 @@ class WeatherService {
         humidity: Math.round(humidities.reduce((a, b) => a + b, 0) / humidities.length),
         windSpeed: Math.round((windSpeeds.reduce((a, b) => a + b, 0) / windSpeeds.length) * 10) / 10,
       };
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new AppError('Invalid OpenWeatherMap API key', 500);
-      }
-      if (error.response?.status === 403) {
-        // Historical data requires paid subscription - log and return null gracefully
-        console.warn(`Historical weather data not available (requires paid OpenWeatherMap subscription) for date: ${targetDate.toISOString().split('T')[0]}`);
-        return null;
+    } catch (error: unknown) {
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new AppError('Invalid OpenWeatherMap API key', 500);
+        }
+        if (error.response?.status === 403) {
+          // Historical data requires paid subscription - log and return null gracefully
+          console.warn(`Historical weather data not available (requires paid OpenWeatherMap subscription) for date: ${targetDate.toISOString().split('T')[0]}`);
+          return null;
+        }
       }
       throw error;
     }
@@ -474,17 +487,17 @@ class WeatherService {
    */
   private async fetchWithRetry(
     url: string,
-    config: any,
+    requestConfig: AxiosRequestConfig,
     retries = 3
-  ): Promise<any> {
+  ): Promise<OpenWeatherResponse | OpenWeatherHistoricalResponse> {
     try {
-      const response = await axios.get(url, config);
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 429 && retries > 0) {
+      const response = await axios.get(url, requestConfig);
+      return response.data as OpenWeatherResponse | OpenWeatherHistoricalResponse;
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 429 && retries > 0) {
         // Rate limited, wait and retry
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        return this.fetchWithRetry(url, config, retries - 1);
+        return this.fetchWithRetry(url, requestConfig, retries - 1);
       }
       throw error;
     }

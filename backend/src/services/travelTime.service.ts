@@ -16,6 +16,19 @@ interface TravelAlert {
   bufferMinutes: number;
 }
 
+/**
+ * Activity with location data for travel time analysis
+ */
+interface ActivityWithLocation {
+  name: string;
+  startTime?: Date | string | null;
+  endTime?: Date | string | null;
+  location?: {
+    latitude?: number | string | null;
+    longitude?: number | string | null;
+  } | null;
+}
+
 class TravelTimeService {
   // Calculate distance between two points using Haversine formula
   private calculateDistance(point1: Coordinates, point2: Coordinates): number {
@@ -79,7 +92,7 @@ class TravelTimeService {
   }
 
   // Analyze consecutive activities for travel time feasibility
-  analyzeActivityTransitions(activities: any[]): TravelAlert[] {
+  analyzeActivityTransitions(activities: ActivityWithLocation[]): TravelAlert[] {
     const alerts: TravelAlert[] = [];
 
     for (let i = 0; i < activities.length - 1; i++) {
