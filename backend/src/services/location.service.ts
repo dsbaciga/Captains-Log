@@ -20,6 +20,11 @@ export class LocationService {
       if (!parent) {
         throw new AppError('Parent location not found or does not belong to the same trip', 404);
       }
+
+      // Enforce single-level hierarchy: parent cannot already be a child
+      if (parent.parentId) {
+        throw new AppError('Cannot nest locations more than one level deep. The selected parent is already a child of another location.', 400);
+      }
     }
 
     const location = await prisma.location.create({
@@ -190,6 +195,14 @@ export class LocationService {
         throw new AppError('A location cannot be its own parent', 400);
       }
 
+      // Enforce single-level hierarchy: location with children cannot become a child
+      const hasChildren = await prisma.location.count({
+        where: { parentId: locationId },
+      });
+      if (hasChildren > 0) {
+        throw new AppError('Cannot set a parent for a location that has children. Remove children first or use a different location.', 400);
+      }
+
       const parent = await prisma.location.findFirst({
         where: {
           id: data.parentId,
@@ -199,6 +212,11 @@ export class LocationService {
 
       if (!parent) {
         throw new AppError('Parent location not found or does not belong to the same trip', 404);
+      }
+
+      // Enforce single-level hierarchy: parent cannot already be a child
+      if (parent.parentId) {
+        throw new AppError('Cannot nest locations more than one level deep. The selected parent is already a child of another location.', 400);
       }
 
       // Prevent circular references (check if new parent is a child of this location)

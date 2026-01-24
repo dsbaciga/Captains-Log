@@ -444,37 +444,62 @@ export default function LocationManager({
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="location-parent"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Parent Location (City/Region)
-              </label>
-              <select
-                id="location-parent"
-                value={values.parentId || ""}
-                onChange={(e) =>
-                  handleChange(
-                    "parentId",
-                    e.target.value ? parseInt(e.target.value) : undefined
-                  )
-                }
-                className="input"
-              >
-                <option value="">None (Top-level location)</option>
-                {manager.items
-                  .filter((loc) => loc.id !== manager.editingId && !loc.parentId)
-                  .map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </option>
-                  ))}
-              </select>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Group places by selecting a parent city or region
-              </p>
-            </div>
+            {/* Parent Location - only show if this location doesn't have children */}
+            {(() => {
+              const editingLocationHasChildren = manager.editingId
+                ? manager.items.some((loc) => loc.parentId === manager.editingId)
+                : false;
+
+              return (
+                <div>
+                  <label
+                    htmlFor="location-parent"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Parent Location (City/Region)
+                  </label>
+                  {editingLocationHasChildren ? (
+                    <>
+                      <input
+                        type="text"
+                        className="input bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                        value="Cannot set parent - this location has children"
+                        disabled
+                      />
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        Remove child locations first to make this a child of another location
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        id="location-parent"
+                        value={values.parentId || ""}
+                        onChange={(e) =>
+                          handleChange(
+                            "parentId",
+                            e.target.value ? parseInt(e.target.value) : undefined
+                          )
+                        }
+                        className="input"
+                      >
+                        <option value="">None (Top-level location)</option>
+                        {manager.items
+                          .filter((loc) => loc.id !== manager.editingId && !loc.parentId)
+                          .map((loc) => (
+                            <option key={loc.id} value={loc.id}>
+                              {loc.name}
+                            </option>
+                          ))}
+                      </select>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Group places by selecting a parent city or region
+                      </p>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
             <div>
               <label
