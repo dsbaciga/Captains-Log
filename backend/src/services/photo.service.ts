@@ -39,6 +39,7 @@ const ALLOWED_IMAGE_MIMES = new Set([
   'image/heif',
   'image/avif',
   'image/tiff',
+  'image/x-adobe-dng', // DNG (Digital Negative) raw format
 ]);
 
 const ALLOWED_VIDEO_MIMES = new Set([
