@@ -9,14 +9,14 @@ const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max file size
+    fileSize: 500 * 1024 * 1024, // 500MB max file size (for videos)
   },
   fileFilter: (_req, file, cb) => {
-    // Accept images only
-    if (file.mimetype.startsWith('image/')) {
+    // Accept images and videos
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      cb(new Error('Only image and video files are allowed'));
     }
   },
 });
@@ -28,7 +28,7 @@ router.use(authenticate);
  * @openapi
  * /api/photos/upload:
  *   post:
- *     summary: Upload a new photo
+ *     summary: Upload a new photo or video
  *     tags: [Photos]
  *     security:
  *       - bearerAuth: []
@@ -42,6 +42,7 @@ router.use(authenticate);
  *               photo:
  *                 type: string
  *                 format: binary
+ *                 description: Image or video file (max 500MB)
  *               tripId:
  *                 type: integer
  *               caption:
@@ -55,7 +56,7 @@ router.use(authenticate);
  *                 format: date-time
  *     responses:
  *       201:
- *         description: Photo uploaded
+ *         description: Photo or video uploaded
  */
 router.post('/upload', upload.single('photo'), photoController.uploadPhoto);
 

@@ -9,6 +9,7 @@ type DecimalValue = number | string | { toNumber(): number };
 const { Prisma } = require('@prisma/client');
 import {
   PhotoSource,
+  MediaType,
   UploadPhotoInput,
   LinkImmichPhotoInput,
   LinkImmichPhotoBatchInput,
@@ -25,11 +26,21 @@ import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
 const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
+const VIDEO_DIR = path.join(process.cwd(), 'uploads', 'videos');
 
 // Ensure upload directories exist
 async function ensureUploadDirs() {
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
   await fs.mkdir(THUMBNAIL_DIR, { recursive: true });
+  await fs.mkdir(VIDEO_DIR, { recursive: true });
+}
+
+// Determine media type from mimetype
+function getMediaTypeFromMimetype(mimetype: string): 'image' | 'video' {
+  if (mimetype.startsWith('video/')) {
+    return MediaType.VIDEO;
+  }
+  return MediaType.IMAGE;
 }
 
 // Helper function to build orderBy clause based on sort options
@@ -64,48 +75,64 @@ class PhotoService {
 
     await ensureUploadDirs();
 
+    // Determine media type from file mimetype
+    const mediaType = getMediaTypeFromMimetype(file.mimetype);
+    const isVideo = mediaType === MediaType.VIDEO;
+
     // Generate unique filename
     const timestamp = Date.now();
     const ext = path.extname(file.originalname);
     const filename = `${timestamp}-${Math.random().toString(36).substring(7)}${ext}`;
-    const filepath = path.join(UPLOAD_DIR, filename);
-    const thumbnailFilename = `thumb-${filename}`;
-    const thumbnailPath = path.join(THUMBNAIL_DIR, thumbnailFilename);
+
+    // Use appropriate directory based on media type
+    const uploadDir = isVideo ? VIDEO_DIR : UPLOAD_DIR;
+    const filepath = path.join(uploadDir, filename);
+    const localPathUrl = isVideo ? `/uploads/videos/${filename}` : `/uploads/photos/${filename}`;
 
     // Save original file
     await fs.writeFile(filepath, file.buffer);
 
-    // Create thumbnail
-    await sharp(file.buffer)
-      .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 80 })
-      .toFile(thumbnailPath);
-
-    // Extract EXIF data for GPS coordinates if available
+    let thumbnailPathUrl: string | null = null;
     let latitude = data.latitude;
     let longitude = data.longitude;
     let takenAt = data.takenAt ? new Date(data.takenAt) : null;
 
-    try {
-      const metadata = await sharp(file.buffer).metadata();
-      if (metadata.exif) {
-        // Parse EXIF data for GPS and date
-        // Note: More robust EXIF parsing could be added with exif-parser library
-        if (!takenAt && metadata.exif) {
-          // Extract date from EXIF if available
+    // Only create thumbnail and extract EXIF for images
+    if (!isVideo) {
+      const thumbnailFilename = `thumb-${filename.replace(ext, '.jpg')}`;
+      const thumbnailPath = path.join(THUMBNAIL_DIR, thumbnailFilename);
+
+      // Create thumbnail
+      await sharp(file.buffer)
+        .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toFile(thumbnailPath);
+
+      thumbnailPathUrl = `/uploads/thumbnails/${thumbnailFilename}`;
+
+      // Extract EXIF data for GPS coordinates if available
+      try {
+        const metadata = await sharp(file.buffer).metadata();
+        if (metadata.exif) {
+          // Parse EXIF data for GPS and date
+          // Note: More robust EXIF parsing could be added with exif-parser library
+          if (!takenAt && metadata.exif) {
+            // Extract date from EXIF if available
+          }
         }
+      } catch (error) {
+        // Continue without EXIF data if parsing fails - log for debugging
+        console.error('[PhotoService] Failed to parse EXIF data:', error instanceof Error ? error.message : error);
       }
-    } catch (error) {
-      // Continue without EXIF data if parsing fails - log for debugging
-      console.error('[PhotoService] Failed to parse EXIF data:', error instanceof Error ? error.message : error);
     }
 
     const photo = await prisma.photo.create({
       data: {
         tripId: data.tripId,
         source: PhotoSource.LOCAL,
-        localPath: `/uploads/photos/${filename}`,
-        thumbnailPath: `/uploads/thumbnails/${thumbnailFilename}`,
+        mediaType,
+        localPath: localPathUrl,
+        thumbnailPath: thumbnailPathUrl,
         caption: data.caption || null,
         takenAt,
         latitude,
@@ -128,6 +155,10 @@ class PhotoService {
         immichApiKey: true,
       },
     });
+
+    // Default media type and duration from input (can be overridden by Immich metadata)
+    let mediaType = data.mediaType || MediaType.IMAGE;
+    let duration = data.duration || null;
 
     // Verify Immich asset exists (if user has Immich configured)
     if (user?.immichApiUrl && user?.immichApiKey) {
@@ -153,6 +184,21 @@ class PhotoService {
           if (!data.longitude && asset.exifInfo?.longitude) {
             data.longitude = asset.exifInfo.longitude;
           }
+          // Extract media type from Immich
+          if (asset.type) {
+            mediaType = asset.type === 'VIDEO' ? MediaType.VIDEO : MediaType.IMAGE;
+          }
+          // Extract duration for videos (Immich returns duration as string like "00:05:30.123")
+          if (asset.duration && mediaType === MediaType.VIDEO) {
+            // Parse duration string to seconds
+            const durationMatch = asset.duration.match(/^(\d+):(\d+):(\d+)/);
+            if (durationMatch) {
+              const hours = parseInt(durationMatch[1], 10);
+              const minutes = parseInt(durationMatch[2], 10);
+              const seconds = parseInt(durationMatch[3], 10);
+              duration = hours * 3600 + minutes * 60 + seconds;
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to verify Immich asset:', error);
@@ -165,8 +211,10 @@ class PhotoService {
       data: {
         tripId: data.tripId,
         source: PhotoSource.IMMICH,
+        mediaType,
         immichAssetId: data.immichAssetId,
         thumbnailPath: `/api/immich/assets/${data.immichAssetId}/thumbnail`,
+        duration,
         caption: data.caption || null,
         takenAt: data.takenAt ? new Date(data.takenAt) : null,
         latitude: data.latitude || null,
@@ -236,8 +284,10 @@ class PhotoService {
       const photosToCreate = batch.map((asset) => ({
         tripId: data.tripId,
         source: PhotoSource.IMMICH,
+        mediaType: asset.mediaType || MediaType.IMAGE,
         immichAssetId: asset.immichAssetId,
         thumbnailPath: `/api/immich/assets/${asset.immichAssetId}/thumbnail`,
+        duration: asset.duration || null,
         caption: asset.caption || null,
         takenAt: asset.takenAt ? new Date(asset.takenAt) : null,
         latitude: asset.latitude || null,

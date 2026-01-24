@@ -10,6 +10,17 @@ import { PhotoSourcePicker } from "./CameraCapture";
 import { useConfetti } from "../hooks/useConfetti";
 import toast from "react-hot-toast";
 
+// Helper to parse Immich duration string (e.g., "00:05:30.123") to seconds
+function parseDuration(duration: string | null): number | undefined {
+  if (!duration) return undefined;
+  const match = duration.match(/^(\d+):(\d+):(\d+)/);
+  if (!match) return undefined;
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const seconds = parseInt(match[3], 10);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
 interface PhotoUploadProps {
   tripId: number;
   locations: Location[];
@@ -103,10 +114,12 @@ export default function PhotoUpload({
 
       if (assets.length >= BATCH_THRESHOLD) {
         // Use batch endpoint for large selections with chunking
-        console.log(`[PhotoUpload] Using batch endpoint for ${assets.length} photos`);
+        console.log(`[PhotoUpload] Using batch endpoint for ${assets.length} assets`);
 
         const batchData = assets.map((asset) => ({
           immichAssetId: asset.id,
+          mediaType: asset.type === 'VIDEO' ? 'video' as const : 'image' as const,
+          duration: asset.duration ? parseDuration(asset.duration) : undefined,
           caption: assets.length === 1 ? caption || undefined : undefined,
           takenAt: asset.exifInfo?.dateTimeOriginal || asset.fileCreatedAt,
           latitude: asset.exifInfo?.latitude ?? undefined,
@@ -175,7 +188,7 @@ export default function PhotoUpload({
         }
       } else {
         // Use individual linking for smaller selections
-        console.log(`[PhotoUpload] Using individual linking for ${assets.length} photos`);
+        console.log(`[PhotoUpload] Using individual linking for ${assets.length} assets`);
         for (let i = 0; i < assets.length; i++) {
           const asset = assets[i];
           const takenAt = asset.exifInfo?.dateTimeOriginal || asset.fileCreatedAt;
@@ -183,6 +196,8 @@ export default function PhotoUpload({
           await photoService.linkImmichPhoto({
             tripId,
             immichAssetId: asset.id,
+            mediaType: asset.type === 'VIDEO' ? 'video' : 'image',
+            duration: parseDuration(asset.duration),
             caption: assets.length === 1 ? caption || undefined : undefined,
             takenAt: takenAt ?? undefined,
             latitude: asset.exifInfo?.latitude ?? undefined,
@@ -224,7 +239,7 @@ export default function PhotoUpload({
         description: album.description || `Imported from Immich`,
       });
 
-      // Step 2: Link all photos from Immich
+      // Step 2: Link all photos/videos from Immich
       const linkedPhotoIds: number[] = [];
       for (let i = 0; i < assets.length; i++) {
         const asset = assets[i];
@@ -233,6 +248,8 @@ export default function PhotoUpload({
         const photo = await photoService.linkImmichPhoto({
           tripId,
           immichAssetId: asset.id,
+          mediaType: asset.type === 'VIDEO' ? 'video' : 'image',
+          duration: parseDuration(asset.duration),
           caption: undefined,
           takenAt: takenAt ?? undefined,
           latitude: asset.exifInfo?.latitude ?? undefined,
@@ -301,7 +318,7 @@ export default function PhotoUpload({
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Add Photos
+            Add Photos & Videos
           </h3>
           {immichConfigured && (
             <button
@@ -318,11 +335,11 @@ export default function PhotoUpload({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           onChange={handleFileInputChange}
           className="hidden"
-          aria-label="Select photos to upload"
+          aria-label="Select photos and videos to upload"
         />
 
         <div className="space-y-4">
@@ -339,10 +356,10 @@ export default function PhotoUpload({
           <div className="hidden md:block">
             <DragDropUpload
               onFilesSelected={handleFilesDropped}
-              accept="image/*"
+              accept="image/*,video/*"
               multiple
               disabled={isUploading}
-              text="Drag and drop photos here"
+              text="Drag and drop photos or videos here"
               subtext="or click to browse from your computer"
             />
           </div>
@@ -360,11 +377,29 @@ export default function PhotoUpload({
             <div className="grid grid-cols-4 gap-2">
               {selectedFiles.map((file, index) => (
                 <div key={index} className="relative aspect-square">
-                  <img
-                    src={previewUrls[index] || ''}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-full object-cover rounded"
-                  />
+                  {file.type.startsWith('video/') ? (
+                    <div className="w-full h-full bg-gray-900 rounded flex items-center justify-center relative">
+                      <video
+                        src={previewUrls[index] || ''}
+                        className="w-full h-full object-cover rounded"
+                        muted
+                      />
+                      {/* Video indicator overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-black/50 rounded-full p-2">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={previewUrls[index] || ''}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-full object-cover rounded"
+                    />
+                  )}
                   <button
                     onClick={() =>
                       setSelectedFiles(
@@ -372,7 +407,7 @@ export default function PhotoUpload({
                       )
                     }
                     type="button"
-                    aria-label={`Remove photo ${index + 1}`}
+                    aria-label={`Remove ${file.type.startsWith('video/') ? 'video' : 'photo'} ${index + 1}`}
                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-8 h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
                     disabled={isUploading}
                   >
@@ -451,7 +486,7 @@ export default function PhotoUpload({
       {isDraggingFiles && (
         <DragDropUpload
           onFilesSelected={handleFilesDropped}
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           overlay
         />

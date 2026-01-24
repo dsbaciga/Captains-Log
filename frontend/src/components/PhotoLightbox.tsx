@@ -55,8 +55,11 @@ export default function PhotoLightbox({
   const [showControls, setShowControls] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isVideo = photo.mediaType === 'video';
 
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
 
@@ -213,9 +216,9 @@ export default function PhotoLightbox({
     };
   }, [editMode]);
 
-  // Pan functionality when zoomed
+  // Pan functionality when zoomed (disabled for videos)
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoom > 1) {
+    if (zoom > 1 && !isVideo) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     }
@@ -254,18 +257,32 @@ export default function PhotoLightbox({
         {...swipeHandlers}
       >
         {photoUrl ? (
-          <img
-            ref={imageRef}
-            src={photoUrl}
-            alt={photo.caption || "Photo"}
-            className="max-w-full max-h-full object-contain select-none transition-transform duration-150"
-            style={{
-              transform: `scale(${zoom}) translate(${position.x / zoom}px, ${
-                position.y / zoom
-              }px)`,
-            }}
-            draggable={false}
-          />
+          isVideo ? (
+            <video
+              ref={videoRef}
+              src={photoUrl}
+              className="max-w-full max-h-full object-contain select-none"
+              controls
+              autoPlay
+              playsInline
+              onClick={(e) => e.stopPropagation()}
+            >
+              Your browser does not support video playback.
+            </video>
+          ) : (
+            <img
+              ref={imageRef}
+              src={photoUrl}
+              alt={photo.caption || "Photo"}
+              className="max-w-full max-h-full object-contain select-none transition-transform duration-150"
+              style={{
+                transform: `scale(${zoom}) translate(${position.x / zoom}px, ${
+                  position.y / zoom
+                }px)`,
+              }}
+              draggable={false}
+            />
+          )
         ) : (
           <div className="text-center text-gray-400">
             <svg
@@ -282,7 +299,7 @@ export default function PhotoLightbox({
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <p>Photo not available</p>
+            <p>{isVideo ? 'Video' : 'Photo'} not available</p>
           </div>
         )}
       </div>
@@ -521,7 +538,8 @@ export default function PhotoLightbox({
 
               {/* Zoom and action controls */}
               <div className="flex items-center gap-2">
-                {/* Zoom controls - hidden on small screens */}
+                {/* Zoom controls - hidden on small screens and for videos */}
+                {!isVideo && (
                 <div className="hidden sm:flex items-center bg-black/50 rounded-lg overflow-hidden">
                   <button
                     type="button"
@@ -594,9 +612,10 @@ export default function PhotoLightbox({
                     </button>
                   )}
                 </div>
+                )}
 
-                {/* Divider - hidden on small screens */}
-                <div className="hidden sm:block w-px h-8 bg-white/30" />
+                {/* Divider - hidden on small screens and for videos */}
+                {!isVideo && <div className="hidden sm:block w-px h-8 bg-white/30" />}
 
                 {/* Action buttons */}
                 <div className="flex gap-2">
@@ -720,7 +739,7 @@ export default function PhotoLightbox({
           showControls ? "opacity-100" : "opacity-0"
         }`}
       >
-        <p>← → Navigate &bull; + - Zoom &bull; 0 Reset &bull; i Info &bull; ESC Close</p>
+        <p>← → Navigate &bull; {!isVideo && '+ - Zoom &bull; 0 Reset &bull; '}i Info &bull; ESC Close</p>
       </div>
 
       {/* Photo Details Panel */}
