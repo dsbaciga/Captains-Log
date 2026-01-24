@@ -1,18 +1,40 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import photoController from '../controllers/photo.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-// Configure multer for memory storage (files will be processed before saving)
+// Temp directory for uploaded files before processing
+const TEMP_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'temp');
+
+// Ensure temp directory exists
+if (!fs.existsSync(TEMP_UPLOAD_DIR)) {
+  fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
+}
+
+// Configure multer for disk storage to avoid memory issues with large video files
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, TEMP_UPLOAD_DIR);
+    },
+    filename: (_req, file, cb) => {
+      // Generate unique filename with original extension
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(7);
+      const ext = path.extname(file.originalname);
+      cb(null, `temp-${timestamp}-${random}${ext}`);
+    },
+  }),
   limits: {
     fileSize: 500 * 1024 * 1024, // 500MB max file size (for videos)
   },
   fileFilter: (_req, file, cb) => {
-    // Accept images and videos
+    // Accept images and videos (preliminary check based on mimetype)
+    // Content validation using magic bytes happens in the service layer
     if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
       cb(null, true);
     } else {

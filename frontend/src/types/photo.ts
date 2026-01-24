@@ -1,5 +1,11 @@
 export type PhotoSource = 'local' | 'immich';
-export type MediaType = 'image' | 'video';
+
+export const MediaType = {
+  IMAGE: 'image',
+  VIDEO: 'video',
+} as const;
+
+export type MediaType = typeof MediaType[keyof typeof MediaType];
 
 export type Photo = {
   id: number;

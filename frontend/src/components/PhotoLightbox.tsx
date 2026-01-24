@@ -266,9 +266,10 @@ export default function PhotoLightbox({
               autoPlay
               muted
               playsInline
+              preload="metadata"
               onClick={(e) => e.stopPropagation()}
             >
-              Your browser does not support video playback.
+              Your browser does not support this video format. Supported formats: MP4, WebM, OGG.
             </video>
           ) : (
             <img

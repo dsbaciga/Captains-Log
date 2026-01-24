@@ -10,6 +10,7 @@ import ProgressiveImage from "./ProgressiveImage";
 import EntityPickerModal from "./EntityPickerModal";
 import BatchPhotoToolbar from "./BatchPhotoToolbar";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
+import { formatDuration } from "../utils/duration";
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -35,18 +36,6 @@ interface ThumbnailCache {
 
 // Helper function for delays
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Format duration in seconds to HH:MM:SS or MM:SS format
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  }
-  return `${minutes}:${String(secs).padStart(2, '0')}`;
-}
 
 // Fetch with retry logic for rate limiting (429 errors)
 async function fetchWithRetry(
