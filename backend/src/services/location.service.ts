@@ -228,7 +228,7 @@ export class LocationService {
 
     const updateData = buildConditionalUpdateData(data, {
       transformers: {
-        visitDatetime: (val) => val ? new Date(val) : null,
+        visitDatetime: (val) => val ? new Date(val as string | number | Date) : null,
       },
     });
 

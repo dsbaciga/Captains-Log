@@ -53,6 +53,31 @@ export interface PhotoWithDetails extends Photo {
   albums?: PhotoAlbum[];
 }
 
+// Type for photo input that may have album assignments (used in controllers)
+export interface PhotoWithOptionalAlbums {
+  id: number;
+  tripId: number;
+  source: string;
+  immichAssetId?: string | null;
+  localPath?: string | null;
+  thumbnailPath?: string | null;
+  caption?: string | null;
+  takenAt?: Date | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  albumAssignments?: Array<{
+    album: PhotoAlbum;
+    addedAt?: Date;
+    createdAt?: Date;
+  }>;
+  [key: string]: unknown;
+}
+
+// Type for transformed photo output (used in controllers)
+export interface TransformedPhoto extends Omit<PhotoWithOptionalAlbums, 'albumAssignments'> {
+  albums?: Array<{ album: PhotoAlbum }>;
+}
+
 export interface AlbumWithPhotos extends PhotoAlbum {
   photos: Photo[];
   _count?: {

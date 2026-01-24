@@ -1,58 +1,42 @@
 import axios, { AxiosInstance } from 'axios';
 import { AppError } from '../utils/errors';
+import {
+  ImmichAsset,
+  ImmichAlbum,
+  ImmichAssetOptions,
+  ImmichSearchQuery,
+  isAxiosError,
+  getErrorMessage,
+} from '../types/prisma-helpers';
 
-export interface ImmichAsset {
-  id: string;
-  deviceAssetId: string;
-  ownerId: string;
-  deviceId: string;
-  type: 'IMAGE' | 'VIDEO';
-  originalPath: string;
-  originalFileName: string;
-  resized: boolean;
-  thumbhash: string | null;
-  fileCreatedAt: string;
-  fileModifiedAt: string;
-  updatedAt: string;
-  isFavorite: boolean;
-  isArchived: boolean;
-  duration: string | null;
-  exifInfo?: {
-    latitude?: number;
-    longitude?: number;
-    dateTimeOriginal?: string;
-    make?: string;
-    model?: string;
-    lensModel?: string;
-    fNumber?: number;
-    focalLength?: number;
-    iso?: number;
-    exposureTime?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-  };
-}
+// Re-export types for backward compatibility
+export type { ImmichAsset, ImmichAlbum, ImmichAssetOptions };
 
-export interface ImmichAlbum {
-  id: string;
-  ownerId: string;
-  albumName: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  albumThumbnailAssetId: string | null;
-  shared: boolean;
-  assets: ImmichAsset[];
-  assetCount: number;
-}
-
+/**
+ * Immich search response structure
+ */
 export interface ImmichSearchResponse {
   assets: {
     items: ImmichAsset[];
     nextPage: string | null;
   };
   albums: ImmichAlbum[];
+}
+
+/**
+ * Immich album with assets included (extended type for album detail responses)
+ */
+export interface ImmichAlbumWithAssets extends ImmichAlbum {
+  assets: ImmichAsset[];
+}
+
+/**
+ * Extended search query with additional search fields
+ */
+export interface ImmichMetadataSearchQuery extends ImmichSearchQuery {
+  q?: string;
+  searchTerm?: string;
+  state?: string;
 }
 
 class ImmichService {
@@ -79,36 +63,42 @@ class ImmichService {
       const client = this.createClient(apiUrl, apiKey);
       const response = await client.get('/api/server/ping');
       return response.status === 200;
-    } catch (error) {
+    } catch (error: unknown) {
       // Log error details without exposing full URLs or API keys
-      const axiosError = error as { code?: string; message?: string; response?: { status?: number } };
-      const errorCode = axiosError.code || 'Unknown';
-      const errorMessage = axiosError.message || 'Unknown error';
+      const errorMessage = getErrorMessage(error);
+      let errorCode = 'Unknown';
+      let responseStatus: number | undefined;
+
+      if (isAxiosError(error)) {
+        errorCode = error.code || 'Unknown';
+        responseStatus = error.response?.status;
+      }
+
       console.error('[Immich Service] Connection error:', errorCode, '-', errorMessage);
 
-      if (axiosError.code === 'ECONNREFUSED') {
+      if (errorCode === 'ECONNREFUSED') {
         if (process.env.NODE_ENV === 'development') {
           console.error(`[Immich Service] Cannot connect to Immich at ${apiUrl}: Server refused connection`);
         }
         throw new AppError('Cannot connect to Immich server. Please check your configuration and ensure the server is running.', 400);
-      } else if (axiosError.code === 'ENOTFOUND') {
+      } else if (errorCode === 'ENOTFOUND') {
         if (process.env.NODE_ENV === 'development') {
           console.error(`[Immich Service] Cannot resolve hostname for ${apiUrl}: DNS resolution failed`);
         }
         throw new AppError('Cannot connect to Immich server. Please check your configuration and network settings.', 400);
-      } else if (axiosError.code === 'ETIMEDOUT') {
+      } else if (errorCode === 'ETIMEDOUT') {
         if (process.env.NODE_ENV === 'development') {
           console.error(`[Immich Service] Connection to ${apiUrl} timed out after 30 seconds`);
         }
         throw new AppError('Connection to Immich server timed out. Please check network firewall rules.', 408);
-      } else if (axiosError.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || axiosError.code === 'CERT_HAS_EXPIRED' || axiosError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+      } else if (errorCode === 'DEPTH_ZERO_SELF_SIGNED_CERT' || errorCode === 'CERT_HAS_EXPIRED' || errorCode === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
         if (process.env.NODE_ENV === 'development') {
-          console.error(`[Immich Service] SSL certificate error for ${apiUrl}: ${axiosError.code}`);
+          console.error(`[Immich Service] SSL certificate error for ${apiUrl}: ${errorCode}`);
         }
         throw new AppError('SSL certificate error. The Immich server has an invalid or self-signed certificate.', 400);
-      } else if (axiosError.response?.status === 401 || axiosError.response?.status === 403) {
+      } else if (responseStatus === 401 || responseStatus === 403) {
         throw new AppError('Invalid Immich API key. Check your API key in user settings.', 401);
-      } else if (axiosError.response?.status === 404) {
+      } else if (responseStatus === 404) {
         if (process.env.NODE_ENV === 'development') {
           console.error(`[Immich Service] API endpoint not found at ${apiUrl}`);
         }
@@ -129,18 +119,13 @@ class ImmichService {
   async getAssets(
     apiUrl: string,
     apiKey: string,
-    options?: {
-      skip?: number;
-      take?: number;
-      isFavorite?: boolean;
-      isArchived?: boolean;
-    }
+    options?: ImmichAssetOptions
   ): Promise<{ assets: ImmichAsset[]; total: number }> {
     try {
       const client = this.createClient(apiUrl, apiKey);
 
       // Use search/metadata endpoint with no filters to get all assets
-      const searchQuery: { isFavorite?: boolean; isArchived?: boolean } = {};
+      const searchQuery: ImmichSearchQuery = {};
       if (options?.isFavorite !== undefined) {
         searchQuery.isFavorite = options.isFavorite;
       }
@@ -168,9 +153,9 @@ class ImmichService {
         assets: assets,
         total: assets.length,
       };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorCode = (error as { code?: string }).code || 'Unknown';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      const errorCode = isAxiosError(error) ? error.code || 'Unknown' : 'Unknown';
       console.error('[Immich Service] Error fetching assets:', errorCode, '-', errorMessage);
       throw new AppError(`Failed to fetch assets from Immich: ${errorMessage}`, 500);
     }
@@ -188,8 +173,8 @@ class ImmichService {
       const client = this.createClient(apiUrl, apiKey);
       const response = await client.get(`/api/assets/${assetId}`);
       return response.data;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
       console.error('Error fetching Immich asset:', errorMessage);
       throw new AppError('Failed to fetch asset from Immich', 404);
     }
@@ -231,9 +216,9 @@ class ImmichService {
         stream: response.data,
         contentType: response.headers['content-type'] || 'image/jpeg',
       };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorCode = (error as { code?: string }).code || 'Unknown';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      const errorCode = isAxiosError(error) ? error.code || 'Unknown' : 'Unknown';
       console.error('[Immich Service] Error fetching thumbnail:', errorCode, '-', errorMessage);
       throw new AppError('Failed to fetch thumbnail from Immich', 500);
     }
@@ -257,8 +242,8 @@ class ImmichService {
         stream: response.data,
         contentType: response.headers['content-type'] || 'application/octet-stream',
       };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
       console.error('Error fetching original file stream:', errorMessage);
       throw new AppError('Failed to fetch original file from Immich', 500);
     }
@@ -270,24 +255,14 @@ class ImmichService {
   async searchAssets(
     apiUrl: string,
     apiKey: string,
-    query: {
-      q?: string;
-      searchTerm?: string;
-      city?: string;
-      state?: string;
-      country?: string;
-      make?: string;
-      model?: string;
-      takenAfter?: string;
-      takenBefore?: string;
-    }
+    query: ImmichMetadataSearchQuery
   ): Promise<ImmichAsset[]> {
     try {
       const client = this.createClient(apiUrl, apiKey);
       const response = await client.post('/api/search/metadata', query);
       return response.data.assets?.items || [];
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
       console.error('Error searching Immich assets:', errorMessage);
       throw new AppError('Failed to search assets in Immich', 500);
     }
@@ -306,8 +281,8 @@ class ImmichService {
       const params = shared !== undefined ? { shared } : {};
       const response = await client.get('/api/albums', { params });
       return response.data;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
       console.error('Error fetching Immich albums:', errorMessage);
       throw new AppError('Failed to fetch albums from Immich', 500);
     }
@@ -320,13 +295,13 @@ class ImmichService {
     apiUrl: string,
     apiKey: string,
     albumId: string
-  ): Promise<ImmichAlbum> {
+  ): Promise<ImmichAlbumWithAssets> {
     try {
       const client = this.createClient(apiUrl, apiKey);
       const response = await client.get(`/api/albums/${albumId}`);
       return response.data;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
       console.error('Error fetching Immich album:', errorMessage);
       throw new AppError('Failed to fetch album from Immich', 404);
     }
@@ -340,10 +315,7 @@ class ImmichService {
     apiKey: string,
     startDate: string,
     endDate: string,
-    options?: {
-      skip?: number;
-      take?: number;
-    }
+    options?: Pick<ImmichAssetOptions, 'skip' | 'take'>
   ): Promise<{ assets: ImmichAsset[]; total: number }> {
     try {
       const client = this.createClient(apiUrl, apiKey);
@@ -394,9 +366,9 @@ class ImmichService {
         assets: allAssets,
         total: allAssets.length,
       };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorCode = (error as { code?: string }).code || 'Unknown';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      const errorCode = isAxiosError(error) ? error.code || 'Unknown' : 'Unknown';
       console.error('[Immich Service] Error fetching assets by date range:', errorCode, '-', errorMessage);
       throw new AppError('Failed to fetch assets by date range', 500);
     }
