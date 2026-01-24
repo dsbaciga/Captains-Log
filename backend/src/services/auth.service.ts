@@ -88,7 +88,7 @@ export class AuthService {
     };
   }
 
-  async refreshToken(token: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refreshToken(token: string): Promise<{ accessToken: string; refreshToken: string; user: { id: number; username: string; email: string; avatarUrl: string | null } }> {
     try {
       // Verify refresh token
       const decoded = verifyRefreshToken(token);
@@ -106,7 +106,16 @@ export class AuthService {
       const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
       const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email });
 
-      return { accessToken, refreshToken };
+      return {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
+        }
+      };
     } catch (error) {
       throw new AppError('Invalid refresh token', 401);
     }

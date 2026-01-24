@@ -1,6 +1,8 @@
 import prisma from '../config/database';
 import { AppError } from './errors';
-import { Prisma } from '@prisma/client';
+import { EntityType, Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
+import { PrismaModelDelegate } from '../types/prisma-helpers';
 
 /**
  * Service helper utilities to reduce duplication across service files
@@ -59,7 +61,8 @@ export async function verifyEntityInTrip(
   // TypeScript cannot infer the correct model type from a dynamic key lookup.
   // The entityConfigs mapping ensures config.model is always a valid Prisma model name,
   // so this cast is safe. Prisma's generated types don't support dynamic model access.
-  const model = prisma[config.model] as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic Prisma model access requires type assertion
+  const model = prisma[config.model] as PrismaModelDelegate;
 
   const entity = await model.findFirst({
     where: { id: entityId, tripId },
@@ -80,7 +83,7 @@ export async function verifyEntityInTrip(
  * @throws {AppError} 404 if entity not found or access denied
  * @returns The entity with trip included if verification passes
  */
-export async function verifyEntityAccessById<T = any>(
+export async function verifyEntityAccessById<T = unknown>(
   entityType: VerifiableEntityType,
   entityId: number,
   userId: number
@@ -89,14 +92,14 @@ export async function verifyEntityAccessById<T = any>(
   // TypeScript cannot infer the correct model type from a dynamic key lookup.
   // The entityConfigs mapping ensures config.model is always a valid Prisma model name,
   // so this cast is safe. Prisma's generated types don't support dynamic model access.
-  const model = prisma[config.model] as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic Prisma model access requires type assertion
+  const model = prisma[config.model] as PrismaModelDelegate;
 
   const entity = await model.findFirst({
     where: {
       id: entityId,
       trip: { userId },
     },
-    include: { trip: true },
   });
 
   if (!entity) {
@@ -224,7 +227,7 @@ export async function verifyTransportationAccess(
  * Only includes fields that are defined (not undefined)
  * This ensures empty fields are cleared in updates
  */
-export function buildUpdateData<T extends Record<string, any>>(
+export function buildUpdateData<T extends Record<string, unknown>>(
   data: Partial<T>
 ): Partial<T> {
   const updateData: Partial<T> = {};
@@ -232,7 +235,7 @@ export function buildUpdateData<T extends Record<string, any>>(
   for (const key in data) {
     if (data[key] !== undefined) {
       // Convert empty strings to null for updates to clear fields
-      updateData[key] = (data[key] === '' ? null : data[key]) as any;
+      updateData[key] = (data[key] === '' ? null : data[key]) as T[Extract<keyof T, string>];
     }
   }
 
@@ -268,11 +271,11 @@ export function buildUpdateData<T extends Record<string, any>>(
  * });
  * ```
  */
-export function buildConditionalUpdateData<T extends Record<string, any>>(
+export function buildConditionalUpdateData<T extends Record<string, unknown>>(
   data: Partial<T>,
   options: {
     emptyStringToNull?: boolean;
-    transformers?: Record<string, (value: any) => any>;
+    transformers?: Record<string, (value: unknown) => unknown>;
   } = {}
 ): Partial<T> {
   const { emptyStringToNull = true, transformers = {} } = options;
@@ -285,11 +288,11 @@ export function buildConditionalUpdateData<T extends Record<string, any>>(
     if (value !== undefined) {
       // Apply custom transformer if exists
       if (transformers[key]) {
-        updateData[key] = transformers[key](value);
+        updateData[key] = transformers[key](value) as T[Extract<keyof T, string>];
       }
       // Convert empty strings to null
       else if (emptyStringToNull && value === '') {
-        updateData[key] = null as any;
+        updateData[key] = null as T[Extract<keyof T, string>];
       }
       // Include as-is
       else {
@@ -332,11 +335,33 @@ export async function verifyEntityOwnership<T extends { trip: { userId: number }
 }
 
 /**
- * Recursively converts Decimal objects (from Prisma) to numbers
- * Useful for ensuring JSON responses have numbers instead of Decimal objects
+ * Utility type that transforms Decimal properties to number recursively.
+ * This accurately represents the runtime transformation performed by convertDecimals.
+ * Use this type when you need type-accurate representation of converted data.
+ *
+ * @example
+ * type ConvertedLocation = ConvertDecimalsToNumbers<Location>;
+ * // latitude: number (instead of Decimal)
+ */
+export type ConvertDecimalsToNumbers<T> = T extends Decimal
+  ? number
+  : T extends Array<infer U>
+    ? ConvertDecimalsToNumbers<U>[]
+    : T extends object
+      ? { [K in keyof T]: ConvertDecimalsToNumbers<T[K]> }
+      : T;
+
+/**
+ * Recursively converts Decimal objects (from Prisma) to numbers.
+ * Useful for ensuring JSON responses have numbers instead of Decimal objects.
+ *
+ * Note: At runtime, Decimal fields become numbers. The return type is `T` for
+ * backward compatibility, but callers should be aware that Decimal properties
+ * will be numbers at runtime. Use `ConvertDecimalsToNumbers<T>` utility type
+ * when you need type-accurate representation.
  *
  * @param obj - The object or array containing Decimal fields
- * @returns The object with Decimals converted to numbers
+ * @returns The object with Decimals converted to numbers (typed as T for compatibility)
  */
 export function convertDecimals<T>(obj: T): T {
   if (obj === null || obj === undefined) {
@@ -344,19 +369,19 @@ export function convertDecimals<T>(obj: T): T {
   }
 
   if (obj instanceof Prisma.Decimal) {
-    return Number(obj) as any;
+    return Number(obj) as T;
   }
 
   if (obj instanceof Date) {
-    return obj as any;
+    return obj;
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => convertDecimals(item)) as any;
+    return obj.map((item) => convertDecimals(item)) as T;
   }
 
   if (typeof obj === 'object') {
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
         result[key] = convertDecimals(obj[key]);
@@ -366,4 +391,28 @@ export function convertDecimals<T>(obj: T): T {
   }
 
   return obj;
+}
+
+/**
+ * Cleans up all entity links associated with an entity before deletion.
+ * This removes links where the entity is either the source or target.
+ *
+ * @param tripId - The trip ID the entity belongs to
+ * @param entityType - The type of entity being deleted
+ * @param entityId - The ID of the entity being deleted
+ */
+export async function cleanupEntityLinks(
+  tripId: number,
+  entityType: EntityType,
+  entityId: number
+): Promise<void> {
+  await prisma.entityLink.deleteMany({
+    where: {
+      tripId,
+      OR: [
+        { sourceType: entityType, sourceId: entityId },
+        { targetType: entityType, targetId: entityId },
+      ],
+    },
+  });
 }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import authController from '../controllers/auth.controller';
+import { authController } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -68,23 +68,54 @@ router.post('/login', authController.login);
  *   post:
  *     summary: Refresh access token
  *     tags: [Authentication]
+ *     description: Reads refresh token from httpOnly cookie (preferred) or request body (backward compatibility)
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [refreshToken]
  *             properties:
  *               refreshToken:
  *                 type: string
+ *                 description: Legacy - refresh token (now read from cookie)
  *     responses:
  *       200:
- *         description: Tokens refreshed
+ *         description: Access token refreshed (new refresh token set in cookie)
  *       401:
  *         description: Invalid or expired refresh token
  */
 router.post('/refresh', authController.refreshToken);
+
+/**
+ * @openapi
+ * /api/auth/silent-refresh:
+ *   post:
+ *     summary: Silently refresh access token using httpOnly cookie
+ *     tags: [Authentication]
+ *     description: Used on page load to restore authentication state without exposing tokens to JavaScript
+ *     responses:
+ *       200:
+ *         description: Returns user and access token if valid cookie exists, or null if not logged in
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   oneOf:
+ *                     - type: object
+ *                       properties:
+ *                         user:
+ *                           type: object
+ *                         accessToken:
+ *                           type: string
+ *                     - type: 'null'
+ */
+router.post('/silent-refresh', authController.silentRefresh);
 
 /**
  * @openapi
@@ -108,12 +139,11 @@ router.get('/me', authenticate, authController.getCurrentUser);
  *   post:
  *     summary: Logout from the application
  *     tags: [Authentication]
- *     security:
- *       - bearerAuth: []
+ *     description: Clears the refresh token cookie. No authentication required - this allows logout even with an expired access token.
  *     responses:
  *       200:
  *         description: Logout successful
  */
-router.post('/logout', authenticate, authController.logout);
+router.post('/logout', authController.logout);
 
 export default router;

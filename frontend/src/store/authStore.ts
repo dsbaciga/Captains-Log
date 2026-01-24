@@ -1,29 +1,29 @@
 import { create } from 'zustand';
 import type { User, LoginInput, RegisterInput } from '../types/auth';
 import authService from '../services/auth.service';
+import { setAccessToken } from '../lib/axios';
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean; // Track if initial auth check is complete
   error: string | null;
 
   login: (data: LoginInput) => Promise<void>;
   register: (data: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
-  loadUser: () => Promise<void>;
+  initializeAuth: () => Promise<void>; // Silent refresh on page load
   updateUser: (user: Partial<User>) => void;
   clearError: () => void;
+  clearAuth: () => void; // For use by axios interceptor
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  accessToken: localStorage.getItem('accessToken'),
-  refreshToken: localStorage.getItem('refreshToken'),
   isAuthenticated: false,
   isLoading: false,
+  isInitialized: false,
   error: null,
 
   login: async (data: LoginInput) => {
@@ -31,15 +31,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await authService.login(data);
 
-      // Store tokens
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      // Store access token in memory only (via setAccessToken)
+      setAccessToken(response.accessToken);
 
       set({
         user: response.user,
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
         isAuthenticated: true,
         isLoading: false,
       });
@@ -56,15 +52,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await authService.register(data);
 
-      // Store tokens
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      // Store access token in memory only (via setAccessToken)
+      setAccessToken(response.accessToken);
 
       set({
         user: response.user,
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
         isAuthenticated: true,
         isLoading: false,
       });
@@ -82,46 +74,45 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear tokens and user data
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-
+      setAccessToken(null);
       set({
         user: null,
-        accessToken: null,
-        refreshToken: null,
         isAuthenticated: false,
       });
     }
   },
 
-  loadUser: async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      set({ isAuthenticated: false, isLoading: false });
-      return;
-    }
-
+  // Called on app initialization (page load/refresh)
+  initializeAuth: async () => {
     set({ isLoading: true });
     try {
-      const user = await authService.getCurrentUser();
-      set({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch {
-      // Token is invalid, clear everything
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      // Try silent refresh using httpOnly cookie
+      const result = await authService.silentRefresh();
+
+      if (result) {
+        setAccessToken(result.accessToken);
+        set({
+          user: result.user,
+          isAuthenticated: true,
+          isLoading: false,
+          isInitialized: true,
+        });
+      } else {
+        // No active session
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          isInitialized: true,
+        });
+      }
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
       set({
         user: null,
-        accessToken: null,
-        refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
+        isInitialized: true,
       });
     }
   },
@@ -129,13 +120,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   updateUser: (updatedFields: Partial<User>) => {
     set((state) => {
       if (!state.user) return state;
-
-      const updatedUser = { ...state.user, ...updatedFields };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-
-      return { user: updatedUser };
+      return { user: { ...state.user, ...updatedFields } };
     });
   },
 
   clearError: () => set({ error: null }),
+
+  // Called by axios interceptor when refresh fails
+  clearAuth: () => {
+    setAccessToken(null);
+    set({
+      user: null,
+      isAuthenticated: false,
+    });
+  },
 }));

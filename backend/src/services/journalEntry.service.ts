@@ -4,7 +4,7 @@ import {
   CreateJournalEntryInput,
   UpdateJournalEntryInput,
 } from '../types/journalEntry.types';
-import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
 import { fromZonedTime } from 'date-fns-tz';
 import { parseISO } from 'date-fns';
 
@@ -133,15 +133,7 @@ class JournalEntryService {
     const verifiedEntry = await verifyEntityAccess(entry, userId, 'Journal entry');
 
     // Clean up entity links before deleting
-    await prisma.entityLink.deleteMany({
-      where: {
-        tripId: verifiedEntry.tripId,
-        OR: [
-          { sourceType: 'JOURNAL_ENTRY', sourceId: entryId },
-          { targetType: 'JOURNAL_ENTRY', targetId: entryId },
-        ],
-      },
-    });
+    await cleanupEntityLinks(verifiedEntry.tripId, 'JOURNAL_ENTRY', entryId);
 
     await prisma.journalEntry.delete({
       where: { id: entryId },

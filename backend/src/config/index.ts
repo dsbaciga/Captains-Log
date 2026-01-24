@@ -36,6 +36,15 @@ export const config = {
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 
+  // Cookie (for secure refresh token storage)
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: (process.env.COOKIE_SAME_SITE || 'strict') as 'strict' | 'lax' | 'none',
+    domain: process.env.COOKIE_DOMAIN || undefined, // e.g., '.example.com' for subdomains
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  },
+
   // File Upload
   upload: {
     dir: process.env.UPLOAD_DIR || './uploads',
