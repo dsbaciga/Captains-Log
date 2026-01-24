@@ -3,6 +3,7 @@ import type { EntityType } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG, LINKABLE_ENTITY_TYPES } from '../lib/entityConfig';
 import { useEntityFetcher, useEntityFilter } from '../hooks/useEntityFetcher';
 import entityLinkService from '../services/entityLink.service';
+import { getFullAssetUrl } from '../lib/config';
 import toast from 'react-hot-toast';
 
 // Threshold for showing search bar
@@ -33,8 +34,10 @@ export default function GeneralEntityPickerModal({
   const [linking, setLinking] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [thumbnailCache, setThumbnailCache] = useState<Record<number, string>>({});
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
+  const blobUrlsRef = useRef<string[]>([]);
 
   // Handle keyboard events including focus trap
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -104,6 +107,55 @@ export default function GeneralEntityPickerModal({
 
   // Apply search filter to available entities
   const filteredEntities = useEntityFilter(availableEntities, searchQuery);
+
+  // Load thumbnails for Immich photos with authentication
+  useEffect(() => {
+    if (selectedType !== 'PHOTO') return;
+
+    const loadThumbnails = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
+      for (const entity of filteredEntities) {
+        // Skip if already cached or not an Immich photo
+        if (
+          thumbnailCache[entity.id] ||
+          !entity.thumbnailPath ||
+          !entity.thumbnailPath.includes('/api/immich/')
+        ) {
+          continue;
+        }
+
+        try {
+          const fullUrl = getFullAssetUrl(entity.thumbnailPath);
+          if (!fullUrl) continue;
+
+          const response = await fetch(fullUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            blobUrlsRef.current.push(blobUrl);
+            setThumbnailCache((prev) => ({ ...prev, [entity.id]: blobUrl }));
+          }
+        } catch {
+          // Skip failed thumbnails
+        }
+      }
+    };
+
+    loadThumbnails();
+  }, [selectedType, filteredEntities, thumbnailCache]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    const blobUrls = blobUrlsRef.current;
+    return () => {
+      blobUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const handleSingleLink = async (targetEntityId: number) => {
     if (!selectedType) return;
@@ -376,11 +428,24 @@ export default function GeneralEntityPickerModal({
 
                       {/* Show thumbnail for photos, emoji for others */}
                       {isPhoto && entity.thumbnailPath ? (
-                        <img
-                          src={entity.thumbnailPath}
-                          alt={entity.name}
-                          className="w-12 h-12 object-cover rounded flex-shrink-0"
-                        />
+                        // Use cached blob URL for Immich photos, or direct URL for local photos
+                        thumbnailCache[entity.id] ? (
+                          <img
+                            src={thumbnailCache[entity.id]}
+                            alt={entity.name}
+                            className="w-12 h-12 object-cover rounded flex-shrink-0"
+                          />
+                        ) : entity.thumbnailPath.includes('/api/immich/') ? (
+                          // Immich photo loading placeholder
+                          <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0 animate-pulse" />
+                        ) : (
+                          // Local photo - use direct URL
+                          <img
+                            src={getFullAssetUrl(entity.thumbnailPath) || ''}
+                            alt={entity.name}
+                            className="w-12 h-12 object-cover rounded flex-shrink-0"
+                          />
+                        )
                       ) : (
                         <span className="text-lg">
                           {selectedType && ENTITY_TYPE_CONFIG[selectedType].emoji}

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import entityLinkService from '../services/entityLink.service';
 import GeneralEntityPickerModal from './GeneralEntityPickerModal';
 import LinkEditModal from './LinkEditModal';
+import { getFullAssetUrl } from '../lib/config';
 import type {
   EntityType,
   EnrichedEntityLink,
@@ -39,8 +40,10 @@ export default function LinkPanel({
   const navigate = useNavigate();
   const [showAddLinkModal, setShowAddLinkModal] = useState(false);
   const [editingLink, setEditingLink] = useState<EnrichedEntityLink | null>(null);
+  const [thumbnailCache, setThumbnailCache] = useState<Record<number, string>>({});
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
+  const blobUrlsRef = useRef<string[]>([]);
 
   // Navigate to the linked entity's location in the trip detail page
   const handleNavigateToEntity = (linkedEntityType: EntityType, linkedEntityId: number) => {
@@ -126,6 +129,65 @@ export default function LinkPanel({
       setShowAddLinkModal(true);
     }
   }, [isLoading, linksData]);
+
+  // Load thumbnails for linked Immich photos with authentication
+  useEffect(() => {
+    if (!linksData) return;
+
+    const loadThumbnails = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
+      // Get all linked photos from both linksFrom and linksTo
+      const photoLinks = [
+        ...linksData.linksFrom.filter((l) => l.targetType === 'PHOTO'),
+        ...linksData.linksTo.filter((l) => l.sourceType === 'PHOTO'),
+      ];
+
+      for (const link of photoLinks) {
+        const entity = link.targetType === 'PHOTO' ? link.targetEntity : link.sourceEntity;
+        const entityId = link.targetType === 'PHOTO' ? link.targetId : link.sourceId;
+
+        // Skip if already cached or not an Immich photo
+        const thumbnailPath = entity?.thumbnailPath;
+        if (
+          thumbnailCache[entityId] ||
+          !thumbnailPath ||
+          !thumbnailPath.includes('/api/immich/')
+        ) {
+          continue;
+        }
+
+        try {
+          const fullUrl = getFullAssetUrl(thumbnailPath);
+          if (!fullUrl) continue;
+
+          const response = await fetch(fullUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            blobUrlsRef.current.push(blobUrl);
+            setThumbnailCache((prev) => ({ ...prev, [entityId]: blobUrl }));
+          }
+        } catch {
+          // Skip failed thumbnails
+        }
+      }
+    };
+
+    loadThumbnails();
+  }, [linksData, thumbnailCache]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    const blobUrls = blobUrlsRef.current;
+    return () => {
+      blobUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   // Handle keyboard events including focus trap
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -315,11 +377,24 @@ export default function LinkPanel({
                             <div className="flex items-center gap-3 min-w-0 flex-1">
                               {/* Show thumbnail for photos, emoji for others */}
                               {isPhoto && thumbnailUrl ? (
-                                <img
-                                  src={thumbnailUrl}
-                                  alt={displayName}
-                                  className="w-12 h-12 object-cover rounded flex-shrink-0"
-                                />
+                                // Use cached blob URL for Immich photos, or direct URL for local photos
+                                thumbnailCache[linkedEntityId] ? (
+                                  <img
+                                    src={thumbnailCache[linkedEntityId]}
+                                    alt={displayName}
+                                    className="w-12 h-12 object-cover rounded flex-shrink-0"
+                                  />
+                                ) : thumbnailUrl.includes('/api/immich/') ? (
+                                  // Immich photo loading placeholder
+                                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0 animate-pulse" />
+                                ) : (
+                                  // Local photo - use direct URL
+                                  <img
+                                    src={getFullAssetUrl(thumbnailUrl) || ''}
+                                    alt={displayName}
+                                    className="w-12 h-12 object-cover rounded flex-shrink-0"
+                                  />
+                                )
                               ) : (
                                 <span className="text-lg flex-shrink-0">
                                   {ENTITY_TYPE_CONFIG[linkedEntityType].emoji}
