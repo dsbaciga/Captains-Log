@@ -8,7 +8,7 @@ import {
   PhotoSortBy,
   SortOrder,
 } from '../types/photo.types';
-import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 
@@ -379,15 +379,7 @@ class PhotoAlbumService {
     const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
 
     // Clean up entity links before deleting
-    await prisma.entityLink.deleteMany({
-      where: {
-        tripId: verifiedAlbum.tripId,
-        OR: [
-          { sourceType: 'PHOTO_ALBUM', sourceId: albumId },
-          { targetType: 'PHOTO_ALBUM', targetId: albumId },
-        ],
-      },
-    });
+    await cleanupEntityLinks(verifiedAlbum.tripId, 'PHOTO_ALBUM', albumId);
 
     await prisma.photoAlbum.delete({
       where: { id: albumId },

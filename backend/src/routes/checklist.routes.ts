@@ -1,5 +1,5 @@
 import express from 'express';
-import checklistController from '../controllers/checklist.controller';
+import { checklistController } from '../controllers/checklist.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = express.Router();

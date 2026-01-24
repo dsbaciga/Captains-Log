@@ -1,15 +1,17 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import photoAlbumService from '../services/photoAlbum.service';
 import {
   createAlbumSchema,
   updateAlbumSchema,
   addPhotosToAlbumSchema,
 } from '../types/photo.types';
-import { AppError } from '../utils/errors';
+import { asyncHandler } from '../utils/asyncHandler';
+import { parseId } from '../utils/parseId';
+import { requireUserId } from '../utils/controllerHelpers';
 
 // Helper function to add Immich URLs for photos and transform album assignments
-function transformPhoto(photo: any) {
-  const transformed: any = { ...photo };
+function transformPhoto(photo: Record<string, unknown>) {
+  const transformed: Record<string, unknown> = { ...photo };
 
   // Transform Immich paths
   if (photo.source === 'immich' && photo.immichAssetId) {
@@ -19,7 +21,9 @@ function transformPhoto(photo: any) {
 
   // Transform albumAssignments to albums for frontend compatibility
   if (photo.albumAssignments) {
-    transformed.albums = photo.albumAssignments.map((assignment: any) => ({
+    transformed.albums = (
+      photo.albumAssignments as Array<{ album: unknown }>
+    ).map((assignment) => ({
       album: assignment.album,
     }));
     delete transformed.albumAssignments;
@@ -28,214 +32,172 @@ function transformPhoto(photo: any) {
   return transformed;
 }
 
-class PhotoAlbumController {
-  async getAllAlbums(req: Request, res: Response, next: NextFunction) {
-    try {
-      const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
-      const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+export const photoAlbumController = {
+  getAllAlbums: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
+    const take = req.query.take ? parseInt(req.query.take as string) : undefined;
 
-      const tagIds =
-        typeof req.query.tagIds === 'string'
-          ? req.query.tagIds
-              .split(',')
-              .map((id) => parseInt(id))
-              .filter((id) => !isNaN(id))
-          : undefined;
+    const tagIds =
+      typeof req.query.tagIds === 'string'
+        ? req.query.tagIds
+            .split(',')
+            .map((id) => parseInt(id))
+            .filter((id) => !isNaN(id))
+        : undefined;
 
-      const result = await photoAlbumService.getAllAlbums(req.user!.userId, {
+    const result = await photoAlbumService.getAllAlbums(userId, {
+      skip,
+      take,
+      tagIds,
+    });
+
+    // Transform cover photos for Immich compatibility
+    const transformedAlbums = result.albums.map(
+      (album: Record<string, unknown>) => {
+        if (album.coverPhoto) {
+          return {
+            ...album,
+            coverPhoto: transformPhoto(album.coverPhoto as Record<string, unknown>),
+          };
+        }
+        return album;
+      }
+    );
+
+    res.json({
+      ...result,
+      albums: transformedAlbums,
+    });
+  }),
+
+  createAlbum: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const validatedData = createAlbumSchema.parse(req.body);
+    const album = await photoAlbumService.createAlbum(userId, validatedData);
+    res.status(201).json(album);
+  }),
+
+  getAlbumsByTrip: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
+    const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[PhotoAlbumController] getAlbumsByTrip called:', {
+        userId,
+        tripId,
         skip,
         take,
-        tagIds,
       });
+    }
 
-      // Transform cover photos for Immich compatibility
-      const transformedAlbums = result.albums.map((album: any) => {
+    const result = await photoAlbumService.getAlbumsByTrip(userId, tripId, {
+      skip,
+      take,
+    });
+
+    // Transform cover photos for Immich compatibility
+    const transformedAlbums = result.albums.map(
+      (album: Record<string, unknown>) => {
         if (album.coverPhoto) {
           return {
             ...album,
-            coverPhoto: transformPhoto(album.coverPhoto),
+            coverPhoto: transformPhoto(album.coverPhoto as Record<string, unknown>),
           };
         }
         return album;
-      });
-
-      res.json({
-        ...result,
-        albums: transformedAlbums,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async createAlbum(req: Request, res: Response, next: NextFunction) {
-    try {
-      const validatedData = createAlbumSchema.parse(req.body);
-      const album = await photoAlbumService.createAlbum(
-        req.user!.userId,
-        validatedData
-      );
-
-      res.status(201).json(album);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getAlbumsByTrip(req: Request, res: Response, next: NextFunction) {
-    try {
-      if (!req.user || !req.user.userId) {
-        throw new AppError('Unauthorized', 401);
       }
+    );
 
-      const tripId = parseInt(req.params.tripId);
-      if (isNaN(tripId)) {
-        throw new AppError('Invalid trip ID', 400);
-      }
+    res.json({
+      ...result,
+      albums: transformedAlbums,
+    });
+  }),
 
-      const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
-      const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+  getAlbumById: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const albumId = parseId(req.params.id);
+    const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
+    const take = req.query.take ? parseInt(req.query.take as string) : undefined;
+    const sortBy = req.query.sortBy as string | undefined;
+    const sortOrder = req.query.sortOrder as string | undefined;
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[PhotoAlbumController] getAlbumsByTrip called:', {
-          userId: req.user.userId,
-          tripId,
-          skip,
-          take,
-        });
-      }
+    const album = await photoAlbumService.getAlbumById(userId, albumId, {
+      skip,
+      take,
+      sortBy,
+      sortOrder,
+    });
 
-      const result = await photoAlbumService.getAlbumsByTrip(
-        req.user.userId,
-        tripId,
-        { skip, take }
-      );
+    // Transform photoAssignments to photos for frontend compatibility
+    // photoAssignments is an array of { photo: Photo, addedAt: Date }
+    // We need to extract and transform each photo object
+    const transformed: Record<string, unknown> = {
+      ...album,
+      photos:
+        album.photoAssignments?.map(
+          (assignment: { photo: Record<string, unknown>; addedAt: Date }) => ({
+            photo: transformPhoto(assignment.photo),
+            addedAt: assignment.addedAt,
+          })
+        ) || [],
+    };
+    delete transformed.photoAssignments;
 
-      // Transform cover photos for Immich compatibility
-      const transformedAlbums = result.albums.map((album: any) => {
-        if (album.coverPhoto) {
-          return {
-            ...album,
-            coverPhoto: transformPhoto(album.coverPhoto),
-          };
-        }
-        return album;
-      });
-
-      res.json({
-        ...result,
-        albums: transformedAlbums,
-      });
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[PhotoAlbumController] getAlbumsByTrip error:', error);
-      }
-      next(error);
-    }
-  }
-
-  async getAlbumById(req: Request, res: Response, next: NextFunction) {
-    try {
-      const albumId = parseInt(req.params.id);
-      const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
-      const take = req.query.take ? parseInt(req.query.take as string) : undefined;
-      const sortBy = req.query.sortBy as string | undefined;
-      const sortOrder = req.query.sortOrder as string | undefined;
-
-      const album = await photoAlbumService.getAlbumById(
-        req.user!.userId,
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Album transformation result:', {
         albumId,
-        { skip, take, sortBy, sortOrder }
-      );
-
-      // Transform photoAssignments to photos for frontend compatibility
-      // photoAssignments is an array of { photo: Photo, addedAt: Date }
-      // We need to extract and transform each photo object
-      const transformed = {
-        ...album,
-        photos: album.photoAssignments?.map((assignment: any) => ({
-          photo: transformPhoto(assignment.photo),
-          addedAt: assignment.addedAt,
-        })) || [],
-      };
-      delete (transformed as any).photoAssignments;
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Album transformation result:', {
-          albumId,
-          skip,
-          take,
-          originalPhotoAssignmentsCount: album.photoAssignments?.length || 0,
-          transformedPhotosCount: transformed.photos.length,
-          hasMore: transformed.hasMore,
-          total: transformed.total,
-        });
-      }
-
-      res.json(transformed);
-    } catch (error) {
-      next(error);
+        skip,
+        take,
+        originalPhotoAssignmentsCount: album.photoAssignments?.length || 0,
+        transformedPhotosCount: (transformed.photos as unknown[]).length,
+        hasMore: transformed.hasMore,
+        total: transformed.total,
+      });
     }
-  }
 
-  async updateAlbum(req: Request, res: Response, next: NextFunction) {
-    try {
-      const albumId = parseInt(req.params.id);
-      const validatedData = updateAlbumSchema.parse(req.body);
-      const album = await photoAlbumService.updateAlbum(
-        req.user!.userId,
-        albumId,
-        validatedData
-      );
+    res.json(transformed);
+  }),
 
-      res.json(album);
-    } catch (error) {
-      next(error);
-    }
-  }
+  updateAlbum: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const albumId = parseId(req.params.id);
+    const validatedData = updateAlbumSchema.parse(req.body);
+    const album = await photoAlbumService.updateAlbum(
+      userId,
+      albumId,
+      validatedData
+    );
+    res.json(album);
+  }),
 
-  async deleteAlbum(req: Request, res: Response, next: NextFunction) {
-    try {
-      const albumId = parseInt(req.params.id);
-      await photoAlbumService.deleteAlbum(req.user!.userId, albumId);
+  deleteAlbum: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const albumId = parseId(req.params.id);
+    await photoAlbumService.deleteAlbum(userId, albumId);
+    res.status(204).send();
+  }),
 
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
+  addPhotosToAlbum: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const albumId = parseId(req.params.id);
+    const validatedData = addPhotosToAlbumSchema.parse(req.body);
+    const result = await photoAlbumService.addPhotosToAlbum(
+      userId,
+      albumId,
+      validatedData
+    );
+    res.json(result);
+  }),
 
-  async addPhotosToAlbum(req: Request, res: Response, next: NextFunction) {
-    try {
-      const albumId = parseInt(req.params.id);
-      const validatedData = addPhotosToAlbumSchema.parse(req.body);
-      const result = await photoAlbumService.addPhotosToAlbum(
-        req.user!.userId,
-        albumId,
-        validatedData
-      );
-
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async removePhotoFromAlbum(req: Request, res: Response, next: NextFunction) {
-    try {
-      const albumId = parseInt(req.params.id);
-      const photoId = parseInt(req.params.photoId);
-      await photoAlbumService.removePhotoFromAlbum(
-        req.user!.userId,
-        albumId,
-        photoId
-      );
-
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-
-export default new PhotoAlbumController();
+  removePhotoFromAlbum: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const albumId = parseId(req.params.id);
+    const photoId = parseId(req.params.photoId, 'photoId');
+    await photoAlbumService.removePhotoFromAlbum(userId, albumId, photoId);
+    res.status(204).send();
+  }),
+};

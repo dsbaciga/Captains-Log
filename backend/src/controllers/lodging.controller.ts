@@ -1,79 +1,47 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import lodgingService from '../services/lodging.service';
 import {
   createLodgingSchema,
   updateLodgingSchema,
 } from '../types/lodging.types';
+import { asyncHandler } from '../utils/asyncHandler';
+import { parseId } from '../utils/parseId';
+import { requireUserId } from '../utils/controllerHelpers';
 
-class LodgingController {
-  async createLodging(req: Request, res: Response, next: NextFunction) {
-    try {
-      const validatedData = createLodgingSchema.parse(req.body);
-      const lodging = await lodgingService.createLodging(
-        req.user!.userId,
-        validatedData
-      );
+export const lodgingController = {
+  createLodging: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const data = createLodgingSchema.parse(req.body);
+    const lodging = await lodgingService.createLodging(userId, data);
+    res.status(201).json(lodging);
+  }),
 
-      res.status(201).json(lodging);
-    } catch (error) {
-      next(error);
-    }
-  }
+  getLodgingByTrip: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const lodgings = await lodgingService.getLodgingByTrip(userId, tripId);
+    res.json(lodgings);
+  }),
 
-  async getLodgingByTrip(req: Request, res: Response, next: NextFunction) {
-    try {
-      const tripId = parseInt(req.params.tripId);
-      const lodgings = await lodgingService.getLodgingByTrip(
-        req.user!.userId,
-        tripId
-      );
+  getLodgingById: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const lodgingId = parseId(req.params.id);
+    const lodging = await lodgingService.getLodgingById(userId, lodgingId);
+    res.json(lodging);
+  }),
 
-      res.json(lodgings);
-    } catch (error) {
-      next(error);
-    }
-  }
+  updateLodging: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const lodgingId = parseId(req.params.id);
+    const data = updateLodgingSchema.parse(req.body);
+    const lodging = await lodgingService.updateLodging(userId, lodgingId, data);
+    res.json(lodging);
+  }),
 
-  async getLodgingById(req: Request, res: Response, next: NextFunction) {
-    try {
-      const lodgingId = parseInt(req.params.id);
-      const lodging = await lodgingService.getLodgingById(
-        req.user!.userId,
-        lodgingId
-      );
-
-      res.json(lodging);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async updateLodging(req: Request, res: Response, next: NextFunction) {
-    try {
-      const lodgingId = parseInt(req.params.id);
-      const validatedData = updateLodgingSchema.parse(req.body);
-      const lodging = await lodgingService.updateLodging(
-        req.user!.userId,
-        lodgingId,
-        validatedData
-      );
-
-      res.json(lodging);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async deleteLodging(req: Request, res: Response, next: NextFunction) {
-    try {
-      const lodgingId = parseInt(req.params.id);
-      await lodgingService.deleteLodging(req.user!.userId, lodgingId);
-
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-
-export default new LodgingController();
+  deleteLodging: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const lodgingId = parseId(req.params.id);
+    await lodgingService.deleteLodging(userId, lodgingId);
+    res.status(204).send();
+  }),
+};

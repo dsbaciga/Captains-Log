@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import photoController from '../controllers/photo.controller';
+import { photoController } from '../controllers/photo.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();

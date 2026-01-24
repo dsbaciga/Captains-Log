@@ -26,6 +26,29 @@ function getMetadataValue<T>(metadata: JsonValue, key: keyof T): unknown {
   return undefined;
 }
 
+// Interface for checklist stats
+interface ChecklistStats {
+  total: number;
+  checked: number;
+  percentage: number;
+}
+
+// Helper to add stats to a checklist
+function addChecklistStats<T extends { items: Array<{ isChecked: boolean }> }>(
+  checklist: T
+): T & { stats: ChecklistStats } {
+  const total = checklist.items.length;
+  const checked = checklist.items.filter(item => item.isChecked).length;
+  return {
+    ...checklist,
+    stats: {
+      total,
+      checked,
+      percentage: total > 0 ? Math.round((checked / total) * 100) : 0,
+    },
+  };
+}
+
 // Type for checklist with items from Prisma query
 interface ChecklistFromPrisma {
   id: number;
@@ -93,18 +116,7 @@ class ChecklistService {
     }) as ChecklistFromPrisma[];
 
     // Add stats to each checklist
-    return checklists.map((checklist: ChecklistFromPrisma) => {
-      const total = checklist.items.length;
-      const checked = checklist.items.filter((item) => item.isChecked).length;
-      return {
-        ...checklist,
-        stats: {
-          total,
-          checked,
-          percentage: total > 0 ? Math.round((checked / total) * 100) : 0,
-        },
-      };
-    });
+    return checklists.map(addChecklistStats);
   }
 
   /**
@@ -132,18 +144,7 @@ class ChecklistService {
     }) as ChecklistFromPrisma[];
 
     // Add stats to each checklist
-    return checklists.map((checklist: ChecklistFromPrisma) => {
-      const total = checklist.items.length;
-      const checked = checklist.items.filter((item) => item.isChecked).length;
-      return {
-        ...checklist,
-        stats: {
-          total,
-          checked,
-          percentage: total > 0 ? Math.round((checked / total) * 100) : 0,
-        },
-      };
-    });
+    return checklists.map(addChecklistStats);
   }
 
   /**
@@ -167,17 +168,7 @@ class ChecklistService {
       throw new AppError('Checklist not found', 404);
     }
 
-    const total = checklist.items.length;
-    const checked = checklist.items.filter((item) => item.isChecked).length;
-
-    return {
-      ...checklist,
-      stats: {
-        total,
-        checked,
-        percentage: total > 0 ? Math.round((checked / total) * 100) : 0,
-      },
-    };
+    return addChecklistStats(checklist);
   }
 
   /**

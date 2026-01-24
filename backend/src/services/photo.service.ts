@@ -23,7 +23,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
 import ffmpeg from 'fluent-ffmpeg';
-import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
 const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
@@ -897,15 +897,7 @@ class PhotoService {
     }
 
     // Clean up entity links before deleting
-    await prisma.entityLink.deleteMany({
-      where: {
-        tripId: verifiedPhoto.tripId,
-        OR: [
-          { sourceType: 'PHOTO', sourceId: photoId },
-          { targetType: 'PHOTO', targetId: photoId },
-        ],
-      },
-    });
+    await cleanupEntityLinks(verifiedPhoto.tripId, 'PHOTO', photoId);
 
     await prisma.photo.delete({
       where: { id: photoId },

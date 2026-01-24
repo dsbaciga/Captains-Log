@@ -1,112 +1,82 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import transportationService from '../services/transportation.service';
 import {
   createTransportationSchema,
   updateTransportationSchema,
 } from '../types/transportation.types';
+import { asyncHandler } from '../utils/asyncHandler';
+import { parseId } from '../utils/parseId';
+import { requireUserId } from '../utils/controllerHelpers';
 
-class TransportationController {
-  async createTransportation(req: Request, res: Response, next: NextFunction) {
-    try {
-      const validatedData = createTransportationSchema.parse(req.body);
-      const transportation = await transportationService.createTransportation(
-        req.user!.userId,
-        validatedData
-      );
+export const transportationController = {
+  createTransportation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const data = createTransportationSchema.parse(req.body);
+    const transportation = await transportationService.createTransportation(
+      userId,
+      data
+    );
+    res.status(201).json(transportation);
+  }),
 
-      res.status(201).json(transportation);
-    } catch (error) {
-      next(error);
-    }
-  }
+  getAllTransportation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const transportations = await transportationService.getAllTransportation(
+      userId
+    );
+    res.json(transportations);
+  }),
 
-  async getAllTransportation(req: Request, res: Response, next: NextFunction) {
-    try {
-      const transportations = await transportationService.getAllTransportation(
-        req.user!.userId
-      );
+  getTransportationByTrip: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const transportations = await transportationService.getTransportationByTrip(
+      userId,
+      tripId
+    );
+    res.json(transportations);
+  }),
 
-      res.json(transportations);
-    } catch (error) {
-      next(error);
-    }
-  }
+  getTransportationById: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const transportationId = parseId(req.params.id);
+    const transportation = await transportationService.getTransportationById(
+      userId,
+      transportationId
+    );
+    res.json(transportation);
+  }),
 
-  async getTransportationByTrip(req: Request, res: Response, next: NextFunction) {
-    try {
-      const tripId = parseInt(req.params.tripId);
-      const transportations = await transportationService.getTransportationByTrip(
-        req.user!.userId,
-        tripId
-      );
+  updateTransportation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const transportationId = parseId(req.params.id);
+    const data = updateTransportationSchema.parse(req.body);
+    const transportation = await transportationService.updateTransportation(
+      userId,
+      transportationId,
+      data
+    );
+    res.json(transportation);
+  }),
 
-      res.json(transportations);
-    } catch (error) {
-      next(error);
-    }
-  }
+  deleteTransportation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const transportationId = parseId(req.params.id);
+    await transportationService.deleteTransportation(userId, transportationId);
+    res.status(204).send();
+  }),
 
-  async getTransportationById(req: Request, res: Response, next: NextFunction) {
-    try {
-      const transportationId = parseInt(req.params.id);
-      const transportation = await transportationService.getTransportationById(
-        req.user!.userId,
-        transportationId
-      );
-
-      res.json(transportation);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async updateTransportation(req: Request, res: Response, next: NextFunction) {
-    try {
-      const transportationId = parseInt(req.params.id);
-      const validatedData = updateTransportationSchema.parse(req.body);
-      const transportation = await transportationService.updateTransportation(
-        req.user!.userId,
-        transportationId,
-        validatedData
-      );
-
-      res.json(transportation);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async deleteTransportation(req: Request, res: Response, next: NextFunction) {
-    try {
-      const transportationId = parseInt(req.params.id);
-      await transportationService.deleteTransportation(
-        req.user!.userId,
-        transportationId
-      );
-
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async recalculateDistances(req: Request, res: Response, next: NextFunction) {
-    try {
-      const tripId = parseInt(req.params.tripId);
-      const count = await transportationService.recalculateDistancesForTrip(
-        req.user!.userId,
-        tripId
-      );
-
-      res.json({
-        status: 'success',
-        message: `Recalculated distances for ${count} transportation records`,
-        count,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-
-export default new TransportationController();
+  recalculateDistances: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const count = await transportationService.recalculateDistancesForTrip(
+      userId,
+      tripId
+    );
+    res.json({
+      status: 'success',
+      message: `Recalculated distances for ${count} transportation records`,
+      count,
+    });
+  }),
+};
