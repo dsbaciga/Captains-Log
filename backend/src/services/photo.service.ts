@@ -22,6 +22,7 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
+import ffmpeg from 'fluent-ffmpeg';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
@@ -41,6 +42,28 @@ function getMediaTypeFromMimetype(mimetype: string): 'image' | 'video' {
     return MediaType.VIDEO;
   }
   return MediaType.IMAGE;
+}
+
+// Generate thumbnail from video file using ffmpeg
+async function generateVideoThumbnail(videoPath: string, thumbnailPath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    ffmpeg(videoPath)
+      .on('end', () => {
+        console.log('[PhotoService] Video thumbnail generated successfully');
+        resolve(true);
+      })
+      .on('error', (err: Error) => {
+        console.error('[PhotoService] Failed to generate video thumbnail:', err.message);
+        resolve(false);
+      })
+      .screenshots({
+        count: 1,
+        folder: path.dirname(thumbnailPath),
+        filename: path.basename(thumbnailPath),
+        size: '400x?', // 400px width, auto height maintaining aspect ratio
+        timestamps: ['10%'], // Take screenshot at 10% of video duration
+      });
+  });
 }
 
 // Helper function to build orderBy clause based on sort options
@@ -97,12 +120,21 @@ class PhotoService {
     let longitude = data.longitude;
     let takenAt = data.takenAt ? new Date(data.takenAt) : null;
 
-    // Only create thumbnail and extract EXIF for images
-    if (!isVideo) {
+    // Generate thumbnail based on media type
+    if (isVideo) {
+      // Generate video thumbnail using ffmpeg
       const thumbnailFilename = `thumb-${filename.replace(ext, '.jpg')}`;
       const thumbnailPath = path.join(THUMBNAIL_DIR, thumbnailFilename);
 
-      // Create thumbnail
+      const success = await generateVideoThumbnail(filepath, thumbnailPath);
+      if (success) {
+        thumbnailPathUrl = `/uploads/thumbnails/${thumbnailFilename}`;
+      }
+    } else {
+      // Create image thumbnail
+      const thumbnailFilename = `thumb-${filename.replace(ext, '.jpg')}`;
+      const thumbnailPath = path.join(THUMBNAIL_DIR, thumbnailFilename);
+
       await sharp(file.buffer)
         .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80 })
