@@ -4,14 +4,29 @@ import {
   createAlbumSchema,
   updateAlbumSchema,
   addPhotosToAlbumSchema,
+  PhotoWithOptionalAlbums,
+  TransformedPhoto,
+  PhotoSortByType,
+  SortOrderType,
 } from '../types/photo.types';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
 import { requireUserId } from '../utils/controllerHelpers';
 
+// Type for album with optional cover photo
+interface AlbumWithCoverPhoto {
+  id: number;
+  tripId: number;
+  name: string;
+  description?: string | null;
+  coverPhoto?: PhotoWithOptionalAlbums | null;
+  _count?: { photoAssignments: number };
+  [key: string]: unknown;
+}
+
 // Helper function to add Immich URLs for photos and transform album assignments
-function transformPhoto(photo: Record<string, unknown>) {
-  const transformed: Record<string, unknown> = { ...photo };
+function transformPhoto(photo: PhotoWithOptionalAlbums): TransformedPhoto {
+  const transformed: TransformedPhoto = { ...photo };
 
   // Transform Immich paths
   if (photo.source === 'immich' && photo.immichAssetId) {
@@ -21,12 +36,10 @@ function transformPhoto(photo: Record<string, unknown>) {
 
   // Transform albumAssignments to albums for frontend compatibility
   if (photo.albumAssignments) {
-    transformed.albums = (
-      photo.albumAssignments as Array<{ album: unknown }>
-    ).map((assignment) => ({
+    transformed.albums = photo.albumAssignments.map((assignment) => ({
       album: assignment.album,
     }));
-    delete transformed.albumAssignments;
+    delete (transformed as { albumAssignments?: unknown }).albumAssignments;
   }
 
   return transformed;
@@ -53,17 +66,15 @@ export const photoAlbumController = {
     });
 
     // Transform cover photos for Immich compatibility
-    const transformedAlbums = result.albums.map(
-      (album: Record<string, unknown>) => {
-        if (album.coverPhoto) {
-          return {
-            ...album,
-            coverPhoto: transformPhoto(album.coverPhoto as Record<string, unknown>),
-          };
-        }
-        return album;
+    const transformedAlbums = result.albums.map((album: AlbumWithCoverPhoto) => {
+      if (album.coverPhoto) {
+        return {
+          ...album,
+          coverPhoto: transformPhoto(album.coverPhoto),
+        };
       }
-    );
+      return album;
+    });
 
     res.json({
       ...result,
@@ -99,17 +110,15 @@ export const photoAlbumController = {
     });
 
     // Transform cover photos for Immich compatibility
-    const transformedAlbums = result.albums.map(
-      (album: Record<string, unknown>) => {
-        if (album.coverPhoto) {
-          return {
-            ...album,
-            coverPhoto: transformPhoto(album.coverPhoto as Record<string, unknown>),
-          };
-        }
-        return album;
+    const transformedAlbums = result.albums.map((album: AlbumWithCoverPhoto) => {
+      if (album.coverPhoto) {
+        return {
+          ...album,
+          coverPhoto: transformPhoto(album.coverPhoto),
+        };
       }
-    );
+      return album;
+    });
 
     res.json({
       ...result,
@@ -122,8 +131,8 @@ export const photoAlbumController = {
     const albumId = parseId(req.params.id);
     const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
     const take = req.query.take ? parseInt(req.query.take as string) : undefined;
-    const sortBy = req.query.sortBy as string | undefined;
-    const sortOrder = req.query.sortOrder as string | undefined;
+    const sortBy = req.query.sortBy as PhotoSortByType | undefined;
+    const sortOrder = req.query.sortOrder as SortOrderType | undefined;
 
     const album = await photoAlbumService.getAlbumById(userId, albumId, {
       skip,
@@ -135,27 +144,32 @@ export const photoAlbumController = {
     // Transform photoAssignments to photos for frontend compatibility
     // photoAssignments is an array of { photo: Photo, addedAt: Date }
     // We need to extract and transform each photo object
-    const transformed: Record<string, unknown> = {
-      ...album,
-      photos:
-        album.photoAssignments?.map(
-          (assignment: { photo: Record<string, unknown>; addedAt: Date }) => ({
-            photo: transformPhoto(assignment.photo),
-            addedAt: assignment.addedAt,
-          })
-        ) || [],
+    const photoAssignments = album.photoAssignments as Array<{
+      photo: PhotoWithOptionalAlbums;
+      addedAt: Date;
+    }> | undefined;
+
+    const photos = photoAssignments?.map((assignment) => ({
+      photo: transformPhoto(assignment.photo),
+      addedAt: assignment.addedAt,
+    })) || [];
+
+    // Build response without photoAssignments
+    const { photoAssignments: _, ...albumWithoutAssignments } = album;
+    const transformed = {
+      ...albumWithoutAssignments,
+      photos,
     };
-    delete transformed.photoAssignments;
 
     if (process.env.NODE_ENV === 'development') {
       console.log('Album transformation result:', {
         albumId,
         skip,
         take,
-        originalPhotoAssignmentsCount: album.photoAssignments?.length || 0,
-        transformedPhotosCount: (transformed.photos as unknown[]).length,
-        hasMore: transformed.hasMore,
-        total: transformed.total,
+        originalPhotoAssignmentsCount: photoAssignments?.length || 0,
+        transformedPhotosCount: photos.length,
+        hasMore: (album as { hasMore?: boolean }).hasMore,
+        total: (album as { total?: number }).total,
       });
     }
 

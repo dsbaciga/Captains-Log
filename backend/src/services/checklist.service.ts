@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateChecklist, UpdateChecklist, UpdateChecklistItem, ChecklistWithItems, ChecklistType } from '../types/checklist.types';
@@ -14,9 +15,6 @@ interface StateMetadata {
   code: string;
   name: string;
 }
-
-// Type for JSON values from Prisma
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 // Type for checklist item creation data
 interface ChecklistItemCreateData {
@@ -125,7 +123,7 @@ async function createDefaultChecklistByType(userId: number, type: ChecklistType)
 }
 
 // Helper to safely get metadata values from JSON field
-function getMetadataValue<T>(metadata: JsonValue, key: keyof T): unknown {
+function getMetadataValue<T>(metadata: Prisma.JsonValue, key: keyof T): unknown {
   if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
     return (metadata as Record<string, unknown>)[key as string];
   }
@@ -175,15 +173,15 @@ interface ChecklistFromPrisma {
     isChecked: boolean;
     isDefault: boolean;
     sortOrder: number;
-    metadata: JsonValue;
+    metadata: Prisma.JsonValue;
     checkedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
   }>;
 }
 
-// Type for trips with locations and transportation
-interface TripWithRelations {
+// Type for trips used in auto-populating checklist items from trip data
+interface TripForAutoPopulate {
   id: number;
   locations: Array<{
     id: number;
@@ -507,7 +505,7 @@ class ChecklistService {
           where: { type: 'Flight' },
         },
       },
-    }) as TripWithRelations[];
+    }) as TripForAutoPopulate[];
 
     // Process Airports checklist
     const airportsChecklist = checklists.find((c) => c.type === 'airports');

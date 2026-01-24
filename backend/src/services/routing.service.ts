@@ -2,6 +2,7 @@ import axios from 'axios';
 import config from '../config';
 import { AppError } from '../utils/errors';
 import prisma from '../config/database';
+import { RouteStep, isAxiosError } from '../types/prisma-helpers';
 
 interface RouteCoordinates {
   latitude: number;
@@ -17,7 +18,7 @@ interface OpenRouteServiceResponse {
     segments: Array<{
       distance: number;
       duration: number;
-      steps: any[];
+      steps: RouteStep[];
     }>;
     geometry: {
       coordinates: number[][];
@@ -43,7 +44,7 @@ interface RouteCacheEntry {
   distance: number; // in kilometers
   duration: number; // in minutes
   profile: string;
-  routeGeometry?: any; // JSON field with coordinates
+  routeGeometry?: number[][] | null; // JSON field with coordinates
   createdAt: Date;
   updatedAt: Date;
 }
@@ -105,10 +106,17 @@ class RoutingService {
           source: 'route',
           geometry: routeData.geometry,
         };
-      } catch (error: any) {
-        const errorMsg = error.response?.data?.error?.message || error.message || 'Unknown error';
-        const statusCode = error.response?.status || 'N/A';
-        console.warn(`[Routing Service] API call failed (status: ${statusCode}): ${errorMsg}`);
+      } catch (error: unknown) {
+        if (isAxiosError(error)) {
+          const responseData = error.response?.data as { error?: { message?: string } } | undefined;
+          const errorMsg = responseData?.error?.message || error.message;
+          const statusCode = error.response?.status || 'N/A';
+          console.warn(`[Routing Service] API call failed (status: ${statusCode}): ${errorMsg}`);
+        } else if (error instanceof Error) {
+          console.warn(`[Routing Service] API call failed: ${error.message}`);
+        } else {
+          console.warn('[Routing Service] API call failed: Unknown error');
+        }
         console.warn('[Routing Service] Falling back to Haversine formula');
       }
     } else {
@@ -185,25 +193,35 @@ class RoutingService {
         duration: route.summary.duration / 60, // Convert seconds to minutes
         geometry: geometryCoords, // Array of [longitude, latitude]
       };
-    } catch (error: any) {
-      // Log error details in development only to avoid leaking API response data
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`[Routing Service] API error details:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          message: error.message,
-        });
-      } else {
-        console.error(`[Routing Service] API error: ${error.response?.status || 'N/A'} - ${error.message}`);
-      }
+    } catch (error: unknown) {
+      if (isAxiosError(error)) {
+        const errorMessage = error.message;
 
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        throw new AppError('Invalid OpenRouteService API key', 401);
+        // Log error details in development only to avoid leaking API response data
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Routing Service] API error details:`, {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            message: errorMessage,
+          });
+        } else {
+          console.error(`[Routing Service] API error: ${error.response?.status || 'N/A'} - ${errorMessage}`);
+        }
+
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          throw new AppError('Invalid OpenRouteService API key', 401);
+        }
+        if (error.response?.status === 429) {
+          throw new AppError('OpenRouteService rate limit exceeded', 429);
+        }
+        throw new Error(`OpenRouteService API error: ${errorMessage}`);
+      } else if (error instanceof Error) {
+        console.error(`[Routing Service] API error: ${error.message}`);
+        throw new Error(`OpenRouteService API error: ${error.message}`);
+      } else {
+        console.error('[Routing Service] API error: Unknown error');
+        throw new Error('OpenRouteService API error: Unknown error');
       }
-      if (error.response?.status === 429) {
-        throw new AppError('OpenRouteService rate limit exceeded', 429);
-      }
-      throw new Error(`OpenRouteService API error: ${error.message}`);
     }
   }
 
