@@ -1,79 +1,47 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import journalEntryService from '../services/journalEntry.service';
 import {
   createJournalEntrySchema,
   updateJournalEntrySchema,
 } from '../types/journalEntry.types';
+import { asyncHandler } from '../utils/asyncHandler';
+import { parseId } from '../utils/parseId';
+import { requireUserId } from '../utils/controllerHelpers';
 
-class JournalEntryController {
-  async createJournalEntry(req: Request, res: Response, next: NextFunction) {
-    try {
-      const validatedData = createJournalEntrySchema.parse(req.body);
-      const entry = await journalEntryService.createJournalEntry(
-        req.user!.userId,
-        validatedData
-      );
+export const journalEntryController = {
+  createJournalEntry: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const data = createJournalEntrySchema.parse(req.body);
+    const entry = await journalEntryService.createJournalEntry(userId, data);
+    res.status(201).json(entry);
+  }),
 
-      res.status(201).json(entry);
-    } catch (error) {
-      next(error);
-    }
-  }
+  getJournalEntriesByTrip: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const entries = await journalEntryService.getJournalEntriesByTrip(userId, tripId);
+    res.json(entries);
+  }),
 
-  async getJournalEntriesByTrip(req: Request, res: Response, next: NextFunction) {
-    try {
-      const tripId = parseInt(req.params.tripId);
-      const entries = await journalEntryService.getJournalEntriesByTrip(
-        req.user!.userId,
-        tripId
-      );
+  getJournalEntryById: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const entryId = parseId(req.params.id);
+    const entry = await journalEntryService.getJournalEntryById(userId, entryId);
+    res.json(entry);
+  }),
 
-      res.json(entries);
-    } catch (error) {
-      next(error);
-    }
-  }
+  updateJournalEntry: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const entryId = parseId(req.params.id);
+    const data = updateJournalEntrySchema.parse(req.body);
+    const entry = await journalEntryService.updateJournalEntry(userId, entryId, data);
+    res.json(entry);
+  }),
 
-  async getJournalEntryById(req: Request, res: Response, next: NextFunction) {
-    try {
-      const entryId = parseInt(req.params.id);
-      const entry = await journalEntryService.getJournalEntryById(
-        req.user!.userId,
-        entryId
-      );
-
-      res.json(entry);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async updateJournalEntry(req: Request, res: Response, next: NextFunction) {
-    try {
-      const entryId = parseInt(req.params.id);
-      const validatedData = updateJournalEntrySchema.parse(req.body);
-      const entry = await journalEntryService.updateJournalEntry(
-        req.user!.userId,
-        entryId,
-        validatedData
-      );
-
-      res.json(entry);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async deleteJournalEntry(req: Request, res: Response, next: NextFunction) {
-    try {
-      const entryId = parseInt(req.params.id);
-      await journalEntryService.deleteJournalEntry(req.user!.userId, entryId);
-
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-
-export default new JournalEntryController();
+  deleteJournalEntry: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const entryId = parseId(req.params.id);
+    await journalEntryService.deleteJournalEntry(userId, entryId);
+    res.status(204).send();
+  }),
+};

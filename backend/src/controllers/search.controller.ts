@@ -1,27 +1,18 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import searchService from '../services/search.service';
 import { globalSearchQuerySchema } from '../types/search.types';
+import { asyncHandler } from '../utils/asyncHandler';
+import { requireUserId } from '../utils/controllerHelpers';
 
-export class SearchController {
-  async globalSearch(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ status: 'error', message: 'Unauthorized' });
-        return;
-      }
+export const searchController = {
+  globalSearch: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const validatedQuery = globalSearchQuerySchema.parse(req.query);
+    const result = await searchService.globalSearch(userId, validatedQuery);
 
-      const validatedQuery = globalSearchQuerySchema.parse(req.query);
-      const result = await searchService.globalSearch(req.user.userId, validatedQuery);
-
-      res.status(200).json({
-        status: 'success',
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-
-export default new SearchController();
-
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  }),
+};

@@ -3,7 +3,7 @@ import {
   CreateLodgingInput,
   UpdateLodgingInput,
 } from '../types/lodging.types';
-import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, convertDecimals, buildConditionalUpdateData, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
@@ -72,26 +72,23 @@ class LodgingService {
 
     await verifyEntityAccess(lodging, userId, 'Lodging');
 
+    // Transformer for date fields: convert to Date if truthy, skip update if null/undefined.
+    // This preserves existing dates if not explicitly provided (dates are required for lodging).
+    // Note: This differs from activity.service.ts which returns null to allow clearing times.
+    const dateTransformer = (val: string | null | undefined) =>
+      val ? new Date(val) : undefined;
+
     // Note: Location association is handled via EntityLink system, not direct FK
+    const updateData = buildConditionalUpdateData(data, {
+      transformers: {
+        checkInDate: dateTransformer,
+        checkOutDate: dateTransformer,
+      },
+    });
+
     const updatedLodging = await prisma.lodging.update({
       where: { id: lodgingId },
-      data: {
-        type: data.type,
-        name: data.name,
-        address: data.address !== undefined ? data.address : undefined,
-        ...(data.checkInDate !== undefined && data.checkInDate !== null
-          ? { checkInDate: new Date(data.checkInDate) }
-          : {}),
-        ...(data.checkOutDate !== undefined && data.checkOutDate !== null
-          ? { checkOutDate: new Date(data.checkOutDate) }
-          : {}),
-        timezone: data.timezone !== undefined ? data.timezone : undefined,
-        confirmationNumber: data.confirmationNumber !== undefined ? data.confirmationNumber : undefined,
-        cost: data.cost !== undefined ? data.cost : undefined,
-        currency: data.currency !== undefined ? data.currency : undefined,
-        bookingUrl: data.bookingUrl !== undefined ? data.bookingUrl : undefined,
-        notes: data.notes !== undefined ? data.notes : undefined,
-      },
+      data: updateData,
     });
 
     return convertDecimals(updatedLodging);
@@ -106,15 +103,7 @@ class LodgingService {
     const verifiedLodging = await verifyEntityAccess(lodging, userId, 'Lodging');
 
     // Clean up entity links before deleting
-    await prisma.entityLink.deleteMany({
-      where: {
-        tripId: verifiedLodging.tripId,
-        OR: [
-          { sourceType: 'LODGING', sourceId: lodgingId },
-          { targetType: 'LODGING', targetId: lodgingId },
-        ],
-      },
-    });
+    await cleanupEntityLinks(verifiedLodging.tripId, 'LODGING', lodgingId);
 
     await prisma.lodging.delete({
       where: { id: lodgingId },

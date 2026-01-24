@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput } from '../types/location.types';
-import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 export class LocationService {
   async createLocation(userId: number, data: CreateLocationInput) {
@@ -279,15 +279,7 @@ export class LocationService {
     const verifiedLocation = await verifyEntityAccess(location, userId, 'Location');
 
     // Clean up entity links before deleting
-    await prisma.entityLink.deleteMany({
-      where: {
-        tripId: verifiedLocation.tripId,
-        OR: [
-          { sourceType: 'LOCATION', sourceId: locationId },
-          { targetType: 'LOCATION', targetId: locationId },
-        ],
-      },
-    });
+    await cleanupEntityLinks(verifiedLocation.tripId, 'LOCATION', locationId);
 
     await prisma.location.delete({
       where: { id: locationId },

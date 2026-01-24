@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import journalEntryController from '../controllers/journalEntry.controller';
+import { journalEntryController } from '../controllers/journalEntry.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();

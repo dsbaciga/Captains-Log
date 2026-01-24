@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import photoAlbumController from '../controllers/photoAlbum.controller';
+import { photoAlbumController } from '../controllers/photoAlbum.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
