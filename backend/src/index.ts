@@ -98,15 +98,15 @@ app.use('/api/auth/silent-refresh', silentRefreshLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api', limiter);
 
+// Body parsing middleware - must be BEFORE CSRF validation so req.cookies is populated
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
 // CSRF validation for defense-in-depth (prevents cross-site request forgery)
 // Auth routes are excluded since they bootstrap the CSRF token
 import { validateCsrf } from './utils/csrf';
 app.use('/api', validateCsrf);
-
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 
 // Serve uploaded files
 app.use('/uploads', express.static(config.upload.dir));

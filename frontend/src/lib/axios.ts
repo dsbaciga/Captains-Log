@@ -22,14 +22,22 @@ let accessToken: string | null = null;
 // Refresh race condition protection
 // When multiple 401s occur simultaneously, only one refresh happens
 let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshSubscribers: { resolve: (token: string) => void; reject: (error: Error) => void }[] = [];
 
-const subscribeTokenRefresh = (cb: (token: string) => void) => {
-  refreshSubscribers.push(cb);
+const subscribeTokenRefresh = (
+  resolve: (token: string) => void,
+  reject: (error: Error) => void
+) => {
+  refreshSubscribers.push({ resolve, reject });
 };
 
 const onRefreshed = (token: string) => {
-  refreshSubscribers.forEach(cb => cb(token));
+  refreshSubscribers.forEach(({ resolve }) => resolve(token));
+  refreshSubscribers = [];
+};
+
+const onRefreshFailed = (error: Error) => {
+  refreshSubscribers.forEach(({ reject }) => reject(error));
   refreshSubscribers = [];
 };
 
@@ -101,11 +109,16 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       // If a refresh is already in progress, wait for it to complete
       if (isRefreshing) {
-        return new Promise((resolve) => {
-          subscribeTokenRefresh((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(axiosInstance(originalRequest));
-          });
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh(
+            (token: string) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(axiosInstance(originalRequest));
+            },
+            (error: Error) => {
+              reject(error);
+            }
+          );
         });
       }
 
@@ -130,9 +143,9 @@ axiosInstance.interceptors.response.use(
         }
         throw new Error('No access token in refresh response');
       } catch (refreshError) {
-        // Refresh failed - clear token, subscribers, and redirect
+        // Refresh failed - notify subscribers, clear token, and redirect
         isRefreshing = false;
-        refreshSubscribers = [];
+        onRefreshFailed(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
         setAccessToken(null);
 
         // Import dynamically to avoid circular dependency
