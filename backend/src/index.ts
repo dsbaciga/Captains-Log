@@ -1,6 +1,7 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -62,6 +63,7 @@ const corsOptions = {
     ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()).filter(Boolean)
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
+  exposedHeaders: ['Set-Cookie'],
 };
 app.use(cors(corsOptions));
 
@@ -74,6 +76,15 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Separate rate limiter for silent-refresh (more lenient as it's called on every page load)
+const silentRefreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60, // Allow 60 requests per 15 minutes (4 per minute for page navigation)
+  message: 'Too many refresh attempts from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // General API rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -81,13 +92,21 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
 });
 
-// Apply stricter rate limiting to auth routes first
+// Apply silent-refresh rate limiter before auth limiter (more specific route first)
+app.use('/api/auth/silent-refresh', silentRefreshLimiter);
+// Apply stricter rate limiting to other auth routes
 app.use('/api/auth', authLimiter);
 app.use('/api', limiter);
 
-// Body parsing middleware
+// Body parsing middleware - must be BEFORE CSRF validation so req.cookies is populated
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// CSRF validation for defense-in-depth (prevents cross-site request forgery)
+// Auth routes are excluded since they bootstrap the CSRF token
+import { validateCsrf } from './utils/csrf';
+app.use('/api', validateCsrf);
 
 // Serve uploaded files
 app.use('/uploads', express.static(config.upload.dir));

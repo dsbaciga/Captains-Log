@@ -21,6 +21,8 @@ import MobileBottomNav from './components/MobileBottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import { debugLogger } from './utils/debugLogger';
+import { migrateFromLocalStorage } from './utils/authMigration';
+import { useAuthStore } from './store/authStore';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -34,6 +36,16 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const { initializeAuth, isInitialized } = useAuthStore();
+
+  // Initialize auth on app mount (handles page refresh)
+  useEffect(() => {
+    // Migrate from localStorage to secure storage (one-time cleanup)
+    migrateFromLocalStorage();
+    // Initialize auth via silent refresh using httpOnly cookie
+    initializeAuth();
+  }, [initializeAuth]);
+
   // Global error handler for unhandled errors
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
@@ -72,6 +84,18 @@ function App() {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
+
+  // Show loading state while checking auth
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cream-50 dark:bg-navy-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-navy-600 dark:text-cream-200">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

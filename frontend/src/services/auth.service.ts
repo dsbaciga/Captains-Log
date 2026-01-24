@@ -21,8 +21,27 @@ class AuthService {
     await axios.post('/auth/logout');
   }
 
-  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
-    const response = await axios.post('/auth/refresh', { refreshToken });
+  /**
+   * Silent refresh on page load using httpOnly cookie.
+   * Returns user and access token if valid session exists, null otherwise.
+   */
+  async silentRefresh(): Promise<{ user: User; accessToken: string } | null> {
+    try {
+      const response = await axios.post('/auth/silent-refresh');
+      // Backend returns null in data if no session, { user, accessToken } if valid
+      return response.data.data;
+    } catch (error) {
+      console.error('Silent refresh failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Refresh access token using httpOnly cookie.
+   * No body needed - cookie is sent automatically.
+   */
+  async refreshToken(): Promise<{ accessToken: string }> {
+    const response = await axios.post('/auth/refresh');
     return response.data.data;
   }
 }

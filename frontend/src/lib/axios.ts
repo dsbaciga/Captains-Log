@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { getCsrfToken } from '../utils/csrf';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -15,21 +16,61 @@ interface RetryConfig extends InternalAxiosRequestConfig {
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// In-memory token storage (NOT in localStorage - immune to XSS)
+let accessToken: string | null = null;
+
+// Refresh race condition protection
+// When multiple 401s occur simultaneously, only one refresh happens
+let isRefreshing = false;
+let refreshSubscribers: { resolve: (token: string) => void; reject: (error: Error) => void }[] = [];
+
+const subscribeTokenRefresh = (
+  resolve: (token: string) => void,
+  reject: (error: Error) => void
+) => {
+  refreshSubscribers.push({ resolve, reject });
+};
+
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach(({ resolve }) => resolve(token));
+  refreshSubscribers = [];
+};
+
+const onRefreshFailed = (error: Error) => {
+  refreshSubscribers.forEach(({ reject }) => reject(error));
+  refreshSubscribers = [];
+};
+
+// Token getter/setter for use by auth store
+export const getAccessToken = (): string | null => accessToken;
+export const setAccessToken = (token: string | null): void => {
+  accessToken = token;
+};
+
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 120000, // 2 minutes default timeout
+  withCredentials: true, // CRITICAL: Send cookies with requests
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token from memory and CSRF token
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
+
+    // Add CSRF token for state-changing requests (non-GET/HEAD/OPTIONS)
+    if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['x-csrf-token'] = csrfToken;
+      }
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -64,36 +105,56 @@ axiosInstance.interceptors.response.use(
       console.error(`Rate limit retry exhausted after ${MAX_RETRIES} attempts`);
     }
 
-    // Handle 401 (Unauthorized) - token refresh
+    // Handle 401 (Unauthorized) - try cookie-based refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // If a refresh is already in progress, wait for it to complete
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh(
+            (token: string) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(axiosInstance(originalRequest));
+            },
+            (error: Error) => {
+              reject(error);
+            }
+          );
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token');
+        // Refresh using httpOnly cookie (no body needed, cookie is sent automatically)
+        const { data } = await axios.post(
+          `${API_URL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+
+        const newAccessToken = data.data?.accessToken;
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          isRefreshing = false;
+          onRefreshed(newAccessToken);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return axiosInstance(originalRequest);
         }
-
-        // Try to refresh the token
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken, refreshToken: newRefreshToken } = data.data;
-
-        // Update tokens in storage
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
-
-        // Retry the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return axiosInstance(originalRequest);
+        throw new Error('No access token in refresh response');
       } catch (refreshError) {
-        // Refresh failed, clear tokens and redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Refresh failed - notify subscribers, clear token, and redirect
+        isRefreshing = false;
+        onRefreshFailed(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
+        setAccessToken(null);
+
+        // Import dynamically to avoid circular dependency
+        const { useAuthStore } = await import('../store/authStore');
+        useAuthStore.getState().clearAuth();
+
+        // Preserve the current URL for redirect after login
+        const currentPath = window.location.pathname + window.location.search;
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
         return Promise.reject(refreshError);
       }
     }

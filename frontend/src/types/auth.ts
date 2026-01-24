@@ -8,7 +8,12 @@ export type User = {
 export type AuthResponse = {
   user: User;
   accessToken: string;
-  refreshToken: string;
+  // refreshToken removed - now stored in httpOnly cookie
+}
+
+// Keep for backward compatibility during migration
+export type LegacyAuthResponse = AuthResponse & {
+  refreshToken?: string;
 }
 
 export type RegisterInput = {
