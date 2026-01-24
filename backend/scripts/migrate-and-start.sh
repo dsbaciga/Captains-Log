@@ -92,6 +92,29 @@ else
 fi
 
 echo "========================================="
+echo "Setting up directories..."
+echo "========================================="
+
+# Ensure uploads directories exist with proper permissions
+# This is needed because the volume mount may create them with root ownership
+mkdir -p /app/uploads/temp /app/uploads/photos
+
+# Fix ownership for the current user (works for both root and node user)
+chown -R "$(id -u):$(id -g)" /app/uploads 2>/dev/null || true
+chmod -R 755 /app/uploads
+
+# Verify the upload directory is writable
+if ! touch /app/uploads/temp/.write-test 2>/dev/null; then
+  echo "✗ ERROR: Upload directory /app/uploads/temp is not writable"
+  echo "  Current user: $(id)"
+  echo "  Directory permissions:"
+  ls -la /app/uploads/ 2>/dev/null || echo "  Cannot list /app/uploads/"
+  exit 1
+fi
+rm -f /app/uploads/temp/.write-test
+echo "✓ Upload directories ready."
+
+echo "========================================="
 echo "Starting Application..."
 echo "========================================="
 
