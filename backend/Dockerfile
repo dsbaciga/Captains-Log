@@ -21,8 +21,8 @@ RUN npx prisma generate
 # Copy rest of source code
 COPY . .
 
-# Make startup script executable
-RUN chmod +x scripts/migrate-and-start.sh
+# Make startup script executable and ensure Unix line endings
+RUN sed -i 's/\r$//' scripts/migrate-and-start.sh && chmod +x scripts/migrate-and-start.sh
 
 # Expose port
 EXPOSE 5000
