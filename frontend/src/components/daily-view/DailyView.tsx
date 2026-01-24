@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
@@ -84,7 +84,6 @@ export default function DailyView({
   const [error, setError] = useState<string | null>(null);
   const [allDays, setAllDays] = useState<DayData[]>([]);
   const [isPrinting, setIsPrinting] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
   const [linkedLocationsMap, setLinkedLocationsMap] = useState<LinkedLocationsMap>({});
   const [linkedAlbumsMap, setLinkedAlbumsMap] = useState<LinkedAlbumsMap>({});
   // Note: These state variables store computed data that may be used in future features
@@ -664,14 +663,14 @@ export default function DailyView({
     // Set printing state to render the printable component
     setIsPrinting(true);
 
-    // Use setTimeout to ensure the printable component is rendered before printing
-    setTimeout(() => {
-      window.print();
-      // Reset printing state after print dialog closes
-      setTimeout(() => {
+    // Use requestAnimationFrame to ensure DOM is updated before printing
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        // Reset printing state after print dialog closes
         setIsPrinting(false);
-      }, 100);
-    }, 100);
+      });
+    });
   }, [currentDay]);
 
   if (loading) {
@@ -887,7 +886,6 @@ export default function DailyView({
         createPortal(
           <div className="print-itinerary-wrapper">
             <PrintableDayItinerary
-              ref={printRef}
               tripTitle={tripTitle || 'Trip Itinerary'}
               tripTimezone={tripTimezone}
               dayNumber={currentDay.dayNumber}

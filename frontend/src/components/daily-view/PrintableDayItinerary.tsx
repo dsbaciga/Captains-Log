@@ -1,4 +1,3 @@
-import { forwardRef } from 'react';
 import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
@@ -294,16 +293,23 @@ const UnscheduledActivityItemPrint = ({ activity }: { activity: UnscheduledActiv
   </div>
 );
 
-const PrintableDayItinerary = forwardRef<HTMLDivElement, PrintableDayItineraryProps>(
-  ({ tripTitle, tripTimezone, dayNumber, displayDate, items, weather, unscheduledActivities }, ref) => {
-    const hasItems = items.length > 0;
-    const hasUnscheduled = unscheduledActivities && unscheduledActivities.length > 0;
+export default function PrintableDayItinerary({
+  tripTitle,
+  tripTimezone,
+  dayNumber,
+  displayDate,
+  items,
+  weather,
+  unscheduledActivities,
+}: PrintableDayItineraryProps) {
+  const hasItems = items.length > 0;
+  const hasUnscheduled = unscheduledActivities && unscheduledActivities.length > 0;
 
-    // Sort items by time
-    const sortedItems = [...items].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+  // Sort items by time
+  const sortedItems = [...items].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
-    return (
-      <div ref={ref} className="print-itinerary">
+  return (
+    <div className="print-itinerary">
         {/* Header */}
         <div className="print-header">
           <h1 className="print-title">{tripTitle}</h1>
@@ -360,15 +366,10 @@ const PrintableDayItinerary = forwardRef<HTMLDivElement, PrintableDayItineraryPr
           </div>
         )}
 
-        {/* Footer */}
-        <div className="print-footer">
-          <p>Generated from Travel Life</p>
-        </div>
+      {/* Footer */}
+      <div className="print-footer">
+        <p>Generated from Travel Life</p>
       </div>
-    );
-  }
-);
-
-PrintableDayItinerary.displayName = 'PrintableDayItinerary';
-
-export default PrintableDayItinerary;
+    </div>
+  );
+}
