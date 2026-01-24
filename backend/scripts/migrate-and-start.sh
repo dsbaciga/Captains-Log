@@ -92,6 +92,17 @@ else
 fi
 
 echo "========================================="
+echo "Setting up directories..."
+echo "========================================="
+
+# Ensure uploads directories exist with proper permissions
+# This is needed because the volume mount may create them with root ownership
+mkdir -p /app/uploads/temp
+mkdir -p /app/uploads/photos
+chmod -R 755 /app/uploads
+echo "✓ Upload directories ready."
+
+echo "========================================="
 echo "Starting Application..."
 echo "========================================="
 
