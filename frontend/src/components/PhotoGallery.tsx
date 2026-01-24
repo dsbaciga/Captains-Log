@@ -34,8 +34,15 @@ interface ThumbnailCache {
   [photoId: number]: string; // Maps photo ID to blob URL
 }
 
+interface FailedThumbnails {
+  [photoId: number]: number; // Maps photo ID to retry count
+}
+
 // Helper function for delays
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Maximum number of retry attempts for failed thumbnails (to avoid infinite loops)
+const MAX_THUMBNAIL_RETRIES = 2;
 
 // Fetch with retry logic for rate limiting (429 errors)
 async function fetchWithRetry(
@@ -94,6 +101,8 @@ export default function PhotoGallery({
   const [editCaption, setEditCaption] = useState("");
   const [editTakenAt, setEditTakenAt] = useState<string | null>(null);
   const [thumbnailCache, setThumbnailCache] = useState<ThumbnailCache>({});
+  const [failedThumbnails, setFailedThumbnails] = useState<FailedThumbnails>({});
+  const [retryTrigger, setRetryTrigger] = useState(0); // Increment to trigger retry of failed thumbnails
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(
     new Set()
@@ -188,15 +197,24 @@ export default function PhotoGallery({
           continue;
         }
 
+        // Check if this photo has exceeded max retry attempts
+        const currentRetryCount = failedThumbnails[photo.id] || 0;
+        if (currentRetryCount >= MAX_THUMBNAIL_RETRIES) {
+          continue; // Skip - already tried maximum times
+        }
+
         // Mark as fetching
         fetchingPhotos.current.add(photo.id);
 
         try {
           const fullUrl = getFullAssetUrl(photo.thumbnailPath);
-          if (!fullUrl) continue;
+          if (!fullUrl) {
+            fetchingPhotos.current.delete(photo.id);
+            continue;
+          }
 
           console.log(
-            `[PhotoGallery] Fetching thumbnail for photo ${photo.id}:`,
+            `[PhotoGallery] Fetching thumbnail for photo ${photo.id} (attempt ${currentRetryCount + 1}/${MAX_THUMBNAIL_RETRIES}):`,
             fullUrl
           );
 
@@ -211,6 +229,11 @@ export default function PhotoGallery({
               `[PhotoGallery] Failed to fetch thumbnail for photo ${photo.id}: ${response.status} ${response.statusText}`
             );
             fetchingPhotos.current.delete(photo.id);
+            // Track the failure with incremented retry count
+            setFailedThumbnails((prev) => ({
+              ...prev,
+              [photo.id]: (prev[photo.id] || 0) + 1,
+            }));
             continue;
           }
 
@@ -229,6 +252,13 @@ export default function PhotoGallery({
             [photo.id]: blobUrl,
           }));
 
+          // Remove from failed thumbnails on success
+          setFailedThumbnails((prev) => {
+            const newFailed = { ...prev };
+            delete newFailed[photo.id];
+            return newFailed;
+          });
+
           // Remove from fetching set after successful load
           fetchingPhotos.current.delete(photo.id);
         } catch (error) {
@@ -237,6 +267,11 @@ export default function PhotoGallery({
             error
           );
           fetchingPhotos.current.delete(photo.id);
+          // Track the failure with incremented retry count
+          setFailedThumbnails((prev) => ({
+            ...prev,
+            [photo.id]: (prev[photo.id] || 0) + 1,
+          }));
         }
       }
     };
@@ -245,7 +280,7 @@ export default function PhotoGallery({
       loadThumbnails();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photos]); // thumbnailCache removed - was causing infinite loop
+  }, [photos, retryTrigger]); // thumbnailCache removed - was causing infinite loop; retryTrigger added to allow manual retry
 
   // Cleanup all blob URLs only when component unmounts
   useEffect(() => {
@@ -523,6 +558,34 @@ export default function PhotoGallery({
     }
   };
 
+  // Retry loading failed thumbnails (resets retry count for retryable photos)
+  const handleRetryFailedThumbnails = () => {
+    // Only reset counts for photos that haven't exceeded max retries
+    // This allows one more attempt
+    const retryablePhotos = Object.entries(failedThumbnails)
+      .filter(([, count]) => count < MAX_THUMBNAIL_RETRIES)
+      .map(([id]) => parseInt(id));
+
+    if (retryablePhotos.length === 0) {
+      toast.error("All failed thumbnails have reached maximum retry attempts");
+      return;
+    }
+
+    console.log(`[PhotoGallery] Retrying ${retryablePhotos.length} failed thumbnails`);
+    setRetryTrigger((prev) => prev + 1);
+    toast.success(`Retrying ${retryablePhotos.length} failed thumbnail(s)...`);
+  };
+
+  // Count of photos that can still be retried
+  const retryableFailedCount = Object.values(failedThumbnails).filter(
+    (count) => count < MAX_THUMBNAIL_RETRIES
+  ).length;
+
+  // Count of photos that have permanently failed (max retries exceeded)
+  const permanentlyFailedCount = Object.values(failedThumbnails).filter(
+    (count) => count >= MAX_THUMBNAIL_RETRIES
+  ).length;
+
   // Photos are already sorted by the backend, no need to sort client-side
   const sortedPhotos = photos;
 
@@ -618,9 +681,40 @@ export default function PhotoGallery({
           </select>
         </div>
 
-        {/* Photo Count */}
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          {photos.length} photo{photos.length !== 1 ? "s" : ""}
+        {/* Photo Count and Failed Thumbnails Info */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {photos.length} photo{photos.length !== 1 ? "s" : ""}
+          </span>
+
+          {/* Failed Thumbnails Indicator */}
+          {(retryableFailedCount > 0 || permanentlyFailedCount > 0) && (
+            <div className="flex items-center gap-2">
+              {retryableFailedCount > 0 && (
+                <button
+                  onClick={handleRetryFailedThumbnails}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                  title={`${retryableFailedCount} thumbnail(s) failed to load. Click to retry.`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Retry {retryableFailedCount}
+                </button>
+              )}
+              {permanentlyFailedCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 rounded-full"
+                  title={`${permanentlyFailedCount} thumbnail(s) failed after maximum retries`}
+                >
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {permanentlyFailedCount} failed
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {/* Selection Mode Toggle */}
