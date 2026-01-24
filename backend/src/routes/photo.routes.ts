@@ -10,9 +10,20 @@ const router = Router();
 // Temp directory for uploaded files before processing
 const TEMP_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'temp');
 
-// Ensure temp directory exists
+// Track whether uploads are available
+let uploadsAvailable = true;
+
+// Ensure temp directory exists (handle permission errors gracefully)
 if (!fs.existsSync(TEMP_UPLOAD_DIR)) {
-  fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
+  } catch (err) {
+    // On TrueNAS/NAS systems with bind mounts, we may not have write permissions
+    // The startup script already warned about this - don't crash, just continue
+    console.warn(`⚠ Cannot create temp upload directory: ${(err as Error).message}`);
+    console.warn('  Photo uploads will be unavailable until directory permissions are fixed.');
+    uploadsAvailable = false;
+  }
 }
 
 // Configure multer for disk storage to avoid memory issues with large video files
@@ -42,6 +53,17 @@ const upload = multer({
     }
   },
 });
+
+// Middleware to check if uploads are available
+const checkUploadsAvailable = (_req: Request, res: Response, next: NextFunction) => {
+  if (!uploadsAvailable) {
+    return res.status(503).json({
+      status: 'error',
+      message: 'Photo uploads are temporarily unavailable. The upload directory is not writable. Please check server logs for permission fix instructions.',
+    });
+  }
+  next();
+};
 
 // All routes require authentication
 router.use(authenticate);
@@ -80,7 +102,7 @@ router.use(authenticate);
  *       201:
  *         description: Photo or video uploaded
  */
-router.post('/upload', upload.single('photo'), photoController.uploadPhoto);
+router.post('/upload', checkUploadsAvailable, upload.single('photo'), photoController.uploadPhoto);
 
 /**
  * @openapi

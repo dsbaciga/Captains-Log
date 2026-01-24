@@ -161,5 +161,12 @@ echo "Starting Application..."
 echo "========================================="
 
 # Start the application
-exec "$@"
+# If running as root (production with su-exec available), drop to node user for security
+if [ "$(id -u)" = "0" ] && command -v su-exec >/dev/null 2>&1; then
+  echo "Dropping privileges to 'node' user..."
+  exec su-exec node "$@"
+else
+  # Already running as node (development) or su-exec not available
+  exec "$@"
+fi
 
