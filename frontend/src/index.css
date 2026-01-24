@@ -760,6 +760,39 @@ textarea:focus-visible {
     font-style: italic;
   }
 
+  /* Weather info for single day print */
+  .print-weather {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8pt;
+    margin-bottom: 16pt;
+    padding: 8pt 16pt;
+    background: #f8f9fa !important;
+    border-radius: 4pt;
+    font-size: 11pt;
+    color: #333 !important;
+  }
+
+  .print-weather-icon {
+    font-size: 18pt;
+  }
+
+  .print-weather-temp {
+    font-weight: bold;
+  }
+
+  .print-weather-conditions {
+    color: #666;
+  }
+
+  .print-unscheduled-note {
+    font-size: 9pt;
+    color: #666;
+    font-style: italic;
+    margin: 4pt 0 8pt 0;
+  }
+
   /* Day section styles */
   .print-day {
     margin-bottom: 18pt;
