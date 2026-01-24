@@ -51,8 +51,9 @@ COPY --from=builder /app/dist ./dist
 COPY scripts/migrate-and-start.sh /usr/local/bin/
 RUN sed -i 's/\r$//' /usr/local/bin/migrate-and-start.sh && chmod +x /usr/local/bin/migrate-and-start.sh
 
-# Create uploads and logs directories
-RUN mkdir -p /app/uploads /app/logs && chown -R node:node /app/uploads /app/logs
+# Create uploads and logs directories with subdirectories
+# These will be copied to Docker volumes on first initialization
+RUN mkdir -p /app/uploads/temp /app/uploads/photos /app/logs && chown -R node:node /app/uploads /app/logs
 
 # Use non-root user
 USER node
