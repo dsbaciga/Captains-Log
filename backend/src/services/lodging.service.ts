@@ -72,7 +72,9 @@ class LodgingService {
 
     await verifyEntityAccess(lodging, userId, 'Lodging');
 
-    // Transformer for date fields: convert to Date if truthy, skip if null/undefined
+    // Transformer for date fields: convert to Date if truthy, skip update if null/undefined.
+    // This preserves existing dates if not explicitly provided (dates are required for lodging).
+    // Note: This differs from activity.service.ts which returns null to allow clearing times.
     const dateTransformer = (val: string | null | undefined) =>
       val ? new Date(val) : undefined;
 
