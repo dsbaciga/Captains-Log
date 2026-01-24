@@ -1,12 +1,21 @@
 export type PhotoSource = 'local' | 'immich';
 
+export const MediaType = {
+  IMAGE: 'image',
+  VIDEO: 'video',
+} as const;
+
+export type MediaType = typeof MediaType[keyof typeof MediaType];
+
 export type Photo = {
   id: number;
   tripId: number;
   source: PhotoSource;
+  mediaType: MediaType;
   immichAssetId: string | null;
   localPath: string | null;
   thumbnailPath: string | null;
+  duration: number | null; // Video duration in seconds
   caption: string | null;
   takenAt: string | null;
   latitude: number | null;
@@ -61,6 +70,8 @@ export type UploadPhotoInput = {
 export type LinkImmichPhotoInput = {
   tripId: number;
   immichAssetId: string;
+  mediaType?: MediaType;
+  duration?: number | null;
   caption?: string;
   takenAt?: string;
   latitude?: number;

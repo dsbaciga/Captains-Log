@@ -10,6 +10,7 @@ import ProgressiveImage from "./ProgressiveImage";
 import EntityPickerModal from "./EntityPickerModal";
 import BatchPhotoToolbar from "./BatchPhotoToolbar";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
+import { formatDuration } from "../utils/duration";
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -710,6 +711,24 @@ export default function PhotoGallery({
                   </div>
                 )}
 
+                {/* Video indicator */}
+                {photo.mediaType === 'video' && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-black/60 rounded-full p-3 shadow-lg">
+                      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+
+                {/* Video duration badge */}
+                {photo.mediaType === 'video' && photo.duration && (
+                  <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded font-mono z-10">
+                    {formatDuration(photo.duration)}
+                  </div>
+                )}
+
                 {/* Gradient overlay on hover */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   {photo.caption && (
@@ -904,6 +923,19 @@ export default function PhotoGallery({
 
                       {/* Badges */}
                       <div className="flex-shrink-0 flex items-center gap-2">
+                        {photo.mediaType === 'video' && (
+                          <span className="flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded text-xs">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                            Video
+                            {photo.duration && (
+                              <span className="font-mono">
+                                ({formatDuration(photo.duration)})
+                              </span>
+                            )}
+                          </span>
+                        )}
                         {coverPhotoId === photo.id && (
                           <span className="bg-gradient-to-r from-accent-500 to-accent-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-lg">
                             Cover

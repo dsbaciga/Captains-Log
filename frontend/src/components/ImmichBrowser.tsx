@@ -366,7 +366,7 @@ export default function ImmichBrowser({
         <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Browse Immich Photos
+              Browse Immich Library
             </h2>
             <button
               onClick={onClose}
@@ -627,9 +627,22 @@ export default function ImmichBrowser({
                         </div>
                       )}
                       {asset.type === "VIDEO" && (
-                        <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs">
-                          VIDEO
-                        </div>
+                        <>
+                          {/* Video play icon overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="bg-black/50 rounded-full p-2">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </div>
+                          </div>
+                          {/* Duration badge */}
+                          {asset.duration && (
+                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded font-mono">
+                              {asset.duration.split('.')[0]}
+                            </div>
+                          )}
+                        </>
                       )}
                       {selectedAssetsMap.has(asset.id) && (
                         <div className="absolute inset-0 bg-blue-600 bg-opacity-25 flex items-center justify-center">
