@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import {
   nullableOptional,
   optionalStringWithMax,
@@ -12,7 +13,7 @@ export const ChecklistItemSchema = z.object({
   isChecked: z.boolean().optional(),
   isDefault: z.boolean().optional(),
   sortOrder: z.number().optional(),
-  metadata: nullableOptional(z.record(z.any())),
+  metadata: nullableOptional(z.record(z.unknown())),
   checkedAt: nullableOptional(z.string()),
 });
 
@@ -39,7 +40,7 @@ export const UpdateChecklistItemSchema = z.object({
   description: nullableOptional(z.string()),
   isChecked: nullableOptional(z.boolean()),
   sortOrder: nullableOptional(z.number()),
-  metadata: nullableOptional(z.record(z.any())),
+  metadata: nullableOptional(z.record(z.unknown())),
 });
 
 export const BulkUpdateChecklistItemsSchema = z.object({
@@ -85,7 +86,7 @@ export interface ChecklistWithItems {
     isChecked: boolean;
     isDefault: boolean;
     sortOrder: number;
-    metadata: any;
+    metadata: Prisma.JsonValue;
     checkedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;

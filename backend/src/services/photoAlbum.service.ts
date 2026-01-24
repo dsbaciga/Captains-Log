@@ -9,18 +9,31 @@ import {
   SortOrder,
 } from '../types/photo.types';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals } from '../utils/serviceHelpers';
+import { WithOptionalCoordinates } from '../types/prisma-helpers';
 
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
 
 // Helper function to convert Decimal fields in photo objects
-function convertPhotoDecimals<T extends { latitude?: any; longitude?: any }>(
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(photo: T): T;
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(photo: T | null): T | null;
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(photo: T | undefined): T | undefined;
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(photo: T | null | undefined): T | null | undefined;
+function convertPhotoDecimals<T extends WithOptionalCoordinates>(
   photo: T | null | undefined
 ): T | null | undefined {
+  if (photo === null || photo === undefined) {
+    return photo;
+  }
   return convertDecimals(photo);
 }
 
+// Interface for albums with optional cover photo containing coordinates
+interface WithOptionalCoverPhoto {
+  coverPhoto?: WithOptionalCoordinates | null;
+}
+
 // Helper to convert photos in album objects
-function convertAlbumPhotoDecimals<T extends { coverPhoto?: any }>(album: T): T {
+function convertAlbumPhotoDecimals<T extends WithOptionalCoverPhoto>(album: T): T {
   return convertDecimals(album);
 }
 
@@ -127,20 +140,19 @@ class PhotoAlbumService {
     });
 
     // Group albums by trip (for tripCount)
-    const tripIds = [...new Set(albums.map((a: any) => a.trip.id))];
+    const tripIds = [...new Set(albums.map((a) => a.trip.id))];
 
     const loadedCount = skip + albums.length;
     const hasMore = loadedCount < totalAlbums;
 
     // Use first photo as cover if no explicit cover photo is set
-    const albumsWithCovers = albums.map((album: any) => {
-      const albumCopy = { ...album };
-      if (!albumCopy.coverPhoto && albumCopy.photoAssignments.length > 0) {
-        albumCopy.coverPhoto = albumCopy.photoAssignments[0].photo;
-      }
-      // Remove photoAssignments from the response as it was only needed for the cover
-      delete (albumCopy as any).photoAssignments;
-      return albumCopy;
+    const albumsWithCovers = albums.map((album) => {
+      const { photoAssignments, ...albumWithoutAssignments } = album;
+      const coverPhoto = album.coverPhoto ?? (photoAssignments.length > 0 ? photoAssignments[0].photo : null);
+      return {
+        ...albumWithoutAssignments,
+        coverPhoto,
+      };
     });
 
     return {
@@ -239,14 +251,13 @@ class PhotoAlbumService {
     const unsortedCount = totalPhotosCount - photosInAlbums.length;
 
     // Use first photo as cover if no explicit cover photo is set
-    const albumsWithCovers = albums.map((album: any) => {
-      const albumCopy = { ...album };
-      if (!albumCopy.coverPhoto && albumCopy.photoAssignments.length > 0) {
-        albumCopy.coverPhoto = albumCopy.photoAssignments[0].photo;
-      }
-      // Remove photoAssignments from the response as it was only needed for the cover
-      delete (albumCopy as any).photoAssignments;
-      return albumCopy;
+    const albumsWithCovers = albums.map((album) => {
+      const { photoAssignments, ...albumWithoutAssignments } = album;
+      const coverPhoto = album.coverPhoto ?? (photoAssignments.length > 0 ? photoAssignments[0].photo : null);
+      return {
+        ...albumWithoutAssignments,
+        coverPhoto,
+      };
     });
 
     const loadedCount = skip + albums.length;
@@ -317,7 +328,7 @@ class PhotoAlbumService {
 
     return {
       ...album,
-      photoAssignments: album.photoAssignments.map((assignment: any) => ({
+      photoAssignments: album.photoAssignments.map((assignment) => ({
         ...assignment,
         photo: convertPhotoDecimals(assignment.photo),
       })),

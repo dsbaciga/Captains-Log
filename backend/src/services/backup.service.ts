@@ -239,7 +239,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
       tags,
       companions,
       locationCategories,
-      checklists: checklists.map((checklist: any) => ({
+      checklists: checklists.map((checklist) => ({
         name: checklist.name,
         description: checklist.description,
         type: checklist.type,
@@ -247,7 +247,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         sortOrder: checklist.sortOrder,
         items: checklist.items,
       })),
-      trips: trips.map((trip: any) => ({
+      trips: trips.map((trip) => ({
         // Trip basic info
         title: trip.title,
         description: trip.description,
@@ -262,7 +262,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         locations: trip.locations,
         photos: trip.photos,
         activities: trip.activities,
-        transportation: trip.transportation.map((t: any) => ({
+        transportation: trip.transportation.map((t) => ({
           type: t.type,
           startLocationId: t.startLocationId,
           startLocationText: t.startLocationText,
@@ -292,7 +292,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
           flightTracking: t.flightTracking,
         })),
         lodging: trip.lodging,
-        journalEntries: trip.journalEntries.map((j: any) => ({
+        journalEntries: trip.journalEntries.map((j) => ({
           date: j.date,
           title: j.title,
           content: j.content,
@@ -301,19 +301,19 @@ export async function createBackup(userId: number): Promise<BackupData> {
           weatherNotes: j.weatherNotes,
         })),
         // Note: Location, Activity, and Lodging associations are now handled via EntityLinks
-        photoAlbums: trip.photoAlbums.map((a: any) => ({
+        photoAlbums: trip.photoAlbums.map((a) => ({
           name: a.name,
           description: a.description,
           coverPhotoId: a.coverPhotoId,
-          photos: a.photoAssignments.map((p: any) => ({
+          photos: a.photoAssignments.map((p) => ({
             photoId: p.photoId,
             sortOrder: p.sortOrder,
           })),
         })),
         weatherData: trip.weatherData,
-        tags: trip.tagAssignments.map((t: any) => t.tag.name),
-        companions: trip.companionAssignments.map((c: any) => c.companion.name),
-        checklists: trip.checklists.map((checklist: any) => ({
+        tags: trip.tagAssignments.map((t) => t.tag.name),
+        companions: trip.companionAssignments.map((c) => c.companion.name),
+        checklists: trip.checklists.map((checklist) => ({
           name: checklist.name,
           description: checklist.description,
           type: checklist.type,
