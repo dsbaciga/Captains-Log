@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth';
-import * as weatherController from '../controllers/weather.controller';
+import { weatherController } from '../controllers/weather.controller';
 
 const router = express.Router();
 
