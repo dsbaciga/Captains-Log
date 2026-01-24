@@ -96,12 +96,28 @@ echo "Setting up directories..."
 echo "========================================="
 
 # Ensure uploads directories exist with proper permissions
-# This is needed because the volume mount may create them with root ownership
-mkdir -p /app/uploads/temp /app/uploads/photos
+# In production, these should already exist from Dockerfile.prod
+# This handles development and edge cases where they may not exist
 
-# Fix ownership for the current user (works for both root and node user)
-chown -R "$(id -u):$(id -g)" /app/uploads 2>/dev/null || true
-chmod -R 755 /app/uploads
+# Only attempt chown if running as root (uid 0)
+# Non-root users (like 'node' in production) cannot change ownership
+if [ "$(id -u)" = "0" ]; then
+  # Running as root - can create dirs and fix permissions
+  mkdir -p /app/uploads/temp /app/uploads/photos
+  chown -R node:node /app/uploads 2>/dev/null || true
+  chmod -R 755 /app/uploads
+else
+  # Running as non-root - directories should already exist from Dockerfile
+  # Try to create them but don't fail if we can't (they should already exist)
+  mkdir -p /app/uploads/temp /app/uploads/photos 2>/dev/null || {
+    # mkdir failed - check if directories already exist
+    if [ ! -d /app/uploads/temp ] || [ ! -d /app/uploads/photos ]; then
+      echo "⚠ Warning: Could not create upload directories."
+      echo "  Current user: $(id)"
+      echo "  If this is production, ensure the Docker image was built with the directories."
+    fi
+  }
+fi
 
 # Verify the upload directory is writable
 if ! touch /app/uploads/temp/.write-test 2>/dev/null; then
@@ -109,6 +125,9 @@ if ! touch /app/uploads/temp/.write-test 2>/dev/null; then
   echo "  Current user: $(id)"
   echo "  Directory permissions:"
   ls -la /app/uploads/ 2>/dev/null || echo "  Cannot list /app/uploads/"
+  echo ""
+  echo "  To fix this in production, rebuild the Docker image or run:"
+  echo "    docker exec -u root <container> chown -R node:node /app/uploads"
   exit 1
 fi
 rm -f /app/uploads/temp/.write-test
