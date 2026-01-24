@@ -14,13 +14,22 @@ export const PhotoSource = {
 
 export type PhotoSourceType = typeof PhotoSource[keyof typeof PhotoSource];
 
+export const MediaType = {
+  IMAGE: 'image',
+  VIDEO: 'video',
+} as const;
+
+export type MediaTypeType = typeof MediaType[keyof typeof MediaType];
+
 export interface Photo {
   id: number;
   tripId: number;
   source: PhotoSourceType;
+  mediaType: MediaTypeType;
   immichAssetId: string | null;
   localPath: string | null;
   thumbnailPath: string | null;
+  duration: number | null; // Video duration in seconds
   caption: string | null;
   takenAt: Date | null;
   latitude: number | null;
@@ -63,6 +72,8 @@ export const uploadPhotoSchema = z.object({
 export const linkImmichPhotoSchema = z.object({
   tripId: z.number(),
   immichAssetId: z.string().min(1),
+  mediaType: z.enum(['image', 'video']).optional().default('image'),
+  duration: z.number().int().min(0).optional().nullable(),
   caption: z.string().max(1000).optional(),
   takenAt: optionalDatetime(),
   latitude: optionalLatitude(),
@@ -73,6 +84,8 @@ export const linkImmichPhotoBatchSchema = z.object({
   tripId: z.number(),
   assets: z.array(z.object({
     immichAssetId: z.string().min(1),
+    mediaType: z.enum(['image', 'video']).optional().default('image'),
+    duration: z.number().int().min(0).optional().nullable(),
     caption: z.string().max(1000).optional(),
     takenAt: optionalDatetime(),
     latitude: optionalLatitude(),

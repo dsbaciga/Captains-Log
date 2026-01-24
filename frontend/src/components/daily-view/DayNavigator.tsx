@@ -11,6 +11,7 @@ interface DayNavigatorProps {
   allDates: { dayNumber: number; dateKey: string; displayDate: string }[];
   weather?: WeatherDisplay;
   tripTimezone?: string;
+  onPrint?: () => void;
 }
 
 export default function DayNavigator({
@@ -21,6 +22,7 @@ export default function DayNavigator({
   allDates,
   weather,
   tripTimezone,
+  onPrint,
 }: DayNavigatorProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -136,7 +138,7 @@ export default function DayNavigator({
   }, [isDropdownOpen, focusedIndex, allDates, handleDaySelect]);
 
   return (
-    <div className="grid grid-cols-[auto_1fr_auto_1fr_auto] items-center bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 gap-2">
+    <div className="grid grid-cols-[auto_1fr_auto_1fr_auto_auto] items-center bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 gap-2">
       {/* Column 1: Previous Day Button */}
       <button
         type="button"
@@ -289,7 +291,35 @@ export default function DayNavigator({
         )}
       </div>
 
-      {/* Column 5: Next Day Button */}
+      {/* Column 5: Print Button */}
+      <div className="flex justify-center">
+        {onPrint && (
+          <button
+            type="button"
+            onClick={onPrint}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
+            aria-label="Print this day"
+            title="Print this day"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+              />
+            </svg>
+            <span className="hidden sm:inline text-sm font-medium">Print</span>
+          </button>
+        )}
+      </div>
+
+      {/* Column 6: Next Day Button */}
       <button
         type="button"
         onClick={handleNext}

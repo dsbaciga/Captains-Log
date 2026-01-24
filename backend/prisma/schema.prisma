@@ -223,9 +223,11 @@ model Photo {
   id             Int       @id @default(autoincrement())
   tripId         Int       @map("trip_id")
   source         String    @default("local") @db.VarChar(50) // 'local' or 'immich'
+  mediaType      String    @default("image") @map("media_type") @db.VarChar(20) // 'image' or 'video'
   immichAssetId  String?   @map("immich_asset_id") @db.VarChar(255)
   localPath      String?   @map("local_path") @db.VarChar(500)
   thumbnailPath  String?   @map("thumbnail_path") @db.VarChar(500)
+  duration       Int?      // Video duration in seconds
   caption        String?   @db.Text
   latitude       Decimal?  @db.Decimal(10, 8)
   longitude      Decimal?  @db.Decimal(11, 8)

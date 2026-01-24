@@ -1296,6 +1296,7 @@ export default function TripDetailPage() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <DailyView
                   tripId={parseInt(id!)}
+                  tripTitle={trip.title}
                   tripTimezone={trip.timezone || undefined}
                   userTimezone={userTimezone || undefined}
                   tripStartDate={trip.startDate || undefined}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
@@ -22,6 +23,7 @@ import TransportationCard from './TransportationCard';
 import LodgingCard from './LodgingCard';
 import JournalCard from './JournalCard';
 import EmptyDayPlaceholder from './EmptyDayPlaceholder';
+import PrintableDayItinerary from './PrintableDayItinerary';
 
 // Type for linked locations map: "ENTITY_TYPE:entityId" -> Location[]
 type LinkedLocationsMap = Record<string, Location[]>;
@@ -40,6 +42,7 @@ interface UnscheduledActivityWithLocation extends Activity {
 
 interface DailyViewProps {
   tripId: number;
+  tripTitle?: string;
   tripTimezone?: string;
   userTimezone?: string;
   tripStartDate?: string;
@@ -71,6 +74,7 @@ interface DayData {
 
 export default function DailyView({
   tripId,
+  tripTitle,
   tripTimezone,
   tripStartDate,
   tripEndDate,
@@ -79,6 +83,7 @@ export default function DailyView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allDays, setAllDays] = useState<DayData[]>([]);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [linkedLocationsMap, setLinkedLocationsMap] = useState<LinkedLocationsMap>({});
   const [linkedAlbumsMap, setLinkedAlbumsMap] = useState<LinkedAlbumsMap>({});
   // Note: These state variables store computed data that may be used in future features
@@ -651,6 +656,23 @@ export default function DailyView({
     return linkedAlbumsMap[key] || [];
   }, [linkedAlbumsMap, getEntityKey]);
 
+  // Print handler for current day
+  const handlePrint = useCallback(() => {
+    if (!currentDay) return;
+
+    // Set printing state to render the printable component
+    setIsPrinting(true);
+
+    // Use requestAnimationFrame to ensure DOM is updated before printing
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        // Reset printing state after print dialog closes
+        setIsPrinting(false);
+      });
+    });
+  }, [currentDay]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -693,6 +715,7 @@ export default function DailyView({
         allDates={navigatorDates}
         weather={currentDay?.weather}
         tripTimezone={tripTimezone}
+        onPrint={handlePrint}
       />
 
       {/* Day Content */}
@@ -856,6 +879,24 @@ export default function DailyView({
           </div>
         )}
       </div>
+
+      {/* Print Portal - renders printable day itinerary when printing */}
+      {isPrinting &&
+        currentDay &&
+        createPortal(
+          <div className="print-itinerary-wrapper">
+            <PrintableDayItinerary
+              tripTitle={tripTitle || 'Trip Itinerary'}
+              tripTimezone={tripTimezone}
+              dayNumber={currentDay.dayNumber}
+              displayDate={currentDay.displayDate}
+              items={currentDay.items}
+              weather={currentDay.weather}
+              unscheduledActivities={currentDay.unscheduledActivities}
+            />
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
