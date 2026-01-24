@@ -111,6 +111,7 @@ export default function LodgingManager({
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   // Track original location ID when editing to detect changes (for entity linking)
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<"date" | "type">("date");
 
   const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
@@ -418,6 +419,27 @@ export default function LodgingManager({
     await manager.handleDelete(id);
   };
 
+  // Sort lodging based on sortBy
+  const sortedLodging = useMemo(() => {
+    if (sortBy === "type") {
+      return [...manager.items].sort((a, b) => {
+        if (a.type === b.type) {
+          // Secondary sort by check-in date
+          const dateA = a.checkInDate ? new Date(a.checkInDate).getTime() : 0;
+          const dateB = b.checkInDate ? new Date(b.checkInDate).getTime() : 0;
+          return dateA - dateB;
+        }
+        return a.type.localeCompare(b.type);
+      });
+    }
+    // Default: sort by check-in date
+    return [...manager.items].sort((a, b) => {
+      const dateA = a.checkInDate ? new Date(a.checkInDate).getTime() : 0;
+      const dateB = b.checkInDate ? new Date(b.checkInDate).getTime() : 0;
+      return dateA - dateB;
+    });
+  }, [manager.items, sortBy]);
+
   const getTypeIcon = (type: LodgingType) => {
     switch (type) {
       case "hotel":
@@ -704,6 +726,24 @@ export default function LodgingManager({
         </form>
         </FormModal>
 
+      {/* Sort Control */}
+      {manager.items.length > 0 && (
+        <div className="flex items-center gap-2">
+          <label htmlFor="lodging-sort" className="text-sm text-gray-600 dark:text-gray-400">
+            Sort by:
+          </label>
+          <select
+            id="lodging-sort"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "date" | "type")}
+            className="input py-1 px-2 text-sm w-auto"
+          >
+            <option value="date">Check-in Date</option>
+            <option value="type">Type</option>
+          </select>
+        </div>
+      )}
+
       {/* Lodging List */}
       <div className="space-y-4">
         {manager.loading ? (
@@ -717,7 +757,7 @@ export default function LodgingManager({
             onAction={openCreateForm}
           />
         ) : (
-          manager.items.map((lodging) => (
+          sortedLodging.map((lodging) => (
             <div
               key={lodging.id}
               data-entity-id={`lodging-${lodging.id}`}

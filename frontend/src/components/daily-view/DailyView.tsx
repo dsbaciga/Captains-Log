@@ -29,6 +29,9 @@ type LinkedLocationsMap = Record<string, Location[]>;
 type LinkedAlbumsMap = Record<string, PhotoAlbum[]>;
 // Type for entity-location ID map: "ENTITY_TYPE:entityId" -> locationId[]
 type EntityLocationIdsMap = Record<string, number[]>;
+// Type for location hierarchy maps
+type LocationParentMap = Record<number, number | null>; // locationId -> parentId
+type LocationChildrenMap = Record<number, number[]>; // parentId -> childIds[]
 
 // Unscheduled activity with linked location info for display
 interface UnscheduledActivityWithLocation extends Activity {
@@ -194,12 +197,50 @@ export default function DailyView({
 
         // Build location lookup map for displaying location names
         const locLookup: Record<number, { id: number; name: string }> = {};
+        // Build location hierarchy maps
+        const locationParentMap: LocationParentMap = {};
+        const locationChildrenMap: LocationChildrenMap = {};
         if (Array.isArray(locations)) {
           for (const loc of locations) {
             locLookup[loc.id] = { id: loc.id, name: loc.name };
+            locationParentMap[loc.id] = loc.parentId;
+            // Build children map
+            if (loc.parentId) {
+              if (!locationChildrenMap[loc.parentId]) {
+                locationChildrenMap[loc.parentId] = [];
+              }
+              locationChildrenMap[loc.parentId].push(loc.id);
+            }
           }
         }
         setLocationLookup(locLookup);
+
+        // Helper to get all related location IDs for hierarchy matching
+        // Returns: direct IDs + sibling IDs + parent IDs + children IDs
+        const getRelatedLocationIds = (locationIds: Set<number>): Set<number> => {
+          const related = new Set<number>();
+
+          locationIds.forEach((locId) => {
+            // Add the location itself
+            related.add(locId);
+
+            // Add parent location
+            const parentId = locationParentMap[locId];
+            if (parentId) {
+              related.add(parentId);
+
+              // Add siblings (other children of the same parent)
+              const siblings = locationChildrenMap[parentId] || [];
+              siblings.forEach((sibId) => related.add(sibId));
+            }
+
+            // Add children locations
+            const children = locationChildrenMap[locId] || [];
+            children.forEach((childId) => related.add(childId));
+          });
+
+          return related;
+        };
 
         // Identify unscheduled activities and build activity-location map
         const unscheduled: Activity[] = [];
@@ -496,6 +537,11 @@ export default function DailyView({
         };
 
         // Helper to get unscheduled activities for a day based on linked locations
+        // Uses location hierarchy matching:
+        // 1. Direct match: unscheduled activity's location matches scheduled item's location
+        // 2. Sibling match: both locations share the same parent
+        // 3. Parent match: scheduled item is at parent location of unscheduled's location
+        // 4. Child match: scheduled item is at child location of unscheduled's location
         const getUnscheduledActivitiesForDay = (items: DayItem[]): UnscheduledActivityWithLocation[] => {
           const dayLocationIds = getLocationIdsFromItems(items);
 
@@ -503,10 +549,31 @@ export default function DailyView({
             return [];
           }
 
+          // Expand day's location IDs to include related locations (parent, siblings, children)
+          const expandedDayLocationIds = getRelatedLocationIds(dayLocationIds);
+
           const matched = unscheduled
             .filter((activity) => {
               const linkedLocationIds = actLocMap[activity.id] || [];
-              return linkedLocationIds.some((locId) => dayLocationIds.has(locId));
+              if (linkedLocationIds.length === 0) return false;
+
+              // Check if any of the activity's linked locations match the expanded set
+              // This includes: direct match, sibling match, parent match, child match
+              for (const actLocId of linkedLocationIds) {
+                // Direct match with expanded set
+                if (expandedDayLocationIds.has(actLocId)) {
+                  return true;
+                }
+
+                // Also check if the activity's location's parent/children overlap with day's locations
+                const activityRelatedIds = getRelatedLocationIds(new Set([actLocId]));
+                for (const relatedId of activityRelatedIds) {
+                  if (dayLocationIds.has(relatedId)) {
+                    return true;
+                  }
+                }
+              }
+              return false;
             })
             .map((activity): UnscheduledActivityWithLocation => {
               const linkedLocationIds = actLocMap[activity.id] || [];

@@ -159,14 +159,17 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
   );
 
   return (
-    <div>
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white min-w-0 flex-1 truncate">Travel Companions</h2>
+    <div className="space-y-6">
+      <div className="flex flex-col-reverse items-start gap-3 sm:flex-row sm:justify-between sm:items-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          Travel Companions
+        </h2>
         <button
           onClick={openCreateForm}
-          className="btn btn-primary whitespace-nowrap flex-shrink-0"
+          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
         >
-          + Add New Companion
+          <span className="sm:hidden">+ Add</span>
+          <span className="hidden sm:inline">+ Add Companion</span>
         </button>
       </div>
 
@@ -266,7 +269,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
       </Modal>
 
       {/* Trip Companions */}
-      <div className="mb-6">
+      <div>
         <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Companions on this trip</h3>
         {manager.items.length === 0 ? (
           <EmptyState.Compact
@@ -360,7 +363,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
 
       {/* Search and Add Existing Companions */}
       {availableCompanions.length > 0 && (
-        <div className="mb-6">
+        <div>
           <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Add existing companions</h3>
 
           {/* Search Input */}
