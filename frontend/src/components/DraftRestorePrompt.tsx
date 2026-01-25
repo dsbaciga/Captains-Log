@@ -53,8 +53,8 @@ export default function DraftRestorePrompt({
     <div
       className="
         mb-4 p-3 rounded-lg
-        bg-amber-50 dark:bg-amber-900/20
-        border border-amber-200 dark:border-amber-700
+        bg-primary-50 dark:bg-navy-800/80
+        border border-primary-200 dark:border-gold/20
         animate-fade-in
       "
       role="alert"
@@ -62,7 +62,7 @@ export default function DraftRestorePrompt({
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Icon and message */}
         <div className="flex items-start gap-2 flex-1">
-          <span className="text-amber-600 dark:text-amber-400 text-lg flex-shrink-0">
+          <span className="text-primary-600 dark:text-gold text-lg flex-shrink-0">
             {/* Document with clock icon */}
             <svg
               className="w-5 h-5"
@@ -78,11 +78,11 @@ export default function DraftRestorePrompt({
               />
             </svg>
           </span>
-          <div className="text-sm">
-            <p className="font-medium text-amber-800 dark:text-amber-200">
+          <div className="text-sm font-body">
+            <p className="font-medium text-primary-800 dark:text-gold">
               Unsaved draft found
             </p>
-            <p className="text-amber-700 dark:text-amber-300 mt-0.5">
+            <p className="text-primary-700 dark:text-warm-gray mt-0.5">
               You have an unsaved {entityName} draft from {timeAgo}. Would you like to restore it?
             </p>
           </div>
@@ -93,25 +93,14 @@ export default function DraftRestorePrompt({
           <button
             type="button"
             onClick={onDiscard}
-            className="
-              px-3 py-1.5 text-sm font-medium rounded-lg
-              text-amber-700 dark:text-amber-300
-              hover:bg-amber-100 dark:hover:bg-amber-800/30
-              transition-colors
-            "
+            className="btn-secondary text-sm py-1.5 px-3"
           >
             Discard
           </button>
           <button
             type="button"
             onClick={onRestore}
-            className="
-              px-3 py-1.5 text-sm font-medium rounded-lg
-              bg-amber-600 dark:bg-amber-500
-              text-white
-              hover:bg-amber-700 dark:hover:bg-amber-600
-              transition-colors
-            "
+            className="btn-primary text-sm py-1.5 px-3"
           >
             Restore
           </button>

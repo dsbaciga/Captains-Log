@@ -34,9 +34,9 @@ export default function DraftIndicator({
   return (
     <div
       className={`
-        inline-flex items-center gap-1.5 text-xs
+        inline-flex items-center gap-1.5 text-xs font-body
         transition-opacity duration-300
-        ${isSaving ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}
+        ${isSaving ? 'text-primary-600 dark:text-gold' : 'text-slate dark:text-warm-gray'}
       `}
       role="status"
       aria-live="polite"
@@ -44,13 +44,13 @@ export default function DraftIndicator({
       {isSaving ? (
         <>
           {/* Pulsing dot for saving state */}
-          <span className="w-2 h-2 bg-amber-500 dark:bg-amber-400 rounded-full animate-pulse" />
+          <span className="w-2 h-2 bg-primary-500 dark:bg-gold rounded-full animate-pulse-subtle" />
           <span>Saving...</span>
         </>
       ) : lastSavedAt ? (
         <>
           {/* Static dot for saved state */}
-          <span className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full" />
+          <span className="w-2 h-2 bg-emerald-500 dark:bg-emerald-400 rounded-full" />
           <span>Draft saved {formatDraftTime(lastSavedAt.getTime())}</span>
         </>
       ) : null}
