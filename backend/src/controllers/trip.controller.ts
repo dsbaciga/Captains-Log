@@ -123,8 +123,8 @@ export const tripController = {
     const tripId = parseId(req.params.id, 'tripId');
 
     const schema = z.object({
-      issueType: z.string(),
-      issueKey: z.string(),
+      issueType: z.string().min(1).max(100),
+      issueKey: z.string().min(1).max(500),
       category: z.enum(['SCHEDULE', 'ACCOMMODATIONS', 'TRANSPORTATION', 'COMPLETENESS']),
     });
     const { issueType, issueKey, category } = schema.parse(req.body);

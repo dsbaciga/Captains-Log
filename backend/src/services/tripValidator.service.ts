@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import travelTimeService from './travelTime.service';
 import { TripWithRelations } from '../types/prisma-helpers';
+import { AppError } from '../utils/errors';
 
 // =============================================================================
 // TYPES
@@ -136,7 +137,7 @@ class TripValidatorService {
     });
 
     if (!trip) {
-      throw new Error('Trip not found');
+      throw new AppError('Trip not found', 404);
     }
 
     const context = getValidationContext(trip.status);
@@ -209,7 +210,7 @@ class TripValidatorService {
     });
 
     if (!trip) {
-      throw new Error('Trip not found');
+      throw new AppError('Trip not found', 404);
     }
 
     await prisma.dismissedValidationIssue.upsert({
@@ -247,7 +248,7 @@ class TripValidatorService {
     });
 
     if (!trip) {
-      throw new Error('Trip not found');
+      throw new AppError('Trip not found', 404);
     }
 
     await prisma.dismissedValidationIssue.deleteMany({
@@ -638,11 +639,9 @@ class TripValidatorService {
       return issues;
     }
 
-    // Create a map from activity name to activity ID for looking up IDs from alerts
-    const activityNameToId = new Map<string, number>();
-    activitiesWithFullLocation.forEach(a => {
-      activityNameToId.set(a.name, a.id);
-    });
+    // Store activity IDs in order for looking up after analysis
+    // This handles the case where multiple activities might have the same name
+    const orderedActivityIds = activitiesWithFullLocation.map(a => a.id);
 
     // Analyze travel time between consecutive activities
     // The service expects activities with name, startTime, endTime, and location
@@ -658,10 +657,11 @@ class TripValidatorService {
     const alerts = travelTimeService.analyzeActivityTransitions(activitiesForAnalysis);
 
     // Convert alerts to validation issues
-    alerts.forEach((alert) => {
-      // Look up IDs from the activity names returned in the alert
-      const fromId = activityNameToId.get(alert.fromActivity) || 0;
-      const toId = activityNameToId.get(alert.toActivity) || 0;
+    // Alerts come back in order - alert[j] is for transition from activity[j] to activity[j+1]
+    alerts.forEach((alert, alertIndex) => {
+      // Use index-based lookup for reliability (handles duplicate activity names)
+      const fromId = orderedActivityIds[alertIndex] || 0;
+      const toId = orderedActivityIds[alertIndex + 1] || 0;
       const sortedIds = [fromId, toId].sort((a, b) => a - b);
       const issueKey = `${sortedIds[0]}:${sortedIds[1]}`;
       const issueId = this.generateIssueId('travel_time', issueKey);
