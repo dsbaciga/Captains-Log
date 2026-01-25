@@ -194,10 +194,10 @@ export default function BulkEditModal({
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Info banner */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-gold/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <svg
-              className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0"
+              className="w-5 h-5 text-primary-600 dark:text-gold mt-0.5 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -209,9 +209,9 @@ export default function BulkEditModal({
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <div className="text-sm text-blue-800 dark:text-blue-300">
+            <div className="text-sm text-primary-800 dark:text-primary-200">
               <p className="font-medium">Bulk Edit Mode</p>
-              <p className="mt-1 text-blue-700 dark:text-blue-400">
+              <p className="mt-1 text-primary-700 dark:text-primary-300">
                 Only filled fields will be updated. Leave fields empty to keep their current values.
                 This will update {selectedCount} {pluralLabel.toLowerCase()}.
               </p>
@@ -233,7 +233,7 @@ export default function BulkEditModal({
               <div key={field.key}>
                 <label
                   htmlFor={`bulk-edit-${field.key}`}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="label"
                 >
                   {field.label}
                 </label>
@@ -249,19 +249,19 @@ export default function BulkEditModal({
         </FormSection>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end gap-3 pt-4 border-t border-warm-gray dark:border-gold/20">
           <button
             type="button"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="btn btn-secondary"
+            className="btn-secondary"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="btn btn-primary"
+            className="btn-primary"
           >
             {isSubmitting ? (
               <>

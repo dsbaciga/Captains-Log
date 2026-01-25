@@ -486,7 +486,7 @@ export default function ActivityManager({
                   e.stopPropagation();
                   bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, topLevelActivities);
                 }}
-                className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
               />
             </div>
           )}

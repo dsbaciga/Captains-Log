@@ -105,7 +105,7 @@ export default function BulkActionBar({
       }`}
     >
       {/* Backdrop blur effect */}
-      <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 shadow-lg">
+      <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-lg border-t border-warm-gray dark:border-gold/20 shadow-lg">
         <div className="max-w-[1600px] mx-auto px-4 py-3 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             {/* Left section: Selection info */}
@@ -129,10 +129,10 @@ export default function BulkActionBar({
 
               {/* Selection count */}
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                <span className="text-sm font-semibold text-charcoal dark:text-warm-gray">
                   {selectedCount} {pluralLabel.toLowerCase()} selected
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate dark:text-warm-gray/70">
                   of {totalCount} total
                 </span>
               </div>
@@ -142,7 +142,7 @@ export default function BulkActionBar({
                 {selectedCount < totalCount && (
                   <button
                     onClick={onSelectAll}
-                    className="px-2 py-1 text-xs font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded transition-colors"
+                    className="px-2 py-1 text-xs font-medium text-primary-600 dark:text-gold hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:focus-visible:ring-gold/50"
                   >
                     Select all
                   </button>
@@ -150,7 +150,7 @@ export default function BulkActionBar({
                 {selectedCount > 0 && (
                   <button
                     onClick={onDeselectAll}
-                    className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                    className="px-2 py-1 text-xs font-medium text-slate dark:text-warm-gray/70 hover:bg-parchment dark:hover:bg-navy-700 rounded transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:focus-visible:ring-gold/50"
                   >
                     Deselect
                   </button>
@@ -165,7 +165,7 @@ export default function BulkActionBar({
                 {selectedCount < totalCount && (
                   <button
                     onClick={onSelectAll}
-                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary-600 dark:text-gold hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:focus-visible:ring-gold/50"
                     title="Select all"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,7 +183,7 @@ export default function BulkActionBar({
                 <button
                   onClick={onBulkEdit}
                   disabled={isEditing || selectedCount === 0}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[44px] justify-center"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-gold hover:bg-primary-200 dark:hover:bg-primary-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[44px] justify-center focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:focus-visible:ring-gold/50"
                   title="Edit selected items"
                 >
                   {isEditing ? (
@@ -204,7 +204,7 @@ export default function BulkActionBar({
               <button
                 onClick={onBulkDelete}
                 disabled={isDeleting || selectedCount === 0}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[44px] justify-center"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[44px] justify-center focus-visible:ring-2 focus-visible:ring-red-500/50"
                 title="Delete selected items"
               >
                 {isDeleting ? (
@@ -223,7 +223,7 @@ export default function BulkActionBar({
               {/* Close / Done button */}
               <button
                 onClick={onExitSelectionMode}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ml-1"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg text-slate dark:text-warm-gray/70 hover:bg-parchment dark:hover:bg-navy-700 transition-colors ml-1 focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:focus-visible:ring-gold/50"
                 title="Exit selection mode"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
