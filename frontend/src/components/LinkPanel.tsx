@@ -23,6 +23,37 @@ import {
 /** Selector for all focusable elements within a modal */
 const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/**
+ * LinkPanel is a modal component for viewing and managing entity links.
+ * It displays all entities linked to a source entity, grouped by type,
+ * and allows users to add new links, edit existing link metadata,
+ * delete links, and navigate to linked entities.
+ *
+ * Features:
+ * - Bidirectional link display (shows both links FROM and TO the entity)
+ * - Photo thumbnail preview with authenticated Immich support
+ * - Keyboard navigation and focus trap for accessibility
+ * - Link editing (relationship type and notes)
+ * - Navigation to linked entities
+ *
+ * @param props - Component props
+ * @param props.tripId - The ID of the trip containing the entity
+ * @param props.entityType - The type of the source entity (e.g., "PHOTO", "LOCATION", "ACTIVITY")
+ * @param props.entityId - The ID of the source entity
+ * @param props.onClose - Callback to close the panel
+ * @param props.onUpdate - Optional callback triggered when links are modified
+ *
+ * @example
+ * ```tsx
+ * <LinkPanel
+ *   tripId={123}
+ *   entityType="PHOTO"
+ *   entityId={456}
+ *   onClose={() => setShowPanel(false)}
+ *   onUpdate={() => refetchData()}
+ * />
+ * ```
+ */
 interface LinkPanelProps {
   tripId: number;
   entityType: EntityType;

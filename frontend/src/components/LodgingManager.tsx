@@ -25,6 +25,38 @@ import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStor
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
+/**
+ * LodgingManager handles CRUD operations for trip accommodations.
+ * Supports hotels, hostels, vacation rentals, camping, resorts, and other lodging types.
+ *
+ * Features:
+ * - Multiple lodging types with icons
+ * - Check-in/check-out datetime with timezone support
+ * - Sequential chaining (auto-fills next check-in from previous check-out)
+ * - Confirmation number and booking URL storage
+ * - Cost and currency tracking
+ * - Location linking via EntityLink system
+ * - Sorting by check-in date or type
+ * - Quick-add location creation
+ *
+ * @param props - Component props
+ * @param props.tripId - The ID of the trip
+ * @param props.locations - Array of trip locations for lodging location selection
+ * @param props.tripTimezone - Default timezone for the trip
+ * @param props.tripStartDate - Trip start date for default form values (15:00 check-in, 11:00 check-out)
+ * @param props.onUpdate - Callback triggered after CRUD operations to refresh parent data
+ *
+ * @example
+ * ```tsx
+ * <LodgingManager
+ *   tripId={123}
+ *   locations={tripLocations}
+ *   tripTimezone="Europe/Paris"
+ *   tripStartDate="2024-06-01"
+ *   onUpdate={() => refetchTrip()}
+ * />
+ * ```
+ */
 interface LodgingManagerProps {
   tripId: number;
   locations: Location[];

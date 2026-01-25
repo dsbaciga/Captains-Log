@@ -13,6 +13,55 @@ import BatchPhotoToolbar from "./BatchPhotoToolbar";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { formatDuration } from "../utils/duration";
 
+/**
+ * PhotoGallery displays a collection of photos in grid or list view with
+ * support for both local uploads and Immich-sourced photos. Provides batch
+ * selection, album management, entity linking, and photo editing capabilities.
+ *
+ * Features:
+ * - Grid and list view modes
+ * - Sorting by date, name, or location
+ * - Batch selection with shift-click range selection
+ * - Add photos to existing or new albums
+ * - Remove photos from current album
+ * - Bulk delete selected photos
+ * - Entity linking (link photos to locations, activities, etc.)
+ * - Cover photo designation
+ * - Immich thumbnail caching with retry logic for rate limiting
+ * - Video support with duration display
+ * - Photo lightbox with edit capabilities
+ *
+ * @param props - Component props
+ * @param props.photos - Array of photos to display
+ * @param props.albums - Optional array of available albums for batch operations
+ * @param props.onPhotoDeleted - Callback when a photo is deleted
+ * @param props.onPhotoUpdated - Callback when a photo is edited (caption, date)
+ * @param props.onSetCoverPhoto - Callback to set a photo as album/trip cover
+ * @param props.onPhotosAddedToAlbum - Callback when photos are added to an album
+ * @param props.coverPhotoId - ID of the current cover photo (shows badge)
+ * @param props.totalPhotosInView - Total photo count for "Select All" functionality
+ * @param props.onLoadAllPhotos - Callback to load all photos (for selecting all)
+ * @param props.currentAlbumId - ID of current album (enables "Remove from album")
+ * @param props.onPhotosRemovedFromAlbum - Callback when photos are removed from album
+ * @param props.onSortChange - Callback when sort options change (for server-side sorting)
+ * @param props.initialSortBy - Initial sort field ("date", "name", "location")
+ * @param props.initialSortOrder - Initial sort order ("asc", "desc")
+ * @param props.tripId - Trip ID for entity linking operations
+ *
+ * @example
+ * ```tsx
+ * <PhotoGallery
+ *   photos={albumPhotos}
+ *   albums={tripAlbums}
+ *   coverPhotoId={album.coverPhotoId}
+ *   currentAlbumId={album.id}
+ *   onPhotoDeleted={() => refetch()}
+ *   onPhotoUpdated={() => refetch()}
+ *   onSetCoverPhoto={(id) => setCover(id)}
+ *   tripId={tripId}
+ * />
+ * ```
+ */
 interface PhotoGalleryProps {
   photos: Photo[];
   albums?: PhotoAlbum[];
@@ -45,7 +94,16 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Maximum number of retry attempts for failed thumbnails (to avoid infinite loops)
 const MAX_THUMBNAIL_RETRIES = 2;
 
-// Fetch with retry logic for rate limiting (429 errors)
+/**
+ * Fetches a URL with exponential backoff retry logic for handling rate limiting.
+ * Specifically designed to handle Immich API 429 responses gracefully.
+ * @param url - The URL to fetch
+ * @param options - Standard fetch options (headers, etc.)
+ * @param maxRetries - Maximum number of retry attempts (default: 4)
+ * @param initialDelay - Initial delay in ms before first retry (default: 1000, doubles each retry)
+ * @returns The fetch Response object
+ * @throws Error if all retries fail
+ */
 async function fetchWithRetry(
   url: string,
   options: RequestInit,
