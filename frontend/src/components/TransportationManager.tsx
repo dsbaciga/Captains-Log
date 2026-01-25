@@ -11,6 +11,8 @@ import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
 import FormSection, { CollapsibleSection } from "./FormSection";
+import DraftIndicator from "./DraftIndicator";
+import DraftRestorePrompt from "./DraftRestorePrompt";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useFormReset } from "../hooks/useFormReset";
@@ -18,6 +20,7 @@ import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -172,6 +175,45 @@ export default function TransportationManager({
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+
+  // Auto-save draft for form data
+  const draftKey = manager.editingId ? manager.editingId : tripId;
+  const draft = useAutoSaveDraft(values, {
+    entityType: 'transportation',
+    id: draftKey,
+    isEditMode: !!manager.editingId,
+    tripId,
+    defaultValues: getInitialFormState,
+    enabled: manager.showForm,
+  });
+
+  // Check for existing draft when form opens in create mode
+  useEffect(() => {
+    if (manager.showForm && !manager.editingId && draft.hasDraft) {
+      setShowDraftPrompt(true);
+    }
+  }, [manager.showForm, manager.editingId, draft.hasDraft]);
+
+  // Handle draft restore
+  const handleRestoreDraft = useCallback(() => {
+    const restoredData = draft.restoreDraft();
+    if (restoredData) {
+      setAllFields(restoredData);
+      // Show more options if draft has data in optional fields
+      if (restoredData.carrier || restoredData.vehicleNumber || restoredData.confirmationNumber ||
+          restoredData.cost || restoredData.notes || restoredData.fromLocationName || restoredData.toLocationName) {
+        setShowMoreOptions(true);
+      }
+    }
+    setShowDraftPrompt(false);
+  }, [draft, setAllFields]);
+
+  // Handle draft discard
+  const handleDiscardDraft = useCallback(() => {
+    draft.clearDraft();
+    setShowDraftPrompt(false);
+  }, [draft]);
 
   // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
   const handleEdit = useCallback((transportation: Transportation) => {
@@ -340,7 +382,9 @@ export default function TransportationManager({
     baseResetForm();
     setKeepFormOpenAfterSave(false);
     setShowMoreOptions(false);
-  }, [baseResetForm]);
+    setShowDraftPrompt(false);
+    draft.clearDraft();
+  }, [baseResetForm, draft]);
 
   // Open create form with clean state
   const openCreateForm = useCallback(() => {
@@ -679,36 +723,52 @@ export default function TransportationManager({
         icon="🚀"
         formId="transportation-form"
         footer={
-          <>
-            <button
-              type="button"
-              onClick={handleCloseForm}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            {!manager.editingId && (
+          <div className="flex items-center justify-between w-full gap-4">
+            <DraftIndicator
+              isSaving={draft.isSaving}
+              lastSavedAt={draft.lastSavedAt}
+              show={draft.hasDraft && !manager.editingId}
+            />
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setKeepFormOpenAfterSave(true);
-                  (document.getElementById('transportation-form') as HTMLFormElement)?.requestSubmit();
-                }}
-                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                onClick={handleCloseForm}
+                className="btn btn-secondary"
               >
-                Save & Add Another
+                Cancel
               </button>
-            )}
-            <button
-              type="submit"
-              form="transportation-form"
-              className="btn btn-primary"
-            >
-              {manager.editingId ? "Update" : "Add"} Transportation
-            </button>
-          </>
+              {!manager.editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeepFormOpenAfterSave(true);
+                    (document.getElementById('transportation-form') as HTMLFormElement)?.requestSubmit();
+                  }}
+                  className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                >
+                  Save & Add Another
+                </button>
+              )}
+              <button
+                type="submit"
+                form="transportation-form"
+                className="btn btn-primary"
+              >
+                {manager.editingId ? "Update" : "Add"} Transportation
+              </button>
+            </div>
+          </div>
         }
       >
+        {/* Draft Restore Prompt */}
+        <DraftRestorePrompt
+          isOpen={showDraftPrompt && !manager.editingId}
+          savedAt={draft.lastSavedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+          entityType="transportation"
+        />
+
         <form id="transportation-form" onSubmit={handleSubmit} className="space-y-6">
           {/* SECTION 1: Type Selection */}
           <FormSection title="Type" icon="🚀">

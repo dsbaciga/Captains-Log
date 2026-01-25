@@ -22,6 +22,7 @@ import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import { debugLogger } from './utils/debugLogger';
 import { migrateFromLocalStorage } from './utils/authMigration';
+import { cleanupExpiredDrafts } from './utils/draftStorage';
 import { useAuthStore } from './store/authStore';
 
 // Create a client
@@ -42,6 +43,8 @@ function App() {
   useEffect(() => {
     // Migrate from localStorage to secure storage (one-time cleanup)
     migrateFromLocalStorage();
+    // Clean up expired draft form data
+    cleanupExpiredDrafts();
     // Initialize auth via silent refresh using httpOnly cookie
     initializeAuth();
   }, [initializeAuth]);

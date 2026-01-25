@@ -9,16 +9,22 @@ import FormSection from "./FormSection";
 import LocationDisplay from "./LocationDisplay";
 import PhotoPreviewPopover from "./timeline/PhotoPreviewPopover";
 import LinkPanel from "./LinkPanel";
+import DraftIndicator from "./DraftIndicator";
+import DraftRestorePrompt from "./DraftRestorePrompt";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useEntityLinking } from "../hooks/useEntityLinking";
+import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
+import { useBulkSelection } from "../hooks/useBulkSelection";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import LocationSearchMap from "./LocationSearchMap";
 import TripLocationsMap from "./TripLocationsMap";
+import BulkActionBar from "./BulkActionBar";
+import BulkEditModal from "./BulkEditModal";
 
 /**
  * LocationManager handles CRUD operations for trip locations (points of interest).
@@ -101,9 +107,49 @@ export default function LocationManager({
 
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
 
-  const { values, handleChange, reset } =
+  // Bulk selection state
+  const bulkSelection = useBulkSelection<Location>();
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
+
+  const { values, handleChange, reset, setAllFields } =
     useFormFields<LocationFormFields>(initialFormState);
+
+  // Auto-save draft for form data
+  const draftKey = manager.editingId ? manager.editingId : tripId;
+  const draft = useAutoSaveDraft(values, {
+    entityType: 'location',
+    id: draftKey,
+    isEditMode: !!manager.editingId,
+    tripId,
+    defaultValues: initialFormState,
+    enabled: manager.showForm,
+  });
+
+  // Check for existing draft when form opens in create mode
+  useEffect(() => {
+    if (manager.showForm && !manager.editingId && draft.hasDraft) {
+      setShowDraftPrompt(true);
+    }
+  }, [manager.showForm, manager.editingId, draft.hasDraft]);
+
+  // Handle draft restore
+  const handleRestoreDraft = useCallback(() => {
+    const restoredData = draft.restoreDraft();
+    if (restoredData) {
+      setAllFields(restoredData);
+    }
+    setShowDraftPrompt(false);
+  }, [draft, setAllFields]);
+
+  // Handle draft discard
+  const handleDiscardDraft = useCallback(() => {
+    draft.clearDraft();
+    setShowDraftPrompt(false);
+  }, [draft]);
 
   // Destructure stable method for dependency array
   const { openEditForm } = manager;
@@ -138,11 +184,13 @@ export default function LocationManager({
     }
   };
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     reset();
     manager.setEditingId(null);
     setKeepFormOpenAfterSave(false);
-  };
+    setShowDraftPrompt(false);
+    draft.clearDraft();
+  }, [reset, manager, draft]);
 
   const handleLocationSelect = (data: {
     name: string;
@@ -409,36 +457,52 @@ export default function LocationManager({
         maxWidth="2xl"
         formId="location-form"
         footer={
-          <>
-            <button
-              type="button"
-              onClick={handleCloseForm}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            {!manager.editingId && (
+          <div className="flex items-center justify-between w-full gap-4">
+            <DraftIndicator
+              isSaving={draft.isSaving}
+              lastSavedAt={draft.lastSavedAt}
+              show={draft.hasDraft && !manager.editingId}
+            />
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setKeepFormOpenAfterSave(true);
-                  (document.getElementById('location-form') as HTMLFormElement)?.requestSubmit();
-                }}
-                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                onClick={handleCloseForm}
+                className="btn btn-secondary"
               >
-                Save & Add Another
+                Cancel
               </button>
-            )}
-            <button
-              type="submit"
-              form="location-form"
-              className="btn btn-primary"
-            >
-              {manager.editingId ? "Update" : "Add"} Location
-            </button>
-          </>
+              {!manager.editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeepFormOpenAfterSave(true);
+                    (document.getElementById('location-form') as HTMLFormElement)?.requestSubmit();
+                  }}
+                  className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                >
+                  Save & Add Another
+                </button>
+              )}
+              <button
+                type="submit"
+                form="location-form"
+                className="btn btn-primary"
+              >
+                {manager.editingId ? "Update" : "Add"} Location
+              </button>
+            </div>
+          </div>
         }
       >
+        {/* Draft Restore Prompt */}
+        <DraftRestorePrompt
+          isOpen={showDraftPrompt && !manager.editingId}
+          savedAt={draft.lastSavedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+          entityType="location"
+        />
+
         <form id="location-form" onSubmit={handleSubmit} className="space-y-6">
           {/* Map Search Section */}
           <FormSection title="Search & Select Location" icon="🗺️">

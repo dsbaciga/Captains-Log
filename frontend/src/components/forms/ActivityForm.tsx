@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Activity } from "../../types/activity";
 import type { Location } from "../../types/location";
 import type { ActivityCategory } from "../../types/user";
 import { useFormFields } from "../../hooks/useFormFields";
+import { useAutoSaveDraft } from "../../hooks/useAutoSaveDraft";
 import FormSection, { CollapsibleSection } from "../FormSection";
+import DraftRestorePrompt from "../DraftRestorePrompt";
 import TimezoneSelect from "../TimezoneSelect";
 import CostCurrencyFields from "../CostCurrencyFields";
 import BookingFields from "../BookingFields";
@@ -112,10 +114,51 @@ export default function ActivityForm({
   const [showMoreOptions, setShowMoreOptions] = useState(showMoreOptionsDefault);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
 
-  const { values, handleChange, reset } = useFormFields<ActivityFormFields>(
-    getInitialFormState(tripStartDate, defaultUnscheduled)
+  const initialFormState = getInitialFormState(tripStartDate, defaultUnscheduled);
+  const { values, handleChange, reset, setAllFields } = useFormFields<ActivityFormFields>(
+    initialFormState
   );
+
+  // Auto-save draft for form data
+  const isEditMode = !!editingActivity;
+  const draftKey = isEditMode && editingActivity ? editingActivity.id : tripId;
+  const draft = useAutoSaveDraft(values, {
+    entityType: 'activity',
+    id: draftKey,
+    isEditMode,
+    tripId,
+    defaultValues: initialFormState,
+    enabled: true,
+  });
+
+  // Check for existing draft when form opens in create mode
+  useEffect(() => {
+    if (!isEditMode && draft.hasDraft) {
+      setShowDraftPrompt(true);
+    }
+  }, [isEditMode, draft.hasDraft]);
+
+  // Handle draft restore
+  const handleRestoreDraft = useCallback(() => {
+    const restoredData = draft.restoreDraft();
+    if (restoredData) {
+      setAllFields(restoredData);
+      // Show more options if draft has data in optional fields
+      if (restoredData.description || restoredData.locationId || restoredData.cost ||
+          restoredData.bookingUrl || restoredData.bookingReference || restoredData.notes) {
+        setShowMoreOptions(true);
+      }
+    }
+    setShowDraftPrompt(false);
+  }, [draft, setAllFields]);
+
+  // Handle draft discard
+  const handleDiscardDraft = useCallback(() => {
+    draft.clearDraft();
+    setShowDraftPrompt(false);
+  }, [draft]);
 
   // Sync localLocations with locations prop
   useEffect(() => {
@@ -312,6 +355,9 @@ export default function ActivityForm({
       }
 
       await onSubmit(formData, values.locationId || null);
+
+      // Clear draft on successful submit
+      draft.clearDraft();
     } finally {
       setIsSubmitting(false);
     }
@@ -324,6 +370,15 @@ export default function ActivityForm({
 
   return (
     <form id={formId} onSubmit={handleFormSubmit} className="space-y-6">
+      {/* Draft Restore Prompt */}
+      <DraftRestorePrompt
+        isOpen={showDraftPrompt && !isEditMode}
+        savedAt={draft.lastSavedAt}
+        onRestore={handleRestoreDraft}
+        onDiscard={handleDiscardDraft}
+        entityType="activity"
+      />
+
       {/* SECTION 1: Basic Info */}
       <FormSection title="Basic Info" icon="🎯">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

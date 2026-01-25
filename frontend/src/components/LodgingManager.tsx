@@ -9,6 +9,8 @@ import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
 import FormSection, { CollapsibleSection } from "./FormSection";
+import DraftIndicator from "./DraftIndicator";
+import DraftRestorePrompt from "./DraftRestorePrompt";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useFormReset } from "../hooks/useFormReset";
@@ -16,6 +18,7 @@ import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -144,9 +147,48 @@ export default function LodgingManager({
   // Track original location ID when editing to detect changes (for entity linking)
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<"date" | "type">("date");
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
 
   const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
+
+  // Auto-save draft for form data
+  const draftKey = manager.editingId ? manager.editingId : tripId;
+  const draft = useAutoSaveDraft(values, {
+    entityType: 'lodging',
+    id: draftKey,
+    isEditMode: !!manager.editingId,
+    tripId,
+    defaultValues: getInitialFormState,
+    enabled: manager.showForm,
+  });
+
+  // Check for existing draft when form opens in create mode
+  useEffect(() => {
+    if (manager.showForm && !manager.editingId && draft.hasDraft) {
+      setShowDraftPrompt(true);
+    }
+  }, [manager.showForm, manager.editingId, draft.hasDraft]);
+
+  // Handle draft restore
+  const handleRestoreDraft = useCallback(() => {
+    const restoredData = draft.restoreDraft();
+    if (restoredData) {
+      setAllFields(restoredData);
+      // Show more options if draft has data in optional fields
+      if (restoredData.locationId || restoredData.address || restoredData.confirmationNumber ||
+          restoredData.bookingUrl || restoredData.cost || restoredData.notes) {
+        setShowMoreOptions(true);
+      }
+    }
+    setShowDraftPrompt(false);
+  }, [draft, setAllFields]);
+
+  // Handle draft discard
+  const handleDiscardDraft = useCallback(() => {
+    draft.clearDraft();
+    setShowDraftPrompt(false);
+  }, [draft]);
 
   // Create wrappers for useFormReset hook
   const setShowForm = useCallback((show: boolean) => {
@@ -289,7 +331,9 @@ export default function LodgingManager({
     setKeepFormOpenAfterSave(false);
     setShowMoreOptions(false);
     setOriginalLocationId(null);
-  }, [baseResetForm]);
+    setShowDraftPrompt(false);
+    draft.clearDraft();
+  }, [baseResetForm, draft]);
 
   // Open create form with clean state
   const openCreateForm = useCallback(() => {
@@ -526,36 +570,52 @@ export default function LodgingManager({
         icon="🏨"
         formId="lodging-form"
         footer={
-          <>
-            <button
-              type="button"
-              onClick={handleCloseForm}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            {!manager.editingId && (
+          <div className="flex items-center justify-between w-full gap-4">
+            <DraftIndicator
+              isSaving={draft.isSaving}
+              lastSavedAt={draft.lastSavedAt}
+              show={draft.hasDraft && !manager.editingId}
+            />
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setKeepFormOpenAfterSave(true);
-                  (document.getElementById('lodging-form') as HTMLFormElement)?.requestSubmit();
-                }}
-                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                onClick={handleCloseForm}
+                className="btn btn-secondary"
               >
-                Save & Add Another
+                Cancel
               </button>
-            )}
-            <button
-              type="submit"
-              form="lodging-form"
-              className="btn btn-primary"
-            >
-              {manager.editingId ? "Update" : "Add"} Lodging
-            </button>
-          </>
+              {!manager.editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeepFormOpenAfterSave(true);
+                    (document.getElementById('lodging-form') as HTMLFormElement)?.requestSubmit();
+                  }}
+                  className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                >
+                  Save & Add Another
+                </button>
+              )}
+              <button
+                type="submit"
+                form="lodging-form"
+                className="btn btn-primary"
+              >
+                {manager.editingId ? "Update" : "Add"} Lodging
+              </button>
+            </div>
+          </div>
         }
       >
+        {/* Draft Restore Prompt */}
+        <DraftRestorePrompt
+          isOpen={showDraftPrompt && !manager.editingId}
+          savedAt={draft.lastSavedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+          entityType="lodging"
+        />
+
         <form id="lodging-form" onSubmit={handleSubmit} className="space-y-6">
           {/* SECTION 1: Basic Info (Type & Name) */}
           <FormSection title="Basic Info" icon="🏨">
