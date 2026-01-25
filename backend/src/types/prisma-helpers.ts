@@ -26,6 +26,20 @@ export type TripWithRelations = Prisma.TripGetPayload<{
 }>;
 
 /**
+ * Trip with relations needed for validation including dismissed issues
+ */
+export type TripWithValidationRelations = Prisma.TripGetPayload<{
+  include: {
+    activities: true;
+    lodging: true;
+    transportation: true;
+    locations: true;
+    journalEntries: true;
+    dismissedValidationIssues: true;
+  };
+}>;
+
+/**
  * Trip with full relations including nested data for backup
  */
 export type TripWithFullRelations = Prisma.TripGetPayload<{

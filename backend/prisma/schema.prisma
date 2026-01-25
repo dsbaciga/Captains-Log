@@ -72,6 +72,7 @@ model Trip {
   invitations        TripInvitation[]
   checklists         Checklist[]
   entityLinks        EntityLink[]
+  dismissedValidationIssues DismissedValidationIssue[]
 
   @@index([userId, status])
   @@index([startDate, endDate])
@@ -552,4 +553,32 @@ model EntityLink {
   // Index for trip-level queries
   @@index([tripId])
   @@map("entity_links")
+}
+
+// =============================================================================
+// VALIDATION ISSUE DISMISSAL SYSTEM
+// =============================================================================
+// Stores dismissed validation issues so users can acknowledge known issues
+// without them affecting the trip health status.
+
+enum ValidationIssueCategory {
+  SCHEDULE        // Timeline conflicts, impossible travel times
+  ACCOMMODATIONS  // Missing lodging
+  TRANSPORTATION  // Gaps, tight connections
+  COMPLETENESS    // Missing info (lower priority)
+}
+
+model DismissedValidationIssue {
+  id          Int                     @id @default(autoincrement())
+  tripId      Int                     @map("trip_id")
+  issueType   String                  @map("issue_type") @db.VarChar(100)
+  issueKey    String                  @map("issue_key") @db.VarChar(500) // Unique identifier for specific issue instance
+  category    ValidationIssueCategory
+  dismissedAt DateTime                @default(now()) @map("dismissed_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, issueType, issueKey])
+  @@index([tripId])
+  @@map("dismissed_validation_issues")
 }
