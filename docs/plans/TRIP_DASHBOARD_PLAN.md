@@ -38,32 +38,36 @@ A visually appealing header section that sets the context for the trip.
 
 ---
 
-### 2. Trip Health Status Card
+### 2. Recent Activity Card
 
-A visual indicator showing how "prepared" the trip is based on completeness metrics.
+Shows recent changes and additions to the trip, helping users track what's been updated.
 
-**Health Metrics:**
+**Contents:**
+- List of 5-8 most recent activities on this trip
+- Each item shows: action type, entity name, timestamp
+- Clicking an item navigates to that entity
 
-| Metric | Weight | Criteria |
-|--------|--------|----------|
-| **Dates Set** | 15% | Start and end dates defined |
-| **Lodging Coverage** | 20% | All nights have lodging booked |
-| **Transportation Coverage** | 20% | Key segments have transport arranged |
-| **Activities Planned** | 15% | At least some activities for each day |
-| **No Unscheduled Items** | 15% | All items have dates assigned |
-| **Checklist Progress** | 15% | Checklists completion percentage |
+**Activity Types to Track:**
 
-**Visual Display:**
-- Circular progress ring (like a fitness tracker)
-- Color: Green (>80%), Amber (50-80%), Red (<50%)
-- "Trip Readiness: X%" label
-- Expandable breakdown showing individual metrics
-- Quick action links to fix issues (e.g., "3 nights without lodging")
+| Action | Icon | Example Display |
+|--------|------|-----------------|
+| Added | + | "Added activity: Eiffel Tower Visit" |
+| Updated | ✏️ | "Updated lodging: Hotel & Resort" |
+| Uploaded | 📷 | "Uploaded 12 photos" |
+| Linked | 🔗 | "Linked 3 photos to Louvre Museum" |
+| Journal | 📝 | "New journal entry: Day 1 Reflections" |
+| Checklist | ☑️ | "Completed: Book flights" |
 
-**Status-Specific Behavior:**
-- **Dream trips**: Show inspiration prompts instead of health
-- **Completed trips**: Show memory completeness (photos added, journal entries, etc.)
-- **In Progress**: Emphasize upcoming items, not planning health
+**Visual Design:**
+- Compact list with subtle separators
+- Relative timestamps ("2 hours ago", "Yesterday")
+- Grouped by day if many items
+- "View all activity" link at bottom (optional future feature)
+
+**Data Source:**
+- Use `updatedAt` timestamps from all entities
+- Combine and sort by most recent
+- Photo uploads grouped together to avoid flooding
 
 ---
 
@@ -212,10 +216,10 @@ If weather data is available for the trip destination.
 └─────────────────────────────────────────────────────────────┘
 
 ┌───────────────────────┐  ┌──────────────────────────────────┐
-│   TRIP HEALTH STATUS  │  │         NEXT UP CARD             │
-│   [Progress Ring]     │  │  ✈️ Flight to Paris               │
-│   Trip Readiness: 75% │  │  Tomorrow at 8:30 AM             │
-│   [View Details]      │  │  JFK → CDG | United 1234         │
+│   RECENT ACTIVITY     │  │         NEXT UP CARD             │
+│   + Added: Louvre     │  │  ✈️ Flight to Paris               │
+│   📷 12 photos added  │  │  Tomorrow at 8:30 AM             │
+│   ✏️ Updated hotel    │  │  JFK → CDG | United 1234         │
 └───────────────────────┘  └──────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -251,8 +255,8 @@ If weather data is available for the trip destination.
 │   NEXT UP CARD      │
 └─────────────────────┘
 ┌─────────────────────┐
-│   TRIP HEALTH       │
-│   (Collapsed)       │
+│   RECENT ACTIVITY   │
+│   (Compact List)    │
 └─────────────────────┘
 ┌─────────────────────┐
 │   QUICK ACTIONS     │
@@ -278,8 +282,8 @@ TripDetailPage.tsx
     └── TripDashboard.tsx (new component)
         ├── DashboardHero.tsx
         │   └── TripDayIndicator.tsx (new)
-        ├── TripHealthCard.tsx (new)
-        │   └── HealthMetric.tsx (new)
+        ├── RecentActivityCard.tsx (new)
+        │   └── ActivityItem.tsx (new)
         ├── NextUpCard.tsx (new)
         │   └── EventPreview.tsx (new)
         ├── QuickActionsBar.tsx (new)
@@ -297,18 +301,18 @@ All required data is already loaded by TripDetailPage:
 
 | Data | Source | Used For |
 |------|--------|----------|
-| Trip | `useQuery('trip')` | Hero, Health, Day indicator |
-| Activities | `useQuery('activities')` | Stats, Next Up, Today's Itinerary |
-| Transportation | `useQuery('transportation')` | Stats, Next Up, Health |
-| Lodging | `useQuery('lodging')` | Stats, Next Up, Health |
-| Locations | `useQuery('locations')` | Stats |
-| Journal | `useQuery('journal')` | Stats |
-| Photos | `photosPagination` | Stats |
-| Checklists | `useQuery('checklists')` | Checklists Widget, Health |
+| Trip | `useQuery('trip')` | Hero, Day indicator |
+| Activities | `useQuery('activities')` | Stats, Next Up, Today's Itinerary, Recent Activity |
+| Transportation | `useQuery('transportation')` | Stats, Next Up, Recent Activity |
+| Lodging | `useQuery('lodging')` | Stats, Next Up, Recent Activity |
+| Locations | `useQuery('locations')` | Stats, Recent Activity |
+| Journal | `useQuery('journal')` | Stats, Recent Activity |
+| Photos | `photosPagination` | Stats, Recent Activity |
+| Checklists | `useQuery('checklists')` | Checklists Widget |
 | Companions | `useQuery('companions')` | Stats |
 
 **New Calculations Needed:**
-- `calculateTripHealth(trip, lodging, transport, activities, checklists)` → health score
+- `getRecentActivity(activities, transport, lodging, locations, journal, photos)` → sorted recent changes
 - `getNextUpEvent(activities, transport, lodging)` → next chronological event
 - `getTodaysEvents(activities, transport, lodging)` → today's events
 - `getDayOfTrip(trip)` → current day number / total days
@@ -330,11 +334,11 @@ All required data is already loaded by TripDetailPage:
 3. Handle all event types (activity, transport, lodging)
 4. Add mini-map preview for location-based events
 
-### Phase 3: Trip Health Status
-1. Create `TripHealthCard.tsx` component
-2. Implement `calculateTripHealth()` utility function
-3. Add health metrics breakdown
-4. Create quick-fix action links
+### Phase 3: Recent Activity Card
+1. Create `RecentActivityCard.tsx` component
+2. Implement `getRecentActivity()` utility function
+3. Create `ActivityItem.tsx` for individual activity rows
+4. Add click navigation to relevant entities
 
 ### Phase 4: Quick Actions & Today's Itinerary
 1. Create `QuickActionsBar.tsx` with status-specific actions
@@ -362,7 +366,7 @@ Following the Style Guide, use these design patterns:
 | Section | Light Mode | Dark Mode |
 |---------|------------|-----------|
 | Hero | Gradient with cover photo | Navy gradient with gold accents |
-| Health Ring | Green/Amber/Red based on score | Same with gold highlight |
+| Recent Activity | Subtle icons per action type | Gold accent on timestamps |
 | Stats | Individual colors per stat | Gold borders on dark |
 | Quick Actions | Primary buttons | Accent gold buttons |
 
@@ -371,11 +375,12 @@ Following the Style Guide, use these design patterns:
 - Section headers: `font-body font-semibold text-lg`
 - Stats numbers: `font-display text-2xl`
 - Labels: `font-body text-sm text-slate`
+- Activity items: `font-body text-sm` with `text-xs` timestamps
 
 **Animations:**
 - Cards: `animate-fade-in` on load with stagger
 - Stats: `animate-scale-in` for number counters
-- Health ring: CSS animation for progress fill
+- Activity items: Subtle slide-in on new items
 
 ---
 
