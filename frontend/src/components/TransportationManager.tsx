@@ -282,7 +282,7 @@ export default function TransportationManager({
   }, [manager.showForm, manager.editingId]);
 
   // Sort function
-  const sortItems = (items: Transportation[]) => {
+  const sortItems = useCallback((items: Transportation[]) => {
     if (sortBy === "type") {
       return [...items].sort((a, b) => {
         if (a.type === b.type) {
@@ -300,7 +300,7 @@ export default function TransportationManager({
       const dateB = b.departureTime ? new Date(b.departureTime).getTime() : Infinity;
       return dateA - dateB;
     });
-  };
+  }, [sortBy]);
 
   // Split into scheduled (has departure time) and unscheduled
   const scheduledItems = useMemo(() => {
@@ -321,12 +321,12 @@ export default function TransportationManager({
       return sortItems(scheduledItems.filter((t) => !t.isUpcoming));
     }
     return sortItems(scheduledItems);
-  }, [scheduledItems, activeTab, sortBy]);
+  }, [scheduledItems, activeTab, sortItems]);
 
   // Sorted unscheduled items
   const sortedUnscheduledItems = useMemo(() => {
     return sortItems(unscheduledItems);
-  }, [unscheduledItems, sortBy]);
+  }, [unscheduledItems, sortItems]);
 
   // Calculate counts for tab badges (only scheduled items)
   const counts = useMemo(() => {
