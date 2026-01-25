@@ -66,6 +66,16 @@ export default function ImmichBrowser({
     return assets.filter((asset) => !excludeAssetIds.has(asset.id));
   }, [assets, excludeAssetIds]);
 
+  // Calculate available total (total minus already-linked)
+  const availableTotalAssets = useMemo(() => {
+    if (!excludeAssetIds || excludeAssetIds.size === 0) {
+      return totalAssets;
+    }
+    // Approximate: subtract excluded count from total
+    // This is accurate when all excluded assets are within the current filter
+    return Math.max(0, totalAssets - excludeAssetIds.size);
+  }, [totalAssets, excludeAssetIds]);
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -534,7 +544,7 @@ export default function ImmichBrowser({
                       ? "Deselect All on Page"
                       : "Select All on Page"}
                   </button>
-                  {filterByTripDates && tripStartDate && tripEndDate && totalAssets > ITEMS_PER_PAGE && (
+                  {filterByTripDates && tripStartDate && tripEndDate && availableTotalAssets > ITEMS_PER_PAGE && (
                     <>
                       <button
                         onClick={handleSelectAll}
@@ -542,7 +552,7 @@ export default function ImmichBrowser({
                         type="button"
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isLoadingAll ? "Loading..." : `Select All ${totalAssets} Photos`}
+                        {isLoadingAll ? "Loading..." : `Select All ${availableTotalAssets} Photos`}
                       </button>
                       {selectedAssetsMap.size > 0 && (
                         <button
