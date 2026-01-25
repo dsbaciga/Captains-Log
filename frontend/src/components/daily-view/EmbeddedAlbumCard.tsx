@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { PhotoAlbum } from '../../types/photo';
 import { getFullAssetUrl } from '../../lib/config';
+import { getAccessToken } from '../../lib/axios';
 import { getTypeColors } from './utils';
 
 interface EmbeddedAlbumCardProps {
@@ -36,7 +37,7 @@ export default function EmbeddedAlbumCard({
 
       // Immich photo - fetch with auth
       if (photo.source === 'immich' && photo.thumbnailPath) {
-        const token = localStorage.getItem('accessToken');
+        const token = getAccessToken();
         if (!token) return;
 
         setLoadingCover(true);

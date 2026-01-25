@@ -13,6 +13,7 @@ import Pagination from "../components/Pagination";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { getFullAssetUrl } from "../lib/config";
+import { getAccessToken } from "../lib/axios";
 import toast from "react-hot-toast";
 
 export default function AlbumDetailPage() {
@@ -36,7 +37,7 @@ export default function AlbumDetailPage() {
   // Load thumbnails for selector photos
   useEffect(() => {
     const loadThumbnails = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (!token) return;
 
       const newUrls: { [key: number]: string } = {};

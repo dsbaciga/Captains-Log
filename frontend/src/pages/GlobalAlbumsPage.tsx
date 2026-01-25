@@ -6,6 +6,7 @@ import type { AlbumWithTrip } from "../types/photo";
 import type { Trip } from "../types/trip";
 import toast from "react-hot-toast";
 import { getFullAssetUrl } from "../lib/config";
+import { getAccessToken } from "../lib/axios";
 import { usePagedPagination } from "../hooks/usePagedPagination";
 import Pagination from "../components/Pagination";
 import tagService from "../services/tag.service";
@@ -109,7 +110,7 @@ export default function GlobalAlbumsPage() {
   useEffect(() => {
     let cancelled = false;
     const loadCoverPhotos = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
 
       setLoadingCovers(true);
       const urls: { [key: number]: string } = {};

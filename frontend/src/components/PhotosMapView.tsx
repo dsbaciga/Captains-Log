@@ -7,6 +7,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import type { Photo } from '../types/photo';
 import { getFullAssetUrl } from '../lib/config';
+import { getAccessToken } from '../lib/axios';
 
 // Escape URL for safe use in CSS/HTML to prevent XSS
 function escapeUrlForCss(url: string): string {
@@ -57,7 +58,7 @@ export default function PhotosMapView({ photos, onPhotoClick }: PhotosMapViewPro
   // Load thumbnails for Immich photos
   useEffect(() => {
     const loadThumbnails = async () => {
-      const token = localStorage.getItem('accessToken');
+      const token = getAccessToken();
       if (!token) return;
 
       const immichPhotos = geoPhotos.filter(

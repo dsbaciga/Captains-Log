@@ -7,6 +7,7 @@ import type { Photo } from "../../types/photo";
 import tripService from "../../services/trip.service";
 import photoService from "../../services/photo.service";
 import { getFullAssetUrl } from "../../lib/config";
+import { getAccessToken } from "../../lib/axios";
 import { Link } from "react-router-dom";
 import { Skeleton } from "../Skeleton";
 
@@ -73,7 +74,7 @@ export default function RecentPhotosWidget() {
       setPhotos(recentPhotos);
 
       // Load thumbnails for Immich photos
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (token) {
         for (const photo of recentPhotos.filter(
           (p) => p.source === "immich" && p.thumbnailPath

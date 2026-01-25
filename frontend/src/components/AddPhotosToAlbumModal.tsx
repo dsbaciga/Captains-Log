@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import type { Photo } from "../types/photo";
 import photoService from "../services/photo.service";
 import { getFullAssetUrl } from "../lib/config";
+import { getAccessToken } from "../lib/axios";
 import ProgressiveImage from "./ProgressiveImage";
 
 interface AddPhotosToAlbumModalProps {
@@ -72,7 +73,7 @@ export default function AddPhotosToAlbumModal({
   // Load thumbnails for Immich photos
   useEffect(() => {
     const loadThumbnails = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (!token) return;
 
       for (const photo of photos) {

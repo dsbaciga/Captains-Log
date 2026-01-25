@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import immichService from "../services/immich.service";
 import type { ImmichAsset, ImmichAlbum } from "../types/immich";
 import { getFullAssetUrl } from "../lib/config";
+import { getAccessToken } from "../lib/axios";
 
 interface ImmichBrowserProps {
   onSelect: (assets: ImmichAsset[]) => Promise<void>;
@@ -78,7 +79,7 @@ export default function ImmichBrowser({
   // Load thumbnails with authentication
   useEffect(() => {
     const loadThumbnails = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (!token) {
         console.error("[ImmichBrowser] No access token found");
         return;

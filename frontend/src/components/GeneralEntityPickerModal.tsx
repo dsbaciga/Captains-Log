@@ -4,6 +4,7 @@ import { ENTITY_TYPE_CONFIG, LINKABLE_ENTITY_TYPES } from '../lib/entityConfig';
 import { useEntityFetcher, useEntityFilter } from '../hooks/useEntityFetcher';
 import entityLinkService from '../services/entityLink.service';
 import { getFullAssetUrl } from '../lib/config';
+import { getAccessToken } from '../lib/axios';
 import toast from 'react-hot-toast';
 
 // Threshold for showing search bar
@@ -113,7 +114,7 @@ export default function GeneralEntityPickerModal({
     if (selectedType !== 'PHOTO') return;
 
     const loadThumbnails = async () => {
-      const token = localStorage.getItem('accessToken');
+      const token = getAccessToken();
       if (!token) return;
 
       for (const entity of filteredEntities) {

@@ -13,6 +13,7 @@ import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import LinkButton from '../LinkButton';
 import entityLinkService from '../../services/entityLink.service';
 import { getFullAssetUrl } from '../../lib/config';
+import { getAccessToken } from '../../lib/axios';
 import type { TimelineEventCardProps, TimelineItem } from './types';
 import type { Activity } from '../../types/activity';
 import type { Lodging } from '../../types/lodging';
@@ -56,7 +57,7 @@ export default function TimelineEventCard({
           setPhotosLoaded(true);
 
           // Load thumbnails for Immich photos
-          const token = localStorage.getItem('accessToken');
+          const token = getAccessToken();
           if (token) {
             for (const photo of photos.slice(0, 3).filter(p => p.source === 'immich' && p.thumbnailPath)) {
               try {

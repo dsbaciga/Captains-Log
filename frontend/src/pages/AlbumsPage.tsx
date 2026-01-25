@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import type { PhotoAlbum, Photo, AlbumWithPhotos } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getFullAssetUrl } from '../lib/config';
+import { getAccessToken } from '../lib/axios';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
 import { usePagedPagination } from '../hooks/usePagedPagination';
@@ -76,7 +77,7 @@ export default function AlbumsPage() {
   // Load thumbnails for album covers
   useEffect(() => {
     const loadCoverThumbnails = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (!token) return;
 
       const newUrls: { [key: number]: string } = {};
@@ -180,7 +181,7 @@ export default function AlbumsPage() {
       setShowCoverSelector(true);
 
       // Load thumbnails for selector
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (token) {
         const newUrls: { [key: number]: string } = {};
         const newBlobUrls: string[] = [];

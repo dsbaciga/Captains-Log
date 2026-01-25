@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { PhotoAlbum } from '../types/photo';
 import { getFullAssetUrl } from '../lib/config';
+import { getAccessToken } from '../lib/axios';
 
 interface AlbumsSidebarProps {
   albums: PhotoAlbum[];
@@ -58,7 +59,7 @@ export default function AlbumsSidebar({
   // Load thumbnails for Immich album covers
   useEffect(() => {
     const loadThumbnails = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (!token) return;
 
       const newUrls: { [key: number]: string } = {};

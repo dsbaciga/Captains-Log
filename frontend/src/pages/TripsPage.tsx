@@ -7,6 +7,7 @@ import type { TripTag } from '../types/tag';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
 import { getFullAssetUrl } from '../lib/config';
+import { getAccessToken } from '../lib/axios';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -160,7 +161,7 @@ export default function TripsPage() {
   // Load cover photos with authentication for Immich photos
   useEffect(() => {
     const loadCoverPhotos = async () => {
-      const token = localStorage.getItem('accessToken');
+      const token = getAccessToken();
       if (!token) return;
 
       const urls: { [key: number]: string } = {};

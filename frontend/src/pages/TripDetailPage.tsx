@@ -40,6 +40,7 @@ import collaborationService from "../services/collaboration.service";
 import type { UserPermission } from "../types/collaboration";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { getFullAssetUrl } from "../lib/config";
+import { getAccessToken } from "../lib/axios";
 import TagsModal from "../components/TagsModal";
 import AlbumsSidebar from "../components/AlbumsSidebar";
 import AlbumModal from "../components/AlbumModal";
@@ -669,7 +670,7 @@ export default function TripDetailPage() {
       // If it's an Immich photo, fetch with authentication
       if (photo.source === "immich" && photo.thumbnailPath) {
         try {
-          const token = localStorage.getItem("accessToken");
+          const token = getAccessToken();
           if (!token) return;
 
           const fullUrl = getFullAssetUrl(photo.thumbnailPath);

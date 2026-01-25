@@ -6,6 +6,7 @@ import entityLinkService from '../services/entityLink.service';
 import GeneralEntityPickerModal from './GeneralEntityPickerModal';
 import LinkEditModal from './LinkEditModal';
 import { getFullAssetUrl } from '../lib/config';
+import { getAccessToken } from '../lib/axios';
 import type {
   EntityType,
   EnrichedEntityLink,
@@ -135,7 +136,7 @@ export default function LinkPanel({
     if (!linksData) return;
 
     const loadThumbnails = async () => {
-      const token = localStorage.getItem('accessToken');
+      const token = getAccessToken();
       if (!token) return;
 
       // Get all linked photos from both linksFrom and linksTo

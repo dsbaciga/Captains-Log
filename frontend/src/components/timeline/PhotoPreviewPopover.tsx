@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import entityLinkService from '../../services/entityLink.service';
 import { getFullAssetUrl } from '../../lib/config';
+import { getAccessToken } from '../../lib/axios';
 import { useDropdownPosition } from '../../hooks/useDropdownPosition';
 import type { EntityType } from '../../types/entityLink';
 import type { PhotoSource } from '../../types/photo';
@@ -70,7 +71,7 @@ export default function PhotoPreviewPopover({
           setPhotos(mappedPhotos);
 
           // Load thumbnails for Immich photos (require auth)
-          const token = localStorage.getItem('accessToken');
+          const token = getAccessToken();
           if (token) {
             for (const photo of mappedPhotos.filter(
               (p) => p.source === 'immich' && p.thumbnailPath
