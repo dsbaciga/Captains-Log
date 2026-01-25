@@ -237,6 +237,21 @@ Last Updated: 2026-01-25
 
 ## 🚧 Known Issues
 
+_No known issues at this time._
+
+## 🔧 Future Improvements (Technical Debt)
+
+These are non-critical improvements identified during code reviews that would enhance maintainability:
+
+### Batch Operations
+
+- [ ] **Extract `useBulkOperations` hook** - Reduce code duplication across manager components (ActivityManager, LocationManager, TransportationManager, LodgingManager) by extracting common bulk selection and operation logic into a shared hook
+- [ ] **Atomic entity link cleanup** - Wrap bulk delete operations with entity link cleanup in a Prisma transaction to ensure atomicity when deleting entities that have links
+
+### Auto-Save Drafts
+
+- [ ] **Include form validation state** - Enhance draft storage to include form validation state for complete state restoration, not just field values
+
 ## 📋 Remaining Work
 
 ### Phase 2: Advanced Trip Features
