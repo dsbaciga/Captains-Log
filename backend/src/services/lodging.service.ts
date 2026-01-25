@@ -5,6 +5,7 @@ import {
   BulkDeleteLodgingInput,
   BulkUpdateLodgingInput,
 } from '../types/lodging.types';
+import { AppError } from '../utils/errors';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals, buildConditionalUpdateData, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
@@ -132,7 +133,7 @@ class LodgingService {
     });
 
     if (lodgings.length !== data.ids.length) {
-      throw new Error('One or more lodging items not found or do not belong to this trip');
+      throw new AppError('One or more lodging items not found or do not belong to this trip', 404);
     }
 
     // Clean up entity links for all lodging items
@@ -168,7 +169,7 @@ class LodgingService {
     });
 
     if (lodgings.length !== data.ids.length) {
-      throw new Error('One or more lodging items not found or do not belong to this trip');
+      throw new AppError('One or more lodging items not found or do not belong to this trip', 404);
     }
 
     // Build update data from non-undefined values
@@ -177,7 +178,7 @@ class LodgingService {
     if (data.updates.notes !== undefined) updateData.notes = data.updates.notes;
 
     if (Object.keys(updateData).length === 0) {
-      throw new Error('No valid update fields provided');
+      throw new AppError('No valid update fields provided', 400);
     }
 
     // Update all lodging items
