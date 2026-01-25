@@ -78,19 +78,38 @@ export type TripListResponse = {
   totalPages: number;
 };
 
+export type ValidationIssueCategory = 'SCHEDULE' | 'ACCOMMODATIONS' | 'TRANSPORTATION' | 'COMPLETENESS';
+export type ValidationStatus = 'okay' | 'potential_issues';
+
+export interface ValidationIssueQuickAction {
+  type: 'add_lodging' | 'add_transportation' | 'view_conflict' | 'edit_activity';
+  label: string;
+  data?: Record<string, unknown>;
+}
+
 export interface ValidationIssue {
-  severity: 'critical' | 'warning' | 'info';
+  id: string;
+  category: ValidationIssueCategory;
   type: string;
   message: string;
-  affectedItems?: unknown[];
+  affectedItems?: (string | number)[];
   suggestion?: string;
+  isDismissed: boolean;
+  quickAction?: ValidationIssueQuickAction;
 }
 
 export interface ValidationResult {
   tripId: number;
-  isValid: boolean;
-  issues: ValidationIssue[];
-  score: number;
+  status: ValidationStatus;
+  issuesByCategory: Record<ValidationIssueCategory, ValidationIssue[]>;
+  totalIssues: number;
+  activeIssues: number;
+  dismissedIssues: number;
+}
+
+export interface ValidationQuickStatus {
+  status: ValidationStatus;
+  activeIssues: number;
 }
 
 export interface DuplicateTripOptions {

@@ -1,5 +1,5 @@
 import axios from '../lib/axios';
-import type { Trip, CreateTripInput, UpdateTripInput, TripListResponse, ValidationResult, DuplicateTripInput } from '../types/trip';
+import type { Trip, CreateTripInput, UpdateTripInput, TripListResponse, ValidationResult, ValidationQuickStatus, ValidationIssueCategory, DuplicateTripInput } from '../types/trip';
 
 class TripService {
   async createTrip(data: CreateTripInput): Promise<Trip> {
@@ -39,6 +39,31 @@ class TripService {
   async validateTrip(tripId: number): Promise<ValidationResult> {
     const response = await axios.get(`/trips/${tripId}/validate`);
     return response.data.data;
+  }
+
+  async getValidationStatus(tripId: number): Promise<ValidationQuickStatus> {
+    const response = await axios.get(`/trips/${tripId}/validation-status`);
+    return response.data.data;
+  }
+
+  async dismissValidationIssue(
+    tripId: number,
+    issueType: string,
+    issueKey: string,
+    category: ValidationIssueCategory
+  ): Promise<void> {
+    await axios.post(`/trips/${tripId}/validation/dismiss`, {
+      issueType,
+      issueKey,
+      category,
+    });
+  }
+
+  async restoreValidationIssue(tripId: number, issueType: string, issueKey: string): Promise<void> {
+    await axios.post(`/trips/${tripId}/validation/restore`, {
+      issueType,
+      issueKey,
+    });
   }
 
   async duplicateTrip(tripId: number, data: DuplicateTripInput): Promise<Trip> {

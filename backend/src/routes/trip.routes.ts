@@ -104,8 +104,11 @@ router.delete('/:id', tripController.deleteTrip);
 // Cover photo route
 router.put('/:id/cover-photo', tripController.updateCoverPhoto);
 
-// Trip validation route
+// Trip validation routes
 router.get('/:id/validate', tripController.validateTrip);
+router.get('/:id/validation-status', tripController.getValidationStatus);
+router.post('/:id/validation/dismiss', tripController.dismissValidationIssue);
+router.post('/:id/validation/restore', tripController.restoreValidationIssue);
 
 // Trip duplication route
 router.post('/:id/duplicate', tripController.duplicateTrip);
