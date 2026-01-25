@@ -7,9 +7,11 @@ import { formatTripDates, getTripDateStatus } from '../utils/dateFormat';
 interface KanbanCardProps {
   trip: Trip;
   coverPhotoUrl?: string;
+  /** Callback before navigating away (e.g., to save scroll position) */
+  onNavigateAway?: () => void;
 }
 
-export default function KanbanCard({ trip, coverPhotoUrl }: KanbanCardProps) {
+export default function KanbanCard({ trip, coverPhotoUrl, onNavigateAway }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -60,7 +62,10 @@ export default function KanbanCard({ trip, coverPhotoUrl }: KanbanCardProps) {
         <Link
           to={`/trips/${trip.id}`}
           className="font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 line-clamp-2"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onNavigateAway?.();
+          }}
         >
           {trip.title}
         </Link>

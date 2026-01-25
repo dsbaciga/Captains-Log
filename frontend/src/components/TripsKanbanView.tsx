@@ -18,6 +18,8 @@ interface TripsKanbanViewProps {
   trips: Trip[];
   coverPhotoUrls: { [key: number]: string };
   onStatusChange: (tripId: number, newStatus: TripStatusType) => Promise<void>;
+  /** Callback before navigating away (e.g., to save scroll position) */
+  onNavigateAway?: () => void;
 }
 
 // Define column configuration
@@ -33,6 +35,7 @@ export default function TripsKanbanView({
   trips,
   coverPhotoUrls,
   onStatusChange,
+  onNavigateAway,
 }: TripsKanbanViewProps) {
   const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
 
@@ -132,6 +135,7 @@ export default function TripsKanbanView({
               trips={tripsByStatus[column.status] || []}
               coverPhotoUrls={coverPhotoUrls}
               color={column.color}
+              onNavigateAway={onNavigateAway}
             />
           ))}
         </div>
