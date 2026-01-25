@@ -14,6 +14,7 @@ import {
   getRelationshipLabel,
   getEntityDisplayName,
 } from '../lib/entityConfig';
+import { extractDatePortion } from '../utils/timezone';
 import EntityDetailModal from './EntityDetailModal';
 
 interface LinkedEntitiesDisplayProps {
@@ -107,10 +108,14 @@ export default function LinkedEntitiesDisplay({
     // If journal has no date, show it (shouldn't happen but be safe)
     if (!journalDate) return true;
 
-    // Compare dates in the same timezone
+    // Get the current date string in the timezone
     const currentDateStr = getDateInTimezone(currentDate, timezone);
-    const journalDateObj = new Date(journalDate);
-    const journalDateStr = getDateInTimezone(journalDateObj, timezone);
+
+    // For journal dates (which are date-only in the database), extract the date portion
+    // directly from the string to avoid UTC timezone shift issues.
+    // The database stores dates like "2025-01-15" which JavaScript parses as midnight UTC.
+    // This would shift to the wrong day when converted to timezones west of UTC.
+    const journalDateStr = extractDatePortion(journalDate);
 
     return currentDateStr === journalDateStr;
   };

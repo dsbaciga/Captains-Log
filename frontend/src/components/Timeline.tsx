@@ -13,6 +13,7 @@ import weatherService from '../services/weather.service';
 import entityLinkService from '../services/entityLink.service';
 import locationService from '../services/location.service';
 import { getWeatherIcon } from '../utils/weatherIcons';
+import { parseDateOnlyAsLocal } from '../utils/timezone';
 import toast from 'react-hot-toast';
 import { debugLogger } from '../utils/debugLogger';
 
@@ -647,10 +648,14 @@ const Timeline = ({
             if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
               const content = (entry.content != null && typeof entry.content === 'string') ? entry.content : '';
               const locationAssignments = entryAny.locationAssignments as { location?: { name?: string } }[] | undefined;
+              // Use parseDateOnlyAsLocal to avoid UTC timezone shift issues.
+              // Journal entry dates are stored as date-only in the database (e.g., "2025-01-15").
+              // When parsed with new Date(), JavaScript interprets this as midnight UTC,
+              // which shifts to the previous day in timezones west of UTC.
               items.push({
                 id: entry.id,
                 type: 'journal',
-                dateTime: new Date(entry.date),
+                dateTime: parseDateOnlyAsLocal(entry.date),
                 title: entry.title || 'Untitled Entry',
                 description:
                   content.substring(0, 150) + (content.length > 150 ? '...' : ''),

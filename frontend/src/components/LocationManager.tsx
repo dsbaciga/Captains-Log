@@ -394,10 +394,12 @@ export default function LocationManager({
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={(e) => {
+                      onChange={() => {}} // Selection handled by onClick to support shiftKey
+                      onClick={(e) => {
                         e.stopPropagation();
                         bulkSelection.toggleItemSelection(location.id, index, e.shiftKey, topLevelLocations);
                       }}
+                      aria-label="Select location"
                       className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
                     />
                   </div>
@@ -649,6 +651,7 @@ export default function LocationManager({
                   {editingLocationHasChildren ? (
                     <>
                       <input
+                        id="location-parent"
                         type="text"
                         className="input bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
                         value="Cannot set parent - this location has children"

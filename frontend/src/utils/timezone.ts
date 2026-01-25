@@ -381,3 +381,52 @@ export function convertISOToDateTimeLocal(
 
   return `${year}-${month}-${day}T${hour}:${minute}`;
 }
+
+/**
+ * Parse a date-only string as a local date at noon to avoid UTC timezone shift issues.
+ *
+ * When a date-only string like "2025-01-15" is parsed with new Date(),
+ * JavaScript interprets it as midnight UTC. When this is then converted
+ * to a timezone west of UTC (e.g., America/New_York = UTC-5), it shifts
+ * to the previous day (e.g., 7:00 PM on 2025-01-14).
+ *
+ * This function extracts the YYYY-MM-DD portion and creates a Date
+ * at noon local time, avoiding the timezone shift issue.
+ *
+ * @param dateString Date string in format "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss..."
+ * @returns Date object at noon local time for the given date
+ */
+export function parseDateOnlyAsLocal(dateString: string): Date {
+  // Extract YYYY-MM-DD portion (handles both "2025-01-15" and "2025-01-15T00:00:00.000Z")
+  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1; // JS months are 0-indexed
+    const day = parseInt(match[3], 10);
+    // Create date at noon local time to avoid edge cases
+    return new Date(year, month, day, 12, 0, 0);
+  }
+  // Fallback to standard parsing
+  return new Date(dateString);
+}
+
+/**
+ * Extract the date portion (YYYY-MM-DD) from a date string without timezone conversion.
+ *
+ * This is useful for comparing date-only values that should not be affected by timezones.
+ * For example, a journal entry dated "2025-01-15" should always be compared as that date,
+ * regardless of the viewer's timezone.
+ *
+ * @param dateString Date string in format "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss..."
+ * @returns String in format "YYYY-MM-DD"
+ */
+export function extractDatePortion(dateString: string): string {
+  const match = dateString.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) {
+    return match[1];
+  }
+  // Fallback - parse and format using local date methods
+  // This is less reliable but handles edge cases
+  const date = new Date(dateString);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}

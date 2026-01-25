@@ -17,6 +17,7 @@ import photoService from '../../services/photo.service';
 import entityLinkService from '../../services/entityLink.service';
 import weatherService from '../../services/weather.service';
 import { getWeatherIcon } from '../../utils/weatherIcons';
+import { parseDateOnlyAsLocal } from '../../utils/timezone';
 import DayNavigator from './DayNavigator';
 import ActivityCard from './ActivityCard';
 import TransportationCard from './TransportationCard';
@@ -471,11 +472,16 @@ export default function DailyView({
             const hasTransportationLinks = Array.isArray(entryAny.transportationAssignments) && (entryAny.transportationAssignments as unknown[]).length > 0;
 
             if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
-              const dateKey = getDateString(entry.date);
+              // Use parseDateOnlyAsLocal to avoid UTC timezone shift issues.
+              // Journal entry dates are stored as date-only in the database (e.g., "2025-01-15").
+              // When parsed with new Date(), JavaScript interprets this as midnight UTC,
+              // which shifts to the previous day in timezones west of UTC.
+              const journalDate = parseDateOnlyAsLocal(entry.date);
+              const dateKey = getDateString(journalDate);
               if (dayDataMap[dateKey]) {
                 dayDataMap[dateKey].push({
                   type: 'journal',
-                  dateTime: new Date(entry.date),
+                  dateTime: journalDate,
                   data: entry,
                 });
               }

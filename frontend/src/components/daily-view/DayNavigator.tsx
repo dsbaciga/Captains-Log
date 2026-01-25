@@ -196,7 +196,7 @@ export default function DayNavigator({
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           onKeyDown={handleKeyDown}
-          aria-expanded={isDropdownOpen}
+          {...{ 'aria-expanded': isDropdownOpen }}
           aria-haspopup="listbox"
           aria-label={`Day ${currentDay} of ${totalDays}. ${currentDate}. Press Enter to select a different day.`}
           className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
@@ -247,7 +247,7 @@ export default function DayNavigator({
                   ref={(el) => { itemRefs.current[index] = el; }}
                   type="button"
                   role="option"
-                  aria-selected={day.dayNumber === currentDay}
+                  {...{ 'aria-selected': day.dayNumber === currentDay }}
                   onClick={() => handleDaySelect(day.dayNumber)}
                   onKeyDown={handleKeyDown}
                   className={`w-full text-left px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${

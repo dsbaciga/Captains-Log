@@ -7,6 +7,7 @@ import type {
   UpdateTransportationInput,
 } from "../types/transportation";
 import type { Location } from "../types/location";
+import type { EntityType, EntityLinkSummary } from "../types/entityLink";
 import transportationService from "../services/transportation.service";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
@@ -765,7 +766,7 @@ export default function TransportationManager({
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
             role="tab"
-            aria-selected={activeTab === "all"}
+            {...{ 'aria-selected': activeTab === "all" }}
             aria-label={`Show all transportation (${counts.all})`}
           >
             All {counts.all > 0 && `(${counts.all})`}
@@ -778,7 +779,7 @@ export default function TransportationManager({
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
             role="tab"
-            aria-selected={activeTab === "upcoming"}
+            {...{ 'aria-selected': activeTab === "upcoming" }}
             aria-label={`Show upcoming transportation (${counts.upcoming})`}
           >
             Upcoming {counts.upcoming > 0 && `(${counts.upcoming})`}
@@ -791,7 +792,7 @@ export default function TransportationManager({
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
             role="tab"
-            aria-selected={activeTab === "historical"}
+            {...{ 'aria-selected': activeTab === "historical" }}
             aria-label={`Show historical transportation (${counts.historical})`}
           >
             Historical {counts.historical > 0 && `(${counts.historical})`}
@@ -874,15 +875,22 @@ export default function TransportationManager({
         <form id="transportation-form" onSubmit={handleSubmit} className="space-y-6">
           {/* SECTION 1: Type Selection */}
           <FormSection title="Type" icon="🚀">
-            <select
-              id="transportation-type"
-              value={values.type}
-              onChange={(e) =>
-                handleChange("type", e.target.value as TransportationType)
-              }
-              className="input"
-              required
-            >
+            <div className="space-y-1">
+              <label
+                htmlFor="transportation-type"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Transportation Type
+              </label>
+              <select
+                id="transportation-type"
+                value={values.type}
+                onChange={(e) =>
+                  handleChange("type", e.target.value as TransportationType)
+                }
+                className="input"
+                required
+              >
               <option value="flight">✈️ Flight</option>
               <option value="train">🚆 Train</option>
               <option value="bus">🚌 Bus</option>
@@ -892,6 +900,7 @@ export default function TransportationManager({
               <option value="walk">🚶 Walk</option>
               <option value="other">🚀 Other</option>
             </select>
+            </div>
           </FormSection>
 
           {/* SECTION 2: Route (From/To Locations) */}
@@ -1337,7 +1346,7 @@ interface TransportationItemProps {
   formatDateTime: (dateTime: string | null, timezone?: string | null) => string;
   formatDuration: (minutes: number) => string;
   formatDistance: (kilometers: number | null | undefined) => string;
-  getLinkSummary: (entityType: string, entityId: number) => { total: number } | undefined;
+  getLinkSummary: (entityType: EntityType, entityId: number) => EntityLinkSummary | undefined;
   invalidateLinkSummary: () => void;
   onEdit: (transportation: Transportation) => void;
   onDelete: (id: number) => void;
@@ -1393,10 +1402,12 @@ function TransportationItem({
             <input
               type="checkbox"
               checked={isSelected}
-              onChange={(e) => {
+              onChange={() => {}} // Selection handled by onClick to support shiftKey
+              onClick={(e) => {
                 e.stopPropagation();
                 onToggleSelection?.(transportation.id, index, e.shiftKey);
               }}
+              aria-label="Select transportation"
               className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
             />
           </div>

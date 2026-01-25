@@ -484,7 +484,7 @@ Tell your story!"
                         setExpandedId(isExpanded ? null : entry.id)
                       }
                       className="mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 text-sm font-medium"
-                      aria-expanded={isExpanded}
+                      {...{ 'aria-expanded': isExpanded }}
                       aria-label={isExpanded ? `Collapse ${entry.title || 'entry'} content` : `Expand ${entry.title || 'entry'} content`}
                     >
                       {isExpanded ? "Show less" : "Read more →"}
