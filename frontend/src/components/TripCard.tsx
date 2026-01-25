@@ -22,6 +22,8 @@ interface TripCardProps {
   coverPhotoUrl?: string;
   onDelete?: (id: number) => void;
   showActions?: boolean;
+  /** Callback before navigating away (e.g., to save scroll position) */
+  onNavigateAway?: () => void;
 }
 
 /**
@@ -35,14 +37,19 @@ function TransportIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
-export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = true }: TripCardProps) {
+export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = true, onNavigateAway }: TripCardProps) {
   const counts = trip._count;
   const hasStats = counts && (counts.locations > 0 || counts.photos > 0 || counts.transportation > 0);
 
   return (
     <div className="group relative rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-primary-500/10 dark:border-gold/20 hover:border-primary-500/30 dark:hover:border-gold/40 bg-white dark:bg-navy-800 flex flex-col transform hover:-translate-y-1 dark:hover:shadow-[0_0_25px_rgba(251,191,36,0.15),0_20px_40px_-15px_rgba(0,0,0,0.3)]">
       {/* Clickable area covering the entire card for navigation */}
-      <Link to={`/trips/${trip.id}`} className="absolute inset-0 z-10" aria-label={`View ${trip.title}`}>
+      <Link
+        to={`/trips/${trip.id}`}
+        className="absolute inset-0 z-10"
+        aria-label={`View ${trip.title}`}
+        onClick={() => onNavigateAway?.()}
+      >
         <span className="sr-only">View trip details</span>
       </Link>
 
@@ -172,7 +179,10 @@ export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = 
             <Link
               to={`/trips/${trip.id}/edit`}
               className="flex-1 btn btn-secondary text-center text-sm py-2"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigateAway?.();
+              }}
             >
               Edit
             </Link>

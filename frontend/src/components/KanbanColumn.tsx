@@ -9,6 +9,8 @@ interface KanbanColumnProps {
   trips: Trip[];
   coverPhotoUrls: { [key: number]: string };
   color: string;
+  /** Callback before navigating away (e.g., to save scroll position) */
+  onNavigateAway?: () => void;
 }
 
 export default function KanbanColumn({
@@ -17,6 +19,7 @@ export default function KanbanColumn({
   trips,
   coverPhotoUrls,
   color,
+  onNavigateAway,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -59,6 +62,7 @@ export default function KanbanColumn({
                 key={trip.id}
                 trip={trip}
                 coverPhotoUrl={coverPhotoUrls[trip.id]}
+                onNavigateAway={onNavigateAway}
               />
             ))
           )}

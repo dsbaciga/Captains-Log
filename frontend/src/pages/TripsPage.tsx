@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import tagService from '../services/tag.service';
@@ -10,6 +10,7 @@ import { getFullAssetUrl } from '../lib/config';
 import { getAccessToken } from '../lib/axios';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useScrollStore } from '../store/scrollStore';
 
 // Import reusable components
 import EmptyState, { EmptyIllustrations } from '../components/EmptyState';
@@ -38,6 +39,34 @@ export default function TripsPage() {
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   // Use ref to track blob URLs for proper cleanup (avoids stale closure issues)
   const blobUrlsRef = useRef<string[]>([]);
+
+  // Scroll position management
+  const { savePosition, getPosition, setSkipNextScrollToTop } = useScrollStore();
+  const SCROLL_KEY = 'trips-page';
+
+  // Restore scroll position on mount
+  useEffect(() => {
+    const savedPosition = getPosition(SCROLL_KEY);
+    if (savedPosition > 0) {
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedPosition);
+      });
+    }
+    // getPosition is stable from Zustand store, safe to include
+  }, [getPosition]);
+
+  // Save scroll position before navigating away
+  const handleNavigateAway = useCallback(() => {
+    savePosition(SCROLL_KEY, window.scrollY);
+    setSkipNextScrollToTop(true);
+  }, [savePosition, setSkipNextScrollToTop]);
+
+  // Handle page change with scroll to top
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Debounce search query
   useEffect(() => {
@@ -279,6 +308,73 @@ export default function TripsPage() {
 
   const hasActiveFilters = searchQuery || startDateFrom || startDateTo || selectedTags.length > 0;
 
+  // Render pagination controls (used at both top and bottom)
+  const renderPaginationControls = (position: 'top' | 'bottom') => {
+    if (loading || totalPages <= 1) return null;
+
+    return (
+      <div className={`flex justify-center items-center gap-2 ${position === 'top' ? 'mb-6' : 'mt-8'}`}>
+        <button
+          type="button"
+          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600 disabled:hover:bg-parchment dark:disabled:hover:bg-navy-700"
+        >
+          Previous
+        </button>
+
+        <div className="flex gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+            // Show first page, last page, current page, and pages around current
+            const showPage = page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1);
+
+            // Show ellipsis
+            const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+            const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+
+            if (!showPage && !showEllipsisBefore && !showEllipsisAfter) {
+              return null;
+            }
+
+            if (showEllipsisBefore || showEllipsisAfter) {
+              return (
+                <span key={`${position}-ellipsis-${page}`} className="px-2 py-2 text-slate dark:text-warm-gray">
+                  ...
+                </span>
+              );
+            }
+
+            return (
+              <button
+                type="button"
+                key={`${position}-page-${page}`}
+                onClick={() => handlePageChange(page)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  currentPage === page
+                    ? 'bg-primary-600 dark:bg-sky text-white dark:text-navy-900'
+                    : 'bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600'
+                }`}
+              >
+                {page}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600 disabled:hover:bg-parchment dark:disabled:hover:bg-navy-700"
+        >
+          Next
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-cream dark:bg-navy-900 min-h-screen">
       <ConfirmDialogComponent />
@@ -487,6 +583,9 @@ export default function TripsPage() {
           </div>
         )}
 
+        {/* Top Pagination Controls */}
+        {renderPaginationControls('top')}
+
         {/* Trips Display */}
         {loading ? (
           <SkeletonGrid count={6} columns={3} hasImage />
@@ -514,6 +613,7 @@ export default function TripsPage() {
             trips={filteredTrips}
             coverPhotoUrls={coverPhotoUrls}
             onStatusChange={handleStatusChange}
+            onNavigateAway={handleNavigateAway}
           />
         ) : (
           /* Grid View */
@@ -525,73 +625,14 @@ export default function TripsPage() {
                 coverPhotoUrl={coverPhotoUrls[trip.id]}
                 onDelete={handleDelete}
                 showActions={true}
+                onNavigateAway={handleNavigateAway}
               />
             ))}
           </div>
         )}
 
-        {/* Pagination Controls */}
-        {!loading && totalPages > 1 && (
-          <div className="mt-8 flex justify-center items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600 disabled:hover:bg-parchment dark:disabled:hover:bg-navy-700"
-            >
-              Previous
-            </button>
-
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                // Show first page, last page, current page, and pages around current
-                const showPage = page === 1 ||
-                                page === totalPages ||
-                                (page >= currentPage - 1 && page <= currentPage + 1);
-
-                // Show ellipsis
-                const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
-                const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
-
-                if (!showPage && !showEllipsisBefore && !showEllipsisAfter) {
-                  return null;
-                }
-
-                if (showEllipsisBefore || showEllipsisAfter) {
-                  return (
-                    <span key={`ellipsis-${page}`} className="px-2 py-2 text-slate dark:text-warm-gray">
-                      ...
-                    </span>
-                  );
-                }
-
-                return (
-                  <button
-                    type="button"
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      currentPage === page
-                        ? 'bg-primary-600 dark:bg-sky text-white dark:text-navy-900'
-                        : 'bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600 disabled:hover:bg-parchment dark:disabled:hover:bg-navy-700"
-            >
-              Next
-            </button>
-          </div>
-        )}
+        {/* Bottom Pagination Controls */}
+        {renderPaginationControls('bottom')}
       </main>
     </div>
   );
