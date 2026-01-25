@@ -4,6 +4,7 @@ import type { Photo, PhotoAlbum } from "../types/photo";
 import photoService from "../services/photo.service";
 import toast from "react-hot-toast";
 import { getFullAssetUrl } from "../lib/config";
+import { getAccessToken } from "../lib/axios";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import PhotoLightbox from "./PhotoLightbox";
 import ProgressiveImage from "./ProgressiveImage";
@@ -177,7 +178,7 @@ export default function PhotoGallery({
     }
 
     const loadThumbnails = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       if (!token) {
         console.log("[PhotoGallery] No access token available");
         return;

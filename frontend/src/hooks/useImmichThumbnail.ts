@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getFullAssetUrl } from '../lib/config';
+import { getAccessToken } from '../lib/axios';
 
 /**
  * Hook to get an authenticated thumbnail URL for a photo.
@@ -37,7 +38,7 @@ export function useImmichThumbnail(
 
     // For Immich photos, fetch with authentication
     const fetchThumbnail = async () => {
-      const token = localStorage.getItem('accessToken');
+      const token = getAccessToken();
       if (!token) {
         setBlobUrl(null);
         return;
@@ -119,7 +120,7 @@ export function useImmichThumbnailCache() {
     loadingRef.current.add(photoId);
 
     // For Immich photos, fetch with authentication
-    const token = localStorage.getItem('accessToken');
+    const token = getAccessToken();
     if (!token) {
       loadingRef.current.delete(photoId);
       return;
