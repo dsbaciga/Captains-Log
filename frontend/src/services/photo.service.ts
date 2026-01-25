@@ -54,7 +54,7 @@ class PhotoService {
       latitude?: number | null;
       longitude?: number | null;
     }>;
-  }): Promise<{ total: number; successful: number; failed: number; errors: string[] }> {
+  }): Promise<{ total: number; successful: number; failed: number; errors: string[]; photoIds: number[] }> {
     const response = await api.post('/photos/immich/batch', data);
     return response.data.data;
   }

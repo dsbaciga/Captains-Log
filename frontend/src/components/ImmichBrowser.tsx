@@ -66,6 +66,22 @@ export default function ImmichBrowser({
     return assets.filter((asset) => !excludeAssetIds.has(asset.id));
   }, [assets, excludeAssetIds]);
 
+  // Calculate available total (estimate based on current page's exclusion ratio)
+  const availableTotalAssets = useMemo(() => {
+    if (!excludeAssetIds || excludeAssetIds.size === 0 || assets.length === 0) {
+      return totalAssets;
+    }
+    // Count how many assets on current page are excluded
+    const excludedOnPage = assets.filter((asset) => excludeAssetIds.has(asset.id)).length;
+    if (excludedOnPage === 0) {
+      return totalAssets; // No exclusions on this page, assume none overall
+    }
+    // Estimate based on the ratio of excluded assets on current page
+    const exclusionRatio = excludedOnPage / assets.length;
+    const estimatedAvailable = Math.round(totalAssets * (1 - exclusionRatio));
+    return Math.max(0, estimatedAvailable);
+  }, [totalAssets, excludeAssetIds, assets]);
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -534,7 +550,7 @@ export default function ImmichBrowser({
                       ? "Deselect All on Page"
                       : "Select All on Page"}
                   </button>
-                  {filterByTripDates && tripStartDate && tripEndDate && totalAssets > ITEMS_PER_PAGE && (
+                  {filterByTripDates && tripStartDate && tripEndDate && availableTotalAssets > ITEMS_PER_PAGE && (
                     <>
                       <button
                         onClick={handleSelectAll}
@@ -542,7 +558,7 @@ export default function ImmichBrowser({
                         type="button"
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isLoadingAll ? "Loading..." : `Select All ${totalAssets} Photos`}
+                        {isLoadingAll ? "Loading..." : `Select All ${availableTotalAssets} Photos`}
                       </button>
                       {selectedAssetsMap.size > 0 && (
                         <button

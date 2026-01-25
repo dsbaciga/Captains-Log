@@ -45,7 +45,7 @@ export default function PhotoTimeline({
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
 
   // Thumbnail cache for Immich photos
-  const { cache: thumbnailCache, loadThumbnails, getThumbnailUrl } = useImmichThumbnailCache();
+  const { loadThumbnails, getThumbnailUrl } = useImmichThumbnailCache();
 
   // Track load order for memory management (LRU-style)
   const loadOrderRef = useRef<string[]>([]);
@@ -192,7 +192,7 @@ export default function PhotoTimeline({
       // Remove from pending
       pendingRequestsRef.current.delete(rawDate);
     }
-  }, [tripId, tripTimezone, manageMemory]);
+  }, [tripId, tripTimezone, manageMemory, loadThumbnails]);
 
   // Toggle day expansion - fixed to avoid stale closure issues
   const toggleDay = useCallback((rawDate: string) => {

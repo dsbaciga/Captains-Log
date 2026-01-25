@@ -99,10 +99,12 @@ export default function PhotoUpload({
     setUploadProgress(0);
 
     try {
-      const BATCH_THRESHOLD = 250;
-      const CHUNK_SIZE = 500; // Send max 500 photos per HTTP request
+      // USE_BATCH_API_THRESHOLD: When to switch from individual API calls to batch endpoint
+      // MAX_PHOTOS_PER_REQUEST: Maximum photos per HTTP request to avoid timeouts
+      const USE_BATCH_API_THRESHOLD = 250;
+      const MAX_PHOTOS_PER_REQUEST = 500;
 
-      if (assets.length >= BATCH_THRESHOLD) {
+      if (assets.length >= USE_BATCH_API_THRESHOLD) {
         // Use batch endpoint for large selections with chunking
         console.log(`[PhotoUpload] Using batch endpoint for ${assets.length} assets`);
 
@@ -118,11 +120,11 @@ export default function PhotoUpload({
 
         // Split into chunks to avoid request timeout
         const chunks = [];
-        for (let i = 0; i < batchData.length; i += CHUNK_SIZE) {
-          chunks.push(batchData.slice(i, i + CHUNK_SIZE));
+        for (let i = 0; i < batchData.length; i += MAX_PHOTOS_PER_REQUEST) {
+          chunks.push(batchData.slice(i, i + MAX_PHOTOS_PER_REQUEST));
         }
 
-        console.log(`[PhotoUpload] Split ${assets.length} photos into ${chunks.length} chunks of up to ${CHUNK_SIZE}`);
+        console.log(`[PhotoUpload] Split ${assets.length} photos into ${chunks.length} chunks of up to ${MAX_PHOTOS_PER_REQUEST}`);
 
         // Process chunks sequentially with progress tracking
         let totalSuccessful = 0;
@@ -218,8 +220,11 @@ export default function PhotoUpload({
     setUploadProgress(0);
 
     try {
+      const MAX_PHOTOS_PER_REQUEST = 500; // Max photos per HTTP request
+
       toast.loading(
-        `Importing album "${album.albumName}" with ${assets.length} photos...`
+        `Importing album "${album.albumName}" with ${assets.length} photos...`,
+        { id: 'album-import' }
       );
 
       // Step 1: Create the album in the trip
@@ -229,45 +234,107 @@ export default function PhotoUpload({
         description: album.description || `Imported from Immich`,
       });
 
-      // Step 2: Link all photos/videos from Immich
-      const linkedPhotoIds: number[] = [];
-      for (let i = 0; i < assets.length; i++) {
-        const asset = assets[i];
-        const takenAt = asset.exifInfo?.dateTimeOriginal || asset.fileCreatedAt;
+      // Step 2: Link all photos/videos from Immich using batch processing
+      const batchData = assets.map((asset) => ({
+        immichAssetId: asset.id,
+        mediaType: asset.type === 'VIDEO' ? 'video' as const : 'image' as const,
+        duration: asset.duration ? parseDuration(asset.duration) : undefined,
+        caption: undefined,
+        takenAt: asset.exifInfo?.dateTimeOriginal || asset.fileCreatedAt,
+        latitude: asset.exifInfo?.latitude ?? undefined,
+        longitude: asset.exifInfo?.longitude ?? undefined,
+      }));
 
-        const photo = await photoService.linkImmichPhoto({
-          tripId,
-          immichAssetId: asset.id,
-          mediaType: asset.type === 'VIDEO' ? 'video' : 'image',
-          duration: parseDuration(asset.duration),
-          caption: undefined,
-          takenAt: takenAt ?? undefined,
-          latitude: asset.exifInfo?.latitude ?? undefined,
-          longitude: asset.exifInfo?.longitude ?? undefined,
-        });
-
-        linkedPhotoIds.push(photo.id);
-        setUploadProgress(((i + 1) / assets.length) * 100);
+      // Split into chunks to avoid request timeout
+      const chunks = [];
+      for (let i = 0; i < batchData.length; i += MAX_PHOTOS_PER_REQUEST) {
+        chunks.push(batchData.slice(i, i + MAX_PHOTOS_PER_REQUEST));
       }
 
-      // Step 3: Add all photos to the album
-      await photoService.addPhotosToAlbum(newAlbum.id, {
-        photoIds: linkedPhotoIds,
-      });
+      console.log(`[PhotoUpload] Album import: Split ${assets.length} photos into ${chunks.length} chunks`);
 
-      setUploadProgress(0);
+      // Process chunks sequentially with progress tracking
+      const allPhotoIds: number[] = [];
+      let totalSuccessful = 0;
+      let totalFailed = 0;
+      const allErrors: string[] = [];
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const chunkNumber = i + 1;
+
+        console.log(`[PhotoUpload] Processing chunk ${chunkNumber}/${chunks.length} (${chunk.length} photos)`);
+        toast.loading(
+          `Importing "${album.albumName}": chunk ${chunkNumber}/${chunks.length} (${totalSuccessful}/${assets.length})`,
+          { id: 'album-import' }
+        );
+
+        try {
+          const result = await photoService.linkImmichPhotosBatch({
+            tripId,
+            assets: chunk,
+          });
+
+          totalSuccessful += result.successful;
+          totalFailed += result.failed;
+          allPhotoIds.push(...(result.photoIds || []));
+          allErrors.push(...result.errors);
+
+          // Update progress
+          const progress = ((i + 1) / chunks.length) * 90; // Reserve 10% for album assignment
+          setUploadProgress(progress);
+
+          console.log(`[PhotoUpload] Chunk ${chunkNumber} complete: ${result.successful} successful, ${(result.photoIds || []).length} IDs`);
+        } catch (chunkErr) {
+          console.error(`[PhotoUpload] Chunk ${chunkNumber} failed:`, chunkErr);
+          totalFailed += chunk.length;
+          allErrors.push(`Chunk ${chunkNumber} failed: ${chunkErr instanceof Error ? chunkErr.message : 'Unknown error'}`);
+        }
+      }
+
+      if (allErrors.length > 0) {
+        console.error('[PhotoUpload] Album import errors:', allErrors);
+      }
+
+      // Step 3: Add all photos to the album (in batches if needed)
+      if (allPhotoIds.length > 0) {
+        toast.loading(
+          `Adding ${allPhotoIds.length} photos to album...`,
+          { id: 'album-import' }
+        );
+
+        // Add photos to album in chunks of 1000
+        const ALBUM_MAX_PHOTOS_PER_REQUEST = 1000;
+        for (let i = 0; i < allPhotoIds.length; i += ALBUM_MAX_PHOTOS_PER_REQUEST) {
+          const photoIdChunk = allPhotoIds.slice(i, i + ALBUM_MAX_PHOTOS_PER_REQUEST);
+          await photoService.addPhotosToAlbum(newAlbum.id, {
+            photoIds: photoIdChunk,
+          });
+        }
+      }
+
+      setUploadProgress(100);
       setShowImmichBrowser(false);
-      toast.dismiss();
-      toast.success(
-        `Successfully imported album "${album.albumName}" with ${assets.length} photos!`
-      );
+      toast.dismiss('album-import');
+
+      if (totalFailed > 0) {
+        toast.error(
+          `Imported album "${album.albumName}" with ${totalSuccessful} of ${assets.length} photos (${totalFailed} failed)`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success(
+          `Successfully imported album "${album.albumName}" with ${totalSuccessful} photos!`
+        );
+      }
       onPhotoUploaded();
     } catch (err) {
       console.error("Failed to import album:", err);
-      toast.dismiss();
+      toast.dismiss('album-import');
       toast.error("Failed to import album");
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
