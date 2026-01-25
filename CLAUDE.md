@@ -4,29 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important References:**
 
-The reference folder is organized into three categories:
+All documentation is organized in the `docs/` folder:
 
-### Architecture Documentation (`reference/app_architecture/`)
-- [FRONTEND_ARCHITECTURE.md](reference/app_architecture/FRONTEND_ARCHITECTURE.md) - **Detailed frontend architecture guide covering component patterns, state management, data flow, routing, and best practices.**
-- [BACKEND_ARCHITECTURE.md](reference/app_architecture/BACKEND_ARCHITECTURE.md) - **Detailed backend architecture guide covering layered architecture, database patterns, authentication, validation, error handling, and best practices.**
-- [STYLE_GUIDE.md](reference/app_architecture/STYLE_GUIDE.md) - **REQUIRED READING for UI work. Complete design system covering colors (Compass Gold palette), typography, component classes, dark mode, animations, and accessibility. Always consult before creating or modifying UI components.**
+### Architecture Documentation (`docs/architecture/`)
+- [FRONTEND_ARCHITECTURE.md](docs/architecture/FRONTEND_ARCHITECTURE.md) - **Detailed frontend architecture guide covering component patterns, state management, data flow, routing, and best practices.**
+- [BACKEND_ARCHITECTURE.md](docs/architecture/BACKEND_ARCHITECTURE.md) - **Detailed backend architecture guide covering layered architecture, database patterns, authentication, validation, error handling, and best practices.**
+- [STYLE_GUIDE.md](docs/architecture/STYLE_GUIDE.md) - **REQUIRED READING for UI work. Complete design system covering colors (Compass Gold palette), typography, component classes, dark mode, animations, and accessibility. Always consult before creating or modifying UI components.**
+- [BACKEND_OPTIMIZATION_PLAN.md](docs/architecture/BACKEND_OPTIMIZATION_PLAN.md) - Backend performance optimization strategies.
 
-### Development Tracking (`reference/development/`)
-- [IMPLEMENTATION_STATUS.md](reference/development/IMPLEMENTATION_STATUS.md) - **Current project status, completed features, and remaining work. Update this file whenever significant features are completed or new issues are discovered.**
-- [DEVELOPMENT_LOG.md](reference/development/DEVELOPMENT_LOG.md) - **Comprehensive feature list organized by functional area. Update this file when adding new features or modifying existing ones.**
-- [FEATURE_BACKLOG.md](reference/development/FEATURE_BACKLOG.md) - **Prioritized feature backlog with 94 future enhancement ideas organized by priority and category.**
+### Development Tracking (`docs/development/`)
+- [IMPLEMENTATION_STATUS.md](docs/development/IMPLEMENTATION_STATUS.md) - **Current project status, completed features, and remaining work. Update this file whenever significant features are completed or new issues are discovered.**
+- [FEATURE_BACKLOG.md](docs/development/FEATURE_BACKLOG.md) - **Prioritized feature backlog with 94 future enhancement ideas organized by priority and category.**
+- [UI_UX_IMPROVEMENT_PLAN.md](docs/development/UI_UX_IMPROVEMENT_PLAN.md) - UI/UX enhancement roadmap.
+- [BUGS.md](docs/development/BUGS.md) - Known bugs and issues tracking.
 
-### Instructions & How-To Guides (`reference/instructions/`)
-- [BUILD_AND_PUSH.md](reference/instructions/BUILD_AND_PUSH.md) - **Step-by-step checklist for building and pushing new versions.**
-- [TESTING_GUIDE.md](reference/instructions/TESTING_GUIDE.md) - Testing procedures and guidelines
+### Guides & Instructions (`docs/guides/`)
+- [BUILD_AND_PUSH.md](docs/guides/BUILD_AND_PUSH.md) - **Step-by-step checklist for building and pushing new versions.**
+- [TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md) - Testing procedures and guidelines.
+- [ROUTING_SETUP.md](docs/guides/ROUTING_SETUP.md) - **OpenRouteService configuration for accurate road distance calculations (required for car/bike/walking transportation)**
+
+### Planning Documents (`docs/plans/`)
+- [GOOGLE_MAPS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md) - Google Maps integration roadmap.
+- [GOOGLE_PHOTOS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md) - Google Photos integration roadmap.
+- [UI_IMPROVEMENTS.md](docs/plans/UI_IMPROVEMENTS.md) - Planned UI improvements.
+
+### Agent Documentation (`docs/agents/`)
+- [DEBUGGER.md](docs/docs/agents/DEBUGGER.md) - **Systematic debugging agent for investigating and fixing bugs. Use this when encountering errors or issues.**
+- [CODE_OPTIMIZER.md](docs/docs/agents/CODE_OPTIMIZER.md) - **Code optimization agent for identifying code reuse opportunities and refactoring to reduce duplication. Use this to improve maintainability.**
 
 ### Other Important Files
-- [agents/DEBUGGER.md](agents/DEBUGGER.md) - **Systematic debugging agent for investigating and fixing bugs. Use this when encountering errors or issues.**
-- [agents/CODE_OPTIMIZER.md](agents/CODE_OPTIMIZER.md) - **Code optimization agent for identifying code reuse opportunities and refactoring to reduce duplication. Use this to improve maintainability.**
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
 - [QUICK_START_PRODUCTION.md](QUICK_START_PRODUCTION.md) - Quick production setup (< 10 min)
 - [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) - Release preparation and deployment checklist
-- [ROUTING_SETUP.md](ROUTING_SETUP.md) - **OpenRouteService configuration for accurate road distance calculations (required for car/bike/walking transportation)**
 
 ## Project Overview
 
@@ -50,7 +59,7 @@ Travel Life is a full-stack travel documentation application built with a React 
 
 ### Current Implementation Status
 
-**The application is ~78% complete and production-ready for personal use.** See [reference/development/IMPLEMENTATION_STATUS.md](reference/development/IMPLEMENTATION_STATUS.md) for detailed progress tracking and [reference/development/FEATURE_BACKLOG.md](reference/development/FEATURE_BACKLOG.md) for future enhancements.
+**The application is ~78% complete and production-ready for personal use.** See [docs/development/IMPLEMENTATION_STATUS.md](docs/development/IMPLEMENTATION_STATUS.md) for detailed progress tracking and [docs/development/FEATURE_BACKLOG.md](docs/development/FEATURE_BACKLOG.md) for future enhancements.
 
 **Core Features (100% Complete)**:
 - ✅ **Authentication System** - User registration, login, JWT tokens, refresh tokens
@@ -142,7 +151,7 @@ When the user asks you to "build and deploy", "build and push", "push a new vers
 
 **MANDATORY REQUIREMENTS:**
 
-1. **FIRST ACTION**: Read [reference/BUILD_AND_PUSH.md](reference/BUILD_AND_PUSH.md) in its entirety
+1. **FIRST ACTION**: Read [docs/guides/BUILD_AND_PUSH.md](docs/guides/BUILD_AND_PUSH.md) in its entirety
 2. **FOLLOW EVERY STEP**: Execute the checklist systematically from start to finish
 3. **NO SHORTCUTS**: Do not skip steps, assume steps are done, or use alternative methods
 4. **NO IMPROVISATION**: Do not deviate from the documented process
@@ -300,7 +309,7 @@ NOMINATIM_URL=http://localhost:8080
 ```
 
 **Recommended Backend Variables**:
-- `OPENROUTESERVICE_API_KEY` - **For accurate road distance calculations (car/bike/walking)**. Without this, distances fall back to straight-line (Haversine) calculations. See [ROUTING_SETUP.md](ROUTING_SETUP.md)
+- `OPENROUTESERVICE_API_KEY` - **For accurate road distance calculations (car/bike/walking)**. Without this, distances fall back to straight-line (Haversine) calculations. See [ROUTING_SETUP.md](docs/guides/ROUTING_SETUP.md)
 
 **Optional Backend Variables**:
 - `IMMICH_API_URL` and `IMMICH_API_KEY` - For Immich integration
@@ -346,7 +355,7 @@ Check running servers: `netstat -ano | findstr "LISTENING" | findstr ":3000 :500
 
 **IMPORTANT: Always consult the Style Guide when creating or modifying UI components.**
 
-Before writing any frontend UI code, read [reference/app_architecture/STYLE_GUIDE.md](reference/app_architecture/STYLE_GUIDE.md) to ensure consistency with the design system.
+Before writing any frontend UI code, read [docs/architecture/STYLE_GUIDE.md](docs/architecture/STYLE_GUIDE.md) to ensure consistency with the design system.
 
 **Mandatory Style Guide Usage**:
 
@@ -376,7 +385,7 @@ Before writing any frontend UI code, read [reference/app_architecture/STYLE_GUID
 - **Animations**: Hover effects, feedback animations, stagger delays
 - **Utility Classes**: Responsive typography, visual effects, CSS variable utilities
 
-See the full [STYLE_GUIDE.md](reference/app_architecture/STYLE_GUIDE.md) for complete documentation including code examples.
+See the full [STYLE_GUIDE.md](docs/architecture/STYLE_GUIDE.md) for complete documentation including code examples.
 
 ### Database Changes
 
@@ -483,7 +492,7 @@ const summary = await entityLinkService.getTripLinksSummary(userId, tripId);
 - Consistent API and UI patterns across all entity types
 - Bidirectional discovery (see what's linked FROM and TO any entity)
 
-See [reference/DEVELOPMENT_LOG.md](reference/DEVELOPMENT_LOG.md) (Entity Linking section) for complete documentation.
+See [docs/development/IMPLEMENTATION_STATUS.md](docs/development/IMPLEMENTATION_STATUS.md) for complete documentation.
 
 ### Working with Timeline and Printable Itinerary
 
@@ -600,7 +609,7 @@ Use the Task tool to invoke the debugger agent:
 Task tool with:
 - subagent_type: "general-purpose"
 - description: "Debug [brief issue description]"
-- prompt: "Act as the DEBUGGER agent from agents/DEBUGGER.md.
+- prompt: "Act as the DEBUGGER agent from docs/agents/DEBUGGER.md.
 
 User Issue: [Describe the problem]
 Error Message: [Include exact error if available]
@@ -626,7 +635,7 @@ Follow the systematic 8-phase debugging process to identify and fix the root cau
 - **Data not refreshing**: Ensure `onUpdate?.()` callbacks are called
 - **Empty fields not clearing**: Frontend sends `null`, backend accepts `.nullable().optional()`
 
-See [agents/DEBUGGER.md](agents/DEBUGGER.md) for the complete debugging guide.
+See [docs/docs/agents/DEBUGGER.md](docs/docs/agents/DEBUGGER.md) for the complete debugging guide.
 
 ### Code Optimization and Refactoring
 
@@ -651,7 +660,7 @@ Use the Task tool to invoke the code optimizer agent:
 Task tool with:
 - subagent_type: "general-purpose"
 - description: "Optimize code by reducing duplication"
-- prompt: "Act as the CODE_OPTIMIZER agent from agents/CODE_OPTIMIZER.md.
+- prompt: "Act as the CODE_OPTIMIZER agent from docs/agents/CODE_OPTIMIZER.md.
 
 Goal: [What you want to optimize, e.g., 'Reduce Manager component duplication']
 Context: [Any specific areas to focus on]
@@ -691,7 +700,7 @@ Follow the systematic optimization process:
 - **API Calls**: Create `useApiCall` hook to reduce try-catch-finally boilerplate
 - **Validation Schemas**: Use schema helper utilities for common patterns like `.nullable().optional()`
 
-See [agents/CODE_OPTIMIZER.md](agents/CODE_OPTIMIZER.md) for the complete optimization guide.
+See [docs/docs/agents/CODE_OPTIMIZER.md](docs/docs/agents/CODE_OPTIMIZER.md) for the complete optimization guide.
 
 ## Important Patterns and Conventions
 
