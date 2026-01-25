@@ -49,11 +49,26 @@ export const updateLocationCategorySchema = z.object({
   color: optionalStringWithMax(7),
 });
 
+// Bulk operation schemas
+export const bulkDeleteLocationsSchema = z.object({
+  ids: z.array(z.number()).min(1, 'At least one ID is required'),
+});
+
+export const bulkUpdateLocationsSchema = z.object({
+  ids: z.array(z.number()).min(1, 'At least one ID is required'),
+  updates: z.object({
+    categoryId: optionalNumericId(),
+    notes: optionalNotes(),
+  }),
+});
+
 // Types
 export type CreateLocationInput = z.infer<typeof createLocationSchema>;
 export type UpdateLocationInput = z.infer<typeof updateLocationSchema>;
 export type CreateLocationCategoryInput = z.infer<typeof createLocationCategorySchema>;
 export type UpdateLocationCategoryInput = z.infer<typeof updateLocationCategorySchema>;
+export type BulkDeleteLocationsInput = z.infer<typeof bulkDeleteLocationsSchema>;
+export type BulkUpdateLocationsInput = z.infer<typeof bulkUpdateLocationsSchema>;
 
 export interface LocationResponse {
   id: number;

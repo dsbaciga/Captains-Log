@@ -1,4 +1,4 @@
-import { useState, useId, useMemo, useCallback } from "react";
+import { useState, useId, useMemo, useCallback, useEffect } from "react";
 import type { JournalEntry, CreateJournalEntryInput, UpdateJournalEntryInput } from "../types/journalEntry";
 import journalEntryService from "../services/journalEntry.service";
 import toast from "react-hot-toast";
@@ -6,12 +6,15 @@ import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
+import DraftIndicator from "./DraftIndicator";
+import DraftRestorePrompt from "./DraftRestorePrompt";
 import { useFormFields } from "../hooks/useFormFields";
 import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
 
 /**
  * JournalManager handles CRUD operations for trip journal entries.
@@ -80,6 +83,7 @@ export default function JournalManager({
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
 
   // Use the new useFormFields hook to manage all form state
   // Memoize initial form values to include trip start date as default
@@ -90,6 +94,39 @@ export default function JournalManager({
   }), [defaultEntryDate]);
 
   const { values: formValues, setField, resetFields, setAllFields } = useFormFields(initialFormValues);
+
+  // Auto-save draft for form data
+  const draftKey = manager.editingId ? manager.editingId : tripId;
+  const draft = useAutoSaveDraft(formValues, {
+    entityType: 'journal',
+    id: draftKey,
+    isEditMode: !!manager.editingId,
+    tripId,
+    defaultValues: initialFormValues,
+    enabled: manager.showForm,
+  });
+
+  // Check for existing draft when form opens in create mode
+  useEffect(() => {
+    if (manager.showForm && !manager.editingId && draft.hasDraft) {
+      setShowDraftPrompt(true);
+    }
+  }, [manager.showForm, manager.editingId, draft.hasDraft]);
+
+  // Handle draft restore
+  const handleRestoreDraft = useCallback(() => {
+    const restoredData = draft.restoreDraft();
+    if (restoredData) {
+      setAllFields(restoredData);
+    }
+    setShowDraftPrompt(false);
+  }, [draft, setAllFields]);
+
+  // Handle draft discard
+  const handleDiscardDraft = useCallback(() => {
+    draft.clearDraft();
+    setShowDraftPrompt(false);
+  }, [draft]);
 
   // Create wrappers for useFormReset hook
   const setShowForm = useCallback((show: boolean) => {
@@ -140,7 +177,9 @@ export default function JournalManager({
   const resetForm = useCallback(() => {
     baseResetForm();
     setKeepFormOpenAfterSave(false);
-  }, [baseResetForm]);
+    setShowDraftPrompt(false);
+    draft.clearDraft();
+  }, [baseResetForm, draft]);
 
   // Open create form with clean state
   const openCreateForm = useCallback(() => {
@@ -251,36 +290,52 @@ export default function JournalManager({
         icon="📔"
         formId="journal-form"
         footer={
-          <>
-            <button
-              type="button"
-              onClick={handleCloseForm}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            {!manager.editingId && (
+          <div className="flex items-center justify-between w-full gap-4">
+            <DraftIndicator
+              isSaving={draft.isSaving}
+              lastSavedAt={draft.lastSavedAt}
+              show={draft.hasDraft && !manager.editingId}
+            />
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setKeepFormOpenAfterSave(true);
-                  (document.getElementById('journal-form') as HTMLFormElement)?.requestSubmit();
-                }}
-                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                onClick={handleCloseForm}
+                className="btn btn-secondary"
               >
-                Save & Add Another
+                Cancel
               </button>
-            )}
-            <button
-              type="submit"
-              form="journal-form"
-              className="btn btn-primary"
-            >
-              {manager.editingId ? "Update" : "Create"} Entry
-            </button>
-          </>
+              {!manager.editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeepFormOpenAfterSave(true);
+                    (document.getElementById('journal-form') as HTMLFormElement)?.requestSubmit();
+                  }}
+                  className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                >
+                  Save & Add Another
+                </button>
+              )}
+              <button
+                type="submit"
+                form="journal-form"
+                className="btn btn-primary"
+              >
+                {manager.editingId ? "Update" : "Create"} Entry
+              </button>
+            </div>
+          </div>
         }
       >
+        {/* Draft Restore Prompt */}
+        <DraftRestorePrompt
+          isOpen={showDraftPrompt && !manager.editingId}
+          savedAt={draft.lastSavedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+          entityType="journal entry"
+        />
+
         <form id="journal-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label

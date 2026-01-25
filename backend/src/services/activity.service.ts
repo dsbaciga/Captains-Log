@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../utils/errors';
-import { CreateActivityInput, UpdateActivityInput } from '../types/activity.types';
+import { CreateActivityInput, UpdateActivityInput, BulkDeleteActivitiesInput, BulkUpdateActivitiesInput } from '../types/activity.types';
 import {
   verifyTripAccess,
   verifyEntityAccess,
@@ -189,6 +189,85 @@ class ActivityService {
     });
 
     return { success: true };
+  }
+
+  /**
+   * Bulk delete multiple activities
+   * Verifies ownership for all activities before deletion
+   */
+  async bulkDeleteActivities(userId: number, tripId: number, data: BulkDeleteActivitiesInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Verify all activities belong to this trip and user has access
+    const activities = await prisma.activity.findMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+      include: { trip: true },
+    });
+
+    if (activities.length !== data.ids.length) {
+      throw new AppError('One or more activities not found or do not belong to this trip', 404);
+    }
+
+    // Clean up entity links for all activities
+    for (const activity of activities) {
+      await cleanupEntityLinks(activity.tripId, 'ACTIVITY', activity.id);
+    }
+
+    // Delete all activities
+    const result = await prisma.activity.deleteMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+    });
+
+    return { success: true, deletedCount: result.count };
+  }
+
+  /**
+   * Bulk update multiple activities
+   * Verifies ownership for all activities before update
+   */
+  async bulkUpdateActivities(userId: number, tripId: number, data: BulkUpdateActivitiesInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Verify all activities belong to this trip
+    const activities = await prisma.activity.findMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+    });
+
+    if (activities.length !== data.ids.length) {
+      throw new AppError('One or more activities not found or do not belong to this trip', 404);
+    }
+
+    // Build update data from non-undefined values
+    const updateData: Record<string, unknown> = {};
+    if (data.updates.category !== undefined) updateData.category = data.updates.category;
+    if (data.updates.notes !== undefined) updateData.notes = data.updates.notes;
+    if (data.updates.timezone !== undefined) updateData.timezone = data.updates.timezone;
+
+    if (Object.keys(updateData).length === 0) {
+      throw new AppError('No valid update fields provided', 400);
+    }
+
+    // Update all activities
+    const result = await prisma.activity.updateMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+      data: updateData,
+    });
+
+    return { success: true, updatedCount: result.count };
   }
 }
 

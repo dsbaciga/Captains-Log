@@ -9,16 +9,22 @@ import FormSection from "./FormSection";
 import LocationDisplay from "./LocationDisplay";
 import PhotoPreviewPopover from "./timeline/PhotoPreviewPopover";
 import LinkPanel from "./LinkPanel";
+import DraftIndicator from "./DraftIndicator";
+import DraftRestorePrompt from "./DraftRestorePrompt";
 import { useFormFields } from "../hooks/useFormFields";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useEntityLinking } from "../hooks/useEntityLinking";
+import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
+import { useBulkSelection } from "../hooks/useBulkSelection";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import LocationSearchMap from "./LocationSearchMap";
 import TripLocationsMap from "./TripLocationsMap";
+import BulkActionBar from "./BulkActionBar";
+import BulkEditModal from "./BulkEditModal";
 
 /**
  * LocationManager handles CRUD operations for trip locations (points of interest).
@@ -101,9 +107,49 @@ export default function LocationManager({
 
   const [categories, setCategories] = useState<LocationCategory[]>([]);
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
 
-  const { values, handleChange, reset } =
+  // Bulk selection state
+  const bulkSelection = useBulkSelection<Location>();
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
+
+  const { values, handleChange, reset, setAllFields } =
     useFormFields<LocationFormFields>(initialFormState);
+
+  // Auto-save draft for form data
+  const draftKey = manager.editingId ? manager.editingId : tripId;
+  const draft = useAutoSaveDraft(values, {
+    entityType: 'location',
+    id: draftKey,
+    isEditMode: !!manager.editingId,
+    tripId,
+    defaultValues: initialFormState,
+    enabled: manager.showForm,
+  });
+
+  // Check for existing draft when form opens in create mode
+  useEffect(() => {
+    if (manager.showForm && !manager.editingId && draft.hasDraft) {
+      setShowDraftPrompt(true);
+    }
+  }, [manager.showForm, manager.editingId, draft.hasDraft]);
+
+  // Handle draft restore
+  const handleRestoreDraft = useCallback(() => {
+    const restoredData = draft.restoreDraft();
+    if (restoredData) {
+      setAllFields(restoredData);
+    }
+    setShowDraftPrompt(false);
+  }, [draft, setAllFields]);
+
+  // Handle draft discard
+  const handleDiscardDraft = useCallback(() => {
+    draft.clearDraft();
+    setShowDraftPrompt(false);
+  }, [draft]);
 
   // Destructure stable method for dependency array
   const { openEditForm } = manager;
@@ -138,11 +184,13 @@ export default function LocationManager({
     }
   };
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     reset();
     manager.setEditingId(null);
     setKeepFormOpenAfterSave(false);
-  };
+    setShowDraftPrompt(false);
+    draft.clearDraft();
+  }, [reset, manager, draft]);
 
   const handleLocationSelect = (data: {
     name: string;
@@ -239,6 +287,71 @@ export default function LocationManager({
     await manager.handleDelete(id);
   };
 
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Locations",
+      message: `Delete ${selectedIds.length} selected locations? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      await locationService.bulkDeleteLocations(tripId, selectedIds);
+      toast.success(`Deleted ${selectedIds.length} locations`);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk delete locations:", error);
+      toast.error("Failed to delete some locations");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Bulk edit handler
+  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    setIsBulkEditing(true);
+    try {
+      await locationService.bulkUpdateLocations(tripId, selectedIds, updates as { categoryId?: number; notes?: string });
+      toast.success(`Updated ${selectedIds.length} locations`);
+      setShowBulkEditModal(false);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk update locations:", error);
+      toast.error("Failed to update some locations");
+    } finally {
+      setIsBulkEditing(false);
+    }
+  };
+
+  // Build bulk edit field options
+  const bulkEditFields = useMemo(() => [
+    {
+      key: "categoryId",
+      label: "Category",
+      type: "select" as const,
+      options: categories.map(cat => ({ value: String(cat.id), label: `${cat.icon || ''} ${cat.name}`.trim() })),
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      type: "textarea" as const,
+      placeholder: "Add notes to all selected locations...",
+    },
+  ], [categories]);
+
   const handleCloseForm = () => {
     resetForm();
     manager.closeForm();
@@ -252,24 +365,43 @@ export default function LocationManager({
     return manager.items.filter((loc) => loc.parentId === parentId);
   };
 
-  const renderLocation = (location: Location, isChild = false) => {
+  const renderLocation = (location: Location, isChild = false, index = 0) => {
     const children = getChildren(location.id);
+    const isSelected = bulkSelection.isSelected(location.id);
 
     return (
       <div key={location.id} className={isChild ? "" : "space-y-2"}>
         <div
           data-entity-id={`location-${location.id}`}
+          onClick={bulkSelection.selectionMode && !isChild ? (e) => {
+            e.stopPropagation();
+            bulkSelection.toggleItemSelection(location.id, index, e.shiftKey, topLevelLocations);
+          } : undefined}
           className={`border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow ${
             isChild
               ? "bg-gray-50 dark:bg-gray-700"
               : "bg-white dark:bg-gray-800"
-          }`}
+          } ${bulkSelection.selectionMode && !isChild ? "cursor-pointer" : ""} ${isSelected && !isChild ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
         >
           {/* Header row: Title + badge on mobile, with actions on larger screens */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4">
             <div className="flex-1 min-w-0">
               {/* Title row with hierarchical display */}
               <div className="flex items-start gap-2 flex-wrap">
+                {/* Selection checkbox */}
+                {bulkSelection.selectionMode && !isChild && (
+                  <div className="flex items-center justify-center w-6 h-6 mr-1">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        bulkSelection.toggleItemSelection(location.id, index, e.shiftKey, topLevelLocations);
+                      }}
+                      className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
+                    />
+                  </div>
+                )}
                 {isChild && (
                   <span className="text-gray-400 dark:text-gray-500 mt-0.5">
                     {String.fromCharCode(8627)}
@@ -388,16 +520,28 @@ export default function LocationManager({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Locations
         </h2>
-        <button
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
-          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
-        >
-          <span className="sm:hidden">+ Add</span>
-          <span className="hidden sm:inline">+ Add Location</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {topLevelLocations.length > 0 && !bulkSelection.selectionMode && (
+            <button
+              onClick={bulkSelection.enterSelectionMode}
+              className="btn btn-secondary text-sm whitespace-nowrap"
+            >
+              Select
+            </button>
+          )}
+          {!bulkSelection.selectionMode && (
+            <button
+              onClick={() => {
+                resetForm();
+                manager.toggleForm();
+              }}
+              className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
+            >
+              <span className="sm:hidden">+ Add</span>
+              <span className="hidden sm:inline">+ Add Location</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Modal */}
@@ -409,36 +553,52 @@ export default function LocationManager({
         maxWidth="2xl"
         formId="location-form"
         footer={
-          <>
-            <button
-              type="button"
-              onClick={handleCloseForm}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            {!manager.editingId && (
+          <div className="flex items-center justify-between w-full gap-4">
+            <DraftIndicator
+              isSaving={draft.isSaving}
+              lastSavedAt={draft.lastSavedAt}
+              show={draft.hasDraft && !manager.editingId}
+            />
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setKeepFormOpenAfterSave(true);
-                  (document.getElementById('location-form') as HTMLFormElement)?.requestSubmit();
-                }}
-                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                onClick={handleCloseForm}
+                className="btn btn-secondary"
               >
-                Save & Add Another
+                Cancel
               </button>
-            )}
-            <button
-              type="submit"
-              form="location-form"
-              className="btn btn-primary"
-            >
-              {manager.editingId ? "Update" : "Add"} Location
-            </button>
-          </>
+              {!manager.editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeepFormOpenAfterSave(true);
+                    (document.getElementById('location-form') as HTMLFormElement)?.requestSubmit();
+                  }}
+                  className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                >
+                  Save & Add Another
+                </button>
+              )}
+              <button
+                type="submit"
+                form="location-form"
+                className="btn btn-primary"
+              >
+                {manager.editingId ? "Update" : "Add"} Location
+              </button>
+            </div>
+          </div>
         }
       >
+        {/* Draft Restore Prompt */}
+        <DraftRestorePrompt
+          isOpen={showDraftPrompt && !manager.editingId}
+          savedAt={draft.lastSavedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+          entityType="location"
+        />
+
         <form id="location-form" onSubmit={handleSubmit} className="space-y-6">
           {/* Map Search Section */}
           <FormSection title="Search & Select Location" icon="🗺️">
@@ -612,7 +772,7 @@ export default function LocationManager({
             }}
           />
         ) : (
-          topLevelLocations.map((location) => renderLocation(location))
+          topLevelLocations.map((location, index) => renderLocation(location, false, index))
         )}
       </div>
 
@@ -633,6 +793,33 @@ export default function LocationManager({
           onUpdate={invalidateLinkSummary}
         />
       )}
+
+      {/* Bulk Action Bar */}
+      {bulkSelection.selectionMode && (
+        <BulkActionBar
+          entityType="location"
+          selectedCount={bulkSelection.selectedCount}
+          totalCount={topLevelLocations.length}
+          onSelectAll={() => bulkSelection.selectAll(topLevelLocations)}
+          onDeselectAll={bulkSelection.deselectAll}
+          onExitSelectionMode={bulkSelection.exitSelectionMode}
+          onBulkDelete={handleBulkDelete}
+          onBulkEdit={() => setShowBulkEditModal(true)}
+          isDeleting={isBulkDeleting}
+          isEditing={isBulkEditing}
+        />
+      )}
+
+      {/* Bulk Edit Modal */}
+      <BulkEditModal
+        isOpen={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        entityType="location"
+        selectedCount={bulkSelection.selectedCount}
+        fields={bulkEditFields}
+        onSubmit={handleBulkEdit}
+        isSubmitting={isBulkEditing}
+      />
     </div>
   );
 }

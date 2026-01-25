@@ -3,6 +3,8 @@ import activityService from '../services/activity.service';
 import {
   createActivitySchema,
   updateActivitySchema,
+  bulkDeleteActivitiesSchema,
+  bulkUpdateActivitiesSchema,
 } from '../types/activity.types';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
@@ -47,5 +49,21 @@ export const activityController = {
     const activityId = parseId(req.params.id);
     await activityService.deleteActivity(userId, activityId);
     res.status(204).send();
+  }),
+
+  bulkDeleteActivities: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const data = bulkDeleteActivitiesSchema.parse(req.body);
+    const result = await activityService.bulkDeleteActivities(userId, tripId, data);
+    res.json(result);
+  }),
+
+  bulkUpdateActivities: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const data = bulkUpdateActivitiesSchema.parse(req.body);
+    const result = await activityService.bulkUpdateActivities(userId, tripId, data);
+    res.json(result);
   }),
 };

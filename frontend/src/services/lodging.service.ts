@@ -32,6 +32,20 @@ class LodgingService {
   async deleteLodging(id: number): Promise<void> {
     await api.delete(`/lodging/${id}`);
   }
+
+  async bulkDeleteLodging(tripId: number, ids: number[]): Promise<{ success: boolean; deletedCount: number }> {
+    const response = await api.delete(`/lodging/trip/${tripId}/bulk`, { data: { ids } });
+    return response.data;
+  }
+
+  async bulkUpdateLodging(
+    tripId: number,
+    ids: number[],
+    updates: { type?: string; notes?: string }
+  ): Promise<{ success: boolean; updatedCount: number }> {
+    const response = await api.patch(`/lodging/trip/${tripId}/bulk`, { ids, updates });
+    return response.data;
+  }
 }
 
 export default new LodgingService();

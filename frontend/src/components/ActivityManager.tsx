@@ -19,8 +19,11 @@ import { useFormReset } from "../hooks/useFormReset";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useBulkSelection } from "../hooks/useBulkSelection";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
+import BulkActionBar from "./BulkActionBar";
+import BulkEditModal from "./BulkEditModal";
 
 /**
  * ActivityManager handles CRUD operations for trip activities (things to do).
@@ -86,6 +89,12 @@ export default function ActivityManager({
 
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
+
+  // Bulk selection state
+  const bulkSelection = useBulkSelection<Activity>();
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
 
   const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
@@ -368,6 +377,71 @@ export default function ActivityManager({
     await manager.handleDelete(id);
   };
 
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Activities",
+      message: `Delete ${selectedIds.length} selected activities? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      await activityService.bulkDeleteActivities(tripId, selectedIds);
+      toast.success(`Deleted ${selectedIds.length} activities`);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk delete activities:", error);
+      toast.error("Failed to delete some activities");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Bulk edit handler
+  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    setIsBulkEditing(true);
+    try {
+      await activityService.bulkUpdateActivities(tripId, selectedIds, updates as { category?: string; notes?: string; timezone?: string });
+      toast.success(`Updated ${selectedIds.length} activities`);
+      setShowBulkEditModal(false);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk update activities:", error);
+      toast.error("Failed to update some activities");
+    } finally {
+      setIsBulkEditing(false);
+    }
+  };
+
+  // Build bulk edit field options
+  const bulkEditFields = useMemo(() => [
+    {
+      key: "category",
+      label: "Category",
+      type: "select" as const,
+      options: activityCategories.map(cat => ({ value: cat.name, label: `${cat.emoji} ${cat.name}` })),
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      type: "textarea" as const,
+      placeholder: "Add notes to all selected activities...",
+    },
+  ], [activityCategories]);
+
   const formatDateTime = (
     dateTime: string | null,
     timezone?: string | null,
@@ -382,21 +456,40 @@ export default function ActivityManager({
     });
   };
 
-  const renderActivity = (activity: Activity, isChild = false) => {
+  const renderActivity = (activity: Activity, isChild = false, index = 0) => {
     const children = getChildren(activity.id);
+    const isSelected = bulkSelection.isSelected(activity.id);
 
     return (
       <div
         key={activity.id}
         data-entity-id={`activity-${activity.id}`}
+        onClick={bulkSelection.selectionMode ? (e) => {
+          e.stopPropagation();
+          bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, topLevelActivities);
+        } : undefined}
         className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow ${
           isChild
             ? "ml-4 sm:ml-8 mt-3 border-l-4 border-blue-300 dark:border-blue-700"
             : ""
-        }`}
+        } ${bulkSelection.selectionMode ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
       >
         {/* Header with icon, name, and category */}
         <div className="flex items-start gap-2 mb-3 flex-wrap">
+          {/* Selection checkbox */}
+          {bulkSelection.selectionMode && !isChild && (
+            <div className="flex items-center justify-center w-6 h-6 mr-1">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, topLevelActivities);
+                }}
+                className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
+              />
+            </div>
+          )}
           {activity.category && (
             <span className="text-xl sm:text-2xl">
               {activityCategories.find((c) => c.name === activity.category)
@@ -548,13 +641,25 @@ export default function ActivityManager({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Activities
         </h2>
-        <button
-          onClick={handleOpenForm}
-          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
-        >
-          <span className="sm:hidden">+ Add</span>
-          <span className="hidden sm:inline">+ Add Activity</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {topLevelActivities.length > 0 && !bulkSelection.selectionMode && (
+            <button
+              onClick={bulkSelection.enterSelectionMode}
+              className="btn btn-secondary text-sm whitespace-nowrap"
+            >
+              Select
+            </button>
+          )}
+          {!bulkSelection.selectionMode && (
+            <button
+              onClick={handleOpenForm}
+              className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
+            >
+              <span className="sm:hidden">+ Add</span>
+              <span className="hidden sm:inline">+ Add Activity</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Modal */}
@@ -657,7 +762,7 @@ export default function ActivityManager({
                 </span>
               </h3>
               <div className="space-y-4">
-                {sortedScheduledActivities.map((activity) => renderActivity(activity))}
+                {sortedScheduledActivities.map((activity, index) => renderActivity(activity, false, index))}
               </div>
             </div>
           )}
@@ -672,12 +777,39 @@ export default function ActivityManager({
                 </span>
               </h3>
               <div className="space-y-4">
-                {sortedUnscheduledActivities.map((activity) => renderActivity(activity))}
+                {sortedUnscheduledActivities.map((activity, index) => renderActivity(activity, false, sortedScheduledActivities.length + index))}
               </div>
             </div>
           )}
         </>
       )}
+
+      {/* Bulk Action Bar */}
+      {bulkSelection.selectionMode && (
+        <BulkActionBar
+          entityType="activity"
+          selectedCount={bulkSelection.selectedCount}
+          totalCount={topLevelActivities.length}
+          onSelectAll={() => bulkSelection.selectAll(topLevelActivities)}
+          onDeselectAll={bulkSelection.deselectAll}
+          onExitSelectionMode={bulkSelection.exitSelectionMode}
+          onBulkDelete={handleBulkDelete}
+          onBulkEdit={() => setShowBulkEditModal(true)}
+          isDeleting={isBulkDeleting}
+          isEditing={isBulkEditing}
+        />
+      )}
+
+      {/* Bulk Edit Modal */}
+      <BulkEditModal
+        isOpen={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        entityType="activity"
+        selectedCount={bulkSelection.selectedCount}
+        fields={bulkEditFields}
+        onSubmit={handleBulkEdit}
+        isSubmitting={isBulkEditing}
+      />
     </div>
   );
 }

@@ -3,6 +3,8 @@ import lodgingService from '../services/lodging.service';
 import {
   createLodgingSchema,
   updateLodgingSchema,
+  bulkDeleteLodgingSchema,
+  bulkUpdateLodgingSchema,
 } from '../types/lodging.types';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
@@ -43,5 +45,21 @@ export const lodgingController = {
     const lodgingId = parseId(req.params.id);
     await lodgingService.deleteLodging(userId, lodgingId);
     res.status(204).send();
+  }),
+
+  bulkDeleteLodging: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const data = bulkDeleteLodgingSchema.parse(req.body);
+    const result = await lodgingService.bulkDeleteLodging(userId, tripId, data);
+    res.json(result);
+  }),
+
+  bulkUpdateLodging: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const data = bulkUpdateLodgingSchema.parse(req.body);
+    const result = await lodgingService.bulkUpdateLodging(userId, tripId, data);
+    res.json(result);
   }),
 };

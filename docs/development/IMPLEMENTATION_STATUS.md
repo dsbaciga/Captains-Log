@@ -1,6 +1,6 @@
 # Travel Life - Implementation Status
 
-Last Updated: 2026-01-24
+Last Updated: 2026-01-25
 
 ## ✅ Completed Features
 
@@ -227,6 +227,8 @@ Last Updated: 2026-01-24
 - [x] **Mobile-First Optimizations** - Bottom navigation, swipe gestures, pull-to-refresh, camera integration
 - [x] **Timeline View Modes** - Compact and standard view with user preference persistence
 - [x] **Drag & Drop Timeline Reordering** - Manual reordering of timeline items with visual feedback
+- [x] **Auto-Save Drafts** - Automatic form draft saving to localStorage with restore prompt, prevents data loss from browser crashes or accidental navigation
+- [x] **Batch Operations** - Multi-select mode for activities, locations, transportation, and lodging with bulk delete and bulk edit capabilities
 
 ### External Integrations
 
@@ -234,6 +236,21 @@ Last Updated: 2026-01-24
 - [x] Self-hosted Nominatim geocoding
 
 ## 🚧 Known Issues
+
+_No known issues at this time._
+
+## 🔧 Future Improvements (Technical Debt)
+
+These are non-critical improvements identified during code reviews that would enhance maintainability:
+
+### Batch Operations
+
+- [ ] **Extract `useBulkOperations` hook** - Reduce code duplication across manager components (ActivityManager, LocationManager, TransportationManager, LodgingManager) by extracting common bulk selection and operation logic into a shared hook
+- [ ] **Atomic entity link cleanup** - Wrap bulk delete operations with entity link cleanup in a Prisma transaction to ensure atomicity when deleting entities that have links
+
+### Auto-Save Drafts
+
+- [ ] **Include form validation state** - Enhance draft storage to include form validation state for complete state restoration, not just field values
 
 ## 📋 Remaining Work
 
@@ -276,7 +293,7 @@ Last Updated: 2026-01-24
 - [ ] Redis caching
 - [ ] CDN for photo delivery
 - [ ] Advanced photo editing
-- [ ] Batch operations
+- [x] Batch operations (bulk delete, bulk edit for activities, locations, transportation, lodging)
 
 ## 📊 Progress Summary
 

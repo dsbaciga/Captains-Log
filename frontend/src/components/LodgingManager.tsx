@@ -9,6 +9,8 @@ import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import LocationQuickAdd from "./LocationQuickAdd";
 import FormModal from "./FormModal";
 import FormSection, { CollapsibleSection } from "./FormSection";
+import DraftIndicator from "./DraftIndicator";
+import DraftRestorePrompt from "./DraftRestorePrompt";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useFormReset } from "../hooks/useFormReset";
@@ -16,11 +18,15 @@ import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
+import { useBulkSelection } from "../hooks/useBulkSelection";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import { ListItemSkeleton } from "./SkeletonLoader";
+import BulkActionBar from "./BulkActionBar";
+import BulkEditModal from "./BulkEditModal";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
 // Note: Location association is handled via EntityLink system, not direct FK
@@ -144,9 +150,54 @@ export default function LodgingManager({
   // Track original location ID when editing to detect changes (for entity linking)
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<"date" | "type">("date");
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+
+  // Bulk selection state
+  const bulkSelection = useBulkSelection<Lodging>();
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
 
   const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
+
+  // Auto-save draft for form data
+  const draftKey = manager.editingId ? manager.editingId : tripId;
+  const draft = useAutoSaveDraft(values, {
+    entityType: 'lodging',
+    id: draftKey,
+    isEditMode: !!manager.editingId,
+    tripId,
+    defaultValues: getInitialFormState,
+    enabled: manager.showForm,
+  });
+
+  // Check for existing draft when form opens in create mode
+  useEffect(() => {
+    if (manager.showForm && !manager.editingId && draft.hasDraft) {
+      setShowDraftPrompt(true);
+    }
+  }, [manager.showForm, manager.editingId, draft.hasDraft]);
+
+  // Handle draft restore
+  const handleRestoreDraft = useCallback(() => {
+    const restoredData = draft.restoreDraft();
+    if (restoredData) {
+      setAllFields(restoredData);
+      // Show more options if draft has data in optional fields
+      if (restoredData.locationId || restoredData.address || restoredData.confirmationNumber ||
+          restoredData.bookingUrl || restoredData.cost || restoredData.notes) {
+        setShowMoreOptions(true);
+      }
+    }
+    setShowDraftPrompt(false);
+  }, [draft, setAllFields]);
+
+  // Handle draft discard
+  const handleDiscardDraft = useCallback(() => {
+    draft.clearDraft();
+    setShowDraftPrompt(false);
+  }, [draft]);
 
   // Create wrappers for useFormReset hook
   const setShowForm = useCallback((show: boolean) => {
@@ -289,7 +340,9 @@ export default function LodgingManager({
     setKeepFormOpenAfterSave(false);
     setShowMoreOptions(false);
     setOriginalLocationId(null);
-  }, [baseResetForm]);
+    setShowDraftPrompt(false);
+    draft.clearDraft();
+  }, [baseResetForm, draft]);
 
   // Open create form with clean state
   const openCreateForm = useCallback(() => {
@@ -451,6 +504,78 @@ export default function LodgingManager({
     await manager.handleDelete(id);
   };
 
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Lodging",
+      message: `Delete ${selectedIds.length} selected lodging items? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      await lodgingService.bulkDeleteLodging(tripId, selectedIds);
+      toast.success(`Deleted ${selectedIds.length} lodging items`);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk delete lodging:", error);
+      toast.error("Failed to delete some lodging items");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Bulk edit handler
+  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    setIsBulkEditing(true);
+    try {
+      await lodgingService.bulkUpdateLodging(tripId, selectedIds, updates as { type?: string; notes?: string });
+      toast.success(`Updated ${selectedIds.length} lodging items`);
+      setShowBulkEditModal(false);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk update lodging:", error);
+      toast.error("Failed to update some lodging items");
+    } finally {
+      setIsBulkEditing(false);
+    }
+  };
+
+  // Build bulk edit field options
+  const bulkEditFields = useMemo(() => [
+    {
+      key: "type",
+      label: "Type",
+      type: "select" as const,
+      options: [
+        { value: "hotel", label: "Hotel" },
+        { value: "hostel", label: "Hostel" },
+        { value: "vacation_rental", label: "Vacation Rental" },
+        { value: "camping", label: "Camping" },
+        { value: "resort", label: "Resort" },
+        { value: "other", label: "Other" },
+      ],
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      type: "textarea" as const,
+      placeholder: "Add notes to all selected lodging...",
+    },
+  ], []);
+
   // Sort lodging based on sortBy
   const sortedLodging = useMemo(() => {
     if (sortBy === "type") {
@@ -509,13 +634,25 @@ export default function LodgingManager({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Lodging
         </h2>
-        <button
-          onClick={openCreateForm}
-          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
-        >
-          <span className="sm:hidden">+ Add</span>
-          <span className="hidden sm:inline">+ Add Lodging</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {manager.items.length > 0 && !bulkSelection.selectionMode && (
+            <button
+              onClick={bulkSelection.enterSelectionMode}
+              className="btn btn-secondary text-sm whitespace-nowrap"
+            >
+              Select
+            </button>
+          )}
+          {!bulkSelection.selectionMode && (
+            <button
+              onClick={openCreateForm}
+              className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
+            >
+              <span className="sm:hidden">+ Add</span>
+              <span className="hidden sm:inline">+ Add Lodging</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Modal */}
@@ -526,36 +663,52 @@ export default function LodgingManager({
         icon="🏨"
         formId="lodging-form"
         footer={
-          <>
-            <button
-              type="button"
-              onClick={handleCloseForm}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            {!manager.editingId && (
+          <div className="flex items-center justify-between w-full gap-4">
+            <DraftIndicator
+              isSaving={draft.isSaving}
+              lastSavedAt={draft.lastSavedAt}
+              show={draft.hasDraft && !manager.editingId}
+            />
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setKeepFormOpenAfterSave(true);
-                  (document.getElementById('lodging-form') as HTMLFormElement)?.requestSubmit();
-                }}
-                className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                onClick={handleCloseForm}
+                className="btn btn-secondary"
               >
-                Save & Add Another
+                Cancel
               </button>
-            )}
-            <button
-              type="submit"
-              form="lodging-form"
-              className="btn btn-primary"
-            >
-              {manager.editingId ? "Update" : "Add"} Lodging
-            </button>
-          </>
+              {!manager.editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeepFormOpenAfterSave(true);
+                    (document.getElementById('lodging-form') as HTMLFormElement)?.requestSubmit();
+                  }}
+                  className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
+                >
+                  Save & Add Another
+                </button>
+              )}
+              <button
+                type="submit"
+                form="lodging-form"
+                className="btn btn-primary"
+              >
+                {manager.editingId ? "Update" : "Add"} Lodging
+              </button>
+            </div>
+          </div>
         }
       >
+        {/* Draft Restore Prompt */}
+        <DraftRestorePrompt
+          isOpen={showDraftPrompt && !manager.editingId}
+          savedAt={draft.lastSavedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+          entityType="lodging"
+        />
+
         <form id="lodging-form" onSubmit={handleSubmit} className="space-y-6">
           {/* SECTION 1: Basic Info (Type & Name) */}
           <FormSection title="Basic Info" icon="🏨">
@@ -789,14 +942,34 @@ export default function LodgingManager({
             onAction={openCreateForm}
           />
         ) : (
-          sortedLodging.map((lodging) => (
+          sortedLodging.map((lodging, index) => {
+            const isSelected = bulkSelection.isSelected(lodging.id);
+            return (
             <div
               key={lodging.id}
               data-entity-id={`lodging-${lodging.id}`}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
+              onClick={bulkSelection.selectionMode ? (e) => {
+                e.stopPropagation();
+                bulkSelection.toggleItemSelection(lodging.id, index, e.shiftKey, sortedLodging);
+              } : undefined}
+              className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow ${bulkSelection.selectionMode ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
             >
               {/* Header with title and type */}
               <div className="flex items-start gap-2 mb-3 flex-wrap">
+                {/* Selection checkbox */}
+                {bulkSelection.selectionMode && (
+                  <div className="flex items-center justify-center w-6 h-6 mr-1">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        bulkSelection.toggleItemSelection(lodging.id, index, e.shiftKey, sortedLodging);
+                      }}
+                      className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
+                    />
+                  </div>
+                )}
                 <span className="text-xl sm:text-2xl">
                   {getTypeIcon(lodging.type)}
                 </span>
@@ -916,9 +1089,36 @@ export default function LodgingManager({
                 </button>
               </div>
             </div>
-          ))
+          );})
         )}
       </div>
+
+      {/* Bulk Action Bar */}
+      {bulkSelection.selectionMode && (
+        <BulkActionBar
+          entityType="lodging"
+          selectedCount={bulkSelection.selectedCount}
+          totalCount={manager.items.length}
+          onSelectAll={() => bulkSelection.selectAll(manager.items)}
+          onDeselectAll={bulkSelection.deselectAll}
+          onExitSelectionMode={bulkSelection.exitSelectionMode}
+          onBulkDelete={handleBulkDelete}
+          onBulkEdit={() => setShowBulkEditModal(true)}
+          isDeleting={isBulkDeleting}
+          isEditing={isBulkEditing}
+        />
+      )}
+
+      {/* Bulk Edit Modal */}
+      <BulkEditModal
+        isOpen={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        entityType="lodging"
+        selectedCount={bulkSelection.selectedCount}
+        fields={bulkEditFields}
+        onSubmit={handleBulkEdit}
+        isSubmitting={isBulkEditing}
+      />
     </div>
   );
 }

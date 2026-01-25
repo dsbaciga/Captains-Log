@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
-import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput } from '../types/location.types';
+import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput, BulkDeleteLocationsInput, BulkUpdateLocationsInput } from '../types/location.types';
 import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 export class LocationService {
@@ -363,6 +363,84 @@ export class LocationService {
     });
 
     return { message: 'Category deleted successfully' };
+  }
+
+  /**
+   * Bulk delete multiple locations
+   * Verifies ownership for all locations before deletion
+   */
+  async bulkDeleteLocations(userId: number, tripId: number, data: BulkDeleteLocationsInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Verify all locations belong to this trip
+    const locations = await prisma.location.findMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+      include: { trip: true },
+    });
+
+    if (locations.length !== data.ids.length) {
+      throw new AppError('One or more locations not found or do not belong to this trip', 404);
+    }
+
+    // Clean up entity links for all locations
+    for (const location of locations) {
+      await cleanupEntityLinks(location.tripId, 'LOCATION', location.id);
+    }
+
+    // Delete all locations
+    const result = await prisma.location.deleteMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+    });
+
+    return { success: true, deletedCount: result.count };
+  }
+
+  /**
+   * Bulk update multiple locations
+   * Verifies ownership for all locations before update
+   */
+  async bulkUpdateLocations(userId: number, tripId: number, data: BulkUpdateLocationsInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Verify all locations belong to this trip
+    const locations = await prisma.location.findMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+    });
+
+    if (locations.length !== data.ids.length) {
+      throw new AppError('One or more locations not found or do not belong to this trip', 404);
+    }
+
+    // Build update data from non-undefined values
+    const updateData: Record<string, unknown> = {};
+    if (data.updates.categoryId !== undefined) updateData.categoryId = data.updates.categoryId;
+    if (data.updates.notes !== undefined) updateData.notes = data.updates.notes;
+
+    if (Object.keys(updateData).length === 0) {
+      throw new AppError('No valid update fields provided', 400);
+    }
+
+    // Update all locations
+    const result = await prisma.location.updateMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+      data: updateData,
+    });
+
+    return { success: true, updatedCount: result.count };
   }
 }
 

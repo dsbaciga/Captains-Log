@@ -84,6 +84,88 @@ router.get('/trip/:tripId', locationController.getLocationsByTrip);
 
 /**
  * @openapi
+ * /api/locations/trip/{tripId}/bulk:
+ *   delete:
+ *     summary: Bulk delete locations
+ *     tags: [Locations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The trip ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of location IDs to delete
+ *     responses:
+ *       200:
+ *         description: Locations deleted successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: One or more locations not found
+ *   patch:
+ *     summary: Bulk update locations
+ *     tags: [Locations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The trip ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids, updates]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of location IDs to update
+ *               updates:
+ *                 type: object
+ *                 properties:
+ *                   categoryId:
+ *                     type: integer
+ *                   notes:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Locations updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: One or more locations not found
+ */
+router.delete('/trip/:tripId/bulk', locationController.bulkDeleteLocations);
+router.patch('/trip/:tripId/bulk', locationController.bulkUpdateLocations);
+
+/**
+ * @openapi
  * /api/locations/{id}:
  *   get:
  *     summary: Get a location by ID
