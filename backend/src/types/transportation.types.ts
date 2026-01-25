@@ -135,3 +135,29 @@ export const updateTransportationSchema = z.object({
 
 export type CreateTransportationInput = z.infer<typeof createTransportationSchema>;
 export type UpdateTransportationInput = z.infer<typeof updateTransportationSchema>;
+
+// Bulk operation schemas
+export const bulkDeleteTransportationSchema = z.object({
+  ids: z.array(z.number()).min(1, 'At least one ID is required'),
+});
+
+export const bulkUpdateTransportationSchema = z.object({
+  ids: z.array(z.number()).min(1, 'At least one ID is required'),
+  updates: z.object({
+    type: z.enum([
+      TransportationType.FLIGHT,
+      TransportationType.TRAIN,
+      TransportationType.BUS,
+      TransportationType.CAR,
+      TransportationType.FERRY,
+      TransportationType.BICYCLE,
+      TransportationType.WALK,
+      TransportationType.OTHER,
+    ]).optional(),
+    carrier: optionalStringWithMax(200),
+    notes: optionalNotesWithMax(2000),
+  }),
+});
+
+export type BulkDeleteTransportationInput = z.infer<typeof bulkDeleteTransportationSchema>;
+export type BulkUpdateTransportationInput = z.infer<typeof bulkUpdateTransportationSchema>;

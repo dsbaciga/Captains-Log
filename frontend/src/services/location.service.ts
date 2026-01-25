@@ -41,6 +41,20 @@ class LocationService {
     const response = await axios.post('/locations/categories', data);
     return response.data.data;
   }
+
+  async bulkDeleteLocations(tripId: number, ids: number[]): Promise<{ success: boolean; deletedCount: number }> {
+    const response = await axios.delete(`/locations/trip/${tripId}/bulk`, { data: { ids } });
+    return response.data.data;
+  }
+
+  async bulkUpdateLocations(
+    tripId: number,
+    ids: number[],
+    updates: { categoryId?: number; notes?: string }
+  ): Promise<{ success: boolean; updatedCount: number }> {
+    const response = await axios.patch(`/locations/trip/${tripId}/bulk`, { ids, updates });
+    return response.data.data;
+  }
 }
 
 export default new LocationService();

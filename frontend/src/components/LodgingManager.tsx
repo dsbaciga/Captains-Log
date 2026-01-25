@@ -19,11 +19,14 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
+import { useBulkSelection } from "../hooks/useBulkSelection";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import { ListItemSkeleton } from "./SkeletonLoader";
+import BulkActionBar from "./BulkActionBar";
+import BulkEditModal from "./BulkEditModal";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
 // Note: Location association is handled via EntityLink system, not direct FK
@@ -148,6 +151,12 @@ export default function LodgingManager({
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<"date" | "type">("date");
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+
+  // Bulk selection state
+  const bulkSelection = useBulkSelection<Lodging>();
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
 
   const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
@@ -495,6 +504,78 @@ export default function LodgingManager({
     await manager.handleDelete(id);
   };
 
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Lodging",
+      message: `Delete ${selectedIds.length} selected lodging items? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      await lodgingService.bulkDeleteLodging(tripId, selectedIds);
+      toast.success(`Deleted ${selectedIds.length} lodging items`);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk delete lodging:", error);
+      toast.error("Failed to delete some lodging items");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Bulk edit handler
+  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    setIsBulkEditing(true);
+    try {
+      await lodgingService.bulkUpdateLodging(tripId, selectedIds, updates as { type?: string; notes?: string });
+      toast.success(`Updated ${selectedIds.length} lodging items`);
+      setShowBulkEditModal(false);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk update lodging:", error);
+      toast.error("Failed to update some lodging items");
+    } finally {
+      setIsBulkEditing(false);
+    }
+  };
+
+  // Build bulk edit field options
+  const bulkEditFields = useMemo(() => [
+    {
+      key: "type",
+      label: "Type",
+      type: "select" as const,
+      options: [
+        { value: "hotel", label: "Hotel" },
+        { value: "hostel", label: "Hostel" },
+        { value: "vacation_rental", label: "Vacation Rental" },
+        { value: "camping", label: "Camping" },
+        { value: "resort", label: "Resort" },
+        { value: "other", label: "Other" },
+      ],
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      type: "textarea" as const,
+      placeholder: "Add notes to all selected lodging...",
+    },
+  ], []);
+
   // Sort lodging based on sortBy
   const sortedLodging = useMemo(() => {
     if (sortBy === "type") {
@@ -553,13 +634,25 @@ export default function LodgingManager({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Lodging
         </h2>
-        <button
-          onClick={openCreateForm}
-          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
-        >
-          <span className="sm:hidden">+ Add</span>
-          <span className="hidden sm:inline">+ Add Lodging</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {manager.items.length > 0 && !bulkSelection.selectionMode && (
+            <button
+              onClick={bulkSelection.enterSelectionMode}
+              className="btn btn-secondary text-sm whitespace-nowrap"
+            >
+              Select
+            </button>
+          )}
+          {!bulkSelection.selectionMode && (
+            <button
+              onClick={openCreateForm}
+              className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
+            >
+              <span className="sm:hidden">+ Add</span>
+              <span className="hidden sm:inline">+ Add Lodging</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Modal */}
@@ -849,14 +942,34 @@ export default function LodgingManager({
             onAction={openCreateForm}
           />
         ) : (
-          sortedLodging.map((lodging) => (
+          sortedLodging.map((lodging, index) => {
+            const isSelected = bulkSelection.isSelected(lodging.id);
+            return (
             <div
               key={lodging.id}
               data-entity-id={`lodging-${lodging.id}`}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
+              onClick={bulkSelection.selectionMode ? (e) => {
+                e.stopPropagation();
+                bulkSelection.toggleItemSelection(lodging.id, index, e.shiftKey, sortedLodging);
+              } : undefined}
+              className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow ${bulkSelection.selectionMode ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
             >
               {/* Header with title and type */}
               <div className="flex items-start gap-2 mb-3 flex-wrap">
+                {/* Selection checkbox */}
+                {bulkSelection.selectionMode && (
+                  <div className="flex items-center justify-center w-6 h-6 mr-1">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        bulkSelection.toggleItemSelection(lodging.id, index, e.shiftKey, sortedLodging);
+                      }}
+                      className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </div>
+                )}
                 <span className="text-xl sm:text-2xl">
                   {getTypeIcon(lodging.type)}
                 </span>
@@ -976,9 +1089,36 @@ export default function LodgingManager({
                 </button>
               </div>
             </div>
-          ))
+          );})
         )}
       </div>
+
+      {/* Bulk Action Bar */}
+      {bulkSelection.selectionMode && (
+        <BulkActionBar
+          entityType="lodging"
+          selectedCount={bulkSelection.selectedCount}
+          totalCount={manager.items.length}
+          onSelectAll={() => bulkSelection.selectAll(manager.items)}
+          onDeselectAll={bulkSelection.deselectAll}
+          onExitSelectionMode={bulkSelection.exitSelectionMode}
+          onBulkDelete={handleBulkDelete}
+          onBulkEdit={() => setShowBulkEditModal(true)}
+          isDeleting={isBulkDeleting}
+          isEditing={isBulkEditing}
+        />
+      )}
+
+      {/* Bulk Edit Modal */}
+      <BulkEditModal
+        isOpen={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        entityType="lodging"
+        selectedCount={bulkSelection.selectedCount}
+        fields={bulkEditFields}
+        onSubmit={handleBulkEdit}
+        isSubmitting={isBulkEditing}
+      />
     </div>
   );
 }

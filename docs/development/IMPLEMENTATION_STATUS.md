@@ -228,6 +228,7 @@ Last Updated: 2026-01-25
 - [x] **Timeline View Modes** - Compact and standard view with user preference persistence
 - [x] **Drag & Drop Timeline Reordering** - Manual reordering of timeline items with visual feedback
 - [x] **Auto-Save Drafts** - Automatic form draft saving to localStorage with restore prompt, prevents data loss from browser crashes or accidental navigation
+- [x] **Batch Operations** - Multi-select mode for activities, locations, transportation, and lodging with bulk delete and bulk edit capabilities
 
 ### External Integrations
 
@@ -277,7 +278,7 @@ Last Updated: 2026-01-25
 - [ ] Redis caching
 - [ ] CDN for photo delivery
 - [ ] Advanced photo editing
-- [ ] Batch operations
+- [x] Batch operations (bulk delete, bulk edit for activities, locations, transportation, lodging)
 
 ## 📊 Progress Summary
 

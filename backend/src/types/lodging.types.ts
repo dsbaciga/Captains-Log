@@ -95,3 +95,19 @@ export const updateLodgingSchema = z.object({
 
 export type CreateLodgingInput = z.infer<typeof createLodgingSchema>;
 export type UpdateLodgingInput = z.infer<typeof updateLodgingSchema>;
+
+// Bulk operation schemas
+export const bulkDeleteLodgingSchema = z.object({
+  ids: z.array(z.number()).min(1, 'At least one ID is required'),
+});
+
+export const bulkUpdateLodgingSchema = z.object({
+  ids: z.array(z.number()).min(1, 'At least one ID is required'),
+  updates: z.object({
+    type: lodgingTypeEnum.optional(),
+    notes: optionalNotesWithMax(2000),
+  }),
+});
+
+export type BulkDeleteLodgingInput = z.infer<typeof bulkDeleteLodgingSchema>;
+export type BulkUpdateLodgingInput = z.infer<typeof bulkUpdateLodgingSchema>;

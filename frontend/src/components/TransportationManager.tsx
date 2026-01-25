@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
 import type {
   Transportation,
   TransportationType,
@@ -21,6 +22,7 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
+import { useBulkSelection } from "../hooks/useBulkSelection";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -28,6 +30,8 @@ import BookingFields from "./BookingFields";
 import FlightRouteMap from "./FlightRouteMap";
 import TransportationStats from "./TransportationStats";
 import LocationQuickAdd from "./LocationQuickAdd";
+import BulkActionBar from "./BulkActionBar";
+import BulkEditModal from "./BulkEditModal";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
 /**
@@ -176,6 +180,12 @@ export default function TransportationManager({
   const [keepFormOpenAfterSave, setKeepFormOpenAfterSave] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+
+  // Bulk selection state
+  const bulkSelection = useBulkSelection<Transportation>();
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
 
   // Auto-save draft for form data
   const draftKey = manager.editingId ? manager.editingId : tripId;
@@ -531,6 +541,86 @@ export default function TransportationManager({
     await manager.handleDelete(id);
   };
 
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Transportation",
+      message: `Delete ${selectedIds.length} selected transportation items? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      await transportationService.bulkDeleteTransportation(tripId, selectedIds);
+      toast.success(`Deleted ${selectedIds.length} transportation items`);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk delete transportation:", error);
+      toast.error("Failed to delete some transportation items");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Bulk edit handler
+  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    setIsBulkEditing(true);
+    try {
+      await transportationService.bulkUpdateTransportation(tripId, selectedIds, updates as { type?: string; carrier?: string; notes?: string });
+      toast.success(`Updated ${selectedIds.length} transportation items`);
+      setShowBulkEditModal(false);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk update transportation:", error);
+      toast.error("Failed to update some transportation items");
+    } finally {
+      setIsBulkEditing(false);
+    }
+  };
+
+  // Build bulk edit field options
+  const bulkEditFields = useMemo(() => [
+    {
+      key: "type",
+      label: "Type",
+      type: "select" as const,
+      options: [
+        { value: "flight", label: "Flight" },
+        { value: "train", label: "Train" },
+        { value: "bus", label: "Bus" },
+        { value: "car", label: "Car" },
+        { value: "ferry", label: "Ferry" },
+        { value: "bicycle", label: "Bicycle" },
+        { value: "walk", label: "Walk" },
+        { value: "other", label: "Other" },
+      ],
+    },
+    {
+      key: "carrier",
+      label: "Carrier/Company",
+      type: "text" as const,
+      placeholder: "e.g., United Airlines",
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      type: "textarea" as const,
+      placeholder: "Add notes to all selected transportation...",
+    },
+  ], []);
+
   const getTypeIcon = (type: TransportationType) => {
     switch (type) {
       case "flight":
@@ -638,13 +728,25 @@ export default function TransportationManager({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Transportation
         </h2>
-        <button
-          onClick={openCreateForm}
-          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
-        >
-          <span className="sm:hidden">+ Add</span>
-          <span className="hidden sm:inline">+ Add Transportation</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {manager.items.length > 0 && !bulkSelection.selectionMode && (
+            <button
+              onClick={bulkSelection.enterSelectionMode}
+              className="btn btn-secondary text-sm whitespace-nowrap"
+            >
+              Select
+            </button>
+          )}
+          {!bulkSelection.selectionMode && (
+            <button
+              onClick={openCreateForm}
+              className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
+            >
+              <span className="sm:hidden">+ Add</span>
+              <span className="hidden sm:inline">+ Add Transportation</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Statistics */}
@@ -1122,7 +1224,7 @@ export default function TransportationManager({
                 />
               ) : (
                 <div className="space-y-4">
-                  {filteredScheduledItems.map((transportation) => (
+                  {filteredScheduledItems.map((transportation, index) => (
                     <TransportationItem
                       key={transportation.id}
                       transportation={transportation}
@@ -1137,6 +1239,10 @@ export default function TransportationManager({
                       invalidateLinkSummary={invalidateLinkSummary}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
+                      selectionMode={bulkSelection.selectionMode}
+                      isSelected={bulkSelection.isSelected(transportation.id)}
+                      onToggleSelection={(id, idx, shiftKey) => bulkSelection.toggleItemSelection(id, idx, shiftKey, manager.items)}
+                      index={index}
                     />
                   ))}
                 </div>
@@ -1154,7 +1260,7 @@ export default function TransportationManager({
                 </span>
               </h3>
               <div className="space-y-4">
-                {sortedUnscheduledItems.map((transportation) => (
+                {sortedUnscheduledItems.map((transportation, index) => (
                   <TransportationItem
                     key={transportation.id}
                     transportation={transportation}
@@ -1169,6 +1275,10 @@ export default function TransportationManager({
                     invalidateLinkSummary={invalidateLinkSummary}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    selectionMode={bulkSelection.selectionMode}
+                    isSelected={bulkSelection.isSelected(transportation.id)}
+                    onToggleSelection={(id, idx, shiftKey) => bulkSelection.toggleItemSelection(id, idx, shiftKey, manager.items)}
+                    index={filteredScheduledItems.length + index}
                   />
                 ))}
               </div>
@@ -1176,6 +1286,33 @@ export default function TransportationManager({
           )}
         </>
       )}
+
+      {/* Bulk Action Bar */}
+      {bulkSelection.selectionMode && (
+        <BulkActionBar
+          entityType="transportation"
+          selectedCount={bulkSelection.selectedCount}
+          totalCount={manager.items.length}
+          onSelectAll={() => bulkSelection.selectAll(manager.items)}
+          onDeselectAll={bulkSelection.deselectAll}
+          onExitSelectionMode={bulkSelection.exitSelectionMode}
+          onBulkDelete={handleBulkDelete}
+          onBulkEdit={() => setShowBulkEditModal(true)}
+          isDeleting={isBulkDeleting}
+          isEditing={isBulkEditing}
+        />
+      )}
+
+      {/* Bulk Edit Modal */}
+      <BulkEditModal
+        isOpen={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        entityType="transportation"
+        selectedCount={bulkSelection.selectedCount}
+        fields={bulkEditFields}
+        onSubmit={handleBulkEdit}
+        isSubmitting={isBulkEditing}
+      />
     </div>
   );
 }
@@ -1204,6 +1341,10 @@ interface TransportationItemProps {
   invalidateLinkSummary: () => void;
   onEdit: (transportation: Transportation) => void;
   onDelete: (id: number) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (id: number, index: number, shiftKey: boolean) => void;
+  index?: number;
 }
 
 function TransportationItem({
@@ -1219,11 +1360,19 @@ function TransportationItem({
   invalidateLinkSummary,
   onEdit,
   onDelete,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelection,
+  index = 0,
 }: TransportationItemProps) {
   return (
     <div
       data-entity-id={`transportation-${transportation.id}`}
-      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow"
+      onClick={selectionMode ? (e) => {
+        e.stopPropagation();
+        onToggleSelection?.(transportation.id, index, e.shiftKey);
+      } : undefined}
+      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow ${selectionMode ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
     >
       {/* Route Map - Show for all transportation with route data */}
       {transportation.route && (
@@ -1238,6 +1387,20 @@ function TransportationItem({
 
       {/* Header with icon, type, carrier, and status */}
       <div className="flex items-start gap-2 mb-3 flex-wrap">
+        {/* Selection checkbox */}
+        {selectionMode && (
+          <div className="flex items-center justify-center w-6 h-6 mr-1">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelection?.(transportation.id, index, e.shiftKey);
+              }}
+              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+          </div>
+        )}
         <span className="text-xl sm:text-2xl">
           {getTypeIcon(transportation.type)}
         </span>

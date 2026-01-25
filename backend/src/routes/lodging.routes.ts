@@ -97,6 +97,72 @@ router.get('/trip/:tripId', lodgingController.getLodgingByTrip);
 
 /**
  * @openapi
+ * /api/lodging/trip/{tripId}/bulk:
+ *   delete:
+ *     summary: Bulk delete lodging
+ *     tags: [Lodging]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Lodging deleted successfully
+ *   patch:
+ *     summary: Bulk update lodging
+ *     tags: [Lodging]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids, updates]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *               updates:
+ *                 type: object
+ *                 properties:
+ *                   type:
+ *                     type: string
+ *                   notes:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Lodging updated successfully
+ */
+router.delete('/trip/:tripId/bulk', lodgingController.bulkDeleteLodging);
+router.patch('/trip/:tripId/bulk', lodgingController.bulkUpdateLodging);
+
+/**
+ * @openapi
  * /api/lodging/{id}:
  *   get:
  *     summary: Get lodging by ID

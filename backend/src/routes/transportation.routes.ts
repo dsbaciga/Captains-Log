@@ -119,6 +119,74 @@ router.post('/trip/:tripId/recalculate-distances', transportationController.reca
 
 /**
  * @openapi
+ * /api/transportation/trip/{tripId}/bulk:
+ *   delete:
+ *     summary: Bulk delete transportation
+ *     tags: [Transportation]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Transportation deleted successfully
+ *   patch:
+ *     summary: Bulk update transportation
+ *     tags: [Transportation]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids, updates]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *               updates:
+ *                 type: object
+ *                 properties:
+ *                   type:
+ *                     type: string
+ *                   carrier:
+ *                     type: string
+ *                   notes:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Transportation updated successfully
+ */
+router.delete('/trip/:tripId/bulk', transportationController.bulkDeleteTransportation);
+router.patch('/trip/:tripId/bulk', transportationController.bulkUpdateTransportation);
+
+/**
+ * @openapi
  * /api/transportation/{id}:
  *   get:
  *     summary: Get a transportation record by ID

@@ -32,6 +32,20 @@ export const activityService = {
   async deleteActivity(activityId: number): Promise<void> {
     await axios.delete(`/activities/${activityId}`);
   },
+
+  async bulkDeleteActivities(tripId: number, ids: number[]): Promise<{ success: boolean; deletedCount: number }> {
+    const response = await axios.delete(`/activities/trip/${tripId}/bulk`, { data: { ids } });
+    return response.data;
+  },
+
+  async bulkUpdateActivities(
+    tripId: number,
+    ids: number[],
+    updates: { category?: string; notes?: string; timezone?: string }
+  ): Promise<{ success: boolean; updatedCount: number }> {
+    const response = await axios.patch(`/activities/trip/${tripId}/bulk`, { ids, updates });
+    return response.data;
+  },
 };
 
 export default activityService;

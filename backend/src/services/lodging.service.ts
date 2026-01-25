@@ -2,6 +2,8 @@ import prisma from '../config/database';
 import {
   CreateLodgingInput,
   UpdateLodgingInput,
+  BulkDeleteLodgingInput,
+  BulkUpdateLodgingInput,
 } from '../types/lodging.types';
 import { verifyTripAccess, verifyEntityAccess, convertDecimals, buildConditionalUpdateData, cleanupEntityLinks } from '../utils/serviceHelpers';
 
@@ -110,6 +112,84 @@ class LodgingService {
     });
 
     return { success: true };
+  }
+
+  /**
+   * Bulk delete multiple lodging items
+   * Verifies ownership for all items before deletion
+   */
+  async bulkDeleteLodging(userId: number, tripId: number, data: BulkDeleteLodgingInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Verify all lodging items belong to this trip
+    const lodgings = await prisma.lodging.findMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+      include: { trip: true },
+    });
+
+    if (lodgings.length !== data.ids.length) {
+      throw new Error('One or more lodging items not found or do not belong to this trip');
+    }
+
+    // Clean up entity links for all lodging items
+    for (const lodging of lodgings) {
+      await cleanupEntityLinks(lodging.tripId, 'LODGING', lodging.id);
+    }
+
+    // Delete all lodging items
+    const result = await prisma.lodging.deleteMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+    });
+
+    return { success: true, deletedCount: result.count };
+  }
+
+  /**
+   * Bulk update multiple lodging items
+   * Verifies ownership for all items before update
+   */
+  async bulkUpdateLodging(userId: number, tripId: number, data: BulkUpdateLodgingInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Verify all lodging items belong to this trip
+    const lodgings = await prisma.lodging.findMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+    });
+
+    if (lodgings.length !== data.ids.length) {
+      throw new Error('One or more lodging items not found or do not belong to this trip');
+    }
+
+    // Build update data from non-undefined values
+    const updateData: Record<string, unknown> = {};
+    if (data.updates.type !== undefined) updateData.type = data.updates.type;
+    if (data.updates.notes !== undefined) updateData.notes = data.updates.notes;
+
+    if (Object.keys(updateData).length === 0) {
+      throw new Error('No valid update fields provided');
+    }
+
+    // Update all lodging items
+    const result = await prisma.lodging.updateMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+      data: updateData,
+    });
+
+    return { success: true, updatedCount: result.count };
   }
 }
 

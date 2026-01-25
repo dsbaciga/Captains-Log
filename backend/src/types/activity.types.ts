@@ -50,3 +50,20 @@ export const updateActivitySchema = z.object({
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
 export type UpdateActivityInput = z.infer<typeof updateActivitySchema>;
+
+// Bulk operation schemas
+export const bulkDeleteActivitiesSchema = z.object({
+  ids: z.array(z.number()).min(1, 'At least one ID is required'),
+});
+
+export const bulkUpdateActivitiesSchema = z.object({
+  ids: z.array(z.number()).min(1, 'At least one ID is required'),
+  updates: z.object({
+    category: optionalStringWithMax(100),
+    notes: optionalNotes(),
+    timezone: optionalTimezone(),
+  }),
+});
+
+export type BulkDeleteActivitiesInput = z.infer<typeof bulkDeleteActivitiesSchema>;
+export type BulkUpdateActivitiesInput = z.infer<typeof bulkUpdateActivitiesSchema>;

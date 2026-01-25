@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import {
   CreateTransportationInput,
   UpdateTransportationInput,
+  BulkDeleteTransportationInput,
+  BulkUpdateTransportationInput,
 } from '../types/transportation.types';
 import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecimals, cleanupEntityLinks, buildConditionalUpdateData } from '../utils/serviceHelpers';
 import { locationWithAddressSelect } from '../utils/prismaIncludes';
@@ -553,6 +555,85 @@ class TransportationService {
     });
 
     return { success: true };
+  }
+
+  /**
+   * Bulk delete multiple transportation items
+   * Verifies ownership for all items before deletion
+   */
+  async bulkDeleteTransportation(userId: number, tripId: number, data: BulkDeleteTransportationInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Verify all transportation items belong to this trip
+    const transportations = await prisma.transportation.findMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+      include: { trip: true },
+    });
+
+    if (transportations.length !== data.ids.length) {
+      throw new Error('One or more transportation items not found or do not belong to this trip');
+    }
+
+    // Clean up entity links for all transportation items
+    for (const transportation of transportations) {
+      await cleanupEntityLinks(transportation.tripId, 'TRANSPORTATION', transportation.id);
+    }
+
+    // Delete all transportation items
+    const result = await prisma.transportation.deleteMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+    });
+
+    return { success: true, deletedCount: result.count };
+  }
+
+  /**
+   * Bulk update multiple transportation items
+   * Verifies ownership for all items before update
+   */
+  async bulkUpdateTransportation(userId: number, tripId: number, data: BulkUpdateTransportationInput) {
+    // Verify user owns the trip
+    await verifyTripAccess(userId, tripId);
+
+    // Verify all transportation items belong to this trip
+    const transportations = await prisma.transportation.findMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+    });
+
+    if (transportations.length !== data.ids.length) {
+      throw new Error('One or more transportation items not found or do not belong to this trip');
+    }
+
+    // Build update data from non-undefined values, mapping frontend names to DB names
+    const updateData: Record<string, unknown> = {};
+    if (data.updates.type !== undefined) updateData.type = data.updates.type;
+    if (data.updates.carrier !== undefined) updateData.company = data.updates.carrier;
+    if (data.updates.notes !== undefined) updateData.notes = data.updates.notes;
+
+    if (Object.keys(updateData).length === 0) {
+      throw new Error('No valid update fields provided');
+    }
+
+    // Update all transportation items
+    const result = await prisma.transportation.updateMany({
+      where: {
+        id: { in: data.ids },
+        tripId,
+      },
+      data: updateData,
+    });
+
+    return { success: true, updatedCount: result.count };
   }
 }
 

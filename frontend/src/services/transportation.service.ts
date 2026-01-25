@@ -44,6 +44,20 @@ class TransportationService {
     const response = await api.post(`/transportation/trip/${tripId}/recalculate-distances`);
     return response.data;
   }
+
+  async bulkDeleteTransportation(tripId: number, ids: number[]): Promise<{ success: boolean; deletedCount: number }> {
+    const response = await api.delete(`/transportation/trip/${tripId}/bulk`, { data: { ids } });
+    return response.data;
+  }
+
+  async bulkUpdateTransportation(
+    tripId: number,
+    ids: number[],
+    updates: { type?: string; carrier?: string; notes?: string }
+  ): Promise<{ success: boolean; updatedCount: number }> {
+    const response = await api.patch(`/transportation/trip/${tripId}/bulk`, { ids, updates });
+    return response.data;
+  }
 }
 
 export default new TransportationService();

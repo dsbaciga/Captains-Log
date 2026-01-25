@@ -3,6 +3,8 @@ import transportationService from '../services/transportation.service';
 import {
   createTransportationSchema,
   updateTransportationSchema,
+  bulkDeleteTransportationSchema,
+  bulkUpdateTransportationSchema,
 } from '../types/transportation.types';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
@@ -78,5 +80,21 @@ export const transportationController = {
       message: `Recalculated distances for ${count} transportation records`,
       count,
     });
+  }),
+
+  bulkDeleteTransportation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const data = bulkDeleteTransportationSchema.parse(req.body);
+    const result = await transportationService.bulkDeleteTransportation(userId, tripId, data);
+    res.json(result);
+  }),
+
+  bulkUpdateTransportation: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const data = bulkUpdateTransportationSchema.parse(req.body);
+    const result = await transportationService.bulkUpdateTransportation(userId, tripId, data);
+    res.json(result);
   }),
 };

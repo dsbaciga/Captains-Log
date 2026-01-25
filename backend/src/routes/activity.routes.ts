@@ -206,4 +206,88 @@ router.get('/:id', activityController.getActivityById);
 router.put('/:id', activityController.updateActivity);
 router.delete('/:id', activityController.deleteActivity);
 
+/**
+ * @openapi
+ * /api/activities/trip/{tripId}/bulk:
+ *   delete:
+ *     summary: Bulk delete activities
+ *     tags: [Activities]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The trip ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of activity IDs to delete
+ *     responses:
+ *       200:
+ *         description: Activities deleted successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: One or more activities not found
+ *   patch:
+ *     summary: Bulk update activities
+ *     tags: [Activities]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The trip ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids, updates]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of activity IDs to update
+ *               updates:
+ *                 type: object
+ *                 properties:
+ *                   category:
+ *                     type: string
+ *                   notes:
+ *                     type: string
+ *                   timezone:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Activities updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: One or more activities not found
+ */
+router.delete('/trip/:tripId/bulk', activityController.bulkDeleteActivities);
+router.patch('/trip/:tripId/bulk', activityController.bulkUpdateActivities);
+
 export default router;

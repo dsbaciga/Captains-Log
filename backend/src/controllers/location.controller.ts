@@ -5,6 +5,8 @@ import {
   updateLocationSchema,
   createLocationCategorySchema,
   updateLocationCategorySchema,
+  bulkDeleteLocationsSchema,
+  bulkUpdateLocationsSchema,
 } from '../types/location.types';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
@@ -113,6 +115,30 @@ export const locationController = {
     res.json({
       status: 'success',
       data: locations,
+    });
+  }),
+
+  bulkDeleteLocations: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const data = bulkDeleteLocationsSchema.parse(req.body);
+    const result = await locationService.bulkDeleteLocations(userId, tripId, data);
+    logger.info(`Bulk deleted ${result.deletedCount} locations by user ${userId}`);
+    res.json({
+      status: 'success',
+      data: result,
+    });
+  }),
+
+  bulkUpdateLocations: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.tripId, 'tripId');
+    const data = bulkUpdateLocationsSchema.parse(req.body);
+    const result = await locationService.bulkUpdateLocations(userId, tripId, data);
+    logger.info(`Bulk updated ${result.updatedCount} locations by user ${userId}`);
+    res.json({
+      status: 'success',
+      data: result,
     });
   }),
 };

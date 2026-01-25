@@ -287,6 +287,71 @@ export default function LocationManager({
     await manager.handleDelete(id);
   };
 
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Locations",
+      message: `Delete ${selectedIds.length} selected locations? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      await locationService.bulkDeleteLocations(tripId, selectedIds);
+      toast.success(`Deleted ${selectedIds.length} locations`);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk delete locations:", error);
+      toast.error("Failed to delete some locations");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Bulk edit handler
+  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+    const selectedIds = bulkSelection.getSelectedIds();
+    if (selectedIds.length === 0) return;
+
+    setIsBulkEditing(true);
+    try {
+      await locationService.bulkUpdateLocations(tripId, selectedIds, updates as { categoryId?: number; notes?: string });
+      toast.success(`Updated ${selectedIds.length} locations`);
+      setShowBulkEditModal(false);
+      bulkSelection.exitSelectionMode();
+      await manager.loadItems();
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to bulk update locations:", error);
+      toast.error("Failed to update some locations");
+    } finally {
+      setIsBulkEditing(false);
+    }
+  };
+
+  // Build bulk edit field options
+  const bulkEditFields = useMemo(() => [
+    {
+      key: "categoryId",
+      label: "Category",
+      type: "select" as const,
+      options: categories.map(cat => ({ value: String(cat.id), label: `${cat.icon || ''} ${cat.name}`.trim() })),
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      type: "textarea" as const,
+      placeholder: "Add notes to all selected locations...",
+    },
+  ], [categories]);
+
   const handleCloseForm = () => {
     resetForm();
     manager.closeForm();
@@ -300,24 +365,43 @@ export default function LocationManager({
     return manager.items.filter((loc) => loc.parentId === parentId);
   };
 
-  const renderLocation = (location: Location, isChild = false) => {
+  const renderLocation = (location: Location, isChild = false, index = 0) => {
     const children = getChildren(location.id);
+    const isSelected = bulkSelection.isSelected(location.id);
 
     return (
       <div key={location.id} className={isChild ? "" : "space-y-2"}>
         <div
           data-entity-id={`location-${location.id}`}
+          onClick={bulkSelection.selectionMode && !isChild ? (e) => {
+            e.stopPropagation();
+            bulkSelection.toggleItemSelection(location.id, index, e.shiftKey, topLevelLocations);
+          } : undefined}
           className={`border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow ${
             isChild
               ? "bg-gray-50 dark:bg-gray-700"
               : "bg-white dark:bg-gray-800"
-          }`}
+          } ${bulkSelection.selectionMode && !isChild ? "cursor-pointer" : ""} ${isSelected && !isChild ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
         >
           {/* Header row: Title + badge on mobile, with actions on larger screens */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4">
             <div className="flex-1 min-w-0">
               {/* Title row with hierarchical display */}
               <div className="flex items-start gap-2 flex-wrap">
+                {/* Selection checkbox */}
+                {bulkSelection.selectionMode && !isChild && (
+                  <div className="flex items-center justify-center w-6 h-6 mr-1">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        bulkSelection.toggleItemSelection(location.id, index, e.shiftKey, topLevelLocations);
+                      }}
+                      className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </div>
+                )}
                 {isChild && (
                   <span className="text-gray-400 dark:text-gray-500 mt-0.5">
                     {String.fromCharCode(8627)}
@@ -436,16 +520,28 @@ export default function LocationManager({
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Locations
         </h2>
-        <button
-          onClick={() => {
-            resetForm();
-            manager.toggleForm();
-          }}
-          className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
-        >
-          <span className="sm:hidden">+ Add</span>
-          <span className="hidden sm:inline">+ Add Location</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {topLevelLocations.length > 0 && !bulkSelection.selectionMode && (
+            <button
+              onClick={bulkSelection.enterSelectionMode}
+              className="btn btn-secondary text-sm whitespace-nowrap"
+            >
+              Select
+            </button>
+          )}
+          {!bulkSelection.selectionMode && (
+            <button
+              onClick={() => {
+                resetForm();
+                manager.toggleForm();
+              }}
+              className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
+            >
+              <span className="sm:hidden">+ Add</span>
+              <span className="hidden sm:inline">+ Add Location</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Modal */}
@@ -676,7 +772,7 @@ export default function LocationManager({
             }}
           />
         ) : (
-          topLevelLocations.map((location) => renderLocation(location))
+          topLevelLocations.map((location, index) => renderLocation(location, false, index))
         )}
       </div>
 
@@ -697,6 +793,33 @@ export default function LocationManager({
           onUpdate={invalidateLinkSummary}
         />
       )}
+
+      {/* Bulk Action Bar */}
+      {bulkSelection.selectionMode && (
+        <BulkActionBar
+          entityType="location"
+          selectedCount={bulkSelection.selectedCount}
+          totalCount={topLevelLocations.length}
+          onSelectAll={() => bulkSelection.selectAll(topLevelLocations)}
+          onDeselectAll={bulkSelection.deselectAll}
+          onExitSelectionMode={bulkSelection.exitSelectionMode}
+          onBulkDelete={handleBulkDelete}
+          onBulkEdit={() => setShowBulkEditModal(true)}
+          isDeleting={isBulkDeleting}
+          isEditing={isBulkEditing}
+        />
+      )}
+
+      {/* Bulk Edit Modal */}
+      <BulkEditModal
+        isOpen={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        entityType="location"
+        selectedCount={bulkSelection.selectedCount}
+        fields={bulkEditFields}
+        onSubmit={handleBulkEdit}
+        isSubmitting={isBulkEditing}
+      />
     </div>
   );
 }
