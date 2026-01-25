@@ -15,6 +15,8 @@ interface ScrollState {
   getPosition: (pageKey: string) => number;
   /** Clear scroll position for a page */
   clearPosition: (pageKey: string) => void;
+  /** Clear all saved scroll positions */
+  clearAllPositions: () => void;
   /** Set whether to skip the next scroll-to-top */
   setSkipNextScrollToTop: (skip: boolean) => void;
 }
@@ -33,6 +35,7 @@ export const useScrollStore = create<ScrollState>()((set, get) => ({
       void _removed; // Explicitly mark as intentionally unused
       return { positions: rest };
     }),
+  clearAllPositions: () => set({ positions: {} }),
   setSkipNextScrollToTop: (skip: boolean) =>
     set({ skipNextScrollToTop: skip }),
 }));

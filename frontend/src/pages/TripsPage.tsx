@@ -44,17 +44,21 @@ export default function TripsPage() {
   const { savePosition, getPosition, setSkipNextScrollToTop } = useScrollStore();
   const SCROLL_KEY = 'trips-page';
 
-  // Restore scroll position on mount
+  // Track if we've restored scroll position (to avoid restoring on every data load)
+  const hasRestoredScroll = useRef(false);
+
+  // Restore scroll position after data loads
   useEffect(() => {
     const savedPosition = getPosition(SCROLL_KEY);
-    if (savedPosition > 0) {
-      // Use requestAnimationFrame to ensure DOM is ready
+    if (savedPosition > 0 && !loading && !hasRestoredScroll.current) {
+      hasRestoredScroll.current = true;
+      // Use requestAnimationFrame to ensure DOM is ready after render
       requestAnimationFrame(() => {
         window.scrollTo(0, savedPosition);
       });
     }
     // getPosition is stable from Zustand store, safe to include
-  }, [getPosition]);
+  }, [getPosition, loading]);
 
   // Save scroll position before navigating away
   const handleNavigateAway = useCallback(() => {
