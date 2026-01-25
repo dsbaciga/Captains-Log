@@ -4,38 +4,67 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important References:**
 
-All documentation is organized in the `docs/` folder:
+All documentation is organized in the `docs/` folder. Start with the [Documentation Index](docs/README.md) for navigation.
+
+### Quick Reference
+
+| Need | Document |
+|------|----------|
+| **Understand the codebase** | [Backend Architecture](docs/architecture/BACKEND_ARCHITECTURE.md), [Frontend Architecture](docs/architecture/FRONTEND_ARCHITECTURE.md) |
+| **Work on the UI** | [Style Guide](docs/architecture/STYLE_GUIDE.md) (**required reading**) |
+| **Understand the database** | [Database Schema](docs/architecture/DATABASE_SCHEMA.md) |
+| **Use the API** | [API Reference](docs/api/README.md) |
+| **Deploy to production** | [Deployment Guide](DEPLOYMENT.md), [Quick Start](QUICK_START_PRODUCTION.md) |
+| **Release a new version** | [Build & Push](docs/guides/BUILD_AND_PUSH.md), [Release Checklist](RELEASE_CHECKLIST.md) |
+| **Track progress** | [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md) |
+| **Debug issues** | [Debugger Agent](.agents/DEBUGGER.md) |
 
 ### Architecture Documentation (`docs/architecture/`)
+
 - [FRONTEND_ARCHITECTURE.md](docs/architecture/FRONTEND_ARCHITECTURE.md) - **Detailed frontend architecture guide covering component patterns, state management, data flow, routing, and best practices.**
 - [BACKEND_ARCHITECTURE.md](docs/architecture/BACKEND_ARCHITECTURE.md) - **Detailed backend architecture guide covering layered architecture, database patterns, authentication, validation, error handling, and best practices.**
+- [DATABASE_SCHEMA.md](docs/architecture/DATABASE_SCHEMA.md) - **Database schema reference with entity relationships, all models, indexes, and the entity linking system.**
 - [STYLE_GUIDE.md](docs/architecture/STYLE_GUIDE.md) - **REQUIRED READING for UI work. Complete design system covering colors (Compass Gold palette), typography, component classes, dark mode, animations, and accessibility. Always consult before creating or modifying UI components.**
 - [BACKEND_OPTIMIZATION_PLAN.md](docs/architecture/BACKEND_OPTIMIZATION_PLAN.md) - Backend performance optimization strategies.
 
+### API Documentation (`docs/api/`)
+
+- [README.md](docs/api/README.md) - **Complete API reference with all endpoints, authentication, request/response formats, and examples.**
+
 ### Development Tracking (`docs/development/`)
+
 - [IMPLEMENTATION_STATUS.md](docs/development/IMPLEMENTATION_STATUS.md) - **Current project status, completed features, and remaining work. Update this file whenever significant features are completed or new issues are discovered.**
 - [FEATURE_BACKLOG.md](docs/development/FEATURE_BACKLOG.md) - **Prioritized feature backlog with 94 future enhancement ideas organized by priority and category.**
 - [UI_UX_IMPROVEMENT_PLAN.md](docs/development/UI_UX_IMPROVEMENT_PLAN.md) - UI/UX enhancement roadmap.
 - [BUGS.md](docs/development/BUGS.md) - Known bugs and issues tracking.
 
 ### Guides & Instructions (`docs/guides/`)
+
 - [BUILD_AND_PUSH.md](docs/guides/BUILD_AND_PUSH.md) - **Step-by-step checklist for building and pushing new versions.**
 - [TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md) - Testing procedures and guidelines.
 - [ROUTING_SETUP.md](docs/guides/ROUTING_SETUP.md) - **OpenRouteService configuration for accurate road distance calculations (required for car/bike/walking transportation)**
 
+### User Documentation (`docs/user-guide/`)
+
+- [README.md](docs/user-guide/README.md) - **End-user guide covering all application features, workflows, and tips.**
+
 ### Planning Documents (`docs/plans/`)
+
 - [GOOGLE_MAPS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md) - Google Maps integration roadmap.
 - [GOOGLE_PHOTOS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md) - Google Photos integration roadmap.
 - [UI_IMPROVEMENTS.md](docs/plans/UI_IMPROVEMENTS.md) - Planned UI improvements.
 
-### Agent Documentation (`.agents/`)
+### Agent Documentation (`.agents/`) - Not version controlled
+
 - [DEBUGGER.md](.agents/DEBUGGER.md) - **Systematic debugging agent for investigating and fixing bugs. Use this when encountering errors or issues.**
 - [CODE_OPTIMIZER.md](.agents/CODE_OPTIMIZER.md) - **Code optimization agent for identifying code reuse opportunities and refactoring to reduce duplication. Use this to improve maintainability.**
 
-### Other Important Files
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
-- [QUICK_START_PRODUCTION.md](QUICK_START_PRODUCTION.md) - Quick production setup (< 10 min)
-- [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) - Release preparation and deployment checklist
+### Root-Level Documentation
+
+- [DEPLOYMENT.md](DEPLOYMENT.md) - **Comprehensive production deployment guide with Docker, TrueNAS, reverse proxy, SSL, backups, and monitoring.**
+- [QUICK_START_PRODUCTION.md](QUICK_START_PRODUCTION.md) - **Quick production setup in under 10 minutes.**
+- [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) - **Complete release checklist covering testing, versioning, building, publishing, and deployment.**
+- [README.md](README.md) - Project overview and quick start for development.
 
 ## Project Overview
 
