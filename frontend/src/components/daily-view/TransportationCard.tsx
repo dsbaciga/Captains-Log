@@ -20,6 +20,8 @@ interface TransportationCardProps {
   tripTimezone?: string;
   linkedLocations?: Location[];
   linkedAlbums?: PhotoAlbum[];
+  /** Current date being displayed (for filtering linked journal entries) */
+  currentDate?: Date;
 }
 
 export default function TransportationCard({
@@ -28,6 +30,7 @@ export default function TransportationCard({
   tripTimezone,
   linkedLocations = [],
   linkedAlbums = [],
+  currentDate,
 }: TransportationCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('transportation');
@@ -349,6 +352,8 @@ export default function TransportationCard({
           entityId={transportation.id}
           excludeTypes={['LOCATION', 'PHOTO_ALBUM']}
           compact
+          currentDate={currentDate}
+          timezone={tripTimezone}
         />
       </div>
     </div>

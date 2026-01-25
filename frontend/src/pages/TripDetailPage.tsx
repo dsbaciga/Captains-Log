@@ -47,7 +47,8 @@ import AlbumModal from "../components/AlbumModal";
 import AddPhotosToAlbumModal from "../components/AddPhotosToAlbumModal";
 import FloatingTripHeader from "../components/FloatingTripHeader";
 import type { PhotoAlbum } from "../types/photo";
-import { usePagination } from "../hooks/usePagination";
+import { usePagedPagination } from "../hooks/usePagedPagination";
+import Pagination from "../components/Pagination";
 import { useScrollToHighlight } from "../hooks/useScrollToHighlight";
 import { useSwipeGesture } from "../hooks/useSwipeGesture";
 import Breadcrumbs from "../components/Breadcrumbs";
@@ -216,8 +217,8 @@ export default function TripDetailPage() {
   // Ref for floating header observation
   const tripHeaderRef = useRef<HTMLDivElement>(null);
 
-  // Pagination hooks
-  const photosPagination = usePagination<Photo>(
+  // Pagination hooks - using paged pagination for memory efficiency
+  const photosPagination = usePagedPagination<Photo>(
     async (skip, take) => {
       if (!trip) return { items: [], total: 0, hasMore: false };
       const result = await photoService.getPhotosByTrip(trip.id, {
@@ -232,10 +233,10 @@ export default function TripDetailPage() {
         hasMore: result.hasMore,
       };
     },
-    { pageSize: 40, enabled: true }
+    { pageSize: 40 }
   );
 
-  const unsortedPagination = usePagination<Photo>(
+  const unsortedPagination = usePagedPagination<Photo>(
     async (skip, take) => {
       if (!trip) return { items: [], total: 0, hasMore: false };
       const result = await photoService.getUnsortedPhotosByTrip(trip.id, {
@@ -250,10 +251,10 @@ export default function TripDetailPage() {
         hasMore: result.hasMore,
       };
     },
-    { pageSize: 40, enabled: true }
+    { pageSize: 40 }
   );
 
-  const albumPhotosPagination = usePagination<Photo>(
+  const albumPhotosPagination = usePagedPagination<Photo>(
     async (skip, take) => {
       if (!selectedAlbumId || selectedAlbumId <= 0)
         return { items: [], total: 0, hasMore: false };
@@ -270,7 +271,7 @@ export default function TripDetailPage() {
         hasMore: result.hasMore || false,
       };
     },
-    { pageSize: 40, enabled: true }
+    { pageSize: 40 }
   );
 
   // State for existing Immich asset IDs to exclude from Immich browser
@@ -1584,26 +1585,11 @@ export default function TripDetailPage() {
                         : albumPhotosPagination.total
                     }
                     onLoadAllPhotos={async () => {
-                      // Load all remaining photos for current view
-                      // Add small delay between requests to avoid rate limiting
-                      const throttleDelay = () => new Promise(resolve => setTimeout(resolve, 100));
-
-                      if (selectedAlbumId === null) {
-                        while (photosPagination.hasMore) {
-                          await photosPagination.loadMore();
-                          await throttleDelay();
-                        }
-                      } else if (selectedAlbumId === -1) {
-                        while (unsortedPagination.hasMore) {
-                          await unsortedPagination.loadMore();
-                          await throttleDelay();
-                        }
-                      } else {
-                        while (albumPhotosPagination.hasMore) {
-                          await albumPhotosPagination.loadMore();
-                          await throttleDelay();
-                        }
-                      }
+                      // With paged pagination, loading all photos is not supported
+                      // as it would defeat the purpose of memory-efficient pagination.
+                      // The PhotoGallery component should handle this gracefully.
+                      // For bulk operations, users should use "Select All on Page" instead.
+                      toast.error("Loading all photos at once is not available with paged view. Use page navigation instead.");
                     }}
                     currentAlbumId={selectedAlbumId}
                     onPhotosRemovedFromAlbum={() => {
@@ -1625,52 +1611,58 @@ export default function TripDetailPage() {
                   />
                 )}
 
-                {photosPagination.hasMore && selectedAlbumId === null && (
-                  <div className="text-center mt-6">
-                    <button
-                      onClick={photosPagination.loadMore}
-                      disabled={photosPagination.loadingMore}
-                      className="btn btn-primary"
-                    >
-                      {photosPagination.loadingMore
-                        ? "Loading..."
-                        : `Load More Photos (${photosPagination.items.length}/${totalPhotosCount})`}
-                    </button>
-                  </div>
+                {/* Pagination Controls */}
+                {selectedAlbumId === null && photosPagination.totalPages > 1 && (
+                  <Pagination
+                    currentPage={photosPagination.currentPage}
+                    totalPages={photosPagination.totalPages}
+                    pageNumbers={photosPagination.pageNumbers}
+                    onPageChange={photosPagination.goToPage}
+                    onPrevious={photosPagination.previousPage}
+                    onNext={photosPagination.nextPage}
+                    hasPreviousPage={photosPagination.hasPreviousPage}
+                    hasNextPage={photosPagination.hasNextPage}
+                    loading={photosPagination.loading}
+                    rangeStart={photosPagination.rangeStart}
+                    rangeEnd={photosPagination.rangeEnd}
+                    total={photosPagination.total}
+                    className="mt-6"
+                  />
                 )}
-                {unsortedPagination.hasMore && selectedAlbumId === -1 && (
-                  <div className="text-center mt-6">
-                    <button
-                      onClick={unsortedPagination.loadMore}
-                      disabled={unsortedPagination.loadingMore}
-                      className="btn btn-primary"
-                    >
-                      {unsortedPagination.loadingMore
-                        ? "Loading..."
-                        : `Load More Photos (${unsortedPagination.items.length}/${unsortedPhotosCount})`}
-                    </button>
-                  </div>
+                {selectedAlbumId === -1 && unsortedPagination.totalPages > 1 && (
+                  <Pagination
+                    currentPage={unsortedPagination.currentPage}
+                    totalPages={unsortedPagination.totalPages}
+                    pageNumbers={unsortedPagination.pageNumbers}
+                    onPageChange={unsortedPagination.goToPage}
+                    onPrevious={unsortedPagination.previousPage}
+                    onNext={unsortedPagination.nextPage}
+                    hasPreviousPage={unsortedPagination.hasPreviousPage}
+                    hasNextPage={unsortedPagination.hasNextPage}
+                    loading={unsortedPagination.loading}
+                    rangeStart={unsortedPagination.rangeStart}
+                    rangeEnd={unsortedPagination.rangeEnd}
+                    total={unsortedPagination.total}
+                    className="mt-6"
+                  />
                 )}
-                {albumPhotosPagination.hasMore &&
-                  selectedAlbumId &&
-                  selectedAlbumId > 0 && (
-                    <div className="text-center mt-6">
-                      <button
-                        onClick={albumPhotosPagination.loadMore}
-                        disabled={albumPhotosPagination.loadingMore}
-                        className="btn btn-primary"
-                      >
-                        {albumPhotosPagination.loadingMore
-                          ? "Loading..."
-                          : `Load More Photos (${
-                              albumPhotosPagination.items.length
-                            }/${
-                              albums.find((a) => a.id === selectedAlbumId)
-                                ?._count?.photoAssignments || 0
-                            })`}
-                      </button>
-                    </div>
-                  )}
+                {selectedAlbumId !== null && selectedAlbumId > 0 && albumPhotosPagination.totalPages > 1 && (
+                  <Pagination
+                    currentPage={albumPhotosPagination.currentPage}
+                    totalPages={albumPhotosPagination.totalPages}
+                    pageNumbers={albumPhotosPagination.pageNumbers}
+                    onPageChange={albumPhotosPagination.goToPage}
+                    onPrevious={albumPhotosPagination.previousPage}
+                    onNext={albumPhotosPagination.nextPage}
+                    hasPreviousPage={albumPhotosPagination.hasPreviousPage}
+                    hasNextPage={albumPhotosPagination.hasNextPage}
+                    loading={albumPhotosPagination.loading}
+                    rangeStart={albumPhotosPagination.rangeStart}
+                    rangeEnd={albumPhotosPagination.rangeEnd}
+                    total={albumPhotosPagination.total}
+                    className="mt-6"
+                  />
+                )}
                 {selectedAlbumId === -1 && filteredPhotos.length === 0 && (
                   <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                     <p>All photos are sorted into albums!</p>

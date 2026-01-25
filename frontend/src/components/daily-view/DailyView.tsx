@@ -740,6 +740,7 @@ export default function DailyView({
                     tripTimezone={tripTimezone}
                     linkedLocations={getLinkedLocations('ACTIVITY', activity.id)}
                     linkedAlbums={getLinkedAlbums('ACTIVITY', activity.id)}
+                    currentDate={item.dateTime}
                   />
                 );
               }
@@ -753,6 +754,7 @@ export default function DailyView({
                     tripTimezone={tripTimezone}
                     linkedLocations={getLinkedLocations('TRANSPORTATION', transportation.id)}
                     linkedAlbums={getLinkedAlbums('TRANSPORTATION', transportation.id)}
+                    currentDate={item.dateTime}
                   />
                 );
               }
@@ -767,6 +769,7 @@ export default function DailyView({
                     dayContext={item.lodgingContext}
                     linkedLocations={getLinkedLocations('LODGING', lodging.id)}
                     linkedAlbums={getLinkedAlbums('LODGING', lodging.id)}
+                    currentDate={item.dateTime}
                   />
                 );
               }
@@ -780,6 +783,7 @@ export default function DailyView({
                     tripTimezone={tripTimezone}
                     linkedLocations={getLinkedLocations('JOURNAL_ENTRY', journal.id)}
                     linkedAlbums={getLinkedAlbums('JOURNAL_ENTRY', journal.id)}
+                    currentDate={item.dateTime}
                   />
                 );
               }

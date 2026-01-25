@@ -14,13 +14,17 @@ interface JournalCardProps {
   tripTimezone?: string;
   linkedLocations?: Location[];
   linkedAlbums?: PhotoAlbum[];
+  /** Current date being displayed (for filtering linked journal entries) */
+  currentDate?: Date;
 }
 
 export default function JournalCard({
   journal,
   tripId,
+  tripTimezone,
   linkedLocations = [],
   linkedAlbums = [],
+  currentDate,
 }: JournalCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('journal');
@@ -178,6 +182,8 @@ export default function JournalCard({
           entityId={journal.id}
           excludeTypes={['LOCATION', 'PHOTO_ALBUM']}
           compact
+          currentDate={currentDate}
+          timezone={tripTimezone}
         />
       </div>
     </div>

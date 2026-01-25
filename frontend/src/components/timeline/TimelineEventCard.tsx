@@ -480,6 +480,8 @@ export default function TimelineEventCard({
           entityType={entityType}
           entityId={actualEntityId}
           compact
+          currentDate={item.dateTime}
+          timezone={tripTimezone}
         />
 
         {/* Link button */}

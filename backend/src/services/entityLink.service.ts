@@ -30,7 +30,7 @@ import type {
 } from '../types/entityLink.types';
 
 // Entity details return type
-type EntityDetails = { id: number; name?: string; title?: string; caption?: string; thumbnailPath?: string };
+type EntityDetails = { id: number; name?: string; title?: string; caption?: string; thumbnailPath?: string; date?: string };
 
 // Generic entity record type returned from findFirst/findUnique
 type EntityRecord = { id: number } & Record<string, unknown>;
@@ -100,9 +100,9 @@ const ENTITY_CONFIG: Record<EntityType, {
     getDetails: async (entityId) => {
       const journal = await prisma.journalEntry.findUnique({
         where: { id: entityId },
-        select: { id: true, title: true },
+        select: { id: true, title: true, date: true },
       });
-      return journal ? { id: journal.id, title: journal.title || undefined } : null;
+      return journal ? { id: journal.id, title: journal.title || undefined, date: journal.date?.toISOString() } : null;
     },
   },
   PHOTO_ALBUM: {
@@ -301,12 +301,13 @@ async function batchGetEntityDetails(
       case 'JOURNAL_ENTRY': {
         const journals = await prisma.journalEntry.findMany({
           where: { id: { in: uniqueIds } },
-          select: { id: true, title: true },
+          select: { id: true, title: true, date: true },
         });
         for (const journal of journals) {
           result.set(`JOURNAL_ENTRY:${journal.id}`, {
             id: journal.id,
             title: journal.title || undefined,
+            date: journal.date?.toISOString(),
           });
         }
         break;

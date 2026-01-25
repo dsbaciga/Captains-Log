@@ -28,6 +28,11 @@ interface LinkedEntitiesDisplayProps {
   maxItemsPerType?: number;
   /** Optional: Custom class name for the container */
   className?: string;
+  /** Optional: Current date being displayed (for multi-day entities like lodging).
+   *  When provided, journal entries will be filtered to only show on their specific date. */
+  currentDate?: Date;
+  /** Optional: Timezone to use for date comparison */
+  timezone?: string;
 }
 
 
@@ -45,6 +50,22 @@ interface SelectedEntity {
   id: number;
 }
 
+// Helper to get date string in timezone (YYYY-MM-DD format)
+function getDateInTimezone(date: Date, timezone?: string): string {
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: timezone || 'UTC',
+  };
+  // Format as YYYY-MM-DD
+  const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+  const year = parts.find(p => p.type === 'year')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const day = parts.find(p => p.type === 'day')?.value || '';
+  return `${year}-${month}-${day}`;
+}
+
 export default function LinkedEntitiesDisplay({
   tripId,
   entityType,
@@ -53,6 +74,8 @@ export default function LinkedEntitiesDisplay({
   compact = false,
   maxItemsPerType = 5,
   className = '',
+  currentDate,
+  timezone,
 }: LinkedEntitiesDisplayProps) {
   const navigate = useNavigate();
   // State for entity detail modal
@@ -77,6 +100,21 @@ export default function LinkedEntitiesDisplay({
     queryFn: () => entityLinkService.getAllLinksForEntity(tripId, entityType, entityId),
   });
 
+  // Helper to check if a journal entry matches the current date
+  const journalMatchesCurrentDate = (journalDate: string | undefined): boolean => {
+    // If no currentDate filter is provided, show all journal entries
+    if (!currentDate) return true;
+    // If journal has no date, show it (shouldn't happen but be safe)
+    if (!journalDate) return true;
+
+    // Compare dates in the same timezone
+    const currentDateStr = getDateInTimezone(currentDate, timezone);
+    const journalDateObj = new Date(journalDate);
+    const journalDateStr = getDateInTimezone(journalDateObj, timezone);
+
+    return currentDateStr === journalDateStr;
+  };
+
   // Group links by entity type
   const groupedLinks = useMemo(() => {
     if (!linksData) return {};
@@ -94,6 +132,12 @@ export default function LinkedEntitiesDisplay({
     // Links FROM this entity (this entity is the source)
     for (const link of linksData.linksFrom) {
       if (!excludeTypes.includes(link.targetType)) {
+        // Filter journal entries by date when currentDate is provided
+        if (link.targetType === 'JOURNAL_ENTRY' && currentDate) {
+          if (!journalMatchesCurrentDate(link.targetEntity?.date)) {
+            continue;
+          }
+        }
         groups[link.targetType].push({
           link,
           linkedEntityType: link.targetType,
@@ -107,6 +151,12 @@ export default function LinkedEntitiesDisplay({
     // Links TO this entity (this entity is the target)
     for (const link of linksData.linksTo) {
       if (!excludeTypes.includes(link.sourceType)) {
+        // Filter journal entries by date when currentDate is provided
+        if (link.sourceType === 'JOURNAL_ENTRY' && currentDate) {
+          if (!journalMatchesCurrentDate(link.sourceEntity?.date)) {
+            continue;
+          }
+        }
         groups[link.sourceType].push({
           link,
           linkedEntityType: link.sourceType,
@@ -118,7 +168,8 @@ export default function LinkedEntitiesDisplay({
     }
 
     return groups;
-  }, [linksData, excludeTypes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linksData, excludeTypes, currentDate, timezone]);
 
   // Get entity types that have links (in standard display order)
   const linkedEntityTypes = useMemo(() => {

@@ -25,6 +25,8 @@ interface LodgingCardProps {
   };
   linkedLocations?: Location[];
   linkedAlbums?: PhotoAlbum[];
+  /** Current date being displayed (for filtering linked journal entries) */
+  currentDate?: Date;
 }
 
 export default function LodgingCard({
@@ -34,6 +36,7 @@ export default function LodgingCard({
   dayContext,
   linkedLocations = [],
   linkedAlbums = [],
+  currentDate,
 }: LodgingCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('lodging');
@@ -339,6 +342,8 @@ export default function LodgingCard({
           entityId={lodging.id}
           excludeTypes={['LOCATION', 'PHOTO_ALBUM']}
           compact
+          currentDate={currentDate}
+          timezone={tripTimezone}
         />
       </div>
     </div>

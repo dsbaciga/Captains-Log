@@ -38,6 +38,7 @@ export interface EntityDetails {
   title?: string;
   caption?: string;
   thumbnailPath?: string;
+  date?: string; // ISO date string, used for journal entries to filter by day
 }
 
 // Enriched link with entity details

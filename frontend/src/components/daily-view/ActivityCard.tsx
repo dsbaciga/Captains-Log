@@ -20,6 +20,8 @@ interface ActivityCardProps {
   tripTimezone?: string;
   linkedLocations?: Location[];
   linkedAlbums?: PhotoAlbum[];
+  /** Current date being displayed (for filtering linked journal entries) */
+  currentDate?: Date;
 }
 
 export default function ActivityCard({
@@ -28,6 +30,7 @@ export default function ActivityCard({
   tripTimezone,
   linkedLocations = [],
   linkedAlbums = [],
+  currentDate,
 }: ActivityCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('activity');
@@ -227,6 +230,8 @@ export default function ActivityCard({
           entityId={activity.id}
           excludeTypes={['LOCATION', 'PHOTO_ALBUM']}
           compact
+          currentDate={currentDate}
+          timezone={tripTimezone}
         />
 
         {/* Sub-activities */}

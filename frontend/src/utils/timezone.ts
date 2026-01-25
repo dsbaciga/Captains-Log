@@ -174,23 +174,80 @@ export function getTimezoneAbbreviation(
 
 /**
  * Common timezone options for select dropdowns
+ * Organized by UTC offset (west to east), with standard names and UTC offset indicators
+ * Note: Offsets shown are standard time; daylight saving time adds +1 hour where applicable
  */
 export const commonTimezones = [
+  // UTC-12 to UTC-9
+  { value: "Pacific/Honolulu", label: "Hawaii (UTC-10)" },
+  { value: "America/Anchorage", label: "Alaska (UTC-9)" },
+
+  // UTC-8 to UTC-5 (North America)
+  { value: "America/Los_Angeles", label: "Pacific Time (UTC-8)" },
+  { value: "America/Denver", label: "Mountain Time (UTC-7)" },
+  { value: "America/Phoenix", label: "Arizona (UTC-7, no DST)" },
+  { value: "America/Chicago", label: "Central Time (UTC-6)" },
+  { value: "America/New_York", label: "Eastern Time (UTC-5)" },
+
+  // UTC-4 to UTC-3 (Americas)
+  { value: "America/Halifax", label: "Atlantic Time (UTC-4)" },
+  { value: "America/Sao_Paulo", label: "Brasilia (UTC-3)" },
+
+  // UTC+0 (Western Europe/Africa)
   { value: "UTC", label: "UTC (Coordinated Universal Time)" },
-  { value: "America/New_York", label: "Eastern Time (US & Canada)" },
-  { value: "America/Chicago", label: "Central Time (US & Canada)" },
-  { value: "America/Denver", label: "Mountain Time (US & Canada)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (US & Canada)" },
-  { value: "America/Anchorage", label: "Alaska" },
-  { value: "Pacific/Honolulu", label: "Hawaii" },
-  { value: "Europe/London", label: "London" },
-  { value: "Europe/Paris", label: "Paris" },
-  { value: "Europe/Berlin", label: "Berlin" },
-  { value: "Asia/Tokyo", label: "Tokyo" },
-  { value: "Asia/Shanghai", label: "Shanghai" },
-  { value: "Asia/Dubai", label: "Dubai" },
-  { value: "Australia/Sydney", label: "Sydney" },
-  { value: "Pacific/Auckland", label: "Auckland" },
+  { value: "Europe/London", label: "London (UTC+0)" },
+  { value: "Europe/Lisbon", label: "Lisbon (UTC+0)" },
+
+  // UTC+1 (Central Europe)
+  { value: "Europe/Paris", label: "Paris (UTC+1)" },
+  { value: "Europe/Berlin", label: "Berlin (UTC+1)" },
+  { value: "Europe/Rome", label: "Rome (UTC+1)" },
+  { value: "Europe/Amsterdam", label: "Amsterdam (UTC+1)" },
+  { value: "Europe/Madrid", label: "Madrid (UTC+1)" },
+
+  // UTC+2 (Eastern Europe)
+  { value: "Europe/Athens", label: "Athens (UTC+2)" },
+  { value: "Europe/Helsinki", label: "Helsinki (UTC+2)" },
+  { value: "Africa/Cairo", label: "Cairo (UTC+2)" },
+  { value: "Africa/Johannesburg", label: "Johannesburg (UTC+2)" },
+
+  // UTC+3 (Middle East/East Africa)
+  { value: "Europe/Moscow", label: "Moscow (UTC+3)" },
+  { value: "Europe/Istanbul", label: "Istanbul (UTC+3)" },
+  { value: "Asia/Riyadh", label: "Riyadh (UTC+3)" },
+
+  // UTC+4 (Gulf)
+  { value: "Asia/Dubai", label: "Dubai (UTC+4)" },
+
+  // UTC+5 to UTC+5:30 (South Asia)
+  { value: "Asia/Karachi", label: "Karachi (UTC+5)" },
+  { value: "Asia/Kolkata", label: "India (UTC+5:30)" },
+
+  // UTC+6 to UTC+7 (Southeast Asia)
+  { value: "Asia/Dhaka", label: "Dhaka (UTC+6)" },
+  { value: "Asia/Bangkok", label: "Bangkok (UTC+7)" },
+  { value: "Asia/Jakarta", label: "Jakarta (UTC+7)" },
+  { value: "Asia/Ho_Chi_Minh", label: "Ho Chi Minh City (UTC+7)" },
+
+  // UTC+8 (East Asia)
+  { value: "Asia/Singapore", label: "Singapore (UTC+8)" },
+  { value: "Asia/Hong_Kong", label: "Hong Kong (UTC+8)" },
+  { value: "Asia/Shanghai", label: "Shanghai (UTC+8)" },
+  { value: "Asia/Taipei", label: "Taipei (UTC+8)" },
+  { value: "Australia/Perth", label: "Perth (UTC+8)" },
+
+  // UTC+9 (Japan/Korea)
+  { value: "Asia/Tokyo", label: "Tokyo (UTC+9)" },
+  { value: "Asia/Seoul", label: "Seoul (UTC+9)" },
+
+  // UTC+10 to UTC+11 (Australia/Pacific)
+  { value: "Australia/Brisbane", label: "Brisbane (UTC+10, no DST)" },
+  { value: "Australia/Sydney", label: "Sydney (UTC+10)" },
+  { value: "Australia/Melbourne", label: "Melbourne (UTC+10)" },
+
+  // UTC+12 to UTC+13 (Pacific)
+  { value: "Pacific/Auckland", label: "Auckland (UTC+12)" },
+  { value: "Pacific/Fiji", label: "Fiji (UTC+12)" },
 ];
 
 /**

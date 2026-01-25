@@ -490,6 +490,31 @@ export default function PhotoTimeline({
                       <p className="text-sm">No photos for this day</p>
                     </div>
                   )}
+
+                  {/* Collapse button at bottom of day */}
+                  {dayGroup.photos && dayGroup.photos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => toggleDay(dayGroup.rawDate)}
+                      className="w-full mt-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <svg
+                        className="w-4 h-4 rotate-180"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                      Collapse day
+                    </button>
+                  )}
                 </div>
               )}
             </div>

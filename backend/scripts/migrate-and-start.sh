@@ -92,6 +92,34 @@ else
 fi
 
 echo "========================================="
+echo "Running Manual Migrations..."
+echo "========================================="
+
+# Run manual SQL migrations (data migrations that aren't handled by Prisma)
+# These are idempotent scripts that track their own execution state
+MANUAL_MIGRATIONS_DIR="/app/scripts/manual-migrations"
+if [ -d "$MANUAL_MIGRATIONS_DIR" ]; then
+  for migration_file in "$MANUAL_MIGRATIONS_DIR"/*.sql; do
+    if [ -f "$migration_file" ]; then
+      migration_name=$(basename "$migration_file")
+      echo "Running manual migration: $migration_name"
+      if [ -n "$DATABASE_URL" ]; then
+        if psql "$DATABASE_URL" -f "$migration_file" 2>&1; then
+          echo "  ✓ $migration_name completed"
+        else
+          echo "  ⚠ $migration_name had issues (may already be applied)"
+        fi
+      else
+        PGPASSWORD=captains_log_password psql -h "$DB_HOST" -p "$DB_PORT" -U captains_log_user -d captains_log -f "$migration_file" 2>&1 || echo "  ⚠ $migration_name had issues"
+      fi
+    fi
+  done
+  echo "✓ Manual migrations check complete."
+else
+  echo "No manual migrations directory found, skipping."
+fi
+
+echo "========================================="
 echo "Setting up directories..."
 echo "========================================="
 

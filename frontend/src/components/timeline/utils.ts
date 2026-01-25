@@ -45,24 +45,72 @@ export function formatTime(date: Date, timezone?: string): string {
 
 /**
  * Get timezone abbreviation
+ * Returns standard abbreviation (with DST variant where applicable)
  */
 export function getTimezoneAbbr(timezone: string): string {
   const abbrs: Record<string, string> = {
+    // UTC
     UTC: 'UTC',
-    'America/New_York': 'EST/EDT',
-    'America/Chicago': 'CST/CDT',
-    'America/Denver': 'MST/MDT',
-    'America/Los_Angeles': 'PST/PDT',
-    'America/Anchorage': 'AKST/AKDT',
+
+    // North America
     'Pacific/Honolulu': 'HST',
+    'America/Anchorage': 'AKST/AKDT',
+    'America/Los_Angeles': 'PST/PDT',
+    'America/Denver': 'MST/MDT',
+    'America/Phoenix': 'MST',
+    'America/Chicago': 'CST/CDT',
+    'America/New_York': 'EST/EDT',
+    'America/Halifax': 'AST/ADT',
+    'America/Sao_Paulo': 'BRT',
+
+    // Europe
     'Europe/London': 'GMT/BST',
+    'Europe/Lisbon': 'WET/WEST',
     'Europe/Paris': 'CET/CEST',
     'Europe/Berlin': 'CET/CEST',
-    'Asia/Tokyo': 'JST',
-    'Asia/Shanghai': 'CST',
+    'Europe/Rome': 'CET/CEST',
+    'Europe/Amsterdam': 'CET/CEST',
+    'Europe/Madrid': 'CET/CEST',
+    'Europe/Athens': 'EET/EEST',
+    'Europe/Helsinki': 'EET/EEST',
+    'Europe/Moscow': 'MSK',
+    'Europe/Istanbul': 'TRT',
+
+    // Africa
+    'Africa/Cairo': 'EET',
+    'Africa/Johannesburg': 'SAST',
+
+    // Middle East
+    'Asia/Riyadh': 'AST',
     'Asia/Dubai': 'GST',
+
+    // South Asia
+    'Asia/Karachi': 'PKT',
+    'Asia/Kolkata': 'IST',
+
+    // Southeast Asia
+    'Asia/Dhaka': 'BST',
+    'Asia/Bangkok': 'ICT',
+    'Asia/Jakarta': 'WIB',
+    'Asia/Ho_Chi_Minh': 'ICT',
+
+    // East Asia
+    'Asia/Singapore': 'SGT',
+    'Asia/Hong_Kong': 'HKT',
+    'Asia/Shanghai': 'CST',
+    'Asia/Taipei': 'CST',
+    'Asia/Tokyo': 'JST',
+    'Asia/Seoul': 'KST',
+
+    // Australia
+    'Australia/Perth': 'AWST',
+    'Australia/Brisbane': 'AEST',
     'Australia/Sydney': 'AEST/AEDT',
+    'Australia/Melbourne': 'AEST/AEDT',
+
+    // Pacific
     'Pacific/Auckland': 'NZST/NZDT',
+    'Pacific/Fiji': 'FJT',
   };
   return abbrs[timezone] || timezone.split('/').pop() || timezone;
 }
