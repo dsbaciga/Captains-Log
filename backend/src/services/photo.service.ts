@@ -504,26 +504,31 @@ class PhotoService {
       }));
 
       try {
-        // Use createMany for efficient batch insertion
-        const result = await prisma.photo.createMany({
-          data: photosToCreate,
-        });
-
-        results.successful += result.count;
-
-        // Query for the created photo IDs (needed for album assignment)
+        // Use transaction to ensure createMany and findMany are atomic
         const batchAssetIds = batch.map((asset) => asset.immichAssetId);
-        const createdPhotos = await prisma.photo.findMany({
-          where: {
-            tripId: data.tripId,
-            immichAssetId: { in: batchAssetIds },
-          },
-          select: { id: true },
+        const { createResult, createdPhotos } = await prisma.$transaction(async (tx) => {
+          // Create photos in batch
+          const createResult = await tx.photo.createMany({
+            data: photosToCreate,
+          });
+
+          // Query for the created photo IDs (needed for album assignment)
+          const createdPhotos = await tx.photo.findMany({
+            where: {
+              tripId: data.tripId,
+              immichAssetId: { in: batchAssetIds },
+            },
+            select: { id: true },
+          });
+
+          return { createResult, createdPhotos };
         });
+
+        results.successful += createResult.count;
         results.photoIds.push(...createdPhotos.map((p) => p.id));
 
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos, captured ${createdPhotos.length} IDs`);
+          console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${createResult.count} photos, captured ${createdPhotos.length} IDs`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';

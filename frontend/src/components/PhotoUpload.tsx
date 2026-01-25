@@ -99,10 +99,12 @@ export default function PhotoUpload({
     setUploadProgress(0);
 
     try {
-      const BATCH_THRESHOLD = 250;
-      const CHUNK_SIZE = 500; // Send max 500 photos per HTTP request
+      // USE_BATCH_API_THRESHOLD: When to switch from individual API calls to batch endpoint
+      // MAX_PHOTOS_PER_REQUEST: Maximum photos per HTTP request to avoid timeouts
+      const USE_BATCH_API_THRESHOLD = 250;
+      const MAX_PHOTOS_PER_REQUEST = 500;
 
-      if (assets.length >= BATCH_THRESHOLD) {
+      if (assets.length >= USE_BATCH_API_THRESHOLD) {
         // Use batch endpoint for large selections with chunking
         console.log(`[PhotoUpload] Using batch endpoint for ${assets.length} assets`);
 
@@ -118,11 +120,11 @@ export default function PhotoUpload({
 
         // Split into chunks to avoid request timeout
         const chunks = [];
-        for (let i = 0; i < batchData.length; i += CHUNK_SIZE) {
-          chunks.push(batchData.slice(i, i + CHUNK_SIZE));
+        for (let i = 0; i < batchData.length; i += MAX_PHOTOS_PER_REQUEST) {
+          chunks.push(batchData.slice(i, i + MAX_PHOTOS_PER_REQUEST));
         }
 
-        console.log(`[PhotoUpload] Split ${assets.length} photos into ${chunks.length} chunks of up to ${CHUNK_SIZE}`);
+        console.log(`[PhotoUpload] Split ${assets.length} photos into ${chunks.length} chunks of up to ${MAX_PHOTOS_PER_REQUEST}`);
 
         // Process chunks sequentially with progress tracking
         let totalSuccessful = 0;
@@ -218,7 +220,7 @@ export default function PhotoUpload({
     setUploadProgress(0);
 
     try {
-      const CHUNK_SIZE = 500; // Max photos per HTTP request
+      const MAX_PHOTOS_PER_REQUEST = 500; // Max photos per HTTP request
 
       toast.loading(
         `Importing album "${album.albumName}" with ${assets.length} photos...`,
@@ -245,8 +247,8 @@ export default function PhotoUpload({
 
       // Split into chunks to avoid request timeout
       const chunks = [];
-      for (let i = 0; i < batchData.length; i += CHUNK_SIZE) {
-        chunks.push(batchData.slice(i, i + CHUNK_SIZE));
+      for (let i = 0; i < batchData.length; i += MAX_PHOTOS_PER_REQUEST) {
+        chunks.push(batchData.slice(i, i + MAX_PHOTOS_PER_REQUEST));
       }
 
       console.log(`[PhotoUpload] Album import: Split ${assets.length} photos into ${chunks.length} chunks`);
@@ -302,9 +304,9 @@ export default function PhotoUpload({
         );
 
         // Add photos to album in chunks of 1000
-        const ALBUM_CHUNK_SIZE = 1000;
-        for (let i = 0; i < allPhotoIds.length; i += ALBUM_CHUNK_SIZE) {
-          const photoIdChunk = allPhotoIds.slice(i, i + ALBUM_CHUNK_SIZE);
+        const ALBUM_MAX_PHOTOS_PER_REQUEST = 1000;
+        for (let i = 0; i < allPhotoIds.length; i += ALBUM_MAX_PHOTOS_PER_REQUEST) {
+          const photoIdChunk = allPhotoIds.slice(i, i + ALBUM_MAX_PHOTOS_PER_REQUEST);
           await photoService.addPhotosToAlbum(newAlbum.id, {
             photoIds: photoIdChunk,
           });
