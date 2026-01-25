@@ -28,9 +28,9 @@ All documentation is organized in the `docs/` folder:
 - [GOOGLE_PHOTOS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md) - Google Photos integration roadmap.
 - [UI_IMPROVEMENTS.md](docs/plans/UI_IMPROVEMENTS.md) - Planned UI improvements.
 
-### Agent Documentation (`docs/agents/`)
-- [DEBUGGER.md](docs/docs/agents/DEBUGGER.md) - **Systematic debugging agent for investigating and fixing bugs. Use this when encountering errors or issues.**
-- [CODE_OPTIMIZER.md](docs/docs/agents/CODE_OPTIMIZER.md) - **Code optimization agent for identifying code reuse opportunities and refactoring to reduce duplication. Use this to improve maintainability.**
+### Agent Documentation (`.agents/`)
+- [DEBUGGER.md](.agents/DEBUGGER.md) - **Systematic debugging agent for investigating and fixing bugs. Use this when encountering errors or issues.**
+- [CODE_OPTIMIZER.md](.agents/CODE_OPTIMIZER.md) - **Code optimization agent for identifying code reuse opportunities and refactoring to reduce duplication. Use this to improve maintainability.**
 
 ### Other Important Files
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
@@ -609,7 +609,7 @@ Use the Task tool to invoke the debugger agent:
 Task tool with:
 - subagent_type: "general-purpose"
 - description: "Debug [brief issue description]"
-- prompt: "Act as the DEBUGGER agent from docs/agents/DEBUGGER.md.
+- prompt: "Act as the DEBUGGER agent from .agents/DEBUGGER.md.
 
 User Issue: [Describe the problem]
 Error Message: [Include exact error if available]
@@ -635,7 +635,7 @@ Follow the systematic 8-phase debugging process to identify and fix the root cau
 - **Data not refreshing**: Ensure `onUpdate?.()` callbacks are called
 - **Empty fields not clearing**: Frontend sends `null`, backend accepts `.nullable().optional()`
 
-See [docs/docs/agents/DEBUGGER.md](docs/docs/agents/DEBUGGER.md) for the complete debugging guide.
+See [.agents/DEBUGGER.md](.agents/DEBUGGER.md) for the complete debugging guide.
 
 ### Code Optimization and Refactoring
 
@@ -660,7 +660,7 @@ Use the Task tool to invoke the code optimizer agent:
 Task tool with:
 - subagent_type: "general-purpose"
 - description: "Optimize code by reducing duplication"
-- prompt: "Act as the CODE_OPTIMIZER agent from docs/agents/CODE_OPTIMIZER.md.
+- prompt: "Act as the CODE_OPTIMIZER agent from .agents/CODE_OPTIMIZER.md.
 
 Goal: [What you want to optimize, e.g., 'Reduce Manager component duplication']
 Context: [Any specific areas to focus on]
@@ -700,7 +700,7 @@ Follow the systematic optimization process:
 - **API Calls**: Create `useApiCall` hook to reduce try-catch-finally boilerplate
 - **Validation Schemas**: Use schema helper utilities for common patterns like `.nullable().optional()`
 
-See [docs/docs/agents/CODE_OPTIMIZER.md](docs/docs/agents/CODE_OPTIMIZER.md) for the complete optimization guide.
+See [.agents/CODE_OPTIMIZER.md](.agents/CODE_OPTIMIZER.md) for the complete optimization guide.
 
 ## Important Patterns and Conventions
 
