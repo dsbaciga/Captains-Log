@@ -609,6 +609,7 @@ export default function PhotoGallery({
           {/* View Toggle */}
           <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             <button
+              type="button"
               onClick={() => setViewMode("grid")}
               className={`px-3 py-2 rounded-md transition-all duration-200 ${
                 viewMode === "grid"
@@ -617,7 +618,7 @@ export default function PhotoGallery({
               }`}
               title="Grid view"
               aria-label="Grid view"
-              aria-pressed={viewMode === "grid"}
+              {...{ 'aria-pressed': viewMode === "grid" }}
             >
               <svg
                 className="w-5 h-5"
@@ -635,6 +636,7 @@ export default function PhotoGallery({
               </svg>
             </button>
             <button
+              type="button"
               onClick={() => setViewMode("list")}
               className={`px-3 py-2 rounded-md transition-all duration-200 ${
                 viewMode === "list"
@@ -643,7 +645,7 @@ export default function PhotoGallery({
               }`}
               title="List view"
               aria-label="List view"
-              aria-pressed={viewMode === "list"}
+              {...{ 'aria-pressed': viewMode === "list" }}
             >
               <svg
                 className="w-5 h-5"
@@ -721,6 +723,7 @@ export default function PhotoGallery({
       <div className="mb-4">
         {!selectionMode ? (
           <button
+            type="button"
             onClick={() => setSelectionMode(true)}
             className="btn btn-secondary inline-flex items-center gap-2"
           >
@@ -738,6 +741,7 @@ export default function PhotoGallery({
             {/* Quick select all if more photos available */}
             {totalPhotosInView > photos.length && onLoadAllPhotos && (
               <button
+                type="button"
                 onClick={selectAllPhotosInFolderWithEffect}
                 className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
               >
@@ -760,7 +764,7 @@ export default function PhotoGallery({
                 role="button"
                 tabIndex={0}
                 aria-label={photo.caption || `Photo ${index + 1}`}
-                aria-pressed={selectionMode ? isSelected : undefined}
+                {...(selectionMode && { 'aria-pressed': isSelected })}
                 className="relative group cursor-pointer aspect-square overflow-hidden rounded-xl bg-parchment dark:bg-navy-800 shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-100 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky focus:ring-offset-2"
                 onClick={(e) =>
                   selectionMode
@@ -890,7 +894,7 @@ export default function PhotoGallery({
                 role="button"
                 tabIndex={0}
                 aria-label={photo.caption || `Photo ${index + 1}`}
-                aria-pressed={selectionMode ? isSelected : undefined}
+                {...(selectionMode && { 'aria-pressed': isSelected })}
                 className="relative group cursor-pointer bg-white dark:bg-navy-800 rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-primary-200 dark:hover:border-sky/30 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-sky focus:ring-offset-2"
                 onClick={(e) =>
                   selectionMode
@@ -1138,6 +1142,7 @@ export default function PhotoGallery({
 
                 {/* Create New Album Button */}
                 <button
+                  type="button"
                   onClick={() => setShowCreateAlbumForm(true)}
                   className="w-full p-4 mb-4 rounded-lg border-2 border-dashed border-blue-500 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-2"
                 >
@@ -1161,6 +1166,7 @@ export default function PhotoGallery({
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {albums.map((album) => (
                     <button
+                      type="button"
                       key={album.id}
                       onClick={() => handleAddToAlbum(album.id)}
                       disabled={isAddingToAlbum}
@@ -1218,6 +1224,7 @@ export default function PhotoGallery({
                 </div>
                 <div className="flex gap-2 mt-6">
                   <button
+                    type="button"
                     onClick={() => {
                       setShowCreateAlbumForm(false);
                       setNewAlbumName("");
@@ -1228,6 +1235,7 @@ export default function PhotoGallery({
                     Back
                   </button>
                   <button
+                    type="button"
                     onClick={handleCreateAlbum}
                     disabled={
                       !newAlbumName.trim() || isCreatingAlbum || isAddingToAlbum
@@ -1242,6 +1250,7 @@ export default function PhotoGallery({
 
             {!showCreateAlbumForm && (
               <button
+                type="button"
                 onClick={() => {
                   setShowAlbumSelectModal(false);
                   setShowCreateAlbumForm(false);

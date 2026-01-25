@@ -24,6 +24,7 @@ import {
   PrintableItinerary,
   getDateStringInTimezone,
 } from './timeline/index';
+import type { PrintOption } from './timeline/TimelineFilters';
 import type { TimelineItem, TimelineItemType, DayGroup, DayStats, UnscheduledActivityWithLocation } from './timeline/types';
 import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
 import EmptyState from './EmptyState';
@@ -89,6 +90,7 @@ const Timeline = ({
 
   // Print state
   const [isPrinting, setIsPrinting] = useState(false);
+  const [printWithMaps, setPrintWithMaps] = useState(false);
   const [unscheduledData, setUnscheduledData] = useState<{
     activities: Activity[];
     transportation: Transportation[];
@@ -1256,8 +1258,11 @@ const Timeline = ({
   }, [tripId]);
 
   // Print handler
-  const handlePrint = async () => {
+  const handlePrint = async (option: PrintOption) => {
     try {
+      // Set whether to include maps
+      setPrintWithMaps(option === 'with-maps');
+
       // Fetch unscheduled items before printing
       const unscheduled = await fetchUnscheduledItems();
       setUnscheduledData(unscheduled);
@@ -1269,12 +1274,14 @@ const Timeline = ({
         // Reset printing state after print dialog closes
         setTimeout(() => {
           setIsPrinting(false);
+          setPrintWithMaps(false);
         }, 500);
       }, 100);
     } catch (error) {
       console.error('Error preparing print:', error);
       toast.error('Failed to prepare print view');
       setIsPrinting(false);
+      setPrintWithMaps(false);
     }
   };
 
@@ -1369,6 +1376,7 @@ const Timeline = ({
               tripTimezone={tripTimezone}
               dayGroups={dayGroups}
               unscheduled={unscheduledData}
+              showMaps={printWithMaps}
             />
           </div>,
           document.body

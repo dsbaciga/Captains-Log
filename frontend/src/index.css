@@ -902,6 +902,82 @@ textarea:focus-visible {
     background: #fafafa !important;
   }
 
+  /* Mini map styles for print */
+  .print-item-map {
+    margin-top: 8pt;
+    padding-top: 8pt;
+    border-top: 1pt dashed #ddd;
+  }
+
+  .print-mini-map {
+    display: flex;
+    gap: 8pt;
+    align-items: flex-start;
+  }
+
+  .print-mini-map-image {
+    width: 150px;
+    height: 100px;
+    border: 1pt solid #ccc;
+    border-radius: 4pt;
+    object-fit: cover;
+  }
+
+  .print-mini-map-info {
+    font-size: 9pt;
+    color: #666;
+  }
+
+  .print-mini-map-coords {
+    margin-bottom: 2pt;
+  }
+
+  .print-mini-map-link {
+    color: #0066cc;
+    text-decoration: none;
+    word-break: break-all;
+  }
+
+  .print-route-map {
+    display: flex;
+    gap: 8pt;
+    align-items: flex-start;
+  }
+
+  .print-route-map-image {
+    width: 200px;
+    height: 120px;
+    border: 1pt solid #ccc;
+    border-radius: 4pt;
+    object-fit: cover;
+  }
+
+  .print-route-map-info {
+    font-size: 9pt;
+    color: #666;
+  }
+
+  .print-route-map-point {
+    margin-bottom: 4pt;
+  }
+
+  .print-route-map-marker {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 4pt;
+    vertical-align: middle;
+  }
+
+  .print-route-map-marker-from {
+    background: #22c55e;
+  }
+
+  .print-route-map-marker-to {
+    background: #ef4444;
+  }
+
   /* Unscheduled section styles */
   .print-unscheduled {
     margin-top: 24pt;

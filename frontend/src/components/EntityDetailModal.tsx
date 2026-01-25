@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { EntityType } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG } from '../lib/entityConfig';
+import { useImmichThumbnail } from '../hooks/useImmichThumbnail';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
 import lodgingService from '../services/lodging.service';
@@ -325,12 +326,11 @@ function JournalDetails({ entity }: { entity: JournalEntry }) {
 
 function PhotoDetails({ entity }: { entity: Photo }) {
   const [imageError, setImageError] = useState(false);
-  const uploadUrl = import.meta.env.VITE_UPLOAD_URL || '';
-  const imageUrl = entity.thumbnailPath
-    ? `${uploadUrl}/${entity.thumbnailPath}`
-    : entity.localPath
-      ? `${uploadUrl}/${entity.localPath}`
-      : null;
+  // Use authenticated thumbnail URL for Immich photos
+  const imageUrl = useImmichThumbnail(
+    entity.thumbnailPath || entity.localPath,
+    entity.source
+  );
 
   return (
     <dl className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -342,6 +342,11 @@ function PhotoDetails({ entity }: { entity: Photo }) {
             className="max-w-full max-h-64 object-contain rounded-lg mx-auto"
             onError={() => setImageError(true)}
           />
+        </div>
+      )}
+      {!imageUrl && !imageError && (
+        <div className="py-4 flex justify-center">
+          <div className="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
         </div>
       )}
       {imageError && (
@@ -365,18 +370,23 @@ function PhotoDetails({ entity }: { entity: Photo }) {
 
 function AlbumPhotoPreview({ photo }: { photo: Photo }) {
   const [imageError, setImageError] = useState(false);
-  const uploadUrl = import.meta.env.VITE_UPLOAD_URL || '';
-  const imageUrl = photo.thumbnailPath
-    ? `${uploadUrl}/${photo.thumbnailPath}`
-    : photo.localPath
-      ? `${uploadUrl}/${photo.localPath}`
-      : null;
+  // Use authenticated thumbnail URL for Immich photos
+  const imageUrl = useImmichThumbnail(
+    photo.thumbnailPath || photo.localPath,
+    photo.source
+  );
 
-  if (!imageUrl || imageError) {
+  if (imageError) {
     return (
       <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded text-gray-400">
         📷
       </div>
+    );
+  }
+
+  if (!imageUrl) {
+    return (
+      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
     );
   }
 

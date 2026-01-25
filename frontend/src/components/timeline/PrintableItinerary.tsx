@@ -3,6 +3,7 @@ import type { DayGroup, TimelineItem } from './types';
 import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
+import PrintMiniMap, { PrintRouteMap } from './PrintMiniMap';
 
 interface UnscheduledData {
   activities: Activity[];
@@ -17,6 +18,7 @@ interface PrintableItineraryProps {
   tripTimezone?: string;
   dayGroups: DayGroup[];
   unscheduled: UnscheduledData;
+  showMaps?: boolean;
 }
 
 // Format time from ISO string or Date
@@ -104,11 +106,14 @@ const getLodgingTypeName = (type: string): string => {
 };
 
 // Render a single activity item
-const ActivityItem = ({ item, timezone }: { item: TimelineItem; timezone?: string }) => {
+const ActivityItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezone?: string; showMaps?: boolean }) => {
   const activity = item.data as Activity;
   const startTime = formatTime(item.dateTime, timezone);
   const endTime = item.endDateTime ? formatTime(item.endDateTime, timezone) : '';
   const timeRange = item.isAllDay ? 'All Day' : (endTime ? `${startTime} - ${endTime}` : startTime);
+
+  // Get coordinates from item or activity location
+  const hasCoords = item.locationCoords?.latitude && item.locationCoords?.longitude;
 
   return (
     <div className="print-item">
@@ -134,15 +139,28 @@ const ActivityItem = ({ item, timezone }: { item: TimelineItem; timezone?: strin
       )}
       {activity.notes && <div className="print-item-notes">Notes: {activity.notes}</div>}
       {activity.description && <div className="print-item-description">{activity.description}</div>}
+      {showMaps && hasCoords && (
+        <div className="print-item-map">
+          <PrintMiniMap
+            latitude={item.locationCoords!.latitude}
+            longitude={item.locationCoords!.longitude}
+            label={item.title}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
 // Render a single transportation item
-const TransportationItem = ({ item, timezone }: { item: TimelineItem; timezone?: string }) => {
+const TransportationItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezone?: string; showMaps?: boolean }) => {
   const transport = item.data as Transportation;
   const departTime = formatTime(item.dateTime, item.startTimezone || timezone);
   const arriveTime = item.endDateTime ? formatTime(item.endDateTime, item.endTimezone || timezone) : '';
+
+  // Check for route coordinates
+  const hasRouteCoords = transport.fromLocation?.latitude && transport.fromLocation?.longitude &&
+    transport.toLocation?.latitude && transport.toLocation?.longitude;
 
   return (
     <div className="print-item">
@@ -177,12 +195,24 @@ const TransportationItem = ({ item, timezone }: { item: TimelineItem; timezone?:
         <div className="print-item-detail">Cost: {formatCost(transport.cost, transport.currency)}</div>
       )}
       {transport.notes && <div className="print-item-notes">Notes: {transport.notes}</div>}
+      {showMaps && hasRouteCoords && (
+        <div className="print-item-map">
+          <PrintRouteMap
+            fromLatitude={transport.fromLocation!.latitude!}
+            fromLongitude={transport.fromLocation!.longitude!}
+            toLatitude={transport.toLocation!.latitude!}
+            toLongitude={transport.toLocation!.longitude!}
+            fromLabel={transport.fromLocationName || 'Departure'}
+            toLabel={transport.toLocationName || 'Arrival'}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
 // Render a single lodging item
-const LodgingItem = ({ item, timezone }: { item: TimelineItem; timezone?: string }) => {
+const LodgingItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezone?: string; showMaps?: boolean }) => {
   const lodging = item.data as Lodging;
   const isCheckIn = item.showCheckInTime;
   const isCheckOut = item.showCheckOutTime;
@@ -191,6 +221,9 @@ const LodgingItem = ({ item, timezone }: { item: TimelineItem; timezone?: string
   let timeLabel = time;
   if (isCheckIn) timeLabel = `Check-in: ${time || 'TBD'}`;
   else if (isCheckOut) timeLabel = `Check-out: ${time || 'TBD'}`;
+
+  // Check for coordinates
+  const hasCoords = lodging.location?.latitude && lodging.location?.longitude;
 
   return (
     <div className="print-item">
@@ -216,6 +249,15 @@ const LodgingItem = ({ item, timezone }: { item: TimelineItem; timezone?: string
         <div className="print-item-detail">Cost: {formatCost(lodging.cost, lodging.currency)}</div>
       )}
       {lodging.notes && <div className="print-item-notes">Notes: {lodging.notes}</div>}
+      {showMaps && hasCoords && (
+        <div className="print-item-map">
+          <PrintMiniMap
+            latitude={lodging.location!.latitude!}
+            longitude={lodging.location!.longitude!}
+            label={lodging.name}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -236,14 +278,14 @@ const JournalItem = ({ item }: { item: TimelineItem }) => {
 };
 
 // Render timeline item based on type
-const TimelineItemRow = ({ item, timezone }: { item: TimelineItem; timezone?: string }) => {
+const TimelineItemRow = ({ item, timezone, showMaps }: { item: TimelineItem; timezone?: string; showMaps?: boolean }) => {
   switch (item.type) {
     case 'activity':
-      return <ActivityItem item={item} timezone={timezone} />;
+      return <ActivityItem item={item} timezone={timezone} showMaps={showMaps} />;
     case 'transportation':
-      return <TransportationItem item={item} timezone={timezone} />;
+      return <TransportationItem item={item} timezone={timezone} showMaps={showMaps} />;
     case 'lodging':
-      return <LodgingItem item={item} timezone={timezone} />;
+      return <LodgingItem item={item} timezone={timezone} showMaps={showMaps} />;
     case 'journal':
       return <JournalItem item={item} />;
     default:
@@ -325,7 +367,7 @@ const UnscheduledLodgingItem = ({ lodging }: { lodging: Lodging }) => (
 );
 
 const PrintableItinerary = forwardRef<HTMLDivElement, PrintableItineraryProps>(
-  ({ tripTitle, tripStartDate, tripEndDate, tripTimezone, dayGroups, unscheduled }, ref) => {
+  ({ tripTitle, tripStartDate, tripEndDate, tripTimezone, dayGroups, unscheduled, showMaps }, ref) => {
     const formatTripDateRange = () => {
       if (!tripStartDate) return '';
       const start = new Date(tripStartDate);
@@ -382,6 +424,7 @@ const PrintableItinerary = forwardRef<HTMLDivElement, PrintableItineraryProps>(
                       key={`${item.type}-${item.id}`}
                       item={item}
                       timezone={tripTimezone}
+                      showMaps={showMaps}
                     />
                   ))}
                 </div>

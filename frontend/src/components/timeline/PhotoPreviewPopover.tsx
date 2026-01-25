@@ -113,6 +113,10 @@ export default function PhotoPreviewPopover({
     }
     // Fallback for photos without source specified
     if (photo.thumbnailPath) {
+      // Check if it's an Immich URL that requires authentication
+      if (photo.thumbnailPath.includes('/api/immich/')) {
+        return thumbnailCache[photo.id] || null;
+      }
       return getFullAssetUrl(photo.thumbnailPath);
     }
     return null;

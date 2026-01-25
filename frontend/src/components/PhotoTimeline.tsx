@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Photo } from '../types/photo';
-import photoService, { PhotoDateGrouping } from '../services/photo.service';
+import type { PhotoDateGrouping } from '../services/photo.service';
+import photoService from '../services/photo.service';
 import { formatTime, getDayNumber } from './timeline/utils';
 import { getFullAssetUrl } from '../lib/config';
+import { useImmichThumbnailCache, isImmichPhoto } from '../hooks/useImmichThumbnail';
 import PhotoLightbox from './PhotoLightbox';
 import EmptyState, { EmptyIllustrations } from './EmptyState';
 import toast from 'react-hot-toast';
@@ -41,6 +43,9 @@ export default function PhotoTimeline({
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+
+  // Thumbnail cache for Immich photos
+  const { cache: thumbnailCache, loadThumbnails, getThumbnailUrl } = useImmichThumbnailCache();
 
   // Track load order for memory management (LRU-style)
   const loadOrderRef = useRef<string[]>([]);
@@ -169,6 +174,12 @@ export default function PhotoTimeline({
         g.rawDate === rawDate ? { ...g, photos: sortedPhotos, loading: false } : g
       ));
 
+      // Load thumbnails for Immich photos
+      const immichPhotos = sortedPhotos.filter(p => isImmichPhoto(p.thumbnailPath, p.source));
+      if (immichPhotos.length > 0) {
+        loadThumbnails(immichPhotos);
+      }
+
       // Manage memory (unload old days if needed)
       manageMemory(rawDate);
     } catch (error) {
@@ -235,6 +246,10 @@ export default function PhotoTimeline({
       const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.localPath;
       return getFullAssetUrl(path) || '';
     }
+    // For Immich photos, use cached blob URL
+    if (isImmichPhoto(photo.thumbnailPath, photo.source)) {
+      return getThumbnailUrl(photo.id) || '';
+    }
     return getFullAssetUrl(photo.thumbnailPath) || '';
   };
 
@@ -260,6 +275,10 @@ export default function PhotoTimeline({
   const getLightboxPhotoUrl = (photo: Photo): string | null => {
     if (photo.source === 'local') {
       return getFullAssetUrl(photo.localPath) || null;
+    }
+    // For Immich photos, use cached blob URL (thumbnail for now, could fetch original)
+    if (isImmichPhoto(photo.thumbnailPath, photo.source)) {
+      return getThumbnailUrl(photo.id) || null;
     }
     return getFullAssetUrl(photo.thumbnailPath) || null;
   };
@@ -356,7 +375,7 @@ export default function PhotoTimeline({
               <button
                 type="button"
                 onClick={() => toggleDay(dayGroup.rawDate)}
-                aria-expanded={isExpanded}
+                {...{ 'aria-expanded': isExpanded }}
                 aria-controls={dayContentId}
                 className="w-full bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-700 px-4 py-3 text-left hover:from-gray-100 hover:to-gray-150 dark:hover:from-gray-750 dark:hover:to-gray-700 transition-colors"
               >

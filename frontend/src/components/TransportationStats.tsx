@@ -212,7 +212,7 @@ export default function TransportationStats({
               <span>{getTypeLabel(type)} Statistics</span>
             </h3>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                   {stats.count}
@@ -239,17 +239,6 @@ export default function TransportationStats({
                   Completed
                 </div>
               </div>
-
-              {stats.duration > 0 && (
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                    {formatDuration(stats.duration)}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Travel Time
-                  </div>
-                </div>
-              )}
             </div>
 
             {(stats.distance > 0 || stats.duration > 0) && (
