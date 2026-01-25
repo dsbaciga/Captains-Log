@@ -1,6 +1,6 @@
 # Feature Backlog
 
-**Last Updated**: 2026-01-16
+**Last Updated**: 2026-01-25
 
 This document consolidates all feature ideas and future enhancements for Travel Life. Features are organized by priority and category.
 
@@ -134,6 +134,10 @@ These features provide significant value and are ready for implementation.
 - Include maps, photos, key details
 - Customizable templates
 
+**Status**: ✅ Completed in v4.0.1
+
+**Implementation**: PrintableItinerary component provides day-by-day breakdown with all trip events (activities, transportation, lodging, journal). Print-friendly styling with @media print CSS. Export via browser print dialog saves as PDF.
+
 ### 9. Pre-Trip Checklist Manager
 
 **Category**: Planning
@@ -147,6 +151,10 @@ These features provide significant value and are ready for implementation.
 - Health (vaccinations, medications, insurance)
 - Financial (currency, credit cards, budget)
 - Communication (SIM cards, apps, emergency contacts)
+
+**Status**: ✅ Completed in v3.1.0
+
+**Implementation**: Full checklist system with custom checklists, default tracking lists (Airports, Countries, Cities, US States), per-trip linking, auto-check from trip data, progress tracking, two-column layout, search/filter, and completion timestamps.
 
 ### 10. Drag & Drop Timeline
 

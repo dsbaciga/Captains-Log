@@ -20,6 +20,34 @@ import { ListItemSkeleton } from "./SkeletonLoader";
 import LocationSearchMap from "./LocationSearchMap";
 import TripLocationsMap from "./TripLocationsMap";
 
+/**
+ * LocationManager handles CRUD operations for trip locations (points of interest).
+ * Supports hierarchical locations (parent-child relationships), geocoding via
+ * interactive map search, custom categories, and entity linking.
+ *
+ * Features:
+ * - Interactive map-based location search and selection
+ * - Geocoding integration with Nominatim
+ * - Hierarchical location organization (e.g., "Paris" > "Eiffel Tower")
+ * - Custom location categories with icons
+ * - Photo preview popover showing linked photos
+ * - Entity linking to photos, activities, etc.
+ * - Trip locations map visualization
+ *
+ * @param props - Component props
+ * @param props.tripId - The ID of the trip
+ * @param props.tripTimezone - Timezone for the trip (kept for API compatibility)
+ * @param props.onUpdate - Callback triggered after CRUD operations to refresh parent data
+ *
+ * @example
+ * ```tsx
+ * <LocationManager
+ *   tripId={123}
+ *   tripTimezone="Europe/Paris"
+ *   onUpdate={() => refetchTrip()}
+ * />
+ * ```
+ */
 interface LocationManagerProps {
   tripId: number;
   tripTimezone?: string | null;

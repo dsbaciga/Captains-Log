@@ -27,6 +27,38 @@ import TransportationStats from "./TransportationStats";
 import LocationQuickAdd from "./LocationQuickAdd";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 
+/**
+ * TransportationManager handles CRUD operations for trip transportation segments.
+ * Supports flights, trains, buses, cars, ferries, bicycles, and walking routes.
+ *
+ * Features:
+ * - Dual timezone support for departure/arrival times
+ * - Route visualization with FlightRouteMap component
+ * - Connection chaining (auto-fills next departure from previous arrival)
+ * - Status badges (Upcoming, In Progress, Completed)
+ * - Sorting by date or type
+ * - Filtering by scheduled/unscheduled
+ * - Entity linking to photos, locations, etc.
+ * - Quick-add location creation
+ *
+ * @param props - Component props
+ * @param props.tripId - The ID of the trip
+ * @param props.locations - Array of trip locations for from/to selection
+ * @param props.tripTimezone - Default timezone for the trip (used when no specific timezone set)
+ * @param props.tripStartDate - Trip start date for default form values
+ * @param props.onUpdate - Callback triggered after CRUD operations to refresh parent data
+ *
+ * @example
+ * ```tsx
+ * <TransportationManager
+ *   tripId={123}
+ *   locations={tripLocations}
+ *   tripTimezone="Europe/Paris"
+ *   tripStartDate="2024-06-01"
+ *   onUpdate={() => refetchTrip()}
+ * />
+ * ```
+ */
 interface TransportationManagerProps {
   tripId: number;
   locations: Location[];
@@ -1088,7 +1120,12 @@ export default function TransportationManager({
   );
 }
 
-// Extracted TransportationItem component to avoid code duplication
+/**
+ * TransportationItem renders a single transportation card with route map,
+ * status badge, departure/arrival times, and action buttons.
+ * Extracted as a separate component to avoid code duplication between
+ * scheduled and unscheduled transportation lists.
+ */
 interface TransportationItemProps {
   transportation: Transportation;
   tripId: number;

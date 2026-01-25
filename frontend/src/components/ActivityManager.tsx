@@ -22,6 +22,39 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 
+/**
+ * ActivityManager handles CRUD operations for trip activities (things to do).
+ * Supports scheduled and unscheduled activities, hierarchical organization,
+ * custom categories, cost tracking, and location linking via the entity system.
+ *
+ * Features:
+ * - Scheduled vs unscheduled activity separation
+ * - All-day activity support
+ * - Hierarchical activities (parent-child relationships)
+ * - Custom activity categories with emojis
+ * - Cost and currency tracking
+ * - Booking reference and URL storage
+ * - Location linking via EntityLink system
+ * - Sorting by date or category
+ *
+ * @param props - Component props
+ * @param props.tripId - The ID of the trip
+ * @param props.locations - Array of trip locations for activity location selection
+ * @param props.tripTimezone - Default timezone for the trip
+ * @param props.tripStartDate - Trip start date for default form values
+ * @param props.onUpdate - Callback triggered after CRUD operations to refresh parent data
+ *
+ * @example
+ * ```tsx
+ * <ActivityManager
+ *   tripId={123}
+ *   locations={tripLocations}
+ *   tripTimezone="Europe/Paris"
+ *   tripStartDate="2024-06-01"
+ *   onUpdate={() => refetchTrip()}
+ * />
+ * ```
+ */
 interface ActivityManagerProps {
   tripId: number;
   locations: Location[];

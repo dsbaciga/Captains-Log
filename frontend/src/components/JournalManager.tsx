@@ -13,6 +13,33 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 
+/**
+ * JournalManager handles CRUD operations for trip journal entries.
+ * Provides a simple text-based journaling experience with expandable entries
+ * and entity linking support.
+ *
+ * Features:
+ * - Title, date, and content fields
+ * - Expandable/collapsible entry content
+ * - Entity linking to locations, activities, photos, albums, etc.
+ * - Character count display
+ * - Creation and edit timestamps
+ * - "Save & Add Another" for quick successive entries
+ *
+ * @param props - Component props
+ * @param props.tripId - The ID of the trip
+ * @param props.tripStartDate - Trip start date used as default entry date (noon)
+ * @param props.onUpdate - Callback triggered after CRUD operations to refresh parent data
+ *
+ * @example
+ * ```tsx
+ * <JournalManager
+ *   tripId={123}
+ *   tripStartDate="2024-06-01"
+ *   onUpdate={() => refetchTrip()}
+ * />
+ * ```
+ */
 interface JournalManagerProps {
   tripId: number;
   tripStartDate?: string | null;

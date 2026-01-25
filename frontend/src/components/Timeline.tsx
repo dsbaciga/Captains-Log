@@ -28,6 +28,36 @@ import type { TimelineItem, TimelineItemType, DayGroup, DayStats, UnscheduledAct
 import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
 import EmptyState from './EmptyState';
 
+/**
+ * Timeline component displays a chronological view of all trip events including
+ * activities, transportation, lodging, and journal entries. Supports dual timezone
+ * display (trip timezone vs user's home timezone), weather data integration,
+ * filtering by event type, and printable itinerary export.
+ *
+ * @param props - Component props
+ * @param props.tripId - The ID of the trip to display timeline for
+ * @param props.tripTitle - Optional title of the trip (used in print view)
+ * @param props.tripTimezone - The timezone of the trip destination (e.g., "America/New_York")
+ * @param props.userTimezone - The user's home timezone for dual timezone display
+ * @param props.tripStartDate - ISO date string for trip start (used to generate day numbers)
+ * @param props.tripEndDate - ISO date string for trip end (used to show all trip days)
+ * @param props.tripStatus - Current status of the trip (kept for API compatibility)
+ * @param props.onNavigateToTab - Callback to navigate to specific tab with item (kept for API compatibility)
+ * @param props.onRefresh - Callback triggered after deleting an item to refresh parent data
+ *
+ * @example
+ * ```tsx
+ * <Timeline
+ *   tripId={123}
+ *   tripTitle="Paris Vacation"
+ *   tripTimezone="Europe/Paris"
+ *   userTimezone="America/Los_Angeles"
+ *   tripStartDate="2024-06-01"
+ *   tripEndDate="2024-06-07"
+ *   onRefresh={() => refetchTrip()}
+ * />
+ * ```
+ */
 interface TimelineProps {
   tripId: number;
   tripTitle?: string;
@@ -202,6 +232,11 @@ const Timeline = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
+  /**
+   * Loads all timeline data from the API including activities, transportation,
+   * lodging, journal entries, weather, entity links, and locations. Processes
+   * the data into TimelineItem objects and groups them by date.
+   */
   const loadTimelineData = async () => {
     logger.log('🔄 Starting loadTimelineData', { operation: 'loadTimelineData', data: { tripId } });
     setLoading(true);
@@ -971,7 +1006,12 @@ const Timeline = ({
     };
   };
 
-  // Calculate stats for a day
+  /**
+   * Calculates aggregate statistics for a single day's timeline items.
+   * Counts items by type and tallies linked photos from the summary map.
+   * @param items - Array of timeline items for the day
+   * @returns DayStats object with counts by type and total linked photos
+   */
   const calculateDayStats = (items: TimelineItem[]): DayStats => {
     const stats: DayStats = {
       activities: 0,
@@ -1074,7 +1114,13 @@ const Timeline = ({
     return locationIds;
   };
 
-  // Get unscheduled activities for a day based on linked locations
+  /**
+   * Finds unscheduled activities that should appear on a specific day based on
+   * location matching. An unscheduled activity appears on a day if it is linked
+   * to a location that is also associated with a scheduled item on that day.
+   * @param items - Array of scheduled timeline items for the day
+   * @returns Array of unscheduled activities with their linked location info
+   */
   const getUnscheduledActivitiesForDay = (items: TimelineItem[]): UnscheduledActivityWithLocation[] => {
     const dayLocationIds = getLocationIdsFromItems(items);
 
