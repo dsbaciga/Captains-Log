@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getCsrfToken } from '../utils/csrf';
+import { getAccessToken, setAccessToken } from './tokenManager';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -15,9 +16,6 @@ interface RetryConfig extends InternalAxiosRequestConfig {
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// In-memory token storage (NOT in localStorage - immune to XSS)
-let accessToken: string | null = null;
 
 // Refresh race condition protection
 // When multiple 401s occur simultaneously, only one refresh happens
@@ -41,12 +39,6 @@ const onRefreshFailed = (error: Error) => {
   refreshSubscribers = [];
 };
 
-// Token getter/setter for use by auth store
-export const getAccessToken = (): string | null => accessToken;
-export const setAccessToken = (token: string | null): void => {
-  accessToken = token;
-};
-
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -59,8 +51,9 @@ const axiosInstance = axios.create({
 // Request interceptor to add auth token from memory and CSRF token
 axiosInstance.interceptors.request.use(
   (config) => {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     // Add CSRF token for state-changing requests (non-GET/HEAD/OPTIONS)
