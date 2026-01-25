@@ -66,15 +66,21 @@ export default function ImmichBrowser({
     return assets.filter((asset) => !excludeAssetIds.has(asset.id));
   }, [assets, excludeAssetIds]);
 
-  // Calculate available total (total minus already-linked)
+  // Calculate available total (estimate based on current page's exclusion ratio)
   const availableTotalAssets = useMemo(() => {
-    if (!excludeAssetIds || excludeAssetIds.size === 0) {
+    if (!excludeAssetIds || excludeAssetIds.size === 0 || assets.length === 0) {
       return totalAssets;
     }
-    // Approximate: subtract excluded count from total
-    // This is accurate when all excluded assets are within the current filter
-    return Math.max(0, totalAssets - excludeAssetIds.size);
-  }, [totalAssets, excludeAssetIds]);
+    // Count how many assets on current page are excluded
+    const excludedOnPage = assets.filter((asset) => excludeAssetIds.has(asset.id)).length;
+    if (excludedOnPage === 0) {
+      return totalAssets; // No exclusions on this page, assume none overall
+    }
+    // Estimate based on the ratio of excluded assets on current page
+    const exclusionRatio = excludedOnPage / assets.length;
+    const estimatedAvailable = Math.round(totalAssets * (1 - exclusionRatio));
+    return Math.max(0, estimatedAvailable);
+  }, [totalAssets, excludeAssetIds, assets]);
 
   // Reset to page 1 when filters change
   useEffect(() => {

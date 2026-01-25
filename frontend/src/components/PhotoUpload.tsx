@@ -255,6 +255,7 @@ export default function PhotoUpload({
       const allPhotoIds: number[] = [];
       let totalSuccessful = 0;
       let totalFailed = 0;
+      const allErrors: string[] = [];
 
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
@@ -274,17 +275,23 @@ export default function PhotoUpload({
 
           totalSuccessful += result.successful;
           totalFailed += result.failed;
-          allPhotoIds.push(...result.photoIds);
+          allPhotoIds.push(...(result.photoIds || []));
+          allErrors.push(...result.errors);
 
           // Update progress
           const progress = ((i + 1) / chunks.length) * 90; // Reserve 10% for album assignment
           setUploadProgress(progress);
 
-          console.log(`[PhotoUpload] Chunk ${chunkNumber} complete: ${result.successful} successful, ${result.photoIds.length} IDs`);
+          console.log(`[PhotoUpload] Chunk ${chunkNumber} complete: ${result.successful} successful, ${(result.photoIds || []).length} IDs`);
         } catch (chunkErr) {
           console.error(`[PhotoUpload] Chunk ${chunkNumber} failed:`, chunkErr);
           totalFailed += chunk.length;
+          allErrors.push(`Chunk ${chunkNumber} failed: ${chunkErr instanceof Error ? chunkErr.message : 'Unknown error'}`);
         }
+      }
+
+      if (allErrors.length > 0) {
+        console.error('[PhotoUpload] Album import errors:', allErrors);
       }
 
       // Step 3: Add all photos to the album (in batches if needed)
