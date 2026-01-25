@@ -443,6 +443,7 @@ class PhotoService {
       successful: 0,
       failed: 0,
       errors: [] as string[],
+      photoIds: [] as number[],
     };
 
     // Get existing immichAssetIds for this trip to prevent duplicates
@@ -509,8 +510,20 @@ class PhotoService {
         });
 
         results.successful += result.count;
+
+        // Query for the created photo IDs (needed for album assignment)
+        const batchAssetIds = batch.map((asset) => asset.immichAssetId);
+        const createdPhotos = await prisma.photo.findMany({
+          where: {
+            tripId: data.tripId,
+            immichAssetId: { in: batchAssetIds },
+          },
+          select: { id: true },
+        });
+        results.photoIds.push(...createdPhotos.map((p) => p.id));
+
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos`);
+          console.log(`[PhotoService] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${result.count} photos, captured ${createdPhotos.length} IDs`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -521,7 +534,7 @@ class PhotoService {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[PhotoService] Batch linking complete: ${results.successful} successful, ${results.failed} failed`);
+      console.log(`[PhotoService] Batch linking complete: ${results.successful} successful, ${results.failed} failed, ${results.photoIds.length} IDs captured`);
     }
     return results;
   }
