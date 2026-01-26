@@ -234,6 +234,20 @@ Last Updated: 2026-01-25
 
 - [x] Immich photo library integration
 - [x] Self-hosted Nominatim geocoding
+- [x] Weather data integration (OpenWeatherMap) - Full service with caching, forecast and historical data
+- [x] Flight tracking integration (AviationStack) - Real-time flight status, gate/terminal info
+
+### Trip Validation & Planning
+
+- [x] **Trip Health Check** - Automated validation system identifying schedule conflicts, missing accommodations, transportation gaps
+- [x] **Travel Time Alerts** - Calculates travel times between activities, warns about impossible/tight connections
+- [x] **Trip Collaboration UI** - Full UI for inviting collaborators, managing permissions (view/edit/admin), pending invitations
+
+### Dashboard & Analytics
+
+- [x] **Advanced Dashboard Filtering** - Filter trips by status, date range, tags, search (on TripsPage)
+- [x] **Places Visited Map** - Aggregate map showing all visited locations with clustering and transportation routes
+- [x] **Calendar View** - GitHub-style calendar heatmap showing travel activity over time
 
 ## 🚧 Known Issues
 
@@ -256,22 +270,22 @@ These are non-critical improvements identified during code reviews that would en
 
 ### Phase 2: Advanced Trip Features
 
-- [ ] Trip collaboration (multiple users with permissions)
-- [ ] Trip sharing (public links)
+- [x] Trip collaboration (multiple users with permissions) ✅ Completed
+- [ ] Trip sharing (public links) - Privacy levels exist, need shareable link UI
 - [ ] Trip cover photo selection UI on trips list
 
 ### Phase 3: Enhanced Features
 
-- [ ] Advanced filtering on dashboard (by status, tags, date range)
-- [x] Global search across all trips (completed)
-- [ ] Places visited map (aggregate view)
-- [x] Statistics and analytics dashboard (basic widgets completed)
-- [ ] Calendar view of trips
+- [x] Advanced filtering on dashboard (by status, tags, date range) ✅ On TripsPage
+- [x] Global search across all trips ✅ Completed
+- [x] Places visited map (aggregate view) ✅ PlacesVisitedPage
+- [x] Statistics and analytics dashboard ✅ Dashboard widgets
+- [x] Calendar view of trips ✅ TravelCalendarHeatmap
 
 ### Phase 4: External Integrations
 
-- [ ] Weather data integration (OpenWeatherMap)
-- [ ] Flight tracking integration (AviationStack)
+- [x] Weather data integration (OpenWeatherMap) ✅ Full service with caching
+- [x] Flight tracking integration (AviationStack) ✅ Real-time flight status
 - [ ] Google Photos integration
 
 ### Phase 5: Advanced Features
@@ -314,10 +328,10 @@ These are non-critical improvements identified during code reviews that would en
 | Timeline               | 100%       |
 | User Settings          | 100%       |
 | UI/UX Polish           | 98%        |
-| Advanced Features      | 20%        |
-| External Integrations  | 20%        |
+| Advanced Features      | 85%        |
+| External Integrations  | 75%        |
 
-**Overall Progress: ~78% of core features complete**
+**Overall Progress: ~92% of core features complete**
 
 ## 🏗️ Technical Stack Status
 
@@ -355,12 +369,13 @@ These are non-critical improvements identified during code reviews that would en
 - ✅ Volume mounts for uploads and database
 - ✅ Network isolation
 
-### External Services (Configured but Not Fully Integrated)
+### External Services
 
-- ⏳ OpenWeatherMap API
-- ⏳ AviationStack API
+- ✅ OpenWeatherMap API (full integration with forecast and historical data)
+- ✅ AviationStack API (flight status, gate, terminal, baggage claim)
 - ✅ Immich API (integration complete)
 - ✅ Nominatim (self-hosted, fully operational)
+- ✅ OpenRouteService (road distance calculations)
 
 ## 📝 Database Schema
 

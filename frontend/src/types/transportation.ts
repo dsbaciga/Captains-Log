@@ -64,15 +64,26 @@ export type Transportation = {
   distanceSource?: 'route' | 'haversine' | null; // Source of distance calculation
   isUpcoming?: boolean;
   isInProgress?: boolean;
-  flightTracking?: {
-    id: number;
-    flightNumber: string | null;
-    airlineCode: string | null;
-    status: string | null;
-    gate: string | null;
-    terminal: string | null;
-    baggageClaim: string | null;
-  } | null;
+  flightTracking?: FlightTracking | null;
+};
+
+export type FlightTracking = {
+  id: number;
+  transportationId: number;
+  flightNumber: string | null;
+  airlineCode: string | null;
+  status: 'scheduled' | 'active' | 'landed' | 'cancelled' | 'diverted' | null;
+  gate: string | null;
+  terminal: string | null;
+  baggageClaim: string | null;
+  departureDelay: number | null;
+  arrivalDelay: number | null;
+  scheduledDeparture: string | null;
+  actualDeparture: string | null;
+  scheduledArrival: string | null;
+  actualArrival: string | null;
+  lastUpdatedAt: string;
+  createdAt: string;
 };
 
 export type CreateTransportationInput = {

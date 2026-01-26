@@ -5,6 +5,7 @@ import type { PhotoAlbum } from '../../types/photo';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
 import EmbeddedAlbumCard from './EmbeddedAlbumCard';
 import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
+import FlightStatusBadge from '../FlightStatusBadge';
 import {
   formatTime,
   formatDuration,
@@ -224,45 +225,9 @@ export default function TransportationCard({
         )}
 
         {/* Flight tracking info */}
-        {transportation.flightTracking && (
-          <div className="mt-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 overflow-hidden">
-            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
-              Flight Status
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-              {transportation.flightTracking.status && (
-                <div>
-                  <span className="text-gray-500 dark:text-gray-400">Status:</span>{' '}
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {transportation.flightTracking.status}
-                  </span>
-                </div>
-              )}
-              {transportation.flightTracking.gate && (
-                <div>
-                  <span className="text-gray-500 dark:text-gray-400">Gate:</span>{' '}
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {transportation.flightTracking.gate}
-                  </span>
-                </div>
-              )}
-              {transportation.flightTracking.terminal && (
-                <div>
-                  <span className="text-gray-500 dark:text-gray-400">Terminal:</span>{' '}
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {transportation.flightTracking.terminal}
-                  </span>
-                </div>
-              )}
-              {transportation.flightTracking.baggageClaim && (
-                <div>
-                  <span className="text-gray-500 dark:text-gray-400">Baggage:</span>{' '}
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {transportation.flightTracking.baggageClaim}
-                  </span>
-                </div>
-              )}
-            </div>
+        {transportation.type === 'flight' && transportation.flightTracking && (
+          <div className="mt-3">
+            <FlightStatusBadge flightTracking={transportation.flightTracking} />
           </div>
         )}
 
