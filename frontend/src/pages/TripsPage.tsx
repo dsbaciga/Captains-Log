@@ -40,6 +40,37 @@ export default function TripsPage() {
   // Use ref to track blob URLs for proper cleanup (avoids stale closure issues)
   const blobUrlsRef = useRef<string[]>([]);
 
+  // Debounce search query
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const params = {
+    page: currentPage,
+    limit: 20,
+    status: statusFilter,
+    search: debouncedSearchQuery.trim(),
+    startDateFrom,
+    startDateTo,
+    tags: selectedTags.join(','),
+    sort: sortOption,
+  };
+
+  const queryParams = Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== '' && value != null)
+  );
+
+  const { data: tripsData, isLoading: loading } = useQuery({
+    queryKey: ['trips', queryParams],
+    queryFn: () => tripService.getTrips(queryParams),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const { trips = [], totalPages = 1, total: totalTrips = 0 } = tripsData || {};
+
   // Scroll position management
   const { savePosition, getPosition, setSkipNextScrollToTop } = useScrollStore();
   const SCROLL_KEY = 'trips-page';
@@ -71,37 +102,6 @@ export default function TripsPage() {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
-
-  // Debounce search query
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
-
-  const params = {
-    page: currentPage,
-    limit: 20,
-    status: statusFilter,
-    search: debouncedSearchQuery.trim(),
-    startDateFrom,
-    startDateTo,
-    tags: selectedTags.join(','),
-    sort: sortOption,
-  };
-
-  const queryParams = Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== '' && value != null)
-  );
-
-  const { data: tripsData, isLoading: loading } = useQuery({
-    queryKey: ['trips', queryParams],
-    queryFn: () => tripService.getTrips(queryParams),
-    placeholderData: (previousData) => previousData,
-  });
-
-  const { trips = [], totalPages = 1, total: totalTrips = 0 } = tripsData || {};
 
   const deleteTripMutation = useMutation({
     mutationFn: tripService.deleteTrip,
