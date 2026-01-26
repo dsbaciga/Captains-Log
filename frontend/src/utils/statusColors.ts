@@ -68,3 +68,35 @@ export function getGenericStatusColor(status: GenericStatus): string {
   return genericStatusColors[status];
 }
 
+/**
+ * Flight status colors for flight tracking
+ */
+export const flightStatusColors = {
+  scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  landed: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+  cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  diverted: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+} as const;
+
+export type FlightStatus = keyof typeof flightStatusColors;
+
+export function getFlightStatusColor(status: string | null): string {
+  if (!status) return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+  return flightStatusColors[status as FlightStatus] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+}
+
+/**
+ * Delay text colors - positive delays (late) are red, negative (early) are green
+ */
+export const delayColors = {
+  late: 'text-red-600 dark:text-red-400',
+  early: 'text-green-600 dark:text-green-400',
+  onTime: 'text-gray-600 dark:text-gray-400',
+} as const;
+
+export function getDelayColor(delay: number | null): string {
+  if (delay === null || delay === 0) return delayColors.onTime;
+  return delay > 0 ? delayColors.late : delayColors.early;
+}
+

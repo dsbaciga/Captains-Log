@@ -108,7 +108,9 @@ interface FlightTrackingResult {
 
 class AviationstackService {
   private readonly API_KEY = config.aviationStack.apiKey;
-  private readonly BASE_URL = 'http://api.aviationstack.com/v1';
+  // Note: AviationStack free tier only supports HTTP. HTTPS requires paid subscription.
+  // The API key is sent as query parameter (required by AviationStack API design).
+  private readonly BASE_URL = 'https://api.aviationstack.com/v1';
   private readonly CACHE_MINUTES = 15; // Cache flight data for 15 minutes
 
   /**
@@ -228,11 +230,11 @@ class AviationstackService {
     // Verify user has access
     await verifyTripAccess(userId, tripId);
 
-    // Get all flight transportations for this trip
+    // Get all flight transportations for this trip (case-insensitive)
     const transportations = await prisma.transportation.findMany({
       where: {
         tripId,
-        type: { in: ['flight', 'Flight', 'FLIGHT'] },
+        type: { equals: 'flight', mode: 'insensitive' },
       },
       select: { id: true },
     });
@@ -416,8 +418,14 @@ class AviationstackService {
         return null;
       }
 
-      // Return the first matching flight
-      const flight = response.data[0];
+      // Find flight that matches our requested flight number
+      // API may return multiple flights, so verify we got the right one
+      const normalizedRequestedNumber = flightNumber.toUpperCase().replace(/\s/g, '');
+      const flight = response.data.find(f => {
+        const flightIata = f.flight.iata?.toUpperCase().replace(/\s/g, '') || '';
+        const flightIcao = f.flight.icao?.toUpperCase().replace(/\s/g, '') || '';
+        return flightIata === normalizedRequestedNumber || flightIcao === normalizedRequestedNumber;
+      }) || response.data[0]; // Fallback to first result if no exact match
 
       if (process.env.NODE_ENV === 'development') {
         console.log(`[AviationStack] Found flight ${flightNumber}:`, {
@@ -440,6 +448,16 @@ class AviationstackService {
           console.warn('[AviationStack] API monthly limit reached');
           return null;
         }
+        if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+          console.warn('[AviationStack] Request timed out');
+          return null;
+        }
+        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+          console.warn('[AviationStack] Network error - API unreachable');
+          return null;
+        }
+        // Log other axios errors without sensitive data
+        console.error(`[AviationStack] API error: ${error.response?.status || 'unknown'}`);
       }
       throw error;
     }

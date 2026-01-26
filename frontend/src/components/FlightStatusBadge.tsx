@@ -1,12 +1,32 @@
 import { FlightTracking } from '../types/transportation';
+import { getFlightStatusColor, getDelayColor } from '../utils/statusColors';
 
 interface FlightStatusBadgeProps {
   flightTracking: FlightTracking | null | undefined;
   compact?: boolean;
 }
 
+const FLIGHT_STATUS_ICONS: Record<string, string> = {
+  scheduled: '🕐',
+  active: '✈️',
+  landed: '✅',
+  cancelled: '❌',
+  diverted: '⚠️',
+};
+
+/**
+ * Format delay in minutes to human-readable string
+ */
+function formatDelay(delay: number | null): string | null {
+  if (delay === null || delay === 0) return null;
+  const mins = Math.abs(delay);
+  const suffix = mins === 1 ? 'min' : 'mins';
+  return delay > 0 ? `+${mins} ${suffix} late` : `${mins} ${suffix} early`;
+}
+
 /**
  * Displays flight status with appropriate styling
+ * Uses project style guide colors from statusColors utility
  */
 export default function FlightStatusBadge({ flightTracking, compact = false }: FlightStatusBadgeProps) {
   if (!flightTracking) {
@@ -15,47 +35,10 @@ export default function FlightStatusBadge({ flightTracking, compact = false }: F
 
   const { status, gate, terminal, baggageClaim, departureDelay, arrivalDelay, flightNumber } = flightTracking;
 
-  const getStatusColor = (status: string | null) => {
-    switch (status) {
-      case 'scheduled':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'landed':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'diverted':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-    }
-  };
-
-  const getStatusIcon = (status: string | null) => {
-    switch (status) {
-      case 'scheduled':
-        return '🕐';
-      case 'active':
-        return '✈️';
-      case 'landed':
-        return '✅';
-      case 'cancelled':
-        return '❌';
-      case 'diverted':
-        return '⚠️';
-      default:
-        return '📋';
-    }
-  };
-
-  const formatDelay = (delay: number | null) => {
-    if (!delay || delay === 0) return null;
-    if (delay > 0) {
-      return `+${delay}min late`;
-    }
-    return `${Math.abs(delay)}min early`;
-  };
+  const statusIcon = status ? FLIGHT_STATUS_ICONS[status] || '📋' : '📋';
+  const statusColor = getFlightStatusColor(status);
+  const departureDelayColor = getDelayColor(departureDelay);
+  const arrivalDelayColor = getDelayColor(arrivalDelay);
 
   const departureDelayText = formatDelay(departureDelay);
   const arrivalDelayText = formatDelay(arrivalDelay);
@@ -64,12 +47,16 @@ export default function FlightStatusBadge({ flightTracking, compact = false }: F
     return (
       <div className="flex items-center gap-2 flex-wrap">
         {status && (
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-            {getStatusIcon(status)} {status.charAt(0).toUpperCase() + status.slice(1)}
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}
+            role="status"
+            aria-label={`Flight status: ${status}`}
+          >
+            <span aria-hidden="true">{statusIcon}</span> {status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
         )}
         {departureDelayText && (
-          <span className={`text-xs ${departureDelay && departureDelay > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+          <span className={`text-xs ${departureDelayColor}`}>
             {departureDelayText}
           </span>
         )}
@@ -89,8 +76,12 @@ export default function FlightStatusBadge({ flightTracking, compact = false }: F
           )}
         </div>
         {status && (
-          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-            {getStatusIcon(status)} {status.charAt(0).toUpperCase() + status.slice(1)}
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor}`}
+            role="status"
+            aria-label={`Flight status: ${status}`}
+          >
+            <span aria-hidden="true">{statusIcon}</span> {status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
         )}
       </div>
@@ -99,12 +90,12 @@ export default function FlightStatusBadge({ flightTracking, compact = false }: F
       {(departureDelayText || arrivalDelayText) && (
         <div className="flex gap-4 text-sm">
           {departureDelayText && (
-            <span className={departureDelay && departureDelay > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>
+            <span className={departureDelayColor}>
               Departure: {departureDelayText}
             </span>
           )}
           {arrivalDelayText && (
-            <span className={arrivalDelay && arrivalDelay > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>
+            <span className={arrivalDelayColor}>
               Arrival: {arrivalDelayText}
             </span>
           )}
