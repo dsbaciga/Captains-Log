@@ -3,6 +3,8 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getCsrfToken } from '../utils/csrf';
 import { getAccessToken, setAccessToken } from './tokenManager';
 
+export { getAccessToken, setAccessToken };
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Retry configuration for rate limiting (429) errors
