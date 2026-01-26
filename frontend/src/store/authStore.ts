@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { User, LoginInput, RegisterInput } from '../types/auth';
 import authService from '../services/auth.service';
-import { setAccessToken } from '../lib/axios';
+import { setAccessToken, registerAuthClearCallback } from '../lib/tokenManager';
 
 interface AuthState {
   user: User | null;
