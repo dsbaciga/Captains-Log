@@ -52,7 +52,8 @@
       "Bash(claude mcp call playwright playwright_navigate '{\"\"url\"\": \"\"https://travellife.bacigalupo.us\"\"}')",
       "Bash(npx @playwright/mcp@latest)",
       "Bash(mcp list:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx madge:*)"
     ],
     "deny": [],
     "ask": []

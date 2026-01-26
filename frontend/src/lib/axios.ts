@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getCsrfToken } from '../utils/csrf';
-import { getAccessToken, setAccessToken } from './tokenManager';
+import { getAccessToken, setAccessToken, triggerAuthClear } from './tokenManager';
 
 export { getAccessToken, setAccessToken };
 
@@ -143,9 +143,8 @@ axiosInstance.interceptors.response.use(
         onRefreshFailed(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
         setAccessToken(null);
 
-        // Import dynamically to avoid circular dependency
-        const { useAuthStore } = await import('../store/authStore');
-        useAuthStore.getState().clearAuth();
+        // Clear auth state using callback (avoids circular dependency)
+        triggerAuthClear();
 
         // Preserve the current URL for redirect after login
         const currentPath = window.location.pathname + window.location.search;

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { User, LoginInput, RegisterInput } from '../types/auth';
 import authService from '../services/auth.service';
-import { setAccessToken } from '../lib/tokenManager';
+import { setAccessToken, registerAuthClearCallback } from '../lib/tokenManager';
 
 interface AuthState {
   user: User | null;
@@ -135,3 +135,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 }));
+
+// Register the clearAuth callback to break the circular dependency
+// axios.ts -> authStore.ts -> authService.ts -> axios.ts
+// Now axios.ts can call triggerAuthClear() instead of importing authStore
+registerAuthClearCallback(() => {
+  useAuthStore.getState().clearAuth();
+});
