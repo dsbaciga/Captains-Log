@@ -58,6 +58,7 @@ import TripSidebar from "../components/TripSidebar";
 import NavigationLayoutToggle from "../components/NavigationLayoutToggle";
 import { useNavigationStore } from "../store/navigationStore";
 import TripStats from "../components/TripStats";
+import { TripDashboard } from "../components/trip-dashboard";
 import {
   formatTripDates,
   getTripDateStatus,
@@ -68,6 +69,7 @@ import { Skeleton } from "../components/Skeleton";
 
 // All possible tab IDs for the grouped navigation
 type TabId =
+  | "dashboard"
   | "timeline"
   | "daily"
   | "locations"
@@ -99,8 +101,8 @@ export default function TripDetailPage() {
   const [showAddPhotosModal, setShowAddPhotosModal] = useState(false);
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   
-  // Initialize activeTab from URL parameter or default to 'timeline'
-  const initialTab = (searchParams.get("tab") as TabId) || "timeline";
+  // Initialize activeTab from URL parameter or default to 'dashboard'
+  const initialTab = (searchParams.get("tab") as TabId) || "dashboard";
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
   // Sync activeTab with URL when tab parameter changes externally (e.g., from EntityDetailModal navigation)
@@ -332,6 +334,7 @@ export default function TripDetailPage() {
 
   // Flat list of all tab IDs for swipe navigation (in display order)
   const allTabIds: TabId[] = useMemo(() => [
+    "dashboard",
     "timeline",
     "daily",
     "activities",
@@ -372,6 +375,20 @@ export default function TripDetailPage() {
   // Define the grouped tab configuration
   const tabGroups: TabGroupItem[] = useMemo(
     () => [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        icon: (
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+            />
+          </svg>
+        ),
+      },
       {
         id: "overview",
         label: "Overview",
@@ -1228,6 +1245,24 @@ export default function TripDetailPage() {
           className="transition-all duration-300 ease-in-out"
           {...swipeHandlers}
         >
+          {/* Dashboard Tab */}
+          {activeTab === "dashboard" && (
+            <div className="animate-fadeIn">
+              <TripDashboard
+                trip={trip}
+                activities={activitiesData || []}
+                transportation={transportationData || []}
+                lodging={lodgingData || []}
+                locations={locations}
+                journalEntries={journalData || []}
+                photosCount={totalPhotosCount}
+                checklists={checklists}
+                companions={companionsData || []}
+                onNavigateToTab={(tab) => changeTab(tab as TabId)}
+              />
+            </div>
+          )}
+
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
             <div className="space-y-6 animate-fadeIn">
