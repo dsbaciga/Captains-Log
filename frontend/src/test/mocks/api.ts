@@ -3,7 +3,7 @@
  */
 
 import { vi } from 'vitest';
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // ============================================================================
 // Mock Axios Instance
