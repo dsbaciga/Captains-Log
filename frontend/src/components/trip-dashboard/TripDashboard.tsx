@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Trip } from '../../types/trip';
 import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
@@ -7,17 +8,62 @@ import type { JournalEntry } from '../../types/journalEntry';
 import type { Checklist } from '../../types/checklist';
 import type { Companion } from '../../types/companion';
 import type { Photo } from '../../types/photo';
-import DashboardHero from './DashboardHero';
+import { TripStatus } from '../../types/trip';
 import TripStats from '../TripStats';
 import RecentActivityCard from './RecentActivityCard';
 import NextUpCard from './NextUpCard';
 import QuickActionsBar from './QuickActionsBar';
 import TodaysItinerary from './TodaysItinerary';
 import ChecklistsWidget from './ChecklistsWidget';
+import CompanionsWidget from './CompanionsWidget';
+import MapPreviewWidget from './MapPreviewWidget';
+import CountdownTimerWidget from './CountdownTimerWidget';
+import LocalTimeWidget from './LocalTimeWidget';
+import BudgetSummaryWidget from './BudgetSummaryWidget';
+import WeatherForecastWidget from './WeatherForecastWidget';
+import FlightStatusWidget from './FlightStatusWidget';
+
+// Weather forecast data structure
+interface WeatherForecast {
+  date: string;
+  high: number;
+  low: number;
+  condition: 'sunny' | 'partly_cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'snowy' | 'windy';
+  humidity?: number;
+  precipitation?: number;
+}
+
+// Budget data structure
+interface BudgetData {
+  budget: number | null;
+  spent: number;
+  breakdown: {
+    lodging: number;
+    transportation: number;
+    activities: number;
+    food: number;
+    other: number;
+  };
+  currency: string;
+}
+
+// Flight status data structure
+interface FlightData {
+  id: number;
+  flightNumber: string | null;
+  airline: string | null;
+  departureTime: string;
+  arrivalTime: string | null;
+  departureLocation: string;
+  arrivalLocation: string;
+  status: 'scheduled' | 'on_time' | 'delayed' | 'cancelled' | 'departed' | 'arrived';
+  gate?: string | null;
+  terminal?: string | null;
+  delayMinutes?: number;
+}
 
 interface TripDashboardProps {
   trip: Trip;
-  coverPhotoUrl: string | null;
   activities: Activity[];
   transportation: Transportation[];
   lodging: Lodging[];
@@ -32,6 +78,18 @@ interface TripDashboardProps {
   onPrintItinerary: () => void;
   onToggleChecklistItem: (checklistId: number, itemId: number, completed: boolean) => Promise<void>;
   onNavigateToEntity: (entityType: string, entityId: string) => void;
+  // Optional data for enhanced widgets
+  weatherForecast?: WeatherForecast[] | null;
+  weatherLocation?: string;
+  weatherLoading?: boolean;
+  weatherError?: string | null;
+  onRefreshWeather?: () => void;
+  budgetData?: BudgetData | null;
+  flightStatus?: FlightData[] | null;
+  flightStatusLoading?: boolean;
+  onRefreshFlightStatus?: () => void;
+  userHomeTimezone?: string;
+  temperatureUnit?: 'celsius' | 'fahrenheit';
   className?: string;
 }
 
@@ -39,21 +97,31 @@ interface TripDashboardProps {
  * Main Trip Dashboard component.
  *
  * Serves as the central hub for trip information, providing an at-a-glance view of:
- * - Trip status and countdown/day indicator (Hero section)
- * - Recent activity
- * - Next upcoming event
+ * - Countdown timer (for planning/planned trips with dates)
+ * - Local time widget (for international trips with different timezone)
  * - Quick actions based on trip status
- * - Trip statistics
+ * - Recent activity
+ * - Companions widget
+ * - Map preview with locations
+ * - Next upcoming event with trip day indicator
  * - Today's itinerary (for in-progress trips)
+ * - Weather forecast (when data provided)
+ * - Flight status (when flight data provided)
+ * - Budget summary (when budget data provided)
  * - Checklists progress
+ * - Trip statistics
  *
  * Layout:
- * - Desktop: Two-column layout with hero spanning full width
+ * - Top row: Countdown and/or Local Time (responsive 1-2 columns)
+ * - Quick Actions Bar (full width)
+ * - Main Grid:
+ *   - Left column (1/3): Recent Activity, Companions, Map, Checklists
+ *   - Right column (2/3): Next Up, Itinerary, Weather, Flights, Budget
+ * - Trip Stats (full width)
  * - Mobile: Single column stacked layout
  */
 export default function TripDashboard({
   trip,
-  coverPhotoUrl,
   activities,
   transportation,
   lodging,
@@ -68,6 +136,17 @@ export default function TripDashboard({
   onPrintItinerary,
   onToggleChecklistItem,
   onNavigateToEntity,
+  weatherForecast,
+  weatherLocation,
+  weatherLoading,
+  weatherError,
+  onRefreshWeather,
+  budgetData,
+  flightStatus,
+  flightStatusLoading,
+  onRefreshFlightStatus,
+  userHomeTimezone,
+  temperatureUnit = 'fahrenheit',
   className = '',
 }: TripDashboardProps) {
   // Calculate counts for stats
@@ -89,6 +168,28 @@ export default function TripDashboard({
 
   // Get trip timezone with fallback
   const tripTimezone = trip.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const homeTimezone = userHomeTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Check if trip is international (different timezone)
+  const isInternationalTrip = tripTimezone !== homeTimezone;
+
+  // Check if countdown should be shown (Planning or Planned status with dates)
+  const showCountdown =
+    (trip.status === TripStatus.PLANNING || trip.status === TripStatus.PLANNED) &&
+    trip.startDate !== null;
+
+  // Map locations for the map widget
+  const mapLocations = useMemo(
+    () =>
+      locations.map((loc) => ({
+        id: loc.id,
+        name: loc.name,
+        latitude: loc.latitude ? Number(loc.latitude) : null,
+        longitude: loc.longitude ? Number(loc.longitude) : null,
+        category: loc.category || undefined,
+      })),
+    [locations]
+  );
 
   // Handle event click from TodaysItinerary
   const handleEventClick = (eventType: string, eventId: string) => {
@@ -104,14 +205,41 @@ export default function TripDashboard({
     onNavigateToEntity(eventType, eventId);
   };
 
+  // Handle location click from map
+  const handleLocationClick = (locationId: number) => {
+    onNavigateToEntity('location', String(locationId));
+  };
+
+  // Handle flight click
+  const handleFlightClick = (flightId: number) => {
+    onNavigateToEntity('transportation', String(flightId));
+  };
+
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Hero Section - Full Width */}
-      <DashboardHero
-        trip={trip}
-        coverPhotoUrl={coverPhotoUrl}
-        className="animate-fade-in"
-      />
+      {/* Top Row: Countdown Timer and/or Local Time Widget */}
+      {(showCountdown || isInternationalTrip) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+          {/* Countdown Timer - for planning/planned trips */}
+          {showCountdown && (
+            <CountdownTimerWidget
+              tripStartDate={trip.startDate}
+              tripEndDate={trip.endDate}
+              tripStatus={trip.status}
+              tripTimezone={tripTimezone}
+            />
+          )}
+
+          {/* Local Time Widget - for international trips */}
+          {isInternationalTrip && (
+            <LocalTimeWidget
+              tripTimezone={tripTimezone}
+              homeTimezone={homeTimezone}
+              locationName={trip.title}
+            />
+          )}
+        </div>
+      )}
 
       {/* Quick Actions Bar - Full Width */}
       <div className="animate-fade-in stagger-1">
@@ -125,7 +253,7 @@ export default function TripDashboard({
 
       {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Recent Activity and Checklists */}
+        {/* Left Column - Activity, Companions, Map, Checklists */}
         <div className="lg:col-span-1 space-y-6">
           {/* Recent Activity Card */}
           <div className="animate-fade-in stagger-2">
@@ -140,9 +268,29 @@ export default function TripDashboard({
             />
           </div>
 
+          {/* Companions Widget */}
+          <div className="animate-fade-in stagger-3">
+            <CompanionsWidget
+              companions={companions}
+              onNavigateToCompanions={() => onNavigateToTab('companions')}
+              onInviteCompanion={() => onNavigateToTab('companions', { action: 'add' })}
+            />
+          </div>
+
+          {/* Map Preview Widget */}
+          {locations.length > 0 && (
+            <div className="animate-fade-in stagger-4">
+              <MapPreviewWidget
+                locations={mapLocations}
+                onNavigateToMap={() => onNavigateToTab('locations')}
+                onLocationClick={handleLocationClick}
+              />
+            </div>
+          )}
+
           {/* Checklists Widget */}
           {checklists.length > 0 && (
-            <div className="animate-fade-in stagger-3">
+            <div className="animate-fade-in stagger-5">
               <ChecklistsWidget
                 checklists={checklists}
                 onToggleItem={onToggleChecklistItem}
@@ -152,7 +300,7 @@ export default function TripDashboard({
           )}
         </div>
 
-        {/* Right Column - Next Up and Today's Itinerary */}
+        {/* Right Column - Next Up, Itinerary, Weather, Flights, Budget */}
         <div className="lg:col-span-2 space-y-6">
           {/* Next Up Card */}
           <div className="animate-fade-in stagger-2">
@@ -169,7 +317,7 @@ export default function TripDashboard({
           </div>
 
           {/* Today's Itinerary - Only show for in-progress trips */}
-          {trip.status === 'In Progress' && (
+          {trip.status === TripStatus.IN_PROGRESS && (
             <div className="animate-fade-in stagger-3">
               <TodaysItinerary
                 activities={activities}
@@ -178,6 +326,46 @@ export default function TripDashboard({
                 tripTimezone={tripTimezone}
                 onEventClick={handleEventClick}
                 onNavigateToTimeline={(date) => onNavigateToTab('timeline', { scrollToDate: date })}
+              />
+            </div>
+          )}
+
+          {/* Weather Forecast Widget - show if data provided */}
+          {(weatherForecast || weatherLoading) && (
+            <div className="animate-fade-in stagger-4">
+              <WeatherForecastWidget
+                forecast={weatherForecast || null}
+                location={weatherLocation || trip.title}
+                temperatureUnit={temperatureUnit}
+                isLoading={weatherLoading}
+                error={weatherError || null}
+                onRefresh={onRefreshWeather}
+              />
+            </div>
+          )}
+
+          {/* Flight Status Widget - show if flight data provided */}
+          {(flightStatus || flightStatusLoading) && (
+            <div className="animate-fade-in stagger-5">
+              <FlightStatusWidget
+                flights={flightStatus || []}
+                tripTimezone={tripTimezone}
+                onNavigateToFlight={handleFlightClick}
+                onRefreshStatus={onRefreshFlightStatus}
+                isLoading={flightStatusLoading}
+              />
+            </div>
+          )}
+
+          {/* Budget Summary Widget - show if budget data provided */}
+          {budgetData && (
+            <div className="animate-fade-in stagger-6">
+              <BudgetSummaryWidget
+                budget={budgetData.budget}
+                spent={budgetData.spent}
+                breakdown={budgetData.breakdown}
+                currency={budgetData.currency}
+                onNavigateToBudget={() => onNavigateToTab('budget')}
               />
             </div>
           )}

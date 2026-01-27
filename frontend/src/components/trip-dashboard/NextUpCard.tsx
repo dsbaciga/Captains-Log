@@ -23,6 +23,7 @@ import {
   normalizeAllEvents,
 } from '../../utils/tripDashboardUtils';
 import EventPreview from './EventPreview';
+import TripDayIndicator from './TripDayIndicator';
 import { PlusIcon, ChevronRightIcon } from '../icons';
 
 interface NextUpCardProps {
@@ -240,14 +241,33 @@ export default function NextUpCard({
   return (
     <div className="card animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-          {getHeaderText()}
-        </h3>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div className="flex-1">
+          <div className="flex items-center justify-between sm:justify-start gap-3 mb-2">
+            <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+              {getHeaderText()}
+            </h3>
+            {hasScheduledEvents && displayState !== 'completed' && displayState !== 'no_events' && (
+              <button
+                onClick={() => onNavigateToTab('timeline')}
+                className="text-sm text-primary-600 dark:text-gold hover:text-primary-700 dark:hover:text-amber-300 font-medium flex items-center gap-1 transition-colors sm:hidden"
+              >
+                View Timeline
+                <ChevronRightIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {/* Trip Day Indicator - shows countdown/day info */}
+          <TripDayIndicator
+            status={tripStatus}
+            startDate={tripStartDate}
+            endDate={tripEndDate}
+          />
+        </div>
         {hasScheduledEvents && displayState !== 'completed' && displayState !== 'no_events' && (
           <button
             onClick={() => onNavigateToTab('timeline')}
-            className="text-sm text-primary-600 dark:text-gold hover:text-primary-700 dark:hover:text-amber-300 font-medium flex items-center gap-1 transition-colors"
+            className="hidden sm:flex text-sm text-primary-600 dark:text-gold hover:text-primary-700 dark:hover:text-amber-300 font-medium items-center gap-1 transition-colors shrink-0"
           >
             View Timeline
             <ChevronRightIcon className="w-4 h-4" />
@@ -284,21 +304,6 @@ export default function NextUpCard({
           onNavigate={() => onNavigateToTab(nextEvent.tabName)}
           showRelativeTime={true}
         />
-      )}
-
-      {/* Quick status indicator for in-progress trips */}
-      {displayState === 'in_progress' && tripStatus === TripStatus.IN_PROGRESS && (
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span>
-            <span className="text-amber-600 dark:text-amber-400 font-medium">
-              Trip in progress
-            </span>
-          </div>
-        </div>
       )}
     </div>
   );

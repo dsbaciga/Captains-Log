@@ -1250,7 +1250,6 @@ export default function TripDetailPage() {
             <div className="animate-fadeIn">
               <TripDashboard
                 trip={trip}
-                coverPhotoUrl={coverPhotoUrl}
                 activities={activitiesData || []}
                 transportation={transportationData || []}
                 lodging={lodgingData || []}
