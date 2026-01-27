@@ -202,9 +202,7 @@ export default function NextUpCard({
       activities,
       transportation,
       lodging,
-      tripStatus,
-      tripStartDate,
-      tripEndDate
+      tripStatus
     );
 
     const state = getNextUpDisplayState(

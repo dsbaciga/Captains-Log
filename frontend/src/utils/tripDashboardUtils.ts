@@ -626,9 +626,7 @@ export function getNextUpEvent(
   activities: Activity[],
   transportation: Transportation[],
   lodging: Lodging[],
-  tripStatus: TripStatusType,
-  _tripStartDate: string | null,
-  _tripEndDate: string | null
+  tripStatus: TripStatusType
 ): NormalizedEvent | null {
   const allEvents = normalizeAllEvents(activities, transportation, lodging);
   const sortedEvents = sortEventsByDateTime(allEvents);
@@ -690,8 +688,7 @@ export function getNextUpEvent(
  * Gets a relative time indicator for an event
  */
 export function getRelativeTimeIndicator(
-  eventDateTime: Date | null,
-  _eventTimezone?: string | null
+  eventDateTime: Date | null
 ): string {
   if (!eventDateTime) {
     return 'Time not set';
