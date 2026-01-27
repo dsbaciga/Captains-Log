@@ -155,9 +155,7 @@ export function RecentActivityCard({
                     entityId={item.entityId}
                     actionType={item.actionType}
                     name={item.name}
-                    description={item.description}
                     timestamp={item.timestamp}
-                    count={item.count}
                     onNavigateToEntity={onNavigateToEntity}
                   />
                 ))}
@@ -175,9 +173,7 @@ export function RecentActivityCard({
               entityId={item.entityId}
               actionType={item.actionType}
               name={item.name}
-              description={item.description}
               timestamp={item.timestamp}
-              count={item.count}
               onNavigateToEntity={onNavigateToEntity}
             />
           ))}
@@ -197,9 +193,8 @@ export function RecentActivityCard({
                        rounded-lg p-2 -m-2
                        hover:bg-primary-50 dark:hover:bg-navy-700/50"
             onClick={() => {
-              // Placeholder for future "View all activity" functionality
-              // Could open a modal or navigate to an activity log page
-              console.log('View all activity clicked');
+              // Future: navigate to activity log or open a modal
+              // Currently no-op until activity log feature is implemented
             }}
           >
             <span>View all activity</span>

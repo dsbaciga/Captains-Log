@@ -16,6 +16,30 @@ import type { JournalEntry } from '../types/journalEntry';
 import type { Photo } from '../types/photo';
 import { TripStatus, TripStatusType } from '../types/trip';
 
+// ============================================================================
+// Constants
+// ============================================================================
+
+/**
+ * ID offset for lodging check-out events to avoid collision with check-in events
+ */
+export const LODGING_CHECKOUT_ID_OFFSET = 100000;
+
+/**
+ * ID offset for lodging ongoing stay events to avoid collision with check-in/out events
+ */
+export const LODGING_ONGOING_STAY_ID_OFFSET = 200000;
+
+/**
+ * Default check-in time (3:00 PM) used when lodging doesn't specify a time
+ */
+export const DEFAULT_CHECKIN_HOUR = 15;
+
+/**
+ * Default check-out time (11:00 AM) used when lodging doesn't specify a time
+ */
+export const DEFAULT_CHECKOUT_HOUR = 11;
+
 /**
  * Event types for the today's itinerary
  */
@@ -224,7 +248,7 @@ export function getTodaysEvents(
       const startTime = new Date(lodge.checkOutDate);
 
       events.push({
-        id: lodge.id + 100000, // Offset to avoid ID collision with check-in
+        id: lodge.id + LODGING_CHECKOUT_ID_OFFSET,
         type: 'lodging',
         name: `Check-out: ${lodge.name}`,
         startTime,
@@ -247,7 +271,7 @@ export function getTodaysEvents(
       const todayMidnight = new Date(todayStr + 'T00:00:00');
 
       events.push({
-        id: lodge.id + 200000, // Offset to avoid ID collision
+        id: lodge.id + LODGING_ONGOING_STAY_ID_OFFSET,
         type: 'lodging',
         name: `Staying at: ${lodge.name}`,
         startTime: todayMidnight,
@@ -529,7 +553,8 @@ function normalizeLodging(lodging: Lodging): NormalizedEvent {
       const year = parseInt(match[1], 10);
       const month = parseInt(match[2], 10) - 1;
       const day = parseInt(match[3], 10);
-      dateTime = new Date(year, month, day, 15, 0, 0);
+      // Use default check-in time (3:00 PM) - lodging type doesn't have specific time fields
+      dateTime = new Date(year, month, day, DEFAULT_CHECKIN_HOUR, 0, 0);
     }
   }
 
@@ -540,7 +565,8 @@ function normalizeLodging(lodging: Lodging): NormalizedEvent {
       const year = parseInt(match[1], 10);
       const month = parseInt(match[2], 10) - 1;
       const day = parseInt(match[3], 10);
-      endDateTime = new Date(year, month, day, 11, 0, 0);
+      // Use default check-out time (11:00 AM) - lodging type doesn't have specific time fields
+      endDateTime = new Date(year, month, day, DEFAULT_CHECKOUT_HOUR, 0, 0);
     }
   }
 

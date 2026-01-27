@@ -20,9 +20,7 @@ interface ActivityItemProps {
   entityId: number;
   actionType: ActivityActionType;
   name: string;
-  description?: string;
   timestamp: string;
-  count?: number;
   onNavigateToEntity: (entityType: string, entityId: string) => void;
 }
 

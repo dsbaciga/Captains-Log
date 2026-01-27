@@ -383,7 +383,7 @@ export default function ChecklistsWidget({
         {/* Empty State */}
         <div className="text-center py-6">
           <div className="text-4xl mb-2">
-            <ChecklistIcon className="w-12 h-12 mx-auto text-primary-300 dark:text-sky/40" />
+            <ChecklistIcon className="w-12 h-12 mx-auto text-primary-300 dark:text-gold/40" />
           </div>
           <p className="text-sm text-slate dark:text-warm-gray/70 mb-3">
             No checklists for this trip

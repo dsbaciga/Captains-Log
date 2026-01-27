@@ -6,8 +6,14 @@ import type { Location } from '../../types/location';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Checklist } from '../../types/checklist';
 import type { Companion } from '../../types/companion';
+import type { Photo } from '../../types/photo';
 import DashboardHero from './DashboardHero';
 import TripStats from '../TripStats';
+import RecentActivityCard from './RecentActivityCard';
+import NextUpCard from './NextUpCard';
+import QuickActionsBar from './QuickActionsBar';
+import TodaysItinerary from './TodaysItinerary';
+import ChecklistsWidget from './ChecklistsWidget';
 
 interface TripDashboardProps {
   trip: Trip;
@@ -17,10 +23,15 @@ interface TripDashboardProps {
   lodging: Lodging[];
   locations: Location[];
   journalEntries: JournalEntry[];
+  photos: Photo[];
   photosCount: number;
   checklists: Checklist[];
   companions: Companion[];
-  onNavigateToTab: (tab: string) => void;
+  onNavigateToTab: (tab: string, options?: { action?: string }) => void;
+  onStatusChange: (newStatus: string) => Promise<void>;
+  onPrintItinerary: () => void;
+  onToggleChecklistItem: (checklistId: number, itemId: number, completed: boolean) => Promise<void>;
+  onNavigateToEntity: (entityType: string, entityId: string) => void;
   className?: string;
 }
 
@@ -48,10 +59,15 @@ export default function TripDashboard({
   lodging,
   locations,
   journalEntries,
+  photos,
   photosCount,
   checklists,
   companions,
   onNavigateToTab,
+  onStatusChange,
+  onPrintItinerary,
+  onToggleChecklistItem,
+  onNavigateToEntity,
   className = '',
 }: TripDashboardProps) {
   // Calculate counts for stats
@@ -71,6 +87,23 @@ export default function TripDashboard({
     unscheduledTransportation.length +
     unscheduledLodging.length;
 
+  // Get trip timezone with fallback
+  const tripTimezone = trip.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Handle event click from TodaysItinerary
+  const handleEventClick = (eventType: string, eventId: string) => {
+    // Map event type to tab name
+    const tabMap: Record<string, string> = {
+      activity: 'activities',
+      transportation: 'transportation',
+      lodging: 'lodging',
+    };
+    const tabName = tabMap[eventType] || eventType;
+    onNavigateToTab(tabName);
+    // The onNavigateToEntity callback can be used for more specific navigation
+    onNavigateToEntity(eventType, eventId);
+  };
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Hero Section - Full Width */}
@@ -80,186 +113,72 @@ export default function TripDashboard({
         className="animate-fade-in"
       />
 
+      {/* Quick Actions Bar - Full Width */}
+      <div className="animate-fade-in stagger-1">
+        <QuickActionsBar
+          tripStatus={trip.status}
+          onNavigateToTab={onNavigateToTab}
+          onStatusChange={onStatusChange}
+          onPrintItinerary={onPrintItinerary}
+        />
+      </div>
+
       {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Recent Activity and Next Up */}
+        {/* Left Column - Recent Activity and Checklists */}
         <div className="lg:col-span-1 space-y-6">
-          {/* Recent Activity Card - Placeholder for RecentActivityCard component */}
-          <div className="card p-6 animate-fade-in stagger-1">
-            <h3 className="font-body font-semibold text-lg text-charcoal dark:text-warm-gray mb-4 flex items-center gap-2">
-              <svg
-                className="w-5 h-5 text-primary-500 dark:text-gold"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Recent Activity
-            </h3>
-            {/* TODO: RecentActivityCard component will be implemented by another agent */}
-            <div className="text-sm text-slate dark:text-gray-400 text-center py-8">
-              <p>Recent activity will appear here</p>
-              <p className="text-xs mt-1 opacity-70">
-                Track changes to your trip
-              </p>
-            </div>
+          {/* Recent Activity Card */}
+          <div className="animate-fade-in stagger-2">
+            <RecentActivityCard
+              activities={activities}
+              transportation={transportation}
+              lodging={lodging}
+              locations={locations}
+              journal={journalEntries}
+              photos={photos}
+              onNavigateToEntity={onNavigateToEntity}
+            />
           </div>
 
-          {/* Checklists Widget - Placeholder for ChecklistsWidget component */}
+          {/* Checklists Widget */}
           {checklists.length > 0 && (
-            <div className="card p-6 animate-fade-in stagger-3">
-              <h3 className="font-body font-semibold text-lg text-charcoal dark:text-warm-gray mb-4 flex items-center gap-2">
-                <svg
-                  className="w-5 h-5 text-primary-500 dark:text-gold"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                  />
-                </svg>
-                Checklists
-              </h3>
-              {/* TODO: ChecklistsWidget component will be implemented by another agent */}
-              <div className="space-y-3">
-                {checklists.slice(0, 3).map((checklist) => (
-                  <div
-                    key={checklist.id}
-                    className="flex items-center justify-between p-3 bg-parchment dark:bg-navy-700/50 rounded-lg"
-                  >
-                    <span className="text-sm font-medium text-charcoal dark:text-warm-gray">
-                      {checklist.name}
-                    </span>
-                    {checklist.stats && (
-                      <span className="text-xs text-slate dark:text-gray-400">
-                        {checklist.stats.checked}/{checklist.stats.total}
-                      </span>
-                    )}
-                  </div>
-                ))}
-                {checklists.length > 3 && (
-                  <p className="text-xs text-slate dark:text-gray-400 text-center">
-                    +{checklists.length - 3} more checklists
-                  </p>
-                )}
-              </div>
+            <div className="animate-fade-in stagger-3">
+              <ChecklistsWidget
+                checklists={checklists}
+                onToggleItem={onToggleChecklistItem}
+                onNavigateToChecklists={() => onNavigateToTab('checklists')}
+              />
             </div>
           )}
         </div>
 
-        {/* Right Column - Next Up and Quick Actions */}
+        {/* Right Column - Next Up and Today's Itinerary */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Next Up Card - Placeholder for NextUpCard component */}
-          <div className="card p-6 animate-fade-in stagger-2">
-            <h3 className="font-body font-semibold text-lg text-charcoal dark:text-warm-gray mb-4 flex items-center gap-2">
-              <svg
-                className="w-5 h-5 text-primary-500 dark:text-gold"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
-              Next Up
-            </h3>
-            {/* TODO: NextUpCard component will be implemented by another agent */}
-            <div className="text-sm text-slate dark:text-gray-400 text-center py-8">
-              <p>Your next event will appear here</p>
-              <p className="text-xs mt-1 opacity-70">
-                Based on your scheduled activities, transport, and lodging
-              </p>
-            </div>
+          {/* Next Up Card */}
+          <div className="animate-fade-in stagger-2">
+            <NextUpCard
+              activities={activities}
+              transportation={transportation}
+              lodging={lodging}
+              tripStatus={trip.status}
+              tripStartDate={trip.startDate}
+              tripEndDate={trip.endDate}
+              tripTimezone={tripTimezone}
+              onNavigateToTab={onNavigateToTab}
+            />
           </div>
 
-          {/* Quick Actions Bar - Placeholder for QuickActionsBar component */}
-          <div className="card p-6 animate-fade-in stagger-3">
-            <h3 className="font-body font-semibold text-lg text-charcoal dark:text-warm-gray mb-4 flex items-center gap-2">
-              <svg
-                className="w-5 h-5 text-primary-500 dark:text-gold"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              Quick Actions
-            </h3>
-            {/* TODO: QuickActionsBar component will be implemented by another agent */}
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => onNavigateToTab('timeline')}
-                className="btn-secondary text-sm"
-              >
-                View Timeline
-              </button>
-              <button
-                onClick={() => onNavigateToTab('activities')}
-                className="btn-secondary text-sm"
-              >
-                Add Activity
-              </button>
-              <button
-                onClick={() => onNavigateToTab('photos')}
-                className="btn-secondary text-sm"
-              >
-                Add Photos
-              </button>
-              <button
-                onClick={() => onNavigateToTab('journal')}
-                className="btn-secondary text-sm"
-              >
-                Write Journal
-              </button>
-            </div>
-          </div>
-
-          {/* Today's Itinerary - Placeholder for TodaysItinerary component */}
-          {/* Only show for in-progress trips */}
+          {/* Today's Itinerary - Only show for in-progress trips */}
           {trip.status === 'In Progress' && (
-            <div className="card p-6 animate-fade-in stagger-4">
-              <h3 className="font-body font-semibold text-lg text-charcoal dark:text-warm-gray mb-4 flex items-center gap-2">
-                <svg
-                  className="w-5 h-5 text-primary-500 dark:text-gold"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                Today's Itinerary
-              </h3>
-              {/* TODO: TodaysItinerary component will be implemented by another agent */}
-              <div className="text-sm text-slate dark:text-gray-400 text-center py-8">
-                <p>Today's schedule will appear here</p>
-                <p className="text-xs mt-1 opacity-70">
-                  See what's planned for the day
-                </p>
-              </div>
+            <div className="animate-fade-in stagger-3">
+              <TodaysItinerary
+                activities={activities}
+                transportation={transportation}
+                lodging={lodging}
+                tripTimezone={tripTimezone}
+                onEventClick={handleEventClick}
+                onNavigateToTimeline={() => onNavigateToTab('timeline')}
+              />
             </div>
           )}
         </div>
@@ -273,6 +192,7 @@ export default function TripDashboard({
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"

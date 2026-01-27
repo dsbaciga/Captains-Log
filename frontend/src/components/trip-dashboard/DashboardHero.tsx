@@ -127,6 +127,7 @@ export default function DashboardHero({
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -165,6 +166,7 @@ export default function DashboardHero({
           className="w-full h-full"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
+          aria-hidden="true"
         >
           <pattern
             id="hero-pattern"
@@ -219,6 +221,7 @@ export default function DashboardHero({
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"

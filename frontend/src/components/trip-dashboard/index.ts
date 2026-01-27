@@ -24,3 +24,5 @@ export { default as EventPreview, EventIcon, getEventTypeColors } from './EventP
 export { default as QuickActionsBar } from './QuickActionsBar';
 export { default as ChecklistsWidget } from './ChecklistsWidget';
 export { default as TodaysItinerary } from './TodaysItinerary';
+export { default as RecentActivityCard } from './RecentActivityCard';
+export { default as ActivityItem } from './ActivityItem';

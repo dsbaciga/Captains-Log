@@ -23,6 +23,7 @@ interface TodaysItineraryProps {
   tripTimezone: string;
   weatherData?: { icon: string; temp: number } | null;
   onEventClick: (eventType: string, eventId: string) => void;
+  onNavigateToTimeline?: () => void;
 }
 
 /**
@@ -358,6 +359,7 @@ export default function TodaysItinerary({
   tripTimezone,
   weatherData,
   onEventClick,
+  onNavigateToTimeline,
 }: TodaysItineraryProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const currentTimeRef = useRef<HTMLDivElement>(null);
@@ -495,10 +497,11 @@ export default function TodaysItinerary({
       </div>
 
       {/* Show more link if many events */}
-      {events.length > 5 && (
+      {events.length > 5 && onNavigateToTimeline && (
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
+            onClick={onNavigateToTimeline}
             className="text-sm text-primary-600 dark:text-gold hover:text-primary-700 dark:hover:text-gold/80 font-medium"
           >
             View full timeline

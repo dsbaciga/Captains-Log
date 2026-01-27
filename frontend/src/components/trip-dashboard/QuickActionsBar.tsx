@@ -3,10 +3,9 @@ import { TripStatus } from '../../types/trip';
 import { SpinnerIcon } from '../icons';
 
 interface QuickActionsBarProps {
-  tripId: string;
   tripStatus: string;
   onNavigateToTab: (tabName: string, options?: { action?: string }) => void;
-  onStatusChange: (newStatus: string) => void;
+  onStatusChange: (newStatus: string) => void | Promise<void>;
   onPrintItinerary: () => void;
 }
 
@@ -34,7 +33,7 @@ export default function QuickActionsBar({
   onNavigateToTab,
   onStatusChange,
   onPrintItinerary,
-}: QuickActionsBarProps) {
+}: QuickActionsBarProps): React.ReactNode {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [showQuickAddMenu, setShowQuickAddMenu] = useState(false);
 
