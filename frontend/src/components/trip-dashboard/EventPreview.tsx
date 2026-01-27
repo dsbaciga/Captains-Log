@@ -11,7 +11,8 @@ import {
   formatNextUpEventDateTime,
   getRelativeTimeIndicator,
 } from '../../utils/tripDashboardUtils';
-import { EventIcon, getEventTypeColors } from './eventHelpers';
+import { EventIcon } from './eventHelpers';
+import { getEventTypeColors } from './eventStyles';
 
 interface EventPreviewProps {
   event: NormalizedEvent;
