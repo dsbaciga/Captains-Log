@@ -52,47 +52,66 @@ function GlobeIcon({ className = 'w-4 h-4' }: { className?: string }) {
 }
 
 /**
- * Format time for display
+ * Format time for display with error handling for invalid timezones
  */
 function formatTime(date: Date, timezone: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: timezone,
-  }).format(date);
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: timezone,
+    }).format(date);
+  } catch {
+    // Fallback to local time if timezone is invalid
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
 }
 
 /**
- * Get timezone abbreviation (e.g., 'PST', 'CET')
+ * Get timezone abbreviation (e.g., 'PST', 'CET') with error handling
  */
 function getTimezoneAbbr(date: Date, timezone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZoneName: 'short',
-    timeZone: timezone,
-  }).formatToParts(date);
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZoneName: 'short',
+      timeZone: timezone,
+    }).formatToParts(date);
 
-  const tzPart = parts.find((part) => part.type === 'timeZoneName');
-  return tzPart?.value || timezone.split('/').pop() || '';
+    const tzPart = parts.find((part) => part.type === 'timeZoneName');
+    return tzPart?.value || timezone.split('/').pop() || '';
+  } catch {
+    // Return a reasonable fallback for invalid timezone
+    return timezone.split('/').pop()?.replace(/_/g, ' ') || 'Local';
+  }
 }
 
 /**
- * Calculate time difference between two timezones in hours
+ * Calculate time difference between two timezones in hours with error handling
  */
 function getTimeDifferenceHours(timezone1: string, timezone2: string): number {
-  const now = new Date();
+  try {
+    const now = new Date();
 
-  // Get the offset for each timezone
-  const getOffset = (tz: string): number => {
-    const date = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-    const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-    return (date.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
-  };
+    // Get the offset for each timezone
+    const getOffset = (tz: string): number => {
+      const date = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+      const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+      return (date.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
+    };
 
-  const offset1 = getOffset(timezone1);
-  const offset2 = getOffset(timezone2);
+    const offset1 = getOffset(timezone1);
+    const offset2 = getOffset(timezone2);
 
-  return offset1 - offset2;
+    return offset1 - offset2;
+  } catch {
+    // Return 0 (same timezone) if calculation fails
+    return 0;
+  }
 }
 
 /**
@@ -120,26 +139,31 @@ function formatTimeDifference(hours: number): string {
 }
 
 /**
- * Get day indicator if different from home
+ * Get day indicator if different from home with error handling
  */
 function getDayIndicator(tripTimezone: string, homeTimezone: string): string | null {
-  const now = new Date();
+  try {
+    const now = new Date();
 
-  const tripDay = new Intl.DateTimeFormat('en-US', {
-    weekday: 'short',
-    timeZone: tripTimezone,
-  }).format(now);
+    const tripDay = new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      timeZone: tripTimezone,
+    }).format(now);
 
-  const homeDay = new Intl.DateTimeFormat('en-US', {
-    weekday: 'short',
-    timeZone: homeTimezone,
-  }).format(now);
+    const homeDay = new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      timeZone: homeTimezone,
+    }).format(now);
 
-  if (tripDay !== homeDay) {
-    return tripDay;
+    if (tripDay !== homeDay) {
+      return tripDay;
+    }
+
+    return null;
+  } catch {
+    // Return null if timezone comparison fails
+    return null;
   }
-
-  return null;
 }
 
 /**

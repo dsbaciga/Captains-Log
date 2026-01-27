@@ -124,7 +124,7 @@ interface LocationMarkerProps {
   x: number;
   y: number;
   index: number;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
 }
 
 function LocationMarker({ name, x, y, index, onClick }: LocationMarkerProps) {

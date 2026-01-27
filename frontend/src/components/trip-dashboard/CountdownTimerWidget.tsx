@@ -234,7 +234,7 @@ function CountdownUnit({
           w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center
           transition-all duration-300
           ${getUrgencyClasses()}
-          ${urgency === 'imminent' ? 'animate-pulse-subtle' : ''}
+          ${urgency === 'imminent' ? 'motion-safe:animate-pulse-subtle' : ''}
         `}
       >
         <span className="text-2xl sm:text-3xl font-bold font-display tabular-nums">
@@ -302,7 +302,7 @@ function TripInProgressDisplay({ progress }: { progress: TripProgress }) {
       {/* Live indicator */}
       <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30">
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+          <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
         </span>
         <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
@@ -379,19 +379,59 @@ export default function CountdownTimerWidget({
   // Parse dates with timezone consideration
   const { startDate, endDate } = useMemo(() => {
     // Parse dates - they come as ISO strings or date strings
-    const start = tripStartDate ? new Date(tripStartDate) : null;
-    const end = tripEndDate ? new Date(tripEndDate) : null;
+    // We need to interpret them in the trip timezone for correct countdown
+    const parseInTimezone = (dateStr: string, isEndOfDay: boolean): Date => {
+      // Create a date string that represents the start/end of day in the trip timezone
+      const datePart = dateStr.split('T')[0]; // Get just the date part (YYYY-MM-DD)
+      const timePart = isEndOfDay ? '23:59:59' : '00:00:00';
 
-    // Set to start of day in trip timezone for consistent comparison
-    if (start) {
-      start.setHours(0, 0, 0, 0);
-    }
-    if (end) {
-      end.setHours(23, 59, 59, 999);
-    }
+      // Create a formatter to get the timezone offset for the trip timezone
+      try {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: tripTimezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+
+        // Parse the date as if it's in the trip timezone
+        const baseDate = new Date(`${datePart}T${timePart}`);
+
+        // Get current offset difference between local and trip timezone
+        const localTime = new Date();
+        const localOffset = localTime.getTimezoneOffset();
+
+        // Format a test date in trip timezone to calculate offset
+        const parts = formatter.formatToParts(localTime);
+        const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
+        const tripTimeStr = `${getPart('year')}-${getPart('month')}-${getPart('day')}T${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
+        const tripTimeAsLocal = new Date(tripTimeStr);
+        const tripOffset = (localTime.getTime() - tripTimeAsLocal.getTime()) / 60000;
+
+        // Adjust the base date by the timezone difference
+        const offsetDiff = tripOffset - localOffset;
+        return new Date(baseDate.getTime() + offsetDiff * 60000);
+      } catch {
+        // Fallback to simple parsing if timezone handling fails
+        const date = new Date(dateStr);
+        if (isEndOfDay) {
+          date.setHours(23, 59, 59, 999);
+        } else {
+          date.setHours(0, 0, 0, 0);
+        }
+        return date;
+      }
+    };
+
+    const start = tripStartDate ? parseInTimezone(tripStartDate, false) : null;
+    const end = tripEndDate ? parseInTimezone(tripEndDate, true) : null;
 
     return { startDate: start, endDate: end };
-  }, [tripStartDate, tripEndDate]);
+  }, [tripStartDate, tripEndDate, tripTimezone]);
 
   // Determine display mode based on status and dates
   const displayMode = useMemo(() => {
@@ -523,7 +563,7 @@ export default function CountdownTimerWidget({
             <h4
               className={`text-2xl sm:text-3xl font-bold font-display mb-1 ${
                 excitement.urgency === 'imminent'
-                  ? 'text-gradient animate-pulse-subtle'
+                  ? 'text-gradient motion-safe:animate-pulse-subtle'
                   : excitement.urgency === 'high'
                     ? 'text-gradient'
                     : 'text-charcoal dark:text-warm-gray'

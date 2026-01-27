@@ -19,6 +19,7 @@ interface FlightStatusWidgetProps {
   flights: Flight[];
   tripTimezone: string;
   onNavigateToFlight: (flightId: number) => void;
+  onNavigateToTransportation?: () => void;
   onRefreshStatus?: () => void;
   isLoading?: boolean;
 }
@@ -497,6 +498,7 @@ export default function FlightStatusWidget({
   flights,
   tripTimezone,
   onNavigateToFlight,
+  onNavigateToTransportation,
   onRefreshStatus,
   isLoading = false,
 }: FlightStatusWidgetProps) {
@@ -582,7 +584,7 @@ export default function FlightStatusWidget({
       {flights.length > 2 && (
         <div className="mt-4 pt-3 border-t border-slate/10 dark:border-warm-gray/10">
           <button
-            onClick={() => onNavigateToFlight(flights[0]?.id)}
+            onClick={onNavigateToTransportation || (() => onNavigateToFlight(flights[0]?.id))}
             className="w-full text-center text-sm font-medium text-primary-600 dark:text-gold hover:underline
               py-1.5 rounded-lg hover:bg-primary-50/50 dark:hover:bg-navy-700/30 transition-colors duration-200"
           >

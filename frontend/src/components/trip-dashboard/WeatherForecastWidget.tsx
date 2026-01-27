@@ -314,17 +314,22 @@ function isToday(dateString: string): boolean {
 
 /**
  * Generate pack recommendations based on weather conditions
+ * Note: Temperatures are assumed to be in the same unit as the widget's temperatureUnit
  */
-function getPackRecommendations(forecast: ForecastDay[]): string[] {
+function getPackRecommendations(forecast: ForecastDay[], temperatureUnit: 'celsius' | 'fahrenheit'): string[] {
   const recommendations: Set<string> = new Set();
+
+  // Define temperature thresholds based on unit
+  const coldThreshold = temperatureUnit === 'celsius' ? 10 : 50; // 10°C or 50°F
+  const hotThreshold = temperatureUnit === 'celsius' ? 30 : 86;  // 30°C or 86°F
 
   forecast.forEach((day) => {
     // Temperature-based recommendations
-    if (day.low < 10) {
+    if (day.low < coldThreshold) {
       recommendations.add('Warm jacket');
       recommendations.add('Layers');
     }
-    if (day.high > 30) {
+    if (day.high > hotThreshold) {
       recommendations.add('Sunscreen');
       recommendations.add('Hat');
       recommendations.add('Light clothing');
@@ -624,8 +629,8 @@ export default function WeatherForecastWidget({
   // Generate pack recommendations
   const packRecommendations = useMemo(() => {
     if (!forecast || forecast.length === 0) return [];
-    return getPackRecommendations(forecast);
-  }, [forecast]);
+    return getPackRecommendations(forecast, temperatureUnit);
+  }, [forecast, temperatureUnit]);
 
   // Loading state
   if (isLoading) {

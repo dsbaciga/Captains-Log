@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import type { Trip } from '../../types/trip';
 import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
@@ -186,13 +186,13 @@ export default function TripDashboard({
         name: loc.name,
         latitude: loc.latitude ? Number(loc.latitude) : null,
         longitude: loc.longitude ? Number(loc.longitude) : null,
-        category: loc.category || undefined,
+        category: loc.category ? String(loc.category) : undefined,
       })),
     [locations]
   );
 
   // Handle event click from TodaysItinerary
-  const handleEventClick = (eventType: string, eventId: string) => {
+  const handleEventClick = useCallback((eventType: string, eventId: string) => {
     // Map event type to tab name
     const tabMap: Record<string, string> = {
       activity: 'activities',
@@ -203,17 +203,22 @@ export default function TripDashboard({
     onNavigateToTab(tabName);
     // The onNavigateToEntity callback can be used for more specific navigation
     onNavigateToEntity(eventType, eventId);
-  };
+  }, [onNavigateToTab, onNavigateToEntity]);
 
   // Handle location click from map
-  const handleLocationClick = (locationId: number) => {
+  const handleLocationClick = useCallback((locationId: number) => {
     onNavigateToEntity('location', String(locationId));
-  };
+  }, [onNavigateToEntity]);
 
   // Handle flight click
-  const handleFlightClick = (flightId: number) => {
+  const handleFlightClick = useCallback((flightId: number) => {
     onNavigateToEntity('transportation', String(flightId));
-  };
+  }, [onNavigateToEntity]);
+
+  // Handle navigate to transportation tab
+  const handleNavigateToTransportation = useCallback(() => {
+    onNavigateToTab('transportation');
+  }, [onNavigateToTab]);
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -312,6 +317,7 @@ export default function TripDashboard({
               tripStartDate={trip.startDate}
               tripEndDate={trip.endDate}
               tripTimezone={tripTimezone}
+              photosCount={photosCount}
               onNavigateToTab={onNavigateToTab}
             />
           </div>
@@ -351,6 +357,7 @@ export default function TripDashboard({
                 flights={flightStatus || []}
                 tripTimezone={tripTimezone}
                 onNavigateToFlight={handleFlightClick}
+                onNavigateToTransportation={handleNavigateToTransportation}
                 onRefreshStatus={onRefreshFlightStatus}
                 isLoading={flightStatusLoading}
               />

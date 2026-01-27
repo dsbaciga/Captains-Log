@@ -152,11 +152,10 @@ interface CategoryRowProps {
   name: string;
   amount: number;
   total: number;
-  currency: string;
   formatCurrency: (amount: number) => string;
 }
 
-function CategoryRow({ name, amount, total, currency, formatCurrency }: CategoryRowProps) {
+function CategoryRow({ name, amount, total, formatCurrency }: CategoryRowProps) {
   const percentage = total > 0 ? Math.round((amount / total) * 100) : 0;
   const IconComponent = CategoryIcons[name] || CategoryIcons.other;
 
@@ -397,7 +396,6 @@ export default function BudgetSummaryWidget({
                       name={category}
                       amount={amount}
                       total={breakdownTotal}
-                      currency={currency}
                       formatCurrency={formatCurrency}
                     />
                   ))}

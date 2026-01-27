@@ -34,6 +34,7 @@ interface NextUpCardProps {
   tripStartDate: string | null;
   tripEndDate: string | null;
   tripTimezone: string;
+  photosCount?: number;
   onNavigateToTab: (tabName: string) => void;
 }
 
@@ -49,6 +50,7 @@ function NoEventsState({ onAddActivity }: { onAddActivity: () => void }) {
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -58,15 +60,15 @@ function NoEventsState({ onAddActivity }: { onAddActivity: () => void }) {
           />
         </svg>
       </div>
-      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+      <h4 className="text-lg font-semibold text-charcoal dark:text-warm-gray mb-2">
         No upcoming events
       </h4>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+      <p className="text-sm text-slate dark:text-warm-gray/70 mb-4">
         Add your first activity to start planning your trip!
       </p>
       <button
         onClick={onAddActivity}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 dark:from-accent-400 dark:to-accent-600 text-white font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+        className="btn-primary"
       >
         <PlusIcon className="w-4 h-4" />
         Add Activity
@@ -90,7 +92,7 @@ function DreamTripState({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -101,7 +103,7 @@ function DreamTripState({
         <span className="text-sm font-medium">Dream Trip</span>
       </div>
 
-      <p className="text-sm text-gray-600 dark:text-gray-300">
+      <p className="text-sm text-slate dark:text-warm-gray/80">
         Start turning your dream into reality! Here&apos;s your first planned event:
       </p>
 
@@ -139,6 +141,7 @@ function CompletedTripState({
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -148,10 +151,10 @@ function CompletedTripState({
           />
         </svg>
       </div>
-      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+      <h4 className="text-lg font-semibold text-charcoal dark:text-warm-gray mb-2">
         Trip Complete!
       </h4>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+      <p className="text-sm text-slate dark:text-warm-gray/70 mb-4">
         {activitiesCount > 0 || photosCount > 0
           ? `${activitiesCount} activities and ${photosCount} photos captured.`
           : 'View your trip memories and experiences.'}
@@ -159,14 +162,14 @@ function CompletedTripState({
       <div className="flex flex-wrap justify-center gap-3">
         <button
           onClick={onViewMemories}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 dark:from-accent-400 dark:to-accent-600 text-white font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+          className="btn-primary"
         >
           View Photos
           <ChevronRightIcon className="w-4 h-4" />
         </button>
         <button
           onClick={onViewTimeline}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gold/30 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-navy-700 transition-colors"
+          className="btn-secondary"
         >
           View Timeline
         </button>
@@ -186,6 +189,7 @@ export default function NextUpCard({
   tripStartDate,
   tripEndDate,
   tripTimezone,
+  photosCount = 0,
   onNavigateToTab,
 }: NextUpCardProps) {
   // Calculate the next event and display state
@@ -219,7 +223,6 @@ export default function NextUpCard({
 
   // Calculate counts for completed state
   const activitiesCount = activities.length;
-  const photosCount = 0; // Would need to be passed as prop if needed
 
   // Determine the header based on state
   const getHeaderText = () => {
@@ -244,7 +247,7 @@ export default function NextUpCard({
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="flex-1">
           <div className="flex items-center justify-between sm:justify-start gap-3 mb-2">
-            <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+            <h3 className="font-semibold text-lg text-charcoal dark:text-warm-gray">
               {getHeaderText()}
             </h3>
             {hasScheduledEvents && displayState !== 'completed' && displayState !== 'no_events' && (
