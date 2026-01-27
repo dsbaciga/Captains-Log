@@ -27,7 +27,7 @@ interface TripDashboardProps {
   photosCount: number;
   checklists: Checklist[];
   companions: Companion[];
-  onNavigateToTab: (tab: string, options?: { action?: string }) => void;
+  onNavigateToTab: (tab: string, options?: { action?: string; scrollToDate?: string }) => void;
   onStatusChange: (newStatus: string) => Promise<void>;
   onPrintItinerary: () => void;
   onToggleChecklistItem: (checklistId: number, itemId: number, completed: boolean) => Promise<void>;
@@ -177,7 +177,7 @@ export default function TripDashboard({
                 lodging={lodging}
                 tripTimezone={tripTimezone}
                 onEventClick={handleEventClick}
-                onNavigateToTimeline={() => onNavigateToTab('timeline')}
+                onNavigateToTimeline={(date) => onNavigateToTab('timeline', { scrollToDate: date })}
               />
             </div>
           )}

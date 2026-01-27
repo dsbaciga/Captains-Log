@@ -23,7 +23,8 @@ interface TodaysItineraryProps {
   tripTimezone: string;
   weatherData?: { icon: string; temp: number } | null;
   onEventClick: (eventType: string, eventId: string) => void;
-  onNavigateToTimeline?: () => void;
+  /** Navigate to timeline for a specific date (YYYY-MM-DD format) */
+  onNavigateToTimeline?: (date: string) => void;
 }
 
 /**
@@ -501,10 +502,14 @@ export default function TodaysItinerary({
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
-            onClick={onNavigateToTimeline}
+            onClick={() => {
+              // Navigate to today's date on the timeline
+              const todayStr = getTodayInTimezone(tripTimezone);
+              onNavigateToTimeline(todayStr);
+            }}
             className="text-sm text-primary-600 dark:text-gold hover:text-primary-700 dark:hover:text-gold/80 font-medium"
           >
-            View full timeline
+            View today on timeline
           </button>
         </div>
       )}
