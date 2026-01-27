@@ -30,6 +30,7 @@ import searchRoutes from './routes/search.routes';
 import backupRoutes from './routes/backup.routes';
 import entityLinkRoutes from './routes/entityLink.routes';
 import collaborationRoutes from './routes/collaboration.routes';
+import flightTrackingRoutes from './routes/flightTracking.routes';
 
 // Read version from package.json
 const packageJson = JSON.parse(
@@ -167,6 +168,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/trips/:tripId/links', entityLinkRoutes);
 app.use('/api', collaborationRoutes);
+app.use('/api', flightTrackingRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

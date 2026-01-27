@@ -425,16 +425,22 @@ model WeatherData {
 }
 
 model FlightTracking {
-  id              Int       @id @default(autoincrement())
-  transportationId Int      @unique @map("transportation_id")
-  flightNumber    String?   @map("flight_number") @db.VarChar(50)
-  airlineCode     String?   @map("airline_code") @db.VarChar(10)
-  status          String?   @db.VarChar(50) // scheduled, active, landed, cancelled, diverted
-  gate            String?   @db.VarChar(20)
-  terminal        String?   @db.VarChar(20)
-  baggageClaim    String?   @map("baggage_claim") @db.VarChar(20)
-  lastUpdatedAt   DateTime  @default(now()) @map("last_updated_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id                 Int       @id @default(autoincrement())
+  transportationId   Int       @unique @map("transportation_id")
+  flightNumber       String?   @map("flight_number") @db.VarChar(50)
+  airlineCode        String?   @map("airline_code") @db.VarChar(10)
+  status             String?   @db.VarChar(50) // scheduled, active, landed, cancelled, diverted
+  gate               String?   @db.VarChar(20)
+  terminal           String?   @db.VarChar(20)
+  baggageClaim       String?   @map("baggage_claim") @db.VarChar(20)
+  departureDelay     Int?      @map("departure_delay") // Delay in minutes
+  arrivalDelay       Int?      @map("arrival_delay") // Delay in minutes
+  scheduledDeparture DateTime? @map("scheduled_departure")
+  actualDeparture    DateTime? @map("actual_departure")
+  scheduledArrival   DateTime? @map("scheduled_arrival")
+  actualArrival      DateTime? @map("actual_arrival")
+  lastUpdatedAt      DateTime  @default(now()) @map("last_updated_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
 
   transportation Transportation @relation(fields: [transportationId], references: [id], onDelete: Cascade)
 

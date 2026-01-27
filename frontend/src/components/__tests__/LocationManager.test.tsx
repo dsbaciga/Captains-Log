@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
 import LocationManager from "../LocationManager";
@@ -19,9 +19,6 @@ import locationService from "../../services/location.service";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   mockLocation,
-  mockLocationParent,
-  mockLocationChild,
-  mockLocations,
   mockLocationCategories,
   createMockLocation,
 } from "../../test/fixtures";

@@ -271,12 +271,13 @@ export async function fillForm(
       case 'textarea':
         await fillTextareaByLabel(user, label, config.value as string);
         break;
-      case 'checkbox':
+      case 'checkbox': {
         const checkbox = screen.getByLabelText(label) as HTMLInputElement;
         if (checkbox.checked !== config.value) {
           await user.click(checkbox);
         }
         break;
+      }
     }
   }
 }

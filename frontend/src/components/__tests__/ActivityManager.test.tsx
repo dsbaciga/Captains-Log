@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
 import ActivityManager from "../ActivityManager";
@@ -21,10 +21,6 @@ import userService from "../../services/user.service";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   mockActivity,
-  mockActivityUnscheduled,
-  mockActivityAllDay,
-  mockActivities,
-  mockActivityCategories,
   mockUser,
   mockLocations,
   createMockActivity,
