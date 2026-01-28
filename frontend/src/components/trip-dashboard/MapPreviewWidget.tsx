@@ -1,5 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { Icon, LatLngBounds } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { ChevronRightIcon, MapPinIcon } from '../icons';
+
+// Fix for default marker icon
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+delete (Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
+Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+});
 
 interface MapPreviewWidgetProps {
   locations: {
@@ -58,98 +73,28 @@ function GlobeIcon({ className = 'w-5 h-5' }: { className?: string }) {
 }
 
 /**
- * Calculates the bounding box of locations with coordinates
+ * Component to automatically fit bounds to show all markers
  */
-function calculateBounds(
-  locations: { latitude: number | null; longitude: number | null }[]
-): { minLat: number; maxLat: number; minLng: number; maxLng: number } | null {
-  const validLocations = locations.filter(
-    (loc): loc is { latitude: number; longitude: number } =>
-      loc.latitude !== null && loc.longitude !== null
-  );
+function MapBounds({ locations }: { locations: { latitude: number; longitude: number }[] }) {
+  const map = useMap();
 
-  if (validLocations.length === 0) return null;
+  useEffect(() => {
+    if (locations.length === 0) return;
 
-  const lats = validLocations.map((loc) => loc.latitude);
-  const lngs = validLocations.map((loc) => loc.longitude);
+    if (locations.length === 1) {
+      // If only one location, center on it with a reasonable zoom
+      const loc = locations[0];
+      map.setView([loc.latitude, loc.longitude], 13);
+    } else {
+      // If multiple locations, fit bounds to show all
+      const bounds = new LatLngBounds(
+        locations.map((loc) => [loc.latitude, loc.longitude])
+      );
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+  }, [locations, map]);
 
-  return {
-    minLat: Math.min(...lats),
-    maxLat: Math.max(...lats),
-    minLng: Math.min(...lngs),
-    maxLng: Math.max(...lngs),
-  };
-}
-
-/**
- * Normalizes a coordinate to a position within the preview area (0-100%)
- */
-function normalizePosition(
-  lat: number,
-  lng: number,
-  bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }
-): { x: number; y: number } {
-  const latRange = bounds.maxLat - bounds.minLat;
-  const lngRange = bounds.maxLng - bounds.minLng;
-
-  // Add padding so markers don't sit on edges
-  const padding = 0.15;
-
-  // Handle single point case
-  if (latRange === 0 && lngRange === 0) {
-    return { x: 50, y: 50 };
-  }
-
-  // Normalize to 0-1 range with padding
-  const normalizedLng =
-    lngRange === 0
-      ? 0.5
-      : padding + ((lng - bounds.minLng) / lngRange) * (1 - 2 * padding);
-  const normalizedLat =
-    latRange === 0
-      ? 0.5
-      : padding + ((bounds.maxLat - lat) / latRange) * (1 - 2 * padding);
-
-  return {
-    x: normalizedLng * 100,
-    y: normalizedLat * 100,
-  };
-}
-
-/**
- * Individual location marker on the preview map
- */
-interface LocationMarkerProps {
-  name: string;
-  x: number;
-  y: number;
-  index: number;
-  onClick?: (e?: React.MouseEvent) => void;
-}
-
-function LocationMarker({ name, x, y, index, onClick }: LocationMarkerProps) {
-  return (
-    <button
-      type="button"
-      className={`absolute w-3 h-3 -ml-1.5 -mt-1.5 rounded-full
-        bg-primary-500 dark:bg-gold
-        border-2 border-white dark:border-navy-800
-        shadow-md
-        hover:scale-125 hover:z-10
-        transition-transform duration-200
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:focus-visible:ring-gold/50
-        ${onClick ? 'cursor-pointer' : 'cursor-default'}
-      `}
-      style={{
-        left: `${x}%`,
-        top: `${y}%`,
-        animationDelay: `${index * 100}ms`,
-      }}
-      onClick={onClick}
-      title={name}
-      aria-label={`Location: ${name}`}
-    />
-  );
+  return null;
 }
 
 /**
@@ -187,13 +132,14 @@ function LocationListItem({ name, category, onClick }: LocationListItemProps) {
 }
 
 /**
- * MapPreviewWidget - Dashboard widget showing a mini map preview of trip locations
+ * MapPreviewWidget - Dashboard widget showing a Leaflet map preview of trip locations
  *
  * Features:
- * - Lightweight CSS-based map preview (no heavy map library)
- * - Shows location markers positioned by coordinates
+ * - Real Leaflet map with OpenStreetMap tiles
+ * - Shows location markers with popups
+ * - Auto-fits bounds to show all locations
  * - Displays location count badge
- * - Lists first 3-4 location names
+ * - Lists first 4 location names
  * - Click to expand to full map view
  * - Dark mode support
  * - Empty state when no locations
@@ -207,25 +153,11 @@ export default function MapPreviewWidget({
   const locationsWithCoords = useMemo(
     () =>
       locations.filter(
-        (loc) => loc.latitude !== null && loc.longitude !== null
+        (loc): loc is typeof loc & { latitude: number; longitude: number } =>
+          loc.latitude !== null && loc.longitude !== null
       ),
     [locations]
   );
-
-  // Calculate bounds for positioning markers
-  const bounds = useMemo(
-    () => calculateBounds(locationsWithCoords),
-    [locationsWithCoords]
-  );
-
-  // Calculate marker positions
-  const markerPositions = useMemo(() => {
-    if (!bounds) return [];
-    return locationsWithCoords.map((loc) => ({
-      ...loc,
-      position: normalizePosition(loc.latitude!, loc.longitude!, bounds),
-    }));
-  }, [locationsWithCoords, bounds]);
 
   // Get locations to display in list (first 4)
   const displayLocations = locations.slice(0, 4);
@@ -234,6 +166,16 @@ export default function MapPreviewWidget({
   // Check states
   const hasLocations = locations.length > 0;
   const hasCoordinates = locationsWithCoords.length > 0;
+
+  // Calculate center point for initial map view
+  const center = useMemo(() => {
+    if (locationsWithCoords.length === 0) {
+      return { lat: 0, lng: 0 };
+    }
+    const lat = locationsWithCoords.reduce((sum, loc) => sum + loc.latitude, 0) / locationsWithCoords.length;
+    const lng = locationsWithCoords.reduce((sum, loc) => sum + loc.longitude, 0) / locationsWithCoords.length;
+    return { lat, lng };
+  }, [locationsWithCoords]);
 
   // Empty state - no locations at all
   if (!hasLocations) {
@@ -246,6 +188,7 @@ export default function MapPreviewWidget({
             Map
           </h3>
           <button
+            type="button"
             onClick={onNavigateToMap}
             className="p-1.5 rounded-lg text-slate hover:text-primary-600 dark:text-warm-gray/50 dark:hover:text-gold
               hover:bg-primary-50 dark:hover:bg-navy-700 transition-colors duration-200"
@@ -264,6 +207,7 @@ export default function MapPreviewWidget({
             No locations added yet
           </p>
           <button
+            type="button"
             onClick={onNavigateToMap}
             className="text-sm font-medium text-primary-600 dark:text-gold hover:underline"
           >
@@ -289,6 +233,7 @@ export default function MapPreviewWidget({
           </span>
         </div>
         <button
+          type="button"
           onClick={onNavigateToMap}
           className="p-1.5 rounded-lg text-slate hover:text-primary-600 dark:text-warm-gray/50 dark:hover:text-gold
             hover:bg-primary-50 dark:hover:bg-navy-700 transition-colors duration-200"
@@ -300,7 +245,7 @@ export default function MapPreviewWidget({
 
       {/* Map Preview Area */}
       <div
-        className="relative h-32 rounded-xl overflow-hidden mb-4 cursor-pointer group"
+        className="relative h-40 rounded-xl overflow-hidden mb-4 cursor-pointer group"
         onClick={onNavigateToMap}
         role="button"
         tabIndex={0}
@@ -312,65 +257,51 @@ export default function MapPreviewWidget({
         }}
         aria-label="Click to view full map"
       >
-        {/* Background pattern to suggest a map */}
-        <div
-          className="absolute inset-0 bg-gradient-to-br from-primary-50 to-primary-100/50
-            dark:from-navy-700 dark:to-navy-800
-            transition-all duration-300
-            group-hover:from-primary-100 group-hover:to-primary-200/50
-            dark:group-hover:from-navy-600 dark:group-hover:to-navy-700"
-        >
-          {/* Grid pattern overlay */}
-          <div
-            className="absolute inset-0 opacity-20 dark:opacity-10"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, currentColor 1px, transparent 1px),
-                linear-gradient(to bottom, currentColor 1px, transparent 1px)
-              `,
-              backgroundSize: '20px 20px',
-            }}
-          />
-
-          {/* Subtle compass rose decoration */}
-          <div className="absolute top-2 right-2 opacity-20 dark:opacity-10">
-            <svg className="w-8 h-8 text-primary-500 dark:text-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="12" cy="12" r="10" strokeWidth="1" />
-              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" strokeWidth="1" />
-              <path d="M12 8l-2 4 2 4 2-4-2-4z" fill="currentColor" strokeWidth="0" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Location markers */}
         {hasCoordinates ? (
-          <div className="absolute inset-0">
-            {markerPositions.slice(0, 10).map((loc, index) => (
-              <LocationMarker
-                key={loc.id}
-                name={loc.name}
-                x={loc.position.x}
-                y={loc.position.y}
-                index={index}
-                onClick={
-                  onLocationClick
-                    ? (e) => {
-                        e?.stopPropagation();
-                        onLocationClick(loc.id);
-                      }
-                    : undefined
-                }
+          <>
+            <MapContainer
+              center={[center.lat, center.lng]}
+              zoom={10}
+              scrollWheelZoom={false}
+              zoomControl={false}
+              dragging={false}
+              doubleClickZoom={false}
+              touchZoom={false}
+              style={{ height: '100%', width: '100%' }}
+              className="z-0"
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-            ))}
-            {markerPositions.length > 10 && (
-              <div className="absolute bottom-2 left-2 px-2 py-1 rounded-full bg-white/80 dark:bg-navy-800/80 text-xs font-medium text-charcoal dark:text-warm-gray">
-                +{markerPositions.length - 10} more
-              </div>
-            )}
-          </div>
+              <MapBounds locations={locationsWithCoords} />
+              {locationsWithCoords.slice(0, 20).map((location) => (
+                <Marker
+                  key={location.id}
+                  position={[location.latitude, location.longitude]}
+                >
+                  <Popup>
+                    <div className="text-sm">
+                      <strong>{location.name}</strong>
+                      {location.category && (
+                        <div className="text-xs text-gray-500">{location.category}</div>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-primary-500/0 group-hover:bg-primary-500/10 dark:group-hover:bg-gold/10 transition-colors duration-300 flex items-center justify-center pointer-events-none z-[1000]">
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 px-3 py-1.5 rounded-full bg-white/90 dark:bg-navy-800/90 text-sm font-medium text-primary-600 dark:text-gold shadow-lg">
+                View full map
+              </span>
+            </div>
+          </>
         ) : (
           /* No coordinates fallback */
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100/50 dark:from-navy-700 dark:to-navy-800">
             <div className="text-center">
               <MapPinIcon className="w-8 h-8 mx-auto text-primary-400 dark:text-gold/60 mb-1" />
               <p className="text-xs text-slate dark:text-warm-gray/70">
@@ -379,13 +310,6 @@ export default function MapPreviewWidget({
             </div>
           </div>
         )}
-
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-primary-500/0 group-hover:bg-primary-500/10 dark:group-hover:bg-gold/10 transition-colors duration-300 flex items-center justify-center">
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 px-3 py-1.5 rounded-full bg-white/90 dark:bg-navy-800/90 text-sm font-medium text-primary-600 dark:text-gold shadow-lg">
-            View full map
-          </span>
-        </div>
       </div>
 
       {/* Location List */}
@@ -410,6 +334,7 @@ export default function MapPreviewWidget({
       {/* Footer Link */}
       <div className="mt-4 pt-3 border-t border-slate/10 dark:border-warm-gray/10">
         <button
+          type="button"
           onClick={onNavigateToMap}
           className="w-full text-center text-sm font-medium text-primary-600 dark:text-gold hover:underline
             py-1.5 rounded-lg hover:bg-primary-50/50 dark:hover:bg-navy-700/30 transition-colors duration-200"

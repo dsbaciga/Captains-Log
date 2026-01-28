@@ -99,6 +99,7 @@ interface TripDashboardProps {
  * Serves as the central hub for trip information, providing an at-a-glance view of:
  * - Countdown timer (for planning/planned trips with dates)
  * - Local time widget (for international trips with different timezone)
+ * - Trip statistics (at a glance)
  * - Quick actions based on trip status
  * - Recent activity
  * - Companions widget
@@ -109,15 +110,14 @@ interface TripDashboardProps {
  * - Flight status (when flight data provided)
  * - Budget summary (when budget data provided)
  * - Checklists progress
- * - Trip statistics
  *
  * Layout:
  * - Top row: Countdown and/or Local Time (responsive 1-2 columns)
+ * - Trip at a Glance stats (full width)
  * - Quick Actions Bar (full width)
  * - Main Grid:
  *   - Left column (1/3): Recent Activity, Companions, Map, Checklists
  *   - Right column (2/3): Next Up, Itinerary, Weather, Flights, Budget
- * - Trip Stats (full width)
  * - Mobile: Single column stacked layout
  */
 export default function TripDashboard({
@@ -186,7 +186,7 @@ export default function TripDashboard({
         name: loc.name,
         latitude: loc.latitude ? Number(loc.latitude) : null,
         longitude: loc.longitude ? Number(loc.longitude) : null,
-        category: loc.category ? String(loc.category) : undefined,
+        category: loc.category?.name,
       })),
     [locations]
   );
@@ -246,8 +246,42 @@ export default function TripDashboard({
         </div>
       )}
 
+      {/* Trip at a Glance - Full Width */}
+      <div className="card p-6 animate-fade-in stagger-1">
+        <h3 className="font-body font-semibold text-lg text-charcoal dark:text-warm-gray mb-4 flex items-center gap-2">
+          <svg
+            className="w-5 h-5 text-primary-500 dark:text-gold"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          Trip at a Glance
+        </h3>
+        <TripStats
+          locationsCount={locationsCount}
+          photosCount={photosCount}
+          activitiesCount={activitiesCount}
+          transportationCount={transportationCount}
+          lodgingCount={lodgingCount}
+          journalCount={journalCount}
+          companionsCount={companionsCount}
+          unscheduledCount={unscheduledCount}
+          tripStartDate={trip.startDate}
+          tripEndDate={trip.endDate}
+          onNavigateToTab={onNavigateToTab}
+        />
+      </div>
+
       {/* Quick Actions Bar - Full Width */}
-      <div className="animate-fade-in stagger-1">
+      <div className="animate-fade-in stagger-2">
         <QuickActionsBar
           tripStatus={trip.status}
           onNavigateToTab={onNavigateToTab}
@@ -377,40 +411,6 @@ export default function TripDashboard({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Trip Stats Grid - Full Width */}
-      <div className="card p-6 animate-fade-in stagger-4">
-        <h3 className="font-body font-semibold text-lg text-charcoal dark:text-warm-gray mb-4 flex items-center gap-2">
-          <svg
-            className="w-5 h-5 text-primary-500 dark:text-gold"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
-          Trip at a Glance
-        </h3>
-        <TripStats
-          locationsCount={locationsCount}
-          photosCount={photosCount}
-          activitiesCount={activitiesCount}
-          transportationCount={transportationCount}
-          lodgingCount={lodgingCount}
-          journalCount={journalCount}
-          companionsCount={companionsCount}
-          unscheduledCount={unscheduledCount}
-          tripStartDate={trip.startDate}
-          tripEndDate={trip.endDate}
-          onNavigateToTab={onNavigateToTab}
-        />
       </div>
     </div>
   );

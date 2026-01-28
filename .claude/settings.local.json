@@ -53,7 +53,8 @@
       "Bash(npx @playwright/mcp@latest)",
       "Bash(mcp list:*)",
       "Bash(npm install:*)",
-      "Bash(npx madge:*)"
+      "Bash(npx madge:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

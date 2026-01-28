@@ -5,20 +5,19 @@
 
 interface IconProps {
   className?: string;
-  'aria-hidden'?: boolean;
 }
 
 /**
  * Close/X icon - used for closing modals, dialogs, sidebars
  */
-export function CloseIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function CloseIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -33,14 +32,14 @@ export function CloseIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Search/magnifying glass icon
  */
-export function SearchIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function SearchIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -55,14 +54,14 @@ export function SearchIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Filter icon
  */
-export function FilterIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function FilterIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -77,14 +76,14 @@ export function FilterIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Plus icon - for add buttons
  */
-export function PlusIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function PlusIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -99,14 +98,14 @@ export function PlusIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Trash/delete icon
  */
-export function TrashIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function TrashIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -121,14 +120,14 @@ export function TrashIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Chevron right icon - for navigation, expand indicators
  */
-export function ChevronRightIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function ChevronRightIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -143,14 +142,14 @@ export function ChevronRightIcon({ className = 'w-5 h-5', ...props }: IconProps)
 /**
  * Chevron down icon
  */
-export function ChevronDownIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function ChevronDownIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -165,14 +164,14 @@ export function ChevronDownIcon({ className = 'w-5 h-5', ...props }: IconProps) 
 /**
  * Photo/image icon
  */
-export function PhotoIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function PhotoIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -187,13 +186,13 @@ export function PhotoIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Spinner/loading icon
  */
-export function SpinnerIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function SpinnerIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={`animate-spin ${className}`}
       fill="none"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <circle
         className="opacity-25"
@@ -215,14 +214,14 @@ export function SpinnerIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Edit/pencil icon
  */
-export function EditIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function EditIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -237,14 +236,14 @@ export function EditIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Map pin/location icon
  */
-export function MapPinIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function MapPinIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -265,14 +264,14 @@ export function MapPinIcon({ className = 'w-5 h-5', ...props }: IconProps) {
 /**
  * Calendar icon
  */
-export function CalendarIcon({ className = 'w-5 h-5', ...props }: IconProps) {
+export function CalendarIcon({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden={props['aria-hidden'] ?? true}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"

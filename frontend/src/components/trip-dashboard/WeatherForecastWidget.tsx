@@ -438,7 +438,7 @@ function ForecastDayCard({ day, temperatureUnit, isFirst = false }: ForecastDayC
         }
         ${isFirst ? 'ml-0' : ''}
       `}
-      role="article"
+      role="listitem"
       aria-label={`Weather for ${formatFullDate(day.date)}`}
     >
       {/* Day name */}

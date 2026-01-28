@@ -18,7 +18,7 @@ import userService from "../services/user.service";
 import checklistService from "../services/checklist.service";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import type { Photo } from "../types/photo";
-import { TripStatus } from "../types/trip";
+import { TripStatus, TripStatusType } from "../types/trip";
 import toast from "react-hot-toast";
 import PhotoGallery from "../components/PhotoGallery";
 import PhotoUpload from "../components/PhotoUpload";
@@ -836,7 +836,7 @@ export default function TripDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await tripService.updateTrip(tripId, { status: newStatus as any });
+      await tripService.updateTrip(tripId, { status: newStatus as TripStatusType });
       toast.success(`Trip status updated to ${newStatus}`);
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
     } catch (error) {

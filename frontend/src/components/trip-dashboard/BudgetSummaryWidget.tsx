@@ -132,14 +132,18 @@ function BudgetProgressBar({ percentage, status }: BudgetProgressBarProps) {
   const displayPercentage = Math.min(percentage, 100);
 
   return (
-    <div className="h-3 bg-slate/10 dark:bg-navy-700 rounded-full overflow-hidden">
+    <div
+      className="h-3 bg-slate/10 dark:bg-navy-700 rounded-full overflow-hidden"
+      role="progressbar"
+      aria-valuenow={percentage}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label="Budget progress"
+    >
       <div
         className={`h-full rounded-full transition-all duration-500 ease-out ${colorClass}`}
         style={{ width: `${displayPercentage}%` }}
-        role="progressbar"
-        aria-valuenow={percentage}
-        aria-valuemin={0}
-        aria-valuemax={100}
+        aria-hidden="true"
       />
     </div>
   );
