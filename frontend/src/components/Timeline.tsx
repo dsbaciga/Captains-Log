@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import type { WeatherData, WeatherDisplay } from '../types/weather';
 import type { Activity } from '../types/activity';
@@ -92,6 +92,7 @@ const Timeline = ({
   // Create scoped logger for this component - memoized to prevent unnecessary re-renders
   const logger = useMemo(() => debugLogger.createScopedLogger('Timeline'), []);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [weatherData, setWeatherData] = useState<Record<string, WeatherData>>({});
@@ -1309,7 +1310,7 @@ const Timeline = ({
   }, [tripId]);
 
   // Print handler
-  const handlePrint = async (option: PrintOption) => {
+  const handlePrint = useCallback(async (option: PrintOption) => {
     try {
       // Set whether to include maps
       setPrintWithMaps(option === 'with-maps');
@@ -1334,7 +1335,23 @@ const Timeline = ({
       setIsPrinting(false);
       setPrintWithMaps(false);
     }
-  };
+  }, [fetchUnscheduledItems]);
+
+  // Check for print action in URL params (triggered from dashboard's Print Itinerary button)
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'print' && !loading && timelineItems.length > 0) {
+      // Clear the action param to prevent re-triggering on subsequent renders
+      setSearchParams((prev) => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('action');
+        return newParams;
+      }, { replace: true });
+
+      // Trigger print with standard option (no maps)
+      handlePrint('standard');
+    }
+  }, [searchParams, setSearchParams, loading, timelineItems.length, handlePrint]);
 
   if (loading) {
     return (

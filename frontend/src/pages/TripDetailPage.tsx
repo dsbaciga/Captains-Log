@@ -886,7 +886,14 @@ export default function TripDetailPage() {
   };
 
   const handlePrintItinerary = () => {
+    // Navigate to timeline tab with print action to trigger print dialog
     changeTab("timeline");
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set("tab", "timeline");
+      newParams.set("action", "print");
+      return newParams;
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -1315,6 +1322,11 @@ export default function TripDetailPage() {
                 checklists={checklists}
                 companions={companionsData || []}
                 onNavigateToTab={(tab, options) => {
+                  // Handle special actions that don't navigate to a tab
+                  if (tab === "duplicate") {
+                    handleOpenDuplicateDialog();
+                    return;
+                  }
                   changeTab(tab as TabId);
                   if (options?.action === "add") {
                     // Handle specific actions if needed
