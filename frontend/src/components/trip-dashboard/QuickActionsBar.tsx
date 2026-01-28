@@ -332,7 +332,7 @@ export default function QuickActionsBar({
               disabled={action.loading}
               className={`
                 flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm
-                whitespace-nowrap transition-all duration-200
+                whitespace-nowrap transition-all duration-200 flex-shrink-0
                 min-h-[44px] min-w-[44px]
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
                 disabled:opacity-50 disabled:cursor-not-allowed
