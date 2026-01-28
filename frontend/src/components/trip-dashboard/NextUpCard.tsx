@@ -182,9 +182,9 @@ function CompletedTripState({
  * Main NextUpCard component
  */
 export default function NextUpCard({
-  activities,
-  transportation,
-  lodging,
+  activities = [],
+  transportation = [],
+  lodging = [],
   tripStatus,
   tripStartDate,
   tripEndDate,
@@ -193,15 +193,20 @@ export default function NextUpCard({
   onNavigateToTab,
 }: NextUpCardProps) {
   // Calculate the next event and display state
-  const { nextEvent, displayState, hasScheduledEvents } = useMemo(() => {
-    const allEvents = normalizeAllEvents(activities, transportation, lodging);
+  const { nextEvent, displayState, hasScheduledEvents, activitiesCount } = useMemo(() => {
+    // Ensure arrays are never undefined (defensive coding for race conditions)
+    const safeActivities = activities || [];
+    const safeTransportation = transportation || [];
+    const safeLodging = lodging || [];
+
+    const allEvents = normalizeAllEvents(safeActivities, safeTransportation, safeLodging);
     const scheduled = allEvents.filter((e) => e.dateTime !== null);
     const hasScheduled = scheduled.length > 0;
 
     const event = getNextUpEvent(
-      activities,
-      transportation,
-      lodging,
+      safeActivities,
+      safeTransportation,
+      safeLodging,
       tripStatus
     );
 
@@ -216,11 +221,9 @@ export default function NextUpCard({
       nextEvent: event,
       displayState: state,
       hasScheduledEvents: hasScheduled,
+      activitiesCount: safeActivities.length,
     };
   }, [activities, transportation, lodging, tripStatus, tripStartDate, tripEndDate]);
-
-  // Calculate counts for completed state
-  const activitiesCount = activities.length;
 
   // Determine the header based on state
   const getHeaderText = () => {

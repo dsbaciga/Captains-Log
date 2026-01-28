@@ -595,13 +595,13 @@ function normalizeLodging(lodging: Lodging): NormalizedEvent {
  * Normalizes all trip events into a common format
  */
 export function normalizeAllEvents(
-  activities: Activity[],
-  transportation: Transportation[],
-  lodging: Lodging[]
+  activities: Activity[] = [],
+  transportation: Transportation[] = [],
+  lodging: Lodging[] = []
 ): NormalizedEvent[] {
-  const normalizedActivities = activities.map(normalizeActivity);
-  const normalizedTransportation = transportation.map(normalizeTransportation);
-  const normalizedLodging = lodging.map(normalizeLodging);
+  const normalizedActivities = (activities || []).map(normalizeActivity);
+  const normalizedTransportation = (transportation || []).map(normalizeTransportation);
+  const normalizedLodging = (lodging || []).map(normalizeLodging);
 
   return [...normalizedActivities, ...normalizedTransportation, ...normalizedLodging];
 }

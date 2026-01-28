@@ -834,6 +834,61 @@ export default function TripDetailPage() {
     }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await tripService.updateTrip(tripId, { status: newStatus as any });
+      toast.success(`Trip status updated to ${newStatus}`);
+      queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+    } catch (error) {
+      console.error("Failed to update trip status:", error);
+      toast.error("Failed to update trip status");
+    }
+  };
+
+  const handleToggleChecklistItem = async (
+    _checklistId: number,
+    itemId: number,
+    completed: boolean
+  ) => {
+    try {
+      await checklistService.updateChecklistItem(itemId, { isChecked: completed });
+      queryClient.invalidateQueries({ queryKey: ["checklists", tripId] });
+    } catch (error) {
+      console.error("Failed to update checklist item:", error);
+      toast.error("Failed to update checklist item");
+    }
+  };
+
+  const handleNavigateToEntity = (entityType: string, entityId: string) => {
+    const tabMap: Record<string, TabId> = {
+      activity: "activities",
+      transportation: "transportation",
+      lodging: "lodging",
+      location: "locations",
+      photo: "photos",
+      journal: "journal",
+    };
+    const targetTab = tabMap[entityType];
+    if (targetTab) {
+      changeTab(targetTab);
+      // Wait for tab change then scroll to entity
+      setTimeout(() => {
+        const element = document.querySelector(
+          `[data-entity-id="${entityType}-${entityId}"]`
+        );
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.classList.add("scroll-highlight");
+          setTimeout(() => element.classList.remove("scroll-highlight"), 2000);
+        }
+      }, 100);
+    }
+  };
+
+  const handlePrintItinerary = () => {
+    changeTab("timeline");
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case TripStatus.DREAM:
@@ -1255,10 +1310,20 @@ export default function TripDetailPage() {
                 lodging={lodgingData || []}
                 locations={locations}
                 journalEntries={journalData || []}
+                photos={photosPagination.items}
                 photosCount={totalPhotosCount}
                 checklists={checklists}
                 companions={companionsData || []}
-                onNavigateToTab={(tab) => changeTab(tab as TabId)}
+                onNavigateToTab={(tab, options) => {
+                  changeTab(tab as TabId);
+                  if (options?.action === "add") {
+                    // Handle specific actions if needed
+                  }
+                }}
+                onStatusChange={handleStatusChange}
+                onPrintItinerary={handlePrintItinerary}
+                onToggleChecklistItem={handleToggleChecklistItem}
+                onNavigateToEntity={handleNavigateToEntity}
               />
             </div>
           )}
