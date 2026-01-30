@@ -9,7 +9,6 @@ import type {
 import type { Location } from "../types/location";
 import type { EntityType, EntityLinkSummary } from "../types/entityLink";
 import transportationService from "../services/transportation.service";
-import flightTrackingService from "../services/flightTracking.service";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
@@ -384,7 +383,6 @@ export default function TransportationManager({
 }: TransportationManagerProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [sortBy, setSortBy] = useState<SortBy>("date");
-  const [isRefreshingFlights, setIsRefreshingFlights] = useState(false);
 
   // Compute initial form state with trip start date as default
   const getInitialFormState = useMemo((): TransportationFormFields => {
@@ -459,17 +457,7 @@ export default function TransportationManager({
     tripId,
     defaultValues: getInitialFormState,
     enabled: manager.showForm,
-    saveOnBlur: true, // Only save on blur to prevent focus loss
   });
-
-  // Handler to trigger draft save on blur (only when focus leaves the form)
-  const handleDraftBlur = useCallback((e: React.FocusEvent<HTMLFormElement>) => {
-    // Only save if focus is leaving the form entirely
-    // relatedTarget is the element receiving focus
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      draft.triggerSave();
-    }
-  }, [draft]);
 
   // Check for existing draft when form opens in create mode
   useEffect(() => {
@@ -994,28 +982,6 @@ export default function TransportationManager({
   // resetForm already closes the form via useFormReset
   const handleCloseForm = resetForm;
 
-  // Check if there are any flights to refresh
-  const hasFlights = manager.items.some(t => t.type === 'flight');
-
-  // Refresh flight status for all flights in the trip
-  const handleRefreshFlights = async () => {
-    setIsRefreshingFlights(true);
-    try {
-      const results = await flightTrackingService.refreshFlightsForTrip(tripId);
-      if (results.length > 0) {
-        toast.success(`Updated ${results.length} flight status(es)`);
-        onUpdate?.(); // Refresh the transportation list
-      } else {
-        toast.success('No flights with tracking data found');
-      }
-    } catch (error) {
-      console.error('Failed to refresh flights:', error);
-      toast.error('Failed to refresh flight status');
-    } finally {
-      setIsRefreshingFlights(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <ConfirmDialogComponent />
@@ -1024,29 +990,6 @@ export default function TransportationManager({
           Transportation
         </h2>
         <div className="flex items-center gap-2">
-          {hasFlights && !bulkSelection.selectionMode && (
-            <button
-              onClick={handleRefreshFlights}
-              disabled={isRefreshingFlights}
-              className="btn btn-secondary text-sm whitespace-nowrap"
-              title="Refresh flight status from AviationStack"
-            >
-              {isRefreshingFlights ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span className="hidden sm:inline">Refreshing...</span>
-                </>
-              ) : (
-                <>
-                  <span className="sm:hidden">✈️</span>
-                  <span className="hidden sm:inline">✈️ Refresh Flights</span>
-                </>
-              )}
-            </button>
-          )}
           {manager.items.length > 0 && !bulkSelection.selectionMode && (
             <button
               onClick={bulkSelection.enterSelectionMode}
@@ -1189,7 +1132,7 @@ export default function TransportationManager({
           entityType="transportation"
         />
 
-        <form id="transportation-form" onSubmit={handleSubmit} onBlur={handleDraftBlur} className="space-y-6">
+        <form id="transportation-form" onSubmit={handleSubmit} className="space-y-6">
           {/* SECTION 1: Type Selection */}
           <FormSection title="Type" icon="🚀">
             <div className="space-y-1">

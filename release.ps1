@@ -27,6 +27,9 @@
 .PARAMETER Description
     Optional description for the release tag
 
+.PARAMETER CommitMessage
+    Optional custom commit message (defaults to "Bump version to vX.X.X")
+
 .EXAMPLE
     .\release.ps1 -Version v1.12.6
 
@@ -38,6 +41,9 @@
 
 .EXAMPLE
     .\release.ps1 -Version 1.12.6 -Description "Fix Timeline z-index issues"
+
+.EXAMPLE
+    .\release.ps1 -Version patch -CommitMessage "Add Trip Map feature"
 
 .EXAMPLE
     .\release.ps1 -Version v1.12.6 -DryRun
@@ -53,7 +59,9 @@ param(
 
     [switch]$NoConfirm,
 
-    [string]$Description = ""
+    [string]$Description = "",
+
+    [string]$CommitMessage = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -194,16 +202,24 @@ if (-not $SkipBuild) {
 
 # Step 4: Commit version bump and any staged changes
 Write-Step "Committing changes"
+
+# Build commit message
+if ($CommitMessage) {
+    $finalCommitMessage = "$CommitMessage`n`nBump version to $Version"
+} else {
+    $finalCommitMessage = "Bump version to $Version"
+}
+
 if (-not $DryRun) {
     git add -A
-    git commit -m "Bump version to $Version"
+    git commit -m $finalCommitMessage
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Changes committed"
     } else {
         Write-Info "Nothing new to commit"
     }
 } else {
-    Write-Info "Would commit: Bump version to $Version"
+    Write-Info "Would commit: $finalCommitMessage"
 }
 
 # Step 5: Build Docker images

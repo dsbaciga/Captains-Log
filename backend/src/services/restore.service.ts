@@ -64,6 +64,8 @@ export async function restoreFromBackup(
             immichApiUrl: backupData.user.immichApiUrl,
             immichApiKey: backupData.user.immichApiKey,
             weatherApiKey: backupData.user.weatherApiKey,
+            aviationstackApiKey: backupData.user.aviationstackApiKey,
+            openrouteserviceApiKey: backupData.user.openrouteserviceApiKey,
           },
         });
 

@@ -161,7 +161,7 @@ export default function LodgingManager({
   const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
 
-  // Auto-save draft for form data
+  // Auto-save draft for form data - DISABLED to test focus loss issue
   const draftKey = manager.editingId ? manager.editingId : tripId;
   const draft = useAutoSaveDraft(values, {
     entityType: 'lodging',
@@ -169,18 +169,8 @@ export default function LodgingManager({
     isEditMode: !!manager.editingId,
     tripId,
     defaultValues: getInitialFormState,
-    enabled: false, // TEMPORARILY DISABLED - testing focus loss issue
-    saveOnBlur: true, // Only save on blur to prevent focus loss
+    enabled: false, // DISABLED
   });
-
-  // Handler to trigger draft save on blur (only when focus leaves the form)
-  const handleDraftBlur = useCallback((e: React.FocusEvent<HTMLFormElement>) => {
-    // Only save if focus is leaving the form entirely
-    // relatedTarget is the element receiving focus
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      draft.triggerSave();
-    }
-  }, [draft]);
 
   // Check for existing draft when form opens in create mode
   useEffect(() => {
@@ -719,7 +709,7 @@ export default function LodgingManager({
           entityType="lodging"
         />
 
-        <form id="lodging-form" onSubmit={handleSubmit} onBlur={handleDraftBlur} className="space-y-6">
+        <form id="lodging-form" onSubmit={handleSubmit} className="space-y-6">
           {/* SECTION 1: Basic Info (Type & Name) */}
           <FormSection title="Basic Info" icon="🏨">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

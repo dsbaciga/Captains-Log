@@ -18,6 +18,8 @@ export async function createBackup(userId: number): Promise<BackupData> {
         immichApiUrl: true,
         immichApiKey: true,
         weatherApiKey: true,
+        aviationstackApiKey: true,
+        openrouteserviceApiKey: true,
       },
     });
 

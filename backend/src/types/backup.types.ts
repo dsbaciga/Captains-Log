@@ -15,6 +15,8 @@ export const BackupDataSchema = z.object({
     immichApiUrl: z.string().nullable(),
     immichApiKey: z.string().nullable(),
     weatherApiKey: z.string().nullable(),
+    aviationstackApiKey: z.string().nullable().optional(),
+    openrouteserviceApiKey: z.string().nullable().optional(),
   }),
   tags: z.array(z.any()),
   companions: z.array(z.any()),
