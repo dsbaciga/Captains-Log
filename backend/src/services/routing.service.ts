@@ -160,6 +160,12 @@ class RoutingService {
       console.log(`[Routing Service] Request coordinates: ${JSON.stringify(coordinates)}`);
     }
 
+    // Check for identical start/end coordinates (can't route to same point)
+    if (from.latitude === to.latitude && from.longitude === to.longitude) {
+      console.warn(`[Routing Service] Start and end coordinates are identical (${from.latitude}, ${from.longitude}), cannot calculate route`);
+      throw new Error('Start and end coordinates are identical');
+    }
+
     try {
       const response = await axios.post<OpenRouteServiceResponse>(
         url,
@@ -197,16 +203,14 @@ class RoutingService {
       if (isAxiosError(error)) {
         const errorMessage = error.message;
 
-        // Log error details in development only to avoid leaking API response data
-        if (process.env.NODE_ENV === 'development') {
-          console.error(`[Routing Service] API error details:`, {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            message: errorMessage,
-          });
-        } else {
-          console.error(`[Routing Service] API error: ${error.response?.status || 'N/A'} - ${errorMessage}`);
-        }
+        // Log error details including coordinates to help debug 404 errors
+        console.error(`[Routing Service] API error details:`, {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          message: errorMessage,
+          url: url,
+          coordinates: coordinates,
+        });
 
         if (error.response?.status === 401 || error.response?.status === 403) {
           throw new AppError('Invalid OpenRouteService API key', 401);

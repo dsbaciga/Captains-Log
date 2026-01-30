@@ -18,6 +18,7 @@ All documentation is organized in the `docs/` folder. Start with the [Documentat
 | **Release a new version** | [Build & Push](docs/guides/BUILD_AND_PUSH.md), [Release Checklist](RELEASE_CHECKLIST.md) |
 | **Track progress** | [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md) |
 | **Debug issues** | [Debugger Agent](.agents/DEBUGGER.md) |
+| **Optimize code** | [Code Optimizer Agent](.agents/CODE_OPTIMIZER.md) |
 
 ### Architecture Documentation (`docs/architecture/`)
 
@@ -53,8 +54,9 @@ All documentation is organized in the `docs/` folder. Start with the [Documentat
 - [GOOGLE_MAPS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md) - Google Maps integration roadmap.
 - [GOOGLE_PHOTOS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md) - Google Photos integration roadmap.
 - [UI_IMPROVEMENTS.md](docs/plans/UI_IMPROVEMENTS.md) - Planned UI improvements.
+- [TRIP_DASHBOARD_PLAN.md](docs/plans/TRIP_DASHBOARD_PLAN.md) - Trip dashboard enhancement plan.
 
-### Agent Documentation (`.agents/`) - Not version controlled
+### Agent Documentation (`.agents/`)
 
 - [DEBUGGER.md](.agents/DEBUGGER.md) - **Systematic debugging agent for investigating and fixing bugs. Use this when encountering errors or issues.**
 - [CODE_OPTIMIZER.md](.agents/CODE_OPTIMIZER.md) - **Code optimization agent for identifying code reuse opportunities and refactoring to reduce duplication. Use this to improve maintainability.**
@@ -88,14 +90,15 @@ Travel Life is a full-stack travel documentation application built with a React 
 
 ### Current Implementation Status
 
-**The application is ~78% complete and production-ready for personal use.** See [docs/development/IMPLEMENTATION_STATUS.md](docs/development/IMPLEMENTATION_STATUS.md) for detailed progress tracking and [docs/development/FEATURE_BACKLOG.md](docs/development/FEATURE_BACKLOG.md) for future enhancements.
+**The application is ~92% complete and production-ready for personal use.** See [docs/development/IMPLEMENTATION_STATUS.md](docs/development/IMPLEMENTATION_STATUS.md) for detailed progress tracking and [docs/development/FEATURE_BACKLOG.md](docs/development/FEATURE_BACKLOG.md) for future enhancements.
 
 **Core Features (100% Complete)**:
-- ✅ **Authentication System** - User registration, login, JWT tokens, refresh tokens
-- ✅ **Trip Management** - Full CRUD with status tracking (Dream → Planning → Planned → In Progress → Completed → Cancelled)
+
+- ✅ **Authentication System** - User registration, login, JWT tokens, refresh tokens, secure httpOnly cookies, CSRF protection, token blacklisting
+- ✅ **Trip Management** - Full CRUD with status tracking (Dream → Planning → Planned → In Progress → Completed → Cancelled), automatic status updates based on dates
 - ✅ **Location Management** - Interactive maps, geocoding, custom categories, photo linking
-- ✅ **Photo Management** - Local uploads, Immich integration, EXIF parsing, albums, thumbnails, paged pagination
-- ✅ **Transportation** - Flights, trains, buses, cars with dual timezone support and connections
+- ✅ **Photo Management** - Local uploads, Immich integration, EXIF parsing, albums, thumbnails, paged pagination, video support
+- ✅ **Transportation** - Flights, trains, buses, cars with dual timezone support, connections, flight route visualization, statistics dashboard
 - ✅ **Lodging** - Hotels, Airbnb, camping with booking details and multi-day display
 - ✅ **Activities** - Status tracking, cost tracking, custom categories
 - ✅ **Journal Entries** - Multiple entry types, mood tracking, weather notes, photo/location linking
@@ -104,16 +107,29 @@ Travel Life is a full-stack travel documentation application built with a React 
 - ✅ **Timeline View** - Chronological trip events with dual timezone display and printable itinerary export
 - ✅ **User Settings** - Profile, timezone, theme (light/dark), custom categories
 - ✅ **Dark Mode** - Full support across all components
+- ✅ **Checklists** - Trip checklists with items, categories, auto-population of defaults, completion tracking
+- ✅ **Trip Health Check** - Automated validation for schedule conflicts, missing accommodations, transportation gaps
+- ✅ **Trip Collaboration** - Full UI for inviting collaborators, managing permissions (view/edit/admin)
+- ✅ **Backup & Restore** - Full data export/import with photo metadata preservation and merge capabilities
+- ✅ **Advanced Dashboard** - Filter trips by status, tags, date range, search
+- ✅ **Global Search** - Cross-entity search with autocomplete (Ctrl+K/Cmd+K)
+- ✅ **Places Visited Map** - Aggregate map showing all visited locations with clustering
+- ✅ **Calendar View** - GitHub-style calendar heatmap showing travel activity
+- ✅ **Batch Operations** - Multi-select mode with bulk delete and bulk edit capabilities
+- ✅ **Auto-Save Drafts** - Form state preservation to localStorage with restore prompt
+- ✅ **Weather Integration** - OpenWeatherMap service with caching, forecast and historical data
+- ✅ **Flight Tracking** - AviationStack integration for real-time flight status, gate/terminal info
 
 **Key Features Still in Progress**:
-- ⏳ Trip collaboration UI (database schema complete, UI needed)
-- ⏳ Public trip sharing (privacy levels implemented, sharing UI needed)
-- ⏳ Advanced dashboard filtering (by status, tags, date range)
-- ⏳ Statistics and analytics dashboard
-- ⏳ Weather data integration (OpenWeatherMap API configured but not integrated)
-- ⏳ Flight tracking integration (AviationStack API configured but not integrated)
+
+- ⏳ Public trip sharing (privacy levels implemented, shareable link UI needed)
+- ⏳ Google Photos integration
+- ⏳ PDF export
+- ⏳ Offline support / PWA
+- ⏳ Mobile app
 
 **Unique Features**:
+
 - **Dual timezone timeline** - View trip events in both trip timezone and home timezone simultaneously
 - **Printable itinerary** - Export timeline to a beautifully formatted, print-ready document with day-by-day breakdown
 - **Paged pagination** - Memory-efficient photo album viewing with true page navigation (not infinite scroll)
@@ -122,6 +138,10 @@ Travel Life is a full-stack travel documentation application built with a React 
 - **Custom categories** - User-defined location and activity categories
 - **Rich journal entries** - Multiple entry types with mood and weather tracking
 - **Universal entity linking** - Link any entity to any other (photos to locations, activities to locations, albums to multiple locations) with bidirectional discovery
+- **Trip health check** - Automated validation identifies schedule conflicts, missing accommodations, and transportation gaps
+- **Travel time alerts** - Calculates travel times between activities, warns about impossible/tight connections
+- **Flight route visualization** - Interactive maps showing flight paths with curved arcs
+- **Places visited map** - Aggregate visualization of all locations you've visited with clustering
 
 ## Tech Stack
 
@@ -233,12 +253,21 @@ The backend follows a layered architecture with clear separation of concerns:
 - **Types** (`src/types/*.types.ts`): TypeScript interfaces and Zod validation schemas
 
 **Key Services**:
+
 - `auth.service.ts` - User registration, login, JWT token management
 - `trip.service.ts` - Trip CRUD with filtering by status, date range, tags
 - `photo.service.ts` - Photo uploads, Immich integration, EXIF parsing
 - `location.service.ts` - Location management with geocoding support
 - `immich.service.ts` - Integration with self-hosted Immich photo library
 - `entityLink.service.ts` - Unified entity linking with automatic relationship detection, bulk operations, bidirectional queries
+- `checklist.service.ts` - Trip checklists with items, categories, and auto-population
+- `collaboration.service.ts` - Trip sharing, collaborator management, invitations
+- `backup.service.ts` / `restore.service.ts` - Full data export/import with relationship preservation
+- `tripValidator.service.ts` - Trip health check, schedule conflict detection, travel time alerts
+- `routing.service.ts` - OpenRouteService integration for road distance calculations
+- `search.service.ts` - Cross-entity search across trips, locations, photos, journals
+- `weather.service.ts` - OpenWeatherMap integration with caching
+- `flightTracking.service.ts` - AviationStack integration for real-time flight status
 
 **Authentication Flow**:
 1. JWT access tokens (15min expiry) and refresh tokens (7 days)
@@ -282,11 +311,21 @@ The frontend uses a modern React architecture with clear data flow:
 - `trip.service.ts` - Trip CRUD operations
 - `photo.service.ts` - Photo upload and management
 - `geocoding.service.ts` - Nominatim geocoding queries
+- `checklist.service.ts` - Checklist CRUD and item management
+- `collaboration.service.ts` - Trip collaborators and invitations
+- `backup.service.ts` - Backup download and restore upload
+- `search.service.ts` - Global search across all entities
+- `entityLink.service.ts` - Entity linking operations
 
 **Key Frontend Hooks**:
 
 - `usePagedPagination` - True paged pagination with page replacement (not accumulative)
 - `usePagination` - Legacy infinite scroll pagination (deprecated for albums)
+- `useAutoSaveDraft` - Form state auto-save to localStorage with restore prompt
+- `useBulkSelection` - Multi-select mode for batch operations
+- `useEntityLinking` - Entity link management with counts
+- `useKeyboardShortcuts` - Global keyboard shortcuts (?, Esc, Ctrl+K)
+- `useManagerCRUD` - Common CRUD patterns for manager components
 
 **Key Frontend Components**:
 
@@ -295,35 +334,57 @@ The frontend uses a modern React architecture with clear data flow:
 - `Pagination` - Page navigation controls for paged pagination
 - `LinkPanel` - Modal for managing entity links
 - `LinkedEntitiesDisplay` - Display linked entities with counts
+- `TripHealthCheck` - Validation alerts for schedule conflicts, missing accommodations
+- `GlobalSearch` - Autocomplete search modal (Ctrl+K)
+- `BulkActionBar` - Floating toolbar for batch operations
+- `PlacesVisitedMap` - Aggregate location visualization with clustering
+- `TravelCalendarHeatmap` - GitHub-style calendar activity view
+- `CollaboratorsManager` - Trip sharing and permission management
 
 ### Database Schema Highlights
 
 The Prisma schema models a complex travel data structure:
 
-**Core Models**:
+**Core Models** (21 tables total):
+
 - `User` - Authentication, settings, custom categories
 - `Trip` - Central entity with status (Dream/Planning/Planned/In Progress/Completed/Cancelled)
 - `Location` - Points of interest with coordinates and custom categories
-- `Photo` - Supports both local uploads and Immich integration
+- `LocationCategory` - User-defined location categories
+- `Photo` - Supports both local uploads and Immich integration, includes video support
+- `PhotoAlbum` - Organize photos into albums
 - `Transportation` - Flights, trains, buses with tracking and connections
 - `Lodging` - Accommodation with booking details
 - `Activity` - Planned/completed activities with cost tracking
 - `JournalEntry` - Trip-level or daily journal entries
-- `PhotoAlbum` - Organize photos into albums
-- `EntityLink` - Polymorphic linking system connecting any entity to any other entity
+- `Checklist` - Trip checklists with categories
+- `ChecklistItem` - Individual checklist items with completion status
+- `TripTag` / `TripTagAssignment` - Tag definitions and many-to-many assignments
+- `TravelCompanion` / `TripCompanion` - Companion management
+- `TripCollaborator` / `TripInvitation` - Trip sharing and invitations
+- `EntityLink` - Polymorphic linking system connecting any entity to any other
+- `DismissedValidationIssue` - User-dismissed trip health check warnings
+- `RouteCache` - Cached road distance calculations from OpenRouteService
+- `WeatherData` - Weather information for locations
+- `FlightTracking` - Real-time flight status data
 
 **Relationships**:
+
 - Many-to-many: Trips ↔ Tags, Trips ↔ Companions
 - One-to-many: Trip → Locations → Photos
 - Self-referential: Transportation connections via `connectionGroupId`
 - Optional relations: Location ↔ Weather data
 
 **Key Design Patterns**:
+
 - Soft privacy via `privacyLevel` (Private/Shared/Public)
 - Trip collaboration via `TripCollaborator` (view/edit/admin permissions)
+- Trip invitations via `TripInvitation` with email tokens
 - Flexible location references: Locations can reference Location table or use text fields
 - Photo source tracking: `source` field indicates 'local' or 'immich'
 - **Polymorphic entity linking**: Universal `EntityLink` table with `EntityType` and `LinkRelationship` enums enables any entity to link to any other (photos→locations, activities→locations, albums→multiple locations, etc.). Replaces need for entity-specific foreign keys.
+- **Validation dismissal**: `DismissedValidationIssue` allows users to acknowledge known schedule gaps
+- **Route caching**: `RouteCache` stores OpenRouteService responses to reduce API calls
 
 ## Environment Setup
 
@@ -616,6 +677,245 @@ const {
 - Prevents browser memory issues with 1000+ photo albums
 - Better UX with page numbers and direct page navigation
 - Replaces accumulative "Load More" pattern from old `usePagination` hook
+
+### Working with Checklists
+
+The Checklist system allows users to create and manage trip-specific checklists with auto-population of defaults.
+
+**Backend - Checklist Service**:
+
+```typescript
+// Create a checklist for a trip
+await checklistService.create(userId, tripId, {
+  name: 'Packing List',
+  category: 'PACKING',
+  items: [
+    { text: 'Passport', isCompleted: false },
+    { text: 'Chargers', isCompleted: false }
+  ]
+});
+
+// Auto-populate default checklists
+await checklistService.populateDefaults(userId, tripId);
+```
+
+**Frontend - ChecklistManager Component**:
+
+```typescript
+<ChecklistManager
+  tripId={tripId}
+  onUpdate={() => refetchTrip()}
+/>
+```
+
+**Checklist Categories**:
+
+- `PACKING` - Items to pack
+- `DOCUMENTS` - Travel documents
+- `RESERVATIONS` - Booking confirmations
+- `CUSTOM` - User-defined lists
+
+### Working with Trip Health Check
+
+The Trip Health Check system automatically validates trips and identifies potential issues.
+
+**Validation Categories**:
+
+| Category | What It Checks |
+|----------|----------------|
+| SCHEDULE | Overlapping activities, impossible timing |
+| ACCOMMODATIONS | Missing lodging for trip dates |
+| TRANSPORTATION | Gaps between segments, missing connections |
+| COMPLETENESS | Missing required information |
+
+**Frontend - TripHealthCheck Component**:
+
+```typescript
+<TripHealthCheck
+  tripId={tripId}
+  onIssueClick={(issue) => navigateToEntity(issue)}
+/>
+```
+
+**Issue Dismissal**:
+
+Users can dismiss known issues (e.g., "staying with friends" when no lodging is booked). Dismissed issues are stored in `DismissedValidationIssue` table and don't reappear.
+
+### Working with Backup & Restore
+
+The Backup & Restore system enables full data export and import with relationship preservation.
+
+**Creating a Backup**:
+
+```typescript
+// Backend - Create backup
+const backup = await backupService.createBackup(userId);
+// Returns JSON with all user data, photos metadata, relationships
+
+// Frontend - Download backup
+const blob = await backupService.downloadBackup();
+saveAs(blob, `travel-life-backup-${date}.json`);
+```
+
+**Restoring from Backup**:
+
+```typescript
+// Two modes:
+// 1. Clear existing data and restore (clean slate)
+// 2. Merge with existing data (adds new, skips duplicates)
+
+await restoreService.restore(userId, backupData, {
+  clearExisting: false, // true = replace all, false = merge
+});
+```
+
+**What's Included in Backups**:
+
+- All trips with full details
+- Locations, activities, transportation, lodging
+- Journal entries with photo/location links
+- Photo metadata (not actual files)
+- Tags, companions, checklists
+- Entity links
+- User settings and preferences
+
+### Working with Trip Collaboration
+
+The Collaboration system allows sharing trips with other users with permission levels.
+
+**Permission Levels**:
+
+| Level | Capabilities |
+|-------|--------------|
+| VIEW | Read-only access to trip details |
+| EDIT | Add/edit locations, activities, photos, etc. |
+| ADMIN | Full access including collaborator management |
+
+**Backend - Collaboration Service**:
+
+```typescript
+// Invite a collaborator by email
+await collaborationService.inviteCollaborator(userId, tripId, {
+  email: 'friend@example.com',
+  permission: 'EDIT'
+});
+
+// Accept an invitation
+await collaborationService.acceptInvitation(userId, invitationToken);
+
+// Update collaborator permission
+await collaborationService.updatePermission(userId, tripId, collaboratorId, 'ADMIN');
+```
+
+**Frontend - CollaboratorsManager Component**:
+
+```typescript
+<CollaboratorsManager
+  tripId={tripId}
+  isOwner={trip.userId === currentUserId}
+  onUpdate={() => refetchTrip()}
+/>
+```
+
+### Working with Global Search
+
+Global Search enables cross-entity searching with autocomplete, accessible via Ctrl+K (Cmd+K on Mac).
+
+**Search Scope**:
+
+- Trips (title, description, notes)
+- Locations (name, address, notes)
+- Photos (filename, description)
+- Journal entries (title, content)
+- Activities (name, description)
+
+**Frontend - GlobalSearch Component**:
+
+```typescript
+// Automatically available via keyboard shortcut
+// Or trigger programmatically:
+<GlobalSearch
+  isOpen={searchOpen}
+  onClose={() => setSearchOpen(false)}
+  onSelect={(result) => navigateToResult(result)}
+/>
+```
+
+### Working with Batch Operations
+
+Batch Operations allow multi-select mode for bulk actions on entities.
+
+**Supported Entities**:
+
+- Activities
+- Locations
+- Transportation
+- Lodging
+- Photos
+
+**Frontend - Batch Selection Pattern**:
+
+```typescript
+const {
+  selectedIds,
+  toggleSelection,
+  selectAll,
+  clearSelection,
+  isSelected,
+  selectionCount
+} = useBulkSelection<string>();
+
+// Render selection checkboxes
+<input
+  type="checkbox"
+  checked={isSelected(item.id)}
+  onChange={() => toggleSelection(item.id)}
+/>
+
+// Bulk action bar appears when items selected
+{selectionCount > 0 && (
+  <BulkActionBar
+    count={selectionCount}
+    onDelete={() => handleBulkDelete(selectedIds)}
+    onEdit={() => openBulkEditModal(selectedIds)}
+    onClear={clearSelection}
+  />
+)}
+```
+
+### Working with Auto-Save Drafts
+
+Auto-Save Drafts prevents data loss by automatically saving form state to localStorage.
+
+**Frontend - useAutoSaveDraft Hook**:
+
+```typescript
+const {
+  draftExists,
+  restoreDraft,
+  clearDraft,
+  saveDraft
+} = useAutoSaveDraft({
+  key: `trip-form-${tripId}`,
+  data: formData,
+  interval: 5000, // Save every 5 seconds
+});
+
+// Show restore prompt if draft exists
+{draftExists && (
+  <div className="bg-amber-50 p-3 rounded">
+    <p>You have an unsaved draft. Would you like to restore it?</p>
+    <button onClick={restoreDraft}>Restore</button>
+    <button onClick={clearDraft}>Discard</button>
+  </div>
+)}
+
+// Clear draft on successful save
+const handleSubmit = async () => {
+  await service.save(formData);
+  clearDraft();
+};
+```
 
 ### Debugging Issues
 

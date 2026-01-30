@@ -113,6 +113,9 @@ export function useAutoSaveDraft<T extends object>(
   const lastFormDataRef = useRef<T>(formData);
   const isInitializedRef = useRef(false);
 
+  // Always keep the ref updated (no effect needed, just update on every render)
+  lastFormDataRef.current = formData;
+
   // Check for existing draft on mount
   useEffect(() => {
     if (!enabled) return;
@@ -130,17 +133,11 @@ export function useAutoSaveDraft<T extends object>(
     isInitializedRef.current = true;
   }, [draftKey, enabled]);
 
-  // Track form data changes (always update ref, but only auto-save if saveOnBlur is false)
+  // Debounced auto-save effect (only active when saveOnBlur is false)
   useEffect(() => {
+    // Completely skip this effect when saveOnBlur is enabled
+    if (saveOnBlur) return;
     if (!enabled || !isInitializedRef.current) return;
-
-    // Always update the ref so triggerSave() has current data
-    lastFormDataRef.current = formData;
-
-    // If saveOnBlur is true, don't auto-save on changes
-    if (saveOnBlur) {
-      return;
-    }
 
     // Clear any pending save
     if (debounceTimerRef.current) {
@@ -167,7 +164,7 @@ export function useAutoSaveDraft<T extends object>(
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [formData, draftKey, tripId, debounceMs, enabled, defaultValues, saveOnBlur]);
+  }, [saveOnBlur, formData, draftKey, tripId, debounceMs, enabled, defaultValues]);
 
   // Cleanup on unmount
   useEffect(() => {
