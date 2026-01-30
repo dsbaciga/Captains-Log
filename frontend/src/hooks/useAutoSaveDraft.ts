@@ -216,6 +216,7 @@ export function useAutoSaveDraft<T extends object>(
   );
 
   // Trigger save using current form data (for onBlur handlers)
+  // Only saves to localStorage - no state updates to avoid re-renders
   const triggerSave = useCallback(() => {
     if (!enabled) return;
 
@@ -226,11 +227,9 @@ export function useAutoSaveDraft<T extends object>(
       return;
     }
 
-    // Save without state updates to avoid re-renders that steal focus
+    // Only save to localStorage - no React state updates
+    // This prevents re-renders that would steal focus
     saveDraft(draftKey, currentData, tripId);
-    setSavedDraft(currentData);
-    setLastSavedAt(new Date());
-    setHasDraftState(true);
   }, [draftKey, tripId, enabled, defaultValues]);
 
   return {

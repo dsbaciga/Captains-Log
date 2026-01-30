@@ -134,9 +134,13 @@ export default function ActivityForm({
     saveOnBlur: true, // Only save on blur to prevent focus loss
   });
 
-  // Handler to trigger draft save on blur
-  const handleBlur = useCallback(() => {
-    draft.triggerSave();
+  // Handler to trigger draft save on blur (only when focus leaves the form)
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLFormElement>) => {
+    // Only save if focus is leaving the form entirely
+    // relatedTarget is the element receiving focus
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      draft.triggerSave();
+    }
   }, [draft]);
 
   // Check for existing draft when form opens in create mode
