@@ -749,7 +749,12 @@ export default function LodgingManager({
                   type="text"
                   id="lodging-name"
                   value={values.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
+                  onChange={(e) => {
+                    console.log('[LodgingManager] Name input onChange:', e.target.value);
+                    handleChange("name", e.target.value);
+                  }}
+                  onFocus={() => console.log('[LodgingManager] Name input FOCUSED')}
+                  onBlur={() => console.log('[LodgingManager] Name input BLURRED')}
                   className="input"
                   required
                   placeholder="e.g., Marriott Hotel"

@@ -91,6 +91,15 @@ export default function Modal({
   const hasFocusedRef = useRef(false);
   const triggerElementRef = useRef<HTMLElement | null>(null);
 
+  // DEBUG: Log when Modal mounts/unmounts
+  useEffect(() => {
+    console.log('[Modal] MOUNTED', { title, isOpen });
+    return () => console.log('[Modal] UNMOUNTED', { title });
+  }, []);
+
+  // DEBUG: Log re-renders
+  console.log('[Modal] RENDER', { title, isOpen, hasFocusedRef: hasFocusedRef.current });
+
   // Handle keyboard events including focus trap
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
