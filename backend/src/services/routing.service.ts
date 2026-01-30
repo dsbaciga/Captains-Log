@@ -9,20 +9,25 @@ interface RouteCoordinates {
   longitude: number;
 }
 
+// GeoJSON response format from /v2/directions/{profile}/geojson endpoint
 interface OpenRouteServiceResponse {
-  routes: Array<{
-    summary: {
-      distance: number; // in meters
-      duration: number; // in seconds
+  type: 'FeatureCollection';
+  features: Array<{
+    type: 'Feature';
+    properties: {
+      segments: Array<{
+        distance: number;
+        duration: number;
+        steps: RouteStep[];
+      }>;
+      summary: {
+        distance: number; // in meters
+        duration: number; // in seconds
+      };
     };
-    segments: Array<{
-      distance: number;
-      duration: number;
-      steps: RouteStep[];
-    }>;
     geometry: {
-      coordinates: number[][];
-      type: string;
+      coordinates: number[][]; // Array of [longitude, latitude]
+      type: 'LineString';
     };
   }>;
 }
@@ -147,7 +152,8 @@ class RoutingService {
     to: RouteCoordinates,
     profile: string
   ): Promise<{ distance: number; duration: number; geometry?: number[][] }> {
-    const url = `${this.API_URL}/v2/directions/${profile}/json`;
+    // Use geojson endpoint to get coordinates array instead of encoded polyline
+    const url = `${this.API_URL}/v2/directions/${profile}/geojson`;
 
     // OpenRouteService expects coordinates as [longitude, latitude]
     const coordinates = [
@@ -183,20 +189,37 @@ class RoutingService {
         console.log(`[Routing Service] API response status: ${response.status}`);
       }
 
-      if (!response.data.routes || response.data.routes.length === 0) {
-        console.warn('[Routing Service] API returned empty routes array');
+      // GeoJSON format: features[0] contains the route
+      if (!response.data.features || response.data.features.length === 0) {
+        console.warn('[Routing Service] API returned empty features array');
         throw new Error('No routes found in response');
       }
 
-      const route = response.data.routes[0];
-      const geometryCoords = route.geometry?.coordinates;
+      const feature = response.data.features[0];
+      const geometryCoords = feature.geometry?.coordinates;
+      const summary = feature.properties?.summary;
+
+      // Calculate summary from segments if not directly available
+      let distance = 0;
+      let duration = 0;
+      if (summary) {
+        distance = summary.distance;
+        duration = summary.duration;
+      } else if (feature.properties?.segments) {
+        // Sum up all segments
+        for (const segment of feature.properties.segments) {
+          distance += segment.distance;
+          duration += segment.duration;
+        }
+      }
+
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Routing Service] Route summary: distance=${route.summary.distance}m, duration=${route.summary.duration}s, geometry type=${route.geometry?.type}, coords count=${geometryCoords?.length || 0}`);
+        console.log(`[Routing Service] Route summary: distance=${distance}m, duration=${duration}s, geometry type=${feature.geometry?.type}, coords count=${geometryCoords?.length || 0}`);
       }
 
       return {
-        distance: route.summary.distance / 1000, // Convert meters to kilometers
-        duration: route.summary.duration / 60, // Convert seconds to minutes
+        distance: distance / 1000, // Convert meters to kilometers
+        duration: duration / 60, // Convert seconds to minutes
         geometry: geometryCoords, // Array of [longitude, latitude]
       };
     } catch (error: unknown) {
