@@ -100,8 +100,9 @@ app.use('/api/auth', authLimiter);
 app.use('/api', limiter);
 
 // Body parsing middleware - must be BEFORE CSRF validation so req.cookies is populated
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Increase limit from default 100kb to handle large backup restores
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use(cookieParser());
 
 // CSRF validation for defense-in-depth (prevents cross-site request forgery)

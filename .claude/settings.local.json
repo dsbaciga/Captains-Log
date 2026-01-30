@@ -54,7 +54,8 @@
       "Bash(mcp list:*)",
       "Bash(npm install:*)",
       "Bash(npx madge:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

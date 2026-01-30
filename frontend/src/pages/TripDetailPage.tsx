@@ -57,7 +57,6 @@ import type { TabGroupItem } from "../components/TabGroup";
 import TripSidebar from "../components/TripSidebar";
 import NavigationLayoutToggle from "../components/NavigationLayoutToggle";
 import { useNavigationStore } from "../store/navigationStore";
-import TripStats from "../components/TripStats";
 import { TripDashboard } from "../components/trip-dashboard";
 import {
   formatTripDates,
@@ -391,7 +390,7 @@ export default function TripDetailPage() {
       },
       {
         id: "overview",
-        label: "Overview",
+        label: "Timeline",
         icon: (
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -1343,27 +1342,6 @@ export default function TripDetailPage() {
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
             <div className="space-y-6 animate-fadeIn">
-              {/* Trip Stats Summary */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Trip at a Glance
-                </h2>
-                <TripStats
-                  locationsCount={locations.length}
-                  photosCount={totalPhotosCount}
-                  activitiesCount={activitiesCount}
-                  transportationCount={transportationCount}
-                  lodgingCount={lodgingCount}
-                  journalCount={journalCount}
-                  companionsCount={companionsCount}
-                  unscheduledCount={unscheduledCount}
-                  tripStartDate={trip.startDate}
-                  tripEndDate={trip.endDate}
-                  onNavigateToTab={(tab) => changeTab(tab as TabId)}
-                />
-              </div>
-
-              {/* Timeline Content */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                   Timeline
@@ -1386,27 +1364,6 @@ export default function TripDetailPage() {
           {/* Day By Day Tab */}
           {activeTab === "daily" && (
             <div className="space-y-6 animate-fadeIn">
-              {/* Trip Stats Summary */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Trip at a Glance
-                </h2>
-                <TripStats
-                  locationsCount={locations.length}
-                  photosCount={totalPhotosCount}
-                  activitiesCount={activitiesCount}
-                  transportationCount={transportationCount}
-                  lodgingCount={lodgingCount}
-                  journalCount={journalCount}
-                  companionsCount={companionsCount}
-                  unscheduledCount={unscheduledCount}
-                  tripStartDate={trip.startDate}
-                  tripEndDate={trip.endDate}
-                  onNavigateToTab={(tab) => changeTab(tab as TabId)}
-                />
-              </div>
-
-              {/* Day By Day Content */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <DailyView
                   tripId={parseInt(id!)}
