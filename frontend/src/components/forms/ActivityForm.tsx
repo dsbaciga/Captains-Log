@@ -131,7 +131,13 @@ export default function ActivityForm({
     tripId,
     defaultValues: initialFormState,
     enabled: true,
+    saveOnBlur: true, // Only save on blur to prevent focus loss
   });
+
+  // Handler to trigger draft save on blur
+  const handleBlur = useCallback(() => {
+    draft.triggerSave();
+  }, [draft]);
 
   // Check for existing draft when form opens in create mode
   useEffect(() => {
@@ -369,7 +375,7 @@ export default function ActivityForm({
   );
 
   return (
-    <form id={formId} onSubmit={handleFormSubmit} className="space-y-6">
+    <form id={formId} onSubmit={handleFormSubmit} onBlur={handleBlur} className="space-y-6">
       {/* Draft Restore Prompt */}
       <DraftRestorePrompt
         isOpen={showDraftPrompt && !isEditMode}

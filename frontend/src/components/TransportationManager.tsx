@@ -459,7 +459,13 @@ export default function TransportationManager({
     tripId,
     defaultValues: getInitialFormState,
     enabled: manager.showForm,
+    saveOnBlur: true, // Only save on blur to prevent focus loss
   });
+
+  // Handler to trigger draft save on blur
+  const handleDraftBlur = useCallback(() => {
+    draft.triggerSave();
+  }, [draft]);
 
   // Check for existing draft when form opens in create mode
   useEffect(() => {
@@ -1179,7 +1185,7 @@ export default function TransportationManager({
           entityType="transportation"
         />
 
-        <form id="transportation-form" onSubmit={handleSubmit} className="space-y-6">
+        <form id="transportation-form" onSubmit={handleSubmit} onBlur={handleDraftBlur} className="space-y-6">
           {/* SECTION 1: Type Selection */}
           <FormSection title="Type" icon="🚀">
             <div className="space-y-1">

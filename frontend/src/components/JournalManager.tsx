@@ -104,7 +104,13 @@ export default function JournalManager({
     tripId,
     defaultValues: initialFormValues,
     enabled: manager.showForm,
+    saveOnBlur: true, // Only save on blur to prevent focus loss
   });
+
+  // Handler to trigger draft save on blur
+  const handleDraftBlur = useCallback(() => {
+    draft.triggerSave();
+  }, [draft]);
 
   // Check for existing draft when form opens in create mode
   useEffect(() => {
@@ -336,7 +342,7 @@ export default function JournalManager({
           entityType="journal entry"
         />
 
-        <form id="journal-form" onSubmit={handleSubmit} className="space-y-4">
+        <form id="journal-form" onSubmit={handleSubmit} onBlur={handleDraftBlur} className="space-y-4">
           <div>
             <label
               htmlFor={titleFieldId}

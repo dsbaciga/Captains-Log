@@ -170,7 +170,13 @@ export default function LodgingManager({
     tripId,
     defaultValues: getInitialFormState,
     enabled: manager.showForm,
+    saveOnBlur: true, // Only save on blur to prevent focus loss
   });
+
+  // Handler to trigger draft save on blur
+  const handleDraftBlur = useCallback(() => {
+    draft.triggerSave();
+  }, [draft]);
 
   // Check for existing draft when form opens in create mode
   useEffect(() => {
@@ -709,7 +715,7 @@ export default function LodgingManager({
           entityType="lodging"
         />
 
-        <form id="lodging-form" onSubmit={handleSubmit} className="space-y-6">
+        <form id="lodging-form" onSubmit={handleSubmit} onBlur={handleDraftBlur} className="space-y-6">
           {/* SECTION 1: Basic Info (Type & Name) */}
           <FormSection title="Basic Info" icon="🏨">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

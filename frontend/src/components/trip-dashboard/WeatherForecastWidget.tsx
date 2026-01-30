@@ -429,7 +429,7 @@ function ForecastDayCard({ day, temperatureUnit, isFirst = false }: ForecastDayC
   const today = isToday(day.date);
 
   return (
-    <div
+    <li
       className={`flex-shrink-0 flex flex-col items-center p-3 rounded-xl transition-all duration-200
         ${
           today
@@ -438,7 +438,6 @@ function ForecastDayCard({ day, temperatureUnit, isFirst = false }: ForecastDayC
         }
         ${isFirst ? 'ml-0' : ''}
       `}
-      role="listitem"
       aria-label={`Weather for ${formatFullDate(day.date)}`}
     >
       {/* Day name */}
@@ -479,7 +478,7 @@ function ForecastDayCard({ day, temperatureUnit, isFirst = false }: ForecastDayC
           <span className="text-xs font-medium">{day.precipitation}%</span>
         </div>
       )}
-    </div>
+    </li>
   );
 }
 
@@ -675,9 +674,8 @@ export default function WeatherForecastWidget({
       )}
 
       {/* Forecast cards - horizontal scroll on mobile */}
-      <div
-        className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide"
-        role="list"
+      <ul
+        className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide list-none"
         aria-label="5-day weather forecast"
       >
         {forecast.map((day, index) => (
@@ -688,7 +686,7 @@ export default function WeatherForecastWidget({
             isFirst={index === 0}
           />
         ))}
-      </div>
+      </ul>
 
       {/* Pack recommendations */}
       {packRecommendations.length > 0 && (

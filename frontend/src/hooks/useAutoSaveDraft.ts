@@ -22,6 +22,12 @@ export interface UseAutoSaveDraftOptions<T> {
   enabled?: boolean;
   /** Default/initial form values for empty check */
   defaultValues?: T;
+  /**
+   * Save only on blur events instead of debounced auto-save.
+   * When true, call triggerSave() from onBlur handlers.
+   * This prevents focus loss during typing. (default: true)
+   */
+  saveOnBlur?: boolean;
 }
 
 export interface UseAutoSaveDraftResult<T> {
@@ -39,6 +45,11 @@ export interface UseAutoSaveDraftResult<T> {
   saveDraftNow: (formData: T) => void;
   /** Whether the draft is currently being saved */
   isSaving: boolean;
+  /**
+   * Trigger a save using current form data.
+   * Call this from onBlur handlers when saveOnBlur is true.
+   */
+  triggerSave: () => void;
 }
 
 /**
@@ -88,6 +99,7 @@ export function useAutoSaveDraft<T extends object>(
     debounceMs = 1000,
     enabled = true,
     defaultValues,
+    saveOnBlur = true,
   } = options;
 
   const draftKey = getDraftKey(entityType, isEditMode ? 'edit' : 'create', id);
@@ -118,9 +130,17 @@ export function useAutoSaveDraft<T extends object>(
     isInitializedRef.current = true;
   }, [draftKey, enabled]);
 
-  // Debounced auto-save effect
+  // Track form data changes (always update ref, but only auto-save if saveOnBlur is false)
   useEffect(() => {
     if (!enabled || !isInitializedRef.current) return;
+
+    // Always update the ref so triggerSave() has current data
+    lastFormDataRef.current = formData;
+
+    // If saveOnBlur is true, don't auto-save on changes
+    if (saveOnBlur) {
+      return;
+    }
 
     // Clear any pending save
     if (debounceTimerRef.current) {
@@ -131,13 +151,6 @@ export function useAutoSaveDraft<T extends object>(
     if (defaultValues && isFormEmpty(formData, defaultValues)) {
       return;
     }
-
-    // Check if form data has actually changed
-    if (JSON.stringify(formData) === JSON.stringify(lastFormDataRef.current)) {
-      return;
-    }
-
-    lastFormDataRef.current = formData;
 
     // Schedule save after debounce
     debounceTimerRef.current = setTimeout(() => {
@@ -154,7 +167,7 @@ export function useAutoSaveDraft<T extends object>(
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [formData, draftKey, tripId, debounceMs, enabled, defaultValues]);
+  }, [formData, draftKey, tripId, debounceMs, enabled, defaultValues, saveOnBlur]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -202,6 +215,24 @@ export function useAutoSaveDraft<T extends object>(
     [draftKey, tripId, enabled, defaultValues]
   );
 
+  // Trigger save using current form data (for onBlur handlers)
+  const triggerSave = useCallback(() => {
+    if (!enabled) return;
+
+    const currentData = lastFormDataRef.current;
+
+    // Don't save if form is empty/default
+    if (defaultValues && isFormEmpty(currentData, defaultValues)) {
+      return;
+    }
+
+    // Save without state updates to avoid re-renders that steal focus
+    saveDraft(draftKey, currentData, tripId);
+    setSavedDraft(currentData);
+    setLastSavedAt(new Date());
+    setHasDraftState(true);
+  }, [draftKey, tripId, enabled, defaultValues]);
+
   return {
     savedDraft,
     hasDraft: hasDraftState,
@@ -210,5 +241,6 @@ export function useAutoSaveDraft<T extends object>(
     clearDraft: clearDraftCallback,
     saveDraftNow,
     isSaving,
+    triggerSave,
   };
 }
