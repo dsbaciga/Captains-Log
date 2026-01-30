@@ -18,6 +18,7 @@ All documentation is organized in the `docs/` folder. Start with the [Documentat
 | **Release a new version** | [Build & Push](docs/guides/BUILD_AND_PUSH.md), [Release Checklist](RELEASE_CHECKLIST.md) |
 | **Track progress** | [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md) |
 | **Debug issues** | [Debugger Agent](.agents/DEBUGGER.md) |
+| **Plan features** | [Conductor System](conductor/index.md) |
 
 ### Architecture Documentation (`docs/architecture/`)
 
@@ -52,7 +53,25 @@ All documentation is organized in the `docs/` folder. Start with the [Documentat
 
 - [GOOGLE_MAPS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md) - Google Maps integration roadmap.
 - [GOOGLE_PHOTOS_INTEGRATION_PLAN.md](docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md) - Google Photos integration roadmap.
+- [TRIP_DASHBOARD_PLAN.md](docs/plans/TRIP_DASHBOARD_PLAN.md) - Trip dashboard enhancement roadmap.
 - [UI_IMPROVEMENTS.md](docs/plans/UI_IMPROVEMENTS.md) - Planned UI improvements.
+
+### Conductor Project Management (`conductor/`)
+
+The Conductor system provides structured project management for Claude Code development sessions:
+
+- [index.md](conductor/index.md) - **Project context navigation and entry point**
+- [product.md](conductor/product.md) - Product definition and vision
+- [product-guidelines.md](conductor/product-guidelines.md) - Product development guidelines
+- [tech-stack.md](conductor/tech-stack.md) - Technology stack documentation
+- [workflow.md](conductor/workflow.md) - Development workflow process
+- [tracks.md](conductor/tracks.md) - Active development tracks
+- **Code Style Guides** (`conductor/code_styleguides/`): TypeScript, JavaScript, HTML/CSS, and general coding standards
+
+**Working with Conductor**:
+- Use tracks to organize feature development (e.g., `tracks/pointer_clustering_20260117/`)
+- Each track has: `index.md` (overview), `spec.md` (requirements), `plan.md` (implementation plan)
+- Follow the workflow for consistent development process
 
 ### Agent Documentation (`.agents/`) - Not version controlled
 
@@ -105,13 +124,20 @@ Travel Life is a full-stack travel documentation application built with a React 
 - ✅ **User Settings** - Profile, timezone, theme (light/dark), custom categories
 - ✅ **Dark Mode** - Full support across all components
 
+**Recently Added Features (v4.6+)**:
+- ✅ **Trip Dashboard** - Enhanced trip-specific dashboard with countdown, weather, map preview, budget, and itinerary widgets
+- ✅ **Flight Tracking** - AviationStack integration with gate, terminal, and baggage claim information
+- ✅ **Batch Operations** - Bulk edit and delete for activities, locations, transportation, and lodging
+- ✅ **Auto-Save Drafts** - Form state recovery from browser crashes with recovery prompts
+- ✅ **Video Support** - Video file uploads and playback (added v4.7.3)
+- ✅ **Location Hierarchy** - Parent-child location relationships for nested places
+- ✅ **Trip Invitations** - Invite system for trip collaboration
+
 **Key Features Still in Progress**:
-- ⏳ Trip collaboration UI (database schema complete, UI needed)
-- ⏳ Public trip sharing (privacy levels implemented, sharing UI needed)
-- ⏳ Advanced dashboard filtering (by status, tags, date range)
+- ⏳ Public trip sharing (privacy levels implemented, sharing UI needs polish)
 - ⏳ Statistics and analytics dashboard
-- ⏳ Weather data integration (OpenWeatherMap API configured but not integrated)
-- ⏳ Flight tracking integration (AviationStack API configured but not integrated)
+- ⏳ Weather data integration (OpenWeatherMap API configured but not fully integrated)
+- ⏳ Marker clustering for Places Visited map (in planning via Conductor)
 
 **Unique Features**:
 - **Dual timezone timeline** - View trip events in both trip timezone and home timezone simultaneously
@@ -169,6 +195,30 @@ Travel Life is a full-stack travel documentation application built with a React 
 - `.\release.ps1 -Version v1.2.3 -NoConfirm` - Non-interactive release with explicit version
 - `.\release.ps1 -Version patch -DryRun` - Preview changes without executing
 - See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for full release process
+
+### CI/CD (GitHub Actions)
+
+The project uses GitHub Actions for continuous integration:
+
+**Workflows** (`.github/workflows/`):
+
+- `docker-build-test.yml` - Runs on PRs and pushes to main:
+  - Tests production Docker builds (backend + frontend)
+  - Validates development build configuration
+  - Runs linting and tests for both backend and frontend
+
+- `release.yml` - Runs on version tags (v*):
+  - Builds Docker images
+  - Pushes to GitHub Container Registry (ghcr.io)
+  - Creates GitHub releases with changelogs
+
+**Local Testing Before Push**:
+
+```bash
+# Test production builds locally
+docker build -f backend/Dockerfile.prod -t test-backend ./backend
+docker build -f frontend/Dockerfile.prod -t test-frontend ./frontend --build-arg VITE_API_URL=http://localhost:5000/api --build-arg VITE_UPLOAD_URL=http://localhost:5000/uploads
+```
 
 ## Build and Deployment Workflow
 
@@ -239,6 +289,14 @@ The backend follows a layered architecture with clear separation of concerns:
 - `location.service.ts` - Location management with geocoding support
 - `immich.service.ts` - Integration with self-hosted Immich photo library
 - `entityLink.service.ts` - Unified entity linking with automatic relationship detection, bulk operations, bidirectional queries
+- `tripValidator.service.ts` - Trip data completeness validation with dismissible warnings
+- `collaboration.service.ts` - Trip sharing and collaborator management
+- `backup.service.ts` / `restore.service.ts` - Data export and import
+- `aviationstack.service.ts` - Flight tracking via AviationStack API
+- `routing.service.ts` - Route distance calculations via OpenRouteService
+- `travelTime.service.ts` - Travel duration estimates between locations
+- `albumSuggestion.service.ts` - Automatic album grouping by date/location proximity
+- `tokenBlacklist.service.ts` - Token revocation for secure logout
 
 **Authentication Flow**:
 1. JWT access tokens (15min expiry) and refresh tokens (7 days)
@@ -287,6 +345,14 @@ The frontend uses a modern React architecture with clear data flow:
 
 - `usePagedPagination` - True paged pagination with page replacement (not accumulative)
 - `usePagination` - Legacy infinite scroll pagination (deprecated for albums)
+- `useAutoSaveDraft` - Form auto-save with browser crash recovery
+- `useManagerCRUD` - Shared CRUD operations pattern for manager components
+- `useEntityLinking` - Entity link management with counts and operations
+- `useBulkSelection` - Multi-select for batch operations
+- `useKeyboardShortcuts` - Keyboard navigation and shortcuts
+- `useSwipeGesture` - Mobile swipe gesture handling
+- `useConfetti` - Celebration animations for trip completion
+- `useEditFromUrlParam` - URL parameter-based entity editing
 
 **Key Frontend Components**:
 
@@ -295,6 +361,11 @@ The frontend uses a modern React architecture with clear data flow:
 - `Pagination` - Page navigation controls for paged pagination
 - `LinkPanel` - Modal for managing entity links
 - `LinkedEntitiesDisplay` - Display linked entities with counts
+- `TripDashboard` - Trip-specific dashboard with widgets (countdown, weather, map, budget)
+- `DailyView` - Day-by-day trip breakdown with entity cards
+- `QuickActionsBar` - Mobile-optimized action buttons
+- `PhotoLightbox` - Full-screen photo viewer with navigation
+- `FlightRouteMap` - Interactive flight path visualization
 
 ### Database Schema Highlights
 
@@ -617,6 +688,146 @@ const {
 - Better UX with page numbers and direct page navigation
 - Replaces accumulative "Load More" pattern from old `usePagination` hook
 
+### Working with Auto-Save Drafts
+
+The auto-save draft system (added v4.7.0) preserves form state to recover from browser crashes.
+
+**Using the `useAutoSaveDraft` Hook**:
+
+```typescript
+import { useAutoSaveDraft } from '../hooks/useAutoSaveDraft';
+
+const {
+  hasDraft,
+  loadDraft,
+  clearDraft
+} = useAutoSaveDraft({
+  key: `activity-form-${tripId}`,
+  data: formData,
+  enabled: !isEditing, // Only save drafts for new items
+  debounceMs: 1000
+});
+
+// Show recovery prompt
+{hasDraft && (
+  <div className="bg-yellow-50 p-3 rounded">
+    <p>Unsaved draft found. Recover?</p>
+    <button onClick={() => setFormData(loadDraft())}>Recover</button>
+    <button onClick={clearDraft}>Discard</button>
+  </div>
+)}
+```
+
+**Draft Storage** (`frontend/src/utils/draftStorage.ts`):
+
+- Drafts stored in localStorage with expiration
+- Automatic cleanup of expired drafts
+- Keys prefixed with `draft:` for easy identification
+
+**Best Practices**:
+
+- Use unique keys per form type and context (e.g., `activity-form-${tripId}`)
+- Disable auto-save when editing existing items (user expectation differs)
+- Clear draft on successful form submission
+- Show clear recovery UI with option to discard
+
+### Working with Batch Operations
+
+Batch operations (added v4.7.0) allow bulk editing and deletion of entities.
+
+**Using the `useBulkSelection` Hook**:
+
+```typescript
+import { useBulkSelection } from '../hooks/useBulkSelection';
+
+const {
+  selectedIds,
+  isSelected,
+  toggleSelection,
+  selectAll,
+  clearSelection,
+  selectedCount
+} = useBulkSelection<string>();
+
+// In list items
+<input
+  type="checkbox"
+  checked={isSelected(item.id)}
+  onChange={() => toggleSelection(item.id)}
+/>
+
+// Batch action buttons
+{selectedCount > 0 && (
+  <button onClick={() => handleBatchDelete(selectedIds)}>
+    Delete {selectedCount} items
+  </button>
+)}
+```
+
+**Backend Batch Endpoints**:
+
+Most manager services support batch operations:
+
+- `DELETE /api/activities/batch` - Delete multiple activities
+- `DELETE /api/locations/batch` - Delete multiple locations
+- `DELETE /api/transportation/batch` - Delete multiple transportations
+- `DELETE /api/lodging/batch` - Delete multiple lodgings
+
+**Implementation Pattern**:
+
+```typescript
+// Controller
+async batchDelete(req: Request, res: Response) {
+  const { ids } = req.body;
+  await service.batchDelete(req.user.userId, ids);
+  res.json({ status: 'success', message: `Deleted ${ids.length} items` });
+}
+
+// Service
+async batchDelete(userId: string, ids: string[]) {
+  // Verify ownership of all items first
+  await this.verifyOwnership(userId, ids);
+  return prisma.entity.deleteMany({ where: { id: { in: ids } } });
+}
+```
+
+### Working with Trip Dashboard
+
+The Trip Dashboard (added v4.7.0) provides a rich overview of individual trips with multiple widgets.
+
+**Dashboard Components** (`frontend/src/components/trip-dashboard/`):
+
+- `TripDashboard.tsx` - Main container orchestrating all widgets
+- `LocalTimeWidget` - Current time in trip timezone
+- `CountdownTimerWidget` - Days until/since trip
+- `WeatherForecastWidget` - Weather for trip locations (requires API key)
+- `MapPreviewWidget` - Interactive map with trip locations
+- `BudgetSummaryWidget` - Cost tracking overview
+- `ChecklistsWidget` - Trip checklist progress
+- `CompanionsWidget` - Travel companion display
+- `TodaysItinerary` - Current day's scheduled events
+- `QuickActionsBar` - Mobile action buttons (add activity, photo, etc.)
+
+**Widget Utilities** (`frontend/src/utils/tripDashboardUtils.ts`):
+
+```typescript
+// Get all events for a specific day
+const dayEvents = getDayEvents(trip, date);
+
+// Group events by type
+const grouped = groupEventsByType(events);
+
+// Calculate trip statistics
+const stats = calculateTripStats(trip);
+```
+
+**Adding New Widgets**:
+
+1. Create widget component in `components/trip-dashboard/`
+2. Follow existing widget patterns (loading states, error handling, dark mode)
+3. Add to `TripDashboard.tsx` grid layout
+4. Use consistent sizing classes (`col-span-1`, `col-span-2`, etc.)
+
 ### Debugging Issues
 
 When encountering bugs or issues, use the **Debugger Agent** for systematic debugging:
@@ -854,6 +1065,30 @@ const example = 'code here';
 
 These spacing rules ensure consistent rendering across different Markdown parsers and maintain readability.
 
+## Scheduled Jobs (Cron)
+
+The backend includes scheduled jobs for automated maintenance:
+
+**Trip Status Auto-Update** (`backend/src/cron.ts`):
+
+- Runs daily at midnight
+- Transitions trips from "Planned" → "In Progress" when start date arrives
+- Transitions trips from "In Progress" → "Completed" when end date passes
+- Only affects trips with explicit start/end dates
+
+**How to Add New Cron Jobs**:
+
+```typescript
+// In backend/src/cron.ts
+import cron from 'node-cron';
+
+// Daily at 2 AM
+cron.schedule('0 2 * * *', async () => {
+  logger.info('Running scheduled job...');
+  // Job logic here
+});
+```
+
 ## Known Configuration Notes
 
 - **Nominatim** takes 1-2 hours to initialize on first Docker startup (downloads US map data)
@@ -861,3 +1096,18 @@ These spacing rules ensure consistent rendering across different Markdown parser
 - Default activity categories stored in User model as array
 - Windows paths may require escaping in file operations
 - Frontend runs on port 5173 locally (Vite default), but 3000 in Docker for consistency
+- **PostGIS** extension required for PostgreSQL (enables geospatial queries)
+- **Rate Limiting**: Auth routes (15 req/15min), general API (1000 req/15min), silent refresh (60 req/15min)
+- **Token Expiry**: Access tokens (15 min), Refresh tokens (7 days)
+- **TrueNAS Deployment**: Use optimized Docker configs (`docker-compose.truenas.optimized.yml`)
+- **Route Caching**: Distance calculations cached in `RouteCache` table for performance
+- **Validation Issues**: Users can dismiss trip validation warnings; stored in `DismissedValidationIssue`
+
+## Current Version
+
+**v4.7.3** - Both backend and frontend versions are synchronized
+
+Check version in:
+- `backend/package.json`
+- `frontend/package.json`
+- Docker Compose files (image tags)
