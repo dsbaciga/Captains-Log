@@ -169,7 +169,7 @@ export default function LodgingManager({
     isEditMode: !!manager.editingId,
     tripId,
     defaultValues: getInitialFormState,
-    enabled: manager.showForm,
+    enabled: false, // TEMPORARILY DISABLED - testing focus loss issue
     saveOnBlur: true, // Only save on blur to prevent focus loss
   });
 
