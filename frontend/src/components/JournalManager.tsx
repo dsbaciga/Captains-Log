@@ -120,13 +120,13 @@ export default function JournalManager({
       setAllFields(restoredData);
     }
     setShowDraftPrompt(false);
-  }, [draft, setAllFields]);
+  }, [draft.restoreDraft, setAllFields]);
 
   // Handle draft discard
   const handleDiscardDraft = useCallback(() => {
     draft.clearDraft();
     setShowDraftPrompt(false);
-  }, [draft]);
+  }, [draft.clearDraft]);
 
   // Create wrappers for useFormReset hook
   const setShowForm = useCallback((show: boolean) => {
@@ -179,7 +179,7 @@ export default function JournalManager({
     setKeepFormOpenAfterSave(false);
     setShowDraftPrompt(false);
     draft.clearDraft();
-  }, [baseResetForm, draft]);
+  }, [baseResetForm, draft.clearDraft]);
 
   // Open create form with clean state
   const openCreateForm = useCallback(() => {

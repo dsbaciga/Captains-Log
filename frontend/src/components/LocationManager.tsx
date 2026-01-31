@@ -143,13 +143,13 @@ export default function LocationManager({
       setAllFields(restoredData);
     }
     setShowDraftPrompt(false);
-  }, [draft, setAllFields]);
+  }, [draft.restoreDraft, setAllFields]);
 
   // Handle draft discard
   const handleDiscardDraft = useCallback(() => {
     draft.clearDraft();
     setShowDraftPrompt(false);
-  }, [draft]);
+  }, [draft.clearDraft]);
 
   // Destructure stable method for dependency array
   const { openEditForm } = manager;
@@ -190,7 +190,7 @@ export default function LocationManager({
     setKeepFormOpenAfterSave(false);
     setShowDraftPrompt(false);
     draft.clearDraft();
-  }, [reset, manager, draft]);
+  }, [reset, manager, draft.clearDraft]);
 
   const handleLocationSelect = (data: {
     name: string;

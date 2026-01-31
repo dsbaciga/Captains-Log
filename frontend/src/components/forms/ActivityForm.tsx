@@ -152,13 +152,13 @@ export default function ActivityForm({
       }
     }
     setShowDraftPrompt(false);
-  }, [draft, setAllFields]);
+  }, [draft.restoreDraft, setAllFields]);
 
   // Handle draft discard
   const handleDiscardDraft = useCallback(() => {
     draft.clearDraft();
     setShowDraftPrompt(false);
-  }, [draft]);
+  }, [draft.clearDraft]);
 
   // Sync localLocations with locations prop
   useEffect(() => {
