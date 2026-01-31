@@ -20,24 +20,15 @@ const GROUND_TRANSPORT_TYPES: TransportationType[] = [
   "other",
 ];
 
-// Get icon based on transportation type
+// Get marker icon based on transportation type (colored circle matching route)
 const getTransportationIcon = (type: TransportationType) => {
-  const emojiMap: Record<TransportationType, string> = {
-    flight: "✈️",
-    train: "🚆",
-    bus: "🚌",
-    car: "🚗",
-    ferry: "⛴️",
-    bicycle: "🚴",
-    walk: "🚶",
-    other: "🚗",
-  };
+  const color = getRouteColor(type);
 
   return L.divIcon({
-    html: `<div style="font-size: 20px;">${emojiMap[type]}</div>`,
+    html: `<div style="width: 12px; height: 12px; background-color: ${color}; border: 2px solid white; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>`,
     className: "custom-div-icon",
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
   });
 };
 

@@ -161,7 +161,7 @@ export default function LodgingManager({
   const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
 
-  // Auto-save draft for form data - DISABLED to test focus loss issue
+  // Auto-save draft for form data
   const draftKey = manager.editingId ? manager.editingId : tripId;
   const draft = useAutoSaveDraft(values, {
     entityType: 'lodging',
@@ -169,7 +169,6 @@ export default function LodgingManager({
     isEditMode: !!manager.editingId,
     tripId,
     defaultValues: getInitialFormState,
-    enabled: false, // DISABLED
   });
 
   // Check for existing draft when form opens in create mode
@@ -749,12 +748,7 @@ export default function LodgingManager({
                   type="text"
                   id="lodging-name"
                   value={values.name}
-                  onChange={(e) => {
-                    console.log('[LodgingManager] Name input onChange:', e.target.value);
-                    handleChange("name", e.target.value);
-                  }}
-                  onFocus={() => console.log('[LodgingManager] Name input FOCUSED')}
-                  onBlur={() => console.log('[LodgingManager] Name input BLURRED')}
+                  onChange={(e) => handleChange("name", e.target.value)}
                   className="input"
                   required
                   placeholder="e.g., Marriott Hotel"

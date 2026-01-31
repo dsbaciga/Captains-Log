@@ -91,15 +91,6 @@ export default function Modal({
   const hasFocusedRef = useRef(false);
   const triggerElementRef = useRef<HTMLElement | null>(null);
 
-  // DEBUG: Log when Modal mounts/unmounts
-  useEffect(() => {
-    console.log('[Modal] MOUNTED', { title, isOpen });
-    return () => console.log('[Modal] UNMOUNTED', { title });
-  }, []);
-
-  // DEBUG: Log re-renders
-  console.log('[Modal] RENDER', { title, isOpen, hasFocusedRef: hasFocusedRef.current });
-
   // Handle keyboard events including focus trap
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -145,55 +136,41 @@ export default function Modal({
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
-    console.log('[Modal] Focus effect running', { title, isOpen, focusFirstInput, hasFocusedRef: hasFocusedRef.current });
-
     if (isOpen) {
       // Store the currently focused element to restore later
-      const currentActive = document.activeElement as HTMLElement;
-      console.log('[Modal] Storing trigger element:', currentActive?.tagName, currentActive?.id);
-      triggerElementRef.current = currentActive;
+      triggerElementRef.current = document.activeElement as HTMLElement;
 
       if (focusFirstInput && !hasFocusedRef.current) {
         // Focus the first focusable input element (better UX for forms)
-        console.log('[Modal] Will focus first input (hasFocusedRef is false)');
         timeoutId = setTimeout(() => {
           const firstInput = modalRef.current?.querySelector<HTMLElement>(
             'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])'
           );
           if (firstInput) {
-            console.log('[Modal] Focusing first input:', firstInput.tagName, (firstInput as HTMLInputElement).id);
             firstInput.focus();
           } else {
             // Fallback to first focusable element or modal itself
             const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-            console.log('[Modal] Focusing fallback:', firstFocusable?.tagName);
             (firstFocusable || modalRef.current)?.focus();
           }
           hasFocusedRef.current = true;
         }, 0);
       } else if (!focusFirstInput) {
         // Focus the first focusable element or the modal container itself
-        console.log('[Modal] Will focus first focusable (focusFirstInput is false)');
         timeoutId = setTimeout(() => {
           const firstFocusable = modalRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
           (firstFocusable || modalRef.current)?.focus();
         }, 0);
-      } else {
-        console.log('[Modal] Skipping focus (hasFocusedRef already true)');
       }
     } else {
       // Reset the flag when modal closes
-      console.log('[Modal] Resetting hasFocusedRef (modal closed)');
       hasFocusedRef.current = false;
     }
 
     return () => {
-      if (timeoutId) {
-        console.log('[Modal] Clearing focus timeout');
-        clearTimeout(timeoutId);
-      }
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isOpen, focusFirstInput, title]);
+  }, [isOpen, focusFirstInput]);
 
   // Track if modal is open for cleanup logic
   const isOpenRef = useRef(isOpen);
