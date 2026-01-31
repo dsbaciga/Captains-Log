@@ -27,8 +27,10 @@ export interface UseAutoSaveDraftOptions<T> {
 export interface UseAutoSaveDraftResult<T> {
   /** The saved draft data, if any */
   savedDraft: T | null;
-  /** Whether a draft exists for this form */
+  /** Whether a draft exists for this form (includes drafts created during this session) */
   hasDraft: boolean;
+  /** Whether a draft existed BEFORE this form opened (from a previous session) - use this for restore prompts */
+  initialDraftExists: boolean;
   /** Timestamp when draft was last saved */
   lastSavedAt: Date | null;
   /** Restore the draft and return the form data */
@@ -96,10 +98,14 @@ export function useAutoSaveDraft<T extends object>(
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [hasDraftState, setHasDraftState] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // Track if a draft existed when the form first opened (for restore prompt)
+  const [initialDraftExists, setInitialDraftExists] = useState(false);
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFormDataRef = useRef<T>(formData);
   const isInitializedRef = useRef(false);
+  // Track if we've already checked for initial draft (prevents re-checking)
+  const hasCheckedInitialDraftRef = useRef(false);
 
   // Check for existing draft on mount
   useEffect(() => {
@@ -110,10 +116,20 @@ export function useAutoSaveDraft<T extends object>(
       setSavedDraft(existingDraft.formData);
       setLastSavedAt(new Date(existingDraft.savedAt));
       setHasDraftState(true);
+      // Only set initialDraftExists on first check (not when draftKey changes)
+      if (!hasCheckedInitialDraftRef.current) {
+        setInitialDraftExists(true);
+        hasCheckedInitialDraftRef.current = true;
+      }
     } else {
       setSavedDraft(null);
       setLastSavedAt(null);
       setHasDraftState(false);
+      // Mark as checked even if no draft exists
+      if (!hasCheckedInitialDraftRef.current) {
+        setInitialDraftExists(false);
+        hasCheckedInitialDraftRef.current = true;
+      }
     }
     isInitializedRef.current = true;
   }, [draftKey, enabled]);
@@ -175,6 +191,7 @@ export function useAutoSaveDraft<T extends object>(
     setSavedDraft(null);
     setLastSavedAt(null);
     setHasDraftState(false);
+    setInitialDraftExists(false);
   }, [draftKey]);
 
   const saveDraftNow = useCallback(
@@ -205,6 +222,7 @@ export function useAutoSaveDraft<T extends object>(
   return {
     savedDraft,
     hasDraft: hasDraftState,
+    initialDraftExists,
     lastSavedAt,
     restoreDraft,
     clearDraft: clearDraftCallback,
