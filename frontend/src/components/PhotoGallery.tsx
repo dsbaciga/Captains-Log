@@ -659,7 +659,7 @@ export default function PhotoGallery({
   }
 
   return (
-    <div data-testid="photo-gallery">
+    <div data-testid="photo-gallery" className={selectionMode ? 'pb-36 md:pb-24' : ''}>
       <ConfirmDialogComponent />
 
       {/* View Controls */}
@@ -911,7 +911,7 @@ export default function PhotoGallery({
 
                 {/* Selection checkbox */}
                 {selectionMode && (
-                  <div className="absolute top-3 left-3 z-20">
+                  <div className="absolute top-3 left-3 z-10">
                     <div
                       className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shadow-lg transition-all ${
                         isSelected
