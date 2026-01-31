@@ -66,7 +66,7 @@ interface LocationFormFields {
   notes: string;
   latitude: number | undefined;
   longitude: number | undefined;
-  parentId: number | undefined;
+  parentId: number | null | undefined;
   categoryId: number | undefined;
 }
 
@@ -161,7 +161,7 @@ export default function LocationManager({
     handleChange("notes", location.notes || "");
     handleChange("latitude", location.latitude || undefined);
     handleChange("longitude", location.longitude || undefined);
-    handleChange("parentId", location.parentId || undefined);
+    handleChange("parentId", location.parentId ?? null);
     handleChange("categoryId", location.categoryId || undefined);
     openEditForm(location.id);
   }, [handleChange, openEditForm]);
@@ -210,7 +210,7 @@ export default function LocationManager({
     handleChange("notes", location.notes || "");
     handleChange("latitude", location.latitude || undefined);
     handleChange("longitude", location.longitude || undefined);
-    handleChange("parentId", location.parentId || undefined);
+    handleChange("parentId", location.parentId ?? null);
     handleChange("categoryId", location.categoryId || undefined);
     manager.openEditForm(location.id);
   };
@@ -669,7 +669,7 @@ export default function LocationManager({
                         onChange={(e) =>
                           handleChange(
                             "parentId",
-                            e.target.value ? parseInt(e.target.value) : undefined
+                            e.target.value ? parseInt(e.target.value) : null
                           )
                         }
                         className="input"
