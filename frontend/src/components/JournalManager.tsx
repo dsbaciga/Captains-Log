@@ -107,11 +107,12 @@ export default function JournalManager({
   });
 
   // Check for existing draft when form opens in create mode
+  // Use initialDraftExists to only show prompt for drafts from previous sessions
   useEffect(() => {
-    if (manager.showForm && !manager.editingId && draft.hasDraft) {
+    if (manager.showForm && !manager.editingId && draft.initialDraftExists) {
       setShowDraftPrompt(true);
     }
-  }, [manager.showForm, manager.editingId, draft.hasDraft]);
+  }, [manager.showForm, manager.editingId, draft.initialDraftExists]);
 
   // Handle draft restore
   const handleRestoreDraft = useCallback(() => {

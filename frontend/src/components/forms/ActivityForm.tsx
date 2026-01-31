@@ -134,11 +134,12 @@ export default function ActivityForm({
   });
 
   // Check for existing draft when form opens in create mode
+  // Use initialDraftExists to only show prompt for drafts from previous sessions
   useEffect(() => {
-    if (!isEditMode && draft.hasDraft) {
+    if (!isEditMode && draft.initialDraftExists) {
       setShowDraftPrompt(true);
     }
-  }, [isEditMode, draft.hasDraft]);
+  }, [isEditMode, draft.initialDraftExists]);
 
   // Handle draft restore
   const handleRestoreDraft = useCallback(() => {
