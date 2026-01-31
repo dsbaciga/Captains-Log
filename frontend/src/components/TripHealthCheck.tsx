@@ -54,6 +54,16 @@ const CATEGORY_CONFIG: Record<ValidationIssueCategory, {
     color: 'text-slate-600 dark:text-slate-400',
     bgColor: 'bg-slate-50 dark:bg-slate-800/50',
   },
+  DOCUMENTS: {
+    label: 'Documents & Visas',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    ),
+    color: 'text-rose-600 dark:text-rose-400',
+    bgColor: 'bg-rose-50 dark:bg-rose-900/20',
+  },
 };
 
 export default function TripHealthCheck({ tripId, onQuickAction }: TripHealthCheckProps) {
@@ -61,7 +71,7 @@ export default function TripHealthCheck({ tripId, onQuickAction }: TripHealthChe
   const [loading, setLoading] = useState(true);
   const [showDismissed, setShowDismissed] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<ValidationIssueCategory>>(
-    new Set(['SCHEDULE', 'ACCOMMODATIONS', 'TRANSPORTATION'])
+    new Set(['SCHEDULE', 'ACCOMMODATIONS', 'TRANSPORTATION', 'DOCUMENTS'])
   );
 
   const fetchValidation = useCallback(async () => {

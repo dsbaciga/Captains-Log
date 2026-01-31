@@ -7,6 +7,7 @@ import {
   updateEntityLinkSchema,
   bulkLinkPhotosSchema,
   entityTypeEnum,
+  type EntityLinkSummary,
 } from '../types/entityLink.types';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
@@ -159,7 +160,7 @@ export const entityLinkController = {
     const summaryMap = await entityLinkService.getTripLinkSummary(userId, tripId);
 
     // Convert Map to object for JSON response
-    const summary: Record<string, Record<string, number>> = {};
+    const summary: Record<string, EntityLinkSummary> = {};
     summaryMap.forEach((value, key) => {
       summary[key] = value;
     });

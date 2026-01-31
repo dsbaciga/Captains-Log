@@ -6,7 +6,7 @@ type ConfirmOptions = Omit<ConfirmDialogProps, 'isOpen' | 'onClose' | 'onConfirm
 
 interface UseConfirmDialogReturn {
   confirm: (options: ConfirmOptions) => Promise<boolean>;
-  ConfirmDialogComponent: React.FC;
+  ConfirmDialogComponent: React.ReactNode;
 }
 
 /**
@@ -64,19 +64,15 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
     setOptions(null);
   }, [resolveRef]);
 
-  const ConfirmDialogComponent: React.FC = useCallback(() => {
-    if (!options) return null;
-
-    return (
-      <ConfirmDialog
-        isOpen={isOpen}
-        onClose={handleClose}
-        onConfirm={handleConfirm}
-        isLoading={false}
-        {...options}
-      />
-    );
-  }, [isOpen, options, handleClose, handleConfirm]);
+  const ConfirmDialogComponent: React.ReactNode = options ? (
+    <ConfirmDialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      onConfirm={handleConfirm}
+      isLoading={false}
+      {...options}
+    />
+  ) : null;
 
   return {
     confirm,
@@ -124,19 +120,15 @@ export function useConfirmDialogWithLoading(): UseConfirmDialogReturn & { setLoa
     setIsLoading(loading);
   }, []);
 
-  const ConfirmDialogComponent: React.FC = useCallback(() => {
-    if (!options) return null;
-
-    return (
-      <ConfirmDialog
-        isOpen={isOpen}
-        onClose={handleClose}
-        onConfirm={handleConfirm}
-        isLoading={isLoading}
-        {...options}
-      />
-    );
-  }, [isOpen, isLoading, options, handleClose, handleConfirm]);
+  const ConfirmDialogComponent: React.ReactNode = options ? (
+    <ConfirmDialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      onConfirm={handleConfirm}
+      isLoading={isLoading}
+      {...options}
+    />
+  ) : null;
 
   return {
     confirm,

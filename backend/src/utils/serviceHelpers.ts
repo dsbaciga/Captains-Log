@@ -1,7 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from './errors';
-import { EntityType, Prisma } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { EntityType, Prisma, Decimal } from '@prisma/client';
 import { PrismaModelDelegate } from '../types/prisma-helpers';
 
 /**

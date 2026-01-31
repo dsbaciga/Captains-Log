@@ -18,7 +18,7 @@ export interface Checklist {
   tripId: number | null;
   name: string;
   description: string | null;
-  type: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states';
+  type: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states' | 'souvenirs';
   isDefault: boolean;
   sortOrder: number;
   createdAt: string;
@@ -34,7 +34,7 @@ export interface Checklist {
 export interface CreateChecklistDTO {
   name: string;
   description?: string | null;
-  type: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states';
+  type: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states' | 'souvenirs';
   tripId?: number | null;
   isDefault?: boolean;
   sortOrder?: number;
@@ -50,7 +50,7 @@ export interface CreateChecklistDTO {
 export interface UpdateChecklistDTO {
   name?: string | null;
   description?: string | null;
-  type?: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states' | null;
+  type?: 'custom' | 'airports' | 'countries' | 'cities' | 'us_states' | 'souvenirs' | null;
   tripId?: number | null;
   sortOrder?: number | null;
 }
@@ -80,4 +80,21 @@ export interface DefaultChecklistStatus {
 
 export interface SelectiveChecklistOperationDTO {
   types: ChecklistType[];
+}
+
+/**
+ * Metadata structure for souvenir checklist items.
+ * Stored in the ChecklistItem.metadata JSON field.
+ */
+export interface SouvenirMetadata {
+  /** Who the souvenir is for (e.g., "Mom", "Friend John") */
+  forWhom: string;
+  /** Estimated/budgeted price */
+  estimatedPrice?: number;
+  /** Actual price paid */
+  actualPrice?: number;
+  /** Currency code (e.g., "USD", "EUR", "JPY") */
+  currency: string;
+  /** Whether the souvenir has been purchased */
+  purchased: boolean;
 }

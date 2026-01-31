@@ -15,6 +15,7 @@ import {
   convertDateTimeLocalToISO,
 } from "../../utils/timezone";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../../utils/currencyStorage";
+import DietaryTagSelector from "../DietaryTagSelector";
 
 export interface ActivityFormFields {
   name: string;
@@ -34,6 +35,7 @@ export interface ActivityFormFields {
   bookingUrl: string;
   bookingReference: string;
   notes: string;
+  dietaryTags: string[];
 }
 
 export interface ActivityFormData {
@@ -51,6 +53,7 @@ export interface ActivityFormData {
   bookingUrl: string | null;
   bookingReference: string | null;
   notes: string | null;
+  dietaryTags: string[] | null;
 }
 
 interface ActivityFormProps {
@@ -92,6 +95,7 @@ const getInitialFormState = (
     bookingUrl: "",
     bookingReference: "",
     notes: "",
+    dietaryTags: [],
   };
 };
 
@@ -148,7 +152,8 @@ export default function ActivityForm({
       setAllFields(restoredData);
       // Show more options if draft has data in optional fields
       if (restoredData.description || restoredData.locationId || restoredData.cost ||
-          restoredData.bookingUrl || restoredData.bookingReference || restoredData.notes) {
+          restoredData.bookingUrl || restoredData.bookingReference || restoredData.notes ||
+          (restoredData.dietaryTags && restoredData.dietaryTags.length > 0)) {
         setShowMoreOptions(true);
       }
     }
@@ -182,6 +187,7 @@ export default function ActivityForm({
       handleChange("bookingUrl", editingActivity.bookingUrl || "");
       handleChange("bookingReference", editingActivity.bookingReference || "");
       handleChange("notes", editingActivity.notes || "");
+      handleChange("dietaryTags", editingActivity.dietaryTags || []);
 
       // Set location from prop (fetched via entity link)
       if (editingLocationId) {
@@ -348,6 +354,7 @@ export default function ActivityForm({
         bookingUrl: values.bookingUrl || null,
         bookingReference: values.bookingReference || null,
         notes: values.notes || null,
+        dietaryTags: values.dietaryTags.length > 0 ? values.dietaryTags : null,
       };
 
       // Save currency for next time
@@ -426,6 +433,21 @@ export default function ActivityForm({
           </div>
         </div>
       </FormSection>
+
+      {/* SECTION: Dietary Options - shown prominently when category is Dining */}
+      {values.category.toLowerCase() === "dining" && (
+        <FormSection title="Dietary Options" icon="🍽️">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Select dietary accommodations available at this restaurant.
+          </p>
+          <DietaryTagSelector
+            selectedTags={values.dietaryTags}
+            onChange={(tags) => handleChange("dietaryTags", tags)}
+            showLabels={true}
+            compact
+          />
+        </FormSection>
+      )}
 
       {/* SECTION 2: Schedule */}
       <FormSection title="Schedule" icon="🕐">
@@ -713,6 +735,21 @@ export default function ActivityForm({
             onCurrencyChange={(value) => handleChange("currency", value)}
           />
         </FormSection>
+
+        {/* Dietary Options - in More Options for non-dining activities */}
+        {values.category.toLowerCase() !== "dining" && (
+          <FormSection title="Dietary Options" icon="🍽️">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              If this activity involves food, select available dietary accommodations.
+            </p>
+            <DietaryTagSelector
+              selectedTags={values.dietaryTags}
+              onChange={(tags) => handleChange("dietaryTags", tags)}
+              showLabels={true}
+              compact
+            />
+          </FormSection>
+        )}
 
         {/* Notes */}
         <div>

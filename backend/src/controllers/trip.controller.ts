@@ -165,7 +165,9 @@ export const tripController = {
     const validatedData = duplicateTripSchema.parse(req.body);
     const trip = await tripService.duplicateTrip(userId, tripId, validatedData);
 
-    logger.info(`Trip duplicated: ${tripId} -> ${trip.id} by user ${userId}`);
+    if (trip) {
+      logger.info(`Trip duplicated: ${tripId} -> ${trip.id} by user ${userId}`);
+    }
 
     res.status(201).json({
       status: 'success',

@@ -68,6 +68,7 @@ export const companionService = {
         phone: data.phone,
         notes: data.notes,
         relationship: data.relationship,
+        dietaryPreferences: data.dietaryPreferences || [],
         user: {
           connect: { id: userId },
         },

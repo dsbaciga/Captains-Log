@@ -141,20 +141,6 @@ async function verifyEntityInTrip(
 }
 
 /**
- * Fetches entity details for enriched link responses
- */
-async function getEntityDetails(
-  entityType: EntityType,
-  entityId: number
-): Promise<EntityDetails | null> {
-  const config = ENTITY_CONFIG[entityType];
-  if (!config) {
-    return null;
-  }
-  return config.getDetails(entityId);
-}
-
-/**
  * Batch verify that multiple entities exist within a trip
  * Groups by entity type to minimize queries
  */

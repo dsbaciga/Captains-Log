@@ -66,6 +66,7 @@ import {
 } from "../utils/dateFormat";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "../components/Skeleton";
+import JetLagCalculator from "../components/JetLagCalculator";
 
 // All possible tab IDs for the grouped navigation
 type TabId =
@@ -1134,6 +1135,16 @@ export default function TripDetailPage() {
                       ))}
                     </div>
                   )}
+
+                  {/* Jet Lag Calculator */}
+                  {trip.timezone && userTimezone && trip.timezone !== userTimezone && (
+                    <JetLagCalculator
+                      homeTimezone={userTimezone}
+                      tripTimezone={trip.timezone}
+                      variant="overlay"
+                      className="mt-3"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -1283,6 +1294,15 @@ export default function TripDetailPage() {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Jet Lag Calculator */}
+              {trip.timezone && userTimezone && trip.timezone !== userTimezone && (
+                <JetLagCalculator
+                  homeTimezone={userTimezone}
+                  tripTimezone={trip.timezone}
+                  className="mt-4"
+                />
               )}
             </div>
           )}
@@ -1628,6 +1648,7 @@ export default function TripDetailPage() {
 
                 {photoViewMode === 'map' ? (
                   <PhotosMapView
+                    tripId={trip.id}
                     photos={filteredPhotos}
                     onPhotoClick={() => {
                       // TODO: Implement lightbox or photo navigation

@@ -15,6 +15,9 @@ import '../utils/mapUtils'; // Ensure leaflet icons are set up
 // Import reusable components
 import EmptyState from './EmptyState';
 
+// Import themed map tiles hook
+import { useMapTiles } from '../hooks/useMapTiles';
+
 interface TripLocationsMapProps {
   locations: Location[];
   transportations?: Transportation[];
@@ -96,6 +99,7 @@ function createArcPath(start: LatLng, end: LatLng): LatLng[] {
 }
 
 export default function TripLocationsMap({ locations, transportations = [], showRoutes = true }: TripLocationsMapProps) {
+  const tileConfig = useMapTiles();
   const validLocations = filterValidCoordinates(locations);
 
   if (validLocations.length === 0) {
@@ -135,8 +139,10 @@ export default function TripLocationsMap({ locations, transportations = [], show
           className="z-0"
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            key={tileConfig.url}
+            url={tileConfig.url}
+            attribution={tileConfig.attribution}
+            maxZoom={tileConfig.maxZoom}
           />
           <MapBounds locations={validLocations} />
 

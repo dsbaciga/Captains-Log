@@ -2,6 +2,7 @@ import { MapContainer, TileLayer } from "react-leaflet";
 import PlacesVisitedMap from "./PlacesVisitedMap";
 import type { Location } from "../types/location";
 import type { Transportation } from "../types/transportation";
+import { useMapTiles } from "../hooks/useMapTiles";
 
 interface PlacesVisitedMapContainerProps {
     locations: Location[];
@@ -9,6 +10,8 @@ interface PlacesVisitedMapContainerProps {
 }
 
 const PlacesVisitedMapContainer = ({ locations, transportation }: PlacesVisitedMapContainerProps) => {
+    const tileConfig = useMapTiles();
+
     // Calculate center of all locations
     const validLocations = locations.filter((loc) => {
         const isValid =
@@ -37,8 +40,10 @@ const PlacesVisitedMapContainer = ({ locations, transportation }: PlacesVisitedM
             className="z-0"
         >
             <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                key={tileConfig.url}
+                url={tileConfig.url}
+                attribution={tileConfig.attribution}
+                maxZoom={tileConfig.maxZoom}
             />
             <PlacesVisitedMap locations={locations} transportation={transportation} />
         </MapContainer>

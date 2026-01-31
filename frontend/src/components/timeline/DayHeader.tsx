@@ -28,6 +28,71 @@ function WeatherBadge({ weather }: WeatherBadgeProps) {
   );
 }
 
+interface SunriseSunsetBadgeProps {
+  sunrise: string | null;
+  sunset: string | null;
+  tripTimezone?: string;
+}
+
+/**
+ * Format a time string for display in a specific timezone
+ * Returns time in format like "6:42 AM"
+ */
+function formatTimeInTimezone(isoDatetime: string, timezone?: string): string {
+  try {
+    const date = new Date(isoDatetime);
+    if (isNaN(date.getTime())) return '';
+
+    const options: Intl.DateTimeFormatOptions = {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    };
+
+    if (timezone) {
+      options.timeZone = timezone;
+    }
+
+    return date.toLocaleTimeString('en-US', options);
+  } catch {
+    return '';
+  }
+}
+
+function SunriseSunsetBadge({ sunrise, sunset, tripTimezone }: SunriseSunsetBadgeProps) {
+  // Only show if we have at least one of sunrise/sunset
+  if (!sunrise && !sunset) {
+    return null;
+  }
+
+  const sunriseTime = sunrise ? formatTimeInTimezone(sunrise, tripTimezone) : null;
+  const sunsetTime = sunset ? formatTimeInTimezone(sunset, tripTimezone) : null;
+
+  if (!sunriseTime && !sunsetTime) {
+    return null;
+  }
+
+  return (
+    <div className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm">
+      {sunriseTime && (
+        <span className="flex items-center gap-1">
+          <span>sunrise</span>
+          <span className="font-medium">{sunriseTime}</span>
+        </span>
+      )}
+      {sunriseTime && sunsetTime && (
+        <span className="text-amber-400 dark:text-amber-500">·</span>
+      )}
+      {sunsetTime && (
+        <span className="flex items-center gap-1">
+          <span>sunset</span>
+          <span className="font-medium">{sunsetTime}</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function DayHeader({
   date,
   dayNumber,
@@ -77,6 +142,13 @@ export default function DayHeader({
               })}
             </h3>
             {weather && <WeatherBadge weather={weather} />}
+            {weather && (
+              <SunriseSunsetBadge
+                sunrise={weather.sunrise}
+                sunset={weather.sunset}
+                tripTimezone={tripTimezone}
+              />
+            )}
           </div>
 
           {/* Stats row */}

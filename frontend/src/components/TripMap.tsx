@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { MapContainer, TileLayer, Polyline, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Transportation, TransportationType } from "../types/transportation";
+import { useMapTiles } from "../hooks/useMapTiles";
 
 interface TripMapProps {
   transportations: Transportation[];
@@ -72,6 +73,8 @@ const calculateBounds = (
 };
 
 export default function TripMap({ transportations, height = "500px" }: TripMapProps) {
+  const tileConfig = useMapTiles();
+
   // Filter to only ground/sea transportation with valid routes
   const groundTransportations = useMemo(
     () =>
@@ -153,8 +156,10 @@ export default function TripMap({ transportations, height = "500px" }: TripMapPr
           zoomControl={true}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            key={tileConfig.url}
+            url={tileConfig.url}
+            attribution={tileConfig.attribution}
+            maxZoom={tileConfig.maxZoom}
           />
 
           {groundTransportations.map((transportation) => {
@@ -173,6 +178,9 @@ export default function TripMap({ transportations, height = "500px" }: TripMapPr
               <div key={transportation.id}>
                 {/* Departure marker */}
                 <Marker position={[from.latitude, from.longitude]} icon={transportIcon}>
+                  <Tooltip direction="top" offset={[0, -6]}>
+                    {from.name}
+                  </Tooltip>
                   <Popup>
                     <div className="text-sm">
                       <strong>From:</strong> {from.name}
@@ -187,6 +195,9 @@ export default function TripMap({ transportations, height = "500px" }: TripMapPr
 
                 {/* Arrival marker */}
                 <Marker position={[to.latitude, to.longitude]} icon={transportIcon}>
+                  <Tooltip direction="top" offset={[0, -6]}>
+                    {to.name}
+                  </Tooltip>
                   <Popup>
                     <div className="text-sm">
                       <strong>To:</strong> {to.name}

@@ -1011,6 +1011,8 @@ const Timeline = ({
       humidity: weather.humidity,
       windSpeed: weather.windSpeed,
       locationName: weather.locationName,
+      sunrise: weather.sunrise,
+      sunset: weather.sunset,
     };
   };
 

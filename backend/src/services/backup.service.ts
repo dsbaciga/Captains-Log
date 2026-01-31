@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { BACKUP_VERSION, type BackupData } from '../types/backup.types';
+import { maskDocumentNumber } from '../types/travelDocument.types';
 import { AppError } from '../utils/errors';
 
 /**
@@ -48,6 +49,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         relationship: true,
         isMyself: true,
         avatarUrl: true,
+        dietaryPreferences: true,
       },
     });
 
@@ -83,6 +85,22 @@ export async function createBackup(userId: number): Promise<BackupData> {
       },
     });
 
+    // Fetch travel documents (mask document numbers for security)
+    const travelDocuments = await prisma.travelDocument.findMany({
+      where: { userId },
+      select: {
+        type: true,
+        issuingCountry: true,
+        documentNumber: true,
+        issueDate: true,
+        expiryDate: true,
+        name: true,
+        notes: true,
+        isPrimary: true,
+        alertDaysBefore: true,
+      },
+    });
+
     // Fetch all trips with all related data
     const trips = await prisma.trip.findMany({
       where: { userId },
@@ -103,6 +121,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         },
         photos: {
           select: {
+            id: true, // Needed for EntityLink lookup and album photo mapping
             source: true,
             immichAssetId: true,
             localPath: true,
@@ -230,6 +249,13 @@ export async function createBackup(userId: number): Promise<BackupData> {
             notes: true,
           },
         },
+        // Trip languages for language helper feature
+        languages: {
+          select: {
+            languageCode: true,
+            language: true,
+          },
+        },
       },
     });
 
@@ -249,6 +275,19 @@ export async function createBackup(userId: number): Promise<BackupData> {
         sortOrder: checklist.sortOrder,
         items: checklist.items,
       })),
+      // Travel documents with masked document numbers for security
+      travelDocuments: travelDocuments.map((doc) => ({
+        type: doc.type,
+        issuingCountry: doc.issuingCountry,
+        // Mask document number: show only last 4 characters
+        documentNumber: maskDocumentNumber(doc.documentNumber),
+        issueDate: doc.issueDate,
+        expiryDate: doc.expiryDate,
+        name: doc.name,
+        notes: doc.notes,
+        isPrimary: doc.isPrimary,
+        alertDaysBefore: doc.alertDaysBefore,
+      })),
       trips: trips.map((trip) => ({
         // Trip basic info
         title: trip.title,
@@ -258,6 +297,8 @@ export async function createBackup(userId: number): Promise<BackupData> {
         timezone: trip.timezone,
         status: trip.status,
         privacyLevel: trip.privacyLevel,
+        coverPhotoId: trip.coverPhotoId,
+        bannerPhotoId: trip.bannerPhotoId,
         addToPlacesVisited: trip.addToPlacesVisited,
 
         // Related entities
@@ -325,6 +366,11 @@ export async function createBackup(userId: number): Promise<BackupData> {
         })),
         // EntityLinks - stores relationships between entities
         entityLinks: trip.entityLinks,
+        // Trip languages for language helper feature
+        tripLanguages: trip.languages.map((tl) => ({
+          languageCode: tl.languageCode,
+          language: tl.language,
+        })),
       })),
     };
 

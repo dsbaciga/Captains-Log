@@ -10,6 +10,8 @@ export type WeatherData = {
   precipitation: number | null;
   humidity: number | null;
   windSpeed: number | null;
+  sunrise: string | null; // ISO datetime string for sunrise
+  sunset: string | null; // ISO datetime string for sunset
   fetchedAt: string; // ISO datetime string
   createdAt: string;
 };
@@ -24,4 +26,6 @@ export type WeatherDisplay = {
   humidity: number | null;
   windSpeed: number | null;
   locationName?: string | null;
+  sunrise: string | null; // ISO datetime string for sunrise
+  sunset: string | null; // ISO datetime string for sunset
 };

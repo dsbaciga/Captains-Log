@@ -24,6 +24,8 @@ import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import BulkActionBar from "./BulkActionBar";
 import BulkEditModal from "./BulkEditModal";
+import DietaryBadges from "./DietaryBadges";
+import { DIETARY_TAGS } from "../constants/dietaryTags";
 
 /**
  * ActivityManager handles CRUD operations for trip activities (things to do).
@@ -105,6 +107,8 @@ export default function ActivityManager({
   const [formKey, setFormKey] = useState(0); // Key to force form reset
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<"date" | "category">("date");
+  const [dietaryFilter, setDietaryFilter] = useState<string[]>([]);
+  const [userDietaryPreferences, setUserDietaryPreferences] = useState<string[]>([]);
 
   // Create wrappers for useFormReset hook
   // ActivityManager uses editingActivity instead of form fields, so we adapt the pattern
@@ -139,7 +143,7 @@ export default function ActivityManager({
   });
 
   useEffect(() => {
-    loadUserCategories();
+    loadUserSettings();
   }, [tripId]);
 
   // Sync localLocations with locations prop
@@ -176,12 +180,13 @@ export default function ActivityManager({
     loading: manager.loading,
   });
 
-  const loadUserCategories = async () => {
+  const loadUserSettings = async () => {
     try {
       const user = await userService.getMe();
       setActivityCategories(user.activityCategories || []);
+      setUserDietaryPreferences(user.dietaryPreferences || []);
     } catch {
-      console.error("Failed to load activity categories");
+      console.error("Failed to load user settings");
     }
   };
 
@@ -235,6 +240,7 @@ export default function ActivityManager({
         bookingUrl: data.bookingUrl,
         bookingReference: data.bookingReference,
         notes: data.notes,
+        dietaryTags: data.dietaryTags,
       };
 
       const success = await manager.handleUpdate(manager.editingId, updateData);
@@ -285,6 +291,7 @@ export default function ActivityManager({
         bookingUrl: data.bookingUrl || undefined,
         bookingReference: data.bookingReference || undefined,
         notes: data.notes || undefined,
+        dietaryTags: data.dietaryTags || undefined,
       };
 
       try {
@@ -330,9 +337,19 @@ export default function ActivityManager({
   // Filter top-level activities (no parent)
   const topLevelActivities = manager.items.filter((a) => !a.parentId);
 
+  // Filter by dietary tags if filter is active
+  const filteredActivities = useMemo(() => {
+    if (dietaryFilter.length === 0) return topLevelActivities;
+    return topLevelActivities.filter((activity) => {
+      if (!activity.dietaryTags || activity.dietaryTags.length === 0) return false;
+      // Activity must have ALL selected dietary tags
+      return dietaryFilter.every((tag) => activity.dietaryTags?.includes(tag));
+    });
+  }, [topLevelActivities, dietaryFilter]);
+
   // Split into scheduled and unscheduled
-  const scheduledActivities = topLevelActivities.filter((a) => a.startTime);
-  const unscheduledActivities = topLevelActivities.filter((a) => !a.startTime);
+  const scheduledActivities = filteredActivities.filter((a) => a.startTime);
+  const unscheduledActivities = filteredActivities.filter((a) => !a.startTime);
 
   // Sort activities based on sortBy
   const sortActivities = (activities: Activity[]) => {
@@ -583,6 +600,17 @@ export default function ActivityManager({
           )}
         </div>
 
+        {/* Dietary Tags */}
+        {activity.dietaryTags && activity.dietaryTags.length > 0 && (
+          <div className="mt-3">
+            <DietaryBadges
+              tags={activity.dietaryTags}
+              userPreferences={userDietaryPreferences}
+              maxDisplay={6}
+            />
+          </div>
+        )}
+
         {/* Linked Entities */}
         <LinkedEntitiesDisplay
           tripId={tripId}
@@ -721,21 +749,65 @@ export default function ActivityManager({
         />
       </FormModal>
 
-      {/* Sort Control */}
+      {/* Sort and Filter Controls */}
       {topLevelActivities.length > 0 && (
-        <div className="flex items-center gap-2">
-          <label htmlFor="activity-sort" className="text-sm text-gray-600 dark:text-gray-400">
-            Sort by:
-          </label>
-          <select
-            id="activity-sort"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as "date" | "category")}
-            className="input py-1 px-2 text-sm w-auto"
-          >
-            <option value="date">Date</option>
-            <option value="category">Category</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="activity-sort" className="text-sm text-gray-600 dark:text-gray-400">
+              Sort by:
+            </label>
+            <select
+              id="activity-sort"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "date" | "category")}
+              className="input py-1 px-2 text-sm w-auto"
+            >
+              <option value="date">Date</option>
+              <option value="category">Category</option>
+            </select>
+          </div>
+
+          {/* Dietary Filter */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="dietary-filter" className="text-sm text-gray-600 dark:text-gray-400">
+              Dietary:
+            </label>
+            <select
+              id="dietary-filter"
+              value={dietaryFilter.length === 0 ? "" : dietaryFilter[0]}
+              onChange={(e) => {
+                if (e.target.value === "") {
+                  setDietaryFilter([]);
+                } else {
+                  setDietaryFilter([e.target.value]);
+                }
+              }}
+              className="input py-1 px-2 text-sm w-auto"
+            >
+              <option value="">All</option>
+              {DIETARY_TAGS.map((tag) => (
+                <option key={tag.id} value={tag.id}>
+                  {tag.emoji} {tag.label}
+                </option>
+              ))}
+            </select>
+            {dietaryFilter.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setDietaryFilter([])}
+                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Filter active indicator */}
+          {dietaryFilter.length > 0 && (
+            <span className="text-sm text-primary-600 dark:text-gold">
+              Showing {filteredActivities.length} of {topLevelActivities.length} activities
+            </span>
+          )}
         </div>
       )}
 
@@ -750,6 +822,17 @@ export default function ActivityManager({
           actionLabel="Add Your First Activity"
           onAction={handleOpenForm}
         />
+      ) : filteredActivities.length === 0 && dietaryFilter.length > 0 ? (
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <p className="text-lg mb-2">No activities match the selected dietary filter.</p>
+          <button
+            type="button"
+            onClick={() => setDietaryFilter([])}
+            className="text-primary-600 dark:text-gold hover:underline"
+          >
+            Clear filter
+          </button>
+        </div>
       ) : (
         <>
           {/* Scheduled Activities */}

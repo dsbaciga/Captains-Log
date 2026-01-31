@@ -5,22 +5,26 @@ import tagService from "../services/tag.service";
 import apiService from "../services/api.service";
 import backupService from "../services/backup.service";
 import { useAuthStore } from "../store/authStore";
+import { useThemeStore } from "../store/themeStore";
 import type { ActivityCategory } from "../types/user";
 import type { TripTag } from "../types/tag";
 import type { RestoreOptions } from "../types/backup";
 import toast from "react-hot-toast";
+import DietaryTagSelector from "../components/DietaryTagSelector";
 import ImmichSettings from "../components/ImmichSettings";
 import WeatherSettings from "../components/WeatherSettings";
 import AviationstackSettings from "../components/AviationstackSettings";
 import OpenRouteServiceSettings from "../components/OpenRouteServiceSettings";
 import EmojiPicker from "../components/EmojiPicker";
+import TravelDocumentManager from "../components/TravelDocumentManager";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getRandomTagColor } from "../utils/tagColors";
 
-type TabType = "account" | "tags-categories" | "integrations" | "backup";
+type TabType = "account" | "tags-categories" | "documents" | "integrations" | "backup";
 
 export default function SettingsPage() {
   const { updateUser } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -39,6 +43,8 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [tags, setTags] = useState<TripTag[]>([]);
+  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
+  const [useCustomMapStyle, setUseCustomMapStyle] = useState(true);
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(getRandomTagColor);
   const [newTagTextColor, setNewTagTextColor] = useState("#FFFFFF");
@@ -79,6 +85,8 @@ export default function SettingsPage() {
       const user = await userService.getMe();
       setCategories(user.activityCategories || []);
       setTimezone(user.timezone || "UTC");
+      setDietaryPreferences(user.dietaryPreferences || []);
+      setUseCustomMapStyle(user.useCustomMapStyle ?? true);
       setUsername(user.username);
       setNewUsername(user.username);
     } catch {
@@ -207,10 +215,39 @@ export default function SettingsPage() {
       await userService.updateSettings({
         activityCategories: categories,
         timezone: timezone,
+        dietaryPreferences: dietaryPreferences,
       });
       toast.success("Settings saved");
     } catch {
       toast.error("Failed to save settings");
+    }
+  };
+
+  const handleSaveDietaryPreferences = async () => {
+    try {
+      await userService.updateSettings({
+        dietaryPreferences: dietaryPreferences,
+      });
+      toast.success("Dietary preferences saved");
+    } catch {
+      toast.error("Failed to save dietary preferences");
+    }
+  };
+
+  const handleToggleCustomMapStyle = async () => {
+    const newValue = !useCustomMapStyle;
+    setUseCustomMapStyle(newValue);
+    try {
+      await userService.updateSettings({
+        useCustomMapStyle: newValue,
+      });
+      // Update the user in auth store so the map tiles hook picks up the change
+      updateUser({ useCustomMapStyle: newValue });
+      toast.success(newValue ? "Custom map style enabled" : "Custom map style disabled");
+    } catch {
+      // Revert on error
+      setUseCustomMapStyle(!newValue);
+      toast.error("Failed to update map style preference");
     }
   };
 
@@ -383,6 +420,7 @@ export default function SettingsPage() {
           >
             <option value="account">Account</option>
             <option value="tags-categories">Tags & Categories</option>
+            <option value="documents">Travel Documents</option>
             <option value="integrations">Integrations</option>
             <option value="backup">Backup & Restore</option>
           </select>
@@ -418,6 +456,20 @@ export default function SettingsPage() {
               `}
             >
               Tags & Categories
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("documents")}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                ${
+                  activeTab === "documents"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }
+              `}
+            >
+              Travel Documents
             </button>
             <button
               type="button"
@@ -600,6 +652,101 @@ export default function SettingsPage() {
                 <button onClick={handleSave} type="button" className="btn btn-primary">
                   Save Timezone
                 </button>
+              </div>
+            </div>
+
+            {/* Dietary Preferences */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Dietary Preferences
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Select your dietary needs. Activities matching these preferences will be highlighted when browsing dining options.
+              </p>
+              <DietaryTagSelector
+                selectedTags={dietaryPreferences}
+                onChange={setDietaryPreferences}
+                showLabels={true}
+              />
+              <div className="mt-4">
+                <button onClick={handleSaveDietaryPreferences} type="button" className="btn btn-primary">
+                  Save Dietary Preferences
+                </button>
+              </div>
+            </div>
+
+            {/* Appearance */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Appearance
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Customize the visual appearance of the application.
+              </p>
+              <div className="space-y-4">
+                {/* Theme Toggle */}
+                <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                      Dark Mode
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Switch between light and dark color schemes
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className={`
+                      relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
+                      transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                      ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}
+                    `}
+                    role="switch"
+                    aria-checked={theme === 'dark' ? 'true' : 'false'}
+                    aria-label="Toggle dark mode"
+                  >
+                    <span
+                      className={`
+                        pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0
+                        transition duration-200 ease-in-out
+                        ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}
+                      `}
+                    />
+                  </button>
+                </div>
+
+                {/* Custom Map Style Toggle */}
+                <div className="flex items-center justify-between py-3">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                      Custom Map Style
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Use themed map tiles that match the app's look
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleCustomMapStyle}
+                    className={`
+                      relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
+                      transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                      ${useCustomMapStyle ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}
+                    `}
+                    role="switch"
+                    aria-checked={useCustomMapStyle ? 'true' : 'false'}
+                    aria-label="Toggle custom map style"
+                  >
+                    <span
+                      className={`
+                        pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0
+                        transition duration-200 ease-in-out
+                        ${useCustomMapStyle ? 'translate-x-5' : 'translate-x-0'}
+                      `}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -867,6 +1014,13 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Travel Documents Tab */}
+        {activeTab === "documents" && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <TravelDocumentManager />
           </div>
         )}
 

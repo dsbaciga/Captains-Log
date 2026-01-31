@@ -18,9 +18,10 @@ import { SkeletonGrid } from '../components/Skeleton';
 import { SearchIcon, FilterIcon, CloseIcon } from '../components/icons';
 import TripCard from '../components/TripCard';
 import TripsKanbanView from '../components/TripsKanbanView';
+import TripListView from '../components/TripListView';
 
 type SortOption = 'startDate-desc' | 'startDate-asc' | 'title-asc' | 'title-desc' | 'status';
-type ViewMode = 'grid' | 'kanban';
+type ViewMode = 'grid' | 'kanban' | 'list';
 
 export default function TripsPage() {
   const queryClient = useQueryClient();
@@ -36,6 +37,8 @@ export default function TripsPage() {
   const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortColumn, setSortColumn] = useState<string>('startDate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   // Use ref to track blob URLs for proper cleanup (avoids stale closure issues)
   const blobUrlsRef = useRef<string[]>([]);
@@ -48,9 +51,11 @@ export default function TripsPage() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
+  const pageSize = viewMode === 'list' ? 40 : 20;
+
   const params = {
     page: currentPage,
-    limit: 20,
+    limit: pageSize,
     status: statusFilter,
     search: debouncedSearchQuery.trim(),
     startDateFrom,
@@ -310,6 +315,20 @@ export default function TripsPage() {
     setCurrentPage(1);
   };
 
+  const handleColumnSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Reset to page 1 when view mode changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [viewMode]);
+
   const hasActiveFilters = searchQuery || startDateFrom || startDateTo || selectedTags.length > 0;
 
   // Render pagination controls (used at both top and bottom)
@@ -402,6 +421,20 @@ export default function TripsPage() {
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+                title="List View"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
               </button>
               <button
@@ -618,6 +651,18 @@ export default function TripsPage() {
             coverPhotoUrls={coverPhotoUrls}
             onStatusChange={handleStatusChange}
             onNavigateAway={handleNavigateAway}
+          />
+        ) : viewMode === 'list' ? (
+          /* List View */
+          <TripListView
+            trips={filteredTrips}
+            coverPhotoUrls={coverPhotoUrls}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+            onNavigateAway={handleNavigateAway}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={handleColumnSort}
           />
         ) : (
           /* Grid View */

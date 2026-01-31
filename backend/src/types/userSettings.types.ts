@@ -9,6 +9,8 @@ export const activityCategorySchema = z.object({
 export const updateUserSettingsSchema = z.object({
   activityCategories: z.array(activityCategorySchema).optional(),
   timezone: z.string().min(1).max(100).optional(),
+  dietaryPreferences: z.array(z.string()).optional(),
+  useCustomMapStyle: z.boolean().optional(),
 });
 
 export type ActivityCategory = z.infer<typeof activityCategorySchema>;

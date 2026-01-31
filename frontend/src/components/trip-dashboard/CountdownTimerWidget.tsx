@@ -417,11 +417,11 @@ export default function CountdownTimerWidget({
         return new Date(baseDate.getTime() + offsetDiff * 60000);
       } catch {
         // Fallback to simple parsing if timezone handling fails
-        const date = new Date(dateStr);
+        // Parse date string directly to avoid UTC interpretation issues
+        const [year, month, day] = datePart.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
         if (isEndOfDay) {
           date.setHours(23, 59, 59, 999);
-        } else {
-          date.setHours(0, 0, 0, 0);
         }
         return date;
       }

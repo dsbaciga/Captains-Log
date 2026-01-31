@@ -242,7 +242,7 @@ export const albumSuggestionService = {
         photoAssignments: {
           create: suggestion.photoIds.map((photoId, index) => ({
             photoId,
-            position: index,
+            sortOrder: index,
           })),
         },
       },

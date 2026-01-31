@@ -4,8 +4,7 @@
  * to avoid using 'any' throughout the codebase.
  */
 
-import { Prisma } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma, Decimal } from '@prisma/client';
 import { AxiosError } from 'axios';
 
 // =============================================================================

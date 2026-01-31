@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { Prisma } from '@prisma/client';
-import { BackupData, BACKUP_VERSION, RestoreOptions } from '../types/backup.types';
+import { BackupData, RestoreOptions } from '../types/backup.types';
 import { AppError } from '../utils/errors';
 
 /**
@@ -16,7 +16,16 @@ interface RestoreStats {
   journalEntriesImported: number;
   tagsImported: number;
   companionsImported: number;
+  travelDocumentsImported: number;
+  tripLanguagesImported: number;
 }
+
+/**
+ * Supported backup versions that can be restored
+ * v1.0.0 - Original backup format
+ * v1.1.0 - Added travelDocuments and tripLanguages
+ */
+const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0'];
 
 /**
  * Restore user data from a backup
@@ -26,10 +35,10 @@ export async function restoreFromBackup(
   backupData: BackupData,
   options: RestoreOptions = { clearExistingData: true, importPhotos: true }
 ): Promise<{ success: boolean; message: string; stats: RestoreStats }> {
-  // Validate backup version
-  if (backupData.version !== BACKUP_VERSION) {
+  // Validate backup version - support older versions for backward compatibility
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(backupData.version)) {
     throw new AppError(
-      `Incompatible backup version. Expected ${BACKUP_VERSION}, got ${backupData.version}`,
+      `Incompatible backup version. Supported versions: ${SUPPORTED_BACKUP_VERSIONS.join(', ')}, got ${backupData.version}`,
       400
     );
   }
@@ -44,6 +53,8 @@ export async function restoreFromBackup(
     journalEntriesImported: 0,
     tagsImported: 0,
     companionsImported: 0,
+    travelDocumentsImported: 0,
+    tripLanguagesImported: 0,
   };
 
   try {
@@ -97,6 +108,7 @@ export async function restoreFromBackup(
               relationship: companion.relationship,
               isMyself: companion.isMyself,
               avatarUrl: companion.avatarUrl,
+              dietaryPreferences: companion.dietaryPreferences || [],
             },
           });
           companionMap.set(companion.name, created.id);
@@ -133,6 +145,44 @@ export async function restoreFromBackup(
               },
             },
           });
+        }
+
+        // Step 6.5: Import travel documents (added in v1.1.0)
+        // Note: Document numbers in backup are masked, so we don't restore them
+        // Users will need to re-enter document numbers after restore for security
+        if (backupData.travelDocuments) {
+          for (const docData of backupData.travelDocuments) {
+            // Check if a similar document already exists (by type + issuing country + name)
+            // to avoid creating duplicates during merge
+            const existingDoc = await tx.travelDocument.findFirst({
+              where: {
+                userId,
+                type: docData.type,
+                issuingCountry: docData.issuingCountry,
+                name: docData.name,
+              },
+            });
+
+            if (!existingDoc) {
+              await tx.travelDocument.create({
+                data: {
+                  userId,
+                  type: docData.type,
+                  issuingCountry: docData.issuingCountry,
+                  // Document number is masked in backup, don't restore it
+                  // User will need to re-enter after restore
+                  documentNumber: null,
+                  issueDate: docData.issueDate ? new Date(docData.issueDate) : null,
+                  expiryDate: docData.expiryDate ? new Date(docData.expiryDate) : null,
+                  name: docData.name,
+                  notes: docData.notes,
+                  isPrimary: docData.isPrimary,
+                  alertDaysBefore: docData.alertDaysBefore,
+                },
+              });
+              stats.travelDocumentsImported++;
+            }
+          }
         }
 
         // Step 7: Import trips with all related data
@@ -213,6 +263,19 @@ export async function restoreFromBackup(
               });
               photoMap.set(photoData.id, photo.id);
               stats.photosImported++;
+            }
+
+            // Update trip with cover and banner photo IDs after photos are imported
+            const newCoverPhotoId = tripData.coverPhotoId ? photoMap.get(tripData.coverPhotoId) : null;
+            const newBannerPhotoId = tripData.bannerPhotoId ? photoMap.get(tripData.bannerPhotoId) : null;
+            if (newCoverPhotoId || newBannerPhotoId) {
+              await tx.trip.update({
+                where: { id: trip.id },
+                data: {
+                  coverPhotoId: newCoverPhotoId || null,
+                  bannerPhotoId: newBannerPhotoId || null,
+                },
+              });
             }
           }
 
@@ -340,7 +403,7 @@ export async function restoreFromBackup(
 
           // Import journal entries
           for (const journalData of tripData.journalEntries || []) {
-            const journal = await tx.journalEntry.create({
+            await tx.journalEntry.create({
               data: {
                 tripId: trip.id,
                 date: journalData.date ? new Date(journalData.date) : null,
@@ -493,6 +556,20 @@ export async function restoreFromBackup(
               });
             }
           }
+
+          // Import trip languages (added in v1.1.0)
+          if (tripData.tripLanguages) {
+            for (const langData of tripData.tripLanguages) {
+              await tx.tripLanguage.create({
+                data: {
+                  tripId: trip.id,
+                  languageCode: langData.languageCode,
+                  language: langData.language,
+                },
+              });
+              stats.tripLanguagesImported++;
+            }
+          }
         }
       },
       {
@@ -516,7 +593,7 @@ export async function restoreFromBackup(
  * Clear all user data (for restore with clearExistingData option)
  */
 async function clearUserData(userId: number, tx: Prisma.TransactionClient) {
-  // Delete all trips (cascades to most related entities)
+  // Delete all trips (cascades to most related entities including tripLanguages)
   await tx.trip.deleteMany({
     where: { userId },
   });
@@ -542,6 +619,11 @@ async function clearUserData(userId: number, tx: Prisma.TransactionClient) {
       userId,
       tripId: null,
     },
+  });
+
+  // Delete travel documents (added in v1.1.0)
+  await tx.travelDocument.deleteMany({
+    where: { userId },
   });
 }
 

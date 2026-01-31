@@ -10,6 +10,8 @@ export const weatherDataSchema = z.object({
   precipitation: z.number().optional().nullable(),
   humidity: z.number().int().min(0).max(100).optional().nullable(),
   windSpeed: z.number().optional().nullable(),
+  sunrise: z.string().datetime().optional().nullable(), // ISO datetime string for sunrise
+  sunset: z.string().datetime().optional().nullable(), // ISO datetime string for sunset
 });
 
 export const refreshWeatherSchema = z.object({

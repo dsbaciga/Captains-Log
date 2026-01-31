@@ -1,0 +1,875 @@
+{
+  "metadata": {
+    "description": "Visa requirements data for common passport-destination pairs",
+    "lastUpdated": "2025-01-01",
+    "disclaimer": "This data is for informational purposes only. Always verify with official sources before travel.",
+    "sources": [
+      "https://www.iatatravelcentre.com",
+      "https://www.travel.state.gov",
+      "https://ec.europa.eu/home-affairs/what-we-do/policies/borders-and-visas"
+    ]
+  },
+  "requirements": [
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "France",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://france-visas.gouv.fr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Spain",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://www.exteriores.gob.es",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Italy",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://vistoperitalia.esteri.it",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Germany",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://www.auswaertiges-amt.de",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 30,
+      "notes": "Visa exemption for tourism, extendable once for 30 days",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Australia",
+      "visaRequired": true,
+      "visaType": "eta",
+      "maxStayDays": 90,
+      "notes": "Electronic Travel Authority (ETA) required - apply online before travel",
+      "sourceUrl": "https://immi.homeaffairs.gov.au",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Mexico",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 180 days",
+      "sourceUrl": "https://embamex.sre.gob.mx",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Canada",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.canada.ca/en/immigration-refugees-citizenship",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "United Arab Emirates",
+      "visaRequired": false,
+      "visaType": "visa_on_arrival",
+      "maxStayDays": 30,
+      "notes": "Visa on arrival for 30 days, extendable",
+      "sourceUrl": "https://u.ae/en/information-and-services/visa-and-emirates-id",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Turkey",
+      "visaRequired": true,
+      "visaType": "e_visa",
+      "maxStayDays": 90,
+      "notes": "e-Visa required - apply online before travel",
+      "sourceUrl": "https://www.evisa.gov.tr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "China",
+      "visaRequired": true,
+      "visaType": "visa_required",
+      "maxStayDays": 30,
+      "notes": "Tourist visa required - apply at embassy/consulate",
+      "sourceUrl": "https://www.visaforchina.org",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "India",
+      "visaRequired": true,
+      "visaType": "e_visa",
+      "maxStayDays": 30,
+      "notes": "e-Tourist Visa required - apply online before travel",
+      "sourceUrl": "https://indianvisaonline.gov.in",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Indonesia",
+      "visaRequired": true,
+      "visaType": "visa_on_arrival",
+      "maxStayDays": 30,
+      "notes": "Visa on arrival available for tourism, extendable once",
+      "sourceUrl": "https://www.imigrasi.go.id",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Vietnam",
+      "visaRequired": true,
+      "visaType": "e_visa",
+      "maxStayDays": 30,
+      "notes": "e-Visa required for stays over 15 days",
+      "sourceUrl": "https://evisa.xuatnhapcanh.gov.vn",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Brazil",
+      "visaRequired": true,
+      "visaType": "e_visa",
+      "maxStayDays": 90,
+      "notes": "e-Visa required - apply online before travel",
+      "sourceUrl": "https://www.gov.br/mre",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "South Africa",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.dha.gov.za",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Egypt",
+      "visaRequired": true,
+      "visaType": "visa_on_arrival",
+      "maxStayDays": 30,
+      "notes": "Visa on arrival or e-Visa available",
+      "sourceUrl": "https://www.visa2egypt.gov.eg",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Morocco",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.consulat.ma",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Russia",
+      "visaRequired": true,
+      "visaType": "visa_required",
+      "maxStayDays": 30,
+      "notes": "Tourist visa required - apply at embassy/consulate",
+      "sourceUrl": "https://russianembassy.org",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Greece",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://www.mfa.gr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Portugal",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://www.sef.pt",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Croatia",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://mvep.gov.hr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "New Zealand",
+      "visaRequired": false,
+      "visaType": "nzeta",
+      "maxStayDays": 90,
+      "notes": "NZeTA (New Zealand Electronic Travel Authority) required",
+      "sourceUrl": "https://www.immigration.govt.nz",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Singapore",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.ica.gov.sg",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Malaysia",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.imi.gov.my",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Philippines",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 30,
+      "notes": "Visa-free for tourism up to 30 days, extendable",
+      "sourceUrl": "https://immigration.gov.ph",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "South Korea",
+      "visaRequired": false,
+      "visaType": "k_eta",
+      "maxStayDays": 90,
+      "notes": "K-ETA (Korea Electronic Travel Authorization) required",
+      "sourceUrl": "https://www.k-eta.go.kr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United States",
+      "destinationCountry": "Netherlands",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://www.netherlandsandyou.nl",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "United States",
+      "visaRequired": true,
+      "visaType": "esta",
+      "maxStayDays": 90,
+      "notes": "ESTA (Electronic System for Travel Authorization) required under Visa Waiver Program",
+      "sourceUrl": "https://esta.cbp.dhs.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "France",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period (post-Brexit)",
+      "sourceUrl": "https://france-visas.gouv.fr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "Spain",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://www.exteriores.gob.es",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "Italy",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://vistoperitalia.esteri.it",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "Germany",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://www.auswaertiges-amt.de",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 30,
+      "notes": "Visa exemption for tourism, extendable once for 30 days",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "Australia",
+      "visaRequired": true,
+      "visaType": "eta",
+      "maxStayDays": 90,
+      "notes": "Electronic Travel Authority (ETA) required",
+      "sourceUrl": "https://immi.homeaffairs.gov.au",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "Canada",
+      "visaRequired": false,
+      "visaType": "eta",
+      "maxStayDays": 180,
+      "notes": "eTA (Electronic Travel Authorization) required for air travel",
+      "sourceUrl": "https://www.canada.ca/en/immigration-refugees-citizenship",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "United Kingdom",
+      "destinationCountry": "Mexico",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 180 days",
+      "sourceUrl": "https://embamex.sre.gob.mx",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Germany",
+      "destinationCountry": "United States",
+      "visaRequired": true,
+      "visaType": "esta",
+      "maxStayDays": 90,
+      "notes": "ESTA required under Visa Waiver Program",
+      "sourceUrl": "https://esta.cbp.dhs.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Germany",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Germany",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Germany",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 30,
+      "notes": "Visa exemption for tourism",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Germany",
+      "destinationCountry": "Australia",
+      "visaRequired": true,
+      "visaType": "eta",
+      "maxStayDays": 90,
+      "notes": "Electronic Travel Authority (ETA) required",
+      "sourceUrl": "https://immi.homeaffairs.gov.au",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Germany",
+      "destinationCountry": "Canada",
+      "visaRequired": false,
+      "visaType": "eta",
+      "maxStayDays": 180,
+      "notes": "eTA required for air travel",
+      "sourceUrl": "https://www.canada.ca/en/immigration-refugees-citizenship",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "France",
+      "destinationCountry": "United States",
+      "visaRequired": true,
+      "visaType": "esta",
+      "maxStayDays": 90,
+      "notes": "ESTA required under Visa Waiver Program",
+      "sourceUrl": "https://esta.cbp.dhs.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "France",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "France",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "France",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 30,
+      "notes": "Visa exemption for tourism",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Canada",
+      "destinationCountry": "United States",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for Canadian citizens",
+      "sourceUrl": "https://www.cbp.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Canada",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Canada",
+      "destinationCountry": "France",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://france-visas.gouv.fr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Canada",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Canada",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 30,
+      "notes": "Visa exemption for tourism",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Australia",
+      "destinationCountry": "United States",
+      "visaRequired": true,
+      "visaType": "esta",
+      "maxStayDays": 90,
+      "notes": "ESTA required under Visa Waiver Program",
+      "sourceUrl": "https://esta.cbp.dhs.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Australia",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Australia",
+      "destinationCountry": "France",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://france-visas.gouv.fr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Australia",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Australia",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 30,
+      "notes": "Visa exemption for tourism",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Japan",
+      "destinationCountry": "United States",
+      "visaRequired": true,
+      "visaType": "esta",
+      "maxStayDays": 90,
+      "notes": "ESTA required under Visa Waiver Program",
+      "sourceUrl": "https://esta.cbp.dhs.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Japan",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Japan",
+      "destinationCountry": "France",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://france-visas.gouv.fr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Japan",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 15,
+      "notes": "Visa exemption for tourism up to 15 days",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Japan",
+      "destinationCountry": "Australia",
+      "visaRequired": true,
+      "visaType": "eta",
+      "maxStayDays": 90,
+      "notes": "Electronic Travel Authority (ETA) required",
+      "sourceUrl": "https://immi.homeaffairs.gov.au",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "South Korea",
+      "destinationCountry": "United States",
+      "visaRequired": true,
+      "visaType": "esta",
+      "maxStayDays": 90,
+      "notes": "ESTA required under Visa Waiver Program",
+      "sourceUrl": "https://esta.cbp.dhs.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "South Korea",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "South Korea",
+      "destinationCountry": "France",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://france-visas.gouv.fr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "South Korea",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "South Korea",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 90,
+      "notes": "Visa exemption for tourism up to 90 days",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Singapore",
+      "destinationCountry": "United States",
+      "visaRequired": true,
+      "visaType": "esta",
+      "maxStayDays": 90,
+      "notes": "ESTA required under Visa Waiver Program",
+      "sourceUrl": "https://esta.cbp.dhs.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Singapore",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Singapore",
+      "destinationCountry": "France",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Schengen Area - 90 days within 180-day period",
+      "sourceUrl": "https://france-visas.gouv.fr",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Singapore",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Singapore",
+      "destinationCountry": "China",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 15,
+      "notes": "Visa-free for tourism up to 15 days (transit)",
+      "sourceUrl": "https://www.visaforchina.org",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Netherlands",
+      "destinationCountry": "United States",
+      "visaRequired": true,
+      "visaType": "esta",
+      "maxStayDays": 90,
+      "notes": "ESTA required under Visa Waiver Program",
+      "sourceUrl": "https://esta.cbp.dhs.gov",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Netherlands",
+      "destinationCountry": "United Kingdom",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 180,
+      "notes": "Visa-free for tourism up to 6 months",
+      "sourceUrl": "https://www.gov.uk/check-uk-visa",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Netherlands",
+      "destinationCountry": "Japan",
+      "visaRequired": false,
+      "visaType": "visa_free",
+      "maxStayDays": 90,
+      "notes": "Visa-free for tourism up to 90 days",
+      "sourceUrl": "https://www.mofa.go.jp",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Netherlands",
+      "destinationCountry": "Thailand",
+      "visaRequired": false,
+      "visaType": "visa_exemption",
+      "maxStayDays": 30,
+      "notes": "Visa exemption for tourism",
+      "sourceUrl": "https://www.thaiembassy.com",
+      "lastVerified": "2025-01-01"
+    },
+    {
+      "passportCountry": "Netherlands",
+      "destinationCountry": "Australia",
+      "visaRequired": true,
+      "visaType": "eta",
+      "maxStayDays": 90,
+      "notes": "Electronic Travel Authority (ETA) required",
+      "sourceUrl": "https://immi.homeaffairs.gov.au",
+      "lastVerified": "2025-01-01"
+    }
+  ],
+  "countryAliases": {
+    "USA": "United States",
+    "US": "United States",
+    "America": "United States",
+    "UK": "United Kingdom",
+    "Britain": "United States",
+    "Great Britain": "United Kingdom",
+    "England": "United Kingdom",
+    "UAE": "United Arab Emirates",
+    "Dubai": "United Arab Emirates",
+    "Holland": "Netherlands",
+    "ROK": "South Korea",
+    "Korea": "South Korea"
+  },
+  "visaTypes": {
+    "visa_free": {
+      "label": "Visa Free",
+      "description": "No visa required for tourism",
+      "color": "green"
+    },
+    "visa_exemption": {
+      "label": "Visa Exemption",
+      "description": "Exempt from visa requirements",
+      "color": "green"
+    },
+    "visa_on_arrival": {
+      "label": "Visa on Arrival",
+      "description": "Obtain visa at port of entry",
+      "color": "yellow"
+    },
+    "e_visa": {
+      "label": "e-Visa",
+      "description": "Apply for electronic visa before travel",
+      "color": "yellow"
+    },
+    "eta": {
+      "label": "ETA/eTA",
+      "description": "Electronic Travel Authority required",
+      "color": "yellow"
+    },
+    "esta": {
+      "label": "ESTA",
+      "description": "US Electronic System for Travel Authorization",
+      "color": "yellow"
+    },
+    "k_eta": {
+      "label": "K-ETA",
+      "description": "Korea Electronic Travel Authorization",
+      "color": "yellow"
+    },
+    "nzeta": {
+      "label": "NZeTA",
+      "description": "New Zealand Electronic Travel Authority",
+      "color": "yellow"
+    },
+    "visa_required": {
+      "label": "Visa Required",
+      "description": "Must apply for visa at embassy/consulate",
+      "color": "red"
+    }
+  }
+}

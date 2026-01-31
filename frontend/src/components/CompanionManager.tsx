@@ -7,12 +7,15 @@ import { useFormReset } from '../hooks/useFormReset';
 import CompanionAvatar from './CompanionAvatar';
 import Modal from './Modal';
 import EmptyState from './EmptyState';
+import DietaryTagSelector from './DietaryTagSelector';
+import DietaryBadges from './DietaryBadges';
 
 interface CompanionFormData {
   name: string;
   email: string;
   phone: string;
   notes: string;
+  dietaryPreferences: string[];
 }
 
 interface CompanionManagerProps {
@@ -41,7 +44,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
   // Form state management using useFormReset hook
   // Before: 5 separate state variables + 6-line resetForm + 5-line startEdit
   // After: 1 formData state + useFormReset hook handles reset/open logic
-  const initialFormState: CompanionFormData = { name: '', email: '', phone: '', notes: '' };
+  const initialFormState: CompanionFormData = { name: '', email: '', phone: '', notes: '', dietaryPreferences: [] };
   const [formData, setFormData] = useState<CompanionFormData>(initialFormState);
   const [editingCompanionId, setEditingCompanionId] = useState<number | null>(null);
   const [showCompanionForm, setShowCompanionForm] = useState(false);
@@ -74,6 +77,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
         email: formData.email || undefined,
         phone: formData.phone || undefined,
         notes: formData.notes || undefined,
+        dietaryPreferences: formData.dietaryPreferences.length > 0 ? formData.dietaryPreferences : undefined,
       });
       toast.success('Companion created');
       resetForm();
@@ -95,6 +99,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
         email: formData.email || null,
         phone: formData.phone || null,
         notes: formData.notes || null,
+        dietaryPreferences: formData.dietaryPreferences,
       });
       toast.success('Companion updated');
       resetForm();
@@ -140,6 +145,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
       email: companion.email || '',
       phone: companion.phone || '',
       notes: companion.notes || '',
+      dietaryPreferences: companion.dietaryPreferences || [],
     });
   };
 
@@ -265,6 +271,19 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
               maxLength={1000}
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Dietary Preferences
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Track dietary restrictions to easily find suitable restaurants when traveling together.
+            </p>
+            <DietaryTagSelector
+              selectedTags={formData.dietaryPreferences}
+              onChange={(tags) => setFormData({ ...formData, dietaryPreferences: tags })}
+              compact
+            />
+          </div>
         </form>
       </Modal>
 
@@ -301,8 +320,11 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
                             You
                           </span>
                         )}
+                        {companion.dietaryPreferences && companion.dietaryPreferences.length > 0 && (
+                          <DietaryBadges tags={companion.dietaryPreferences} maxDisplay={3} size="sm" />
+                        )}
                       </div>
-                      {(companion.email || companion.phone || companion.notes) && (
+                      {(companion.email || companion.phone || companion.notes || (companion.dietaryPreferences && companion.dietaryPreferences.length > 0)) && (
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : companion.id)}
                           className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
@@ -332,6 +354,14 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
                             <div>
                               <span className="font-medium text-gray-600 dark:text-gray-400">Notes: </span>
                               <p className="text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">{companion.notes}</p>
+                            </div>
+                          )}
+                          {companion.dietaryPreferences && companion.dietaryPreferences.length > 0 && (
+                            <div>
+                              <span className="font-medium text-gray-600 dark:text-gray-400">Dietary Needs: </span>
+                              <div className="mt-1">
+                                <DietaryBadges tags={companion.dietaryPreferences} maxDisplay={12} size="sm" />
+                              </div>
                             </div>
                           )}
                         </div>
@@ -394,13 +424,16 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
                         : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <CompanionAvatar companion={companion} size="sm" />
                       <span className="font-medium text-gray-900 dark:text-white">{companion.name}</span>
                       {companion.isMyself && (
                         <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
                           You
                         </span>
+                      )}
+                      {companion.dietaryPreferences && companion.dietaryPreferences.length > 0 && (
+                        <DietaryBadges tags={companion.dietaryPreferences} maxDisplay={2} size="sm" />
                       )}
                     </div>
                     <button

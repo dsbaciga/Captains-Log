@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import {
   nullableOptional,
-  optionalStringWithMax,
 } from '../utils/zodHelpers';
 
 // Zod Schemas
@@ -20,7 +19,7 @@ export const ChecklistItemSchema = z.object({
 export const CreateChecklistSchema = z.object({
   name: z.string().min(1).max(500),
   description: nullableOptional(z.string()),
-  type: z.enum(['custom', 'airports', 'countries', 'cities', 'us_states']),
+  type: z.enum(['custom', 'airports', 'countries', 'cities', 'us_states', 'souvenirs']),
   tripId: nullableOptional(z.number()),
   isDefault: z.boolean().optional(),
   sortOrder: z.number().optional(),
@@ -30,7 +29,7 @@ export const CreateChecklistSchema = z.object({
 export const UpdateChecklistSchema = z.object({
   name: nullableOptional(z.string().min(1).max(500)),
   description: nullableOptional(z.string()),
-  type: nullableOptional(z.enum(['custom', 'airports', 'countries', 'cities', 'us_states'])),
+  type: nullableOptional(z.enum(['custom', 'airports', 'countries', 'cities', 'us_states', 'souvenirs'])),
   tripId: nullableOptional(z.number()),
   sortOrder: nullableOptional(z.number()),
 });

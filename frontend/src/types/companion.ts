@@ -7,6 +7,7 @@ export interface Companion {
   relationship?: string | null;
   isMyself?: boolean;
   avatarUrl?: string | null;
+  dietaryPreferences?: string[];
   userId: number;
   createdAt: string;
   _count?: {
@@ -20,6 +21,7 @@ export interface CreateCompanionInput {
   phone?: string;
   notes?: string;
   relationship?: string;
+  dietaryPreferences?: string[];
 }
 
 export interface UpdateCompanionInput {
@@ -28,4 +30,5 @@ export interface UpdateCompanionInput {
   phone?: string | null;
   notes?: string | null;
   relationship?: string | null;
+  dietaryPreferences?: string[];
 }

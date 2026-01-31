@@ -9,6 +9,8 @@ import { isAxiosError } from '../types/prisma-helpers';
 interface OpenWeatherResponse {
   daily: {
     dt: number;
+    sunrise: number; // Unix timestamp for sunrise
+    sunset: number; // Unix timestamp for sunset
     temp: {
       day: number;
       min: number;
@@ -185,6 +187,8 @@ class WeatherService {
             precipitation: weatherData.precipitation,
             humidity: weatherData.humidity,
             windSpeed: weatherData.windSpeed,
+            sunrise: weatherData.sunrise ? new Date(weatherData.sunrise) : null,
+            sunset: weatherData.sunset ? new Date(weatherData.sunset) : null,
             locationId: coordinates.locationId || null,
             fetchedAt: new Date(),
           },
@@ -210,6 +214,8 @@ class WeatherService {
             precipitation: weatherData.precipitation,
             humidity: weatherData.humidity,
             windSpeed: weatherData.windSpeed,
+            sunrise: weatherData.sunrise ? new Date(weatherData.sunrise) : null,
+            sunset: weatherData.sunset ? new Date(weatherData.sunset) : null,
             locationId: coordinates.locationId || null,
             fetchedAt: new Date(),
           },
@@ -350,6 +356,10 @@ class WeatherService {
       const snowAmount = getSnowAmount(dayData.snow);
       const totalPrecipitation = rainAmount + snowAmount;
 
+      // Convert Unix timestamps to ISO datetime strings for sunrise/sunset
+      const sunriseDate = dayData.sunrise ? new Date(dayData.sunrise * 1000).toISOString() : null;
+      const sunsetDate = dayData.sunset ? new Date(dayData.sunset * 1000).toISOString() : null;
+
       return {
         tripId: 0, // Will be set by caller
         date: targetDate.toISOString().split('T')[0],
@@ -359,6 +369,8 @@ class WeatherService {
         precipitation: totalPrecipitation > 0 ? Math.round(totalPrecipitation * 10) / 10 : null, // mm, rounded to 1 decimal
         humidity: dayData.humidity,
         windSpeed: Math.round(dayData.wind_speed * 10) / 10, // Round to 1 decimal
+        sunrise: sunriseDate,
+        sunset: sunsetDate,
       };
     } catch (error: unknown) {
       if (isAxiosError(error) && error.response?.status === 401) {

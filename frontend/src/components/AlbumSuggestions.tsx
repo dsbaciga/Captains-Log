@@ -5,13 +5,51 @@ import toast from 'react-hot-toast';
 interface AlbumSuggestionsProps {
   tripId: number;
   onAlbumCreated: () => void;
-  onDismiss?: () => void;
+}
+
+// Generate a unique key for a suggestion (for dismissal tracking)
+function getSuggestionKey(suggestion: AlbumSuggestion): string {
+  return `${suggestion.type}-${suggestion.name}-${suggestion.photoIds.length}`;
+}
+
+// Get dismissed suggestions from localStorage for a trip
+function getDismissedSuggestions(tripId: number): Set<string> {
+  try {
+    const key = `dismissed-album-suggestions-${tripId}`;
+    const stored = localStorage.getItem(key);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+// Save dismissed suggestion to localStorage
+function saveDismissedSuggestion(tripId: number, suggestionKey: string): void {
+  try {
+    const key = `dismissed-album-suggestions-${tripId}`;
+    const dismissed = getDismissedSuggestions(tripId);
+    dismissed.add(suggestionKey);
+    localStorage.setItem(key, JSON.stringify([...dismissed]));
+  } catch (error) {
+    console.error('Failed to save dismissed suggestion:', error);
+  }
+}
+
+// Dismiss all suggestions for a trip
+function dismissAllSuggestions(tripId: number, suggestions: AlbumSuggestion[]): void {
+  try {
+    const key = `dismissed-album-suggestions-${tripId}`;
+    const dismissed = getDismissedSuggestions(tripId);
+    suggestions.forEach(s => dismissed.add(getSuggestionKey(s)));
+    localStorage.setItem(key, JSON.stringify([...dismissed]));
+  } catch (error) {
+    console.error('Failed to dismiss all suggestions:', error);
+  }
 }
 
 export default function AlbumSuggestions({
   tripId,
   onAlbumCreated,
-  onDismiss,
 }: AlbumSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<AlbumSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +59,10 @@ export default function AlbumSuggestions({
     try {
       setLoading(true);
       const data = await photoService.getAlbumSuggestions(tripId);
-      setSuggestions(data);
+      // Filter out previously dismissed suggestions
+      const dismissed = getDismissedSuggestions(tripId);
+      const filteredData = data.filter(s => !dismissed.has(getSuggestionKey(s)));
+      setSuggestions(filteredData);
     } catch (error) {
       console.error('Failed to load album suggestions:', error);
     } finally {
@@ -56,9 +97,19 @@ export default function AlbumSuggestions({
   };
 
   const handleDismiss = (suggestion: AlbumSuggestion) => {
+    // Persist dismissal to localStorage
+    saveDismissedSuggestion(tripId, getSuggestionKey(suggestion));
+    // Remove from local state
     setSuggestions(prev => prev.filter(s =>
       !(s.type === suggestion.type && s.name === suggestion.name)
     ));
+  };
+
+  const handleDismissAll = () => {
+    // Persist all dismissals to localStorage
+    dismissAllSuggestions(tripId, suggestions);
+    // Clear local state
+    setSuggestions([]);
   };
 
   if (loading) {
@@ -85,17 +136,16 @@ export default function AlbumSuggestions({
             Smart Album Suggestions
           </h3>
         </div>
-        {onDismiss && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={handleDismissAll}
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+          title="Dismiss all suggestions"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <div className="space-y-2">

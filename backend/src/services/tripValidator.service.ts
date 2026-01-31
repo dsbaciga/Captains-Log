@@ -1,5 +1,7 @@
 import prisma from '../config/database';
 import travelTimeService from './travelTime.service';
+import travelDocumentService from './travelDocument.service';
+import visaRequirementService from './visaRequirement.service';
 import { TripWithRelations } from '../types/prisma-helpers';
 import { AppError } from '../utils/errors';
 
@@ -7,7 +9,7 @@ import { AppError } from '../utils/errors';
 // TYPES
 // =============================================================================
 
-export type ValidationIssueCategory = 'SCHEDULE' | 'ACCOMMODATIONS' | 'TRANSPORTATION' | 'COMPLETENESS';
+export type ValidationIssueCategory = 'SCHEDULE' | 'ACCOMMODATIONS' | 'TRANSPORTATION' | 'COMPLETENESS' | 'DOCUMENTS';
 export type ValidationStatus = 'okay' | 'potential_issues';
 
 export interface ValidationIssue {
@@ -57,6 +59,7 @@ interface ValidationContext {
   checkAccommodations: boolean;
   checkTransportation: boolean;
   checkCompleteness: boolean;
+  checkDocuments: boolean;
 }
 
 function getValidationContext(tripStatus: string): ValidationContext {
@@ -70,14 +73,16 @@ function getValidationContext(tripStatus: string): ValidationContext {
         checkAccommodations: false,
         checkTransportation: false,
         checkCompleteness: false,
+        checkDocuments: false,
       };
     case 'Planning':
-      // Basic structure validation
+      // Basic structure validation - include document checks for early warning
       return {
         checkSchedule: true,
         checkAccommodations: false, // Don't require lodging yet
         checkTransportation: false,
         checkCompleteness: false,
+        checkDocuments: true, // Check documents early for planning
       };
     case 'Planned':
     case 'In Progress':
@@ -88,6 +93,7 @@ function getValidationContext(tripStatus: string): ValidationContext {
         checkAccommodations: true,
         checkTransportation: true,
         checkCompleteness: true,
+        checkDocuments: true,
       };
     case 'Cancelled':
       // No validation needed for cancelled trips
@@ -96,6 +102,7 @@ function getValidationContext(tripStatus: string): ValidationContext {
         checkAccommodations: false,
         checkTransportation: false,
         checkCompleteness: false,
+        checkDocuments: false,
       };
     default:
       // Default to full validation
@@ -104,6 +111,7 @@ function getValidationContext(tripStatus: string): ValidationContext {
         checkAccommodations: true,
         checkTransportation: true,
         checkCompleteness: true,
+        checkDocuments: true,
       };
   }
 }
@@ -169,12 +177,18 @@ class TripValidatorService {
       issues.push(...this.checkEmptyDays(trip, dismissedSet));
     }
 
+    if (context.checkDocuments) {
+      issues.push(...await this.checkPassportValidity(trip, dismissedSet));
+      issues.push(...await this.checkVisaRequirements(trip, dismissedSet));
+    }
+
     // Group issues by category
     const issuesByCategory: Record<ValidationIssueCategory, ValidationIssue[]> = {
       SCHEDULE: [],
       ACCOMMODATIONS: [],
       TRANSPORTATION: [],
       COMPLETENESS: [],
+      DOCUMENTS: [],
     };
 
     issues.forEach(issue => {
@@ -684,6 +698,213 @@ class TripValidatorService {
         },
       });
     });
+
+    return issues;
+  }
+
+  // ===========================================================================
+  // DOCUMENT CHECKS
+  // ===========================================================================
+
+  /**
+   * Check if user's primary passport is valid for the trip
+   * - Check if passport expires before trip end
+   * - Check if passport has less than 6 months validity after trip end
+   */
+  private async checkPassportValidity(trip: TripWithRelations, dismissedSet: Set<string>): Promise<ValidationIssue[]> {
+    const issues: ValidationIssue[] = [];
+
+    // Need trip end date for meaningful validation
+    if (!trip.endDate) {
+      return issues;
+    }
+
+    try {
+      const passport = await travelDocumentService.getPrimaryPassport(trip.userId);
+
+      if (!passport) {
+        const issueKey = 'no_passport';
+        const issueId = this.generateIssueId('passport_missing', issueKey);
+
+        issues.push({
+          id: issueId,
+          category: 'DOCUMENTS',
+          type: 'passport_missing',
+          message: 'No passport on file',
+          suggestion: 'Add your passport in Settings > Travel Documents for document validation',
+          isDismissed: dismissedSet.has(issueId),
+        });
+        return issues;
+      }
+
+      if (!passport.expiryDate) {
+        const issueKey = `passport_no_expiry:${passport.id}`;
+        const issueId = this.generateIssueId('passport_no_expiry', issueKey);
+
+        issues.push({
+          id: issueId,
+          category: 'DOCUMENTS',
+          type: 'passport_no_expiry',
+          message: `${passport.name || 'Passport'} has no expiry date set`,
+          suggestion: 'Update your passport expiry date for proper validation',
+          isDismissed: dismissedSet.has(issueId),
+        });
+        return issues;
+      }
+
+      const tripEnd = new Date(trip.endDate);
+      const expiryDate = new Date(passport.expiryDate);
+
+      // Check if passport expires before trip ends
+      if (expiryDate <= tripEnd) {
+        const issueKey = `passport_expires:${passport.id}`;
+        const issueId = this.generateIssueId('passport_expires_during_trip', issueKey);
+
+        issues.push({
+          id: issueId,
+          category: 'DOCUMENTS',
+          type: 'passport_expires_during_trip',
+          message: `${passport.name || 'Passport'} expires before or during the trip (${passport.expiryDate})`,
+          affectedItems: [passport.id],
+          suggestion: 'Renew your passport before traveling',
+          isDismissed: dismissedSet.has(issueId),
+          quickAction: {
+            type: 'view_conflict',
+            label: 'View Document',
+            data: { documentId: passport.id },
+          },
+        });
+        return issues; // Don't check 6-month rule if it expires during trip
+      }
+
+      // Check 6-month validity rule (many countries require this)
+      const sixMonthsAfterTrip = new Date(tripEnd);
+      sixMonthsAfterTrip.setMonth(sixMonthsAfterTrip.getMonth() + 6);
+
+      if (expiryDate < sixMonthsAfterTrip) {
+        const daysUntilExpiry = Math.ceil((expiryDate.getTime() - tripEnd.getTime()) / (1000 * 60 * 60 * 24));
+        const issueKey = `passport_6month:${passport.id}`;
+        const issueId = this.generateIssueId('passport_6month_rule', issueKey);
+
+        issues.push({
+          id: issueId,
+          category: 'DOCUMENTS',
+          type: 'passport_6month_rule',
+          message: `${passport.name || 'Passport'} may not have 6 months validity after trip end (expires ${passport.expiryDate})`,
+          affectedItems: [passport.id],
+          suggestion: `Passport valid for only ${daysUntilExpiry} days after trip. Many countries require 6 months validity. Check destination requirements.`,
+          isDismissed: dismissedSet.has(issueId),
+          quickAction: {
+            type: 'view_conflict',
+            label: 'View Document',
+            data: { documentId: passport.id },
+          },
+        });
+      }
+    } catch (error) {
+      console.error('[TripValidator] Error checking passport validity:', error);
+    }
+
+    return issues;
+  }
+
+  /**
+   * Check visa requirements for trip destinations
+   * - Extract countries from location addresses
+   * - Check visa requirements against user's passport country
+   */
+  private async checkVisaRequirements(trip: TripWithRelations, dismissedSet: Set<string>): Promise<ValidationIssue[]> {
+    const issues: ValidationIssue[] = [];
+
+    // Skip if visa service isn't ready
+    if (!visaRequirementService.isReady()) {
+      return issues;
+    }
+
+    try {
+      // Get user's passport country
+      const passport = await travelDocumentService.getPrimaryPassport(trip.userId);
+      if (!passport || !passport.issuingCountry) {
+        // Can't check visa requirements without knowing passport country
+        return issues;
+      }
+
+      const passportCountry = passport.issuingCountry;
+
+      // Extract destination countries from trip locations
+      type LocationRecord = { id: number; name: string; address: string | null };
+      const destinationCountries = new Map<string, LocationRecord[]>(); // country -> locations
+
+      for (const location of trip.locations as LocationRecord[]) {
+        if (location.address) {
+          const country = visaRequirementService.extractCountryFromAddress(location.address);
+          if (country) {
+            const existing = destinationCountries.get(country) || [];
+            existing.push(location);
+            destinationCountries.set(country, existing);
+          }
+        }
+      }
+
+      if (destinationCountries.size === 0) {
+        return issues;
+      }
+
+      // Check visa requirements for each destination country
+      const destinations = Array.from(destinationCountries.keys());
+      const bulkResult = visaRequirementService.getVisaRequirementsForDestinations(
+        passportCountry,
+        destinations
+      );
+
+      // Create issues for destinations requiring visa action
+      for (const result of bulkResult.requiresVisa) {
+        const locations = destinationCountries.get(result.destinationCountry) || [];
+        const locationNames = locations.map(l => l.name).slice(0, 3).join(', ');
+        const moreCount = locations.length > 3 ? ` and ${locations.length - 3} more` : '';
+
+        const issueKey = `visa:${result.destinationCountry}`;
+        const issueId = this.generateIssueId('visa_required', issueKey);
+
+        const visaTypeLabel = result.visaTypeInfo?.label || result.requirement?.visaType || 'Visa';
+        const maxStay = result.requirement?.maxStayDays
+          ? ` (max ${result.requirement.maxStayDays} days)`
+          : '';
+
+        issues.push({
+          id: issueId,
+          category: 'DOCUMENTS',
+          type: 'visa_required',
+          message: `${visaTypeLabel} required for ${result.destinationCountry}${maxStay}`,
+          affectedItems: locations.map(l => l.id),
+          suggestion: result.actionRequired
+            ? `${result.actionRequired}. Locations: ${locationNames}${moreCount}`
+            : `Check visa requirements for ${result.destinationCountry}. Locations: ${locationNames}${moreCount}`,
+          isDismissed: dismissedSet.has(issueId),
+        });
+      }
+
+      // Create informational issues for unknown destinations
+      for (const result of bulkResult.unknown) {
+        const locations = destinationCountries.get(result.destinationCountry) || [];
+        const locationNames = locations.map(l => l.name).slice(0, 3).join(', ');
+
+        const issueKey = `visa_unknown:${result.destinationCountry}`;
+        const issueId = this.generateIssueId('visa_unknown', issueKey);
+
+        issues.push({
+          id: issueId,
+          category: 'DOCUMENTS',
+          type: 'visa_unknown',
+          message: `Visa requirements unknown for ${result.destinationCountry}`,
+          affectedItems: locations.map(l => l.id),
+          suggestion: `Check visa requirements for ${result.destinationCountry} manually. Locations: ${locationNames}`,
+          isDismissed: dismissedSet.has(issueId),
+        });
+      }
+    } catch (error) {
+      console.error('[TripValidator] Error checking visa requirements:', error);
+    }
 
     return issues;
   }

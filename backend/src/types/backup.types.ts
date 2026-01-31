@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 // Backup file format version
-export const BACKUP_VERSION = '1.0.0';
+// v1.1.0 - Added travelDocuments and tripLanguages
+export const BACKUP_VERSION = '1.1.0';
 
 // Backup data structure schema
 export const BackupDataSchema = z.object({
@@ -22,6 +23,8 @@ export const BackupDataSchema = z.object({
   companions: z.array(z.any()),
   locationCategories: z.array(z.any()),
   checklists: z.array(z.any()),
+  // Travel documents (added in v1.1.0)
+  travelDocuments: z.array(z.any()).optional(),
   trips: z.array(z.any()),
 });
 

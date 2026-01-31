@@ -2,6 +2,7 @@ import { MapContainer, TileLayer, Polyline, Marker, Popup } from "react-leaflet"
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { TransportationRoute } from "../types/transportation";
+import { useMapTiles } from "../hooks/useMapTiles";
 
 interface FlightRouteMapProps {
   route: TransportationRoute;
@@ -87,6 +88,7 @@ export default function FlightRouteMap({
   showLabels = true,
   transportationType = "flight",
 }: FlightRouteMapProps) {
+  const tileConfig = useMapTiles();
   const { from, to, geometry } = route;
 
   // Get the appropriate icon for this transportation type
@@ -125,8 +127,10 @@ export default function FlightRouteMap({
         zoomControl={true}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          key={tileConfig.url}
+          url={tileConfig.url}
+          attribution={tileConfig.attribution}
+          maxZoom={tileConfig.maxZoom}
         />
 
         {/* Departure marker */}

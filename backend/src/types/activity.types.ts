@@ -29,6 +29,7 @@ export const createActivitySchema = z.object({
   bookingUrl: z.string().url().max(500).optional().or(z.literal('')),
   bookingReference: optionalStringWithMax(255),
   notes: z.string().optional(),
+  dietaryTags: z.array(z.string()).nullable().optional(),
 });
 
 // Note: Location association is handled via EntityLink system, not direct FK
@@ -46,6 +47,7 @@ export const updateActivitySchema = z.object({
   bookingUrl: optionalUrlOrEmpty(500),
   bookingReference: optionalStringWithMax(255),
   notes: optionalNotes(),
+  dietaryTags: z.array(z.string()).nullable().optional(),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;

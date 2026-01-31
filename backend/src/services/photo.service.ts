@@ -107,14 +107,6 @@ async function ensureUploadDirs() {
   await fs.mkdir(VIDEO_DIR, { recursive: true });
 }
 
-// Determine media type from mimetype
-function getMediaTypeFromMimetype(mimetype: string): 'image' | 'video' {
-  if (mimetype.startsWith('video/')) {
-    return MediaType.VIDEO;
-  }
-  return MediaType.IMAGE;
-}
-
 // Constants for video validation
 const MAX_VIDEO_DURATION_SECONDS = 3600; // 1 hour limit
 

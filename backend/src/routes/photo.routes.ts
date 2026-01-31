@@ -55,12 +55,13 @@ const upload = multer({
 });
 
 // Middleware to check if uploads are available
-const checkUploadsAvailable = (_req: Request, res: Response, next: NextFunction) => {
+const checkUploadsAvailable = (_req: Request, res: Response, next: NextFunction): void => {
   if (!uploadsAvailable) {
-    return res.status(503).json({
+    res.status(503).json({
       status: 'error',
       message: 'Photo uploads are temporarily unavailable. The upload directory is not writable. Please check server logs for permission fix instructions.',
     });
+    return;
   }
   next();
 };

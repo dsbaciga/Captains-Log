@@ -265,12 +265,12 @@ class AviationstackService {
     userId: number,
     transportationId: number,
     data: {
-      flightNumber?: string;
-      airlineCode?: string;
-      gate?: string;
-      terminal?: string;
-      baggageClaim?: string;
-      status?: string;
+      flightNumber?: string | null;
+      airlineCode?: string | null;
+      gate?: string | null;
+      terminal?: string | null;
+      baggageClaim?: string | null;
+      status?: string | null;
     }
   ): Promise<FlightTrackingResult> {
     // Verify access

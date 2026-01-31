@@ -15,6 +15,7 @@ export type Activity = {
   bookingUrl: string | null;
   bookingReference: string | null;
   notes: string | null;
+  dietaryTags: string[] | null;
   manualOrder: number | null;
   createdAt: string;
   updatedAt: string;
@@ -69,6 +70,7 @@ export type CreateActivityInput = {
   bookingUrl?: string;
   bookingReference?: string;
   notes?: string;
+  dietaryTags?: string[];
 };
 
 // Note: Location association is handled via EntityLink system, not direct FK
@@ -86,4 +88,5 @@ export type UpdateActivityInput = {
   bookingUrl?: string | null;
   bookingReference?: string | null;
   notes?: string | null;
+  dietaryTags?: string[] | null;
 };

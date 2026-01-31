@@ -37,6 +37,7 @@ class ActivityService {
         bookingUrl: data.bookingUrl || null,
         bookingReference: data.bookingReference || null,
         notes: data.notes || null,
+        dietaryTags: data.dietaryTags || null,
       },
       include: {
         parent: {
@@ -78,6 +79,7 @@ class ActivityService {
             currency: true,
             bookingReference: true,
             notes: true,
+            dietaryTags: true,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },
@@ -117,6 +119,7 @@ class ActivityService {
             currency: true,
             bookingReference: true,
             notes: true,
+            dietaryTags: true,
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         },

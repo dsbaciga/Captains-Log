@@ -31,6 +31,9 @@ import backupRoutes from './routes/backup.routes';
 import entityLinkRoutes from './routes/entityLink.routes';
 import collaborationRoutes from './routes/collaboration.routes';
 import flightTrackingRoutes from './routes/flightTracking.routes';
+import packingSuggestionRoutes from './routes/packingSuggestion.routes';
+import travelDocumentRoutes from './routes/travelDocument.routes';
+import languagePhraseRoutes from './routes/languagePhrase.routes';
 
 // Read version from package.json
 const packageJson = JSON.parse(
@@ -170,6 +173,9 @@ app.use('/api/backup', backupRoutes);
 app.use('/api/trips/:tripId/links', entityLinkRoutes);
 app.use('/api', collaborationRoutes);
 app.use('/api', flightTrackingRoutes);
+app.use('/api', packingSuggestionRoutes);
+app.use('/api/travel-documents', travelDocumentRoutes);
+app.use('/api', languagePhraseRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

@@ -12,20 +12,14 @@ import { Prisma, PrismaClient } from '@prisma/client';
  * See: https://github.com/prisma/prisma/issues/18628
  */
 
-// Type for the query callback parameters (Prisma doesn't export these)
-interface QueryCallbackParams<T> {
-  args: T;
-  query: (args: T) => Promise<{ id: number; latitude: unknown; longitude: unknown }>;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma.defineExtension expects a function that receives the client with an incomplete type definition
+// @ts-ignore -- Prisma.defineExtension has incomplete type definitions for query callbacks
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const postgisExtension = Prisma.defineExtension((client: PrismaClient) => {
   return client.$extends({
     name: 'postgis-sync',
     query: {
       location: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma extension query callbacks don't have proper type exports
-        async create({ args, query }: QueryCallbackParams<any>) {
+        async create({ args, query }: { args: unknown; query: (args: unknown) => Promise<{ id: number; latitude: unknown; longitude: unknown }> }) {
           const result = await query(args);
           if (result.latitude !== null && result.longitude !== null) {
             await client.$executeRaw`
@@ -36,8 +30,7 @@ export const postgisExtension = Prisma.defineExtension((client: PrismaClient) =>
           }
           return result;
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma extension query callbacks don't have proper type exports
-        async update({ args, query }: QueryCallbackParams<any>) {
+        async update({ args, query }: { args: unknown; query: (args: unknown) => Promise<{ id: number; latitude: unknown; longitude: unknown }> }) {
           const result = await query(args);
           if (result.latitude !== null && result.longitude !== null) {
             await client.$executeRaw`
@@ -56,8 +49,7 @@ export const postgisExtension = Prisma.defineExtension((client: PrismaClient) =>
         },
       },
       photo: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma extension query callbacks don't have proper type exports
-        async create({ args, query }: QueryCallbackParams<any>) {
+        async create({ args, query }: { args: unknown; query: (args: unknown) => Promise<{ id: number; latitude: unknown; longitude: unknown }> }) {
           const result = await query(args);
           if (result.latitude !== null && result.longitude !== null) {
             await client.$executeRaw`
@@ -68,8 +60,7 @@ export const postgisExtension = Prisma.defineExtension((client: PrismaClient) =>
           }
           return result;
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma extension query callbacks don't have proper type exports
-        async update({ args, query }: QueryCallbackParams<any>) {
+        async update({ args, query }: { args: unknown; query: (args: unknown) => Promise<{ id: number; latitude: unknown; longitude: unknown }> }) {
           const result = await query(args);
           if (result.latitude !== null && result.longitude !== null) {
             await client.$executeRaw`

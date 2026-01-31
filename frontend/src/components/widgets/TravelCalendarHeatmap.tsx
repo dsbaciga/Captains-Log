@@ -46,6 +46,13 @@ export default function TravelCalendarHeatmap() {
     }
   };
 
+  // Parse date string without UTC interpretation issues
+  const parseDate = (dateStr: string): Date => {
+    const datePart = dateStr.split('T')[0];
+    const [year, month, day] = datePart.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   const generateYearData = (trips: Trip[]): DayData[] => {
     const data: DayData[] = [];
     const today = new Date();
@@ -59,8 +66,8 @@ export default function TravelCalendarHeatmap() {
     trips.forEach((trip) => {
       if (!trip.startDate || !trip.endDate) return;
 
-      const startDate = new Date(trip.startDate);
-      const endDate = new Date(trip.endDate);
+      const startDate = parseDate(trip.startDate);
+      const endDate = parseDate(trip.endDate);
 
       // Iterate through each day in the trip
       const currentDate = new Date(startDate);

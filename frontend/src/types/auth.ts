@@ -3,6 +3,7 @@ export type User = {
   username: string;
   email: string;
   avatarUrl: string | null;
+  useCustomMapStyle?: boolean;
 }
 
 export type AuthResponse = {

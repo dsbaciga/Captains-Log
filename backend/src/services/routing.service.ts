@@ -75,9 +75,10 @@ class RoutingService {
     // Check cache first
     const cached = await this.getCachedRoute(from, to, profile);
     if (cached) {
-      const hasGeometry = cached.routeGeometry && Array.isArray(cached.routeGeometry) && cached.routeGeometry.length > 0;
+      const geometry = cached.routeGeometry;
+      const hasGeometry = geometry && Array.isArray(geometry) && geometry.length > 0;
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Routing Service] Using cached route (hasGeometry: ${hasGeometry}, points: ${hasGeometry ? cached.routeGeometry.length : 0})`);
+        console.log(`[Routing Service] Using cached route (hasGeometry: ${hasGeometry}, points: ${hasGeometry ? geometry.length : 0})`);
       }
       return {
         distance: cached.distance,

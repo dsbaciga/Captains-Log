@@ -20,11 +20,13 @@ model User {
   avatarUrl          String?  @map("avatar_url") @db.VarChar(500)
   timezone           String?  @default("UTC") @db.VarChar(100)
   activityCategories Json     @default("[{\"name\":\"Sightseeing\",\"emoji\":\"\ud83c\udfdb\ufe0f\"},{\"name\":\"Dining\",\"emoji\":\"\ud83c\udf7d\ufe0f\"},{\"name\":\"Adventure\",\"emoji\":\"\ud83e\uddd7\"},{\"name\":\"Entertainment\",\"emoji\":\"\ud83c\udfad\"},{\"name\":\"Shopping\",\"emoji\":\"\ud83d\udecd\ufe0f\"},{\"name\":\"Recreation\",\"emoji\":\"\u26bd\"},{\"name\":\"Cultural\",\"emoji\":\"\ud83c\udfdb\ufe0f\"},{\"name\":\"Sports\",\"emoji\":\"\ud83c\udfc5\"},{\"name\":\"Wellness\",\"emoji\":\"\ud83e\uddd8\"},{\"name\":\"Tour\",\"emoji\":\"\ud83d\udc65\"},{\"name\":\"Other\",\"emoji\":\"\ud83d\udccc\"}]") @map("activity_categories")
+  dietaryPreferences Json     @default("[]") @map("dietary_preferences")
   immichApiUrl       String?  @map("immich_api_url") @db.VarChar(500)
   immichApiKey       String?  @map("immich_api_key") @db.VarChar(500)
   weatherApiKey      String?  @map("weather_api_key") @db.VarChar(500)
   aviationstackApiKey String? @map("aviationstack_api_key") @db.VarChar(500)
   openrouteserviceApiKey String? @map("openrouteservice_api_key") @db.VarChar(500)
+  useCustomMapStyle  Boolean  @default(true) @map("use_custom_map_style")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
@@ -35,6 +37,7 @@ model User {
   tripCollaborators  TripCollaborator[]
   checklists         Checklist[]
   invitationsSent    TripInvitation[] @relation("InvitationsSent")
+  travelDocuments    TravelDocument[]
 
   @@map("users")
 }
@@ -73,6 +76,7 @@ model Trip {
   checklists         Checklist[]
   entityLinks        EntityLink[]
   dismissedValidationIssues DismissedValidationIssue[]
+  languages          TripLanguage[]
 
   @@index([userId, status])
   @@index([startDate, endDate])
@@ -108,16 +112,17 @@ model TripTagAssignment {
 }
 
 model TravelCompanion {
-  id           Int      @id @default(autoincrement())
-  userId       Int      @map("user_id")
-  name         String   @db.VarChar(255)
-  email        String?  @db.VarChar(255)
-  phone        String?  @db.VarChar(20)
-  notes        String?  @db.Text
-  relationship String?  @db.VarChar(255)
-  isMyself     Boolean  @default(false) @map("is_myself")
-  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
-  createdAt    DateTime @default(now()) @map("created_at")
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @map("user_id")
+  name               String   @db.VarChar(255)
+  email              String?  @db.VarChar(255)
+  phone              String?  @db.VarChar(20)
+  notes              String?  @db.Text
+  relationship       String?  @db.VarChar(255)
+  isMyself           Boolean  @default(false) @map("is_myself")
+  avatarUrl          String?  @map("avatar_url") @db.VarChar(500)
+  dietaryPreferences Json     @default("[]") @map("dietary_preferences")
+  createdAt          DateTime @default(now()) @map("created_at")
 
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   tripAssignments  TripCompanion[]
@@ -305,10 +310,11 @@ model Activity {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  trip        Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   // Note: Location association is handled via EntityLink system, not direct FK
-  parent   Activity? @relation("ActivityChildren", fields: [parentId], references: [id], onDelete: Cascade)
-  children Activity[] @relation("ActivityChildren")
+  parent      Activity? @relation("ActivityChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Activity[] @relation("ActivityChildren")
+  dietaryTags Json?     @map("dietary_tags")
 
   @@map("activities")
   @@index([tripId])
@@ -415,6 +421,8 @@ model WeatherData {
   precipitation   Decimal?  @db.Decimal(5, 2)
   humidity        Int?
   windSpeed       Decimal?  @map("wind_speed") @db.Decimal(5, 2)
+  sunrise         DateTime?
+  sunset          DateTime?
   fetchedAt       DateTime  @default(now()) @map("fetched_at")
   createdAt       DateTime  @default(now()) @map("created_at")
 
@@ -572,6 +580,7 @@ enum ValidationIssueCategory {
   ACCOMMODATIONS  // Missing lodging
   TRANSPORTATION  // Gaps, tight connections
   COMPLETENESS    // Missing info (lower priority)
+  DOCUMENTS       // Passport validity, visa requirements
 }
 
 model DismissedValidationIssue {
@@ -587,4 +596,101 @@ model DismissedValidationIssue {
   @@unique([tripId, issueType, issueKey])
   @@index([tripId])
   @@map("dismissed_validation_issues")
+}
+
+// =============================================================================
+// TRAVEL DOCUMENT SYSTEM
+// =============================================================================
+// Stores user travel documents like passports, visas, ID cards, etc.
+
+enum TravelDocumentType {
+  PASSPORT
+  VISA
+  ID_CARD
+  GLOBAL_ENTRY
+  VACCINATION
+}
+
+model TravelDocument {
+  id              Int                @id @default(autoincrement())
+  userId          Int                @map("user_id")
+  type            TravelDocumentType
+  issuingCountry  String             @map("issuing_country") @db.VarChar(100)
+  documentNumber  String?            @map("document_number") @db.VarChar(255)
+  issueDate       DateTime?          @map("issue_date") @db.Date
+  expiryDate      DateTime?          @map("expiry_date") @db.Date
+  name            String             @db.VarChar(500) // Name on document or descriptive name
+  notes           String?            @db.Text
+  isPrimary       Boolean            @default(false) @map("is_primary")
+  alertDaysBefore Int                @default(180) @map("alert_days_before")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiryDate])
+  @@map("travel_documents")
+}
+
+// =============================================================================
+// VISA REQUIREMENT REFERENCE DATA
+// =============================================================================
+// Static reference data for visa requirements between countries
+
+model VisaRequirement {
+  id                 Int      @id @default(autoincrement())
+  passportCountry    String   @map("passport_country") @db.VarChar(100)
+  destinationCountry String   @map("destination_country") @db.VarChar(100)
+  visaRequired       Boolean  @map("visa_required")
+  visaType           String   @map("visa_type") @db.VarChar(50) // visa_free, visa_on_arrival, e_visa, visa_required
+  maxStayDays        Int?     @map("max_stay_days")
+  notes              String?  @db.Text
+  sourceUrl          String?  @map("source_url") @db.VarChar(500)
+  lastVerified       DateTime? @map("last_verified") @db.Date
+
+  @@unique([passportCountry, destinationCountry])
+  @@index([passportCountry])
+  @@index([destinationCountry])
+  @@map("visa_requirements")
+}
+
+// =============================================================================
+// TRIP LANGUAGE SYSTEM
+// =============================================================================
+// Manual language selection per trip for phrase lookup
+
+model TripLanguage {
+  id           Int    @id @default(autoincrement())
+  tripId       Int    @map("trip_id")
+  languageCode String @map("language_code") @db.VarChar(10)
+  language     String @db.VarChar(100)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, languageCode])
+  @@index([tripId])
+  @@map("trip_languages")
+}
+
+// =============================================================================
+// LANGUAGE PHRASE BANK
+// =============================================================================
+// Common travel phrases for different languages
+
+model LanguagePhrase {
+  id            Int     @id @default(autoincrement())
+  language      String  @db.VarChar(100)
+  languageCode  String  @map("language_code") @db.VarChar(10)
+  category      String  @db.VarChar(100) // greetings, directions, food, emergency, etc.
+  english       String  @db.Text
+  translation   String  @db.Text
+  pronunciation String? @db.Text
+  notes         String? @db.Text
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  @@index([languageCode])
+  @@index([category])
+  @@index([languageCode, category])
+  @@map("language_phrases")
 }

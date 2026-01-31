@@ -25,11 +25,21 @@ export default function TripStats({
   tripEndDate,
   onNavigateToTab,
 }: TripStatsProps) {
+  // Parse date string without UTC interpretation issues
+  const parseDate = (dateInput: string | Date): Date => {
+    if (dateInput instanceof Date) {
+      return dateInput;
+    }
+    const datePart = dateInput.split('T')[0];
+    const [year, month, day] = datePart.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   // Calculate trip duration
   const getTripDuration = (): string | null => {
     if (!tripStartDate || !tripEndDate) return null;
-    const start = new Date(tripStartDate);
-    const end = new Date(tripEndDate);
+    const start = parseDate(tripStartDate);
+    const end = parseDate(tripEndDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     const totalDays = diffDays + 1;

@@ -25,8 +25,15 @@ export default function DashboardHero({
   const formatDateRange = (startDate: string | null, endDate: string | null): string => {
     if (!startDate && !endDate) return 'Dates not set';
 
+    // Parse date string without UTC interpretation issues
+    const parseDate = (dateStr: string): Date => {
+      const datePart = dateStr.split('T')[0];
+      const [year, month, day] = datePart.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
     const formatDate = (date: string): string => {
-      return new Date(date).toLocaleDateString('en-US', {
+      return parseDate(date).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -34,8 +41,8 @@ export default function DashboardHero({
     };
 
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const start = parseDate(startDate);
+      const end = parseDate(endDate);
 
       // Same year - don't repeat year
       if (start.getFullYear() === end.getFullYear()) {

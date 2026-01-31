@@ -54,6 +54,7 @@ export interface PhotoWithDetails extends Photo {
 }
 
 // Type for photo input that may have album assignments (used in controllers)
+// Note: Prisma returns Decimal for lat/lng, so we accept both number and Prisma's Decimal type
 export interface PhotoWithOptionalAlbums {
   id: number;
   tripId: number;
@@ -63,10 +64,10 @@ export interface PhotoWithOptionalAlbums {
   thumbnailPath?: string | null;
   caption?: string | null;
   takenAt?: Date | null;
-  latitude?: number | null;
-  longitude?: number | null;
+  latitude?: number | { toNumber(): number } | null;
+  longitude?: number | { toNumber(): number } | null;
   albumAssignments?: Array<{
-    album: PhotoAlbum;
+    album: PhotoAlbum | null;
     addedAt?: Date;
     createdAt?: Date;
   }>;
@@ -75,7 +76,7 @@ export interface PhotoWithOptionalAlbums {
 
 // Type for transformed photo output (used in controllers)
 export interface TransformedPhoto extends Omit<PhotoWithOptionalAlbums, 'albumAssignments'> {
-  albums?: Array<{ album: PhotoAlbum }>;
+  albums?: Array<{ album: PhotoAlbum | null }>;
 }
 
 export interface AlbumWithPhotos extends PhotoAlbum {

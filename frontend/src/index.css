@@ -402,6 +402,23 @@
   .ripple:active::after {
     @apply w-full pb-[100%];
   }
+
+  /* Trip List View Styles */
+  .trip-list-header {
+    @apply bg-parchment dark:bg-navy-800 border-b border-primary-100 dark:border-gold/20;
+    @apply text-sm font-medium text-slate dark:text-warm-gray;
+  }
+
+  .trip-list-row {
+    @apply bg-white dark:bg-navy-800/50 border-b border-warm-gray/20 dark:border-gold/10;
+    @apply hover:bg-primary-50 dark:hover:bg-navy-700/50 transition-colors;
+    @apply cursor-pointer;
+  }
+
+  .trip-list-thumbnail {
+    @apply w-12 h-9 rounded object-cover;
+    @apply ring-1 ring-primary-100 dark:ring-gold/20;
+  }
 }
 
 /* Animations */

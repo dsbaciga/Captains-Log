@@ -8,6 +8,22 @@ interface TripDayIndicatorProps {
 }
 
 /**
+ * Parse a date string (YYYY-MM-DD or ISO format) into a Date object
+ * without timezone conversion issues.
+ *
+ * When you call new Date("2024-03-15"), JavaScript interprets it as UTC midnight,
+ * which can shift the date when converted to local time. This function parses
+ * the date string directly to create a local midnight date.
+ */
+function parseDateString(dateStr: string): Date {
+  // Extract just the date part (YYYY-MM-DD)
+  const datePart = dateStr.split('T')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  // Create date at local midnight (month is 0-indexed)
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Displays trip day/countdown information based on trip status.
  *
  * Status Display Logic:
@@ -33,11 +49,10 @@ export default function TripDayIndicator({
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(endDate) : null;
-
-    if (start) start.setHours(0, 0, 0, 0);
-    if (end) end.setHours(0, 0, 0, 0);
+    // Use parseDateString to avoid timezone conversion issues
+    // new Date("2024-03-15") interprets as UTC midnight which can shift dates
+    const start = startDate ? parseDateString(startDate) : null;
+    const end = endDate ? parseDateString(endDate) : null;
 
     switch (status) {
       case TripStatus.DREAM:

@@ -5,6 +5,7 @@ type Theme = 'light' | 'dark';
 
 interface ThemeState {
   theme: Theme;
+  isDarkMode: boolean;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 }
@@ -13,6 +14,7 @@ export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
       theme: 'light',
+      isDarkMode: false,
       toggleTheme: () =>
         set((state) => {
           const newTheme = state.theme === 'light' ? 'dark' : 'light';
@@ -22,7 +24,7 @@ export const useThemeStore = create<ThemeState>()(
           } else {
             document.documentElement.classList.remove('dark');
           }
-          return { theme: newTheme };
+          return { theme: newTheme, isDarkMode: newTheme === 'dark' };
         }),
       setTheme: (theme: Theme) =>
         set(() => {
@@ -32,7 +34,7 @@ export const useThemeStore = create<ThemeState>()(
           } else {
             document.documentElement.classList.remove('dark');
           }
-          return { theme };
+          return { theme, isDarkMode: theme === 'dark' };
         }),
     }),
     {

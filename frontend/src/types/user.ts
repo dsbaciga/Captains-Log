@@ -10,6 +10,8 @@ export interface User {
   avatarUrl: string | null;
   timezone?: string;
   activityCategories: ActivityCategory[];
+  dietaryPreferences: string[];
+  useCustomMapStyle: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,4 +19,6 @@ export interface User {
 export interface UpdateUserSettingsInput {
   activityCategories?: ActivityCategory[];
   timezone?: string;
+  dietaryPreferences?: string[];
+  useCustomMapStyle?: boolean;
 }

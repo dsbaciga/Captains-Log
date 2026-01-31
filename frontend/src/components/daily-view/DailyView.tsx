@@ -290,6 +290,8 @@ export default function DailyView({
                 humidity: w.humidity,
                 windSpeed: w.windSpeed,
                 locationName: w.locationName,
+                sunrise: w.sunrise,
+                sunset: w.sunset,
               };
             }
           });

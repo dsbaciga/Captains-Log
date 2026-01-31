@@ -10,6 +10,7 @@ export const createCompanionSchema = z.object({
   phone: z.string().max(20).optional(),
   notes: z.string().max(1000).optional(),
   relationship: z.string().max(255).optional(),
+  dietaryPreferences: z.array(z.string()).optional(),
 });
 
 export const updateCompanionSchema = z.object({
@@ -19,6 +20,7 @@ export const updateCompanionSchema = z.object({
   notes: optionalStringWithMax(1000),
   relationship: optionalStringWithMax(255),
   avatarUrl: optionalStringWithMax(500),
+  dietaryPreferences: z.array(z.string()).optional(),
 });
 
 export const linkCompanionToTripSchema = z.object({

@@ -12,12 +12,40 @@ interface WeatherCardProps {
   weather: WeatherDisplay;
   temperatureUnit?: 'C' | 'F';
   compact?: boolean;
+  tripTimezone?: string;
+}
+
+/**
+ * Format a time string for display in a specific timezone
+ * Returns time in format like "6:42 AM"
+ */
+function formatTimeInTimezone(isoDatetime: string | null, timezone?: string): string | null {
+  if (!isoDatetime) return null;
+  try {
+    const date = new Date(isoDatetime);
+    if (isNaN(date.getTime())) return null;
+
+    const options: Intl.DateTimeFormatOptions = {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    };
+
+    if (timezone) {
+      options.timeZone = timezone;
+    }
+
+    return date.toLocaleTimeString('en-US', options);
+  } catch {
+    return null;
+  }
 }
 
 export default function WeatherCard({
   weather,
   temperatureUnit = 'F',
   compact = true,
+  tripTimezone,
 }: WeatherCardProps) {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -88,27 +116,49 @@ export default function WeatherCard({
         </div>
 
         {showDetails && (
-          <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800 grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <div className="text-gray-500 dark:text-gray-400">
-                Precipitation
+          <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <div className="text-gray-500 dark:text-gray-400">
+                  Precipitation
+                </div>
+                <div className="font-medium text-gray-900 dark:text-white">
+                  {formatPrecipitation(weather.precipitation)}
+                </div>
               </div>
-              <div className="font-medium text-gray-900 dark:text-white">
-                {formatPrecipitation(weather.precipitation)}
+              <div>
+                <div className="text-gray-500 dark:text-gray-400">Humidity</div>
+                <div className="font-medium text-gray-900 dark:text-white">
+                  {formatHumidity(weather.humidity)}
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-500 dark:text-gray-400">Wind Speed</div>
+                <div className="font-medium text-gray-900 dark:text-white">
+                  {formatWindSpeed(weather.windSpeed)}
+                </div>
               </div>
             </div>
-            <div>
-              <div className="text-gray-500 dark:text-gray-400">Humidity</div>
-              <div className="font-medium text-gray-900 dark:text-white">
-                {formatHumidity(weather.humidity)}
+            {(weather.sunrise || weather.sunset) && (
+              <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800 flex items-center gap-6 text-sm">
+                {weather.sunrise && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-500">sunrise</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {formatTimeInTimezone(weather.sunrise, tripTimezone)}
+                    </span>
+                  </div>
+                )}
+                {weather.sunset && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-orange-500">sunset</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {formatTimeInTimezone(weather.sunset, tripTimezone)}
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
-            <div>
-              <div className="text-gray-500 dark:text-gray-400">Wind Speed</div>
-              <div className="font-medium text-gray-900 dark:text-white">
-                {formatWindSpeed(weather.windSpeed)}
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -152,6 +202,27 @@ export default function WeatherCard({
           </div>
         </div>
       </div>
+
+      {(weather.sunrise || weather.sunset) && (
+        <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800 flex items-center gap-6 text-sm">
+          {weather.sunrise && (
+            <div className="flex items-center gap-2">
+              <span className="text-amber-500">sunrise</span>
+              <span className="font-medium text-gray-900 dark:text-white">
+                {formatTimeInTimezone(weather.sunrise, tripTimezone)}
+              </span>
+            </div>
+          )}
+          {weather.sunset && (
+            <div className="flex items-center gap-2">
+              <span className="text-orange-500">sunset</span>
+              <span className="font-medium text-gray-900 dark:text-white">
+                {formatTimeInTimezone(weather.sunset, tripTimezone)}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

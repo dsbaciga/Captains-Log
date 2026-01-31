@@ -11,15 +11,6 @@ import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecima
 import { locationWithAddressSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
-// Type for location with address fields (from locationWithAddressSelect)
-interface LocationWithAddress {
-  id: number;
-  name: string;
-  address: string | null;
-  latitude: Prisma.Decimal | null;
-  longitude: Prisma.Decimal | null;
-}
-
 // Type for transportation with included relations
 type TransportationWithRelations = Prisma.TransportationGetPayload<{
   include: {

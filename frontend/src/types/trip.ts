@@ -78,7 +78,7 @@ export type TripListResponse = {
   totalPages: number;
 };
 
-export type ValidationIssueCategory = 'SCHEDULE' | 'ACCOMMODATIONS' | 'TRANSPORTATION' | 'COMPLETENESS';
+export type ValidationIssueCategory = 'SCHEDULE' | 'ACCOMMODATIONS' | 'TRANSPORTATION' | 'COMPLETENESS' | 'DOCUMENTS';
 export type ValidationStatus = 'okay' | 'potential_issues';
 
 export interface ValidationIssueQuickAction {
