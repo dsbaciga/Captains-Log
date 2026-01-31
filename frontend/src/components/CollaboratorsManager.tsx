@@ -385,7 +385,7 @@ export default function CollaboratorsManager({
       />
 
       {/* Confirm Dialog */}
-      {ConfirmDialogComponent}
+      <ConfirmDialogComponent />
     </div>
   );
 }
