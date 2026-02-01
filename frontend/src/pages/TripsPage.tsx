@@ -35,7 +35,9 @@ export default function TripsPage() {
   const [sortOption, setSortOption] = useState<SortOption>('startDate-desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
-  const [currentPage, setCurrentPage] = useState(1);
+  // Initialize currentPage from stored value - need to call hook at top level
+  const initialPage = useScrollStore((state) => state.pageNumbers['trips-page'] || 1);
+  const [currentPage, setCurrentPage] = useState(initialPage);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortColumn, setSortColumn] = useState<string>('startDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -76,8 +78,8 @@ export default function TripsPage() {
 
   const { trips = [], totalPages = 1, total: totalTrips = 0 } = tripsData || {};
 
-  // Scroll position management
-  const { savePosition, getPosition, setSkipNextScrollToTop } = useScrollStore();
+  // Scroll and pagination position management
+  const { savePosition, getPosition, savePageNumber, getPageNumber, setSkipNextScrollToTop } = useScrollStore();
   const SCROLL_KEY = 'trips-page';
 
   // Track if we've restored scroll position (to avoid restoring on every data load)
@@ -96,11 +98,12 @@ export default function TripsPage() {
     // getPosition is stable from Zustand store, safe to include
   }, [getPosition, loading]);
 
-  // Save scroll position before navigating away
+  // Save scroll position and page number before navigating away
   const handleNavigateAway = useCallback(() => {
     savePosition(SCROLL_KEY, window.scrollY);
+    savePageNumber(SCROLL_KEY, currentPage);
     setSkipNextScrollToTop(true);
-  }, [savePosition, setSkipNextScrollToTop]);
+  }, [savePosition, savePageNumber, currentPage, setSkipNextScrollToTop]);
 
   // Handle page change with scroll to top
   const handlePageChange = useCallback((newPage: number) => {

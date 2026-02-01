@@ -1618,6 +1618,7 @@ export default function TripDetailPage() {
                             await tripService.updateCoverPhoto(trip.id, null);
                             toast.success("Cover photo removed");
                             queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+                            queryClient.invalidateQueries({ queryKey: ['trips'] });
                           } catch {
                             toast.error("Failed to remove cover photo");
                           }
@@ -1673,6 +1674,7 @@ export default function TripDetailPage() {
                         await tripService.updateCoverPhoto(trip.id, photoId);
                         toast.success("Cover photo updated");
                         queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+                        queryClient.invalidateQueries({ queryKey: ['trips'] });
                       } catch {
                         toast.error("Failed to set cover photo");
                       }
@@ -1823,7 +1825,7 @@ export default function TripDetailPage() {
             </h2>
             <PhotosMapView
               tripId={trip.id}
-              photos={photosPagination.items}
+              fetchAllPhotos
               onPhotoClick={() => {
                 // TODO: Implement lightbox or photo navigation
               }}

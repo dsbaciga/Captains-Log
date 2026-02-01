@@ -1,13 +1,15 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from '@changey/react-leaflet-markercluster';
 import { LatLngBounds, LatLng, DivIcon } from 'leaflet';
+import { useQuery } from '@tanstack/react-query';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import type { Photo } from '../types/photo';
 import { getFullAssetUrl } from '../lib/config';
 import { getAccessToken } from '../lib/axios';
+import photoService from '../services/photo.service';
 import {
   usePhotoLocations,
   type PhotoWithResolvedLocation,
@@ -33,9 +35,11 @@ const SOURCE_RING_COLORS: Record<LocationSource, string> = {
 
 interface PhotosMapViewProps {
   tripId: number;
-  photos: Photo[];
+  photos?: Photo[];
   onPhotoClick?: (photo: Photo) => void;
   showLegend?: boolean;
+  /** When true, fetches ALL photos for the trip from the API instead of using the photos prop */
+  fetchAllPhotos?: boolean;
 }
 
 // Component to fit map bounds to markers
@@ -157,16 +161,52 @@ function LocationSourceIndicator({ source, locationName }: { source: LocationSou
 
 export default function PhotosMapView({
   tripId,
-  photos,
+  photos: photosProp,
   onPhotoClick,
   showLegend = true,
+  fetchAllPhotos = false,
 }: PhotosMapViewProps) {
   const [thumbnailCache, setThumbnailCache] = useState<Record<number, string>>({});
   const blobUrlsRef = useRef<string[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Fetch all photos when fetchAllPhotos is true
+  const { data: allPhotosData, isLoading: isLoadingAllPhotos } = useQuery({
+    queryKey: ['photos', tripId, 'all-for-map'],
+    queryFn: async () => {
+      // Fetch all photos without pagination limit
+      // The API returns photos in batches, so we need to fetch all pages
+      const allPhotos: Photo[] = [];
+      let skip = 0;
+      const take = 500; // Fetch in batches of 500
+      let hasMore = true;
+
+      while (hasMore) {
+        const result = await photoService.getPhotosByTrip(tripId, { skip, take });
+        allPhotos.push(...result.photos);
+        hasMore = result.hasMore;
+        skip += take;
+      }
+
+      return allPhotos;
+    },
+    enabled: fetchAllPhotos && tripId > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use fetched photos when fetchAllPhotos is true, otherwise use prop
+  const photos = useMemo(() => {
+    if (fetchAllPhotos) {
+      return allPhotosData ?? [];
+    }
+    return photosProp ?? [];
+  }, [fetchAllPhotos, allPhotosData, photosProp]);
+
   // Use the photo locations hook for resolution
-  const { geotaggedPhotos, stats, isLoading } = usePhotoLocations(tripId, photos);
+  const { geotaggedPhotos, stats, isLoading: isLoadingLocations } = usePhotoLocations(tripId, photos);
+
+  // Combined loading state
+  const isLoading = isLoadingAllPhotos || isLoadingLocations;
 
   // Load thumbnails for Immich photos with proper cleanup
   useEffect(() => {

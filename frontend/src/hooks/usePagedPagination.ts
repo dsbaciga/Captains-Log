@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast';
  * @param options - Configuration options
  * @param options.pageSize - Number of items per page (default: 40)
  * @param options.onError - Custom error handler
+ * @param options.scrollToTop - Whether to scroll to top when changing pages (default: true)
  *
  * @returns Object with state and pagination controls
  */
@@ -27,9 +28,10 @@ export function usePagedPagination<T>(
   options: {
     pageSize?: number;
     onError?: (error: unknown) => void;
+    scrollToTop?: boolean;
   } = {}
 ) {
-  const { pageSize = 40, onError } = options;
+  const { pageSize = 40, onError, scrollToTop = true } = options;
 
   // State
   const [items, setItems] = useState<T[]>([]);
@@ -47,11 +49,16 @@ export function usePagedPagination<T>(
    * Load a specific page - replaces current items
    */
   const loadPage = useCallback(
-    async (page: number) => {
+    async (page: number, shouldScroll = true) => {
       if (page < 1) return;
 
       setLoading(true);
       setError(null);
+
+      // Scroll to top when changing pages (not on initial load)
+      if (scrollToTop && shouldScroll && page !== currentPage) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
 
       const skip = (page - 1) * pageSize;
 
@@ -73,14 +80,14 @@ export function usePagedPagination<T>(
         setLoading(false);
       }
     },
-    [loadFunction, pageSize, onError]
+    [loadFunction, pageSize, onError, scrollToTop, currentPage]
   );
 
   /**
-   * Load initial page (page 1)
+   * Load initial page (page 1) - does not scroll to top
    */
   const loadInitial = useCallback(() => {
-    return loadPage(1);
+    return loadPage(1, false);
   }, [loadPage]);
 
   /**
@@ -114,14 +121,14 @@ export function usePagedPagination<T>(
   );
 
   /**
-   * Reset to page 1
+   * Reset to page 1 - does not scroll to top
    */
   const reset = useCallback(() => {
     setItems([]);
     setTotal(0);
     setCurrentPage(1);
     setError(null);
-    loadPage(1);
+    loadPage(1, false);
   }, [loadPage]);
 
   /**

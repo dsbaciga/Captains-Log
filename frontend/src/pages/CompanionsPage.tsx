@@ -197,7 +197,7 @@ export default function CompanionsPage() {
 
       // Fetch all trips and companion details to filter out already assigned trips
       const [tripsData, companionWithTrips] = await Promise.all([
-        tripService.getTrips(),
+        tripService.getTrips({ limit: 1000 }),
         companionService.getCompanionById(
           companion.id
         ) as Promise<CompanionWithTrips>,
