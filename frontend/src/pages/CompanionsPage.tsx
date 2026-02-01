@@ -21,6 +21,8 @@ import EmptyState, { EmptyIllustrations } from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
 import { TrashIcon, ChevronRightIcon, PlusIcon } from "../components/icons";
+import DietaryTagSelector from "../components/DietaryTagSelector";
+import DietaryBadges from "../components/DietaryBadges";
 
 interface CompanionWithTrips extends Companion {
   tripAssignments?: Array<{
@@ -42,6 +44,7 @@ export default function CompanionsPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
   const [editingCompanion, setEditingCompanion] = useState<Companion | null>(
     null
   );
@@ -97,6 +100,7 @@ export default function CompanionsPage() {
         email: email || undefined,
         phone: phone || undefined,
         notes: notes || undefined,
+        dietaryPreferences: dietaryPreferences.length > 0 ? dietaryPreferences : undefined,
       });
       toast.success("Companion created");
       resetForm();
@@ -116,6 +120,7 @@ export default function CompanionsPage() {
         email: email || null,
         phone: phone || null,
         notes: notes || null,
+        dietaryPreferences,
       });
       toast.success("Companion updated");
       resetForm();
@@ -149,6 +154,7 @@ export default function CompanionsPage() {
     setEmail(companion.email || "");
     setPhone(companion.phone || "");
     setNotes(companion.notes || "");
+    setDietaryPreferences(companion.dietaryPreferences || []);
     setShowForm(true);
   };
 
@@ -159,6 +165,7 @@ export default function CompanionsPage() {
     setEmail("");
     setPhone("");
     setNotes("");
+    setDietaryPreferences([]);
   };
 
   const handleShowTrips = async (companionId: number) => {
@@ -391,6 +398,17 @@ export default function CompanionsPage() {
                 maxLength={1000}
               />
             </div>
+            <div>
+              <label className="label">Dietary Preferences</label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Track dietary restrictions to easily find suitable restaurants when traveling together.
+              </p>
+              <DietaryTagSelector
+                selectedTags={dietaryPreferences}
+                onChange={setDietaryPreferences}
+                compact
+              />
+            </div>
             <div className="flex gap-2">
               <button type="submit" className="btn btn-primary">
                 {editingCompanion ? "Update Companion" : "Create Companion"}
@@ -484,6 +502,11 @@ export default function CompanionsPage() {
                                 0 trips
                               </p>
                             )}
+                          {companion.dietaryPreferences && companion.dietaryPreferences.length > 0 && (
+                            <div className="mt-1">
+                              <DietaryBadges tags={companion.dietaryPreferences} maxDisplay={3} size="sm" />
+                            </div>
+                          )}
                         </div>
                       </div>
 

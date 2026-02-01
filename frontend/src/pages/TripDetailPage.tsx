@@ -76,6 +76,7 @@ type TabId =
   | "trip-map"
   | "locations"
   | "photos"
+  | "photo-map"
   | "photo-timeline"
   | "journal"
   | "activities"
@@ -99,7 +100,6 @@ export default function TripDetailPage() {
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<PhotoAlbum | null>(null);
   const [showAlbumsMobileDrawer, setShowAlbumsMobileDrawer] = useState(false);
-  const [photoViewMode, setPhotoViewMode] = useState<'gallery' | 'map'>('gallery');
   const [showAddPhotosModal, setShowAddPhotosModal] = useState(false);
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   
@@ -345,6 +345,7 @@ export default function TripDetailPage() {
     "lodging",
     "unscheduled",
     "photos",
+    "photo-map",
     "photo-timeline",
     "journal",
     "locations",
@@ -551,6 +552,20 @@ export default function TripDetailPage() {
                   strokeLinejoin="round"
                   strokeWidth={2}
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "photo-map",
+            label: "Photo Map",
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
                 />
               </svg>
             ),
@@ -1564,37 +1579,6 @@ export default function TripDetailPage() {
                       )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-                    {/* Gallery/Map View Toggle */}
-                    <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setPhotoViewMode('gallery')}
-                        className={`px-2.5 py-1.5 text-sm transition-colors ${
-                          photoViewMode === 'gallery'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                        }`}
-                        title="Gallery View"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPhotoViewMode('map')}
-                        className={`px-2.5 py-1.5 text-sm transition-colors ${
-                          photoViewMode === 'map'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                        }`}
-                        title="Map View"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
-                      </button>
-                    </div>
                     {/* Add Photos button - only show when viewing a specific album */}
                     {selectedAlbumId !== null && selectedAlbumId > 0 && (
                       <button
@@ -1646,16 +1630,7 @@ export default function TripDetailPage() {
                   </div>
                 </div>
 
-                {photoViewMode === 'map' ? (
-                  <PhotosMapView
-                    tripId={trip.id}
-                    photos={filteredPhotos}
-                    onPhotoClick={() => {
-                      // TODO: Implement lightbox or photo navigation
-                    }}
-                  />
-                ) : (
-                  <PhotoGallery
+                <PhotoGallery
                     photos={filteredPhotos}
                     albums={albums}
                     onPhotoDeleted={() => {
@@ -1735,7 +1710,6 @@ export default function TripDetailPage() {
                     initialSortOrder={sortOrderRef.current}
                     tripId={trip.id}
                   />
-                )}
 
                 {/* Pagination Controls */}
                 {selectedAlbumId === null && photosPagination.totalPages > 1 && (
@@ -1838,6 +1812,22 @@ export default function TripDetailPage() {
                 }}
               />
             )}
+          </div>
+        )}
+
+        {/* Photo Map Tab */}
+        {activeTab === "photo-map" && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              Photo Map
+            </h2>
+            <PhotosMapView
+              tripId={trip.id}
+              photos={photosPagination.items}
+              onPhotoClick={() => {
+                // TODO: Implement lightbox or photo navigation
+              }}
+            />
           </div>
         )}
 
