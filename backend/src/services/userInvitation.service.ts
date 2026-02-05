@@ -48,55 +48,57 @@ export const userInvitationService = {
     });
 
     if (existingUser) {
-      throw new AppError('A user with this email already exists', 400);
+      throw new AppError('Unable to send invitation to the provided email address', 400);
     }
-
-    // Check for existing pending invitation
-    const existingInvitation = await prisma.userInvitation.findFirst({
-      where: {
-        email: data.email.toLowerCase(),
-        status: UserInvitationStatusValues.PENDING,
-      },
-    });
 
     const token = generateInvitationToken();
     const expiresAt = getExpiryDate();
 
-    let invitation;
-
-    if (existingInvitation) {
-      // Update existing invitation with new token and expiry
-      invitation = await prisma.userInvitation.update({
-        where: { id: existingInvitation.id },
-        data: {
-          invitedByUserId: userId,
-          token,
-          message: data.message || null,
-          expiresAt,
-        },
-        include: {
-          invitedBy: {
-            select: { id: true, username: true, email: true },
-          },
-        },
-      });
-    } else {
-      // Create new invitation
-      invitation = await prisma.userInvitation.create({
-        data: {
-          invitedByUserId: userId,
+    // Use a transaction to atomically check for existing invitation and create/update
+    // This prevents race conditions where two concurrent requests could both find no
+    // existing invitation and both create new ones
+    const invitation = await prisma.$transaction(async (tx) => {
+      const existingInvitation = await tx.userInvitation.findFirst({
+        where: {
           email: data.email.toLowerCase(),
-          token,
-          message: data.message || null,
-          expiresAt,
-        },
-        include: {
-          invitedBy: {
-            select: { id: true, username: true, email: true },
-          },
+          status: UserInvitationStatusValues.PENDING,
         },
       });
-    }
+
+      if (existingInvitation) {
+        // Update existing invitation with new token and expiry
+        return tx.userInvitation.update({
+          where: { id: existingInvitation.id },
+          data: {
+            invitedByUserId: userId,
+            token,
+            message: data.message || null,
+            expiresAt,
+          },
+          include: {
+            invitedBy: {
+              select: { id: true, username: true, email: true },
+            },
+          },
+        });
+      } else {
+        // Create new invitation
+        return tx.userInvitation.create({
+          data: {
+            invitedByUserId: userId,
+            email: data.email.toLowerCase(),
+            token,
+            message: data.message || null,
+            expiresAt,
+          },
+          include: {
+            invitedBy: {
+              select: { id: true, username: true, email: true },
+            },
+          },
+        });
+      }
+    });
 
     // Send the invitation email
     const acceptUrl = `${config.frontendUrl}/accept-invite?token=${token}`;
@@ -112,10 +114,14 @@ export const userInvitationService = {
 
     logger.info('User invitation sent', { invitedByUserId: userId, recipientEmail: data.email, invitationId: invitation.id });
 
+    // Log acceptUrl in development for debugging, but never return it in the response
+    if (config.nodeEnv === 'development') {
+      logger.info('Development - invitation acceptUrl for debugging', { acceptUrl });
+    }
+
     return {
       ...invitation,
       emailSent,
-      acceptUrl: config.nodeEnv === 'development' ? acceptUrl : undefined, // Only expose URL in dev
     };
   },
 
@@ -139,6 +145,10 @@ export const userInvitationService = {
     const isExpired = invitation.expiresAt < new Date();
 
     // Determine the effective status (update DB if expired)
+    // Note: We update expired status on read rather than using a cron job.
+    // This is intentional - it's simpler and the side effect is idempotent.
+    // The tradeoff is that expired invitations aren't marked until accessed,
+    // which is acceptable for this use case.
     let effectiveStatus = invitation.status;
     if (isExpired && invitation.status === UserInvitationStatusValues.PENDING) {
       await prisma.userInvitation.update({
@@ -197,7 +207,7 @@ export const userInvitationService = {
     });
 
     if (existingUsername) {
-      throw new AppError('Username is already taken', 400);
+      throw new AppError('Unable to create account with the provided information', 400);
     }
 
     // Check if email already exists (shouldn't happen, but just in case)
@@ -206,7 +216,7 @@ export const userInvitationService = {
     });
 
     if (existingEmail) {
-      throw new AppError('A user with this email already exists', 400);
+      throw new AppError('Unable to create account with the provided information', 400);
     }
 
     // Hash password
@@ -287,9 +297,9 @@ export const userInvitationService = {
   },
 
   /**
-   * Get all invitations sent by a user
+   * Get all invitations sent by a user with pagination
    */
-  async getSentInvitations(userId: number) {
+  async getSentInvitations(userId: number, page: number = 1, limit: number = 20) {
     // Mark expired invitations
     await prisma.userInvitation.updateMany({
       where: {
@@ -300,29 +310,41 @@ export const userInvitationService = {
       data: { status: UserInvitationStatusValues.EXPIRED },
     });
 
-    const invitations = await prisma.userInvitation.findMany({
-      where: {
-        invitedByUserId: userId,
-      },
-      select: {
-        id: true,
-        email: true,
-        status: true,
-        message: true,
-        expiresAt: true,
-        createdAt: true,
-        respondedAt: true,
-        acceptedUser: {
-          select: {
-            id: true,
-            username: true,
+    const skip = (page - 1) * limit;
+
+    const [invitations, total] = await Promise.all([
+      prisma.userInvitation.findMany({
+        where: {
+          invitedByUserId: userId,
+        },
+        select: {
+          id: true,
+          email: true,
+          status: true,
+          message: true,
+          expiresAt: true,
+          createdAt: true,
+          respondedAt: true,
+          acceptedUser: {
+            select: {
+              id: true,
+              username: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.userInvitation.count({ where: { invitedByUserId: userId } }),
+    ]);
 
-    return invitations;
+    return {
+      invitations,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   },
 
   /**
@@ -407,10 +429,14 @@ export const userInvitationService = {
 
     logger.info('User invitation resent', { invitationId: invitationId, email: invitation.email, resentByUserId: userId });
 
+    // Log acceptUrl in development for debugging, but never return it in the response
+    if (config.nodeEnv === 'development') {
+      logger.info('Development - invitation acceptUrl for debugging', { acceptUrl });
+    }
+
     return {
       ...updated,
       emailSent,
-      acceptUrl: config.nodeEnv === 'development' ? acceptUrl : undefined,
     };
   },
 

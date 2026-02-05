@@ -1,5 +1,5 @@
 import { useState, useEffect, useId } from 'react';
-import axios from 'axios';
+import { isAxiosError } from 'axios';
 import userInvitationService from '../services/userInvitation.service';
 import type { UserInvitation } from '../types/userInvitation';
 import toast from 'react-hot-toast';
@@ -68,7 +68,7 @@ export default function InviteUsersSection() {
         toast.success('Invitation created! Email will be sent when SMTP is configured.');
       }
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         toast.error(error.response?.data?.message || 'Failed to send invitation');
       } else {
         toast.error('Failed to send invitation');
@@ -93,7 +93,7 @@ export default function InviteUsersSection() {
       toast.success('Invitation cancelled');
       await loadInvitations();
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         toast.error(error.response?.data?.message || 'Failed to cancel invitation');
       } else {
         toast.error('Failed to cancel invitation');
@@ -113,7 +113,7 @@ export default function InviteUsersSection() {
         toast.success('Invitation updated! Email will be sent when SMTP is configured.');
       }
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         toast.error(error.response?.data?.message || 'Failed to resend invitation');
       } else {
         toast.error('Failed to resend invitation');
@@ -270,6 +270,11 @@ export default function InviteUsersSection() {
           Sent Invitations
         </h2>
 
+        {/* Accessibility: aria-live region for status updates */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {loading ? 'Loading invitations...' : `${invitations.length} invitation${invitations.length !== 1 ? 's' : ''} loaded`}
+        </div>
+
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -285,9 +290,9 @@ export default function InviteUsersSection() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <ul role="list" aria-label="Sent invitations" className="space-y-3">
             {invitations.map((invitation) => (
-              <div
+              <li
                 key={invitation.id}
                 className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4"
               >
@@ -342,9 +347,9 @@ export default function InviteUsersSection() {
                     </div>
                   )}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
 

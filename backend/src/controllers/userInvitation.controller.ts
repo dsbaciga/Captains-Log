@@ -3,6 +3,7 @@ import { userInvitationService } from '../services/userInvitation.service';
 import { sendUserInvitationSchema, acceptInvitationSchema } from '../types/userInvitation.types';
 import { AppError } from '../utils/errors';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { config } from '../config';
 
 export const userInvitationController = {
@@ -80,7 +81,7 @@ export const userInvitationController = {
       });
 
       // Set CSRF token as accessible cookie for frontend
-      const csrfToken = jwt.sign({ userId: user.id }, config.jwt.secret, { expiresIn: '7d' });
+      const csrfToken = crypto.randomBytes(32).toString('hex');
       res.cookie('csrf_token', csrfToken, {
         httpOnly: false,
         secure: config.cookie.secure,
@@ -122,7 +123,7 @@ export const userInvitationController = {
 
   /**
    * Get all invitations sent by the current user
-   * GET /api/user-invitations
+   * GET /api/user-invitations?page=1&limit=20
    */
   async getSentInvitations(req: Request, res: Response, next: NextFunction) {
     try {
@@ -131,11 +132,15 @@ export const userInvitationController = {
         throw new AppError('Authentication required', 401);
       }
 
-      const invitations = await userInvitationService.getSentInvitations(userId);
+      // Parse pagination params with defaults
+      const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
+
+      const result = await userInvitationService.getSentInvitations(userId, page, limit);
 
       res.json({
         status: 'success',
-        data: invitations,
+        data: result,
       });
     } catch (error) {
       next(error);

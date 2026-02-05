@@ -2,6 +2,29 @@ import nodemailer from 'nodemailer';
 import { config } from '../config';
 import logger from '../config/logger';
 
+// Email template colors - aligned with application design system (Compass Gold palette)
+const EMAIL_COLORS = {
+  primary: '#B8860B',      // Compass Gold - primary brand color
+  primaryDark: '#8B6914',  // Darker gold for hover states
+  background: '#FDF8E8',   // Light cream background
+  text: '#1F2937',         // Dark text
+  textMuted: '#6B7280',    // Muted text
+  border: '#E5E7EB',       // Light border
+  white: '#FFFFFF',
+  // Additional semantic colors for email
+  headerBg: '#1a365d',     // Navy header background
+  headerBgEnd: '#2d4a7c',  // Navy gradient end
+  headerText: '#e8dfd5',   // Cream header text
+  accent: '#d4a574',       // Warm accent (used in header title)
+  accentEnd: '#c4956a',    // Accent gradient end
+  bodyText: '#4a5568',     // Body text color
+  mutedText: '#718096',    // Muted/secondary text
+  lightMutedText: '#a0aec0', // Light muted text
+  cardBg: '#f8f5f0',       // Card/section background
+  cardBorder: '#e8dfd5',   // Card border color
+  pageBg: '#f7f7f7',       // Page background
+} as const;
+
 /**
  * Escape HTML special characters to prevent XSS in email templates
  */
@@ -21,6 +44,24 @@ function escapeHtml(text: string): string {
  */
 function sanitizeHeaderText(text: string): string {
   return text.replace(/[\r\n]/g, ' ').trim();
+}
+
+/**
+ * Validate URL scheme to prevent URL injection attacks
+ * Only allows http: and https: schemes
+ */
+function validateUrlScheme(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      logger.error('Invalid URL scheme in email template', { url, protocol: parsed.protocol });
+      return '#invalid-url';
+    }
+    return url;
+  } catch {
+    logger.error('Invalid URL in email template', { url });
+    return '#invalid-url';
+  }
 }
 
 // Email templates
@@ -149,6 +190,8 @@ function generateUserInvitationEmail(data: UserInvitationEmailData): { subject: 
   const safeInviterName = data.inviterName ? sanitizeHeaderText(data.inviterName) : undefined;
   const safeInviterEmail = data.inviterEmail ? sanitizeHeaderText(data.inviterEmail) : undefined;
   const safePersonalMessage = data.personalMessage ? data.personalMessage.trim() : undefined;
+  // Validate URL scheme to prevent URL injection attacks (e.g., javascript: URLs)
+  const safeAcceptUrl = validateUrlScheme(data.acceptUrl);
 
   const inviterInfo = safeInviterName
     ? `${safeInviterName}${safeInviterEmail ? ` (${safeInviterEmail})` : ''}`
@@ -169,9 +212,9 @@ function generateUserInvitationEmail(data: UserInvitationEmailData): { subject: 
 
   const personalMessageHtml = safePersonalMessage
     ? `
-      <div style="background-color: #f8f5f0; padding: 16px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d4a574;">
-        <p style="margin: 0 0 8px 0; font-weight: 600; color: #1a365d;">Personal message from ${escapeHtml(safeInviterName || 'the inviter')}:</p>
-        <p style="margin: 0; font-style: italic; color: #4a5568;">"${escapeHtml(safePersonalMessage)}"</p>
+      <div style="background-color: ${EMAIL_COLORS.cardBg}; padding: 16px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${EMAIL_COLORS.accent};">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: ${EMAIL_COLORS.headerBg};">Personal message from ${escapeHtml(safeInviterName || 'the inviter')}:</p>
+        <p style="margin: 0; font-style: italic; color: ${EMAIL_COLORS.bodyText};">"${escapeHtml(safePersonalMessage)}"</p>
       </div>
     `
     : '';
@@ -183,7 +226,7 @@ Travel Life is a personal travel documentation application that helps you plan, 
 ${personalMessageSection}
 
 To accept this invitation and create your account, visit the following link:
-${data.acceptUrl}
+${safeAcceptUrl}
 
 This invitation expires on ${formatDate(data.expiresAt)}.
 
@@ -201,29 +244,29 @@ Travel Life - Document Your Journey
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>You're Invited to Travel Life</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f7f7f7;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: ${EMAIL_COLORS.pageBg};">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
     <tr>
       <td style="padding: 40px 20px;">
-        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: ${EMAIL_COLORS.white}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #1a365d 0%, #2d4a7c 100%); padding: 40px 32px; text-align: center;">
-              <h1 style="margin: 0; color: #d4a574; font-size: 28px; font-weight: 700;">Travel Life</h1>
-              <p style="margin: 8px 0 0 0; color: #e8dfd5; font-size: 14px;">Document Your Journey</p>
+            <td style="background: linear-gradient(135deg, ${EMAIL_COLORS.headerBg} 0%, ${EMAIL_COLORS.headerBgEnd} 100%); padding: 40px 32px; text-align: center;">
+              <h1 style="margin: 0; color: ${EMAIL_COLORS.accent}; font-size: 28px; font-weight: 700;">Travel Life</h1>
+              <p style="margin: 8px 0 0 0; color: ${EMAIL_COLORS.headerText}; font-size: 14px;">Document Your Journey</p>
             </td>
           </tr>
 
           <!-- Content -->
           <tr>
             <td style="padding: 40px 32px;">
-              <h2 style="margin: 0 0 20px 0; color: #1a365d; font-size: 24px; font-weight: 600;">You're Invited!</h2>
+              <h2 style="margin: 0 0 20px 0; color: ${EMAIL_COLORS.headerBg}; font-size: 24px; font-weight: 600;">You're Invited!</h2>
 
-              <p style="margin: 0 0 16px 0; color: #4a5568; font-size: 16px; line-height: 1.6;">
-                <strong style="color: #1a365d;">${inviterInfoHtml}</strong> has invited you to join Travel Life!
+              <p style="margin: 0 0 16px 0; color: ${EMAIL_COLORS.bodyText}; font-size: 16px; line-height: 1.6;">
+                <strong style="color: ${EMAIL_COLORS.headerBg};">${inviterInfoHtml}</strong> has invited you to join Travel Life!
               </p>
 
-              <p style="margin: 0 0 24px 0; color: #4a5568; font-size: 16px; line-height: 1.6;">
+              <p style="margin: 0 0 24px 0; color: ${EMAIL_COLORS.bodyText}; font-size: 16px; line-height: 1.6;">
                 Travel Life is a personal travel documentation application that helps you plan, track, and remember your adventures. Keep track of your trips, locations, photos, transportation, lodging, and more.
               </p>
 
@@ -233,22 +276,22 @@ Travel Life - Document Your Journey
               <table role="presentation" style="width: 100%; margin: 32px 0;">
                 <tr>
                   <td style="text-align: center;">
-                    <a href="${data.acceptUrl}" style="display: inline-block; background: linear-gradient(135deg, #d4a574 0%, #c4956a 100%); color: #1a365d; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(212, 165, 116, 0.3);">
+                    <a href="${safeAcceptUrl}" style="display: inline-block; background: linear-gradient(135deg, ${EMAIL_COLORS.accent} 0%, ${EMAIL_COLORS.accentEnd} 100%); color: ${EMAIL_COLORS.headerBg}; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(212, 165, 116, 0.3);">
                       Accept Invitation
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin: 24px 0 0 0; color: #718096; font-size: 14px; text-align: center;">
+              <p style="margin: 24px 0 0 0; color: ${EMAIL_COLORS.mutedText}; font-size: 14px; text-align: center;">
                 This invitation expires on <strong>${formatDate(data.expiresAt)}</strong>
               </p>
 
               <!-- Link fallback -->
-              <div style="margin: 24px 0 0 0; padding: 16px; background-color: #f8f5f0; border-radius: 8px;">
-                <p style="margin: 0 0 8px 0; color: #718096; font-size: 12px;">If the button doesn't work, copy and paste this link:</p>
+              <div style="margin: 24px 0 0 0; padding: 16px; background-color: ${EMAIL_COLORS.cardBg}; border-radius: 8px;">
+                <p style="margin: 0 0 8px 0; color: ${EMAIL_COLORS.mutedText}; font-size: 12px;">If the button doesn't work, copy and paste this link:</p>
                 <p style="margin: 0; word-break: break-all; font-size: 12px;">
-                  <a href="${data.acceptUrl}" style="color: #d4a574;">${data.acceptUrl}</a>
+                  <a href="${safeAcceptUrl}" style="color: ${EMAIL_COLORS.accent};">${safeAcceptUrl}</a>
                 </p>
               </div>
             </td>
@@ -256,11 +299,11 @@ Travel Life - Document Your Journey
 
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f8f5f0; padding: 24px 32px; text-align: center; border-top: 1px solid #e8dfd5;">
-              <p style="margin: 0; color: #718096; font-size: 12px;">
+            <td style="background-color: ${EMAIL_COLORS.cardBg}; padding: 24px 32px; text-align: center; border-top: 1px solid ${EMAIL_COLORS.cardBorder};">
+              <p style="margin: 0; color: ${EMAIL_COLORS.mutedText}; font-size: 12px;">
                 If you didn't expect this invitation, you can safely ignore this email.
               </p>
-              <p style="margin: 12px 0 0 0; color: #a0aec0; font-size: 11px;">
+              <p style="margin: 12px 0 0 0; color: ${EMAIL_COLORS.lightMutedText}; font-size: 11px;">
                 Travel Life - Document Your Journey
               </p>
             </td>
@@ -309,7 +352,7 @@ export const emailService = {
       text: 'If you received this email, your Travel Life email configuration is working correctly.',
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
-          <h2 style="color: #1a365d;">Email Configuration Test</h2>
+          <h2 style="color: ${EMAIL_COLORS.headerBg};">Email Configuration Test</h2>
           <p>If you received this email, your Travel Life email configuration is working correctly.</p>
         </div>
       `,

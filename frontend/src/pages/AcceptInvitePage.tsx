@@ -1,6 +1,6 @@
 import { useState, useEffect, useId } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import { isAxiosError } from 'axios';
 import userInvitationService from '../services/userInvitation.service';
 import { useAuthStore } from '../store/authStore';
 import type { UserInvitationPublicInfo } from '../types/userInvitation';
@@ -12,6 +12,8 @@ export default function AcceptInvitePage() {
   const { login } = useAuthStore();
 
   const token = searchParams.get('token');
+  // Validate token format client-side before making API calls
+  const isValidTokenFormat = token && /^[a-f0-9]{64}$/.test(token);
 
   const [invitation, setInvitation] = useState<UserInvitationPublicInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,8 +39,14 @@ export default function AcceptInvitePage() {
       return;
     }
 
+    if (!isValidTokenFormat) {
+      setError('Invalid invitation link format.');
+      setLoading(false);
+      return;
+    }
+
     loadInvitation();
-  }, [token]);
+  }, [token, isValidTokenFormat]);
 
   const loadInvitation = async () => {
     if (!token) return;
@@ -48,7 +56,7 @@ export default function AcceptInvitePage() {
       setInvitation(data);
       setEmail(data.email); // Pre-fill email from invitation
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         setError(error.response?.data?.message || 'Invitation not found or has expired.');
       } else {
         setError('Invitation not found or has expired.');
@@ -62,7 +70,7 @@ export default function AcceptInvitePage() {
     e.preventDefault();
 
     if (!token) {
-      toast.error('Invalid invitation');
+      toast.error('Invalid invitation link');
       return;
     }
 
@@ -96,7 +104,7 @@ export default function AcceptInvitePage() {
       toast.success('Account created successfully! Welcome to Travel Life!');
       navigate('/dashboard');
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         toast.error(error.response?.data?.message || 'Failed to create account');
       } else {
         toast.error('Failed to create account');
@@ -107,14 +115,22 @@ export default function AcceptInvitePage() {
   };
 
   const handleDecline = async () => {
-    if (!token) return;
+    if (!token) {
+      toast.error('Invalid invitation link');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Are you sure you want to decline this invitation? This action cannot be undone.'
+    );
+    if (!confirmed) return;
 
     try {
       await userInvitationService.declineInvitation(token);
       toast.success('Invitation declined');
       navigate('/');
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         toast.error(error.response?.data?.message || 'Failed to decline invitation');
       } else {
         toast.error('Failed to decline invitation');

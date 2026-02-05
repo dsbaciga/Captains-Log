@@ -21,20 +21,26 @@ const publicInvitationLimiter = rateLimit({
 // ============================================
 // AUTHENTICATED ROUTES (require login)
 // ============================================
+//
+// ROUTE ORDER IS IMPORTANT:
+// Static routes must come before parameterized routes to prevent
+// path segments like "email-status" from being captured as :invitationId
+//
+// Correct order:
+// 1. GET /email-status (static)
+// 2. GET / (static)
+// 3. POST / (static)
+// 4. DELETE /:invitationId (parameterized)
+// 5. POST /:invitationId/resend (parameterized)
+// ============================================
 
-// Get email configuration status
+// Static routes first (must come before parameterized routes)
 router.get('/email-status', authenticate, userInvitationController.getEmailStatus);
-
-// Get all invitations sent by the current user
 router.get('/', authenticate, userInvitationController.getSentInvitations);
-
-// Send a new invitation
 router.post('/', authenticate, invitationLimiter, userInvitationController.sendInvitation);
 
-// Cancel a pending invitation
+// Parameterized routes last
 router.delete('/:invitationId', authenticate, userInvitationController.cancelInvitation);
-
-// Resend an invitation
 router.post('/:invitationId/resend', authenticate, invitationLimiter, userInvitationController.resendInvitation);
 
 // ============================================

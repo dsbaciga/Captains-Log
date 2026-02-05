@@ -728,5 +728,6 @@ model UserInvitation {
   @@index([token])
   @@index([status])
   @@index([invitedByUserId])
+  @@index([email, status])  // Composite index for common email+status queries
   @@map("user_invitations")
 }

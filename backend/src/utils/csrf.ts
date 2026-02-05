@@ -67,8 +67,9 @@ export const validateCsrf = (req: Request, res: Response, next: NextFunction): v
   // 1. The invitation token itself (cryptographically random, one-time use)
   // 2. Rate limiting (20 requests per 15 minutes)
   // 3. CORS configuration (restricts origins)
-  if (req.path.startsWith('/user-invitations/accept') ||
-      req.path.startsWith('/user-invitations/decline/')) {
+  // Use exact path matching to prevent bypass attacks (e.g., /user-invitations/accept-malicious)
+  if (req.path === '/user-invitations/accept' ||
+      /^\/user-invitations\/decline\/[a-f0-9]{64}$/.test(req.path)) {
     return next();
   }
 

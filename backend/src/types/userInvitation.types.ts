@@ -23,7 +23,7 @@ export const acceptInvitationSchema = z.object({
   token: z.string().regex(/^[a-f0-9]{64}$/, 'Invalid invitation token'),
   username: z.string().min(3).max(255),
   email: z.string().email().max(255),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password cannot exceed 128 characters'),
 });
 
 export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
@@ -52,4 +52,27 @@ export interface UserInvitationPublicInfo {
   } | null;
   isExpired: boolean;
   isValid: boolean;
+}
+
+// Sent invitation summary (for listing)
+export interface SentInvitationSummary {
+  id: number;
+  email: string;
+  status: UserInvitationStatusType;
+  message: string | null;
+  expiresAt: Date;
+  createdAt: Date;
+  respondedAt: Date | null;
+  acceptedUser: {
+    id: number;
+    username: string;
+  } | null;
+}
+
+// Paginated response for sent invitations
+export interface PaginatedSentInvitationsResponse {
+  invitations: SentInvitationSummary[];
+  total: number;
+  page: number;
+  totalPages: number;
 }
