@@ -479,13 +479,13 @@ export default function TransportationManager({
       }
     }
     setShowDraftPrompt(false);
-  }, [draft.restoreDraft, setAllFields]);
+  }, [draft, setAllFields]);
 
   // Handle draft discard
   const handleDiscardDraft = useCallback(() => {
     draft.clearDraft();
     setShowDraftPrompt(false);
-  }, [draft.clearDraft]);
+  }, [draft]);
 
   // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
   const handleEdit = useCallback((transportation: Transportation) => {
@@ -656,7 +656,7 @@ export default function TransportationManager({
     setShowMoreOptions(false);
     setShowDraftPrompt(false);
     draft.clearDraft();
-  }, [baseResetForm, draft.clearDraft]);
+  }, [baseResetForm, draft]);
 
   // Open create form with clean state
   const openCreateForm = useCallback(() => {
