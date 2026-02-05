@@ -4,10 +4,11 @@
  * Only includes Completed, In Progress, Planned, and Planning trips
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import tripService from '../../services/trip.service';
 import type { Trip } from '../../types/trip';
 import { Skeleton } from '../Skeleton';
+import { CalendarIcon, ChevronDownIcon } from '../icons';
 
 interface DayData {
   date: Date;
@@ -22,6 +23,9 @@ interface VisibleTrip {
   endDate: string;
 }
 
+/** Maximum number of trips to show in the legend before collapsing with "+X more" */
+const MAX_LEGEND_TRIPS = 12;
+
 export default function TravelCalendarHeatmap() {
   const [isLoading, setIsLoading] = useState(true);
   const [heatmapData, setHeatmapData] = useState<DayData[]>([]);
@@ -29,41 +33,19 @@ export default function TravelCalendarHeatmap() {
   const [visibleTrips, setVisibleTrips] = useState<VisibleTrip[]>([]);
   const [showTripLegend, setShowTripLegend] = useState(false);
 
-  useEffect(() => {
-    loadTravelData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadTravelData = async () => {
-    try {
-      const response = await tripService.getTrips();
-      const trips = response.trips.filter(
-        (trip) =>
-          trip.status === 'Completed' ||
-          trip.status === 'In Progress' ||
-          trip.status === 'Planned' ||
-          trip.status === 'Planning'
-      );
-
-      // Generate data for the past year
-      const { data, tripsInRange } = generateYearData(trips);
-      setHeatmapData(data);
-      setVisibleTrips(tripsInRange);
-    } catch (error) {
-      console.error('Failed to load travel data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Parse date string without UTC interpretation issues
-  const parseDate = (dateStr: string): Date => {
+  /**
+   * Parse date string to local Date without UTC timezone offset.
+   * Using new Date('2024-01-15') interprets as UTC midnight which can shift
+   * the displayed date in non-UTC timezones. This parses the components
+   * directly to create a local midnight date.
+   */
+  const parseDate = useCallback((dateStr: string): Date => {
     const datePart = dateStr.split('T')[0];
     const [year, month, day] = datePart.split('-').map(Number);
     return new Date(year, month - 1, day);
-  };
+  }, []);
 
-  const generateYearData = (trips: Trip[]): { data: DayData[]; tripsInRange: VisibleTrip[] } => {
+  const generateYearData = useCallback((trips: Trip[]): { data: DayData[]; tripsInRange: VisibleTrip[] } => {
     const data: DayData[] = [];
     const today = new Date();
     const oneYearAgo = new Date(today);
@@ -97,21 +79,25 @@ export default function TravelCalendarHeatmap() {
           startDate: trip.startDate,
           endDate: trip.endDate,
         });
-      }
 
-      // Iterate through each day in the trip
-      const currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
-        const dateKey = currentDate.toISOString().split('T')[0];
-        if (!dateMap.has(dateKey)) {
-          dateMap.set(dateKey, { count: 0, trips: [] });
+        // Only iterate through days within the display range (performance optimization)
+        const iterStart = new Date(Math.max(startDate.getTime(), displayStartDate.getTime()));
+        const iterEnd = new Date(Math.min(endDate.getTime(), today.getTime()));
+        const currentDate = new Date(iterStart);
+
+        while (currentDate <= iterEnd) {
+          const dateKey = currentDate.toISOString().split('T')[0];
+          const existing = dateMap.get(dateKey);
+          if (existing) {
+            existing.count += 1;
+            if (!existing.trips.includes(trip.title)) {
+              existing.trips.push(trip.title);
+            }
+          } else {
+            dateMap.set(dateKey, { count: 1, trips: [trip.title] });
+          }
+          currentDate.setDate(currentDate.getDate() + 1);
         }
-        const dayData = dateMap.get(dateKey)!;
-        dayData.count += 1;
-        if (!dayData.trips.includes(trip.title)) {
-          dayData.trips.push(trip.title);
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
       }
     });
 
@@ -135,7 +121,33 @@ export default function TravelCalendarHeatmap() {
     tripsInRange.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
 
     return { data, tripsInRange };
-  };
+  }, [parseDate]);
+
+  const loadTravelData = useCallback(async () => {
+    try {
+      const response = await tripService.getTrips();
+      const trips = response.trips.filter(
+        (trip) =>
+          trip.status === 'Completed' ||
+          trip.status === 'In Progress' ||
+          trip.status === 'Planned' ||
+          trip.status === 'Planning'
+      );
+
+      // Generate data for the past year
+      const { data, tripsInRange } = generateYearData(trips);
+      setHeatmapData(data);
+      setVisibleTrips(tripsInRange);
+    } catch (error) {
+      console.error('Failed to load travel data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [generateYearData]);
+
+  useEffect(() => {
+    loadTravelData();
+  }, [loadTravelData]);
 
   const getColorClass = (count: number): string => {
     if (count === 0) return 'bg-gray-100 dark:bg-navy-900/30';
@@ -153,17 +165,18 @@ export default function TravelCalendarHeatmap() {
     });
   };
 
-  const groupByWeeks = (days: DayData[]): DayData[][] => {
-    const weeks: DayData[][] = [];
-    for (let i = 0; i < days.length; i += 7) {
-      weeks.push(days.slice(i, i + 7));
+  // Memoize weeks computation to avoid recalculating on every render
+  const weeks = useMemo((): DayData[][] => {
+    const result: DayData[][] = [];
+    for (let i = 0; i < heatmapData.length; i += 7) {
+      result.push(heatmapData.slice(i, i + 7));
     }
-    return weeks;
-  };
+    return result;
+  }, [heatmapData]);
 
-  const getMonthLabels = (): { label: string; weekIndex: number }[] => {
+  // Memoize month labels computation
+  const monthLabels = useMemo((): { label: string; weekIndex: number }[] => {
     const labels: { label: string; weekIndex: number }[] = [];
-    const weeks = groupByWeeks(heatmapData);
 
     let lastMonth = -1;
     let lastWeekIndex = -1;
@@ -193,7 +206,11 @@ export default function TravelCalendarHeatmap() {
     });
 
     return labels;
-  };
+  }, [weeks]);
+
+  // Trips to display in legend (limited to avoid excessive height)
+  const displayTrips = useMemo(() => visibleTrips.slice(0, MAX_LEGEND_TRIPS), [visibleTrips]);
+  const remainingTripsCount = visibleTrips.length - MAX_LEGEND_TRIPS;
 
   if (isLoading) {
     return (
@@ -207,27 +224,12 @@ export default function TravelCalendarHeatmap() {
     );
   }
 
-  const weeks = groupByWeeks(heatmapData);
-  const monthLabels = getMonthLabels();
-
   return (
     <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center">
-          <svg
-            className="w-6 h-6 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
+          <CalendarIcon className="w-6 h-6 text-white" />
         </div>
         <h3 className="text-xl font-display font-bold text-gray-900 dark:text-white">
           Travel Calendar
@@ -269,26 +271,29 @@ export default function TravelCalendarHeatmap() {
             </div>
 
             {/* Calendar grid */}
-            <div className="flex gap-[2px]">
+            <div className="flex gap-[2px]" role="grid" aria-label="Travel activity calendar">
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-[2px]">
-                  {week.map((day, dayIndex) => (
-                    <div
-                      key={dayIndex}
-                      className={`w-3 h-3 rounded-sm ${getColorClass(
-                        day.count
-                      )} cursor-pointer hover:ring-2 hover:ring-accent-500 transition-all duration-150`}
-                      onMouseEnter={() => setHoveredDay(day)}
-                      onMouseLeave={() => setHoveredDay(null)}
-                      title={`${formatDate(day.date)}: ${day.count} trip${
-                        day.count !== 1 ? 's' : ''
-                      }`}
-                    />
-                  ))}
+                <div key={weekIndex} className="flex flex-col gap-[2px]" role="row">
+                  {week.map((day, dayIndex) => {
+                    const label = `${formatDate(day.date)}: ${day.count} trip${day.count !== 1 ? 's' : ''}`;
+                    return (
+                      <div
+                        key={dayIndex}
+                        role="gridcell"
+                        aria-label={label}
+                        className={`w-3 h-3 rounded-sm ${getColorClass(
+                          day.count
+                        )} cursor-pointer hover:ring-2 hover:ring-accent-500 transition-all duration-150`}
+                        onMouseEnter={() => setHoveredDay(day)}
+                        onMouseLeave={() => setHoveredDay(null)}
+                        title={label}
+                      />
+                    );
+                  })}
                   {/* Fill empty cells to maintain grid height */}
                   {week.length < 7 &&
                     Array.from({ length: 7 - week.length }).map((_, i) => (
-                      <div key={`empty-${i}`} className="w-3 h-3" />
+                      <div key={`empty-${i}`} className="w-3 h-3" role="gridcell" aria-hidden="true" />
                     ))}
                 </div>
               ))}
@@ -310,30 +315,31 @@ export default function TravelCalendarHeatmap() {
             {/* Trip Legend Toggle */}
             {visibleTrips.length > 0 && (
               <button
+                type="button"
                 onClick={() => setShowTripLegend(!showTripLegend)}
-                className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                aria-expanded={showTripLegend}
+                aria-controls="trip-legend-panel"
+                className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:focus-visible:ring-gold/50 rounded px-1 py-0.5 transition-colors"
               >
                 <span>{visibleTrips.length} trip{visibleTrips.length !== 1 ? 's' : ''}</span>
-                <svg
+                <ChevronDownIcon
                   className={`w-4 h-4 transition-transform duration-200 ${showTripLegend ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                />
               </button>
             )}
           </div>
 
           {/* Trip Legend (Collapsible) */}
           {showTripLegend && visibleTrips.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-navy-700">
+            <div
+              id="trip-legend-panel"
+              className="mt-3 pt-3 border-t border-gray-200 dark:border-navy-700"
+            >
               <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Trips shown on calendar:
               </div>
               <div className="flex flex-wrap gap-2">
-                {visibleTrips.map((trip) => (
+                {displayTrips.map((trip) => (
                   <div
                     key={trip.id}
                     className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-xs text-primary-800 dark:text-primary-300"
@@ -342,6 +348,11 @@ export default function TravelCalendarHeatmap() {
                     <span className="max-w-[150px] truncate">{trip.title}</span>
                   </div>
                 ))}
+                {remainingTripsCount > 0 && (
+                  <span className="inline-flex items-center px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+                    +{remainingTripsCount} more
+                  </span>
+                )}
               </div>
             </div>
           )}
