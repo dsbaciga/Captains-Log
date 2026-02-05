@@ -81,8 +81,9 @@ export const userInvitationController = {
       });
 
       // Set CSRF token as accessible cookie for frontend
+      // IMPORTANT: Must use 'csrf-token' (hyphen) to match CSRF_COOKIE_NAME in utils/csrf.ts
       const csrfToken = crypto.randomBytes(32).toString('hex');
-      res.cookie('csrf_token', csrfToken, {
+      res.cookie('csrf-token', csrfToken, {
         httpOnly: false,
         secure: config.cookie.secure,
         sameSite: config.cookie.sameSite,
