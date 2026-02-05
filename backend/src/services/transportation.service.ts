@@ -7,7 +7,7 @@ import {
   BulkUpdateTransportationInput,
 } from '../types/transportation.types';
 import { AppError } from '../utils/errors';
-import { verifyTripAccess, verifyEntityAccess, verifyEntityInTrip, convertDecimals, cleanupEntityLinks, buildConditionalUpdateData } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, verifyEntityInTrip, convertDecimals, cleanupEntityLinks, buildConditionalUpdateData } from '../utils/serviceHelpers';
 import { locationWithAddressSelect } from '../utils/prismaIncludes';
 import routingService from './routing.service';
 
@@ -117,8 +117,8 @@ const mapTransportationToFrontend = (t: TransportationWithRelations): Transporta
 
 class TransportationService {
   async createTransportation(userId: number, data: CreateTransportationInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Verify locations belong to trip if provided
     if (data.fromLocationId) {
@@ -168,8 +168,8 @@ class TransportationService {
   }
 
   async getTransportationByTrip(userId: number, tripId: number) {
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has view permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     const transportations = await prisma.transportation.findMany({
       where: { tripId },
@@ -316,6 +316,9 @@ class TransportationService {
   }
 
   async getTransportationById(userId: number, transportationId: number) {
+    // Verify user has view permission on the transportation's trip
+    await verifyEntityAccessWithPermission('transportation', transportationId, userId, 'view');
+
     const transportation = await prisma.transportation.findUnique({
       where: { id: transportationId },
       include: {
@@ -342,10 +345,7 @@ class TransportationService {
       },
     });
 
-    // Verify access
-    await verifyEntityAccess(transportation, userId, 'Transportation');
-
-    return mapTransportationToFrontend(transportation);
+    return mapTransportationToFrontend(transportation as TransportationWithRelations);
   }
 
   async updateTransportation(
@@ -353,21 +353,21 @@ class TransportationService {
     transportationId: number,
     data: UpdateTransportationInput
   ) {
-    const transportation = await prisma.transportation.findUnique({
-      where: { id: transportationId },
-      include: { trip: true },
-    });
-
-    // Verify access
-    const verifiedTransportation = await verifyEntityAccess(transportation, userId, 'Transportation');
+    // Verify user has edit permission on the transportation's trip
+    const { entity: transportation } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'transportation',
+      transportationId,
+      userId,
+      'edit'
+    );
 
     // Verify locations belong to trip if provided
     if (data.fromLocationId !== undefined && data.fromLocationId !== null) {
-      await verifyEntityInTrip('location', data.fromLocationId, verifiedTransportation.tripId);
+      await verifyEntityInTrip('location', data.fromLocationId, transportation.tripId);
     }
 
     if (data.toLocationId !== undefined && data.toLocationId !== null) {
-      await verifyEntityInTrip('location', data.toLocationId, verifiedTransportation.tripId);
+      await verifyEntityInTrip('location', data.toLocationId, transportation.tripId);
     }
 
     // Map frontend field names to database field names
@@ -513,8 +513,8 @@ class TransportationService {
    * Recalculate distances for all transportation in a trip
    */
   async recalculateDistancesForTrip(userId: number, tripId: number): Promise<number> {
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     const transportations = await prisma.transportation.findMany({
       where: { tripId },
@@ -531,16 +531,16 @@ class TransportationService {
   }
 
   async deleteTransportation(userId: number, transportationId: number) {
-    const transportation = await prisma.transportation.findUnique({
-      where: { id: transportationId },
-      include: { trip: true },
-    });
-
-    // Verify access
-    const verifiedTransportation = await verifyEntityAccess(transportation, userId, 'Transportation');
+    // Verify user has edit permission on the transportation's trip
+    const { entity: transportation } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'transportation',
+      transportationId,
+      userId,
+      'edit'
+    );
 
     // Clean up entity links before deleting
-    await cleanupEntityLinks(verifiedTransportation.tripId, 'TRANSPORTATION', transportationId);
+    await cleanupEntityLinks(transportation.tripId, 'TRANSPORTATION', transportationId);
 
     await prisma.transportation.delete({
       where: { id: transportationId },
@@ -551,11 +551,11 @@ class TransportationService {
 
   /**
    * Bulk delete multiple transportation items
-   * Verifies ownership for all items before deletion
+   * Verifies edit permission for all items before deletion
    */
   async bulkDeleteTransportation(userId: number, tripId: number, data: BulkDeleteTransportationInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Verify all transportation items belong to this trip
     const transportations = await prisma.transportation.findMany({
@@ -588,11 +588,11 @@ class TransportationService {
 
   /**
    * Bulk update multiple transportation items
-   * Verifies ownership for all items before update
+   * Verifies edit permission for all items before update
    */
   async bulkUpdateTransportation(userId: number, tripId: number, data: BulkUpdateTransportationInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Verify all transportation items belong to this trip
     const transportations = await prisma.transportation.findMany({

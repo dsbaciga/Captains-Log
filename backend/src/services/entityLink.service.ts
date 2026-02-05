@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../utils/errors';
-import { verifyTripAccess } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission } from '../utils/serviceHelpers';
 
 // Type for Prisma transaction client
 type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -350,7 +350,7 @@ export const entityLinkService = {
     data: CreateEntityLinkInput
   ): Promise<EntityLinkResponse> {
     // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Verify both entities exist in the trip
     await verifyEntityInTrip(data.tripId, data.sourceType, data.sourceId);
@@ -401,7 +401,7 @@ export const entityLinkService = {
     data: BulkCreateEntityLinksInput
   ): Promise<{ created: number; skipped: number }> {
     // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Verify source entity exists
     await verifyEntityInTrip(data.tripId, data.sourceType, data.sourceId);
@@ -470,7 +470,7 @@ export const entityLinkService = {
     data: BulkLinkPhotosInput
   ): Promise<{ created: number; skipped: number }> {
     // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Verify target entity exists
     await verifyEntityInTrip(data.tripId, data.targetType, data.targetId);
@@ -529,7 +529,7 @@ export const entityLinkService = {
     userId: number,
     data: GetLinksFromEntityInput
   ): Promise<EnrichedEntityLink[]> {
-    await verifyTripAccess(userId, data.tripId);
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     const where: EntityLinkWhereInput = {
       tripId: data.tripId,
@@ -575,7 +575,7 @@ export const entityLinkService = {
     userId: number,
     data: GetLinksToEntityInput
   ): Promise<EnrichedEntityLink[]> {
-    await verifyTripAccess(userId, data.tripId);
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     const where: EntityLinkWhereInput = {
       tripId: data.tripId,
@@ -627,7 +627,7 @@ export const entityLinkService = {
     linksTo: EnrichedEntityLink[];
     summary: EntityLinkSummary;
   }> {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     let linksFrom: EnrichedEntityLink[];
     let linksTo: EnrichedEntityLink[];
@@ -667,7 +667,7 @@ export const entityLinkService = {
    * Delete a specific link
    */
   async deleteLink(userId: number, data: DeleteEntityLinkInput): Promise<void> {
-    await verifyTripAccess(userId, data.tripId);
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     const link = await prisma.entityLink.findFirst({
       where: {
@@ -692,7 +692,7 @@ export const entityLinkService = {
    * Delete a link by ID
    */
   async deleteLinkById(userId: number, tripId: number, linkId: number): Promise<void> {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     const link = await prisma.entityLink.findFirst({
       where: { id: linkId, tripId },
@@ -716,7 +716,7 @@ export const entityLinkService = {
     linkId: number,
     data: UpdateEntityLinkInput
   ): Promise<EntityLinkResponse> {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     const link = await prisma.entityLink.findFirst({
       where: { id: linkId, tripId },
@@ -749,7 +749,7 @@ export const entityLinkService = {
     entityType: EntityType,
     entityId: number
   ): Promise<{ deleted: number }> {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Delete links where entity is source or target
     const result = await prisma.entityLink.deleteMany({
@@ -774,7 +774,7 @@ export const entityLinkService = {
     entityType: EntityType,
     entityId: number
   ) {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     // Get links where photos are linked to this entity
     const links = await prisma.entityLink.findMany({
@@ -809,7 +809,7 @@ export const entityLinkService = {
     tripId: number,
     targetType: EntityType
   ): Promise<Array<{ sourceType: EntityType; sourceId: number; targetId: number }>> {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     const links = await prisma.entityLink.findMany({
       where: {
@@ -838,7 +838,7 @@ export const entityLinkService = {
     userId: number,
     tripId: number
   ): Promise<Map<string, EntityLinkSummary>> {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     const links = await prisma.entityLink.findMany({
       where: { tripId },

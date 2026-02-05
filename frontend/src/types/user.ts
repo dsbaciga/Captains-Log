@@ -22,3 +22,23 @@ export interface UpdateUserSettingsInput {
   dietaryPreferences?: string[];
   useCustomMapStyle?: boolean;
 }
+
+// User search result for travel partner selection
+export interface UserSearchResult {
+  id: number;
+  username: string;
+  email: string;
+  avatarUrl: string | null;
+}
+
+// Travel partner settings
+export interface TravelPartnerSettings {
+  travelPartnerId: number | null;
+  defaultPartnerPermission: 'view' | 'edit' | 'admin';
+  travelPartner: UserSearchResult | null;
+}
+
+export interface UpdateTravelPartnerInput {
+  travelPartnerId?: number | null;
+  defaultPartnerPermission?: 'view' | 'edit' | 'admin';
+}

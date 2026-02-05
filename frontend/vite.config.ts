@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
@@ -10,7 +11,159 @@ const packageJson = JSON.parse(
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'prompt', // User controls when to update
+      includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt'],
+      manifest: {
+        name: 'Travel Life',
+        short_name: 'Travel Life',
+        description: 'Document your travel adventures with photos, maps, and journals',
+        theme_color: '#1e293b', // navy-800 - matches dark mode header
+        background_color: '#0f172a', // navy-900 - matches dark mode background
+        display: 'standalone',
+        orientation: 'portrait-primary',
+        start_url: '/',
+        scope: '/',
+        icons: [
+          {
+            src: '/icons/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/icons/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: '/icons/icon-512-maskable.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ],
+        categories: ['travel', 'lifestyle', 'productivity'],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Navigate fallback for SPA
+        navigateFallback: '/offline.html',
+        navigateFallbackDenylist: [/^\/api\//], // Don't fallback API requests
+        runtimeCaching: [
+          // API responses - Network first, fallback to cache
+          {
+            urlPattern: /^.*\/api\/(trips|locations|activities|transportation|lodging|journals|photos|albums)/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              networkTimeoutSeconds: 10,
+            },
+          },
+          // Photo thumbnails - Cache first for fast loading
+          {
+            urlPattern: /^.*\/uploads\/.*\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'photo-thumbnails',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Map tiles - Cache first with long expiration
+          {
+            urlPattern: /^https:\/\/.*tile.*\.(openstreetmap|osm|maptiler|mapbox|stamen).*\.(png|jpg|jpeg|webp)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: {
+                maxEntries: 1000,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Alternative pattern for map tiles (covers more tile servers)
+          {
+            urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: {
+                maxEntries: 1000,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Nominatim geocoding - Cache first since location data rarely changes
+          {
+            urlPattern: /^.*nominatim.*\/(search|reverse)/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'geocoding-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 90, // 90 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Google Fonts - Cache first
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false, // Disable in development to avoid confusion
+      },
+    }),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },

@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
@@ -25,17 +24,18 @@ import { debugLogger } from './utils/debugLogger';
 import { migrateFromLocalStorage } from './utils/authMigration';
 import { cleanupExpiredDrafts } from './utils/draftStorage';
 import { useAuthStore } from './store/authStore';
+import {
+  getQueryClient,
+  getQueryPersister,
+  getMaxCacheAge,
+  PersistQueryClientProvider,
+  dehydrateQueryFilter,
+} from './lib/queryClientSetup';
 
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+// Get the configured query client and persister for PWA offline support
+const queryClient = getQueryClient();
+const persister = getQueryPersister();
+const maxAge = getMaxCacheAge();
 
 function App() {
   const { initializeAuth, isInitialized } = useAuthStore();
@@ -102,7 +102,20 @@ function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge,
+        dehydrateOptions: {
+          shouldDehydrateQuery: dehydrateQueryFilter,
+        },
+      }}
+      onSuccess={() => {
+        // Called when the cache has been restored
+        console.log('[QueryPersist] Cache restored from IndexedDB');
+      }}
+    >
       <BrowserRouter>
         <ErrorBoundary
           onError={(error, errorInfo) => {
@@ -231,7 +244,7 @@ function App() {
           <MobileBottomNav />
         </ErrorBoundary>
       </BrowserRouter>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
 

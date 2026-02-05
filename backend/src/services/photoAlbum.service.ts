@@ -8,7 +8,7 @@ import {
   PhotoSortBy,
   SortOrder,
 } from '../types/photo.types';
-import { verifyTripAccess, verifyEntityAccess, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
 import { WithOptionalCoordinates } from '../types/prisma-helpers';
 
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
@@ -165,8 +165,8 @@ class PhotoAlbumService {
   }
 
   async createAlbum(userId: number, data: CreateAlbumInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Note: Location, Activity, and Lodging associations are handled via EntityLink system after creation
     const album = await prisma.photoAlbum.create({
@@ -194,10 +194,10 @@ class PhotoAlbumService {
       console.log('[PhotoAlbumService] getAlbumsByTrip called:', { userId, tripId, options });
     }
 
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has view permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
     if (process.env.NODE_ENV === 'development') {
-      console.log('[PhotoAlbumService] verifyTripAccess passed');
+      console.log('[PhotoAlbumService] verifyTripAccessWithPermission passed');
     }
 
     const skip = options?.skip ?? 0;
@@ -281,6 +281,9 @@ class PhotoAlbumService {
     const take = options?.take || 40; // Default to 40 photos per page
     const orderBy = buildAlbumPhotoOrderBy(options?.sortBy, options?.sortOrder);
 
+    // Verify user has view permission on the album's trip
+    await verifyEntityAccessWithPermission('photoAlbum', albumId, userId, 'view');
+
     // Note: Location, Activity, and Lodging associations are fetched via EntityLink system
     const album = await prisma.photoAlbum.findUnique({
       where: { id: albumId },
@@ -303,9 +306,6 @@ class PhotoAlbumService {
         },
       },
     });
-
-    // Verify access
-    await verifyEntityAccess(album, userId, 'Album');
 
     if (!album) {
       throw new AppError('Album not found', 404);
@@ -338,13 +338,13 @@ class PhotoAlbumService {
   }
 
   async updateAlbum(userId: number, albumId: number, data: UpdateAlbumInput) {
-    const album = await prisma.photoAlbum.findUnique({
-      where: { id: albumId },
-      include: { trip: true },
-    });
-
-    // Verify access
-    const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
+    // Verify user has edit permission on the album's trip
+    const { entity: verifiedAlbum } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'photoAlbum',
+      albumId,
+      userId,
+      'edit'
+    );
 
     // Validate cover photo belongs to the same trip if provided
     if (data.coverPhotoId !== undefined && data.coverPhotoId !== null) {
@@ -381,13 +381,13 @@ class PhotoAlbumService {
   }
 
   async deleteAlbum(userId: number, albumId: number) {
-    const album = await prisma.photoAlbum.findUnique({
-      where: { id: albumId },
-      include: { trip: true },
-    });
-
-    // Verify access
-    const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
+    // Verify user has edit permission on the album's trip
+    const { entity: verifiedAlbum } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'photoAlbum',
+      albumId,
+      userId,
+      'edit'
+    );
 
     // Clean up entity links before deleting
     await cleanupEntityLinks(verifiedAlbum.tripId, 'PHOTO_ALBUM', albumId);
@@ -404,13 +404,13 @@ class PhotoAlbumService {
     albumId: number,
     data: AddPhotosToAlbumInput
   ) {
-    const album = await prisma.photoAlbum.findUnique({
-      where: { id: albumId },
-      include: { trip: true },
-    });
-
-    // Verify access
-    const verifiedAlbum = await verifyEntityAccess(album, userId, 'Album');
+    // Verify user has edit permission on the album's trip
+    const { entity: verifiedAlbum } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'photoAlbum',
+      albumId,
+      userId,
+      'edit'
+    );
 
     // Verify all photos belong to the same trip
     const photos = await prisma.photo.findMany({
@@ -444,13 +444,8 @@ class PhotoAlbumService {
     albumId: number,
     photoId: number
   ) {
-    const album = await prisma.photoAlbum.findUnique({
-      where: { id: albumId },
-      include: { trip: true },
-    });
-
-    // Verify access
-    await verifyEntityAccess(album, userId, 'Album');
+    // Verify user has edit permission on the album's trip
+    await verifyEntityAccessWithPermission('photoAlbum', albumId, userId, 'edit');
 
     await prisma.photoAlbumAssignment.delete({
       where: {

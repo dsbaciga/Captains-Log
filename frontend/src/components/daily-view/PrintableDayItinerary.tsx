@@ -117,12 +117,6 @@ const ActivityItemPrint = ({ item, timezone }: { item: DayItem; timezone?: strin
       </div>
       <div className="print-item-title">{activity.name}</div>
       {activity.category && <div className="print-item-detail">Category: {activity.category}</div>}
-      {activity.location && (
-        <div className="print-item-detail">
-          Location: {activity.location.name}
-          {activity.location.address && ` (${activity.location.address})`}
-        </div>
-      )}
       {activity.bookingReference && (
         <div className="print-item-detail">Booking Ref: {activity.bookingReference}</div>
       )}
@@ -138,9 +132,9 @@ const ActivityItemPrint = ({ item, timezone }: { item: DayItem; timezone?: strin
 // Render transportation item
 const TransportationItemPrint = ({ item, timezone }: { item: DayItem; timezone?: string }) => {
   const transport = item.data as Transportation;
-  const departTime = formatTime(item.dateTime, transport.departureTimezone || timezone);
+  const departTime = formatTime(item.dateTime, transport.startTimezone || timezone);
   const arriveTime = transport.arrivalTime
-    ? formatTime(transport.arrivalTime, transport.arrivalTimezone || timezone)
+    ? formatTime(transport.arrivalTime, transport.endTimezone || timezone)
     : '';
 
   return (
@@ -203,8 +197,8 @@ const LodgingItemPrint = ({ item, timezone }: { item: DayItem; timezone?: string
           Night {context.nightNumber} of {context.totalNights}
         </div>
       )}
-      {(lodging.address || lodging.location?.address) && (
-        <div className="print-item-detail">Address: {lodging.address || lodging.location?.address}</div>
+      {lodging.address && (
+        <div className="print-item-detail">Address: {lodging.address}</div>
       )}
       {lodging.confirmationNumber && (
         <div className="print-item-detail">Confirmation: {lodging.confirmationNumber}</div>
@@ -244,9 +238,9 @@ const LocationItemPrint = ({ item, timezone }: { item: DayItem; timezone?: strin
         {visitTime && <span className="print-item-time">{visitTime}</span>}
       </div>
       <div className="print-item-title">{location.name}</div>
-      {location.category && <div className="print-item-detail">Category: {location.category}</div>}
+      {location.category && <div className="print-item-detail">Category: {location.category.name}</div>}
       {location.address && <div className="print-item-detail">Address: {location.address}</div>}
-      {location.description && <div className="print-item-description">{location.description}</div>}
+      {location.notes && <div className="print-item-description">{location.notes}</div>}
     </div>
   );
 };

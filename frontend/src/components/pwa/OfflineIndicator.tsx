@@ -1,0 +1,152 @@
+import { useState, useEffect } from 'react';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useTotalPendingChanges } from '../../hooks/useOfflineReady';
+
+export interface OfflineIndicatorProps {
+  /** Position of the indicator */
+  position?: 'top' | 'bottom';
+  /** Whether to show pending changes count */
+  showPendingChanges?: boolean;
+  /** Custom class name */
+  className?: string;
+}
+
+/**
+ * OfflineIndicator displays a banner when the user is offline.
+ *
+ * Features:
+ * - Appears when offline with smooth animation
+ * - Shows pending changes count if enabled
+ * - Styled with Travel Life design (navy/gold colors)
+ * - Fixed position at top or bottom of screen
+ * - Respects reduced motion preferences
+ *
+ * @example
+ * ```tsx
+ * // Basic usage - appears at bottom when offline
+ * <OfflineIndicator />
+ *
+ * // At top with pending changes
+ * <OfflineIndicator position="top" showPendingChanges />
+ * ```
+ */
+export default function OfflineIndicator({
+  position = 'bottom',
+  showPendingChanges = true,
+  className = '',
+}: OfflineIndicatorProps) {
+  const { isOnline, isSlowConnection } = useNetworkStatus();
+  const { totalPendingChanges } = useTotalPendingChanges();
+
+  // Track visibility for animation
+  const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  // Handle mount/unmount animation
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    const shouldShow = !isOnline || isSlowConnection;
+
+    if (shouldShow) {
+      setShouldRender(true);
+      // Small delay to trigger animation
+      timer = setTimeout(() => setIsVisible(true), 10);
+    } else {
+      setIsVisible(false);
+      // Wait for animation to complete before unmounting
+      timer = setTimeout(() => setShouldRender(false), 300);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isOnline, isSlowConnection]);
+
+  if (!shouldRender) return null;
+
+  const positionClasses = position === 'top'
+    ? 'top-0'
+    : 'bottom-16 md:bottom-0';
+
+  const animationClasses = isVisible
+    ? position === 'top'
+      ? 'translate-y-0'
+      : 'translate-y-0'
+    : position === 'top'
+      ? '-translate-y-full'
+      : 'translate-y-full';
+
+  return (
+    <div
+      className={`
+        fixed left-0 right-0 z-50
+        ${positionClasses}
+        transition-transform duration-300 ease-out motion-reduce:transition-none
+        ${animationClasses}
+        ${className}
+      `}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="bg-navy-800 dark:bg-navy-900 border-t border-b border-gold/30 dark:border-gold/20">
+        <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6">
+          <div className="flex items-center justify-center gap-3">
+            {/* Offline icon with pulse */}
+            <div className="relative">
+              <svg
+                className="w-5 h-5 text-gold"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                {!isOnline ? (
+                  // Cloud with slash for offline
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"
+                  />
+                ) : (
+                  // Signal with warning for slow connection
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                )}
+              </svg>
+              {/* Pulsing dot indicator */}
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 rounded-full animate-pulse-subtle" />
+            </div>
+
+            {/* Status text */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+              <span className="text-sm font-medium text-gold">
+                {!isOnline ? 'You are offline' : 'Slow connection detected'}
+              </span>
+
+              {/* Pending changes badge */}
+              {showPendingChanges && totalPendingChanges > 0 && (
+                <span className="text-xs text-warm-gray/80">
+                  <span className="hidden sm:inline"> - </span>
+                  {totalPendingChanges} pending {totalPendingChanges === 1 ? 'change' : 'changes'}
+                </span>
+              )}
+            </div>
+
+            {/* Subtext */}
+            <span className="hidden sm:inline text-xs text-warm-gray/60">
+              {!isOnline
+                ? 'Changes will sync when you reconnect'
+                : 'Some features may be limited'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

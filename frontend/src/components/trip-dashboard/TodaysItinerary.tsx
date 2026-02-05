@@ -10,6 +10,7 @@ import {
   formatEventDuration,
   calculateTimeSpan,
   getCurrentTimeInTimezone,
+  getTodayInTimezone,
   type ItineraryEvent,
 } from '../../utils/tripDashboardUtils';
 
@@ -210,7 +211,7 @@ function EventItem({
       className={`relative flex items-start gap-3 py-3 px-3 rounded-lg cursor-pointer transition-all duration-200
         ${colors.opacity}
         ${colors.bgLight}
-        ${isNext ? colors.highlight : 'hover:bg-opacity-80'}
+        ${isNext && 'highlight' in colors ? colors.highlight : 'hover:bg-opacity-80'}
         group
       `}
       onClick={onClick}

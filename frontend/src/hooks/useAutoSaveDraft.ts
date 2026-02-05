@@ -3,6 +3,7 @@ import {
   getDraftKey,
   saveDraft,
   loadDraft,
+  loadDraftAsync,
   clearDraft,
   isFormEmpty,
 } from '../utils/draftStorage';
@@ -35,19 +36,26 @@ export interface UseAutoSaveDraftResult<T> {
   lastSavedAt: Date | null;
   /** Restore the draft and return the form data */
   restoreDraft: () => T | null;
+  /** Restore the draft asynchronously (checks IndexedDB) */
+  restoreDraftAsync: () => Promise<T | null>;
   /** Clear the draft from storage */
   clearDraft: () => void;
   /** Manually trigger a save (useful before navigation) */
   saveDraftNow: (formData: T) => void;
   /** Whether the draft is currently being saved */
   isSaving: boolean;
+  /** Whether draft loading is in progress */
+  isLoading: boolean;
 }
 
 /**
- * Hook for auto-saving form data to localStorage
+ * Hook for auto-saving form data to IndexedDB (with localStorage fallback)
  *
  * Automatically saves form data after a debounce period, prevents data loss
  * when browser crashes, user navigates away, or network issues occur.
+ *
+ * Primary storage: IndexedDB (for PWA offline support)
+ * Fallback: localStorage (for browsers without IndexedDB)
  *
  * @example
  * ```tsx
@@ -98,6 +106,7 @@ export function useAutoSaveDraft<T extends object>(
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [hasDraftState, setHasDraftState] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   // Track if a draft existed when the form first opened (for restore prompt)
   const [initialDraftExists, setInitialDraftExists] = useState(false);
 
@@ -107,31 +116,63 @@ export function useAutoSaveDraft<T extends object>(
   // Track if we've already checked for initial draft (prevents re-checking)
   const hasCheckedInitialDraftRef = useRef(false);
 
-  // Check for existing draft on mount
+  // Check for existing draft on mount (both localStorage and IndexedDB)
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setIsLoading(false);
+      return;
+    }
 
-    const existingDraft = loadDraft<T>(draftKey);
-    if (existingDraft) {
-      setSavedDraft(existingDraft.formData);
-      setLastSavedAt(new Date(existingDraft.savedAt));
+    // First, check localStorage synchronously for immediate UI
+    const localDraft = loadDraft<T>(draftKey);
+    if (localDraft) {
+      setSavedDraft(localDraft.formData);
+      setLastSavedAt(new Date(localDraft.savedAt));
       setHasDraftState(true);
-      // Only set initialDraftExists on first check (not when draftKey changes)
       if (!hasCheckedInitialDraftRef.current) {
         setInitialDraftExists(true);
         hasCheckedInitialDraftRef.current = true;
       }
-    } else {
-      setSavedDraft(null);
-      setLastSavedAt(null);
-      setHasDraftState(false);
-      // Mark as checked even if no draft exists
-      if (!hasCheckedInitialDraftRef.current) {
-        setInitialDraftExists(false);
-        hasCheckedInitialDraftRef.current = true;
-      }
     }
-    isInitializedRef.current = true;
+
+    // Then check IndexedDB asynchronously (may have more recent data)
+    loadDraftAsync<T>(draftKey)
+      .then(asyncDraft => {
+        if (asyncDraft) {
+          // Use the more recent draft (compare timestamps)
+          const shouldUseAsyncDraft = !localDraft || asyncDraft.savedAt > localDraft.savedAt;
+          if (shouldUseAsyncDraft) {
+            setSavedDraft(asyncDraft.formData);
+            setLastSavedAt(new Date(asyncDraft.savedAt));
+            setHasDraftState(true);
+            if (!hasCheckedInitialDraftRef.current) {
+              setInitialDraftExists(true);
+              hasCheckedInitialDraftRef.current = true;
+            }
+          }
+        } else if (!localDraft) {
+          // No draft in either storage
+          setSavedDraft(null);
+          setLastSavedAt(null);
+          setHasDraftState(false);
+          if (!hasCheckedInitialDraftRef.current) {
+            setInitialDraftExists(false);
+            hasCheckedInitialDraftRef.current = true;
+          }
+        }
+      })
+      .catch(error => {
+        console.warn('Failed to load draft from IndexedDB:', error);
+        // Already have localStorage result, so just mark as checked
+        if (!hasCheckedInitialDraftRef.current) {
+          setInitialDraftExists(!!localDraft);
+          hasCheckedInitialDraftRef.current = true;
+        }
+      })
+      .finally(() => {
+        isInitializedRef.current = true;
+        setIsLoading(false);
+      });
   }, [draftKey, enabled]);
 
   // Debounced auto-save effect
@@ -181,8 +222,15 @@ export function useAutoSaveDraft<T extends object>(
     };
   }, []);
 
+  // Synchronous restore (localStorage only - for immediate use)
   const restoreDraft = useCallback((): T | null => {
     const draft = loadDraft<T>(draftKey);
+    return draft?.formData || null;
+  }, [draftKey]);
+
+  // Async restore (checks both IndexedDB and localStorage)
+  const restoreDraftAsync = useCallback(async (): Promise<T | null> => {
+    const draft = await loadDraftAsync<T>(draftKey);
     return draft?.formData || null;
   }, [draftKey]);
 
@@ -225,8 +273,10 @@ export function useAutoSaveDraft<T extends object>(
     initialDraftExists,
     lastSavedAt,
     restoreDraft,
+    restoreDraftAsync,
     clearDraft: clearDraftCallback,
     saveDraftNow,
     isSaving,
+    isLoading,
   };
 }

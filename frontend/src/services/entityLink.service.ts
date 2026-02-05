@@ -160,6 +160,14 @@ const entityLinkService = {
     return response.data;
   },
 
+  /**
+   * Get all links for a trip (for offline caching)
+   */
+  async getTripLinks(tripId: number): Promise<EntityLink[]> {
+    const response = await axios.get(`/trips/${tripId}/links`);
+    return response.data;
+  },
+
 };
 
 export default entityLinkService;

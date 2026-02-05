@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import tripService from '../services/trip.service';
+import userService from '../services/user.service';
 import { TripStatus, PrivacyLevel } from '../types/trip';
 import type { TripStatusType, PrivacyLevelType } from '../types/trip';
+import type { TravelPartnerSettings } from '../types/user';
 import toast from 'react-hot-toast';
 import { useConfetti } from '../hooks/useConfetti';
 
@@ -23,13 +25,28 @@ export default function TripFormPage() {
   const [timezone, setTimezone] = useState('');
   const [status, setStatus] = useState<TripStatusType>(TripStatus.PLANNING);
   const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevelType>(PrivacyLevel.PRIVATE);
+  const [excludeFromAutoShare, setExcludeFromAutoShare] = useState(false);
+  const [travelPartnerSettings, setTravelPartnerSettings] = useState<TravelPartnerSettings | null>(null);
 
   useEffect(() => {
     if (isEdit && id) {
       loadTrip(parseInt(id));
     }
+    // Load travel partner settings for new trips
+    if (!isEdit) {
+      loadTravelPartnerSettings();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit]);
+
+  const loadTravelPartnerSettings = async () => {
+    try {
+      const settings = await userService.getTravelPartnerSettings();
+      setTravelPartnerSettings(settings);
+    } catch (error) {
+      console.error('Failed to load travel partner settings:', error);
+    }
+  };
 
   const loadTrip = async (tripId: number) => {
     try {
@@ -50,6 +67,7 @@ export default function TripFormPage() {
       setTimezone(trip.timezone || '');
       setStatus(trip.status);
       setPrivacyLevel(trip.privacyLevel);
+      setExcludeFromAutoShare(trip.excludeFromAutoShare || false);
       // Track original status for confetti celebration
       originalStatusRef.current = trip.status;
     } catch {
@@ -87,6 +105,7 @@ export default function TripFormPage() {
         timezone: timezone || undefined,
         status,
         privacyLevel,
+        excludeFromAutoShare,
       };
 
       if (isEdit && id) {
@@ -270,6 +289,31 @@ export default function TripFormPage() {
                 ))}
               </select>
             </div>
+
+            {/* Travel Partner Auto-Share Toggle - only show for new trips when partner is set */}
+            {!isEdit && travelPartnerSettings?.travelPartner && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="excludeFromAutoShare"
+                    checked={excludeFromAutoShare}
+                    onChange={(e) => setExcludeFromAutoShare(e.target.checked)}
+                    className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                  />
+                  <div>
+                    <label htmlFor="excludeFromAutoShare" className="font-medium text-gray-900 dark:text-white cursor-pointer">
+                      Don't share with my travel partner
+                    </label>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      This trip will not be automatically shared with{' '}
+                      <span className="font-medium">{travelPartnerSettings.travelPartner.username}</span>.
+                      You can still manually add them as a collaborator later.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4 pt-4">
               <button

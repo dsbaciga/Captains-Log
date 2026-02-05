@@ -18,7 +18,7 @@ import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import FormModal from "./FormModal";
 import FormSection from "./FormSection";
-import ActivityForm, { ActivityFormData } from "./forms/ActivityForm";
+import ActivityForm, { type ActivityFormData } from "./forms/ActivityForm";
 
 interface UnscheduledItemsProps {
   tripId: number;

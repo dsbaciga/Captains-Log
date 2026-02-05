@@ -2,20 +2,20 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { CreateActivityInput, UpdateActivityInput, BulkDeleteActivitiesInput, BulkUpdateActivitiesInput } from '../types/activity.types';
 import {
-  verifyTripAccess,
-  verifyEntityAccess,
+  verifyTripAccessWithPermission,
   verifyEntityInTrip,
   convertDecimals,
   buildConditionalUpdateData,
   cleanupEntityLinks,
+  verifyEntityAccessWithPermission,
 } from '../utils/serviceHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
 class ActivityService {
   async createActivity(userId: number, data: CreateActivityInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Verify parent activity exists and belongs to same trip if provided
     if (data.parentId) {
@@ -53,8 +53,8 @@ class ActivityService {
   }
 
   async getActivitiesByTrip(userId: number, tripId: number) {
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has view permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     // Note: Location association is fetched via EntityLink system, not direct FK
     const activities = await prisma.activity.findMany({
@@ -95,6 +95,9 @@ class ActivityService {
   }
 
   async getActivityById(userId: number, activityId: number) {
+    // Verify user has view permission on the activity's trip
+    await verifyEntityAccessWithPermission('activity', activityId, userId, 'view');
+
     // Note: Location association is fetched via EntityLink system, not direct FK
     const activity = await prisma.activity.findUnique({
       where: { id: activityId },
@@ -126,8 +129,6 @@ class ActivityService {
       },
     });
 
-    await verifyEntityAccess(activity, userId, 'Activity');
-
     return convertDecimals(activity);
   }
 
@@ -136,12 +137,13 @@ class ActivityService {
     activityId: number,
     data: UpdateActivityInput
   ) {
-    const activity = await prisma.activity.findUnique({
-      where: { id: activityId },
-      include: { trip: true },
-    });
-
-    const verifiedActivity = await verifyEntityAccess(activity, userId, 'Activity');
+    // Verify user has edit permission on the activity's trip
+    const { entity: activity } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'activity',
+      activityId,
+      userId,
+      'edit'
+    );
 
     // Verify parent activity exists and belongs to same trip if provided
     if (data.parentId) {
@@ -149,7 +151,7 @@ class ActivityService {
       if (data.parentId === activityId) {
         throw new AppError('Activity cannot be its own parent', 400);
       }
-      await verifyEntityInTrip('activity', data.parentId, verifiedActivity.tripId);
+      await verifyEntityInTrip('activity', data.parentId, activity.tripId);
     }
 
     // Note: Location association is handled via EntityLink system, not direct FK
@@ -177,15 +179,16 @@ class ActivityService {
   }
 
   async deleteActivity(userId: number, activityId: number) {
-    const activity = await prisma.activity.findUnique({
-      where: { id: activityId },
-      include: { trip: true },
-    });
-
-    const verifiedActivity = await verifyEntityAccess(activity, userId, 'Activity');
+    // Verify user has edit permission on the activity's trip
+    const { entity: activity } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'activity',
+      activityId,
+      userId,
+      'edit'
+    );
 
     // Clean up entity links before deleting
-    await cleanupEntityLinks(verifiedActivity.tripId, 'ACTIVITY', activityId);
+    await cleanupEntityLinks(activity.tripId, 'ACTIVITY', activityId);
 
     await prisma.activity.delete({
       where: { id: activityId },
@@ -196,11 +199,11 @@ class ActivityService {
 
   /**
    * Bulk delete multiple activities
-   * Verifies ownership for all activities before deletion
+   * Verifies edit permission for all activities before deletion
    */
   async bulkDeleteActivities(userId: number, tripId: number, data: BulkDeleteActivitiesInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Verify all activities belong to this trip and user has access
     const activities = await prisma.activity.findMany({
@@ -233,11 +236,11 @@ class ActivityService {
 
   /**
    * Bulk update multiple activities
-   * Verifies ownership for all activities before update
+   * Verifies edit permission for all activities before update
    */
   async bulkUpdateActivities(userId: number, tripId: number, data: BulkUpdateActivitiesInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Verify all activities belong to this trip
     const activities = await prisma.activity.findMany({

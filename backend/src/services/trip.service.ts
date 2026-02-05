@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateTripInput, UpdateTripInput, GetTripQuery, TripStatus, DuplicateTripInput } from '../types/trip.types';
 import { companionService } from './companion.service';
-import { buildConditionalUpdateData, tripDateTransformer, convertDecimals } from '../utils/serviceHelpers';
+import { buildConditionalUpdateData, tripDateTransformer, convertDecimals, toSafePermissionLevel } from '../utils/serviceHelpers';
 
 // Type aliases for Prisma types (to work without requiring Prisma client generation)
 type DecimalValue = number | string | { toNumber(): number };
@@ -178,15 +178,17 @@ export class TripService {
       ? true
       : data.addToPlacesVisited || false;
 
-    // Get user's timezone if trip timezone not specified
-    let timezone = data.timezone;
-    if (!timezone) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { timezone: true },
-      });
-      timezone = user?.timezone || 'UTC';
-    }
+    // Get user's timezone and travel partner settings
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        timezone: true,
+        travelPartnerId: true,
+        defaultPartnerPermission: true,
+      },
+    });
+
+    const timezone = data.timezone || user?.timezone || 'UTC';
 
     const trip = await prisma.trip.create({
       data: {
@@ -199,6 +201,7 @@ export class TripService {
         status: data.status,
         privacyLevel: data.privacyLevel,
         addToPlacesVisited,
+        excludeFromAutoShare: data.excludeFromAutoShare || false,
       },
     });
 
@@ -209,6 +212,17 @@ export class TripService {
         data: {
           tripId: trip.id,
           companionId: myselfCompanion.id,
+        },
+      });
+    }
+
+    // Auto-add travel partner as collaborator (if set and not excluded)
+    if (user?.travelPartnerId && !data.excludeFromAutoShare) {
+      await prisma.tripCollaborator.create({
+        data: {
+          tripId: trip.id,
+          userId: user.travelPartnerId,
+          permissionLevel: toSafePermissionLevel(user.defaultPartnerPermission, 'edit'),
         },
       });
     }

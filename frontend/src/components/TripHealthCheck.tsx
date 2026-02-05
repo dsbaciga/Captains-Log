@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactElement } from 'react';
 import tripService from '../services/trip.service';
 import type { ValidationResult, ValidationIssue, ValidationIssueCategory } from '../types/trip';
 import toast from 'react-hot-toast';
@@ -10,7 +10,7 @@ interface TripHealthCheckProps {
 
 const CATEGORY_CONFIG: Record<ValidationIssueCategory, {
   label: string;
-  icon: JSX.Element;
+  icon: ReactElement;
   color: string;
   bgColor: string;
 }> = {

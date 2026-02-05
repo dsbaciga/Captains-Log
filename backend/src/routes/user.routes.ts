@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
+import { sensitiveEndpointRateLimiter } from '../middleware/rateLimit';
 import { userController } from '../controllers/user.controller';
 
 const router = Router();
@@ -290,5 +291,114 @@ router.put('/username', userController.updateUsername);
  *         description: Current password incorrect
  */
 router.put('/password', userController.updatePassword);
+
+/**
+ * @openapi
+ * /api/users/search:
+ *   get:
+ *     summary: Search users by email or username
+ *     description: |
+ *       Search for users to set as travel partner. Excludes the current user.
+ *       Rate limited to 10 requests per minute to prevent enumeration attacks.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 3
+ *         description: Search query (email or username, minimum 3 characters)
+ *     responses:
+ *       200:
+ *         description: List of matching users
+ *       400:
+ *         description: Invalid query
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Too many requests - rate limit exceeded (10 requests per minute)
+ */
+router.get('/search', sensitiveEndpointRateLimiter, userController.searchUsers);
+
+/**
+ * @openapi
+ * /api/users/travel-partner:
+ *   get:
+ *     summary: Get travel partner settings
+ *     description: Get the current user's travel partner configuration
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Travel partner settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 travelPartnerId:
+ *                   type: integer
+ *                   nullable: true
+ *                 defaultPartnerPermission:
+ *                   type: string
+ *                   enum: [view, edit, admin]
+ *                 travelPartner:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     username:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     avatarUrl:
+ *                       type: string
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     summary: Update travel partner settings
+ *     description: |
+ *       Set or clear the travel partner. Partnership is bidirectional - when you set
+ *       someone as your partner, you automatically become their partner too.
+ *
+ *       Each user controls their own defaultPartnerPermission independently.
+ *       Rate limited to 10 requests per minute.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               travelPartnerId:
+ *                 type: integer
+ *                 nullable: true
+ *                 description: ID of user to set as travel partner, or null to clear
+ *               defaultPartnerPermission:
+ *                 type: string
+ *                 enum: [view, edit, admin]
+ *                 description: Permission level for YOUR auto-shared trips (each user controls their own)
+ *     responses:
+ *       200:
+ *         description: Travel partner settings updated
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Partner user not found
+ *       429:
+ *         description: Rate limit exceeded (10 requests per minute)
+ */
+router.get('/travel-partner', userController.getTravelPartnerSettings);
+router.put('/travel-partner', sensitiveEndpointRateLimiter, userController.updateTravelPartnerSettings);
 
 export default router;

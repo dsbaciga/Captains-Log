@@ -256,18 +256,8 @@ export default function TimelineEventCard({
     );
   };
 
-  // Get address from data object
-  const getAddress = (): string | null => {
-    if (item.type === 'activity') {
-      return (item.data as Activity).location?.address || null;
-    }
-    if (item.type === 'lodging') {
-      return (item.data as Lodging).location?.address || null;
-    }
-    return null;
-  };
-
-  const address = getAddress();
+  // Get address from data object (now via TimelineItem.location from linked entities)
+  const address: string | null = item.location || null;
 
   return (
     <div className="timeline-item relative flex gap-3">

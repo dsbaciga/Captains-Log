@@ -30,6 +30,15 @@ const updatePasswordSchema = z.object({
   newPassword: z.string().min(6),
 });
 
+const searchUsersQuerySchema = z.object({
+  query: z.string().min(3, 'Search query must be at least 3 characters'),
+});
+
+const travelPartnerSettingsSchema = z.object({
+  travelPartnerId: z.number().int().positive().optional().nullable(),
+  defaultPartnerPermission: z.enum(['view', 'edit', 'admin']).optional(),
+});
+
 export const userController = {
   getMe: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
@@ -130,6 +139,30 @@ export const userController = {
     res.json({
       success: true,
       message: 'Password updated successfully',
+    });
+  }),
+
+  searchUsers: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const { query } = searchUsersQuerySchema.parse(req.query);
+    const users = await userService.searchUsers(userId, query);
+    res.json(users);
+  }),
+
+  getTravelPartnerSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const settings = await userService.getTravelPartnerSettings(userId);
+    res.json(settings);
+  }),
+
+  updateTravelPartnerSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const data = travelPartnerSettingsSchema.parse(req.body);
+    const settings = await userService.updateTravelPartnerSettings(userId, data);
+    res.json({
+      success: true,
+      message: 'Travel partner settings updated successfully',
+      ...settings,
     });
   }),
 };

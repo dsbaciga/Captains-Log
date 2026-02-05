@@ -18,10 +18,17 @@ import OpenRouteServiceSettings from "../components/OpenRouteServiceSettings";
 import EmojiPicker from "../components/EmojiPicker";
 import TravelDocumentManager from "../components/TravelDocumentManager";
 import InviteUsersSection from "../components/InviteUsersSection";
+import TravelPartnerSettings from "../components/TravelPartnerSettings";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getRandomTagColor } from "../utils/tagColors";
 
-type TabType = "account" | "tags-categories" | "documents" | "integrations" | "invites" | "backup";
+type TabType =
+  | "account"
+  | "tags-categories"
+  | "documents"
+  | "integrations"
+  | "invites"
+  | "backup";
 
 export default function SettingsPage() {
   const { updateUser } = useAuthStore();
@@ -55,7 +62,9 @@ export default function SettingsPage() {
   const [backendVersion, setBackendVersion] = useState<string>("");
   const [backupInProgress, setBackupInProgress] = useState(false);
   const [restoreInProgress, setRestoreInProgress] = useState(false);
-  const [selectedBackupFile, setSelectedBackupFile] = useState<File | null>(null);
+  const [selectedBackupFile, setSelectedBackupFile] = useState<File | null>(
+    null,
+  );
   const [restoreOptions, setRestoreOptions] = useState<RestoreOptions>({
     clearExistingData: true,
     importPhotos: true,
@@ -136,10 +145,10 @@ export default function SettingsPage() {
 
   const handleDeleteTag = async (tagId: number) => {
     const confirmed = await confirm({
-      title: 'Delete Tag',
-      message: 'Delete this tag? It will be removed from all trips.',
-      confirmLabel: 'Delete',
-      variant: 'danger',
+      title: "Delete Tag",
+      message: "Delete this tag? It will be removed from all trips.",
+      confirmLabel: "Delete",
+      variant: "danger",
     });
     if (!confirmed) return;
 
@@ -182,7 +191,7 @@ export default function SettingsPage() {
     if (!newCategory.trim()) return;
     if (
       categories.some(
-        (c) => c.name.toLowerCase() === newCategory.trim().toLowerCase()
+        (c) => c.name.toLowerCase() === newCategory.trim().toLowerCase(),
       )
     ) {
       toast.error("Category already exists");
@@ -202,12 +211,12 @@ export default function SettingsPage() {
 
   const handleUpdateCategoryEmoji = (
     categoryName: string,
-    newEmoji: string
+    newEmoji: string,
   ) => {
     setCategories(
       categories.map((c) =>
-        c.name === categoryName ? { ...c, emoji: newEmoji } : c
-      )
+        c.name === categoryName ? { ...c, emoji: newEmoji } : c,
+      ),
     );
   };
 
@@ -244,7 +253,9 @@ export default function SettingsPage() {
       });
       // Update the user in auth store so the map tiles hook picks up the change
       updateUser({ useCustomMapStyle: newValue });
-      toast.success(newValue ? "Custom map style enabled" : "Custom map style disabled");
+      toast.success(
+        newValue ? "Custom map style enabled" : "Custom map style disabled",
+      );
     } catch {
       // Revert on error
       setUseCustomMapStyle(!newValue);
@@ -290,7 +301,7 @@ export default function SettingsPage() {
     try {
       const result = await userService.updatePassword(
         currentPassword,
-        newPassword
+        newPassword,
       );
       toast.success(result.message);
       // Clear password fields
@@ -320,7 +331,7 @@ export default function SettingsPage() {
   const handleBackupFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.name.endsWith('.json')) {
+      if (!file.name.endsWith(".json")) {
         toast.error("Please select a valid JSON backup file");
         return;
       }
@@ -335,12 +346,12 @@ export default function SettingsPage() {
     }
 
     const confirmed = await confirm({
-      title: 'Restore from Backup',
+      title: "Restore from Backup",
       message: restoreOptions.clearExistingData
-        ? 'This will DELETE all your existing data and replace it with the backup. This action cannot be undone. Are you sure?'
-        : 'This will merge the backup data with your existing data. Continue?',
-      confirmLabel: 'Restore',
-      variant: 'danger',
+        ? "This will DELETE all your existing data and replace it with the backup. This action cannot be undone. Are you sure?"
+        : "This will merge the backup data with your existing data. Continue?",
+      confirmLabel: "Restore",
+      variant: "danger",
     });
 
     if (!confirmed) return;
@@ -348,13 +359,16 @@ export default function SettingsPage() {
     setRestoreInProgress(true);
     try {
       const backupData = await backupService.readBackupFile(selectedBackupFile);
-      const result = await backupService.restoreFromBackup(backupData, restoreOptions);
+      const result = await backupService.restoreFromBackup(
+        backupData,
+        restoreOptions,
+      );
 
       if (result.success) {
         toast.success(
           `Restore completed! Imported ${result.stats.tripsImported} trips, ` +
-          `${result.stats.locationsImported} locations, ${result.stats.photosImported} photos, ` +
-          `${result.stats.activitiesImported} activities, and more.`
+            `${result.stats.locationsImported} locations, ${result.stats.photosImported} photos, ` +
+            `${result.stats.activitiesImported} activities, and more.`,
         );
         setSelectedBackupFile(null);
 
@@ -366,8 +380,15 @@ export default function SettingsPage() {
         toast.error(result.message || "Restore failed");
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(error.response?.data?.message || error.message || "Failed to restore from backup");
+      const error = err as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to restore from backup",
+      );
     } finally {
       setRestoreInProgress(false);
     }
@@ -665,7 +686,11 @@ export default function SettingsPage() {
                 <option value="Pacific/Auckland">Auckland</option>
               </select>
               <div className="mt-4">
-                <button onClick={handleSave} type="button" className="btn btn-primary">
+                <button
+                  onClick={handleSave}
+                  type="button"
+                  className="btn btn-primary"
+                >
                   Save Timezone
                 </button>
               </div>
@@ -677,7 +702,8 @@ export default function SettingsPage() {
                 Dietary Preferences
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Select your dietary needs. Activities matching these preferences will be highlighted when browsing dining options.
+                Select your dietary needs. Activities matching these preferences
+                will be highlighted when browsing dining options.
               </p>
               <DietaryTagSelector
                 selectedTags={dietaryPreferences}
@@ -685,11 +711,18 @@ export default function SettingsPage() {
                 showLabels={true}
               />
               <div className="mt-4">
-                <button onClick={handleSaveDietaryPreferences} type="button" className="btn btn-primary">
+                <button
+                  onClick={handleSaveDietaryPreferences}
+                  type="button"
+                  className="btn btn-primary"
+                >
                   Save Dietary Preferences
                 </button>
               </div>
             </div>
+
+            {/* Travel Partner */}
+            <TravelPartnerSettings />
 
             {/* Appearance */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -716,17 +749,17 @@ export default function SettingsPage() {
                     className={`
                       relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
                       transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                      ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}
+                      ${theme === "dark" ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"}
                     `}
                     role="switch"
-                    aria-checked={theme === 'dark' ? 'true' : 'false'}
+                    aria-checked={theme === "dark" ? "true" : "false"}
                     aria-label="Toggle dark mode"
                   >
                     <span
                       className={`
                         pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0
                         transition duration-200 ease-in-out
-                        ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}
+                        ${theme === "dark" ? "translate-x-5" : "translate-x-0"}
                       `}
                     />
                   </button>
@@ -748,17 +781,17 @@ export default function SettingsPage() {
                     className={`
                       relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
                       transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                      ${useCustomMapStyle ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}
+                      ${useCustomMapStyle ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"}
                     `}
                     role="switch"
-                    aria-checked={useCustomMapStyle ? 'true' : 'false'}
+                    aria-checked={useCustomMapStyle ? "true" : "false"}
                     aria-label="Toggle custom map style"
                   >
                     <span
                       className={`
                         pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0
                         transition duration-200 ease-in-out
-                        ${useCustomMapStyle ? 'translate-x-5' : 'translate-x-0'}
+                        ${useCustomMapStyle ? "translate-x-5" : "translate-x-0"}
                       `}
                     />
                   </button>
@@ -844,7 +877,11 @@ export default function SettingsPage() {
 
               {/* Save Button */}
               <div className="mt-6">
-                <button onClick={handleSave} type="button" className="btn btn-primary">
+                <button
+                  onClick={handleSave}
+                  type="button"
+                  className="btn btn-primary"
+                >
                   Save Settings
                 </button>
               </div>
@@ -1069,9 +1106,9 @@ export default function SettingsPage() {
                 Create Backup
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Download a complete backup of all your travel data including trips,
-                photos, locations, activities, journal entries, and more. The backup
-                is saved as a JSON file that you can store safely.
+                Download a complete backup of all your travel data including
+                trips, photos, locations, activities, journal entries, and more.
+                The backup is saved as a JSON file that you can store safely.
               </p>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
                 <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
@@ -1128,8 +1165,9 @@ export default function SettingsPage() {
                 Restore from Backup
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Upload a backup file to restore your data. You can choose to replace
-                all existing data or merge the backup with your current data.
+                Upload a backup file to restore your data. You can choose to
+                replace all existing data or merge the backup with your current
+                data.
               </p>
 
               {/* Warning */}
@@ -1138,15 +1176,19 @@ export default function SettingsPage() {
                   ⚠️ Important Warning
                 </h3>
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  If you choose "Clear existing data", ALL your current data will be
-                  permanently deleted and replaced with the backup. This action cannot
-                  be undone. Make sure you have a recent backup before proceeding.
+                  If you choose "Clear existing data", ALL your current data
+                  will be permanently deleted and replaced with the backup. This
+                  action cannot be undone. Make sure you have a recent backup
+                  before proceeding.
                 </p>
               </div>
 
               {/* File Selection */}
               <div className="mb-4">
-                <label htmlFor="backup-file-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label
+                  htmlFor="backup-file-input"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
                   Select Backup File
                 </label>
                 <input
@@ -1251,11 +1293,24 @@ export default function SettingsPage() {
                 Backup Best Practices
               </h2>
               <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc list-inside">
-                <li>Create regular backups, especially before making major changes</li>
-                <li>Store backup files in a safe location (cloud storage, external drive)</li>
-                <li>Keep multiple backup versions in case you need to restore to an earlier state</li>
-                <li>Test your backups by restoring to a test account if possible</li>
-                <li>Photo files are not included in backups - back them up separately</li>
+                <li>
+                  Create regular backups, especially before making major changes
+                </li>
+                <li>
+                  Store backup files in a safe location (cloud storage, external
+                  drive)
+                </li>
+                <li>
+                  Keep multiple backup versions in case you need to restore to
+                  an earlier state
+                </li>
+                <li>
+                  Test your backups by restoring to a test account if possible
+                </li>
+                <li>
+                  Photo files are not included in backups - back them up
+                  separately
+                </li>
                 <li>Immich photo references are preserved in backups</li>
               </ul>
             </div>

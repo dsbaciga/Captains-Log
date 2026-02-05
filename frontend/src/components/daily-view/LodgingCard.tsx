@@ -288,17 +288,6 @@ export default function LodgingCard({
           </div>
         )}
 
-        {/* Embedded location */}
-        {lodging.location && (
-          <div className="mt-3">
-            <EmbeddedLocationCard
-              location={lodging.location}
-              tripId={tripId}
-              label="Property Location"
-            />
-          </div>
-        )}
-
         {/* Linked locations (from entity links) */}
         {linkedLocations.length > 0 && (
           <div className="mt-3">

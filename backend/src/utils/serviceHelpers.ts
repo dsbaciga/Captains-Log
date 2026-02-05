@@ -112,6 +112,7 @@ export async function verifyEntityAccessById<T = unknown>(
  * Verifies user owns the trip
  * @throws {AppError} 404 if trip not found or access denied
  * @returns The trip if access is granted
+ * @deprecated Use verifyTripAccessWithPermission for collaborator support
  */
 export async function verifyTripAccess(
   userId: number,
@@ -126,6 +127,190 @@ export async function verifyTripAccess(
   }
 
   return trip;
+}
+
+/**
+ * Permission levels for trip access
+ */
+export type TripPermissionLevel = 'view' | 'edit' | 'admin';
+
+/**
+ * Valid permission level values
+ */
+const VALID_PERMISSION_LEVELS: readonly TripPermissionLevel[] = ['view', 'edit', 'admin'] as const;
+
+/**
+ * Type guard to check if a value is a valid permission level
+ */
+export function isValidPermissionLevel(value: unknown): value is TripPermissionLevel {
+  return typeof value === 'string' && VALID_PERMISSION_LEVELS.includes(value as TripPermissionLevel);
+}
+
+/**
+ * Validates and returns a safe permission level.
+ * If the value is invalid or missing, returns the default permission level.
+ *
+ * @param value - The permission level value to validate (from database or user input)
+ * @param defaultLevel - The default permission level to use if invalid (default: 'edit')
+ * @returns A valid TripPermissionLevel
+ *
+ * @example
+ * ```typescript
+ * // Returns 'admin' (valid)
+ * toSafePermissionLevel('admin')
+ *
+ * // Returns 'edit' (default for invalid/missing values)
+ * toSafePermissionLevel(null)
+ * toSafePermissionLevel('invalid')
+ * toSafePermissionLevel(undefined)
+ *
+ * // Returns 'view' (custom default)
+ * toSafePermissionLevel(null, 'view')
+ * ```
+ */
+export function toSafePermissionLevel(
+  value: string | null | undefined,
+  defaultLevel: TripPermissionLevel = 'edit'
+): TripPermissionLevel {
+  if (isValidPermissionLevel(value)) {
+    return value;
+  }
+  return defaultLevel;
+}
+
+/**
+ * Permission hierarchy - higher number = more permissions
+ */
+const PERMISSION_HIERARCHY: Record<TripPermissionLevel, number> = {
+  view: 1,
+  edit: 2,
+  admin: 3,
+};
+
+/**
+ * Result of trip access verification
+ */
+export interface TripAccessResult {
+  trip: {
+    id: number;
+    userId: number;
+    title: string;
+    privacyLevel: string;
+  };
+  isOwner: boolean;
+  permissionLevel: TripPermissionLevel;
+}
+
+/**
+ * Verifies user has access to trip with the required permission level.
+ * Supports owners, collaborators, and public trips.
+ *
+ * @param userId - The user requesting access
+ * @param tripId - The trip to access
+ * @param requiredPermission - Minimum permission level required (default: 'view')
+ * @throws {AppError} 404 if trip not found or no access
+ * @throws {AppError} 403 if insufficient permissions
+ * @returns Trip access result with permission level
+ */
+export async function verifyTripAccessWithPermission(
+  userId: number,
+  tripId: number,
+  requiredPermission: TripPermissionLevel = 'view'
+): Promise<TripAccessResult> {
+  const trip = await prisma.trip.findFirst({
+    where: {
+      id: tripId,
+      OR: [
+        { userId }, // Owner
+        { collaborators: { some: { userId } } }, // Collaborator
+        { privacyLevel: 'Public' }, // Public trip
+      ],
+    },
+    include: {
+      collaborators: {
+        where: { userId },
+        select: { permissionLevel: true },
+      },
+    },
+  });
+
+  if (!trip) {
+    throw new AppError('Trip not found or access denied', 404);
+  }
+
+  const isOwner = trip.userId === userId;
+  let permissionLevel: TripPermissionLevel;
+
+  if (isOwner) {
+    // Owner always has admin permissions
+    permissionLevel = 'admin';
+  } else if (trip.collaborators.length > 0) {
+    // User is a collaborator - validate the permission level from database
+    permissionLevel = toSafePermissionLevel(trip.collaborators[0].permissionLevel, 'view');
+  } else if (trip.privacyLevel === 'Public') {
+    // Public trip - view only
+    permissionLevel = 'view';
+  } else {
+    // Should not reach here, but handle gracefully
+    throw new AppError('Access denied', 403);
+  }
+
+  // Check if user has required permission level
+  if (PERMISSION_HIERARCHY[permissionLevel] < PERMISSION_HIERARCHY[requiredPermission]) {
+    throw new AppError('Insufficient permissions', 403);
+  }
+
+  return {
+    trip: {
+      id: trip.id,
+      userId: trip.userId,
+      title: trip.title,
+      privacyLevel: trip.privacyLevel,
+    },
+    isOwner,
+    permissionLevel,
+  };
+}
+
+/**
+ * Verifies user has access to a trip entity (location, activity, etc.) with the required permission.
+ * This is for accessing entities that belong to a trip via the tripId field.
+ *
+ * @param entityType - The type of entity to verify
+ * @param entityId - The ID of the entity
+ * @param userId - The user requesting access
+ * @param requiredPermission - Minimum permission level required (default: 'view')
+ * @throws {AppError} 404 if entity not found or no access
+ * @throws {AppError} 403 if insufficient permissions
+ * @returns The entity and trip access info
+ */
+export async function verifyEntityAccessWithPermission<T = unknown>(
+  entityType: VerifiableEntityType,
+  entityId: number,
+  userId: number,
+  requiredPermission: TripPermissionLevel = 'view'
+): Promise<{ entity: T; tripAccess: TripAccessResult }> {
+  const config = entityConfigs[entityType];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic Prisma model access requires type assertion
+  const model = prisma[config.model] as PrismaModelDelegate;
+
+  // First, find the entity to get its tripId
+  const entity = await model.findUnique({
+    where: { id: entityId },
+  });
+
+  if (!entity || !entity.tripId) {
+    throw new AppError(`${config.displayName} not found`, 404);
+  }
+
+  // Then verify trip access with permission
+  const tripAccess = await verifyTripAccessWithPermission(
+    userId,
+    entity.tripId as number,
+    requiredPermission
+  );
+
+  return { entity: entity as T, tripAccess };
 }
 
 /**

@@ -30,6 +30,10 @@ model User {
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
+  // Travel Partner Settings (bidirectional - both users share with each other)
+  travelPartnerId          Int?    @map("travel_partner_id")
+  defaultPartnerPermission String  @default("edit") @map("default_partner_permission") @db.VarChar(50) // view, edit, admin
+
   trips              Trip[]
   tags               TripTag[]
   companions         TravelCompanion[]
@@ -41,6 +45,11 @@ model User {
   userInvitationsSent     UserInvitation[] @relation("UserInvitationsSent")
   userInvitationsAccepted UserInvitation[] @relation("UserInvitationsAccepted")
 
+  // Self-relation for travel partner
+  travelPartner      User?   @relation("TravelPartner", fields: [travelPartnerId], references: [id], onDelete: SetNull)
+  partnerOf          User[]  @relation("TravelPartner")
+
+  @@index([travelPartnerId])
   @@map("users")
 }
 
@@ -57,6 +66,7 @@ model Trip {
   coverPhotoId        Int?     @map("cover_photo_id")
   bannerPhotoId       Int?     @map("banner_photo_id")
   addToPlacesVisited  Boolean  @default(false) @map("add_to_places_visited")
+  excludeFromAutoShare Boolean @default(false) @map("exclude_from_auto_share")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 

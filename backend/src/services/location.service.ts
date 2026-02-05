@@ -1,12 +1,12 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput, BulkDeleteLocationsInput, BulkUpdateLocationsInput } from '../types/location.types';
-import { verifyTripAccess, verifyEntityAccess, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 export class LocationService {
   async createLocation(userId: number, data: CreateLocationInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // If parentId is provided, verify it exists and belongs to the same trip
     if (data.parentId) {
@@ -55,25 +55,8 @@ export class LocationService {
   }
 
   async getLocationsByTrip(userId: number, tripId: number) {
-    // Verify user has access to the trip
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        OR: [
-          { userId },
-          {
-            collaborators: {
-              some: { userId },
-            },
-          },
-          { privacyLevel: 'Public' },
-        ],
-      },
-    });
-
-    if (!trip) {
-      throw new AppError('Trip not found or you do not have access', 404);
-    }
+    // Verify user has view permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     const locations = await prisma.location.findMany({
       where: { tripId },
@@ -133,6 +116,9 @@ export class LocationService {
   }
 
   async getLocationById(userId: number, locationId: number) {
+    // Verify user has view permission on the location's trip
+    await verifyEntityAccessWithPermission('location', locationId, userId, 'view');
+
     const location = await prisma.location.findUnique({
       where: { id: locationId },
       include: {
@@ -162,31 +148,17 @@ export class LocationService {
       },
     });
 
-    if (!location) {
-      throw new AppError('Location not found', 404);
-    }
-
-    // Check permissions
-    if (
-      location.trip.userId !== userId &&
-      location.trip.privacyLevel !== 'Public'
-    ) {
-      throw new AppError('You do not have permission to view this location', 403);
-    }
-
     return convertDecimals(location);
   }
 
   async updateLocation(userId: number, locationId: number, data: UpdateLocationInput) {
-    const location = await prisma.location.findUnique({
-      where: { id: locationId },
-      include: {
-        trip: true,
-      },
-    });
-
-    // Verify access
-    const verifiedLocation = await verifyEntityAccess(location, userId, 'Location');
+    // Verify user has edit permission on the location's trip
+    const { entity: location } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'location',
+      locationId,
+      userId,
+      'edit'
+    );
 
     // If updating parentId, verify it exists and belongs to the same trip
     if (data.parentId !== undefined && data.parentId !== null) {
@@ -206,7 +178,7 @@ export class LocationService {
       const parent = await prisma.location.findFirst({
         where: {
           id: data.parentId,
-          tripId: verifiedLocation.tripId,
+          tripId: location.tripId,
         },
       });
 
@@ -268,18 +240,16 @@ export class LocationService {
   }
 
   async deleteLocation(userId: number, locationId: number) {
-    const location = await prisma.location.findUnique({
-      where: { id: locationId },
-      include: {
-        trip: true,
-      },
-    });
-
-    // Verify access
-    const verifiedLocation = await verifyEntityAccess(location, userId, 'Location');
+    // Verify user has edit permission on the location's trip
+    const { entity: location } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'location',
+      locationId,
+      userId,
+      'edit'
+    );
 
     // Clean up entity links before deleting
-    await cleanupEntityLinks(verifiedLocation.tripId, 'LOCATION', locationId);
+    await cleanupEntityLinks(location.tripId, 'LOCATION', locationId);
 
     await prisma.location.delete({
       where: { id: locationId },
@@ -367,11 +337,11 @@ export class LocationService {
 
   /**
    * Bulk delete multiple locations
-   * Verifies ownership for all locations before deletion
+   * Verifies edit permission for all locations before deletion
    */
   async bulkDeleteLocations(userId: number, tripId: number, data: BulkDeleteLocationsInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Verify all locations belong to this trip
     const locations = await prisma.location.findMany({
@@ -404,11 +374,11 @@ export class LocationService {
 
   /**
    * Bulk update multiple locations
-   * Verifies ownership for all locations before update
+   * Verifies edit permission for all locations before update
    */
   async bulkUpdateLocations(userId: number, tripId: number, data: BulkUpdateLocationsInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Verify all locations belong to this trip
     const locations = await prisma.location.findMany({

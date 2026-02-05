@@ -134,7 +134,7 @@ export default function Modal({
 
   // Focus management and return focus on close
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     if (isOpen) {
       // Store the currently focused element to restore later
@@ -298,7 +298,7 @@ Modal.Simple = function SimpleModal({
   );
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     if (isOpen) {
       // Store the currently focused element to restore later

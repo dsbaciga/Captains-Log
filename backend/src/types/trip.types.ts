@@ -75,6 +75,7 @@ export const createTripSchema = z.object({
     PrivacyLevel.PUBLIC,
   ]).default(PrivacyLevel.PRIVATE),
   addToPlacesVisited: z.boolean().optional(),
+  excludeFromAutoShare: z.boolean().optional(),
 });
 
 export const updateTripSchema = z.object({
@@ -97,6 +98,7 @@ export const updateTripSchema = z.object({
     PrivacyLevel.PUBLIC,
   ]).optional(),
   addToPlacesVisited: z.boolean().optional(),
+  excludeFromAutoShare: z.boolean().optional(),
 });
 
 export const getTripQuerySchema = z.object({
@@ -126,6 +128,7 @@ export interface TripResponse {
   status: string;
   privacyLevel: string;
   addToPlacesVisited: boolean;
+  excludeFromAutoShare: boolean;
   coverPhotoId: number | null;
   bannerPhotoId: number | null;
   createdAt: string;

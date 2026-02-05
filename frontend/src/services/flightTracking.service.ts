@@ -1,5 +1,5 @@
-import api from './api.service';
-import { FlightTracking } from '../types/transportation';
+import axios from '../lib/axios';
+import type { FlightTracking } from '../types/transportation';
 
 export interface UpdateFlightTrackingInput {
   flightNumber?: string | null;
@@ -15,7 +15,7 @@ class FlightTrackingService {
    * Get flight status for a transportation record
    */
   async getFlightStatus(transportationId: number): Promise<FlightTracking | null> {
-    const response = await api.get<{ status: string; data: FlightTracking | null }>(
+    const response = await axios.get<{ status: string; data: FlightTracking | null }>(
       `/transportation/${transportationId}/flight-status`
     );
     return response.data.data;
@@ -28,7 +28,7 @@ class FlightTrackingService {
     transportationId: number,
     data: UpdateFlightTrackingInput
   ): Promise<FlightTracking> {
-    const response = await api.put<{ status: string; data: FlightTracking }>(
+    const response = await axios.put<{ status: string; data: FlightTracking }>(
       `/transportation/${transportationId}/flight-status`,
       data
     );
@@ -39,7 +39,7 @@ class FlightTrackingService {
    * Refresh flight status for all flights in a trip
    */
   async refreshFlightsForTrip(tripId: number): Promise<FlightTracking[]> {
-    const response = await api.post<{ status: string; data: FlightTracking[]; message: string }>(
+    const response = await axios.post<{ status: string; data: FlightTracking[]; message: string }>(
       `/trips/${tripId}/flights/refresh`
     );
     return response.data.data;

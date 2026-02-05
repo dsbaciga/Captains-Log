@@ -190,7 +190,7 @@ export default function BulkEditModal({
       isOpen={isOpen}
       onClose={handleClose}
       title={`Edit ${selectedCount} ${pluralLabel}`}
-      size="lg"
+      maxWidth="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Info banner */}

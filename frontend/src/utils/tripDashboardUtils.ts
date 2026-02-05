@@ -14,7 +14,7 @@ import type { Lodging, LodgingType } from '../types/lodging';
 import type { Location } from '../types/location';
 import type { JournalEntry } from '../types/journalEntry';
 import type { Photo } from '../types/photo';
-import { TripStatus, TripStatusType } from '../types/trip';
+import { TripStatus, type TripStatusType } from '../types/trip';
 
 // ============================================================================
 // Constants

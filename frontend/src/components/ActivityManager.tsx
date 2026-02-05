@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
-import ActivityForm, { ActivityFormData } from "./forms/ActivityForm";
+import ActivityForm, { type ActivityFormData } from "./forms/ActivityForm";
 import {
   formatDateTimeInTimezone,
   formatDateInTimezone,
@@ -501,7 +501,7 @@ export default function ActivityManager({
                 checked={isSelected}
                 onChange={(e) => {
                   e.stopPropagation();
-                  bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, topLevelActivities);
+                  bulkSelection.toggleItemSelection(activity.id, index, (e.nativeEvent as MouseEvent).shiftKey ?? false, topLevelActivities);
                 }}
                 className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
               />

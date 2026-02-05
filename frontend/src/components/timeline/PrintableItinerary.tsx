@@ -123,12 +123,9 @@ const ActivityItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezo
       </div>
       <div className="print-item-title">{item.title}</div>
       {activity.category && <div className="print-item-detail">Category: {activity.category}</div>}
-      {(item.location || activity.location?.address) && (
+      {item.location && (
         <div className="print-item-detail">
           Location: {item.location}
-          {activity.location?.address && item.location !== activity.location.address && (
-            <span> ({activity.location.address})</span>
-          )}
         </div>
       )}
       {activity.bookingReference && (
@@ -222,9 +219,6 @@ const LodgingItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezon
   if (isCheckIn) timeLabel = `Check-in: ${time || 'TBD'}`;
   else if (isCheckOut) timeLabel = `Check-out: ${time || 'TBD'}`;
 
-  // Check for coordinates
-  const hasCoords = lodging.location?.latitude && lodging.location?.longitude;
-
   return (
     <div className="print-item">
       <div className="print-item-header">
@@ -237,9 +231,9 @@ const LodgingItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezon
           Night {item.multiDayInfo.nightNumber} of {item.multiDayInfo.totalNights}
         </div>
       )}
-      {(lodging.address || lodging.location?.address) && (
+      {lodging.address && (
         <div className="print-item-detail">
-          Address: {lodging.address || lodging.location?.address}
+          Address: {lodging.address}
         </div>
       )}
       {lodging.confirmationNumber && (
@@ -249,15 +243,6 @@ const LodgingItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezon
         <div className="print-item-detail">Cost: {formatCost(lodging.cost, lodging.currency)}</div>
       )}
       {lodging.notes && <div className="print-item-notes">Notes: {lodging.notes}</div>}
-      {showMaps && hasCoords && (
-        <div className="print-item-map">
-          <PrintMiniMap
-            latitude={lodging.location!.latitude!}
-            longitude={lodging.location!.longitude!}
-            label={lodging.name}
-          />
-        </div>
-      )}
     </div>
   );
 };
@@ -301,12 +286,6 @@ const UnscheduledActivityItem = ({ activity }: { activity: Activity }) => (
     </div>
     <div className="print-item-title">{activity.name}</div>
     {activity.category && <div className="print-item-detail">Category: {activity.category}</div>}
-    {activity.location && (
-      <div className="print-item-detail">
-        Location: {activity.location.name}
-        {activity.location.address && ` (${activity.location.address})`}
-      </div>
-    )}
     {activity.bookingReference && (
       <div className="print-item-detail">Booking Ref: {activity.bookingReference}</div>
     )}
@@ -351,9 +330,9 @@ const UnscheduledLodgingItem = ({ lodging }: { lodging: Lodging }) => (
       <span className="print-item-type">{getLodgingTypeName(lodging.type)}</span>
     </div>
     <div className="print-item-title">{lodging.name}</div>
-    {(lodging.address || lodging.location?.address) && (
+    {lodging.address && (
       <div className="print-item-detail">
-        Address: {lodging.address || lodging.location?.address}
+        Address: {lodging.address}
       </div>
     )}
     {lodging.confirmationNumber && (

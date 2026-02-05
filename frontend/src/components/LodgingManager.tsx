@@ -964,7 +964,7 @@ export default function LodgingManager({
                       checked={isSelected}
                       onChange={(e) => {
                         e.stopPropagation();
-                        bulkSelection.toggleItemSelection(lodging.id, index, e.shiftKey, sortedLodging);
+                        bulkSelection.toggleItemSelection(lodging.id, index, (e.nativeEvent as MouseEvent).shiftKey ?? false, sortedLodging);
                       }}
                       className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
                     />

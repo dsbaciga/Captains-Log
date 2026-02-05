@@ -27,6 +27,7 @@ export type Trip = {
   status: TripStatusType;
   privacyLevel: PrivacyLevelType;
   addToPlacesVisited: boolean;
+  excludeFromAutoShare: boolean;
   coverPhotoId: number | null;
   bannerPhotoId: number | null;
   createdAt: string;
@@ -66,6 +67,7 @@ export type CreateTripInput = {
   status?: TripStatusType;
   privacyLevel?: PrivacyLevelType;
   addToPlacesVisited?: boolean;
+  excludeFromAutoShare?: boolean;
 };
 
 export type UpdateTripInput = Partial<CreateTripInput>;

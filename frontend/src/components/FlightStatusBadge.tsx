@@ -1,4 +1,4 @@
-import { FlightTracking } from '../types/transportation';
+import type { FlightTracking } from '../types/transportation';
 import { getFlightStatusColor, getDelayColor } from '../utils/statusColors';
 
 interface FlightStatusBadgeProps {

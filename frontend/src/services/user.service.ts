@@ -1,5 +1,5 @@
 import axios from '../lib/axios';
-import type { User, UpdateUserSettingsInput } from '../types/user';
+import type { User, UpdateUserSettingsInput, UserSearchResult, TravelPartnerSettings, UpdateTravelPartnerInput } from '../types/user';
 
 const userService = {
   async getMe(): Promise<User> {
@@ -49,6 +49,21 @@ const userService = {
 
   async updateOpenrouteserviceSettings(data: { openrouteserviceApiKey: string | null }): Promise<{ success: boolean; message: string; openrouteserviceApiKeySet: boolean }> {
     const response = await axios.put('/users/openrouteservice-settings', data);
+    return response.data;
+  },
+
+  async searchUsers(query: string, signal?: AbortSignal): Promise<UserSearchResult[]> {
+    const response = await axios.get('/users/search', { params: { query }, signal });
+    return response.data;
+  },
+
+  async getTravelPartnerSettings(): Promise<TravelPartnerSettings> {
+    const response = await axios.get('/users/travel-partner');
+    return response.data;
+  },
+
+  async updateTravelPartnerSettings(data: UpdateTravelPartnerInput): Promise<TravelPartnerSettings & { success: boolean; message: string }> {
+    const response = await axios.put('/users/travel-partner', data);
     return response.data;
   },
 };

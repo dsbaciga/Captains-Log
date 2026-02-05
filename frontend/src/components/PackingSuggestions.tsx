@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactElement } from 'react';
 import packingSuggestionService from '../services/packingSuggestion.service';
 import checklistService from '../services/checklist.service';
 import type {
@@ -20,7 +20,7 @@ const CATEGORY_CONFIG: Record<
   PackingSuggestionCategory,
   {
     label: string;
-    icon: JSX.Element;
+    icon: ReactElement;
     color: string;
     bgColor: string;
   }

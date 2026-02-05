@@ -18,7 +18,7 @@ import userService from "../services/user.service";
 import checklistService from "../services/checklist.service";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import type { Photo } from "../types/photo";
-import { TripStatus, TripStatusType } from "../types/trip";
+import { TripStatus, type TripStatusType } from "../types/trip";
 import toast from "react-hot-toast";
 import PhotoGallery from "../components/PhotoGallery";
 import PhotoUpload from "../components/PhotoUpload";

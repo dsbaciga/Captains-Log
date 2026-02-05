@@ -161,7 +161,6 @@ function ActivityDetails({ entity }: { entity: Activity }) {
       <DetailRow label="Name" value={entity.name} />
       <DetailRow label="Description" value={entity.description} className="whitespace-pre-wrap" />
       <DetailRow label="Category" value={entity.category} />
-      {entity.location && <DetailRow label="Location" value={entity.location.name} />}
       {entity.allDay ? (
         <DetailRow label="Time" value="All Day" />
       ) : (
@@ -209,7 +208,6 @@ function LodgingDetails({ entity }: { entity: Lodging }) {
         }
       />
       <DetailRow label="Address" value={entity.address} />
-      {entity.location && <DetailRow label="Location" value={entity.location.name} />}
       <DetailRow label="Check-in" value={formatDate(entity.checkInDate)} />
       <DetailRow label="Check-out" value={formatDate(entity.checkOutDate)} />
       <DetailRow label="Confirmation #" value={entity.confirmationNumber} />

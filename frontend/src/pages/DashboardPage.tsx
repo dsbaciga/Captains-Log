@@ -5,7 +5,7 @@ import UpcomingTripsWidget from '../components/widgets/UpcomingTripsWidget';
 import TravelStatsWidget from '../components/widgets/TravelStatsWidget';
 import RecentPhotosWidget from '../components/widgets/RecentPhotosWidget';
 import QuickActionsWidget from '../components/widgets/QuickActionsWidget';
-import TravelCalendarHeatmap from '../components/widgets/TravelCalendarHeatmap';
+import TripCalendarWidget from '../components/widgets/TripCalendarWidget';
 import PendingInvitations from '../components/PendingInvitations';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
@@ -78,9 +78,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Full Width Row - Heat Map */}
+          {/* Full Width Row - Trip Calendar */}
           <div className="animate-fade-in stagger-2">
-            <TravelCalendarHeatmap />
+            <TripCalendarWidget />
           </div>
         </div>
 

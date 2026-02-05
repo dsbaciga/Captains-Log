@@ -372,14 +372,6 @@ const Timeline = ({
             title: activity.name,
             subtitle: activity.category || undefined,
             description: activity.description || undefined,
-            location: activity.location?.name,
-            locationCoords:
-              activity.location?.latitude && activity.location?.longitude
-                ? {
-                    latitude: Number(activity.location.latitude),
-                    longitude: Number(activity.location.longitude),
-                  }
-                : undefined,
             cost: activity.cost || undefined,
             currency: activity.currency || undefined,
             confirmationNumber: activity.bookingReference || undefined,

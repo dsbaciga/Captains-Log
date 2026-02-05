@@ -6,14 +6,14 @@ import {
   BulkUpdateLodgingInput,
 } from '../types/lodging.types';
 import { AppError } from '../utils/errors';
-import { verifyTripAccess, verifyEntityAccess, convertDecimals, buildConditionalUpdateData, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, buildConditionalUpdateData, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
 class LodgingService {
   async createLodging(userId: number, data: CreateLodgingInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Note: Location association is handled via EntityLink system after creation
     const lodging = await prisma.lodging.create({
@@ -37,8 +37,8 @@ class LodgingService {
   }
 
   async getLodgingByTrip(userId: number, tripId: number) {
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has view permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     // Note: Location association is fetched via EntityLink system, not direct FK
     const lodgings = await prisma.lodging.findMany({
@@ -50,6 +50,9 @@ class LodgingService {
   }
 
   async getLodgingById(userId: number, lodgingId: number) {
+    // Verify user has view permission on the lodging's trip
+    await verifyEntityAccessWithPermission('lodging', lodgingId, userId, 'view');
+
     // Note: Location association is fetched via EntityLink system, not direct FK
     const lodging = await prisma.lodging.findUnique({
       where: { id: lodgingId },
@@ -57,8 +60,6 @@ class LodgingService {
         trip: true,
       },
     });
-
-    await verifyEntityAccess(lodging, userId, 'Lodging');
 
     return convertDecimals(lodging);
   }
@@ -68,12 +69,8 @@ class LodgingService {
     lodgingId: number,
     data: UpdateLodgingInput
   ) {
-    const lodging = await prisma.lodging.findUnique({
-      where: { id: lodgingId },
-      include: { trip: true },
-    });
-
-    await verifyEntityAccess(lodging, userId, 'Lodging');
+    // Verify user has edit permission on the lodging's trip
+    await verifyEntityAccessWithPermission('lodging', lodgingId, userId, 'edit');
 
     // Transformer for date fields: convert to Date if truthy, skip update if null/undefined.
     // This preserves existing dates if not explicitly provided (dates are required for lodging).
@@ -98,15 +95,16 @@ class LodgingService {
   }
 
   async deleteLodging(userId: number, lodgingId: number) {
-    const lodging = await prisma.lodging.findUnique({
-      where: { id: lodgingId },
-      include: { trip: true },
-    });
-
-    const verifiedLodging = await verifyEntityAccess(lodging, userId, 'Lodging');
+    // Verify user has edit permission on the lodging's trip
+    const { entity: lodging } = await verifyEntityAccessWithPermission<{ tripId: number }>(
+      'lodging',
+      lodgingId,
+      userId,
+      'edit'
+    );
 
     // Clean up entity links before deleting
-    await cleanupEntityLinks(verifiedLodging.tripId, 'LODGING', lodgingId);
+    await cleanupEntityLinks(lodging.tripId, 'LODGING', lodgingId);
 
     await prisma.lodging.delete({
       where: { id: lodgingId },
@@ -117,11 +115,11 @@ class LodgingService {
 
   /**
    * Bulk delete multiple lodging items
-   * Verifies ownership for all items before deletion
+   * Verifies edit permission for all items before deletion
    */
   async bulkDeleteLodging(userId: number, tripId: number, data: BulkDeleteLodgingInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Verify all lodging items belong to this trip
     const lodgings = await prisma.lodging.findMany({
@@ -154,11 +152,11 @@ class LodgingService {
 
   /**
    * Bulk update multiple lodging items
-   * Verifies ownership for all items before update
+   * Verifies edit permission for all items before update
    */
   async bulkUpdateLodging(userId: number, tripId: number, data: BulkUpdateLodgingInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
     // Verify all lodging items belong to this trip
     const lodgings = await prisma.lodging.findMany({

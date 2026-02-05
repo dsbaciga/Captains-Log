@@ -176,17 +176,6 @@ export default function ActivityCard({
           </div>
         )}
 
-        {/* Embedded location from activity.location */}
-        {activity.location && (
-          <div className="mt-3">
-            <EmbeddedLocationCard
-              location={activity.location}
-              tripId={tripId}
-              label="Location"
-            />
-          </div>
-        )}
-
         {/* Linked locations (from entity links) */}
         {linkedLocations.length > 0 && (
           <div className="mt-3">

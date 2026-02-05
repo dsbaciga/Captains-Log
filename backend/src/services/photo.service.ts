@@ -23,7 +23,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
 import ffmpeg from 'fluent-ffmpeg';
-import { verifyTripAccess, verifyEntityAccess, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
 const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
@@ -189,8 +189,8 @@ class PhotoService {
     const tempFilePath = file.path;
 
     try {
-      // Verify user owns the trip
-      await verifyTripAccess(userId, data.tripId);
+      // Verify user has edit permission on the trip
+      await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
       // Validate file content using magic bytes (security check)
       const validation = await validateFileContent(tempFilePath);
@@ -344,8 +344,8 @@ class PhotoService {
   }
 
   async linkImmichPhoto(userId: number, data: LinkImmichPhotoInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Get user's Immich settings
     const user = await prisma.user.findUnique({
@@ -426,8 +426,8 @@ class PhotoService {
   }
 
   async linkImmichPhotosBatch(userId: number, data: LinkImmichPhotoBatchInput) {
-    // Verify user owns the trip
-    await verifyTripAccess(userId, data.tripId);
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     const BATCH_SIZE = 50;
     const results = {
@@ -541,8 +541,8 @@ class PhotoService {
     tripId: number,
     options?: PhotoQueryOptions
   ) {
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has view permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     const skip = options?.skip || 0;
     const take = options?.take || 40; // Default to 40 photos per page
@@ -583,8 +583,8 @@ class PhotoService {
   }
 
   async getImmichAssetIdsByTrip(userId: number, tripId: number): Promise<string[]> {
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has view permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     // Get all Immich asset IDs for photos in this trip
     const photos = await prisma.photo.findMany({
@@ -607,8 +607,8 @@ class PhotoService {
     tripId: number,
     options?: PhotoQueryOptions
   ) {
-    // Verify user has access to trip
-    await verifyTripAccess(userId, tripId);
+    // Verify user has view permission on the trip
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     const skip = options?.skip || 0;
     const take = options?.take || 40; // Default to 40 photos per page
@@ -677,6 +677,9 @@ class PhotoService {
   }
 
   async getPhotoById(userId: number, photoId: number) {
+    // Verify user has view permission on the photo's trip
+    await verifyEntityAccessWithPermission('photo', photoId, userId, 'view');
+
     const photo = await prisma.photo.findUnique({
       where: { id: photoId },
       include: {
@@ -689,34 +692,12 @@ class PhotoService {
       },
     });
 
-    if (!photo) {
-      throw new AppError('Photo not found', 404);
-    }
-
-    // Check trip access
-    const hasAccess =
-      photo.trip.userId === userId ||
-      photo.trip.privacyLevel === 'Public' ||
-      (photo.trip.privacyLevel === 'Shared' &&
-        (await prisma.tripCollaborator.count({
-          where: { tripId: photo.trip.id, userId },
-        })) > 0);
-
-    if (!hasAccess) {
-      throw new AppError('Access denied', 403);
-    }
-
     return convertDecimals(photo);
   }
 
   async updatePhoto(userId: number, photoId: number, data: UpdatePhotoInput) {
-    const photo = await prisma.photo.findUnique({
-      where: { id: photoId },
-      include: { trip: true },
-    });
-
-    // Verify access
-    await verifyEntityAccess(photo, userId, 'Photo');
+    // Verify user has edit permission on the photo's trip
+    await verifyEntityAccessWithPermission('photo', photoId, userId, 'edit');
 
     const updatedPhoto = await prisma.photo.update({
       where: { id: photoId },
@@ -741,7 +722,7 @@ class PhotoService {
    * Groups photos by date in the specified timezone
    */
   async getPhotoDateGroupings(userId: number, tripId: number, timezone?: string) {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     // Default to UTC if no timezone specified
     const tz = timezone || 'UTC';
@@ -792,7 +773,7 @@ class PhotoService {
     date: string, // YYYY-MM-DD format
     timezone?: string
   ) {
-    await verifyTripAccess(userId, tripId);
+    await verifyTripAccessWithPermission(userId, tripId, 'view');
 
     // Default to UTC if no timezone specified
     const tz = timezone || 'UTC';
@@ -877,13 +858,13 @@ class PhotoService {
   }
 
   async deletePhoto(userId: number, photoId: number) {
-    const photo = await prisma.photo.findUnique({
-      where: { id: photoId },
-      include: { trip: true },
-    });
-
-    // Verify access
-    const verifiedPhoto = await verifyEntityAccess(photo, userId, 'Photo');
+    // Verify user has edit permission on the photo's trip
+    const { entity: verifiedPhoto } = await verifyEntityAccessWithPermission<{
+      tripId: number;
+      source: string;
+      localPath: string | null;
+      thumbnailPath: string | null;
+    }>('photo', photoId, userId, 'edit');
 
     // Delete local files if they exist
     if (verifiedPhoto.source === PhotoSource.LOCAL && verifiedPhoto.localPath) {
