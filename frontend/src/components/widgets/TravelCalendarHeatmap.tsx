@@ -15,10 +15,19 @@ interface DayData {
   trips: string[]; // Trip titles for tooltip
 }
 
+interface VisibleTrip {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+}
+
 export default function TravelCalendarHeatmap() {
   const [isLoading, setIsLoading] = useState(true);
   const [heatmapData, setHeatmapData] = useState<DayData[]>([]);
   const [hoveredDay, setHoveredDay] = useState<DayData | null>(null);
+  const [visibleTrips, setVisibleTrips] = useState<VisibleTrip[]>([]);
+  const [showTripLegend, setShowTripLegend] = useState(false);
 
   useEffect(() => {
     loadTravelData();
@@ -37,8 +46,9 @@ export default function TravelCalendarHeatmap() {
       );
 
       // Generate data for the past year
-      const data = generateYearData(trips);
+      const { data, tripsInRange } = generateYearData(trips);
       setHeatmapData(data);
+      setVisibleTrips(tripsInRange);
     } catch (error) {
       console.error('Failed to load travel data:', error);
     } finally {
@@ -53,7 +63,7 @@ export default function TravelCalendarHeatmap() {
     return new Date(year, month - 1, day);
   };
 
-  const generateYearData = (trips: Trip[]): DayData[] => {
+  const generateYearData = (trips: Trip[]): { data: DayData[]; tripsInRange: VisibleTrip[] } => {
     const data: DayData[] = [];
     const today = new Date();
     const oneYearAgo = new Date(today);
@@ -62,12 +72,32 @@ export default function TravelCalendarHeatmap() {
     // Create a map of dates to trip counts
     const dateMap = new Map<string, { count: number; trips: string[] }>();
 
+    // Track trips that have at least one day visible in the range
+    const tripsInRange: VisibleTrip[] = [];
+
+    // Determine the actual display range (starts from beginning of week)
+    const displayStartDate = new Date(oneYearAgo);
+    const dayOfWeek = displayStartDate.getDay();
+    displayStartDate.setDate(displayStartDate.getDate() - dayOfWeek);
+
     // Process each trip
     trips.forEach((trip) => {
       if (!trip.startDate || !trip.endDate) return;
 
       const startDate = parseDate(trip.startDate);
       const endDate = parseDate(trip.endDate);
+
+      // Check if this trip has any days visible in the display range
+      const tripOverlapsRange = startDate <= today && endDate >= displayStartDate;
+
+      if (tripOverlapsRange) {
+        tripsInRange.push({
+          id: trip.id,
+          title: trip.title,
+          startDate: trip.startDate,
+          endDate: trip.endDate,
+        });
+      }
 
       // Iterate through each day in the trip
       const currentDate = new Date(startDate);
@@ -86,10 +116,7 @@ export default function TravelCalendarHeatmap() {
     });
 
     // Generate array for the past year
-    const currentDate = new Date(oneYearAgo);
-    // Start from the beginning of the week
-    const dayOfWeek = currentDate.getDay();
-    currentDate.setDate(currentDate.getDate() - dayOfWeek);
+    const currentDate = new Date(displayStartDate);
 
     while (currentDate <= today) {
       const dateKey = currentDate.toISOString().split('T')[0];
@@ -104,7 +131,10 @@ export default function TravelCalendarHeatmap() {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    return data;
+    // Sort trips by start date (most recent first)
+    tripsInRange.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+
+    return { data, tripsInRange };
   };
 
   const getColorClass = (count: number): string => {
@@ -265,16 +295,56 @@ export default function TravelCalendarHeatmap() {
             </div>
           </div>
 
-          {/* Legend */}
-          <div className="flex items-center gap-2 mt-4 text-xs text-gray-600 dark:text-gray-400">
-            <span>Less</span>
-            <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-navy-900/30" />
-            <div className="w-3 h-3 rounded-sm bg-primary-200 dark:bg-primary-900/50" />
-            <div className="w-3 h-3 rounded-sm bg-primary-400 dark:bg-primary-700/70" />
-            <div className="w-3 h-3 rounded-sm bg-primary-600 dark:bg-primary-600/80" />
-            <div className="w-3 h-3 rounded-sm bg-primary-800 dark:bg-primary-500" />
-            <span>More</span>
+          {/* Color Legend */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+              <span>Less</span>
+              <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-navy-900/30" />
+              <div className="w-3 h-3 rounded-sm bg-primary-200 dark:bg-primary-900/50" />
+              <div className="w-3 h-3 rounded-sm bg-primary-400 dark:bg-primary-700/70" />
+              <div className="w-3 h-3 rounded-sm bg-primary-600 dark:bg-primary-600/80" />
+              <div className="w-3 h-3 rounded-sm bg-primary-800 dark:bg-primary-500" />
+              <span>More</span>
+            </div>
+
+            {/* Trip Legend Toggle */}
+            {visibleTrips.length > 0 && (
+              <button
+                onClick={() => setShowTripLegend(!showTripLegend)}
+                className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              >
+                <span>{visibleTrips.length} trip{visibleTrips.length !== 1 ? 's' : ''}</span>
+                <svg
+                  className={`w-4 h-4 transition-transform duration-200 ${showTripLegend ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            )}
           </div>
+
+          {/* Trip Legend (Collapsible) */}
+          {showTripLegend && visibleTrips.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-navy-700">
+              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Trips shown on calendar:
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {visibleTrips.map((trip) => (
+                  <div
+                    key={trip.id}
+                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-xs text-primary-800 dark:text-primary-300"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-primary-500" />
+                    <span className="max-w-[150px] truncate">{trip.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
