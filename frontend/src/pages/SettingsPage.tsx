@@ -17,10 +17,11 @@ import AviationstackSettings from "../components/AviationstackSettings";
 import OpenRouteServiceSettings from "../components/OpenRouteServiceSettings";
 import EmojiPicker from "../components/EmojiPicker";
 import TravelDocumentManager from "../components/TravelDocumentManager";
+import InviteUsersSection from "../components/InviteUsersSection";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getRandomTagColor } from "../utils/tagColors";
 
-type TabType = "account" | "tags-categories" | "documents" | "integrations" | "backup";
+type TabType = "account" | "tags-categories" | "documents" | "integrations" | "invites" | "backup";
 
 export default function SettingsPage() {
   const { updateUser } = useAuthStore();
@@ -422,6 +423,7 @@ export default function SettingsPage() {
             <option value="tags-categories">Tags & Categories</option>
             <option value="documents">Travel Documents</option>
             <option value="integrations">Integrations</option>
+            <option value="invites">Invite Users</option>
             <option value="backup">Backup & Restore</option>
           </select>
         </div>
@@ -484,6 +486,20 @@ export default function SettingsPage() {
               `}
             >
               Integrations
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("invites")}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                ${
+                  activeTab === "invites"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }
+              `}
+            >
+              Invite Users
             </button>
             <button
               type="button"
@@ -1040,6 +1056,9 @@ export default function SettingsPage() {
             <OpenRouteServiceSettings />
           </div>
         )}
+
+        {/* Invite Users Tab */}
+        {activeTab === "invites" && <InviteUsersSection />}
 
         {/* Backup & Restore Tab */}
         {activeTab === "backup" && (

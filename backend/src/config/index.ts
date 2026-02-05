@@ -73,6 +73,19 @@ export const config = {
     apiKey: process.env.OPENROUTESERVICE_API_KEY,
     url: process.env.OPENROUTESERVICE_URL,
   },
+
+  // Email (SMTP)
+  email: {
+    host: process.env.SMTP_HOST || '',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true', // true for port 465, false for other ports
+    user: process.env.SMTP_USER || '',
+    password: process.env.SMTP_PASSWORD || '',
+    from: process.env.SMTP_FROM || 'Travel Life <noreply@example.com>',
+  },
+
+  // Frontend URL (for email links)
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 };
 
 export default config;
