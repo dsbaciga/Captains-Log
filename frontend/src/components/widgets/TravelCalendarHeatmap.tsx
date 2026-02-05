@@ -26,6 +26,21 @@ interface VisibleTrip {
 /** Maximum number of trips to show in the legend before collapsing with "+X more" */
 const MAX_LEGEND_TRIPS = 12;
 
+/** Width of day-of-week label column in pixels (w-7 = 28px + gap) */
+const DAY_LABEL_WIDTH_PX = 32;
+
+/** Size of each calendar cell plus gap in pixels (12px cell + 2px gap) */
+const CELL_SIZE_WITH_GAP_PX = 14;
+
+/** Color classes for heatmap intensity levels (0 = no trips, 4+ = max intensity) */
+const INTENSITY_COLORS = [
+  'bg-gray-100 dark:bg-navy-900/30',     // 0 trips
+  'bg-primary-200 dark:bg-primary-900/50', // 1 trip
+  'bg-primary-400 dark:bg-primary-700/70', // 2 trips
+  'bg-primary-600 dark:bg-primary-600/80', // 3 trips
+  'bg-primary-800 dark:bg-primary-500',    // 4+ trips
+] as const;
+
 export default function TravelCalendarHeatmap() {
   const [isLoading, setIsLoading] = useState(true);
   const [heatmapData, setHeatmapData] = useState<DayData[]>([]);
@@ -126,7 +141,7 @@ export default function TravelCalendarHeatmap() {
   const loadTravelData = useCallback(async () => {
     try {
       const response = await tripService.getTrips();
-      const trips = response.trips.filter(
+      const trips = (response.trips ?? []).filter(
         (trip) =>
           trip.status === 'Completed' ||
           trip.status === 'In Progress' ||
@@ -149,13 +164,9 @@ export default function TravelCalendarHeatmap() {
     loadTravelData();
   }, [loadTravelData]);
 
-  const getColorClass = (count: number): string => {
-    if (count === 0) return 'bg-gray-100 dark:bg-navy-900/30';
-    if (count === 1) return 'bg-primary-200 dark:bg-primary-900/50';
-    if (count === 2) return 'bg-primary-400 dark:bg-primary-700/70';
-    if (count === 3) return 'bg-primary-600 dark:bg-primary-600/80';
-    return 'bg-primary-800 dark:bg-primary-500';
-  };
+  const getColorClass = useCallback((count: number): string => {
+    return INTENSITY_COLORS[Math.min(count, INTENSITY_COLORS.length - 1)];
+  }, []);
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
@@ -210,7 +221,7 @@ export default function TravelCalendarHeatmap() {
 
   // Trips to display in legend (limited to avoid excessive height)
   const displayTrips = useMemo(() => visibleTrips.slice(0, MAX_LEGEND_TRIPS), [visibleTrips]);
-  const remainingTripsCount = visibleTrips.length - MAX_LEGEND_TRIPS;
+  const remainingTripsCount = Math.max(0, visibleTrips.length - MAX_LEGEND_TRIPS);
 
   if (isLoading) {
     return (
@@ -241,14 +252,14 @@ export default function TravelCalendarHeatmap() {
         <div className="inline-block min-w-full">
           {/* Month Labels */}
           <div className="relative mb-2 h-5">
-            <div className="flex gap-[2px]" style={{ paddingLeft: '32px' }}>
+            <div className="flex gap-[2px]" style={{ paddingLeft: `${DAY_LABEL_WIDTH_PX}px` }}>
               {monthLabels.map((monthLabel, index) => (
                 <div
                   key={index}
                   className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap"
                   style={{
                     position: 'absolute',
-                    left: `${32 + monthLabel.weekIndex * 14}px`,
+                    left: `${DAY_LABEL_WIDTH_PX + monthLabel.weekIndex * CELL_SIZE_WITH_GAP_PX}px`,
                   }}
                 >
                   {monthLabel.label}
@@ -276,16 +287,20 @@ export default function TravelCalendarHeatmap() {
                 <div key={weekIndex} className="flex flex-col gap-[2px]" role="row">
                   {week.map((day, dayIndex) => {
                     const label = `${formatDate(day.date)}: ${day.count} trip${day.count !== 1 ? 's' : ''}`;
+                    const hasTripActivity = day.count > 0;
                     return (
                       <div
                         key={dayIndex}
                         role="gridcell"
+                        tabIndex={hasTripActivity ? 0 : -1}
                         aria-label={label}
                         className={`w-3 h-3 rounded-sm ${getColorClass(
                           day.count
-                        )} cursor-pointer hover:ring-2 hover:ring-accent-500 transition-all duration-150`}
+                        )} cursor-pointer hover:ring-2 hover:ring-accent-500 focus:ring-2 focus:ring-accent-500 focus:outline-none transition-all duration-150`}
                         onMouseEnter={() => setHoveredDay(day)}
                         onMouseLeave={() => setHoveredDay(null)}
+                        onFocus={() => setHoveredDay(day)}
+                        onBlur={() => setHoveredDay(null)}
                         title={label}
                       />
                     );
@@ -304,11 +319,9 @@ export default function TravelCalendarHeatmap() {
           <div className="flex items-center justify-between mt-4">
             <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
               <span>Less</span>
-              <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-navy-900/30" />
-              <div className="w-3 h-3 rounded-sm bg-primary-200 dark:bg-primary-900/50" />
-              <div className="w-3 h-3 rounded-sm bg-primary-400 dark:bg-primary-700/70" />
-              <div className="w-3 h-3 rounded-sm bg-primary-600 dark:bg-primary-600/80" />
-              <div className="w-3 h-3 rounded-sm bg-primary-800 dark:bg-primary-500" />
+              {INTENSITY_COLORS.map((colorClass, index) => (
+                <div key={index} className={`w-3 h-3 rounded-sm ${colorClass}`} />
+              ))}
               <span>More</span>
             </div>
 
@@ -329,33 +342,33 @@ export default function TravelCalendarHeatmap() {
             )}
           </div>
 
-          {/* Trip Legend (Collapsible) */}
-          {showTripLegend && visibleTrips.length > 0 && (
-            <div
-              id="trip-legend-panel"
-              className="mt-3 pt-3 border-t border-gray-200 dark:border-navy-700"
-            >
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Trips shown on calendar:
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {displayTrips.map((trip) => (
-                  <div
-                    key={trip.id}
-                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-xs text-primary-800 dark:text-primary-300"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-primary-500" />
-                    <span className="max-w-[150px] truncate">{trip.title}</span>
-                  </div>
-                ))}
-                {remainingTripsCount > 0 && (
-                  <span className="inline-flex items-center px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
-                    +{remainingTripsCount} more
-                  </span>
-                )}
-              </div>
+          {/* Trip Legend (Collapsible) - Always rendered for aria-controls, hidden when collapsed */}
+          <div
+            id="trip-legend-panel"
+            className={`mt-3 pt-3 border-t border-gray-200 dark:border-navy-700 ${
+              !showTripLegend || visibleTrips.length === 0 ? 'hidden' : ''
+            }`}
+          >
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Trips shown on calendar:
             </div>
-          )}
+            <div className="flex flex-wrap gap-2">
+              {displayTrips.map((trip) => (
+                <div
+                  key={trip.id}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-xs text-primary-800 dark:text-primary-300"
+                >
+                  <div className="w-2 h-2 rounded-full bg-primary-500" />
+                  <span className="max-w-[150px] truncate">{trip.title}</span>
+                </div>
+              ))}
+              {remainingTripsCount > 0 && (
+                <span className="inline-flex items-center px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+                  +{remainingTripsCount} more
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
