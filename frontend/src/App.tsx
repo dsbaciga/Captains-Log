@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import AcceptInvitePage from './pages/AcceptInvitePage';
 import DashboardPage from './pages/DashboardPage';
 import TripsPage from './pages/TripsPage';
 import TripFormPage from './pages/TripFormPage';
@@ -124,6 +125,7 @@ function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/accept-invite" element={<AcceptInvitePage />} />
               <Route
                 path="/dashboard"
                 element={

@@ -34,6 +34,7 @@ import flightTrackingRoutes from './routes/flightTracking.routes';
 import packingSuggestionRoutes from './routes/packingSuggestion.routes';
 import travelDocumentRoutes from './routes/travelDocument.routes';
 import languagePhraseRoutes from './routes/languagePhrase.routes';
+import userInvitationRoutes from './routes/userInvitation.routes';
 
 // Read version from package.json
 const packageJson = JSON.parse(
@@ -176,6 +177,7 @@ app.use('/api', flightTrackingRoutes);
 app.use('/api', packingSuggestionRoutes);
 app.use('/api/travel-documents', travelDocumentRoutes);
 app.use('/api', languagePhraseRoutes);
+app.use('/api/user-invitations', userInvitationRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

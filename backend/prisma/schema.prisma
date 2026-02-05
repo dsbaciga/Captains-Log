@@ -38,6 +38,8 @@ model User {
   checklists         Checklist[]
   invitationsSent    TripInvitation[] @relation("InvitationsSent")
   travelDocuments    TravelDocument[]
+  userInvitationsSent     UserInvitation[] @relation("UserInvitationsSent")
+  userInvitationsAccepted UserInvitation[] @relation("UserInvitationsAccepted")
 
   @@map("users")
 }
@@ -693,4 +695,38 @@ model LanguagePhrase {
   @@index([category])
   @@index([languageCode, category])
   @@map("language_phrases")
+}
+
+// =============================================================================
+// USER INVITATION SYSTEM
+// =============================================================================
+// Allows users to invite others to join the Travel Life application via email
+
+enum UserInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model UserInvitation {
+  id              Int                  @id @default(autoincrement())
+  invitedByUserId Int?                 @map("invited_by_user_id") // NULL for system invites
+  email           String               @db.VarChar(255)
+  token           String               @unique @db.VarChar(255) // Unique token for accepting invitation
+  status          UserInvitationStatus @default(PENDING)
+  message         String?              @db.Text // Optional personal message from inviter
+  expiresAt       DateTime             @map("expires_at")
+  respondedAt     DateTime?            @map("responded_at")
+  acceptedUserId  Int?                 @map("accepted_user_id") // ID of user who accepted (after registration)
+  createdAt       DateTime             @default(now()) @map("created_at")
+
+  invitedBy    User? @relation("UserInvitationsSent", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  acceptedUser User? @relation("UserInvitationsAccepted", fields: [acceptedUserId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@index([invitedByUserId])
+  @@map("user_invitations")
 }

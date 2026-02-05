@@ -47,6 +47,7 @@ export const clearCsrfCookie = (res: Response): void => {
  * Compares the token in the cookie with the token in the request header.
  * Skips validation for safe HTTP methods (GET, HEAD, OPTIONS).
  * Skips validation for auth routes (login/register/refresh bootstrap the CSRF token).
+ * Skips validation for public invitation routes (the invitation token provides equivalent protection).
  */
 export const validateCsrf = (req: Request, res: Response, next: NextFunction): void => {
   // Skip CSRF validation for GET, HEAD, OPTIONS (safe methods)
@@ -57,6 +58,17 @@ export const validateCsrf = (req: Request, res: Response, next: NextFunction): v
   // Skip CSRF validation for auth routes (these bootstrap the CSRF token)
   // Login, register, refresh, and silent-refresh set the CSRF cookie
   if (req.path.startsWith('/auth/')) {
+    return next();
+  }
+
+  // Skip CSRF validation for public user invitation routes
+  // These are accessed by unauthenticated users who don't have CSRF tokens
+  // Security is provided by:
+  // 1. The invitation token itself (cryptographically random, one-time use)
+  // 2. Rate limiting (20 requests per 15 minutes)
+  // 3. CORS configuration (restricts origins)
+  if (req.path.startsWith('/user-invitations/accept') ||
+      req.path.startsWith('/user-invitations/decline/')) {
     return next();
   }
 
