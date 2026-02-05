@@ -79,7 +79,7 @@ export default function TripsPage() {
   const { trips = [], totalPages = 1, total: totalTrips = 0 } = tripsData || {};
 
   // Scroll and pagination position management
-  const { savePosition, getPosition, savePageNumber, getPageNumber, setSkipNextScrollToTop } = useScrollStore();
+  const { savePosition, getPosition, savePageNumber, setSkipNextScrollToTop } = useScrollStore();
   const SCROLL_KEY = 'trips-page';
 
   // Track if we've restored scroll position (to avoid restoring on every data load)

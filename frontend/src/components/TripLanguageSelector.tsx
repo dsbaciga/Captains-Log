@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import languagePhraseService from '../services/languagePhrase.service';
 import type { AvailableLanguage, TripLanguage, LanguageCode } from '../types/languagePhrase';
 import toast from 'react-hot-toast';
@@ -16,11 +16,7 @@ export default function TripLanguageSelector({ tripId, onUpdate }: TripLanguageS
   const [adding, setAdding] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string>('');
 
-  useEffect(() => {
-    loadData();
-  }, [tripId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [available, selected] = await Promise.all([
@@ -34,7 +30,11 @@ export default function TripLanguageSelector({ tripId, onUpdate }: TripLanguageS
     } finally {
       setLoading(false);
     }
-  };
+  }, [tripId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAddLanguage = async () => {
     if (!selectedCode) return;
