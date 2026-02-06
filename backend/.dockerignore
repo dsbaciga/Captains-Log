@@ -2,8 +2,11 @@ node_modules
 npm-debug.log
 .env
 .env.local
+.env.prisma
 dist
 logs
 *.log
 .git
 .gitignore
+uploads/
+uploads/**

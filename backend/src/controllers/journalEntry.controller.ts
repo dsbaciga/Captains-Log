@@ -13,21 +13,30 @@ export const journalEntryController = {
     const userId = requireUserId(req);
     const data = createJournalEntrySchema.parse(req.body);
     const entry = await journalEntryService.createJournalEntry(userId, data);
-    res.status(201).json(entry);
+    res.status(201).json({
+      status: 'success',
+      data: entry,
+    });
   }),
 
   getJournalEntriesByTrip: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.tripId, 'tripId');
     const entries = await journalEntryService.getJournalEntriesByTrip(userId, tripId);
-    res.json(entries);
+    res.json({
+      status: 'success',
+      data: entries,
+    });
   }),
 
   getJournalEntryById: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const entryId = parseId(req.params.id);
     const entry = await journalEntryService.getJournalEntryById(userId, entryId);
-    res.json(entry);
+    res.json({
+      status: 'success',
+      data: entry,
+    });
   }),
 
   updateJournalEntry: asyncHandler(async (req: Request, res: Response) => {
@@ -35,13 +44,19 @@ export const journalEntryController = {
     const entryId = parseId(req.params.id);
     const data = updateJournalEntrySchema.parse(req.body);
     const entry = await journalEntryService.updateJournalEntry(userId, entryId, data);
-    res.json(entry);
+    res.json({
+      status: 'success',
+      data: entry,
+    });
   }),
 
   deleteJournalEntry: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const entryId = parseId(req.params.id);
-    await journalEntryService.deleteJournalEntry(userId, entryId);
-    res.status(204).send();
+    const result = await journalEntryService.deleteJournalEntry(userId, entryId);
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
   }),
 };

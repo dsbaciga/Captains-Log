@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -104,18 +104,60 @@ app.use('/api/auth', authLimiter);
 app.use('/api', limiter);
 
 // Body parsing middleware - must be BEFORE CSRF validation so req.cookies is populated
-// Increase limit from default 100kb to handle large backup restores
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+// Large limit only for backup/restore routes (which send full JSON backups)
+app.use('/api/backup', express.json({ limit: '100mb' }));
+app.use('/api/backup', express.urlencoded({ extended: true, limit: '100mb' }));
+// Reasonable default limit for all other routes
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 
 // CSRF validation for defense-in-depth (prevents cross-site request forgery)
 // Auth routes are excluded since they bootstrap the CSRF token
 import { validateCsrf } from './utils/csrf';
+import { verifyAccessToken, verifyRefreshToken } from './utils/jwt';
+import { isBlacklisted } from './services/tokenBlacklist.service';
+import { getRefreshTokenFromCookie } from './utils/cookies';
 app.use('/api', validateCsrf);
 
-// Serve uploaded files
-app.use('/uploads', express.static(config.upload.dir));
+// Authenticate access to uploaded files
+// Supports Bearer token (programmatic fetch) and refresh token cookie (browser <img> tags)
+const authenticateFileAccess = (req: Request, res: Response, next: NextFunction): void => {
+  try {
+    // Try Authorization header first (for programmatic fetch calls)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      verifyAccessToken(token);
+      next();
+      return;
+    }
+
+    // Fall back to refresh token cookie (for browser <img src> requests)
+    const refreshToken = getRefreshTokenFromCookie(req.cookies);
+    if (refreshToken && !isBlacklisted(refreshToken)) {
+      verifyRefreshToken(refreshToken);
+      next();
+      return;
+    }
+
+    // No valid authentication — return 404 to avoid leaking file existence
+    res.status(404).json({ status: 'error', message: 'Not found' });
+  } catch {
+    // Invalid/expired token — return 404 to avoid leaking file existence
+    res.status(404).json({ status: 'error', message: 'Not found' });
+  }
+};
+
+// Serve uploaded files with authentication
+app.use('/uploads', authenticateFileAccess, express.static(config.upload.dir, {
+  index: false, // Don't serve directory indexes
+}));
+
+// Catch-all for files not found under /uploads — return 404 without leaking path info
+app.use('/uploads', (_req: Request, res: Response) => {
+  res.status(404).json({ status: 'error', message: 'Not found' });
+});
 
 // Health check endpoint
 app.get('/health', async (_req, res) => {
@@ -208,5 +250,15 @@ const startServer = async () => {
 };
 
 startServer();
+
+// Global handlers for unhandled errors outside Express middleware
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.error('Unhandled promise rejection:', reason);
+});
+
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught exception — shutting down:', error);
+  process.exit(1);
+});
 
 export default app;

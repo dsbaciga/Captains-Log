@@ -19,6 +19,7 @@ import {
   SortOrder,
 } from '../types/photo.types';
 import sharp from 'sharp';
+import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
@@ -208,9 +209,8 @@ class PhotoService {
       const mediaType = isVideo ? MediaType.VIDEO : MediaType.IMAGE;
 
       // Generate unique filename
-      const timestamp = Date.now();
       const ext = path.extname(file.originalname);
-      const filename = `${timestamp}-${Math.random().toString(36).substring(7)}${ext}`;
+      const filename = `${crypto.randomUUID()}${ext}`;
 
       // Use appropriate directory based on media type
       const uploadDir = isVideo ? VIDEO_DIR : UPLOAD_DIR;

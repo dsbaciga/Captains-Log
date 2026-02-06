@@ -76,7 +76,18 @@ export const validateCsrf = (req: Request, res: Response, next: NextFunction): v
   const cookieToken = req.cookies[CSRF_COOKIE_NAME];
   const headerToken = req.headers[CSRF_HEADER_NAME];
 
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  if (!cookieToken || !headerToken || typeof cookieToken !== 'string' || typeof headerToken !== 'string') {
+    res.status(403).json({
+      status: 'error',
+      message: 'Invalid CSRF token',
+    });
+    return;
+  }
+
+  const cookieBuffer = Buffer.from(cookieToken, 'utf8');
+  const headerBuffer = Buffer.from(headerToken, 'utf8');
+
+  if (cookieBuffer.length !== headerBuffer.length || !crypto.timingSafeEqual(cookieBuffer, headerBuffer)) {
     res.status(403).json({
       status: 'error',
       message: 'Invalid CSRF token',

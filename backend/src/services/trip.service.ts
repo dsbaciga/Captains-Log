@@ -602,8 +602,14 @@ export class TripService {
     });
     const timezone = sourceTrip.timezone || user?.timezone || 'UTC';
 
+    // Pre-fetch "Myself" companion outside transaction (read-only)
+    const myselfCompanion = await companionService.getMyselfCompanion(userId);
+
+    // Wrap all writes in a transaction for atomicity - failure mid-way rolls back everything
+    const newTripId = await prisma.$transaction(async (tx) => {
+
     // Create new trip with basic info (no dates, status = Dream)
-    const newTrip = await prisma.trip.create({
+    const newTrip = await tx.trip.create({
       data: {
         userId,
         title: data.title,
@@ -630,7 +636,7 @@ export class TripService {
       // First pass: bulk insert locations without parent references
       const locationsWithoutParent = locations.filter((loc) => !loc.parentId);
       if (locationsWithoutParent.length > 0) {
-        await prisma.location.createMany({
+        await tx.location.createMany({
           data: locationsWithoutParent.map((location) => ({
             tripId: newTrip.id,
             name: location.name,
@@ -646,7 +652,7 @@ export class TripService {
         // Query back to build ID map using composite key for uniqueness
         // Note: Using name + coordinates as composite key to handle duplicate names
         // (e.g., multiple locations named "Hotel Lobby" at different coordinates)
-        const newLocations = await prisma.location.findMany({
+        const newLocations = await tx.location.findMany({
           where: { tripId: newTrip.id },
           select: { id: true, name: true, latitude: true, longitude: true },
         });
@@ -668,7 +674,7 @@ export class TripService {
       const locationsWithParent = locations.filter((loc) => loc.parentId !== null);
       for (const location of locationsWithParent) {
         const newParentId = location.parentId !== null ? locationIdMap.get(location.parentId) : undefined;
-        const newLocation = await prisma.location.create({
+        const newLocation = await tx.location.create({
           data: {
             tripId: newTrip.id,
             parentId: newParentId || null,
@@ -690,7 +696,7 @@ export class TripService {
     if (data.copyEntities?.photos && sourceTrip.photos && Array.isArray(sourceTrip.photos)) {
       const photos = sourceTrip.photos as SourcePhoto[];
       if (photos.length > 0) {
-        await prisma.photo.createMany({
+        await tx.photo.createMany({
           data: photos.map((photo) => ({
             tripId: newTrip.id,
             source: photo.source,
@@ -704,7 +710,7 @@ export class TripService {
           })),
         });
         // Query back and build ID map using localPath/immichAssetId as unique identifiers
-        const newPhotos = await prisma.photo.findMany({
+        const newPhotos = await tx.photo.findMany({
           where: { tripId: newTrip.id },
           select: { id: true, localPath: true, immichAssetId: true },
         });
@@ -723,7 +729,7 @@ export class TripService {
       // First pass: bulk insert activities without parent
       const activitiesWithoutParent = activities.filter((act) => !act.parentId);
       if (activitiesWithoutParent.length > 0) {
-        await prisma.activity.createMany({
+        await tx.activity.createMany({
           data: activitiesWithoutParent.map((activity) => ({
             tripId: newTrip.id,
             name: activity.name,
@@ -744,7 +750,7 @@ export class TripService {
         // Query back to build ID map using composite key for uniqueness
         // Note: Using name + cost + manualOrder as composite key to handle duplicate names
         // (e.g., multiple activities named "Breakfast" at different costs/order)
-        const newActivities = await prisma.activity.findMany({
+        const newActivities = await tx.activity.findMany({
           where: { tripId: newTrip.id },
           select: { id: true, name: true, cost: true, manualOrder: true },
         });
@@ -766,7 +772,7 @@ export class TripService {
       const activitiesWithParent = activities.filter((act) => act.parentId !== null);
       for (const activity of activitiesWithParent) {
         const newParentId = activity.parentId !== null ? activityIdMap.get(activity.parentId) : undefined;
-        const newActivity = await prisma.activity.create({
+        const newActivity = await tx.activity.create({
           data: {
             tripId: newTrip.id,
             parentId: newParentId || null,
@@ -793,7 +799,7 @@ export class TripService {
     if (data.copyEntities?.transportation && sourceTrip.transportation && Array.isArray(sourceTrip.transportation)) {
       const transportations = sourceTrip.transportation as SourceTransportation[];
       if (transportations.length > 0) {
-        await prisma.transportation.createMany({
+        await tx.transportation.createMany({
           data: transportations.map((transport) => ({
             tripId: newTrip.id,
             type: transport.type,
@@ -825,7 +831,7 @@ export class TripService {
           })),
         });
         // Query back and build ID map using type + referenceNumber + company as identifier
-        const newTransports = await prisma.transportation.findMany({
+        const newTransports = await tx.transportation.findMany({
           where: { tripId: newTrip.id },
           select: { id: true, type: true, referenceNumber: true, company: true, startLocationText: true },
         });
@@ -845,7 +851,7 @@ export class TripService {
     if (data.copyEntities?.lodging && sourceTrip.lodging && Array.isArray(sourceTrip.lodging)) {
       const lodgings = sourceTrip.lodging as SourceLodging[];
       if (lodgings.length > 0) {
-        await prisma.lodging.createMany({
+        await tx.lodging.createMany({
           data: lodgings.map((lodging) => ({
             tripId: newTrip.id,
             type: lodging.type,
@@ -864,7 +870,7 @@ export class TripService {
         // Query back and build ID map using composite key for uniqueness
         // Note: Using name + address + confirmationNumber to handle duplicate names
         // (e.g., staying at same hotel chain in different cities)
-        const newLodgings = await prisma.lodging.findMany({
+        const newLodgings = await tx.lodging.findMany({
           where: { tripId: newTrip.id },
           select: { id: true, name: true, address: true, confirmationNumber: true },
         });
@@ -884,7 +890,7 @@ export class TripService {
     if (data.copyEntities?.journalEntries && sourceTrip.journalEntries && Array.isArray(sourceTrip.journalEntries)) {
       const journals = sourceTrip.journalEntries as SourceJournal[];
       if (journals.length > 0) {
-        await prisma.journalEntry.createMany({
+        await tx.journalEntry.createMany({
           data: journals.map((journal) => ({
             tripId: newTrip.id,
             date: null,
@@ -898,7 +904,7 @@ export class TripService {
         // Query back and build ID map using composite key for uniqueness
         // Note: Using title + entryType + content prefix to handle duplicate titles
         // (e.g., multiple journal entries titled "Day 1" with different content)
-        const newJournals = await prisma.journalEntry.findMany({
+        const newJournals = await tx.journalEntry.findMany({
           where: { tripId: newTrip.id },
           select: { id: true, title: true, entryType: true, content: true },
         });
@@ -919,7 +925,7 @@ export class TripService {
       const albums = sourceTrip.photoAlbums as SourceAlbum[];
       if (albums.length > 0) {
         // Create albums without cover photos first
-        await prisma.photoAlbum.createMany({
+        await tx.photoAlbum.createMany({
           data: albums.map((album) => ({
             tripId: newTrip.id,
             name: album.name,
@@ -929,7 +935,7 @@ export class TripService {
         });
         // Query back and build ID map using composite key for uniqueness
         // Note: Using name + description prefix to handle duplicate album names
-        const newAlbums = await prisma.photoAlbum.findMany({
+        const newAlbums = await tx.photoAlbum.findMany({
           where: { tripId: newTrip.id },
           select: { id: true, name: true, description: true },
         });
@@ -948,7 +954,7 @@ export class TripService {
             const newAlbumId = albumIdMap.get(album.id);
             const newCoverPhotoId = album.coverPhotoId !== null ? photoIdMap.get(album.coverPhotoId) : undefined;
             if (newAlbumId && newCoverPhotoId) {
-              return prisma.photoAlbum.update({
+              return tx.photoAlbum.update({
                 where: { id: newAlbumId },
                 data: { coverPhotoId: newCoverPhotoId },
               });
@@ -978,7 +984,7 @@ export class TripService {
           }
         }
         if (allAssignments.length > 0) {
-          await prisma.photoAlbumAssignment.createMany({ data: allAssignments });
+          await tx.photoAlbumAssignment.createMany({ data: allAssignments });
         }
       }
     }
@@ -987,7 +993,7 @@ export class TripService {
     if (data.copyEntities?.tags && sourceTrip.tagAssignments && Array.isArray(sourceTrip.tagAssignments)) {
       const tagAssignments = sourceTrip.tagAssignments as SourceTagAssignment[];
       if (tagAssignments.length > 0) {
-        await prisma.tripTagAssignment.createMany({
+        await tx.tripTagAssignment.createMany({
           data: tagAssignments.map((ta) => ({
             tripId: newTrip.id,
             tagId: ta.tagId,
@@ -1000,7 +1006,7 @@ export class TripService {
     if (data.copyEntities?.companions && sourceTrip.companionAssignments && Array.isArray(sourceTrip.companionAssignments)) {
       const companionAssignments = sourceTrip.companionAssignments as SourceCompanionAssignment[];
       if (companionAssignments.length > 0) {
-        await prisma.tripCompanion.createMany({
+        await tx.tripCompanion.createMany({
           data: companionAssignments.map((ca) => ({
             tripId: newTrip.id,
             companionId: ca.companionId,
@@ -1008,10 +1014,9 @@ export class TripService {
         });
       }
     } else {
-      // If not copying companions, add "Myself" companion by default
-      const myselfCompanion = await companionService.getMyselfCompanion(userId);
+      // If not copying companions, add "Myself" companion by default (pre-fetched above)
       if (myselfCompanion) {
-        await prisma.tripCompanion.create({
+        await tx.tripCompanion.create({
           data: {
             tripId: newTrip.id,
             companionId: myselfCompanion.id,
@@ -1025,7 +1030,7 @@ export class TripService {
       const checklists = sourceTrip.checklists as SourceChecklist[];
       if (checklists.length > 0) {
         // Create all checklists first
-        await prisma.checklist.createMany({
+        await tx.checklist.createMany({
           data: checklists.map((checklist) => ({
             userId,
             tripId: newTrip.id,
@@ -1038,7 +1043,7 @@ export class TripService {
         });
         // Query back new checklists using composite key for uniqueness
         // Note: Using name + type + description prefix to handle duplicate checklist names
-        const newChecklists = await prisma.checklist.findMany({
+        const newChecklists = await tx.checklist.findMany({
           where: { tripId: newTrip.id },
           select: { id: true, name: true, type: true, description: true },
         });
@@ -1078,13 +1083,13 @@ export class TripService {
           }
         }
         if (allItems.length > 0) {
-          await prisma.checklistItem.createMany({ data: allItems });
+          await tx.checklistItem.createMany({ data: allItems });
         }
       }
     }
 
     // Copy entity links using bulk insert (must be done after all entities are copied)
-    const entityLinks = await prisma.entityLink.findMany({
+    const entityLinks = await tx.entityLink.findMany({
       where: { tripId: sourceTripId },
     });
 
@@ -1132,12 +1137,15 @@ export class TripService {
       .filter((link): link is NonNullable<typeof link> => link !== null);
 
     if (validLinks.length > 0) {
-      await prisma.entityLink.createMany({ data: validLinks });
+      await tx.entityLink.createMany({ data: validLinks });
     }
 
-    // Return the new trip with basic includes
+    return newTrip.id;
+    }); // End of transaction
+
+    // Return the new trip with basic includes (read outside transaction)
     const duplicatedTrip = await prisma.trip.findUnique({
-      where: { id: newTrip.id },
+      where: { id: newTripId },
       include: {
         coverPhoto: true,
         bannerPhoto: true,

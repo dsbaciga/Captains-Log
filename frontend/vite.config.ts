@@ -193,7 +193,15 @@ export default defineConfig({
         // Add hash to filenames for cache busting
         entryFileNames: `assets/[name].[hash].js`,
         chunkFileNames: `assets/[name].[hash].js`,
-        assetFileNames: `assets/[name].[hash].[ext]`
+        assetFileNames: `assets/[name].[hash].[ext]`,
+        manualChunks: {
+          // Split large vendor libraries into separate cacheable chunks
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-leaflet': ['leaflet', 'react-leaflet'],
+          'vendor-date': ['date-fns'],
+          'vendor-tiptap': ['@tiptap/react', '@tiptap/starter-kit'],
+          'vendor-query': ['@tanstack/react-query'],
+        },
       }
     }
   }

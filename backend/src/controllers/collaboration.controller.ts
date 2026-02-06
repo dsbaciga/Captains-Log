@@ -18,7 +18,10 @@ export const collaborationController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = sendInvitationSchema.parse(req.body);
     const invitation = await collaborationService.sendInvitation(userId, tripId, data);
-    res.status(201).json(invitation);
+    res.status(201).json({
+      status: 'success',
+      data: invitation,
+    });
   }),
 
   /**
@@ -28,7 +31,10 @@ export const collaborationController = {
   getMyInvitations: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const invitations = await collaborationService.getPendingInvitationsForUser(userId);
-    res.json(invitations);
+    res.json({
+      status: 'success',
+      data: invitations,
+    });
   }),
 
   /**
@@ -38,7 +44,10 @@ export const collaborationController = {
   getInvitationByToken: asyncHandler(async (req: Request, res: Response) => {
     const { token } = req.params;
     const invitation = await collaborationService.getInvitationByToken(token);
-    res.json(invitation);
+    res.json({
+      status: 'success',
+      data: invitation,
+    });
   }),
 
   /**
@@ -49,7 +58,10 @@ export const collaborationController = {
     const userId = requireUserId(req);
     const invitationId = parseId(req.params.invitationId, 'invitationId');
     const collaborator = await collaborationService.acceptInvitation(userId, invitationId);
-    res.json(collaborator);
+    res.json({
+      status: 'success',
+      data: collaborator,
+    });
   }),
 
   /**
@@ -60,7 +72,10 @@ export const collaborationController = {
     const userId = requireUserId(req);
     const invitationId = parseId(req.params.invitationId, 'invitationId');
     const result = await collaborationService.declineInvitation(userId, invitationId);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   /**
@@ -71,7 +86,10 @@ export const collaborationController = {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.tripId, 'tripId');
     const result = await collaborationService.getCollaborators(userId, tripId);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   /**
@@ -82,7 +100,10 @@ export const collaborationController = {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.tripId, 'tripId');
     const invitations = await collaborationService.getTripInvitations(userId, tripId);
-    res.json(invitations);
+    res.json({
+      status: 'success',
+      data: invitations,
+    });
   }),
 
   /**
@@ -100,7 +121,10 @@ export const collaborationController = {
       collaboratorUserId,
       data
     );
-    res.json(collaborator);
+    res.json({
+      status: 'success',
+      data: collaborator,
+    });
   }),
 
   /**
@@ -116,7 +140,10 @@ export const collaborationController = {
       tripId,
       collaboratorUserId
     );
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   /**
@@ -128,7 +155,10 @@ export const collaborationController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const invitationId = parseId(req.params.invitationId, 'invitationId');
     const result = await collaborationService.cancelInvitation(userId, tripId, invitationId);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   /**
@@ -140,7 +170,10 @@ export const collaborationController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const invitationId = parseId(req.params.invitationId, 'invitationId');
     const invitation = await collaborationService.resendInvitation(userId, tripId, invitationId);
-    res.json(invitation);
+    res.json({
+      status: 'success',
+      data: invitation,
+    });
   }),
 
   /**
@@ -150,7 +183,10 @@ export const collaborationController = {
   getSharedTrips: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const trips = await collaborationService.getSharedTrips(userId);
-    res.json(trips);
+    res.json({
+      status: 'success',
+      data: trips,
+    });
   }),
 
   /**
@@ -161,6 +197,9 @@ export const collaborationController = {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.tripId, 'tripId');
     const result = await collaborationService.getUserPermissionLevel(userId, tripId);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 };

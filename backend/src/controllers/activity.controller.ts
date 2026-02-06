@@ -15,21 +15,30 @@ export const activityController = {
     const userId = requireUserId(req);
     const data = createActivitySchema.parse(req.body);
     const activity = await activityService.createActivity(userId, data);
-    res.status(201).json(activity);
+    res.status(201).json({
+      status: 'success',
+      data: activity,
+    });
   }),
 
   getActivitiesByTrip: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.tripId, 'tripId');
     const activities = await activityService.getActivitiesByTrip(userId, tripId);
-    res.json(activities);
+    res.json({
+      status: 'success',
+      data: activities,
+    });
   }),
 
   getActivityById: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const activityId = parseId(req.params.id);
     const activity = await activityService.getActivityById(userId, activityId);
-    res.json(activity);
+    res.json({
+      status: 'success',
+      data: activity,
+    });
   }),
 
   updateActivity: asyncHandler(async (req: Request, res: Response) => {
@@ -41,14 +50,20 @@ export const activityController = {
       activityId,
       data
     );
-    res.json(activity);
+    res.json({
+      status: 'success',
+      data: activity,
+    });
   }),
 
   deleteActivity: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const activityId = parseId(req.params.id);
-    await activityService.deleteActivity(userId, activityId);
-    res.status(204).send();
+    const result = await activityService.deleteActivity(userId, activityId);
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   bulkDeleteActivities: asyncHandler(async (req: Request, res: Response) => {
@@ -56,7 +71,10 @@ export const activityController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = bulkDeleteActivitiesSchema.parse(req.body);
     const result = await activityService.bulkDeleteActivities(userId, tripId, data);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   bulkUpdateActivities: asyncHandler(async (req: Request, res: Response) => {
@@ -64,6 +82,9 @@ export const activityController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = bulkUpdateActivitiesSchema.parse(req.body);
     const result = await activityService.bulkUpdateActivities(userId, tripId, data);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 };

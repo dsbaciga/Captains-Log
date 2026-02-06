@@ -57,7 +57,7 @@ echo "Checking for PostGIS extension..."
 if [ -n "$DATABASE_URL" ]; then
   psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
 else
-  PGPASSWORD=captains_log_password psql -h "$DB_HOST" -p "$DB_PORT" -U captains_log_user -d captains_log -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
+  echo "⚠ DATABASE_URL is not set. Cannot check PostGIS extension."
 fi
 
 # Run Prisma migrations
@@ -66,29 +66,10 @@ cd /app
 if npx prisma migrate deploy; then
   echo "✓ Migrations applied successfully."
 else
-  echo "✗ Migration deployment failed. Attempting fallback..."
-
-  # Try db push as a fallback to ensure schema matches
-  echo "Attempting prisma db push as a fallback to ensure schema matches..."
-  if npx prisma db push --accept-data-loss; then
-    echo "✓ Schema synchronized via db push."
-
-    # Try to resolve migrations so they don't block future deploys
-    if [ -n "$DATABASE_URL" ]; then
-      echo "Marking migrations as applied..."
-      for migration_dir in prisma/migrations/*/; do
-        if [ -d "$migration_dir" ]; then
-          migration_name=$(basename "$migration_dir")
-          echo "  Resolving migration: $migration_name"
-          npx prisma migrate resolve --applied "$migration_name" || echo "  Could not resolve $migration_name (may already be applied)"
-        fi
-      done
-    else
-      echo "⚠ DATABASE_URL not set, skipping migration resolve."
-    fi
-  else
-    echo "✗ Fallback failed. Application may have issues."
-  fi
+  echo "✗ Migration deployment failed. Refusing to start with inconsistent schema."
+  echo "  Please fix the migration issues manually before restarting."
+  echo "  See: https://www.prisma.io/docs/guides/deployment/deploy-database-changes-with-prisma-migrate"
+  exit 1
 fi
 
 echo "========================================="
@@ -110,7 +91,7 @@ if [ -d "$MANUAL_MIGRATIONS_DIR" ]; then
           echo "  ⚠ $migration_name had issues (may already be applied)"
         fi
       else
-        PGPASSWORD=captains_log_password psql -h "$DB_HOST" -p "$DB_PORT" -U captains_log_user -d captains_log -f "$migration_file" 2>&1 || echo "  ⚠ $migration_name had issues"
+        echo "  ⚠ DATABASE_URL is not set. Skipping manual migration: $migration_name"
       fi
     fi
   done

@@ -18,7 +18,10 @@ export const transportationController = {
       userId,
       data
     );
-    res.status(201).json(transportation);
+    res.status(201).json({
+      status: 'success',
+      data: transportation,
+    });
   }),
 
   getAllTransportation: asyncHandler(async (req: Request, res: Response) => {
@@ -26,7 +29,10 @@ export const transportationController = {
     const transportations = await transportationService.getAllTransportation(
       userId
     );
-    res.json(transportations);
+    res.json({
+      status: 'success',
+      data: transportations,
+    });
   }),
 
   getTransportationByTrip: asyncHandler(async (req: Request, res: Response) => {
@@ -36,7 +42,10 @@ export const transportationController = {
       userId,
       tripId
     );
-    res.json(transportations);
+    res.json({
+      status: 'success',
+      data: transportations,
+    });
   }),
 
   getTransportationById: asyncHandler(async (req: Request, res: Response) => {
@@ -46,7 +55,10 @@ export const transportationController = {
       userId,
       transportationId
     );
-    res.json(transportation);
+    res.json({
+      status: 'success',
+      data: transportation,
+    });
   }),
 
   updateTransportation: asyncHandler(async (req: Request, res: Response) => {
@@ -58,14 +70,20 @@ export const transportationController = {
       transportationId,
       data
     );
-    res.json(transportation);
+    res.json({
+      status: 'success',
+      data: transportation,
+    });
   }),
 
   deleteTransportation: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const transportationId = parseId(req.params.id);
-    await transportationService.deleteTransportation(userId, transportationId);
-    res.status(204).send();
+    const result = await transportationService.deleteTransportation(userId, transportationId);
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   recalculateDistances: asyncHandler(async (req: Request, res: Response) => {
@@ -77,8 +95,10 @@ export const transportationController = {
     );
     res.json({
       status: 'success',
-      message: `Recalculated distances for ${count} transportation records`,
-      count,
+      data: {
+        message: `Recalculated distances for ${count} transportation records`,
+        count,
+      },
     });
   }),
 
@@ -87,7 +107,10 @@ export const transportationController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = bulkDeleteTransportationSchema.parse(req.body);
     const result = await transportationService.bulkDeleteTransportation(userId, tripId, data);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   bulkUpdateTransportation: asyncHandler(async (req: Request, res: Response) => {
@@ -95,6 +118,9 @@ export const transportationController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = bulkUpdateTransportationSchema.parse(req.body);
     const result = await transportationService.bulkUpdateTransportation(userId, tripId, data);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 };

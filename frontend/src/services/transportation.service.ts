@@ -10,22 +10,22 @@ class TransportationService {
     data: CreateTransportationInput
   ): Promise<Transportation> {
     const response = await api.post('/transportation', data);
-    return response.data;
+    return response.data.data;
   }
 
   async getAllTransportation(): Promise<Transportation[]> {
     const response = await api.get('/transportation');
-    return response.data;
+    return response.data.data;
   }
 
   async getTransportationByTrip(tripId: number): Promise<Transportation[]> {
     const response = await api.get(`/transportation/trip/${tripId}`);
-    return response.data;
+    return response.data.data;
   }
 
   async getTransportationById(id: number): Promise<Transportation> {
     const response = await api.get(`/transportation/${id}`);
-    return response.data;
+    return response.data.data;
   }
 
   async updateTransportation(
@@ -33,7 +33,7 @@ class TransportationService {
     data: UpdateTransportationInput
   ): Promise<Transportation> {
     const response = await api.put(`/transportation/${id}`, data);
-    return response.data;
+    return response.data.data;
   }
 
   async deleteTransportation(id: number): Promise<void> {
@@ -42,12 +42,12 @@ class TransportationService {
 
   async recalculateDistancesForTrip(tripId: number): Promise<{ count: number }> {
     const response = await api.post(`/transportation/trip/${tripId}/recalculate-distances`);
-    return response.data;
+    return response.data.data;
   }
 
   async bulkDeleteTransportation(tripId: number, ids: number[]): Promise<{ success: boolean; deletedCount: number }> {
     const response = await api.delete(`/transportation/trip/${tripId}/bulk`, { data: { ids } });
-    return response.data;
+    return response.data.data;
   }
 
   async bulkUpdateTransportation(
@@ -56,7 +56,7 @@ class TransportationService {
     updates: { type?: string; carrier?: string; notes?: string }
   ): Promise<{ success: boolean; updatedCount: number }> {
     const response = await api.patch(`/transportation/trip/${tripId}/bulk`, { ids, updates });
-    return response.data;
+    return response.data.data;
   }
 }
 

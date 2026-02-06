@@ -6,19 +6,19 @@ RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first (for better layer caching)
 COPY package*.json ./
-COPY prisma ./prisma/
-COPY prisma.config.* ./
 
 # Install dependencies (including devDependencies for build)
 RUN npm ci
 
-# Copy source code
-COPY . .
-
-# Generate Prisma Client
+# Copy Prisma schema and config, then generate client
+COPY prisma ./prisma/
+COPY prisma.config.* ./
 RUN npx prisma generate
+
+# Copy rest of source code
+COPY . .
 
 # Build TypeScript
 RUN npm run build
@@ -26,9 +26,9 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install OpenSSL libraries, PostgreSQL client, and su-exec for privilege dropping
+# Install OpenSSL libraries, PostgreSQL client, ffmpeg (video thumbnails), and su-exec for privilege dropping
 # su-exec allows running the app as non-root after fixing permissions as root
-RUN apk add --no-cache openssl libc6-compat postgresql-client su-exec
+RUN apk add --no-cache openssl libc6-compat postgresql-client ffmpeg su-exec
 
 WORKDIR /app
 

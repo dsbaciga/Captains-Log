@@ -26,7 +26,16 @@ export const config = {
   baseUrl: process.env.BASE_URL || 'http://localhost:5000',
 
   // Database
-  databaseUrl: process.env.DATABASE_URL || '',
+  databaseUrl: (() => {
+    const url = process.env.DATABASE_URL;
+    if (!url) {
+      throw new Error(
+        'DATABASE_URL environment variable is required. ' +
+        'Set it in your .env file or environment variables.'
+      );
+    }
+    return url;
+  })(),
 
   // JWT
   jwt: {

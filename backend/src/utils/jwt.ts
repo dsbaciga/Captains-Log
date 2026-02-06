@@ -15,9 +15,9 @@ export const generateRefreshToken = (payload: JwtPayload): string => {
 };
 
 export const verifyAccessToken = (token: string): JwtPayload => {
-  return jwt.verify(token, config.jwt.secret) as JwtPayload;
+  return jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] }) as JwtPayload;
 };
 
 export const verifyRefreshToken = (token: string): JwtPayload => {
-  return jwt.verify(token, config.jwt.refreshSecret) as JwtPayload;
+  return jwt.verify(token, config.jwt.refreshSecret, { algorithms: ['HS256'] }) as JwtPayload;
 };
