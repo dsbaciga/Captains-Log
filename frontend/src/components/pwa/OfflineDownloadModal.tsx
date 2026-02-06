@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   ArrowDownTrayIcon,
-  XMarkIcon,
   PhotoIcon,
   PlusIcon,
   MapIcon,
@@ -96,24 +95,7 @@ export default function OfflineDownloadModal({
   const [error, setError] = useState<string | null>(null);
   const [downloadComplete, setDownloadComplete] = useState(false);
 
-  // Load size estimate and storage info when modal opens
-  useEffect(() => {
-    if (isOpen && !sizeEstimate) {
-      loadEstimate();
-    }
-    if (isOpen) {
-      loadStorageInfo();
-    }
-  }, [isOpen]);
-
-  // Use prop size estimate if provided
-  useEffect(() => {
-    if (propSizeEstimate) {
-      setSizeEstimate(propSizeEstimate);
-    }
-  }, [propSizeEstimate]);
-
-  const loadEstimate = async () => {
+  const loadEstimate = useCallback(async () => {
     try {
       setIsEstimating(true);
       const estimate = await offlineDownloadService.estimateDownloadSize(tripId);
@@ -123,7 +105,24 @@ export default function OfflineDownloadModal({
     } finally {
       setIsEstimating(false);
     }
-  };
+  }, [tripId]);
+
+  // Load size estimate and storage info when modal opens
+  useEffect(() => {
+    if (isOpen && !sizeEstimate) {
+      loadEstimate();
+    }
+    if (isOpen) {
+      loadStorageInfo();
+    }
+  }, [isOpen, loadEstimate, sizeEstimate]);
+
+  // Use prop size estimate if provided
+  useEffect(() => {
+    if (propSizeEstimate) {
+      setSizeEstimate(propSizeEstimate);
+    }
+  }, [propSizeEstimate]);
 
   const loadStorageInfo = async () => {
     try {

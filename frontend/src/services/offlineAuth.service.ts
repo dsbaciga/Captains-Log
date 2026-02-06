@@ -13,7 +13,6 @@
  */
 
 import { getDb } from '../lib/offlineDb';
-import type { User } from '../types/user';
 
 /**
  * Encryption algorithm constants

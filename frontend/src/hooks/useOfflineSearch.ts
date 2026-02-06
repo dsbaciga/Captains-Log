@@ -19,7 +19,6 @@ import searchService, { type SearchResult as OnlineSearchResult } from '../servi
 import {
   type SearchResultItem,
   type GroupedSearchResults,
-  createResultUrl,
 } from '../lib/searchIndex';
 
 // ============================================
@@ -243,7 +242,7 @@ export function useOfflineSearch(
       console.log('[useOfflineSearch] Falling back to offline search');
       await performOfflineSearch(searchQuery);
     }
-  }, []);
+  }, [performOfflineSearch]);
 
   /**
    * Performs an offline search using IndexedDB.

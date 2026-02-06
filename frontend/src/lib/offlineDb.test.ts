@@ -8,7 +8,7 @@
  *   npm install --save-dev fake-indexeddb
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 
 // Import fake-indexeddb before any IDB usage
 // This must be done at the top of the test file
@@ -27,9 +27,7 @@ import {
   STORE_NAMES,
   DB_NAME,
   DB_VERSION,
-  type TravelLifeDB,
 } from './offlineDb';
-import type { IDBPDatabase } from 'idb';
 import type {
   TripStoreValue,
   LocationStoreValue,
@@ -75,7 +73,7 @@ describe('Offline Database (IndexedDB)', () => {
     });
 
     it('should create a new instance after closeDb()', async () => {
-      const db1 = await getDb();
+      await getDb();
       closeDb();
       const db2 = await getDb();
       // Different instances but same database

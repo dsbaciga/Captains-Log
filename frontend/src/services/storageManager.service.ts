@@ -422,7 +422,7 @@ async function clearCategory(category: StorageCategory): Promise<void> {
       await caches.delete(CACHE_NAMES.mapTiles);
       break;
 
-    case 'immichCache':
+    case 'immichCache': {
       await caches.delete(CACHE_NAMES.immich);
       // Also clear IndexedDB immich cache if exists
       const db = await openDatabase();
@@ -437,8 +437,9 @@ async function clearCategory(category: StorageCategory): Promise<void> {
         db.close();
       }
       break;
+    }
 
-    case 'videoCache':
+    case 'videoCache': {
       await caches.delete(CACHE_NAMES.videos);
       // Also clear IndexedDB video cache if exists
       const videoDb = await openDatabase();
@@ -453,8 +454,9 @@ async function clearCategory(category: StorageCategory): Promise<void> {
         videoDb.close();
       }
       break;
+    }
 
-    case 'trips':
+    case 'trips': {
       // Clear trip-related stores in IndexedDB
       const tripDb = await openDatabase();
       if (tripDb) {
@@ -488,8 +490,9 @@ async function clearCategory(category: StorageCategory): Promise<void> {
         tripDb.close();
       }
       break;
+    }
 
-    case 'other':
+    case 'other': {
       // Clear sync queue, drafts, and other metadata
       const otherDb = await openDatabase();
       if (otherDb) {
@@ -520,6 +523,7 @@ async function clearCategory(category: StorageCategory): Promise<void> {
       }
       keysToRemove.forEach((key) => localStorage.removeItem(key));
       break;
+    }
   }
 }
 

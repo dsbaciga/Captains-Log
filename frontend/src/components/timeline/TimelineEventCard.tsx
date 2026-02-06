@@ -16,7 +16,6 @@ import { getFullAssetUrl } from '../../lib/config';
 import { getAccessToken } from '../../lib/axios';
 import type { TimelineEventCardProps, TimelineItem } from './types';
 import type { Activity } from '../../types/activity';
-import type { Lodging } from '../../types/lodging';
 import type { Photo } from '../../types/photo';
 
 export default function TimelineEventCard({

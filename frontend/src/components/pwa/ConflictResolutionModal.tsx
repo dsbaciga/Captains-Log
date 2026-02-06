@@ -5,7 +5,6 @@ import {
   ComputerDesktopIcon,
   ArrowsPointingInIcon,
   CheckIcon,
-  XMarkIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
@@ -14,7 +13,6 @@ import ConflictFieldDiff from './ConflictFieldDiff';
 import type {
   SyncConflict,
   ConflictResolution,
-  FieldDiff,
 } from '../../types/sync.types';
 import {
   ENTITY_TYPE_LABELS,
@@ -22,7 +20,6 @@ import {
   RESOLUTION_DESCRIPTIONS,
   getFieldDiffs,
   createMergedData,
-  formatValueForDisplay,
 } from '../../types/sync.types';
 
 export interface ConflictResolutionModalProps {

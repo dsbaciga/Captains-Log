@@ -72,7 +72,7 @@ interface TransportationFrontend {
 
 // Helper to map database fields to frontend field names
 const mapTransportationToFrontend = (t: TransportationWithRelations): TransportationFrontend => {
-  const converted = convertDecimals(t);
+  const converted = convertDecimals(t) as any;
   return {
     id: converted.id,
     tripId: converted.tripId,

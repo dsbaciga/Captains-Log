@@ -263,7 +263,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
     const backupData: BackupData = {
       version: BACKUP_VERSION,
       exportDate: new Date().toISOString(),
-      user,
+      user: user as any,
       tags,
       companions,
       locationCategories,

@@ -55,7 +55,7 @@ export default function IOSStorageWarning({
   storageManagementLink,
 }: IOSStorageWarningProps) {
   const { isIOS, isStandalone } = useIOSDetection();
-  const { usage, quota, percentUsed, isLow, usageFormatted, quotaFormatted } = useStorageEstimate();
+  const { percentUsed, isLow, usageFormatted, quotaFormatted } = useStorageEstimate();
 
   const [showStorageWarning, setShowStorageWarning] = useState(false);
   const [showEvictionWarning, setShowEvictionWarning] = useState(false);

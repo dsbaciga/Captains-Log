@@ -209,7 +209,7 @@ const TransportationItem = ({ item, timezone, showMaps }: { item: TimelineItem; 
 };
 
 // Render a single lodging item
-const LodgingItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezone?: string; showMaps?: boolean }) => {
+const LodgingItem = ({ item, timezone }: { item: TimelineItem; timezone?: string; showMaps?: boolean }) => {
   const lodging = item.data as Lodging;
   const isCheckIn = item.showCheckInTime;
   const isCheckOut = item.showCheckOutTime;

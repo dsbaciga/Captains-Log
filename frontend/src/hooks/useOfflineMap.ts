@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNetworkStatus } from './useNetworkStatus';
 import type { CacheProgress } from '../services/mapTileCache.service';
 import { mapTileCacheService } from '../services/mapTileCache.service';
-import type { BoundingBox, CoordinateLocation, TileCoord } from '../lib/tileUtils';
+import type { BoundingBox, CoordinateLocation } from '../lib/tileUtils';
 import { calculateBufferedBounds } from '../lib/tileUtils';
 
 /**

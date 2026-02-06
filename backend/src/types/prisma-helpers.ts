@@ -4,7 +4,8 @@
  * to avoid using 'any' throughout the codebase.
  */
 
-import { Prisma, Decimal } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+type Decimal = Prisma.Decimal;
 import { AxiosError } from 'axios';
 
 // =============================================================================

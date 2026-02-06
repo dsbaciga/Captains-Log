@@ -157,8 +157,8 @@ class ActivityService {
     // Note: Location association is handled via EntityLink system, not direct FK
     const updateData = buildConditionalUpdateData(data, {
       transformers: {
-        startTime: (val) => (val ? new Date(val) : null),
-        endTime: (val) => (val ? new Date(val) : null),
+        startTime: (val) => (val ? new Date(val as string) : null),
+        endTime: (val) => (val ? new Date(val as string) : null),
       },
     });
 

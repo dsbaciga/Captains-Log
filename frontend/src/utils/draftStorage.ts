@@ -15,7 +15,6 @@ import {
   clearAllDraftsForTripFromDb,
   cleanupExpiredDraftsFromDb,
   isIndexedDBAvailable,
-  type DraftRecord,
 } from '../lib/localStorageMigration';
 
 const DRAFT_PREFIX = 'travel-life-draft-';

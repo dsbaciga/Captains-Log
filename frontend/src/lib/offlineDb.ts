@@ -460,7 +460,7 @@ export async function getDb(): Promise<IDBPDatabase<TravelLifeDB>> {
 
   try {
     dbInstance = await openDB<TravelLifeDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion, newVersion, transaction) {
+      upgrade(db, oldVersion, newVersion) {
         console.log(`[OfflineDB] Upgrading from v${oldVersion} to v${newVersion}`);
 
         // ========================================
@@ -696,7 +696,7 @@ export async function getDb(): Promise<IDBPDatabase<TravelLifeDB>> {
         console.log(`[OfflineDB] Upgrade complete. Created ${db.objectStoreNames.length} stores.`);
       },
 
-      blocked(currentVersion, blockedVersion, event) {
+      blocked(currentVersion, blockedVersion) {
         console.warn(
           `[OfflineDB] Database upgrade blocked. Current: v${currentVersion}, Blocked: v${blockedVersion}`,
           'Please close other tabs using this app.'
@@ -709,7 +709,7 @@ export async function getDb(): Promise<IDBPDatabase<TravelLifeDB>> {
         );
       },
 
-      blocking(currentVersion, blockedVersion, event) {
+      blocking(currentVersion, blockedVersion) {
         console.warn(
           `[OfflineDB] This tab is blocking a database upgrade. Current: v${currentVersion}, Blocked: v${blockedVersion}`
         );

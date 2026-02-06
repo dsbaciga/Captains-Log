@@ -302,8 +302,8 @@ export class TripService {
     // Fetch trips with database-level pagination and sorting
     const [trips, total] = await Promise.all([
       prisma.trip.findMany({
-        where,
-        orderBy,
+        where: where as any,
+        orderBy: orderBy as any,
         skip,
         take: limit,
         include: {
@@ -325,7 +325,7 @@ export class TripService {
           },
         },
       }),
-      prisma.trip.count({ where }),
+      prisma.trip.count({ where: where as any }),
     ]);
 
     return {
@@ -647,7 +647,7 @@ export class TripService {
             visitDatetime: null,
             visitDurationMinutes: location.visitDurationMinutes,
             notes: location.notes,
-          })),
+          })) as any,
         });
         // Query back to build ID map using composite key for uniqueness
         // Note: Using name + coordinates as composite key to handle duplicate names
@@ -686,7 +686,7 @@ export class TripService {
             visitDatetime: null,
             visitDurationMinutes: location.visitDurationMinutes,
             notes: location.notes,
-          },
+          } as any,
         });
         locationIdMap.set(location.id, newLocation.id);
       }
@@ -707,7 +707,7 @@ export class TripService {
             latitude: photo.latitude,
             longitude: photo.longitude,
             takenAt: photo.takenAt,
-          })),
+          })) as any,
         });
         // Query back and build ID map using localPath/immichAssetId as unique identifiers
         const newPhotos = await tx.photo.findMany({
@@ -745,7 +745,7 @@ export class TripService {
             bookingReference: activity.bookingReference,
             notes: activity.notes,
             manualOrder: activity.manualOrder,
-          })),
+          })) as any,
         });
         // Query back to build ID map using composite key for uniqueness
         // Note: Using name + cost + manualOrder as composite key to handle duplicate names
@@ -789,7 +789,7 @@ export class TripService {
             bookingReference: activity.bookingReference,
             notes: activity.notes,
             manualOrder: activity.manualOrder,
-          },
+          } as any,
         });
         activityIdMap.set(activity.id, newActivity.id);
       }
@@ -797,7 +797,7 @@ export class TripService {
 
     // Copy transportation using bulk insert
     if (data.copyEntities?.transportation && sourceTrip.transportation && Array.isArray(sourceTrip.transportation)) {
-      const transportations = sourceTrip.transportation as SourceTransportation[];
+      const transportations = sourceTrip.transportation as unknown as SourceTransportation[];
       if (transportations.length > 0) {
         await tx.transportation.createMany({
           data: transportations.map((transport) => ({
@@ -828,7 +828,7 @@ export class TripService {
             calculatedDistance: transport.calculatedDistance,
             calculatedDuration: transport.calculatedDuration,
             distanceSource: transport.distanceSource,
-          })),
+          })) as any,
         });
         // Query back and build ID map using type + referenceNumber + company as identifier
         const newTransports = await tx.transportation.findMany({
@@ -865,7 +865,7 @@ export class TripService {
             cost: lodging.cost,
             currency: lodging.currency,
             notes: lodging.notes,
-          })),
+          })) as any,
         });
         // Query back and build ID map using composite key for uniqueness
         // Note: Using name + address + confirmationNumber to handle duplicate names
@@ -922,7 +922,7 @@ export class TripService {
 
     // Copy photo albums (need to process individually for photo assignments, but bulk insert assignments)
     if (data.copyEntities?.photoAlbums && sourceTrip.photoAlbums && Array.isArray(sourceTrip.photoAlbums)) {
-      const albums = sourceTrip.photoAlbums as SourceAlbum[];
+      const albums = sourceTrip.photoAlbums as unknown as SourceAlbum[];
       if (albums.length > 0) {
         // Create albums without cover photos first
         await tx.photoAlbum.createMany({
@@ -1027,7 +1027,7 @@ export class TripService {
 
     // Copy checklists (need sequential for parent-child relationship with items)
     if (data.copyEntities?.checklists && sourceTrip.checklists && Array.isArray(sourceTrip.checklists)) {
-      const checklists = sourceTrip.checklists as SourceChecklist[];
+      const checklists = sourceTrip.checklists as unknown as SourceChecklist[];
       if (checklists.length > 0) {
         // Create all checklists first
         await tx.checklist.createMany({

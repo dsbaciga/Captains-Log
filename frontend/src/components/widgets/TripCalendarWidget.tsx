@@ -6,7 +6,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import tripService from '../../services/trip.service';
-import type { Trip } from '../../types/trip';
 import { Skeleton } from '../Skeleton';
 import {
   assignTripColors,
@@ -31,7 +30,6 @@ export default function TripCalendarWidget() {
 
   useEffect(() => {
     loadTrips();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTrips = async () => {

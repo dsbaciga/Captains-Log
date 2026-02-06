@@ -162,7 +162,7 @@ class OfflineDownloadService {
    */
   async estimateDownloadSize(tripId: number): Promise<DownloadSizeEstimate> {
     // Fetch trip data to count entities
-    const [trip, locations, activities, transportation, lodging, journals, checklists, photosResult] =
+    const [, locations, activities, transportation, lodging, journals, checklists, photosResult] =
       await Promise.all([
         tripService.getTripById(tripId),
         locationService.getLocationsByTrip(tripId),
@@ -582,7 +582,7 @@ class OfflineDownloadService {
 
     // Clear map tile cache for this trip
     try {
-      const mapCache = await caches.open('map-tiles');
+      await caches.open('map-tiles');
       // Map tiles are cached by bounds, so we need to clear based on trip metadata
       // For simplicity, we'll leave this to manual cleanup or periodic purge
     } catch (error) {
