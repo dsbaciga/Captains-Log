@@ -14,7 +14,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt', // User controls when to update
+      registerType: 'autoUpdate', // Automatically activate new service worker versions
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt'],
       manifest: {
         name: 'Travel Life',
