@@ -19,6 +19,7 @@ export const postgisExtension = Prisma.defineExtension((client: PrismaClient) =>
     name: 'postgis-sync',
     query: {
       location: {
+        // @ts-expect-error -- Prisma extension callback types are incomplete in v7
         async create({ args, query }: { args: unknown; query: (args: unknown) => Promise<{ id: number; latitude: unknown; longitude: unknown }> }) {
           const result = await query(args);
           if (result.latitude !== null && result.longitude !== null) {
@@ -30,6 +31,7 @@ export const postgisExtension = Prisma.defineExtension((client: PrismaClient) =>
           }
           return result;
         },
+        // @ts-expect-error -- Prisma extension callback types are incomplete in v7
         async update({ args, query }: { args: unknown; query: (args: unknown) => Promise<{ id: number; latitude: unknown; longitude: unknown }> }) {
           const result = await query(args);
           if (result.latitude !== null && result.longitude !== null) {
@@ -49,6 +51,7 @@ export const postgisExtension = Prisma.defineExtension((client: PrismaClient) =>
         },
       },
       photo: {
+        // @ts-expect-error -- Prisma extension callback types are incomplete in v7
         async create({ args, query }: { args: unknown; query: (args: unknown) => Promise<{ id: number; latitude: unknown; longitude: unknown }> }) {
           const result = await query(args);
           if (result.latitude !== null && result.longitude !== null) {
@@ -60,6 +63,7 @@ export const postgisExtension = Prisma.defineExtension((client: PrismaClient) =>
           }
           return result;
         },
+        // @ts-expect-error -- Prisma extension callback types are incomplete in v7
         async update({ args, query }: { args: unknown; query: (args: unknown) => Promise<{ id: number; latitude: unknown; longitude: unknown }> }) {
           const result = await query(args);
           if (result.latitude !== null && result.longitude !== null) {

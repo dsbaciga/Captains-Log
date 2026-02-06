@@ -297,7 +297,7 @@ class PhotoAlbumService {
           include: {
             photo: true,
           },
-          orderBy,
+          orderBy: orderBy as any,
           skip,
           take,
         },
@@ -311,8 +311,8 @@ class PhotoAlbumService {
       throw new AppError('Album not found', 404);
     }
 
-    const loadedCount = skip + album.photoAssignments.length;
-    const totalCount = album._count.photoAssignments;
+    const loadedCount = skip + (album as any).photoAssignments.length;
+    const totalCount = (album as any)._count.photoAssignments;
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[PhotoAlbumService] getAlbumById pagination:', {
@@ -328,7 +328,7 @@ class PhotoAlbumService {
 
     return {
       ...album,
-      photoAssignments: album.photoAssignments.map((assignment) => ({
+      photoAssignments: (album as any).photoAssignments.map((assignment: any) => ({
         ...assignment,
         photo: convertPhotoDecimals(assignment.photo),
       })),

@@ -345,7 +345,7 @@ class RoutingService {
           toLon: parseFloat(cached.toLon.toString()),
           distance: parseFloat(cached.distance.toString()),
           duration: parseFloat(cached.duration.toString()),
-        };
+        } as any;
       }
 
       return null;

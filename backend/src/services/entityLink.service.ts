@@ -542,7 +542,7 @@ export const entityLinkService = {
     }
 
     const links = await prisma.entityLink.findMany({
-      where,
+      where: where as any,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
 
@@ -588,7 +588,7 @@ export const entityLinkService = {
     }
 
     const links = await prisma.entityLink.findMany({
-      where,
+      where: where as any,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
 
@@ -736,7 +736,7 @@ export const entityLinkService = {
 
     return await prisma.entityLink.update({
       where: { id: linkId },
-      data: updateData,
+      data: updateData as any,
     });
   },
 

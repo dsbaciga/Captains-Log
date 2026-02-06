@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from './errors';
-import { EntityType, Prisma, Decimal } from '@prisma/client';
+import { EntityType, Prisma } from '@prisma/client';
+type Decimal = Prisma.Decimal;
 import { PrismaModelDelegate } from '../types/prisma-helpers';
 
 /**
@@ -22,7 +23,8 @@ export type VerifiableEntityType =
   | 'lodging'
   | 'transportation'
   | 'journalEntry'
-  | 'album';
+  | 'album'
+  | 'photoAlbum';
 
 /**
  * Configuration for each entity type's Prisma model and display name
@@ -40,6 +42,7 @@ const entityConfigs: Record<VerifiableEntityType, EntityConfig> = {
   transportation: { model: 'transportation', displayName: 'Transportation' },
   journalEntry: { model: 'journalEntry', displayName: 'Journal entry' },
   album: { model: 'photoAlbum', displayName: 'Album' },
+  photoAlbum: { model: 'photoAlbum', displayName: 'Album' },
 };
 
 /**
@@ -299,14 +302,14 @@ export async function verifyEntityAccessWithPermission<T = unknown>(
     where: { id: entityId },
   });
 
-  if (!entity || !entity.tripId) {
+  if (!entity || !(entity as { tripId?: number }).tripId) {
     throw new AppError(`${config.displayName} not found`, 404);
   }
 
   // Then verify trip access with permission
   const tripAccess = await verifyTripAccessWithPermission(
     userId,
-    entity.tripId as number,
+    (entity as { tripId: number }).tripId,
     requiredPermission
   );
 

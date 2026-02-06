@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useId, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import userInvitationService from '../services/userInvitation.service';
@@ -32,23 +32,7 @@ export default function AcceptInvitePage() {
   const passwordId = useId();
   const confirmPasswordId = useId();
 
-  useEffect(() => {
-    if (!token) {
-      setError('Invalid invitation link. No token provided.');
-      setLoading(false);
-      return;
-    }
-
-    if (!isValidTokenFormat) {
-      setError('Invalid invitation link format.');
-      setLoading(false);
-      return;
-    }
-
-    loadInvitation();
-  }, [token, isValidTokenFormat]);
-
-  const loadInvitation = async () => {
+  const loadInvitation = useCallback(async () => {
     if (!token) return;
 
     try {
@@ -64,7 +48,23 @@ export default function AcceptInvitePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      setError('Invalid invitation link. No token provided.');
+      setLoading(false);
+      return;
+    }
+
+    if (!isValidTokenFormat) {
+      setError('Invalid invitation link format.');
+      setLoading(false);
+      return;
+    }
+
+    loadInvitation();
+  }, [token, isValidTokenFormat, loadInvitation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,15 +91,15 @@ export default function AcceptInvitePage() {
 
     setSubmitting(true);
     try {
-      const response = await userInvitationService.acceptInvitation({
+      await userInvitationService.acceptInvitation({
         token,
         username: username.trim(),
         email,
         password,
       });
 
-      // Log the user in
-      login(response.accessToken, response.user);
+      // Log the user in with the credentials they just created
+      await login({ username: username.trim(), password });
 
       toast.success('Account created successfully! Welcome to Travel Life!');
       navigate('/dashboard');

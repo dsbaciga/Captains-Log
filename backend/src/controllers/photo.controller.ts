@@ -101,7 +101,7 @@ export const photoController = {
     });
 
     // Add thumbnail URLs for Immich photos
-    const photosWithUrls = result.photos.map(transformPhoto);
+    const photosWithUrls = result.photos.map((photo: any) => transformPhoto(photo));
 
     res.json({
       photos: photosWithUrls,
@@ -131,7 +131,7 @@ export const photoController = {
     });
 
     // Add thumbnail URLs for Immich photos
-    const photosWithUrls = result.photos.map(transformPhoto);
+    const photosWithUrls = result.photos.map((photo: any) => transformPhoto(photo));
 
     res.json({
       photos: photosWithUrls,
@@ -202,7 +202,7 @@ export const photoController = {
     );
 
     // Transform photos for frontend
-    const photosWithUrls = result.photos.map(transformPhoto);
+    const photosWithUrls = result.photos.map((photo: any) => transformPhoto(photo));
 
     res.json({
       photos: photosWithUrls,

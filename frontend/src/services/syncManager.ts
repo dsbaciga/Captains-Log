@@ -89,7 +89,7 @@ const ENTITY_ENDPOINTS: Record<SyncEntityType, string> = {
 /**
  * Calculate delay for exponential backoff
  */
-function calculateBackoffDelay(retryCount: number): number {
+export function calculateBackoffDelay(retryCount: number): number {
   const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCount);
   // Add jitter (random factor) to prevent thundering herd
   const jitter = Math.random() * 0.3 * delay;
@@ -99,7 +99,7 @@ function calculateBackoffDelay(retryCount: number): number {
 /**
  * Delay execution
  */
-function delay(ms: number): Promise<void> {
+export function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -289,7 +289,7 @@ class SyncManager {
           } else {
             result.failed++;
           }
-        } catch (error) {
+        } catch {
           result.failed++;
         }
       }
@@ -410,6 +410,7 @@ class SyncManager {
     change: SyncOperation,
     forceOverwrite: boolean
   ): Promise<{ success: boolean }> {
+    void forceOverwrite;
     const endpoint = ENTITY_ENDPOINTS[change.entityType];
     const entityId = parseInt(change.entityId, 10);
 

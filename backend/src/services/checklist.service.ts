@@ -305,7 +305,7 @@ class ChecklistService {
     };
 
     const checklist = await prisma.checklist.create({
-      data: createData,
+      data: createData as any,
       include: {
         items: {
           orderBy: [

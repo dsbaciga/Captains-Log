@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { XMarkIcon, CheckIcon, CircleStackIcon } from '@heroicons/react/24/outline';
 import type { MigrationResult } from '../../lib/localStorageMigration';
 
@@ -40,6 +40,16 @@ export function MigrationNotice({
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
+  const handleDismiss = useCallback(() => {
+    setIsExiting(true);
+    // Wait for exit animation before hiding
+    setTimeout(() => {
+      setIsVisible(false);
+      setIsExiting(false);
+      onDismiss?.();
+    }, 200);
+  }, [onDismiss]);
+
   useEffect(() => {
     // Only show if drafts were migrated
     if (result && result.draftsMigrated > 0) {
@@ -54,17 +64,7 @@ export function MigrationNotice({
         return () => clearTimeout(timer);
       }
     }
-  }, [result, autoDismissMs]);
-
-  const handleDismiss = () => {
-    setIsExiting(true);
-    // Wait for exit animation before hiding
-    setTimeout(() => {
-      setIsVisible(false);
-      setIsExiting(false);
-      onDismiss?.();
-    }, 200);
-  };
+  }, [result, autoDismissMs, handleDismiss]);
 
   // Don't render if no result, no migrations, or not visible
   if (!result || result.draftsMigrated === 0 || !isVisible) {

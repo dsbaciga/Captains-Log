@@ -17,7 +17,7 @@ interface DayData {
 }
 
 interface VisibleTrip {
-  id: string;
+  id: number;
   title: string;
   startDate: string;
   endDate: string;

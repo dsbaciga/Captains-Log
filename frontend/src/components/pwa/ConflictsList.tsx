@@ -4,7 +4,6 @@ import {
   ChevronRightIcon,
   DevicePhoneMobileIcon,
   ComputerDesktopIcon,
-  TrashIcon,
   CheckCircleIcon,
   MapPinIcon,
   CalendarIcon,

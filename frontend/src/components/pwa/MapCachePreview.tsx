@@ -19,7 +19,6 @@ import {
 import type { CacheProgress, CacheSizeEstimate } from '../../services/mapTileCache.service';
 import { mapTileCacheService } from '../../services/mapTileCache.service';
 import { useMapTiles } from '../../hooks/useMapTiles';
-import LoadingSpinner from '../LoadingSpinner';
 
 /**
  * Props for MapCachePreview

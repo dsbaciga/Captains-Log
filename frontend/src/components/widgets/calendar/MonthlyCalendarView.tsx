@@ -33,7 +33,7 @@ export default function MonthlyCalendarView({ year, month, trips }: MonthlyCalen
 
   // Calculate trip bars for each week
   const weekTripBars = useMemo(() => {
-    return weeks.map((week, weekIndex) => {
+    return weeks.map((week) => {
       const bars: TripBar[] = [];
 
       monthTrips.forEach((trip) => {

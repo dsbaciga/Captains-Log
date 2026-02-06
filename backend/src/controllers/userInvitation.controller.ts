@@ -61,13 +61,13 @@ export const userInvitationController = {
       const accessToken = jwt.sign(
         { userId: user.id, email: user.email },
         config.jwt.secret,
-        { expiresIn: config.jwt.expiresIn }
+        { expiresIn: config.jwt.expiresIn } as any
       );
 
       const refreshToken = jwt.sign(
         { userId: user.id, email: user.email },
         config.jwt.refreshSecret,
-        { expiresIn: config.jwt.refreshExpiresIn }
+        { expiresIn: config.jwt.refreshExpiresIn } as any
       );
 
       // Set refresh token as httpOnly cookie
