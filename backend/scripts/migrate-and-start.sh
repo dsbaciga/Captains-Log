@@ -57,7 +57,7 @@ echo "Checking for PostGIS extension..."
 if [ -n "$DATABASE_URL" ]; then
   psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
 else
-  PGPASSWORD=captains_log_password psql -h "$DB_HOST" -p "$DB_PORT" -U captains_log_user -d captains_log -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || true
+  echo "⚠ DATABASE_URL not set, skipping PostGIS extension check."
 fi
 
 # Run Prisma migrations
@@ -66,29 +66,21 @@ cd /app
 if npx prisma migrate deploy; then
   echo "✓ Migrations applied successfully."
 else
-  echo "✗ Migration deployment failed. Attempting fallback..."
-
-  # Try db push as a fallback to ensure schema matches
-  echo "Attempting prisma db push as a fallback to ensure schema matches..."
-  if npx prisma db push --accept-data-loss; then
-    echo "✓ Schema synchronized via db push."
-
-    # Try to resolve migrations so they don't block future deploys
-    if [ -n "$DATABASE_URL" ]; then
-      echo "Marking migrations as applied..."
-      for migration_dir in prisma/migrations/*/; do
-        if [ -d "$migration_dir" ]; then
-          migration_name=$(basename "$migration_dir")
-          echo "  Resolving migration: $migration_name"
-          npx prisma migrate resolve --applied "$migration_name" || echo "  Could not resolve $migration_name (may already be applied)"
-        fi
-      done
-    else
-      echo "⚠ DATABASE_URL not set, skipping migration resolve."
-    fi
-  else
-    echo "✗ Fallback failed. Application may have issues."
-  fi
+  EXIT_CODE=$?
+  echo "============================================="
+  echo "✗ FATAL: Database migration failed (exit code $EXIT_CODE)."
+  echo ""
+  echo "  The application will NOT start with a mismatched schema."
+  echo ""
+  echo "  To resolve:"
+  echo "  1. Check migration status: npx prisma migrate status"
+  echo "  2. Fix the failing migration manually if needed"
+  echo "  3. If a migration is partially applied, use:"
+  echo "     npx prisma migrate resolve --rolled-back <migration_name>"
+  echo "     npx prisma migrate resolve --applied <migration_name>"
+  echo "  4. Restart the container after fixing"
+  echo "============================================="
+  exit 1
 fi
 
 echo "========================================="
@@ -110,7 +102,7 @@ if [ -d "$MANUAL_MIGRATIONS_DIR" ]; then
           echo "  ⚠ $migration_name had issues (may already be applied)"
         fi
       else
-        PGPASSWORD=captains_log_password psql -h "$DB_HOST" -p "$DB_PORT" -U captains_log_user -d captains_log -f "$migration_file" 2>&1 || echo "  ⚠ $migration_name had issues"
+        echo "  ⚠ DATABASE_URL not set, skipping manual migration: $migration_name"
       fi
     fi
   done

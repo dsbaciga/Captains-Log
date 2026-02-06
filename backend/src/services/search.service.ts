@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { GlobalSearchQuery, SearchResult } from '../types/search.types';
 import { convertDecimals } from '../utils/serviceHelpers';
+import { signUploadPath } from '../utils/signedUrl';
 
 export class SearchService {
   async globalSearch(userId: number, query: GlobalSearchQuery) {
@@ -116,7 +117,7 @@ export class SearchService {
           title: photo.caption || 'Unnamed Photo',
           subtitle: `Trip: ${photo.trip.title}`,
           url: `/trips/${photo.tripId}/photos/${photo.id}`,
-          thumbnail: photo.thumbnailPath || photo.localPath || undefined,
+          thumbnail: signUploadPath(photo.thumbnailPath || photo.localPath) || undefined,
           date: photo.takenAt?.toISOString(),
         });
       });

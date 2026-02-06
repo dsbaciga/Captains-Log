@@ -114,8 +114,26 @@ app.use(cookieParser());
 import { validateCsrf } from './utils/csrf';
 app.use('/api', validateCsrf);
 
-// Serve uploaded files
-app.use('/uploads', express.static(config.upload.dir));
+// Serve uploaded files with signed URL verification
+import path from 'path';
+import { verifySignedToken } from './utils/signedUrl';
+
+app.use('/uploads', (req, res, next) => {
+  const token = req.query.token as string;
+  const filePath = req.path; // e.g., /photos/1706000000-abc.jpg
+
+  if (!token || !verifySignedToken(`/uploads${filePath}`, token)) {
+    return res.status(403).json({ status: 'error', message: 'Forbidden: invalid or expired token' });
+  }
+
+  // Prevent path traversal attacks
+  const resolvedPath = path.resolve(config.upload.dir, '.' + filePath);
+  if (!resolvedPath.startsWith(path.resolve(config.upload.dir))) {
+    return res.status(403).json({ status: 'error', message: 'Forbidden' });
+  }
+
+  return express.static(config.upload.dir)(req, res, next);
+});
 
 // Health check endpoint
 app.get('/health', async (_req, res) => {

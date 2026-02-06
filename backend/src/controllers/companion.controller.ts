@@ -9,26 +9,36 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
 import { requireUserId } from '../utils/controllerHelpers';
 import { AppError } from '../utils/errors';
+import { signUploadPath } from '../utils/signedUrl';
+
+// Sign avatar URLs for local uploads
+function signCompanion<T extends Record<string, unknown>>(companion: T): T {
+  const avatarUrl = companion.avatarUrl as string | null | undefined;
+  if (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.startsWith('/uploads/')) {
+    return { ...companion, avatarUrl: signUploadPath(avatarUrl) };
+  }
+  return companion;
+}
 
 export const companionController = {
   createCompanion: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const data = createCompanionSchema.parse(req.body);
     const companion = await companionService.createCompanion(userId, data);
-    res.status(201).json(companion);
+    res.status(201).json(signCompanion(companion));
   }),
 
   getCompanionsByUser: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const companions = await companionService.getCompanionsByUser(userId);
-    res.json(companions);
+    res.json(companions.map(signCompanion));
   }),
 
   getCompanionById: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const companionId = parseId(req.params.id);
     const companion = await companionService.getCompanionById(userId, companionId);
-    res.json(companion);
+    res.json(signCompanion(companion));
   }),
 
   updateCompanion: asyncHandler(async (req: Request, res: Response) => {
@@ -36,7 +46,7 @@ export const companionController = {
     const companionId = parseId(req.params.id);
     const data = updateCompanionSchema.parse(req.body);
     const companion = await companionService.updateCompanion(userId, companionId, data);
-    res.json(companion);
+    res.json(signCompanion(companion));
   }),
 
   deleteCompanion: asyncHandler(async (req: Request, res: Response) => {
@@ -65,7 +75,7 @@ export const companionController = {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.tripId, 'tripId');
     const companions = await companionService.getCompanionsByTrip(userId, tripId);
-    res.json(companions);
+    res.json(companions.map(signCompanion));
   }),
 
   uploadAvatar: asyncHandler(async (req: Request, res: Response) => {
@@ -77,7 +87,7 @@ export const companionController = {
     }
 
     const companion = await companionService.uploadAvatar(userId, companionId, req.file);
-    res.json(companion);
+    res.json(signCompanion(companion));
   }),
 
   setImmichAvatar: asyncHandler(async (req: Request, res: Response) => {
@@ -90,13 +100,13 @@ export const companionController = {
     }
 
     const companion = await companionService.setImmichAvatar(userId, companionId, immichAssetId);
-    res.json(companion);
+    res.json(signCompanion(companion));
   }),
 
   deleteAvatar: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const companionId = parseId(req.params.id);
     const companion = await companionService.deleteAvatar(userId, companionId);
-    res.json(companion);
+    res.json(signCompanion(companion));
   }),
 };

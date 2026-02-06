@@ -7,7 +7,7 @@ services:
     container_name: captains-log-db
     environment:
       POSTGRES_USER: ${DB_USER:-captains_log_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-captains_log_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env.production}
       POSTGRES_DB: ${DB_NAME:-captains_log}
     ports:
       - "${DB_PORT:-5432}:5432"
@@ -31,7 +31,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: ${BACKEND_PORT:-5000}
-      DATABASE_URL: postgresql://${DB_USER:-captains_log_user}:${DB_PASSWORD:-captains_log_password}@db:5432/${DB_NAME:-captains_log}?schema=public
+      DATABASE_URL: postgresql://${DB_USER:-captains_log_user}:${DB_PASSWORD:?DB_PASSWORD must be set in .env.production}@db:5432/${DB_NAME:-captains_log}?schema=public
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       NOMINATIM_URL: ${NOMINATIM_URL:-http://nominatim:8080}

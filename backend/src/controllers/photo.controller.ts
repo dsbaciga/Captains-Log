@@ -16,8 +16,9 @@ import { AppError } from '../utils/errors';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
 import { requireUserId } from '../utils/controllerHelpers';
+import { signUploadPath } from '../utils/signedUrl';
 
-// Helper function to add Immich URLs for photos and transform album assignments
+// Helper function to add Immich URLs for photos, sign upload paths, and transform album assignments
 function transformPhoto(photo: PhotoWithOptionalAlbums): TransformedPhoto {
   const transformed: TransformedPhoto = { ...photo };
 
@@ -25,6 +26,10 @@ function transformPhoto(photo: PhotoWithOptionalAlbums): TransformedPhoto {
   if (photo.source === 'immich' && photo.immichAssetId) {
     transformed.thumbnailPath = `/api/immich/assets/${photo.immichAssetId}/thumbnail`;
     transformed.localPath = `/api/immich/assets/${photo.immichAssetId}/original`;
+  } else {
+    // Sign local upload paths so they can be accessed via the protected /uploads route
+    transformed.localPath = signUploadPath(photo.localPath);
+    transformed.thumbnailPath = signUploadPath(photo.thumbnailPath);
   }
 
   // Transform albumAssignments to albums for frontend compatibility

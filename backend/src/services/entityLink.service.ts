@@ -28,6 +28,7 @@ import type {
   EnrichedEntityLink,
   EntityLinkSummary,
 } from '../types/entityLink.types';
+import { signUploadPath } from '../utils/signedUrl';
 
 // Entity details return type
 type EntityDetails = { id: number; name?: string; title?: string; caption?: string; thumbnailPath?: string; date?: string };
@@ -50,7 +51,7 @@ const ENTITY_CONFIG: Record<EntityType, {
         where: { id: entityId },
         select: { id: true, caption: true, thumbnailPath: true },
       });
-      return photo ? { id: photo.id, caption: photo.caption || undefined, thumbnailPath: photo.thumbnailPath || undefined } : null;
+      return photo ? { id: photo.id, caption: photo.caption || undefined, thumbnailPath: signUploadPath(photo.thumbnailPath) || undefined } : null;
     },
   },
   LOCATION: {
@@ -236,7 +237,7 @@ async function batchGetEntityDetails(
           result.set(`PHOTO:${photo.id}`, {
             id: photo.id,
             caption: photo.caption || undefined,
-            thumbnailPath: photo.thumbnailPath || undefined,
+            thumbnailPath: signUploadPath(photo.thumbnailPath) || undefined,
           });
         }
         break;

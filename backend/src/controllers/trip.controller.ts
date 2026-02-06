@@ -12,6 +12,22 @@ import logger from '../config/logger';
 import { parseId } from '../utils/parseId';
 import { asyncHandler } from '../utils/asyncHandler';
 import { requireUserId } from '../utils/controllerHelpers';
+import { signUploadPath } from '../utils/signedUrl';
+
+// Sign upload paths in cover photo of trip responses
+function signTripCoverPhoto<T extends { coverPhoto?: { localPath?: string | null; thumbnailPath?: string | null; source?: string; immichAssetId?: string | null } | null }>(trip: T): T {
+  if (trip.coverPhoto && trip.coverPhoto.source !== 'immich') {
+    return {
+      ...trip,
+      coverPhoto: {
+        ...trip.coverPhoto,
+        localPath: signUploadPath(trip.coverPhoto.localPath),
+        thumbnailPath: signUploadPath(trip.coverPhoto.thumbnailPath),
+      },
+    };
+  }
+  return trip;
+}
 
 export const tripController = {
   createTrip: asyncHandler(async (req: Request, res: Response) => {
@@ -34,7 +50,10 @@ export const tripController = {
 
     res.status(200).json({
       status: 'success',
-      data: result,
+      data: {
+        ...result,
+        trips: result.trips.map(signTripCoverPhoto),
+      },
     });
   }),
 
@@ -45,7 +64,7 @@ export const tripController = {
 
     res.status(200).json({
       status: 'success',
-      data: trip,
+      data: signTripCoverPhoto(trip),
     });
   }),
 
@@ -59,7 +78,7 @@ export const tripController = {
 
     res.status(200).json({
       status: 'success',
-      data: trip,
+      data: signTripCoverPhoto(trip),
     });
   }),
 
@@ -90,7 +109,7 @@ export const tripController = {
 
     res.status(200).json({
       status: 'success',
-      data: trip,
+      data: signTripCoverPhoto(trip),
     });
   }),
 
@@ -171,7 +190,7 @@ export const tripController = {
 
     res.status(201).json({
       status: 'success',
-      data: trip,
+      data: trip ? signTripCoverPhoto(trip) : trip,
     });
   }),
 };
