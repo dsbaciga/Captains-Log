@@ -4,6 +4,7 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { asyncHandler } from '../utils/asyncHandler';
 import { requireUserId } from '../utils/controllerHelpers';
+import { validateUrlNotInternal } from '../utils/urlValidation';
 
 // Type for getAssets query options
 interface GetAssetsOptions {
@@ -29,6 +30,9 @@ async function getUserImmichSettings(userId: number) {
   if (!user?.immichApiUrl || !user?.immichApiKey) {
     throw new AppError('Immich settings not configured', 400);
   }
+
+  // Validate stored URL to prevent SSRF via previously saved internal addresses
+  await validateUrlNotInternal(user.immichApiUrl);
 
   return { apiUrl: user.immichApiUrl, apiKey: user.immichApiKey };
 }
@@ -58,6 +62,9 @@ export const immichController = {
     if (!apiUrl || !apiKey) {
       throw new AppError('API URL and API Key are required', 400);
     }
+
+    // Validate URL to prevent SSRF attacks
+    await validateUrlNotInternal(apiUrl);
 
     const isConnected = await immichService.testConnection(apiUrl, apiKey);
 

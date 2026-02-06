@@ -1,20 +1,23 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import AcceptInvitePage from './pages/AcceptInvitePage';
-import DashboardPage from './pages/DashboardPage';
-import TripsPage from './pages/TripsPage';
-import TripFormPage from './pages/TripFormPage';
-import TripDetailPage from './pages/TripDetailPage';
-import AlbumDetailPage from './pages/AlbumDetailPage';
-import GlobalAlbumsPage from './pages/GlobalAlbumsPage';
-import CompanionsPage from './pages/CompanionsPage';
-import PlacesVisitedPage from './pages/PlacesVisitedPage';
-import SettingsPage from './pages/SettingsPage';
-import ChecklistsPage from './pages/ChecklistsPage';
-import ChecklistDetailPage from './pages/ChecklistDetailPage';
+import React, { useEffect, Suspense } from 'react';
+import LoadingSpinner from './components/LoadingSpinner';
+
+// Lazy-loaded page components for route-level code splitting
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const RegisterPage = React.lazy(() => import('./pages/RegisterPage'));
+const AcceptInvitePage = React.lazy(() => import('./pages/AcceptInvitePage'));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const TripsPage = React.lazy(() => import('./pages/TripsPage'));
+const TripFormPage = React.lazy(() => import('./pages/TripFormPage'));
+const TripDetailPage = React.lazy(() => import('./pages/TripDetailPage'));
+const AlbumDetailPage = React.lazy(() => import('./pages/AlbumDetailPage'));
+const GlobalAlbumsPage = React.lazy(() => import('./pages/GlobalAlbumsPage'));
+const CompanionsPage = React.lazy(() => import('./pages/CompanionsPage'));
+const PlacesVisitedPage = React.lazy(() => import('./pages/PlacesVisitedPage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
+const ChecklistsPage = React.lazy(() => import('./pages/ChecklistsPage'));
+const ChecklistDetailPage = React.lazy(() => import('./pages/ChecklistDetailPage'));
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -134,6 +137,7 @@ function App() {
           </a>
           <Navbar />
           <main id="main-content" className="pt-16 sm:pt-20 pb-16 md:pb-0" tabIndex={-1}>
+            <Suspense fallback={<LoadingSpinner.FullPage message="Loading page..." />}>
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<LoginPage />} />
@@ -143,7 +147,9 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <DashboardPage />
+                    <ErrorBoundary>
+                      <DashboardPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -151,7 +157,9 @@ function App() {
                 path="/trips"
                 element={
                   <ProtectedRoute>
-                    <TripsPage />
+                    <ErrorBoundary>
+                      <TripsPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -159,7 +167,9 @@ function App() {
                 path="/trips/new"
                 element={
                   <ProtectedRoute>
-                    <TripFormPage />
+                    <ErrorBoundary>
+                      <TripFormPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -177,7 +187,9 @@ function App() {
                 path="/trips/:id/edit"
                 element={
                   <ProtectedRoute>
-                    <TripFormPage />
+                    <ErrorBoundary>
+                      <TripFormPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -195,7 +207,9 @@ function App() {
                 path="/albums"
                 element={
                   <ProtectedRoute>
-                    <GlobalAlbumsPage />
+                    <ErrorBoundary>
+                      <GlobalAlbumsPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -203,7 +217,9 @@ function App() {
                 path="/companions"
                 element={
                   <ProtectedRoute>
-                    <CompanionsPage />
+                    <ErrorBoundary>
+                      <CompanionsPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -211,7 +227,9 @@ function App() {
                 path="/places-visited"
                 element={
                   <ProtectedRoute>
-                    <PlacesVisitedPage />
+                    <ErrorBoundary>
+                      <PlacesVisitedPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -219,7 +237,9 @@ function App() {
                 path="/checklists"
                 element={
                   <ProtectedRoute>
-                    <ChecklistsPage />
+                    <ErrorBoundary>
+                      <ChecklistsPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -227,7 +247,9 @@ function App() {
                 path="/checklists/:id"
                 element={
                   <ProtectedRoute>
-                    <ChecklistDetailPage />
+                    <ErrorBoundary>
+                      <ChecklistDetailPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -235,11 +257,14 @@ function App() {
                 path="/settings"
                 element={
                   <ProtectedRoute>
-                    <SettingsPage />
+                    <ErrorBoundary>
+                      <SettingsPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
             </Routes>
+            </Suspense>
           </main>
           <MobileBottomNav />
         </ErrorBoundary>

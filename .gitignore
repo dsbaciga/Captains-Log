@@ -10,6 +10,7 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 .env.production
+.env.prisma
 
 # Build outputs
 dist/

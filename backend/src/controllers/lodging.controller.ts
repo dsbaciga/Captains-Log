@@ -15,21 +15,30 @@ export const lodgingController = {
     const userId = requireUserId(req);
     const data = createLodgingSchema.parse(req.body);
     const lodging = await lodgingService.createLodging(userId, data);
-    res.status(201).json(lodging);
+    res.status(201).json({
+      status: 'success',
+      data: lodging,
+    });
   }),
 
   getLodgingByTrip: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.tripId, 'tripId');
     const lodgings = await lodgingService.getLodgingByTrip(userId, tripId);
-    res.json(lodgings);
+    res.json({
+      status: 'success',
+      data: lodgings,
+    });
   }),
 
   getLodgingById: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const lodgingId = parseId(req.params.id);
     const lodging = await lodgingService.getLodgingById(userId, lodgingId);
-    res.json(lodging);
+    res.json({
+      status: 'success',
+      data: lodging,
+    });
   }),
 
   updateLodging: asyncHandler(async (req: Request, res: Response) => {
@@ -37,14 +46,20 @@ export const lodgingController = {
     const lodgingId = parseId(req.params.id);
     const data = updateLodgingSchema.parse(req.body);
     const lodging = await lodgingService.updateLodging(userId, lodgingId, data);
-    res.json(lodging);
+    res.json({
+      status: 'success',
+      data: lodging,
+    });
   }),
 
   deleteLodging: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const lodgingId = parseId(req.params.id);
-    await lodgingService.deleteLodging(userId, lodgingId);
-    res.status(204).send();
+    const result = await lodgingService.deleteLodging(userId, lodgingId);
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   bulkDeleteLodging: asyncHandler(async (req: Request, res: Response) => {
@@ -52,7 +67,10 @@ export const lodgingController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = bulkDeleteLodgingSchema.parse(req.body);
     const result = await lodgingService.bulkDeleteLodging(userId, tripId, data);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 
   bulkUpdateLodging: asyncHandler(async (req: Request, res: Response) => {
@@ -60,6 +78,9 @@ export const lodgingController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = bulkUpdateLodgingSchema.parse(req.body);
     const result = await lodgingService.bulkUpdateLodging(userId, tripId, data);
-    res.json(result);
+    res.json({
+      status: 'success',
+      data: result,
+    });
   }),
 };

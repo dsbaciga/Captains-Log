@@ -234,6 +234,7 @@ model LocationCategory {
   user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   locations Location[]
 
+  @@index([userId])
   @@map("location_categories")
 }
 
@@ -441,6 +442,8 @@ model WeatherData {
   trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
+  @@index([tripId])
+  @@index([locationId])
   @@map("weather_data")
 }
 
@@ -483,6 +486,8 @@ model Checklist {
   trip  Trip?           @relation(fields: [tripId], references: [id], onDelete: Cascade)
   items ChecklistItem[]
 
+  @@index([userId])
+  @@index([tripId])
   @@map("checklists")
 }
 
@@ -501,6 +506,7 @@ model ChecklistItem {
 
   checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
 
+  @@index([checklistId])
   @@map("checklist_items")
 }
 
