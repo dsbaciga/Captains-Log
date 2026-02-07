@@ -14,6 +14,7 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { getFullAssetUrl } from "../lib/config";
 import { getAccessToken } from "../lib/axios";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 import toast from "react-hot-toast";
 
 export default function AlbumDetailPage() {
@@ -355,9 +356,9 @@ export default function AlbumDetailPage() {
                   {album.name}
                 </h1>
                 {album.description && (
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {album.description}
-                  </p>
+                  <div className="text-gray-600 dark:text-gray-400 mb-4">
+                    <MarkdownRenderer content={album.description} />
+                  </div>
                 )}
                 <div className="flex items-center gap-2">
                   <p className="text-gray-500 dark:text-gray-400">

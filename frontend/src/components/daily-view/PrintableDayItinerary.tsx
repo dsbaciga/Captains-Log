@@ -4,6 +4,7 @@ import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
 import type { WeatherDisplay } from '../../types/weather';
+import MarkdownRenderer from '../MarkdownRenderer';
 
 // Day item structure matching DailyView
 interface DayItem {
@@ -123,8 +124,8 @@ const ActivityItemPrint = ({ item, timezone }: { item: DayItem; timezone?: strin
       {activity.cost && (
         <div className="print-item-detail">Cost: {formatCost(activity.cost, activity.currency)}</div>
       )}
-      {activity.notes && <div className="print-item-notes">Notes: {activity.notes}</div>}
-      {activity.description && <div className="print-item-description">{activity.description}</div>}
+      {activity.notes && <div className="print-item-notes">Notes: <MarkdownRenderer content={activity.notes} compact /></div>}
+      {activity.description && <div className="print-item-description"><MarkdownRenderer content={activity.description} compact /></div>}
     </div>
   );
 };
@@ -170,7 +171,7 @@ const TransportationItemPrint = ({ item, timezone }: { item: DayItem; timezone?:
       {transport.cost && (
         <div className="print-item-detail">Cost: {formatCost(transport.cost, transport.currency)}</div>
       )}
-      {transport.notes && <div className="print-item-notes">Notes: {transport.notes}</div>}
+      {transport.notes && <div className="print-item-notes">Notes: <MarkdownRenderer content={transport.notes} compact /></div>}
     </div>
   );
 };
@@ -206,7 +207,7 @@ const LodgingItemPrint = ({ item, timezone }: { item: DayItem; timezone?: string
       {lodging.cost && (
         <div className="print-item-detail">Cost: {formatCost(lodging.cost, lodging.currency)}</div>
       )}
-      {lodging.notes && <div className="print-item-notes">Notes: {lodging.notes}</div>}
+      {lodging.notes && <div className="print-item-notes">Notes: <MarkdownRenderer content={lodging.notes} compact /></div>}
     </div>
   );
 };
@@ -221,7 +222,7 @@ const JournalItemPrint = ({ item }: { item: DayItem }) => {
         <span className="print-item-type">Journal Entry</span>
       </div>
       {journal.title && <div className="print-item-title">{journal.title}</div>}
-      {journal.content && <div className="print-item-description">{journal.content}</div>}
+      {journal.content && <div className="print-item-description"><MarkdownRenderer content={journal.content} compact /></div>}
     </div>
   );
 };
@@ -240,7 +241,7 @@ const LocationItemPrint = ({ item, timezone }: { item: DayItem; timezone?: strin
       <div className="print-item-title">{location.name}</div>
       {location.category && <div className="print-item-detail">Category: {location.category.name}</div>}
       {location.address && <div className="print-item-detail">Address: {location.address}</div>}
-      {location.notes && <div className="print-item-description">{location.notes}</div>}
+      {location.notes && <div className="print-item-description"><MarkdownRenderer content={location.notes} compact /></div>}
     </div>
   );
 };

@@ -529,9 +529,14 @@ export default function ActivityManager({
 
         {/* Description */}
         {activity.description && (
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2 sm:line-clamp-none">
-            {activity.description}
-          </p>
+          <>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2 sm:hidden">
+              {stripMarkdown(activity.description)}
+            </p>
+            <div className="text-gray-600 dark:text-gray-400 text-sm mb-3 hidden sm:block">
+              <MarkdownRenderer content={activity.description} compact />
+            </div>
+          </>
         )}
 
         {/* Details */}

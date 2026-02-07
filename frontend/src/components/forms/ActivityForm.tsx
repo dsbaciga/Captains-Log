@@ -619,23 +619,15 @@ export default function ActivityForm({
         badge="description, location, cost"
       >
         {/* Description */}
-        <div>
-          <label
-            htmlFor={`${formId}-description`}
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Description
-          </label>
-          <textarea
-            id={`${formId}-description`}
-            value={values.description}
-            onChange={(e) => handleChange("description", e.target.value)}
-            className="input"
-            rows={2}
-            placeholder="Activity description"
-            disabled={isSubmitting}
-          />
-        </div>
+        <MarkdownEditor
+          value={values.description}
+          onChange={(val) => handleChange("description", val)}
+          rows={2}
+          placeholder="Activity description"
+          disabled={isSubmitting}
+          label="Description"
+          compact
+        />
 
         {/* Location Section */}
         <FormSection title="Location" icon="📍">

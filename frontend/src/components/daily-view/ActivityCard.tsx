@@ -6,6 +6,7 @@ import EmbeddedLocationCard from './EmbeddedLocationCard';
 import EmbeddedAlbumCard from './EmbeddedAlbumCard';
 import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import MarkdownRenderer from '../MarkdownRenderer';
+import { stripMarkdown } from '../../utils/stripMarkdown';
 import {
   formatTime,
   formatDuration,
@@ -136,7 +137,7 @@ export default function ActivityCard({
         {/* Description */}
         {activity.description && (
           <div className="mt-3 text-gray-700 dark:text-gray-300">
-            {activity.description}
+            <MarkdownRenderer content={activity.description} compact />
           </div>
         )}
 
@@ -248,7 +249,7 @@ export default function ActivityCard({
                   </div>
                   {child.description && (
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      {child.description}
+                      {stripMarkdown(child.description)}
                     </p>
                   )}
                 </div>

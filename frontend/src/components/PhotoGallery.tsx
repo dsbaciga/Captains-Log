@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import type { Photo, PhotoAlbum } from "../types/photo";
+import { stripMarkdown } from "../utils/stripMarkdown";
 import photoService from "../services/photo.service";
 import toast from "react-hot-toast";
 import { getFullAssetUrl } from "../lib/config";
@@ -1235,8 +1236,8 @@ export default function PhotoGallery({
                         {album.name}
                       </div>
                       {album.description && (
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {album.description}
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                          {stripMarkdown(album.description)}
                         </div>
                       )}
                       <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">

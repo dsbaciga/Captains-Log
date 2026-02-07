@@ -9,7 +9,7 @@ export class SearchService {
 
     // When searching all types, fetch proportionally from each to avoid over-fetching
     // We fetch slightly more per type to handle uneven distribution
-    const entityTypes = ['trip', 'location', 'journal', 'photo'];
+    const entityTypes = ['trip', 'location', 'journal', 'photo', 'trip-series'];
     const perTypeLimit = type === 'all'
       ? Math.ceil(limit / entityTypes.length) + 2  // +2 buffer for uneven distribution
       : limit;
