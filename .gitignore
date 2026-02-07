@@ -53,3 +53,6 @@ temp/
 .gemini/
 gha-creds-*.json
 .claude/
+.claude-flow/
+.mcp.json
+.swarm/
