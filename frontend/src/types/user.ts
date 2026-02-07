@@ -3,6 +3,11 @@ export interface ActivityCategory {
   emoji: string;
 }
 
+export interface TripTypeCategory {
+  name: string;
+  emoji: string;
+}
+
 export interface User {
   id: number;
   username: string;
@@ -10,6 +15,7 @@ export interface User {
   avatarUrl: string | null;
   timezone?: string;
   activityCategories: ActivityCategory[];
+  tripTypes: TripTypeCategory[];
   dietaryPreferences: string[];
   useCustomMapStyle: boolean;
   createdAt: string;
@@ -18,6 +24,7 @@ export interface User {
 
 export interface UpdateUserSettingsInput {
   activityCategories?: ActivityCategory[];
+  tripTypes?: TripTypeCategory[];
   timezone?: string;
   dietaryPreferences?: string[];
   useCustomMapStyle?: boolean;

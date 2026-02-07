@@ -15,6 +15,9 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
+import MarkdownRenderer from "./MarkdownRenderer";
+import MarkdownEditor from "./MarkdownEditor";
+import { stripMarkdown } from "../utils/stripMarkdown";
 
 /**
  * JournalManager handles CRUD operations for trip journal entries.
@@ -149,7 +152,6 @@ export default function JournalManager({
   // Generate IDs for accessibility
   const titleFieldId = useId();
   const entryDateFieldId = useId();
-  const contentFieldId = useId();
 
   // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
   const handleEdit = useCallback((entry: JournalEntry) => {
@@ -375,27 +377,13 @@ export default function JournalManager({
             </div>
 
             <div>
-              <label
-                htmlFor={contentFieldId}
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Content *
-              </label>
-              <textarea
-                id={contentFieldId}
+              <MarkdownEditor
                 value={formValues.content}
-                onChange={(e) => setField('content', e.target.value)}
+                onChange={(val) => setField('content', val)}
                 rows={12}
-                className="input font-mono text-sm"
-                placeholder="Write your journal entry here...
-
-You can use simple formatting:
-- Line breaks for paragraphs
-- Lists with - or *
-- Emphasis with ALL CAPS
-
-Tell your story!"
-                required
+                placeholder="Write your journal entry here..."
+                label="Content"
+                required={true}
               />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {formValues.content.length} characters
@@ -470,13 +458,13 @@ Tell your story!"
                     </div>
                   </div>
 
-                  <div className="prose prose-sm max-w-none">
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                      {isExpanded
-                        ? entry.content
-                        : truncateContent(entry.content)}
+                  {isExpanded ? (
+                    <MarkdownRenderer content={entry.content} />
+                  ) : (
+                    <p className="text-gray-700 dark:text-gray-300">
+                      {stripMarkdown(truncateContent(entry.content))}
                     </p>
-                  </div>
+                  )}
 
                   {entry.content.length > 200 && (
                     <button

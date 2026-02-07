@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Trip, TripStatusType } from '../types/trip';
 import { formatTripDates, formatTripDuration } from '../utils/dateFormat';
 import { getTripStatusRibbonColor } from '../utils/statusColors';
+import { stripMarkdown } from '../utils/stripMarkdown';
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -148,6 +149,9 @@ const TripListView: React.FC<TripListViewProps> = ({
                 {renderSortIndicator('status')}
               </span>
             </th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-primary-700 dark:text-primary-200">
+              Type
+            </th>
             <th className="px-4 py-3 text-center text-sm font-semibold text-primary-700 dark:text-primary-200">
               <span className="sr-only">Locations</span>
               <MapPinIcon className="h-4 w-4 mx-auto" />
@@ -201,7 +205,7 @@ const TripListView: React.FC<TripListViewProps> = ({
                     </div>
                     {trip.description && (
                       <div className="text-sm text-primary-500 dark:text-primary-400 truncate max-w-xs">
-                        {trip.description}
+                        {stripMarkdown(trip.description)}
                       </div>
                     )}
                   </Link>
@@ -231,6 +235,22 @@ const TripListView: React.FC<TripListViewProps> = ({
                     >
                       {trip.status.replace(/_/g, ' ')}
                     </span>
+                  </Link>
+                </td>
+                <td className="px-4 py-3">
+                  <Link
+                    to={`/trips/${trip.id}`}
+                    onClick={onNavigateAway}
+                    className="block"
+                  >
+                    {trip.tripType ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 dark:bg-navy-700 text-primary-700 dark:text-primary-200">
+                        {trip.tripTypeEmoji && <span>{trip.tripTypeEmoji}</span>}
+                        {trip.tripType}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-primary-400 dark:text-primary-500">—</span>
+                    )}
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-center">

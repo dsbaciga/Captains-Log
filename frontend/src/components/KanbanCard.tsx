@@ -70,6 +70,14 @@ export default function KanbanCard({ trip, coverPhotoUrl, onNavigateAway }: Kanb
           {trip.title}
         </Link>
 
+        {/* Trip Type Badge */}
+        {trip.tripType && (
+          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-50 dark:bg-gray-600 text-primary-700 dark:text-primary-200">
+            {trip.tripTypeEmoji && <span>{trip.tripTypeEmoji}</span>}
+            {trip.tripType}
+          </span>
+        )}
+
         {/* Dates */}
         {(trip.startDate || trip.endDate) && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

@@ -25,11 +25,16 @@ export type Trip = {
   endDate: string | null;
   timezone: string | null;
   status: TripStatusType;
+  tripType: string | null;
+  tripTypeEmoji: string | null;
   privacyLevel: PrivacyLevelType;
   addToPlacesVisited: boolean;
   excludeFromAutoShare: boolean;
   coverPhotoId: number | null;
   bannerPhotoId: number | null;
+  seriesId: number | null;
+  seriesOrder: number | null;
+  series: { id: number; name: string } | null;
   createdAt: string;
   updatedAt: string;
   coverPhoto?: {
@@ -68,6 +73,9 @@ export type CreateTripInput = {
   privacyLevel?: PrivacyLevelType;
   addToPlacesVisited?: boolean;
   excludeFromAutoShare?: boolean;
+  tripType?: string | null;
+  tripTypeEmoji?: string | null;
+  seriesId?: number | null;
 };
 
 export type UpdateTripInput = Partial<CreateTripInput>;

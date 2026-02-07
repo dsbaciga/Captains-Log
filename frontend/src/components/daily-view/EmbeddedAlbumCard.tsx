@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { PhotoAlbum } from '../../types/photo';
 import { getFullAssetUrl } from '../../lib/config';
 import { getAccessToken } from '../../lib/axios';
+import { stripMarkdown } from '../../utils/stripMarkdown';
 import { getTypeColors } from './utils';
 
 interface EmbeddedAlbumCardProps {
@@ -136,7 +137,7 @@ export default function EmbeddedAlbumCard({
 
           {album.description && (
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-              {album.description}
+              {stripMarkdown(album.description)}
             </p>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { stripMarkdown } from '../utils/stripMarkdown';
 
 interface AlbumInfo {
   id: number;
@@ -39,7 +40,7 @@ export default function AssociatedAlbums({ albums, tripId, title = 'Associated A
                 </div>
                 {album.description && (
                   <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                    {album.description}
+                    {stripMarkdown(album.description)}
                   </div>
                 )}
               </div>

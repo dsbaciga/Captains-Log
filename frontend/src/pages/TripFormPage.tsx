@@ -5,9 +5,10 @@ import tripService from '../services/trip.service';
 import userService from '../services/user.service';
 import { TripStatus, PrivacyLevel } from '../types/trip';
 import type { TripStatusType, PrivacyLevelType } from '../types/trip';
-import type { TravelPartnerSettings } from '../types/user';
+import type { TravelPartnerSettings, TripTypeCategory } from '../types/user';
 import toast from 'react-hot-toast';
 import { useConfetti } from '../hooks/useConfetti';
+import MarkdownEditor from '../components/MarkdownEditor';
 
 export default function TripFormPage() {
   const { id } = useParams();
@@ -26,6 +27,9 @@ export default function TripFormPage() {
   const [status, setStatus] = useState<TripStatusType>(TripStatus.PLANNING);
   const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevelType>(PrivacyLevel.PRIVATE);
   const [excludeFromAutoShare, setExcludeFromAutoShare] = useState(false);
+  const [tripType, setTripType] = useState<string>('');
+  const [tripTypeEmoji, setTripTypeEmoji] = useState<string>('');
+  const [userTripTypes, setUserTripTypes] = useState<TripTypeCategory[]>([]);
   const [travelPartnerSettings, setTravelPartnerSettings] = useState<TravelPartnerSettings | null>(null);
 
   useEffect(() => {
@@ -36,8 +40,18 @@ export default function TripFormPage() {
     if (!isEdit) {
       loadTravelPartnerSettings();
     }
+    loadUserTripTypes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit]);
+
+  const loadUserTripTypes = async () => {
+    try {
+      const user = await userService.getMe();
+      setUserTripTypes(user.tripTypes || []);
+    } catch (error) {
+      console.error('Failed to load trip types:', error);
+    }
+  };
 
   const loadTravelPartnerSettings = async () => {
     try {
@@ -68,6 +82,8 @@ export default function TripFormPage() {
       setStatus(trip.status);
       setPrivacyLevel(trip.privacyLevel);
       setExcludeFromAutoShare(trip.excludeFromAutoShare || false);
+      setTripType(trip.tripType || '');
+      setTripTypeEmoji(trip.tripTypeEmoji || '');
       // Track original status for confetti celebration
       originalStatusRef.current = trip.status;
     } catch {
@@ -106,6 +122,8 @@ export default function TripFormPage() {
         status,
         privacyLevel,
         excludeFromAutoShare,
+        tripType: tripType || null,
+        tripTypeEmoji: tripTypeEmoji || null,
       };
 
       if (isEdit && id) {
@@ -181,16 +199,12 @@ export default function TripFormPage() {
             </div>
 
             <div>
-              <label htmlFor="description" className="label">
-                Description
-              </label>
-              <textarea
-                id="description"
+              <MarkdownEditor
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="input"
+                onChange={setDescription}
                 rows={4}
                 placeholder="Tell us about your trip..."
+                label="Description"
               />
             </div>
 
@@ -271,6 +285,35 @@ export default function TripFormPage() {
                 ))}
               </select>
             </div>
+
+            {userTripTypes.length > 0 && (
+              <div>
+                <label htmlFor="tripType" className="label">
+                  Trip Type
+                </label>
+                <select
+                  id="tripType"
+                  value={tripType}
+                  onChange={(e) => {
+                    const selectedName = e.target.value;
+                    setTripType(selectedName);
+                    const found = userTripTypes.find((t) => t.name === selectedName);
+                    setTripTypeEmoji(found ? found.emoji : '');
+                  }}
+                  className="input"
+                >
+                  <option value="">No trip type</option>
+                  {userTripTypes.map((t) => (
+                    <option key={t.name} value={t.name}>
+                      {t.emoji} {t.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Categorize your trip. Manage trip types in Settings.
+                </p>
+              </div>
+            )}
 
             <div>
               <label htmlFor="privacyLevel" className="label">

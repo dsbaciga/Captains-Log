@@ -199,7 +199,7 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-leaflet': ['leaflet', 'react-leaflet'],
           'vendor-date': ['date-fns'],
-          'vendor-tiptap': ['@tiptap/react', '@tiptap/starter-kit'],
+          'vendor-markdown': ['react-markdown', 'remark-gfm'],
           'vendor-query': ['@tanstack/react-query'],
         },
       }

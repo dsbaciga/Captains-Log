@@ -16,6 +16,7 @@ import {
 } from "../../utils/timezone";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../../utils/currencyStorage";
 import DietaryTagSelector from "../DietaryTagSelector";
+import MarkdownEditor from "../MarkdownEditor";
 
 export interface ActivityFormFields {
   name: string;
@@ -618,23 +619,15 @@ export default function ActivityForm({
         badge="description, location, cost"
       >
         {/* Description */}
-        <div>
-          <label
-            htmlFor={`${formId}-description`}
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Description
-          </label>
-          <textarea
-            id={`${formId}-description`}
-            value={values.description}
-            onChange={(e) => handleChange("description", e.target.value)}
-            className="input"
-            rows={2}
-            placeholder="Activity description"
-            disabled={isSubmitting}
-          />
-        </div>
+        <MarkdownEditor
+          value={values.description}
+          onChange={(val) => handleChange("description", val)}
+          rows={2}
+          placeholder="Activity description"
+          disabled={isSubmitting}
+          label="Description"
+          compact
+        />
 
         {/* Location Section */}
         <FormSection title="Location" icon="📍">
@@ -752,23 +745,15 @@ export default function ActivityForm({
         )}
 
         {/* Notes */}
-        <div>
-          <label
-            htmlFor={`${formId}-notes`}
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Notes
-          </label>
-          <textarea
-            id={`${formId}-notes`}
-            value={values.notes}
-            onChange={(e) => handleChange("notes", e.target.value)}
-            className="input"
-            rows={3}
-            placeholder="Additional notes..."
-            disabled={isSubmitting}
-          />
-        </div>
+        <MarkdownEditor
+          value={values.notes}
+          onChange={(val) => handleChange("notes", val)}
+          rows={3}
+          placeholder="Additional notes..."
+          disabled={isSubmitting}
+          label="Notes"
+          compact
+        />
       </CollapsibleSection>
     </form>
   );

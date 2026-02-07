@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { PhotoAlbum } from "../types/photo";
 import LinkButton from "./LinkButton";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import MarkdownEditor from "./MarkdownEditor";
 
 /** Selector for all focusable elements within a modal */
 const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -161,22 +162,14 @@ export default function AlbumModal({
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="album-description"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Description (Optional)
-            </label>
-            <textarea
-              id="album-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="input"
-              rows={3}
-              placeholder="Add a description for this album..."
-            />
-          </div>
+          <MarkdownEditor
+            value={description}
+            onChange={(val) => setDescription(val)}
+            rows={3}
+            placeholder="Add a description for this album..."
+            label="Description (Optional)"
+            compact
+          />
 
           {/* Entity Linking Section */}
           {isEdit ? (

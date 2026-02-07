@@ -20,6 +20,7 @@ model User {
   avatarUrl          String?  @map("avatar_url") @db.VarChar(500)
   timezone           String?  @default("UTC") @db.VarChar(100)
   activityCategories Json     @default("[{\"name\":\"Sightseeing\",\"emoji\":\"\ud83c\udfdb\ufe0f\"},{\"name\":\"Dining\",\"emoji\":\"\ud83c\udf7d\ufe0f\"},{\"name\":\"Adventure\",\"emoji\":\"\ud83e\uddd7\"},{\"name\":\"Entertainment\",\"emoji\":\"\ud83c\udfad\"},{\"name\":\"Shopping\",\"emoji\":\"\ud83d\udecd\ufe0f\"},{\"name\":\"Recreation\",\"emoji\":\"\u26bd\"},{\"name\":\"Cultural\",\"emoji\":\"\ud83c\udfdb\ufe0f\"},{\"name\":\"Sports\",\"emoji\":\"\ud83c\udfc5\"},{\"name\":\"Wellness\",\"emoji\":\"\ud83e\uddd8\"},{\"name\":\"Tour\",\"emoji\":\"\ud83d\udc65\"},{\"name\":\"Other\",\"emoji\":\"\ud83d\udccc\"}]") @map("activity_categories")
+  tripTypes          Json     @default("[{\"name\":\"Leisure\",\"emoji\":\"\ud83c\udfd6\ufe0f\"},{\"name\":\"Business\",\"emoji\":\"\ud83d\udcbc\"},{\"name\":\"Road Trip\",\"emoji\":\"\ud83d\ude97\"},{\"name\":\"Backpacking\",\"emoji\":\"\ud83c\udf92\"},{\"name\":\"Cruise\",\"emoji\":\"\ud83d\udea2\"},{\"name\":\"Study Abroad\",\"emoji\":\"\ud83d\udcda\"},{\"name\":\"Volunteer\",\"emoji\":\"\ud83e\udd1d\"},{\"name\":\"Pilgrimage\",\"emoji\":\"\ud83d\udd4a\ufe0f\"},{\"name\":\"Adventure\",\"emoji\":\"\ud83e\uddd7\"},{\"name\":\"Family\",\"emoji\":\"\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d\udc66\"},{\"name\":\"Honeymoon\",\"emoji\":\"\ud83d\udc95\"},{\"name\":\"Other\",\"emoji\":\"\ud83d\udccc\"}]") @map("trip_types")
   dietaryPreferences Json     @default("[]") @map("dietary_preferences")
   immichApiUrl       String?  @map("immich_api_url") @db.VarChar(500)
   immichApiKey       String?  @map("immich_api_key") @db.VarChar(500)
@@ -42,6 +43,7 @@ model User {
   checklists         Checklist[]
   invitationsSent    TripInvitation[] @relation("InvitationsSent")
   travelDocuments    TravelDocument[]
+  tripSeries         TripSeries[]
   userInvitationsSent     UserInvitation[] @relation("UserInvitationsSent")
   userInvitationsAccepted UserInvitation[] @relation("UserInvitationsAccepted")
 
@@ -62,15 +64,20 @@ model Trip {
   endDate             DateTime? @map("end_date") @db.Date
   timezone            String?  @db.VarChar(100)
   status              String   @db.VarChar(50) // Dream, Planning, Planned, In Progress, Completed, Cancelled
+  tripType            String?  @map("trip_type") @db.VarChar(100)
+  tripTypeEmoji       String?  @map("trip_type_emoji") @db.VarChar(10)
   privacyLevel        String   @map("privacy_level") @db.VarChar(50) // Private, Shared, Public
   coverPhotoId        Int?     @map("cover_photo_id")
   bannerPhotoId       Int?     @map("banner_photo_id")
   addToPlacesVisited  Boolean  @default(false) @map("add_to_places_visited")
   excludeFromAutoShare Boolean @default(false) @map("exclude_from_auto_share")
+  seriesId            Int?     @map("series_id")
+  seriesOrder         Int?     @map("series_order")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
   user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series             TripSeries?            @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   coverPhoto         Photo?                 @relation("TripCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
   bannerPhoto        Photo?                 @relation("TripBannerPhoto", fields: [bannerPhotoId], references: [id], onDelete: SetNull)
   locations          Location[]
@@ -92,7 +99,23 @@ model Trip {
 
   @@index([userId, status])
   @@index([startDate, endDate])
+  @@index([seriesId, seriesOrder])
   @@map("trips")
+}
+
+model TripSeries {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  name        String   @db.VarChar(500)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trips Trip[]
+
+  @@index([userId])
+  @@map("trip_series")
 }
 
 model TripTag {

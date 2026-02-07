@@ -14,6 +14,7 @@ import type { TripTag } from "../types/tag";
 import EmptyState, { EmptyIllustrations } from "../components/EmptyState";
 import { formatTripDates } from "../utils/dateFormat";
 import LinkButton from "../components/LinkButton";
+import { stripMarkdown } from "../utils/stripMarkdown";
 
 type SortOption =
   | "tripDate-desc"
@@ -760,7 +761,7 @@ export default function GlobalAlbumsPage() {
                                   {album.name}
                                 </h3>
                                 <p className="text-sm text-slate dark:text-warm-gray/70 line-clamp-1 h-5">
-                                  {album.description || "\u00A0"}
+                                  {album.description ? stripMarkdown(album.description) : "\u00A0"}
                                 </p>
                               </div>
                               <span className="sr-only">

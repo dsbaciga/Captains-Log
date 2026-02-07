@@ -68,6 +68,8 @@ interface TimelineProps {
   tripStartDate?: string;
   tripEndDate?: string;
   tripStatus?: string;
+  tripType?: string;
+  tripTypeEmoji?: string;
   onNavigateToTab?: (
     tab: 'activities' | 'transportation' | 'lodging' | 'journal',
     itemId?: number
@@ -85,6 +87,8 @@ const Timeline = ({
   // These props are kept for API compatibility but not currently used
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   tripStatus: _tripStatus,
+  tripType,
+  tripTypeEmoji,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onNavigateToTab: _onNavigateToTab,
   onRefresh,
@@ -1436,6 +1440,8 @@ const Timeline = ({
               tripStartDate={tripStartDate}
               tripEndDate={tripEndDate}
               tripTimezone={tripTimezone}
+              tripType={tripType}
+              tripTypeEmoji={tripTypeEmoji}
               dayGroups={dayGroups}
               unscheduled={unscheduledData}
               showMaps={printWithMaps}

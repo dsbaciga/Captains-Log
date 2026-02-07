@@ -63,6 +63,12 @@ export default function FloatingTripHeader({ trip, observeRef }: FloatingTripHea
             <h2 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white truncate">
               {trip.title}
             </h2>
+            {trip.tripType && (
+              <span className="hidden sm:inline text-xs px-2 py-0.5 rounded bg-primary-100/80 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 whitespace-nowrap">
+                {trip.tripTypeEmoji && <span className="mr-1">{trip.tripTypeEmoji}</span>}
+                {trip.tripType}
+              </span>
+            )}
             <span className="hidden sm:inline-block h-4 w-px bg-gray-300 dark:bg-gray-600" />
             <span className="hidden sm:inline text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               {formatTripDates(trip.startDate, trip.endDate)}

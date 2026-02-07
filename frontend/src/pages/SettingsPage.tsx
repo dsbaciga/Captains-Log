@@ -6,7 +6,7 @@ import apiService from "../services/api.service";
 import backupService from "../services/backup.service";
 import { useAuthStore } from "../store/authStore";
 import { useThemeStore } from "../store/themeStore";
-import type { ActivityCategory } from "../types/user";
+import type { ActivityCategory, TripTypeCategory } from "../types/user";
 import type { TripTag } from "../types/tag";
 import type { RestoreOptions } from "../types/backup";
 import toast from "react-hot-toast";
@@ -43,6 +43,11 @@ export default function SettingsPage() {
   const [categories, setCategories] = useState<ActivityCategory[]>([]);
   const [newCategory, setNewCategory] = useState("");
   const [newCategoryEmoji, setNewCategoryEmoji] = useState("😀");
+  const [tripTypes, setTripTypes] = useState<TripTypeCategory[]>([]);
+  const [newTripType, setNewTripType] = useState("");
+  const [newTripTypeEmoji, setNewTripTypeEmoji] = useState("🌍");
+  const [editingTripTypeName, setEditingTripTypeName] = useState<string | null>(null);
+  const [editingTripTypeNewName, setEditingTripTypeNewName] = useState("");
   const [timezone, setTimezone] = useState("UTC");
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
@@ -94,6 +99,7 @@ export default function SettingsPage() {
     try {
       const user = await userService.getMe();
       setCategories(user.activityCategories || []);
+      setTripTypes(user.tripTypes || []);
       setTimezone(user.timezone || "UTC");
       setDietaryPreferences(user.dietaryPreferences || []);
       setUseCustomMapStyle(user.useCustomMapStyle ?? true);
@@ -218,6 +224,96 @@ export default function SettingsPage() {
         c.name === categoryName ? { ...c, emoji: newEmoji } : c,
       ),
     );
+  };
+
+  const handleAddTripType = () => {
+    if (!newTripType.trim()) return;
+    if (
+      tripTypes.some(
+        (t) => t.name.toLowerCase() === newTripType.trim().toLowerCase(),
+      )
+    ) {
+      toast.error("Trip type already exists");
+      return;
+    }
+    setTripTypes([
+      ...tripTypes,
+      { name: newTripType.trim(), emoji: newTripTypeEmoji },
+    ]);
+    setNewTripType("");
+    setNewTripTypeEmoji("🌍");
+  };
+
+  const handleRemoveTripType = async (typeName: string) => {
+    const confirmed = await confirm({
+      title: "Delete Trip Type",
+      message: `Delete "${typeName}"? It will be removed from all trips that use it.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await userService.deleteTripType(typeName);
+      setTripTypes(result.tripTypes);
+      toast.success("Trip type deleted");
+    } catch {
+      toast.error("Failed to delete trip type");
+    }
+  };
+
+  const handleUpdateTripTypeEmoji = (
+    typeName: string,
+    newEmoji: string,
+  ) => {
+    setTripTypes(
+      tripTypes.map((t) =>
+        t.name === typeName ? { ...t, emoji: newEmoji } : t,
+      ),
+    );
+  };
+
+  const handleStartRenameTripType = (typeName: string) => {
+    setEditingTripTypeName(typeName);
+    setEditingTripTypeNewName(typeName);
+  };
+
+  const handleCancelRenameTripType = () => {
+    setEditingTripTypeName(null);
+    setEditingTripTypeNewName("");
+  };
+
+  const handleSaveRenameTripType = async (oldName: string) => {
+    const newName = editingTripTypeNewName.trim();
+    if (!newName || newName === oldName) {
+      handleCancelRenameTripType();
+      return;
+    }
+    if (tripTypes.some((t) => t.name.toLowerCase() === newName.toLowerCase() && t.name !== oldName)) {
+      toast.error("A trip type with that name already exists");
+      return;
+    }
+
+    try {
+      const result = await userService.renameTripType(oldName, newName);
+      setTripTypes(result.tripTypes);
+      setEditingTripTypeName(null);
+      setEditingTripTypeNewName("");
+      toast.success("Trip type renamed");
+    } catch {
+      toast.error("Failed to rename trip type");
+    }
+  };
+
+  const handleSaveTripTypes = async () => {
+    try {
+      await userService.updateSettings({
+        tripTypes: tripTypes,
+      });
+      toast.success("Trip types saved");
+    } catch {
+      toast.error("Failed to save trip types");
+    }
   };
 
   const handleSave = async () => {
@@ -883,6 +979,147 @@ export default function SettingsPage() {
                   className="btn btn-primary"
                 >
                   Save Settings
+                </button>
+              </div>
+            </div>
+
+            {/* Trip Types */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Trip Types
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Customize the trip types available when creating trips. Each
+                type requires a name and an emoji.
+              </p>
+
+              {/* Add New Trip Type */}
+              <div className="flex gap-2 mb-4">
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 rounded-lg px-3">
+                  <EmojiPicker
+                    value={newTripTypeEmoji}
+                    onChange={setNewTripTypeEmoji}
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={newTripType}
+                  onChange={(e) => setNewTripType(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleAddTripType()}
+                  placeholder="New trip type name"
+                  className="input flex-1"
+                />
+                <button
+                  onClick={handleAddTripType}
+                  type="button"
+                  className="btn btn-primary"
+                >
+                  Add Type
+                </button>
+              </div>
+
+              {/* Trip Types List */}
+              <div className="space-y-2">
+                {tripTypes.length === 0 ? (
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                    No trip types yet. Add your first trip type above.
+                  </p>
+                ) : (
+                  tripTypes.map((tripType) => (
+                    <div
+                      key={tripType.name}
+                      className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <EmojiPicker
+                          value={tripType.emoji}
+                          onChange={(emoji) =>
+                            handleUpdateTripTypeEmoji(tripType.name, emoji)
+                          }
+                        />
+                        {editingTripTypeName === tripType.name ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="text"
+                              value={editingTripTypeNewName}
+                              onChange={(e) =>
+                                setEditingTripTypeNewName(e.target.value)
+                              }
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter")
+                                  handleSaveRenameTripType(tripType.name);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape")
+                                  handleCancelRenameTripType();
+                              }}
+                              className="input flex-1"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() =>
+                                handleSaveRenameTripType(tripType.name)
+                              }
+                              type="button"
+                              className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 text-sm font-medium"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancelRenameTripType}
+                              type="button"
+                              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <span
+                            className="text-gray-900 dark:text-white cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
+                            onClick={() =>
+                              handleStartRenameTripType(tripType.name)
+                            }
+                            title="Click to rename"
+                          >
+                            {tripType.name}
+                          </span>
+                        )}
+                      </div>
+                      {editingTripTypeName !== tripType.name && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() =>
+                              handleStartRenameTripType(tripType.name)
+                            }
+                            type="button"
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
+                          >
+                            Rename
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleRemoveTripType(tripType.name)
+                            }
+                            type="button"
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Save Button */}
+              <div className="mt-6">
+                <button
+                  onClick={handleSaveTripTypes}
+                  type="button"
+                  className="btn btn-primary"
+                >
+                  Save Trip Types
                 </button>
               </div>
             </div>

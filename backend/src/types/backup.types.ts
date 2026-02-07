@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 // Backup file format version
 // v1.1.0 - Added travelDocuments and tripLanguages
-export const BACKUP_VERSION = '1.1.0';
+// v1.2.0 - Added tripTypes and tripSeries
+export const BACKUP_VERSION = '1.2.0';
 
 // Backup data structure schema
 export const BackupDataSchema = z.object({
@@ -13,6 +14,7 @@ export const BackupDataSchema = z.object({
     email: z.string(),
     timezone: z.string().nullable(),
     activityCategories: z.array(z.any()),
+    tripTypes: z.array(z.any()).optional(),
     immichApiUrl: z.string().nullable(),
     immichApiKey: z.string().nullable(),
     weatherApiKey: z.string().nullable(),
@@ -25,6 +27,8 @@ export const BackupDataSchema = z.object({
   checklists: z.array(z.any()),
   // Travel documents (added in v1.1.0)
   travelDocuments: z.array(z.any()).optional(),
+  // Trip series (added in v1.2.0)
+  tripSeries: z.array(z.any()).optional(),
   trips: z.array(z.any()),
 });
 

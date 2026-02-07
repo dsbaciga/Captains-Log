@@ -685,6 +685,37 @@ textarea:focus-visible {
 }
 
 /* ========================================
+   MARKDOWN PROSE STYLING
+   Travel Life theme overrides
+   ======================================== */
+
+.prose {
+  --tw-prose-links: #D97706;
+  --tw-prose-counters: #64748b;
+  --tw-prose-bullets: #64748b;
+  --tw-prose-hr: #e2e8f0;
+  --tw-prose-quotes: #64748b;
+  --tw-prose-quote-borders: #fbbf24;
+  --tw-prose-code: #D97706;
+  --tw-prose-pre-bg: #f1f5f9;
+}
+
+.dark .prose {
+  --tw-prose-links: #fbbf24;
+  --tw-prose-hr: #334155;
+  --tw-prose-quotes: #e2e8f0;
+  --tw-prose-quote-borders: #fbbf24;
+  --tw-prose-code: #fbbf24;
+  --tw-prose-pre-bg: #1e293b;
+}
+
+/* Ensure prose images don't break card layouts */
+.prose :where(img):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* ========================================
    PRINTABLE ITINERARY STYLES
    ======================================== */
 
@@ -1037,6 +1068,19 @@ textarea:focus-visible {
 
   .print-footer p {
     margin: 0;
+  }
+
+  /* Markdown prose print overrides */
+  .prose {
+    color: black !important;
+  }
+  .prose a {
+    color: black !important;
+    text-decoration: underline !important;
+  }
+  .prose pre {
+    border: 1px solid #ccc;
+    background: #f5f5f5 !important;
   }
 
   /* General print optimizations */

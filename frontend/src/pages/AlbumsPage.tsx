@@ -16,6 +16,7 @@ import PageHeader from '../components/PageHeader';
 import LinkButton from '../components/LinkButton';
 import Pagination from '../components/Pagination';
 import { PhotoIcon } from '../components/icons';
+import { stripMarkdown } from '../utils/stripMarkdown';
 
 export default function AlbumsPage() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -341,7 +342,7 @@ export default function AlbumsPage() {
                 </h3>
                 {album.description && (
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2 break-words">
-                    {album.description}
+                    {stripMarkdown(album.description)}
                   </p>
                 )}
                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">

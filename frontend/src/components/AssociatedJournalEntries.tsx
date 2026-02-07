@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { stripMarkdown } from '../utils/stripMarkdown';
 
 interface JournalEntryInfo {
   id: number;
@@ -52,7 +53,7 @@ export default function AssociatedJournalEntries({
                   </div>
                 )}
                 <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1">
-                  {journal.content}
+                  {stripMarkdown(journal.content)}
                 </div>
               </div>
               <div className="ml-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">

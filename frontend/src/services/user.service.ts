@@ -52,6 +52,16 @@ const userService = {
     return response.data;
   },
 
+  async renameTripType(oldName: string, newName: string): Promise<{ success: boolean; message: string; tripTypes: Array<{ name: string; emoji: string }> }> {
+    const response = await axios.put('/users/settings/trip-types/rename', { oldName, newName });
+    return response.data;
+  },
+
+  async deleteTripType(typeName: string): Promise<{ success: boolean; message: string; tripTypes: Array<{ name: string; emoji: string }> }> {
+    const response = await axios.delete(`/users/settings/trip-types/${encodeURIComponent(typeName)}`);
+    return response.data;
+  },
+
   async searchUsers(query: string, signal?: AbortSignal): Promise<UserSearchResult[]> {
     const response = await axios.get('/users/search', { params: { query }, signal });
     return response.data;

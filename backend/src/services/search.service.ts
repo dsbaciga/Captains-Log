@@ -9,7 +9,7 @@ export class SearchService {
 
     // When searching all types, fetch proportionally from each to avoid over-fetching
     // We fetch slightly more per type to handle uneven distribution
-    const entityTypes = ['trip', 'location', 'journal', 'photo'];
+    const entityTypes = ['trip', 'location', 'journal', 'photo', 'trip-series'];
     const perTypeLimit = type === 'all'
       ? Math.ceil(limit / entityTypes.length) + 2  // +2 buffer for uneven distribution
       : limit;
@@ -24,6 +24,7 @@ export class SearchService {
           OR: [
             { title: { contains: q, mode: 'insensitive' } },
             { description: { contains: q, mode: 'insensitive' } },
+            { tripType: { contains: q, mode: 'insensitive' } },
           ],
         },
         take: perTypeLimit,
@@ -31,11 +32,15 @@ export class SearchService {
       });
 
       trips.forEach((trip) => {
+        const subtitleParts = [trip.status];
+        if (trip.tripType) {
+          subtitleParts.push(trip.tripType);
+        }
         results.push({
           id: trip.id,
           type: 'trip',
           title: trip.title,
-          subtitle: trip.status,
+          subtitle: subtitleParts.join(' · '),
           url: `/trips/${trip.id}`,
           date: trip.startDate?.toISOString(),
         });
@@ -118,6 +123,35 @@ export class SearchService {
           url: `/trips/${photo.tripId}/photos/${photo.id}`,
           thumbnail: photo.thumbnailPath || photo.localPath || undefined,
           date: photo.takenAt?.toISOString(),
+        });
+      });
+    }
+
+    // Search for trip series
+    if (type === 'all' || type === 'trip-series') {
+      const series = await prisma.tripSeries.findMany({
+        where: {
+          userId,
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        take: perTypeLimit,
+        include: {
+          _count: { select: { trips: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      series.forEach((s) => {
+        results.push({
+          id: s.id,
+          type: 'trip-series',
+          title: s.name,
+          subtitle: `${s._count.trips} trip${s._count.trips !== 1 ? 's' : ''}`,
+          url: `/trip-series/${s.id}`,
+          date: s.updatedAt?.toISOString(),
         });
       });
     }
