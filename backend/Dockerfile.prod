@@ -52,9 +52,9 @@ COPY --from=builder /app/dist ./dist
 COPY scripts/migrate-and-start.sh /usr/local/bin/
 RUN sed -i 's/\r$//' /usr/local/bin/migrate-and-start.sh && chmod +x /usr/local/bin/migrate-and-start.sh
 
-# Create uploads and logs directories with subdirectories
+# Create uploads, logs, and data directories with subdirectories
 # These will be copied to Docker volumes on first initialization
-RUN mkdir -p /app/uploads/temp /app/uploads/photos /app/logs && chown -R node:node /app/uploads /app/logs
+RUN mkdir -p /app/uploads/temp /app/uploads/photos /app/logs /app/data && chown -R node:node /app/uploads /app/logs /app/data
 
 # NOTE: We intentionally do NOT use "USER node" here.
 # The entrypoint script runs as root to fix bind mount permissions (especially on TrueNAS),

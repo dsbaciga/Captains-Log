@@ -296,6 +296,7 @@ describe('AuthService', () => {
       username: 'testuser',
       email: 'test@example.com',
       avatarUrl: null,
+      passwordVersion: 0,
     };
 
     // AUTH-010: Refresh token rotation on refresh
@@ -314,7 +315,7 @@ describe('AuthService', () => {
 
       // Generate a valid refresh token for testing
       const { generateRefreshToken } = await import('../../utils/jwt');
-      const originalRefreshToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com' });
+      const originalRefreshToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
 
       const result = await authService.refreshToken(originalRefreshToken);
 
@@ -339,7 +340,7 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       const { generateRefreshToken } = await import('../../utils/jwt');
-      const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com' });
+      const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
 
       const result = await authService.refreshToken(validToken);
 
@@ -356,7 +357,7 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
       const { generateRefreshToken } = await import('../../utils/jwt');
-      const validToken = generateRefreshToken({ id: 999, userId: 999, email: 'deleted@example.com' });
+      const validToken = generateRefreshToken({ id: 999, userId: 999, email: 'deleted@example.com', passwordVersion: 0 });
 
       await expect(authService.refreshToken(validToken)).rejects.toThrow('Invalid refresh token');
     });
@@ -366,7 +367,7 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       const { generateRefreshToken } = await import('../../utils/jwt');
-      const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com' });
+      const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
 
       // Call refresh multiple times in quick succession
       const [result1, result2] = await Promise.all([

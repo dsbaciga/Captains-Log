@@ -71,9 +71,21 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh and rate limiting
+// Response interceptor to unwrap standardized API responses
+// Backend wraps all responses as { status: 'success', data: ... }
+// This interceptor extracts the inner `data` so services can use response.data directly
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (
+      response.data &&
+      typeof response.data === 'object' &&
+      response.data.status === 'success' &&
+      'data' in response.data
+    ) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryConfig;
 

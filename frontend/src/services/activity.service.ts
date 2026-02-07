@@ -8,17 +8,17 @@ import type {
 export const activityService = {
   async createActivity(data: CreateActivityInput): Promise<Activity> {
     const response = await axios.post('/activities', data);
-    return response.data.data;
+    return response.data;
   },
 
   async getActivitiesByTrip(tripId: number): Promise<Activity[]> {
     const response = await axios.get(`/activities/trip/${tripId}`);
-    return response.data.data;
+    return response.data;
   },
 
   async getActivityById(activityId: number): Promise<Activity> {
     const response = await axios.get(`/activities/${activityId}`);
-    return response.data.data;
+    return response.data;
   },
 
   async updateActivity(
@@ -26,7 +26,7 @@ export const activityService = {
     data: UpdateActivityInput
   ): Promise<Activity> {
     const response = await axios.put(`/activities/${activityId}`, data);
-    return response.data.data;
+    return response.data;
   },
 
   async deleteActivity(activityId: number): Promise<void> {
@@ -35,7 +35,7 @@ export const activityService = {
 
   async bulkDeleteActivities(tripId: number, ids: number[]): Promise<{ success: boolean; deletedCount: number }> {
     const response = await axios.delete(`/activities/trip/${tripId}/bulk`, { data: { ids } });
-    return response.data.data;
+    return response.data;
   },
 
   async bulkUpdateActivities(
@@ -44,7 +44,7 @@ export const activityService = {
     updates: { category?: string; notes?: string; timezone?: string }
   ): Promise<{ success: boolean; updatedCount: number }> {
     const response = await axios.patch(`/activities/trip/${tripId}/bulk`, { ids, updates });
-    return response.data.data;
+    return response.data;
   },
 };
 

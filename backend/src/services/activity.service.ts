@@ -6,9 +6,9 @@ import {
   verifyEntityInTrip,
   convertDecimals,
   buildConditionalUpdateData,
-  cleanupEntityLinks,
   verifyEntityAccessWithPermission,
 } from '../utils/serviceHelpers';
+import { deleteEntity, bulkDeleteEntities, bulkUpdateEntities } from '../utils/crudHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
@@ -37,7 +37,7 @@ class ActivityService {
         bookingUrl: data.bookingUrl || null,
         bookingReference: data.bookingReference || null,
         notes: data.notes || null,
-        dietaryTags: data.dietaryTags || null,
+        dietaryTags: data.dietaryTags ?? undefined,
       },
       include: {
         parent: {
@@ -164,7 +164,8 @@ class ActivityService {
 
     const updatedActivity = await prisma.activity.update({
       where: { id: activityId },
-      data: updateData,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
+      data: updateData as any,
       include: {
         parent: {
           select: {
@@ -179,22 +180,7 @@ class ActivityService {
   }
 
   async deleteActivity(userId: number, activityId: number) {
-    // Verify user has edit permission on the activity's trip
-    const { entity: activity } = await verifyEntityAccessWithPermission<{ tripId: number }>(
-      'activity',
-      activityId,
-      userId,
-      'edit'
-    );
-
-    // Clean up entity links before deleting
-    await cleanupEntityLinks(activity.tripId, 'ACTIVITY', activityId);
-
-    await prisma.activity.delete({
-      where: { id: activityId },
-    });
-
-    return { success: true };
+    return deleteEntity('activity', activityId, userId);
   }
 
   /**
@@ -202,36 +188,7 @@ class ActivityService {
    * Verifies edit permission for all activities before deletion
    */
   async bulkDeleteActivities(userId: number, tripId: number, data: BulkDeleteActivitiesInput) {
-    // Verify user has edit permission on the trip
-    await verifyTripAccessWithPermission(userId, tripId, 'edit');
-
-    // Verify all activities belong to this trip and user has access
-    const activities = await prisma.activity.findMany({
-      where: {
-        id: { in: data.ids },
-        tripId,
-      },
-      include: { trip: true },
-    });
-
-    if (activities.length !== data.ids.length) {
-      throw new AppError('One or more activities not found or do not belong to this trip', 404);
-    }
-
-    // Clean up entity links for all activities
-    for (const activity of activities) {
-      await cleanupEntityLinks(activity.tripId, 'ACTIVITY', activity.id);
-    }
-
-    // Delete all activities
-    const result = await prisma.activity.deleteMany({
-      where: {
-        id: { in: data.ids },
-        tripId,
-      },
-    });
-
-    return { success: true, deletedCount: result.count };
+    return bulkDeleteEntities('activity', userId, tripId, data.ids);
   }
 
   /**
@@ -239,41 +196,9 @@ class ActivityService {
    * Verifies edit permission for all activities before update
    */
   async bulkUpdateActivities(userId: number, tripId: number, data: BulkUpdateActivitiesInput) {
-    // Verify user has edit permission on the trip
-    await verifyTripAccessWithPermission(userId, tripId, 'edit');
-
-    // Verify all activities belong to this trip
-    const activities = await prisma.activity.findMany({
-      where: {
-        id: { in: data.ids },
-        tripId,
-      },
+    return bulkUpdateEntities('activity', userId, tripId, data.ids, data.updates, {
+      allowedFields: ['category', 'notes', 'timezone'],
     });
-
-    if (activities.length !== data.ids.length) {
-      throw new AppError('One or more activities not found or do not belong to this trip', 404);
-    }
-
-    // Build update data from non-undefined values
-    const updateData: Record<string, unknown> = {};
-    if (data.updates.category !== undefined) updateData.category = data.updates.category;
-    if (data.updates.notes !== undefined) updateData.notes = data.updates.notes;
-    if (data.updates.timezone !== undefined) updateData.timezone = data.updates.timezone;
-
-    if (Object.keys(updateData).length === 0) {
-      throw new AppError('No valid update fields provided', 400);
-    }
-
-    // Update all activities
-    const result = await prisma.activity.updateMany({
-      where: {
-        id: { in: data.ids },
-        tripId,
-      },
-      data: updateData,
-    });
-
-    return { success: true, updatedCount: result.count };
   }
 }
 

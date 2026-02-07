@@ -5,24 +5,8 @@ import { collaborationController } from '../controllers/collaboration.controller
 const router = Router();
 
 // ============================================================
-// User Invitations (for the logged-in user)
+// Public routes (no authentication required)
 // ============================================================
-
-/**
- * @openapi
- * /api/collaboration/invitations:
- *   get:
- *     summary: Get pending invitations for the current user
- *     tags: [Collaboration]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of pending invitations
- *       401:
- *         description: Unauthorized
- */
-router.get('/invitations', authenticate, collaborationController.getMyInvitations);
 
 /**
  * @openapi
@@ -45,6 +29,31 @@ router.get('/invitations', authenticate, collaborationController.getMyInvitation
  *         description: Invitation not found or expired
  */
 router.get('/invitations/token/:token', collaborationController.getInvitationByToken);
+
+// ============================================================
+// All routes below require authentication
+// ============================================================
+router.use(authenticate);
+
+// ============================================================
+// User Invitations (for the logged-in user)
+// ============================================================
+
+/**
+ * @openapi
+ * /api/collaboration/invitations:
+ *   get:
+ *     summary: Get pending invitations for the current user
+ *     tags: [Collaboration]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending invitations
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/invitations', collaborationController.getMyInvitations);
 
 /**
  * @openapi
@@ -69,7 +78,7 @@ router.get('/invitations/token/:token', collaborationController.getInvitationByT
  *       404:
  *         description: Invitation not found
  */
-router.post('/invitations/:invitationId/accept', authenticate, collaborationController.acceptInvitation);
+router.post('/invitations/:invitationId/accept', collaborationController.acceptInvitation);
 
 /**
  * @openapi
@@ -94,7 +103,7 @@ router.post('/invitations/:invitationId/accept', authenticate, collaborationCont
  *       404:
  *         description: Invitation not found
  */
-router.post('/invitations/:invitationId/decline', authenticate, collaborationController.declineInvitation);
+router.post('/invitations/:invitationId/decline', collaborationController.declineInvitation);
 
 // ============================================================
 // Shared Trips
@@ -115,7 +124,7 @@ router.post('/invitations/:invitationId/decline', authenticate, collaborationCon
  *       401:
  *         description: Unauthorized
  */
-router.get('/trips/shared', authenticate, collaborationController.getSharedTrips);
+router.get('/trips/shared', collaborationController.getSharedTrips);
 
 // ============================================================
 // Trip-specific collaboration management
@@ -144,7 +153,7 @@ router.get('/trips/shared', authenticate, collaborationController.getSharedTrips
  *       404:
  *         description: Trip not found
  */
-router.get('/trips/:tripId/permission', authenticate, collaborationController.getPermissionLevel);
+router.get('/trips/:tripId/permission', collaborationController.getPermissionLevel);
 
 /**
  * @openapi
@@ -171,7 +180,7 @@ router.get('/trips/:tripId/permission', authenticate, collaborationController.ge
  *       404:
  *         description: Trip not found
  */
-router.get('/trips/:tripId/collaborators', authenticate, collaborationController.getCollaborators);
+router.get('/trips/:tripId/collaborators', collaborationController.getCollaborators);
 
 /**
  * @openapi
@@ -243,8 +252,8 @@ router.get('/trips/:tripId/collaborators', authenticate, collaborationController
  *       404:
  *         description: Trip or collaborator not found
  */
-router.patch('/trips/:tripId/collaborators/:userId', authenticate, collaborationController.updateCollaborator);
-router.delete('/trips/:tripId/collaborators/:userId', authenticate, collaborationController.removeCollaborator);
+router.patch('/trips/:tripId/collaborators/:userId', collaborationController.updateCollaborator);
+router.delete('/trips/:tripId/collaborators/:userId', collaborationController.removeCollaborator);
 
 // ============================================================
 // Trip Invitations (for trip owners/admins)
@@ -317,8 +326,8 @@ router.delete('/trips/:tripId/collaborators/:userId', authenticate, collaboratio
  *       404:
  *         description: Trip not found
  */
-router.get('/trips/:tripId/invitations', authenticate, collaborationController.getTripInvitations);
-router.post('/trips/:tripId/invitations', authenticate, collaborationController.sendInvitation);
+router.get('/trips/:tripId/invitations', collaborationController.getTripInvitations);
+router.post('/trips/:tripId/invitations', collaborationController.sendInvitation);
 
 /**
  * @openapi
@@ -351,7 +360,7 @@ router.post('/trips/:tripId/invitations', authenticate, collaborationController.
  *       404:
  *         description: Trip or invitation not found
  */
-router.delete('/trips/:tripId/invitations/:invitationId', authenticate, collaborationController.cancelInvitation);
+router.delete('/trips/:tripId/invitations/:invitationId', collaborationController.cancelInvitation);
 
 /**
  * @openapi
@@ -384,6 +393,6 @@ router.delete('/trips/:tripId/invitations/:invitationId', authenticate, collabor
  *       404:
  *         description: Trip or invitation not found
  */
-router.post('/trips/:tripId/invitations/:invitationId/resend', authenticate, collaborationController.resendInvitation);
+router.post('/trips/:tripId/invitations/:invitationId/resend', collaborationController.resendInvitation);
 
 export default router;

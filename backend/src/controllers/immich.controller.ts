@@ -69,9 +69,11 @@ export const immichController = {
     const isConnected = await immichService.testConnection(apiUrl, apiKey);
 
     res.json({
-      success: true,
-      connected: isConnected,
-      message: 'Successfully connected to Immich instance',
+      status: 'success',
+      data: {
+        connected: isConnected,
+        message: 'Successfully connected to Immich instance',
+      },
     });
   }),
 
@@ -110,7 +112,7 @@ export const immichController = {
 
     const assetsWithUrls = addAssetUrls(result.assets, apiUrl, apiKey);
 
-    res.json({ assets: assetsWithUrls, total: result.total });
+    res.json({ status: 'success', data: { assets: assetsWithUrls, hasMore: result.hasMore } });
   }),
 
   /**
@@ -129,7 +131,7 @@ export const immichController = {
       fileUrl: immichService.getAssetFileUrl(apiUrl, assetId, apiKey),
     };
 
-    res.json(assetWithUrls);
+    res.json({ status: 'success', data: assetWithUrls });
   }),
 
   /**
@@ -143,7 +145,7 @@ export const immichController = {
 
     const assetsWithUrls = addAssetUrls(assets, apiUrl, apiKey);
 
-    res.json({ assets: assetsWithUrls });
+    res.json({ status: 'success', data: { assets: assetsWithUrls } });
   }),
 
   /**
@@ -156,7 +158,7 @@ export const immichController = {
     const { shared } = req.query;
     const albums = await immichService.getAlbums(apiUrl, apiKey, shared === 'true');
 
-    res.json({ albums });
+    res.json({ status: 'success', data: { albums } });
   }),
 
   /**
@@ -174,7 +176,7 @@ export const immichController = {
       assets: addAssetUrls(album.assets, apiUrl, apiKey),
     };
 
-    res.json(albumWithUrls);
+    res.json({ status: 'success', data: albumWithUrls });
   }),
 
   /**
@@ -209,7 +211,7 @@ export const immichController = {
 
     const assetsWithUrls = addAssetUrls(result.assets, apiUrl, apiKey);
 
-    res.json({ assets: assetsWithUrls, total: result.total });
+    res.json({ status: 'success', data: { assets: assetsWithUrls, hasMore: result.hasMore } });
   }),
 
   /**
@@ -224,9 +226,12 @@ export const immichController = {
     const fileUrl = immichService.getAssetFileUrl(apiUrl, assetId, apiKey);
 
     res.json({
-      assetId,
-      thumbnailUrl,
-      fileUrl,
+      status: 'success',
+      data: {
+        assetId,
+        thumbnailUrl,
+        fileUrl,
+      },
     });
   }),
 

@@ -104,6 +104,8 @@ describe('TransportationService', () => {
       haversineDistance: 90,
       source: 'route',
     });
+    // Default: trip access granted for userId=1, tripId=100
+    mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip(100, 1));
   });
 
   // Helper to create a mock location
@@ -115,11 +117,13 @@ describe('TransportationService', () => {
     longitude: new Prisma.Decimal(lng),
   });
 
-  // Helper to create a mock trip
+  // Helper to create a mock trip with collaboration-aware fields
   const createMockTrip = (id: number, userId: number) => ({
     id,
     userId,
     title: 'Test Trip',
+    privacyLevel: 'Private',
+    collaborators: [],
   });
 
   // ============================================================
@@ -147,7 +151,6 @@ describe('TransportationService', () => {
         notes: 'Window seat preferred',
       };
 
-      const mockTrip = createMockTrip(100, userId);
       const mockFromLocation = createMockLocation(1, 'JFK Airport', 40.6413, -73.7781);
       const mockToLocation = createMockLocation(2, 'LAX Airport', 33.9416, -118.4085);
 
@@ -180,7 +183,6 @@ describe('TransportationService', () => {
         flightTracking: null,
       };
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.location.findFirst
         .mockResolvedValueOnce(mockFromLocation)
         .mockResolvedValueOnce(mockToLocation);
@@ -188,9 +190,11 @@ describe('TransportationService', () => {
 
       const result = await transportationService.createTransportation(userId, input);
 
-      expect(mockPrisma.trip.findFirst).toHaveBeenCalledWith({
-        where: { id: input.tripId, userId },
-      });
+      expect(mockPrisma.trip.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: input.tripId }),
+        })
+      );
       expect(mockPrisma.transportation.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           tripId: input.tripId,
@@ -246,7 +250,6 @@ describe('TransportationService', () => {
         currency: 'USD',
       };
 
-      const mockTrip = createMockTrip(100, userId);
       const mockCreatedTransportation = {
         id: 2,
         tripId: 100,
@@ -276,7 +279,6 @@ describe('TransportationService', () => {
         flightTracking: null,
       };
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.create.mockResolvedValue(mockCreatedTransportation);
 
       const result = await transportationService.createTransportation(userId, input);
@@ -299,7 +301,6 @@ describe('TransportationService', () => {
         carrier: 'Greyhound',
       };
 
-      const mockTrip = createMockTrip(100, userId);
       const mockCreatedTransportation = {
         id: 3,
         tripId: 100,
@@ -329,7 +330,6 @@ describe('TransportationService', () => {
         flightTracking: null,
       };
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.create.mockResolvedValue(mockCreatedTransportation);
 
       const result = await transportationService.createTransportation(userId, input);
@@ -355,7 +355,6 @@ describe('TransportationService', () => {
         notes: 'Rental car - Hertz',
       };
 
-      const mockTrip = createMockTrip(100, userId);
       const mockFromLocation = createMockLocation(1, 'San Francisco', 37.7749, -122.4194);
       const mockToLocation = createMockLocation(2, 'Los Angeles', 34.0522, -118.2437);
 
@@ -388,7 +387,6 @@ describe('TransportationService', () => {
         flightTracking: null,
       };
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.location.findFirst
         .mockResolvedValueOnce(mockFromLocation)
         .mockResolvedValueOnce(mockToLocation);
@@ -412,7 +410,6 @@ describe('TransportationService', () => {
         toLocationId: 2,
       };
 
-      const mockTrip = createMockTrip(100, userId);
       const mockFromLocation = createMockLocation(1, 'Start', 37.7749, -122.4194);
       const mockToLocation = createMockLocation(2, 'End', 34.0522, -118.2437);
 
@@ -445,7 +442,6 @@ describe('TransportationService', () => {
         flightTracking: null,
       };
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.location.findFirst
         .mockResolvedValueOnce(mockFromLocation)
         .mockResolvedValueOnce(mockToLocation);
@@ -491,7 +487,6 @@ describe('TransportationService', () => {
         carrier: 'British Airways',
       };
 
-      const mockTrip = createMockTrip(100, userId);
       const mockCreatedTransportation = {
         id: 6,
         tripId: 100,
@@ -521,7 +516,6 @@ describe('TransportationService', () => {
         flightTracking: null,
       };
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.create.mockResolvedValue(mockCreatedTransportation);
 
       const result = await transportationService.createTransportation(userId, input);
@@ -546,7 +540,6 @@ describe('TransportationService', () => {
         endTimezone: 'America/New_York',
       };
 
-      const mockTrip = createMockTrip(100, userId);
       const mockCreatedTransportation = {
         id: 7,
         tripId: 100,
@@ -576,7 +569,6 @@ describe('TransportationService', () => {
         flightTracking: null,
       };
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.create.mockResolvedValue(mockCreatedTransportation);
 
       const result = await transportationService.createTransportation(userId, input);
@@ -594,7 +586,6 @@ describe('TransportationService', () => {
       const userId = 1;
       const tripId = 100;
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockTransportations = [
         {
           id: 8,
@@ -626,7 +617,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
 
       const result = await transportationService.getTransportationByTrip(userId, tripId);
@@ -638,7 +628,6 @@ describe('TransportationService', () => {
       const userId = 1;
       const tripId = 100;
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockTransportations = [
         {
           id: 9,
@@ -670,7 +659,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
 
       const result = await transportationService.getTransportationByTrip(userId, tripId);
@@ -687,7 +675,6 @@ describe('TransportationService', () => {
       const userId = 1;
       const tripId = 100;
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockFromLocation = createMockLocation(1, 'San Francisco', 37.7749, -122.4194);
       const mockToLocation = createMockLocation(2, 'Los Angeles', 34.0522, -118.2437);
 
@@ -722,7 +709,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
       mockRoutingService.calculateRoute.mockResolvedValue({
         distance: 615.5,
@@ -749,7 +735,6 @@ describe('TransportationService', () => {
       const userId = 1;
       const tripId = 100;
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockFromLocation = createMockLocation(1, 'Start', 40.7128, -74.006);
       const mockToLocation = createMockLocation(2, 'End', 40.7580, -73.9855);
 
@@ -784,7 +769,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
 
       await transportationService.getTransportationByTrip(userId, tripId);
@@ -800,7 +784,6 @@ describe('TransportationService', () => {
       const userId = 1;
       const tripId = 100;
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockFromLocation = createMockLocation(1, 'Hotel', 48.8584, 2.2945);
       const mockToLocation = createMockLocation(2, 'Cafe', 48.8606, 2.3376);
 
@@ -835,7 +818,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
 
       await transportationService.getTransportationByTrip(userId, tripId);
@@ -856,7 +838,6 @@ describe('TransportationService', () => {
       const userId = 1;
       const tripId = 100;
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockFromLocation = createMockLocation(1, 'Start', 37.7749, -122.4194);
       const mockToLocation = createMockLocation(2, 'End', 34.0522, -118.2437);
 
@@ -891,7 +872,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
       mockRoutingService.calculateRoute.mockRejectedValue(new Error('API unavailable'));
 
@@ -906,7 +886,6 @@ describe('TransportationService', () => {
       const userId = 1;
       const tripId = 100;
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockFromLocation = createMockLocation(1, 'Start', 37.7749, -122.4194);
       const mockToLocation = createMockLocation(2, 'End', 34.0522, -118.2437);
 
@@ -941,7 +920,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
 
       await transportationService.getTransportationByTrip(userId, tripId);
@@ -960,7 +938,6 @@ describe('TransportationService', () => {
       const tripId = 100;
       const connectionGroupId = 'trip-100-connection-1';
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockTransportations = [
         {
           id: 15,
@@ -1020,7 +997,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
 
       const result = await transportationService.getTransportationByTrip(userId, tripId);
@@ -1041,7 +1017,6 @@ describe('TransportationService', () => {
       const userId = 1;
       const tripId = 100;
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockFlightTracking = {
         id: 1,
         transportationId: 17,
@@ -1086,7 +1061,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
 
       const result = await transportationService.getTransportationByTrip(userId, tripId);
@@ -1116,7 +1090,6 @@ describe('TransportationService', () => {
         id: transportationId,
         tripId: 100,
         type: 'train',
-        trip: { id: 100, userId: 1 },
       };
 
       const mockUpdatedTransportation = {
@@ -1148,7 +1121,9 @@ describe('TransportationService', () => {
         flightTracking: null,
       };
 
+      // verifyEntityAccessWithPermission calls findUnique then trip.findFirst
       mockPrisma.transportation.findUnique.mockResolvedValue(mockExistingTransportation);
+      // trip.findFirst is already mocked in beforeEach
       mockPrisma.transportation.update.mockResolvedValue(mockUpdatedTransportation);
 
       const result = await transportationService.updateTransportation(
@@ -1181,21 +1156,23 @@ describe('TransportationService', () => {
       ).rejects.toThrow('Transportation not found');
     });
 
-    it('should throw error if user does not own the transportation', async () => {
+    it('should throw error if user does not have access to the trip', async () => {
       const userId = 1;
       const transportationId = 18;
 
       const mockTransportation = {
         id: transportationId,
         tripId: 100,
-        trip: { id: 100, userId: 999 }, // Different user
       };
 
+      // Entity exists
       mockPrisma.transportation.findUnique.mockResolvedValue(mockTransportation);
+      // But user has no access to the trip
+      mockPrisma.trip.findFirst.mockResolvedValue(null);
 
       await expect(
         transportationService.updateTransportation(userId, transportationId, { notes: 'Test' })
-      ).rejects.toThrow('Access denied');
+      ).rejects.toThrow('Trip not found or access denied');
     });
 
     it('should recalculate route when locations change', async () => {
@@ -1212,7 +1189,6 @@ describe('TransportationService', () => {
         type: 'car',
         startLocationId: 1,
         endLocationId: 2,
-        trip: { id: 100, userId: 1 },
       };
 
       const mockLocation5 = createMockLocation(5, 'New Start', 40.0, -74.0);
@@ -1258,10 +1234,11 @@ describe('TransportationService', () => {
         id: transportationId,
         tripId: 100,
         type: 'flight',
-        trip: { id: 100, userId: 1 },
       };
 
+      // verifyEntityAccessWithPermission calls findUnique then trip.findFirst
       mockPrisma.transportation.findUnique.mockResolvedValue(mockTransportation);
+      // trip.findFirst is already mocked in beforeEach
       mockPrisma.entityLink.deleteMany.mockResolvedValue({ count: 2 });
       mockPrisma.transportation.delete.mockResolvedValue(mockTransportation);
 
@@ -1293,21 +1270,23 @@ describe('TransportationService', () => {
       ).rejects.toThrow('Transportation not found');
     });
 
-    it('should throw error if user does not own the transportation', async () => {
+    it('should throw error if user does not have access to the trip', async () => {
       const userId = 1;
       const transportationId = 20;
 
       const mockTransportation = {
         id: transportationId,
         tripId: 100,
-        trip: { id: 100, userId: 999 },
       };
 
+      // Entity exists
       mockPrisma.transportation.findUnique.mockResolvedValue(mockTransportation);
+      // But user has no access to the trip
+      mockPrisma.trip.findFirst.mockResolvedValue(null);
 
       await expect(
         transportationService.deleteTransportation(userId, transportationId)
-      ).rejects.toThrow('Access denied');
+      ).rejects.toThrow('Trip not found or access denied');
     });
   });
 
@@ -1324,7 +1303,6 @@ describe('TransportationService', () => {
       const futureEndDate = new Date(futureDate);
       futureEndDate.setHours(futureEndDate.getHours() + 3);
 
-      const mockTrip = createMockTrip(tripId, userId);
       const mockTransportations = [
         {
           id: 21,
@@ -1356,7 +1334,6 @@ describe('TransportationService', () => {
         },
       ];
 
-      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.transportation.findMany.mockResolvedValue(mockTransportations);
 
       const result = await transportationService.getTransportationByTrip(userId, tripId);

@@ -26,9 +26,27 @@ type SortOption =
 
 // Cache cover URLs to avoid refetching across navigations
 const coverUrlCache = new Map<number, string>();
+const COVER_URL_CACHE_MAX_SIZE = 100;
+
+/** Evict oldest entries when cache exceeds max size, revoking blob URLs */
+function enforceCacheLimit() {
+  if (coverUrlCache.size <= COVER_URL_CACHE_MAX_SIZE) return;
+  const keysToEvict = Array.from(coverUrlCache.keys()).slice(
+    0,
+    coverUrlCache.size - COVER_URL_CACHE_MAX_SIZE
+  );
+  for (const key of keysToEvict) {
+    const url = coverUrlCache.get(key);
+    if (url && url.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
+    coverUrlCache.delete(key);
+  }
+}
 
 export default function GlobalAlbumsPage() {
   const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("tripDate-desc");
   const [totalPhotos, setTotalPhotos] = useState(0);
@@ -109,7 +127,10 @@ export default function GlobalAlbumsPage() {
 
   // Load cover photos with authentication for Immich photos
   useEffect(() => {
-    let cancelled = false;
+    const abortController = new AbortController();
+    // Track blob URLs created by this effect run so we can revoke them on cleanup
+    const blobUrlsCreated: string[] = [];
+
     const loadCoverPhotos = async () => {
       const token = getAccessToken();
 
@@ -145,15 +166,21 @@ export default function GlobalAlbumsPage() {
 
               const response = await fetch(fullUrl, {
                 headers: { Authorization: `Bearer ${token}` },
+                signal: abortController.signal,
               });
 
               if (response.ok) {
                 const blob = await response.blob();
                 const blobUrl = URL.createObjectURL(blob);
+                blobUrlsCreated.push(blobUrl);
                 coverUrlCache.set(album.id, blobUrl);
                 urls[album.id] = blobUrl;
               }
             } catch (error) {
+              // Ignore abort errors — expected on cleanup
+              if (error instanceof DOMException && error.name === "AbortError") {
+                return;
+              }
               console.error(
                 `Failed to load cover photo for album ${album.id}:`,
                 error
@@ -163,7 +190,10 @@ export default function GlobalAlbumsPage() {
         })
       );
 
-      if (!cancelled) {
+      // Enforce cache size limit to prevent unbounded memory growth
+      enforceCacheLimit();
+
+      if (!abortController.signal.aborted) {
         setCoverPhotoUrls((prev) => ({ ...prev, ...urls }));
         setLoadingCovers(false);
       }
@@ -176,7 +206,16 @@ export default function GlobalAlbumsPage() {
     }
 
     return () => {
-      cancelled = true;
+      // Abort in-flight fetch requests so no new blob URLs are created after cleanup
+      abortController.abort();
+      // Revoke blob URLs created during this effect run that aren't in the
+      // module-level cache. Cached URLs are managed by enforceCacheLimit().
+      const cachedValues = new Set(coverUrlCache.values());
+      for (const url of blobUrlsCreated) {
+        if (!cachedValues.has(url)) {
+          URL.revokeObjectURL(url);
+        }
+      }
     };
   }, [albums]);
 

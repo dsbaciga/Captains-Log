@@ -126,6 +126,7 @@ export default function TripDetailPage() {
   const { layout: navigationLayout } = useNavigationStore();
 
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
+  const coverBlobUrlRef = useRef<string | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [duplicateTripTitle, setDuplicateTripTitle] = useState("");
@@ -315,20 +316,28 @@ export default function TripDetailPage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     if (id) {
-      loadImmichAssetIds(tripId);
+      photoService.getImmichAssetIdsByTrip(tripId)
+        .then(assetIds => { if (!cancelled) setExistingImmichAssetIds(new Set(assetIds)); })
+        .catch(error => { if (!cancelled) console.error("Failed to load Immich asset IDs:", error); });
     }
-    loadUserTimezone();
+    userService.getMe()
+      .then(user => { if (!cancelled) setUserTimezone(user.timezone || ""); })
+      .catch(() => { if (!cancelled) console.error("Failed to load user timezone"); });
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Load user's permission level for this trip
   useEffect(() => {
+    let cancelled = false;
     if (tripId) {
       collaborationService.getPermissionLevel(tripId)
-        .then(setUserPermission)
-        .catch(() => setUserPermission(null));
+        .then(permission => { if (!cancelled) setUserPermission(permission); })
+        .catch(() => { if (!cancelled) setUserPermission(null); });
     }
+    return () => { cancelled = true; };
   }, [tripId]);
 
   // Function to change tabs and update URL
@@ -708,6 +717,11 @@ export default function TripDetailPage() {
   useEffect(() => {
     const loadCoverPhoto = async () => {
       if (!trip?.coverPhoto) {
+        // Revoke previous blob URL if any
+        if (coverBlobUrlRef.current) {
+          URL.revokeObjectURL(coverBlobUrlRef.current);
+          coverBlobUrlRef.current = null;
+        }
         setCoverPhotoUrl(null);
         return;
       }
@@ -716,6 +730,11 @@ export default function TripDetailPage() {
 
       // If it's a local photo, use direct URL
       if (photo.source === "local" && photo.localPath) {
+        // Revoke previous blob URL if switching from Immich to local
+        if (coverBlobUrlRef.current) {
+          URL.revokeObjectURL(coverBlobUrlRef.current);
+          coverBlobUrlRef.current = null;
+        }
         setCoverPhotoUrl(getFullAssetUrl(photo.localPath));
         return;
       }
@@ -741,8 +760,13 @@ export default function TripDetailPage() {
           }
 
           const blob = await response.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          setCoverPhotoUrl(blobUrl);
+          // Revoke previous blob URL before creating a new one
+          if (coverBlobUrlRef.current) {
+            URL.revokeObjectURL(coverBlobUrlRef.current);
+          }
+          const newBlobUrl = URL.createObjectURL(blob);
+          coverBlobUrlRef.current = newBlobUrl;
+          setCoverPhotoUrl(newBlobUrl);
         } catch (error) {
           console.error("Error loading cover photo:", error);
         }
@@ -753,21 +777,13 @@ export default function TripDetailPage() {
 
     // Cleanup blob URL when component unmounts or trip changes
     return () => {
-      if (coverPhotoUrl && coverPhotoUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(coverPhotoUrl);
+      if (coverBlobUrlRef.current) {
+        URL.revokeObjectURL(coverBlobUrlRef.current);
+        coverBlobUrlRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip?.coverPhoto]);
 
-  const loadUserTimezone = async () => {
-    try {
-      const user = await userService.getMe();
-      setUserTimezone(user.timezone || "");
-    } catch {
-      console.error("Failed to load user timezone");
-    }
-  };
 
   const handleSelectAlbum = async (albumId: number | null) => {
     setSelectedAlbumId(albumId);

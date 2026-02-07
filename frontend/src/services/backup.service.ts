@@ -37,7 +37,7 @@ async function restoreFromBackup(
   backupData: BackupData,
   options: RestoreOptions
 ): Promise<RestoreResult> {
-  const response = await axiosInstance.post<{ status: string; message: string; data: { stats: RestoreStats } }>(
+  const response = await axiosInstance.post<{ message: string; stats: RestoreStats }>(
     '/backup/restore',
     {
       backupData,
@@ -46,9 +46,9 @@ async function restoreFromBackup(
   );
 
   return {
-    success: response.data.status === 'success',
+    success: true, // If we reach here, the interceptor confirmed status === 'success'
     message: response.data.message,
-    stats: response.data.data.stats,
+    stats: response.data.stats,
   };
 }
 
@@ -56,8 +56,8 @@ async function restoreFromBackup(
  * Get backup information/metadata
  */
 async function getBackupInfo(): Promise<BackupInfo> {
-  const response = await axiosInstance.get<{ status: string; data: BackupInfo }>('/backup/info');
-  return response.data.data;
+  const response = await axiosInstance.get<BackupInfo>('/backup/info');
+  return response.data;
 }
 
 /**

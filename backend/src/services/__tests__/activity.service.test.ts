@@ -66,6 +66,7 @@ const mockPrisma = {
   entityLink: {
     deleteMany: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
 
 jest.mock('../../config/database', () => ({
@@ -82,13 +83,17 @@ import { AppError } from '../../utils/errors';
 describe('ActivityService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: trip access succeeds for owner (includes collaborators for permission checks)
+    mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip(100, 1));
   });
 
-  // Helper to create a mock trip
+  // Helper to create a mock trip (includes collaborators for permission checks)
   const createMockTrip = (id: number, userId: number) => ({
     id,
     userId,
     title: 'Test Trip',
+    privacyLevel: 'Private',
+    collaborators: [],
   });
 
   // Helper to create a base mock activity
@@ -168,9 +173,11 @@ describe('ActivityService', () => {
 
       const result = await activityService.createActivity(userId, input);
 
-      expect(mockPrisma.trip.findFirst).toHaveBeenCalledWith({
-        where: { id: input.tripId, userId },
-      });
+      expect(mockPrisma.trip.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: input.tripId }),
+        })
+      );
       expect(mockPrisma.activity.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           tripId: input.tripId,
@@ -596,9 +603,11 @@ describe('ActivityService', () => {
 
       const result = await activityService.getActivitiesByTrip(userId, tripId);
 
-      expect(mockPrisma.trip.findFirst).toHaveBeenCalledWith({
-        where: { id: tripId, userId },
-      });
+      expect(mockPrisma.trip.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: tripId }),
+        })
+      );
       expect(mockPrisma.activity.findMany).toHaveBeenCalledWith({
         where: { tripId },
         include: expect.objectContaining({
@@ -835,10 +844,12 @@ describe('ActivityService', () => {
       });
 
       mockPrisma.activity.findUnique.mockResolvedValue(mockActivity);
+      // verifyEntityAccessWithPermission calls trip.findFirst — return null for non-owner
+      mockPrisma.trip.findFirst.mockResolvedValue(null);
 
       await expect(
         activityService.updateActivity(userId, activityId, { name: 'Test' })
-      ).rejects.toThrow('Access denied');
+      ).rejects.toThrow('Trip not found or access denied');
     });
 
     it('should prevent activity from being its own parent', async () => {
@@ -941,13 +952,21 @@ describe('ActivityService', () => {
         trip: { id: 100, userId: 1 },
       });
 
+      const mockTxEntityLinkDeleteMany = jest.fn().mockResolvedValue({ count: 3 });
+      const mockTxActivityDelete = jest.fn().mockResolvedValue(mockActivity);
+
       mockPrisma.activity.findUnique.mockResolvedValue(mockActivity);
-      mockPrisma.entityLink.deleteMany.mockResolvedValue({ count: 3 });
-      mockPrisma.activity.delete.mockResolvedValue(mockActivity);
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip(100, userId));
+      mockPrisma.$transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+        return callback({
+          entityLink: { deleteMany: mockTxEntityLinkDeleteMany },
+          activity: { delete: mockTxActivityDelete },
+        });
+      });
 
       const result = await activityService.deleteActivity(userId, activityId);
 
-      expect(mockPrisma.entityLink.deleteMany).toHaveBeenCalledWith({
+      expect(mockTxEntityLinkDeleteMany).toHaveBeenCalledWith({
         where: {
           tripId: 100,
           OR: [
@@ -956,7 +975,7 @@ describe('ActivityService', () => {
           ],
         },
       });
-      expect(mockPrisma.activity.delete).toHaveBeenCalledWith({
+      expect(mockTxActivityDelete).toHaveBeenCalledWith({
         where: { id: activityId },
       });
       expect(result.success).toBe(true);
@@ -983,9 +1002,10 @@ describe('ActivityService', () => {
       });
 
       mockPrisma.activity.findUnique.mockResolvedValue(mockActivity);
+      mockPrisma.trip.findFirst.mockResolvedValue(null);
 
       await expect(activityService.deleteActivity(userId, activityId)).rejects.toThrow(
-        'Access denied'
+        'Trip not found or access denied'
       );
     });
 
@@ -1001,13 +1021,20 @@ describe('ActivityService', () => {
         trip: { id: 100, userId: 1 },
       });
 
+      const mockTxActivityDelete = jest.fn().mockResolvedValue(mockActivity);
+
       mockPrisma.activity.findUnique.mockResolvedValue(mockActivity);
-      mockPrisma.entityLink.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrisma.activity.delete.mockResolvedValue(mockActivity);
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip(100, userId));
+      mockPrisma.$transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+        return callback({
+          entityLink: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+          activity: { delete: mockTxActivityDelete },
+        });
+      });
 
       const result = await activityService.deleteActivity(userId, activityId);
 
-      expect(mockPrisma.activity.delete).toHaveBeenCalledWith({
+      expect(mockTxActivityDelete).toHaveBeenCalledWith({
         where: { id: activityId },
       });
       expect(result.success).toBe(true);

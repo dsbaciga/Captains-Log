@@ -47,6 +47,34 @@ interface OpenWeatherHistoricalResponse {
   }[];
 }
 
+/**
+ * Simple concurrency limiter - processes promises with max concurrent limit.
+ * Avoids unbounded parallel API calls that can trigger rate limiting.
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency: number
+): Promise<R[]> {
+  const results: R[] = [];
+  const executing: Set<Promise<void>> = new Set();
+
+  for (let i = 0; i < items.length; i++) {
+    const promise = fn(items[i]).then(result => {
+      results[i] = result;
+    });
+    const wrapped = promise.finally(() => { executing.delete(wrapped); });
+    executing.add(wrapped);
+
+    if (executing.size >= concurrency) {
+      await Promise.race(executing);
+    }
+  }
+
+  await Promise.all(executing);
+  return results;
+}
+
 class WeatherService {
   private readonly API_KEY = config.openWeatherMap.apiKey;
   private readonly CACHE_HOURS = 6;
@@ -95,8 +123,9 @@ class WeatherService {
     // Each day gets its own coordinates based on locations/activities/lodging for that day
     let weatherData: (Awaited<ReturnType<typeof this.getWeatherForDate>> | null)[];
     try {
-      weatherData = await Promise.all(
-        dates.map(async (date) => {
+      weatherData = await mapWithConcurrency(
+        dates,
+        async (date) => {
           // Get coordinates for this specific day
           const coordinates = await this.getTripCoordinates(tripId, date);
           const dateString = date.toISOString().split('T')[0];
@@ -111,7 +140,8 @@ class WeatherService {
           }
 
           return this.getWeatherForDate(tripId, coordinates, date, apiKey);
-        })
+        },
+        5 // Max 5 concurrent API requests to avoid rate limiting
       );
     } catch (error) {
       console.error(`Failed to fetch weather data for trip ${tripId}:`, error);

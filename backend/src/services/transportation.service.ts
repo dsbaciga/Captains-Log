@@ -72,6 +72,7 @@ interface TransportationFrontend {
 
 // Helper to map database fields to frontend field names
 const mapTransportationToFrontend = (t: TransportationWithRelations): TransportationFrontend => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- convertDecimals converts Decimal->number at runtime but its return type remains T; every field is explicitly mapped below
   const converted = convertDecimals(t) as any;
   return {
     id: converted.id,
@@ -188,7 +189,14 @@ class TransportationService {
     return await this.enhanceTransportations(transportations);
   }
 
-  async getAllTransportation(userId: number) {
+  async getAllTransportation(
+    userId: number,
+    options?: { page?: number; limit?: number }
+  ) {
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 50;
+    const skip = (page - 1) * limit;
+
     // Get all trips user has access to
     const trips = await prisma.trip.findMany({
       where: { userId },
@@ -197,22 +205,32 @@ class TransportationService {
 
     const tripIds = trips.map((t) => t.id);
 
-    // Get all transportation for user's trips
-    const transportations = await prisma.transportation.findMany({
-      where: { tripId: { in: tripIds } },
-      include: {
-        startLocation: {
-          select: locationWithAddressSelect,
-        },
-        endLocation: {
-          select: locationWithAddressSelect,
-        },
-        flightTracking: true,
-      },
-      orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
-    });
+    const whereClause = { tripId: { in: tripIds } };
 
-    return await this.enhanceTransportations(transportations);
+    // Run data query and count query in parallel
+    const [transportations, total] = await Promise.all([
+      prisma.transportation.findMany({
+        where: whereClause,
+        include: {
+          startLocation: {
+            select: locationWithAddressSelect,
+          },
+          endLocation: {
+            select: locationWithAddressSelect,
+          },
+          flightTracking: true,
+        },
+        orderBy: [{ scheduledStart: 'asc' }, { createdAt: 'asc' }],
+        skip,
+        take: limit,
+      }),
+      prisma.transportation.count({ where: whereClause }),
+    ]);
+
+    const data = await this.enhanceTransportations(transportations);
+    const totalPages = Math.ceil(total / limit);
+
+    return { data, total, page, limit, totalPages };
   }
 
   private async enhanceTransportations(transportations: TransportationWithRelations[]): Promise<TransportationFrontend[]> {
@@ -401,7 +419,8 @@ class TransportationService {
 
     const updatedTransportation = await prisma.transportation.update({
       where: { id: transportationId },
-      data: updateData,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
+      data: updateData as any,
       include: {
         startLocation: {
           select: locationWithAddressSelect,

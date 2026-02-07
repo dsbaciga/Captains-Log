@@ -4,15 +4,15 @@ services:
     image: postgis/postgis:16-3.4
     container_name: captains-log-db
     environment:
-      POSTGRES_USER: captains_log_user
-      POSTGRES_PASSWORD: captains_log_password
-      POSTGRES_DB: captains_log
+      POSTGRES_USER: ${POSTGRES_USER:-captains_log_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-captains_log_password}
+      POSTGRES_DB: ${POSTGRES_DB:-captains_log}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U captains_log_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-captains_log_user}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,7 +26,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 5000
-      DATABASE_URL: postgresql://captains_log_user:captains_log_password@db:5432/captains_log?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-captains_log_user}:${POSTGRES_PASSWORD:-captains_log_password}@db:5432/${POSTGRES_DB:-captains_log}?schema=public
       JWT_SECRET: your-super-secret-jwt-key-change-this
       JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-this
       NOMINATIM_URL: http://nominatim:8080
@@ -37,6 +37,7 @@ services:
       - ./backend:/app
       - /app/node_modules
       - uploads:/app/uploads
+      - blacklist_data:/app/data
     depends_on:
       db:
         condition: service_healthy
@@ -80,3 +81,4 @@ volumes:
   postgres_data:
   nominatim_data:
   uploads:
+  blacklist_data:

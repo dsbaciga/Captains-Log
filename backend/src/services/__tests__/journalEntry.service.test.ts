@@ -43,6 +43,7 @@ jest.mock('@prisma/client', () => {
 const mockPrisma = {
   trip: {
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
   },
   journalEntry: {
     create: jest.fn(),
@@ -66,8 +67,8 @@ jest.mock('../../utils/serviceHelpers', () => {
   const originalModule = jest.requireActual('../../utils/serviceHelpers');
   return {
     ...originalModule,
-    verifyTripAccess: jest.fn(),
-    verifyEntityAccess: jest.fn(),
+    verifyTripAccessWithPermission: jest.fn(),
+    verifyEntityAccessWithPermission: jest.fn(),
     cleanupEntityLinks: jest.fn(),
   };
 });
@@ -78,7 +79,8 @@ jest.mock('date-fns-tz', () => ({
 }));
 
 import journalEntryService from '../journalEntry.service';
-import { verifyTripAccess, verifyEntityAccess, cleanupEntityLinks } from '../../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../utils/serviceHelpers';
+import { AppError } from '../../utils/errors';
 import { fromZonedTime } from 'date-fns-tz';
 
 describe('JournalEntryService', () => {
@@ -91,11 +93,24 @@ describe('JournalEntryService', () => {
     userId: mockUserId,
     title: 'European Adventure',
     timezone: 'Europe/Paris',
+    privacyLevel: 'Private',
+  };
+
+  const mockTripAccessResult = {
+    trip: mockTrip,
+    isOwner: true,
+    permissionLevel: 'admin',
   };
 
   const mockTripWithoutTimezone = {
     ...mockTrip,
     timezone: null,
+  };
+
+  const mockTripAccessResultNoTimezone = {
+    trip: mockTripWithoutTimezone,
+    isOwner: true,
+    permissionLevel: 'admin',
   };
 
   const mockJournalEntry = {
@@ -114,13 +129,15 @@ describe('JournalEntryService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (verifyTripAccess as jest.Mock).mockResolvedValue(mockTrip);
-    (verifyEntityAccess as jest.Mock).mockImplementation(async (entity) => {
-      if (!entity) throw new Error('Journal entry not found');
-      return entity;
+    (verifyTripAccessWithPermission as jest.Mock).mockResolvedValue(mockTripAccessResult);
+    (verifyEntityAccessWithPermission as jest.Mock).mockResolvedValue({
+      entity: { ...mockJournalEntry, tripId: mockTripId },
+      tripAccess: mockTripAccessResult,
     });
     (cleanupEntityLinks as jest.Mock).mockResolvedValue(undefined);
     (fromZonedTime as jest.Mock).mockImplementation((date: Date) => date);
+    // Mock trip.findUnique for timezone lookup in createJournalEntry
+    mockPrisma.trip.findUnique.mockResolvedValue({ timezone: 'Europe/Paris' });
   });
 
   describe('JOUR-001: Create trip-level entry', () => {
@@ -146,7 +163,7 @@ describe('JournalEntryService', () => {
 
       const result = await journalEntryService.createJournalEntry(mockUserId, createInput);
 
-      expect(verifyTripAccess).toHaveBeenCalledWith(mockUserId, mockTripId);
+      expect(verifyTripAccessWithPermission).toHaveBeenCalledWith(mockUserId, mockTripId, 'edit');
       expect(mockPrisma.journalEntry.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           tripId: mockTripId,
@@ -229,7 +246,8 @@ describe('JournalEntryService', () => {
     });
 
     it('should use date without timezone conversion if trip has no timezone', async () => {
-      (verifyTripAccess as jest.Mock).mockResolvedValue(mockTripWithoutTimezone);
+      (verifyTripAccessWithPermission as jest.Mock).mockResolvedValue(mockTripAccessResultNoTimezone);
+      mockPrisma.trip.findUnique.mockResolvedValue({ timezone: null });
 
       const createInput = {
         tripId: mockTripId,
@@ -381,7 +399,7 @@ describe('JournalEntryService', () => {
 
       const result = await journalEntryService.getJournalEntriesByTrip(mockUserId, mockTripId);
 
-      expect(verifyTripAccess).toHaveBeenCalledWith(mockUserId, mockTripId);
+      expect(verifyTripAccessWithPermission).toHaveBeenCalledWith(mockUserId, mockTripId, 'view');
       expect(mockPrisma.journalEntry.findMany).toHaveBeenCalledWith({
         where: { tripId: mockTripId },
         orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
@@ -434,7 +452,7 @@ describe('JournalEntryService', () => {
         updateInput
       );
 
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(mockPrisma.journalEntry.update).toHaveBeenCalledWith({
         where: { id: mockEntryId },
         data: expect.objectContaining({
@@ -566,7 +584,7 @@ describe('JournalEntryService', () => {
     it('should delete journal entry and clean up entity links', async () => {
       const result = await journalEntryService.deleteJournalEntry(mockUserId, mockEntryId);
 
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(cleanupEntityLinks).toHaveBeenCalledWith(
         mockTripId,
         'JOURNAL_ENTRY',
@@ -580,7 +598,7 @@ describe('JournalEntryService', () => {
 
     it('should throw error if entry not found', async () => {
       mockPrisma.journalEntry.findUnique.mockResolvedValue(null);
-      (verifyEntityAccess as jest.Mock).mockRejectedValue(new Error('Journal entry not found'));
+      (verifyEntityAccessWithPermission as jest.Mock).mockRejectedValue(new AppError('Journal entry not found', 404));
 
       await expect(
         journalEntryService.deleteJournalEntry(mockUserId, 999)
@@ -593,7 +611,7 @@ describe('JournalEntryService', () => {
         trip: { ...mockTrip, userId: 999 },
       };
       mockPrisma.journalEntry.findUnique.mockResolvedValue(otherUserEntry);
-      (verifyEntityAccess as jest.Mock).mockRejectedValue(new Error('Access denied'));
+      (verifyEntityAccessWithPermission as jest.Mock).mockRejectedValue(new AppError('Access denied', 403));
 
       await expect(
         journalEntryService.deleteJournalEntry(mockUserId, mockEntryId)
@@ -611,7 +629,7 @@ describe('JournalEntryService', () => {
         where: { id: mockEntryId },
         include: { trip: true },
       });
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(result).toEqual(mockJournalEntry);
     });
   });

@@ -245,9 +245,9 @@ export default function TravelStatsWidget() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
-        {statItems.map((stat, index) => (
+        {statItems.map((stat) => (
           <div
-            key={index}
+            key={stat.label}
             className="p-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-navy-900/50 dark:to-navy-900/30 hover:scale-105 transition-transform duration-200"
           >
             <div className="flex items-center gap-2">

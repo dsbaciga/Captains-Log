@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { capitalize } from '../utils/stringHelpers';
 
 /**
  * Generic CRUD state management hook for Manager components
@@ -218,11 +219,4 @@ export function useManagerCRUD<T extends { id: number }, TCreateData = unknown, 
     setShowForm,
     setEditingId,
   };
-}
-
-/**
- * Capitalizes the first letter of a string
- */
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }

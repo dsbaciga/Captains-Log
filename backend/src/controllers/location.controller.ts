@@ -111,10 +111,12 @@ export const locationController = {
 
   getAllVisitedLocations: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
-    const locations = await locationService.getAllVisitedLocations(userId);
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 200));
+    const result = await locationService.getAllVisitedLocations(userId, page, limit);
     res.json({
       status: 'success',
-      data: locations,
+      data: result,
     });
   }),
 

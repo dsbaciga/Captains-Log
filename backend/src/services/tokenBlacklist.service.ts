@@ -9,8 +9,8 @@
  * - Call blacklistToken() when a user logs out or when token theft is suspected
  * - Call isBlacklisted() in auth middleware to reject blacklisted tokens
  *
- * Note: In-memory blacklist is cleared on server restart. For critical applications,
- * use Redis or database-backed storage.
+ * Note: The blacklist is persisted to disk (data/token-blacklist.json) so it survives
+ * server restarts. For critical multi-server applications, use Redis or database-backed storage.
  *
  * ## Production Redis Upgrade
  *
@@ -54,6 +54,9 @@
  *    ```
  */
 
+import fs from 'fs';
+import fsPromises from 'fs/promises';
+import path from 'path';
 import logger from '../config/logger';
 
 interface BlacklistEntry {
@@ -70,6 +73,62 @@ const CLEANUP_INTERVAL = 15 * 60 * 1000;
 // Default token expiry: 7 days (matches refresh token lifetime)
 const DEFAULT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
+// File-based persistence for surviving server restarts
+const PERSIST_DIR = path.join(process.cwd(), 'data');
+const PERSIST_FILE = path.join(PERSIST_DIR, 'token-blacklist.json');
+
+/**
+ * Persist the current blacklist to disk as JSON.
+ * Uses async I/O to avoid blocking the event loop.
+ */
+const persistBlacklist = async (): Promise<void> => {
+  try {
+    await fsPromises.mkdir(PERSIST_DIR, { recursive: true });
+    const entries = Array.from(blacklist.values());
+    await fsPromises.writeFile(PERSIST_FILE, JSON.stringify(entries), 'utf-8');
+    logger.debug(`Persisted ${entries.length} blacklist entries to disk`);
+  } catch (error) {
+    logger.error('Failed to persist token blacklist to disk', { error });
+  }
+};
+
+/**
+ * Load the blacklist from disk on startup.
+ * Skips entries that have already expired or are malformed.
+ */
+const loadBlacklist = (): void => {
+  try {
+    if (!fs.existsSync(PERSIST_FILE)) {
+      logger.debug('No persisted token blacklist file found, starting fresh');
+      return;
+    }
+    const raw = fs.readFileSync(PERSIST_FILE, 'utf-8');
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      logger.warn('Token blacklist file has invalid format, starting fresh');
+      return;
+    }
+    const now = Date.now();
+    let loaded = 0;
+    let skipped = 0;
+    for (const entry of parsed) {
+      if (typeof entry?.token !== 'string' || typeof entry?.expiresAt !== 'number') {
+        skipped++;
+        continue;
+      }
+      if (entry.expiresAt > now) {
+        blacklist.set(entry.token, { token: entry.token, expiresAt: entry.expiresAt });
+        loaded++;
+      } else {
+        skipped++;
+      }
+    }
+    logger.info(`Loaded ${loaded} blacklist entries from disk (skipped ${skipped} expired/invalid)`);
+  } catch (error) {
+    logger.error('Failed to load token blacklist from disk', { error });
+  }
+};
+
 /**
  * Add a token to the blacklist
  * @param token - The refresh token to blacklist
@@ -79,6 +138,7 @@ export const blacklistToken = (token: string, expiresInMs: number = DEFAULT_EXPI
   const expiresAt = Date.now() + expiresInMs;
   blacklist.set(token, { token, expiresAt });
   logger.debug(`Token blacklisted, expires at ${new Date(expiresAt).toISOString()}`);
+  persistBlacklist().catch((err) => logger.error('Failed to persist blacklist after adding token', { error: err }));
 };
 
 /**
@@ -114,6 +174,7 @@ export const cleanupExpired = (): number => {
   }
   if (removed > 0) {
     logger.debug(`Cleaned up ${removed} expired blacklist entries`);
+    persistBlacklist().catch((err) => logger.error('Failed to persist blacklist after cleanup', { error: err }));
   }
   return removed;
 };
@@ -159,7 +220,8 @@ export const stopCleanupInterval = (): void => {
   }
 };
 
-// Start cleanup on module load
+// Load persisted blacklist and start cleanup on module load
+loadBlacklist();
 startCleanupInterval();
 
 /**

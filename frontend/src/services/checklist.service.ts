@@ -18,7 +18,7 @@ class ChecklistService {
    */
   async getChecklists(): Promise<Checklist[]> {
     const response = await axios.get(this.baseUrl);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -26,7 +26,7 @@ class ChecklistService {
    */
   async getChecklistById(id: number): Promise<Checklist> {
     const response = await axios.get(`${this.baseUrl}/${id}`);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -36,7 +36,7 @@ class ChecklistService {
     const response = await axios.get(this.baseUrl, {
       params: { tripId }
     });
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -44,7 +44,7 @@ class ChecklistService {
    */
   async createChecklist(data: CreateChecklistDTO): Promise<Checklist> {
     const response = await axios.post(this.baseUrl, data);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -52,7 +52,7 @@ class ChecklistService {
    */
   async updateChecklist(id: number, data: UpdateChecklistDTO): Promise<Checklist> {
     const response = await axios.put(`${this.baseUrl}/${id}`, data);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -67,7 +67,7 @@ class ChecklistService {
    */
   async addChecklistItem(checklistId: number, data: AddChecklistItemDTO): Promise<ChecklistItem> {
     const response = await axios.post(`${this.baseUrl}/${checklistId}/items`, data);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -75,7 +75,7 @@ class ChecklistService {
    */
   async updateChecklistItem(itemId: number, data: UpdateChecklistItemDTO): Promise<ChecklistItem> {
     const response = await axios.put(`${this.baseUrl}/items/${itemId}`, data);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -97,7 +97,7 @@ class ChecklistService {
    */
   async autoCheckFromTrips(): Promise<{ updated: number }> {
     const response = await axios.post(`${this.baseUrl}/auto-check`);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -105,7 +105,7 @@ class ChecklistService {
    */
   async removeDefaults(): Promise<{ removed: number }> {
     const response = await axios.delete(`${this.baseUrl}/defaults`);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -113,7 +113,7 @@ class ChecklistService {
    */
   async restoreDefaults(): Promise<{ restored: number }> {
     const response = await axios.post(`${this.baseUrl}/defaults/restore`);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -121,7 +121,7 @@ class ChecklistService {
    */
   async getDefaultsStatus(): Promise<DefaultChecklistStatus[]> {
     const response = await axios.get(`${this.baseUrl}/defaults/status`);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -129,7 +129,7 @@ class ChecklistService {
    */
   async addDefaults(types: ChecklistType[]): Promise<{ added: number }> {
     const response = await axios.post(`${this.baseUrl}/defaults/add`, { types });
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -137,7 +137,7 @@ class ChecklistService {
    */
   async removeDefaultsByType(types: ChecklistType[]): Promise<{ removed: number }> {
     const response = await axios.post(`${this.baseUrl}/defaults/remove`, { types });
-    return response.data.data;
+    return response.data;
   }
 }
 

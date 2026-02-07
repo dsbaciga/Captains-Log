@@ -24,6 +24,13 @@ COPY . .
 # Make startup script executable and ensure Unix line endings
 RUN sed -i 's/\r$//' scripts/migrate-and-start.sh && chmod +x scripts/migrate-and-start.sh
 
+# Create non-root user, give ownership of app dir, and switch to it
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 appuser && \
+    mkdir -p /app/data && \
+    chown -R appuser:nodejs /app
+USER appuser
+
 # Expose port
 EXPOSE 5000
 

@@ -70,6 +70,7 @@ const mockPrisma = {
     findFirst: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
   },
@@ -130,6 +131,10 @@ const mockPrisma = {
     findMany: jest.fn(),
     createMany: jest.fn(),
   },
+  tripCollaborator: {
+    create: jest.fn(),
+  },
+  $transaction: jest.fn(),
 };
 
 jest.mock('../../config/database', () => ({
@@ -200,6 +205,11 @@ describe('Trip Service', () => {
     (companionService.getMyselfCompanion as jest.Mock).mockResolvedValue(mockMyselfCompanion);
     mockPrisma.user.findUnique.mockResolvedValue({ id: mockUserId, timezone: 'UTC' });
     mockPrisma.tripCompanion.create.mockResolvedValue({ id: 1, tripId: mockTripId, companionId: 10 });
+
+    // Mock $transaction to execute the callback with a tx client that mirrors mockPrisma
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
+      return fn(mockPrisma);
+    });
   });
 
   // ============================================================================
@@ -235,7 +245,7 @@ describe('Trip Service', () => {
       const result = await tripService.createTrip(mockUserId, createInput);
 
       expect(mockPrisma.trip.create).toHaveBeenCalledWith({
-        data: {
+        data: expect.objectContaining({
           userId: mockUserId,
           title: createInput.title,
           description: createInput.description,
@@ -245,7 +255,7 @@ describe('Trip Service', () => {
           status: createInput.status,
           privacyLevel: createInput.privacyLevel,
           addToPlacesVisited: false,
-        },
+        }),
       });
       expect(result.id).toBe(mockTripId);
       expect(result.title).toBe('Summer Vacation');
@@ -754,16 +764,14 @@ describe('Trip Service', () => {
         endDate: tomorrow,
       };
 
-      mockPrisma.trip.findMany.mockResolvedValue([tripInProgress]);
-      mockPrisma.trip.update.mockResolvedValue({
-        ...tripInProgress,
-        status: TripStatus.IN_PROGRESS,
-      });
+      mockPrisma.trip.findMany.mockResolvedValueOnce([tripInProgress]);
+      mockPrisma.trip.findMany.mockResolvedValueOnce([]); // second batch (empty = done)
+      mockPrisma.trip.updateMany.mockResolvedValue({ count: 1 });
 
       const updateCount = await tripService.autoUpdateGlobalTripStatuses();
 
-      expect(mockPrisma.trip.update).toHaveBeenCalledWith({
-        where: { id: 1 },
+      expect(mockPrisma.trip.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1] } },
         data: expect.objectContaining({
           status: TripStatus.IN_PROGRESS,
         }),
@@ -784,21 +792,19 @@ describe('Trip Service', () => {
         endDate: lastWeek,
       };
 
-      mockPrisma.trip.findMany.mockResolvedValue([pastTrip]);
-      mockPrisma.trip.update.mockResolvedValue({
-        ...pastTrip,
-        status: TripStatus.COMPLETED,
-        addToPlacesVisited: true,
-      });
+      mockPrisma.trip.findMany.mockReset();
+      mockPrisma.trip.updateMany.mockReset();
+      mockPrisma.trip.findMany.mockResolvedValueOnce([pastTrip]);
+      mockPrisma.trip.updateMany.mockResolvedValue({ count: 1 });
 
       const updateCount = await tripService.autoUpdateGlobalTripStatuses();
 
-      expect(mockPrisma.trip.update).toHaveBeenCalledWith({
-        where: { id: 2 },
-        data: {
+      expect(mockPrisma.trip.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: [2] } },
+        data: expect.objectContaining({
           status: TripStatus.COMPLETED,
           addToPlacesVisited: true,
-        },
+        }),
       });
       expect(updateCount).toBe(1);
     });
@@ -809,16 +815,18 @@ describe('Trip Service', () => {
       await tripService.autoUpdateGlobalTripStatuses();
 
       // The query excludes Completed and Cancelled status
-      expect(mockPrisma.trip.findMany).toHaveBeenCalledWith({
-        where: {
-          startDate: { not: null },
-          endDate: { not: null },
-          status: {
-            notIn: [TripStatus.COMPLETED, TripStatus.CANCELLED],
+      expect(mockPrisma.trip.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            startDate: { not: null },
+            endDate: { not: null },
+            status: {
+              notIn: [TripStatus.COMPLETED, TripStatus.CANCELLED],
+            },
           },
-        },
-        select: expect.any(Object),
-      });
+          select: expect.any(Object),
+        })
+      );
     });
 
     it('should return 0 when no trips need updating', async () => {

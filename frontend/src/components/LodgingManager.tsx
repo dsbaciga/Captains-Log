@@ -11,7 +11,8 @@ import FormModal from "./FormModal";
 import FormSection, { CollapsibleSection } from "./FormSection";
 import DraftIndicator from "./DraftIndicator";
 import DraftRestorePrompt from "./DraftRestorePrompt";
-import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
+import FormModalFooter from "./shared/FormModalFooter";
+import { createDateTimeFormatter, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useFormFields } from "../hooks/useFormFields";
 import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
@@ -19,7 +20,11 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
-import { useBulkSelection } from "../hooks/useBulkSelection";
+import { useDraftRestore } from "../hooks/useDraftRestore";
+import { useEntityLinkSync } from "../hooks/useEntityLinkSync";
+import { useBulkOperations } from "../hooks/useBulkOperations";
+import { useManagerFormWrapper } from "../hooks/useManagerFormWrapper";
+import { createLocationStub } from "../utils/locationHelpers";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import CostCurrencyFields from "./CostCurrencyFields";
@@ -153,13 +158,25 @@ export default function LodgingManager({
   // Track original location ID when editing to detect changes (for entity linking)
   const [originalLocationId, setOriginalLocationId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<"date" | "type">("date");
-  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
 
-  // Bulk selection state
-  const bulkSelection = useBulkSelection<Lodging>();
-  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  const [isBulkEditing, setIsBulkEditing] = useState(false);
+  // Bulk operations (selection + delete/edit) via shared hook
+  const bulk = useBulkOperations<Lodging>({
+    tripId,
+    entityName: 'lodging',
+    service: {
+      bulkDelete: lodgingService.bulkDeleteLodging,
+      bulkUpdate: lodgingService.bulkUpdateLodging,
+    },
+    loadItems: manager.loadItems,
+    onUpdate,
+    confirm,
+  });
+
+  // Shared entity link sync for location association
+  const { syncLocationLinkOnUpdate, syncLocationLinkOnCreate } = useEntityLinkSync();
+
+  // Shared date/time formatter (Pattern 12: eliminates duplicated formatDateTime wrapper)
+  const formatDateTime = useMemo(() => createDateTimeFormatter(tripTimezone), [tripTimezone]);
 
   const { values, handleChange, reset, setAllFields } =
     useFormFields<LodgingFormFields>(getInitialFormState);
@@ -174,42 +191,23 @@ export default function LodgingManager({
     defaultValues: getInitialFormState,
   });
 
-  // Check for existing draft when form opens in create mode
-  // Use initialDraftExists to only show prompt for drafts from previous sessions
-  useEffect(() => {
-    if (manager.showForm && !manager.editingId && draft.initialDraftExists) {
-      setShowDraftPrompt(true);
-    }
-  }, [manager.showForm, manager.editingId, draft.initialDraftExists]);
-
-  // Handle draft restore
-  const handleRestoreDraft = useCallback(() => {
-    const restoredData = draft.restoreDraft();
-    if (restoredData) {
-      setAllFields(restoredData);
+  // Draft restore/discard via shared hook (Pattern 13)
+  const { showDraftPrompt, handleRestoreDraft, handleDiscardDraft } = useDraftRestore({
+    draft,
+    setAllFields,
+    isFormOpen: manager.showForm,
+    isEditMode: !!manager.editingId,
+    onRestored: (restoredData) => {
       // Show more options if draft has data in optional fields
       if (restoredData.locationId || restoredData.address || restoredData.confirmationNumber ||
           restoredData.bookingUrl || restoredData.cost || restoredData.notes) {
         setShowMoreOptions(true);
       }
-    }
-    setShowDraftPrompt(false);
-  }, [draft, setAllFields]);
+    },
+  });
 
-  // Handle draft discard
-  const handleDiscardDraft = useCallback(() => {
-    draft.clearDraft();
-    setShowDraftPrompt(false);
-  }, [draft]);
-
-  // Create wrappers for useFormReset hook
-  const setShowForm = useCallback((show: boolean) => {
-    if (show) {
-      if (!manager.showForm) manager.toggleForm();
-    } else {
-      manager.closeForm();
-    }
-  }, [manager]);
+  // Bridge useManagerCRUD form controls with useFormReset's setter interface
+  const setShowForm = useManagerFormWrapper(manager);
 
   // Use useFormReset for consistent form state management
   const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
@@ -316,22 +314,7 @@ export default function LodgingManager({
   }, [manager.showForm, manager.editingId]);
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
-    // Add the new location to local state
-    const newLocation: Location = {
-      id: locationId,
-      name: locationName,
-      tripId,
-      parentId: null,
-      address: null,
-      latitude: null,
-      longitude: null,
-      categoryId: null,
-      visitDatetime: null,
-      visitDurationMinutes: null,
-      notes: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const newLocation = createLocationStub(locationId, locationName, tripId);
     setLocalLocations([...localLocations, newLocation]);
     handleChange("locationId", locationId);
     setShowLocationQuickAdd(false);
@@ -393,36 +376,16 @@ export default function LodgingManager({
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
-        // Handle location link changes via entity linking
-        const newLocationId = values.locationId || null;
-        const locationChanged = newLocationId !== originalLocationId;
-
-        if (locationChanged) {
-          try {
-            // Remove old link if there was one
-            if (originalLocationId) {
-              await entityLinkService.deleteLink(tripId, {
-                sourceType: 'LODGING',
-                sourceId: manager.editingId,
-                targetType: 'LOCATION',
-                targetId: originalLocationId,
-              });
-            }
-            // Create new link if there's a new location
-            if (newLocationId) {
-              await entityLinkService.createLink(tripId, {
-                sourceType: 'LODGING',
-                sourceId: manager.editingId,
-                targetType: 'LOCATION',
-                targetId: newLocationId,
-              });
-            }
-            invalidateLinkSummary();
-          } catch (error) {
-            console.error('Failed to update location link:', error);
-            toast.error('Lodging saved but failed to update location link');
-          }
-        }
+        // Sync location link via shared hook (Pattern 14)
+        await syncLocationLinkOnUpdate({
+          tripId,
+          sourceType: 'LODGING',
+          sourceId: manager.editingId,
+          newLocationId: values.locationId || null,
+          originalLocationId,
+          entityLabel: 'Lodging',
+          invalidateLinkSummary,
+        });
 
         resetForm();
         manager.closeForm();
@@ -449,21 +412,16 @@ export default function LodgingManager({
         const createdLodging = await lodgingService.createLodging(createData);
         toast.success('Lodging added successfully');
 
-        // Create location link if a location was selected
-        if (values.locationId) {
-          try {
-            await entityLinkService.createLink(tripId, {
-              sourceType: 'LODGING',
-              sourceId: createdLodging.id,
-              targetType: 'LOCATION',
-              targetId: values.locationId,
-            });
-            invalidateLinkSummary();
-          } catch (linkError) {
-            console.error('Failed to create location link:', linkError);
-            toast.error('Lodging created but failed to link location');
-          }
-        }
+        // Sync location link via shared hook (Pattern 14)
+        await syncLocationLinkOnCreate({
+          tripId,
+          sourceType: 'LODGING',
+          sourceId: createdLodging.id,
+          newLocationId: values.locationId || null,
+          originalLocationId: null,
+          entityLabel: 'Lodging',
+          invalidateLinkSummary,
+        });
 
         // Reload items and trigger parent update
         await manager.loadItems();
@@ -507,54 +465,6 @@ export default function LodgingManager({
     await manager.handleDelete(id);
   };
 
-  // Bulk delete handler
-  const handleBulkDelete = async () => {
-    const selectedIds = bulkSelection.getSelectedIds();
-    if (selectedIds.length === 0) return;
-
-    const confirmed = await confirm({
-      title: "Delete Lodging",
-      message: `Delete ${selectedIds.length} selected lodging items? This action cannot be undone.`,
-      confirmLabel: "Delete All",
-      variant: "danger",
-    });
-    if (!confirmed) return;
-
-    setIsBulkDeleting(true);
-    try {
-      await lodgingService.bulkDeleteLodging(tripId, selectedIds);
-      toast.success(`Deleted ${selectedIds.length} lodging items`);
-      bulkSelection.exitSelectionMode();
-      await manager.loadItems();
-      onUpdate?.();
-    } catch (error) {
-      console.error("Failed to bulk delete lodging:", error);
-      toast.error("Failed to delete some lodging items");
-    } finally {
-      setIsBulkDeleting(false);
-    }
-  };
-
-  // Bulk edit handler
-  const handleBulkEdit = async (updates: Record<string, unknown>) => {
-    const selectedIds = bulkSelection.getSelectedIds();
-    if (selectedIds.length === 0) return;
-
-    setIsBulkEditing(true);
-    try {
-      await lodgingService.bulkUpdateLodging(tripId, selectedIds, updates as { type?: string; notes?: string });
-      toast.success(`Updated ${selectedIds.length} lodging items`);
-      setShowBulkEditModal(false);
-      bulkSelection.exitSelectionMode();
-      await manager.loadItems();
-      onUpdate?.();
-    } catch (error) {
-      console.error("Failed to bulk update lodging:", error);
-      toast.error("Failed to update some lodging items");
-    } finally {
-      setIsBulkEditing(false);
-    }
-  };
 
   // Build bulk edit field options
   const bulkEditFields = useMemo(() => [
@@ -617,16 +527,6 @@ export default function LodgingManager({
     }
   };
 
-  const formatDateTime = (
-    dateTime: string | null,
-    timezone?: string | null
-  ) => {
-    return formatDateTimeInTimezone(dateTime, timezone, tripTimezone, {
-      includeTimezone: true,
-      format: "medium",
-    });
-  };
-
   // resetForm already closes the form via useFormReset
   const handleCloseForm = resetForm;
 
@@ -638,15 +538,15 @@ export default function LodgingManager({
           Lodging
         </h2>
         <div className="flex items-center gap-2">
-          {manager.items.length > 0 && !bulkSelection.selectionMode && (
+          {manager.items.length > 0 && !bulk.selection.selectionMode && (
             <button
-              onClick={bulkSelection.enterSelectionMode}
+              onClick={bulk.selection.enterSelectionMode}
               className="btn btn-secondary text-sm whitespace-nowrap"
             >
               Select
             </button>
           )}
-          {!bulkSelection.selectionMode && (
+          {!bulk.selection.selectionMode && (
             <button
               onClick={openCreateForm}
               className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
@@ -666,41 +566,23 @@ export default function LodgingManager({
         icon="🏨"
         formId="lodging-form"
         footer={
-          <div className="flex items-center justify-between w-full gap-4">
-            <DraftIndicator
-              isSaving={draft.isSaving}
-              lastSavedAt={draft.lastSavedAt}
-              show={draft.hasDraft && !manager.editingId}
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleCloseForm}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              {!manager.editingId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setKeepFormOpenAfterSave(true);
-                    (document.getElementById('lodging-form') as HTMLFormElement)?.requestSubmit();
-                  }}
-                  className="btn btn-secondary text-sm whitespace-nowrap hidden sm:block"
-                >
-                  Save & Add Another
-                </button>
-              )}
-              <button
-                type="submit"
-                form="lodging-form"
-                className="btn btn-primary"
-              >
-                {manager.editingId ? "Update" : "Add"} Lodging
-              </button>
-            </div>
-          </div>
+          <FormModalFooter
+            onCancel={handleCloseForm}
+            formId="lodging-form"
+            submitLabel={`${manager.editingId ? "Update" : "Add"} Lodging`}
+            isEditMode={!!manager.editingId}
+            onSaveAndAddAnother={() => {
+              setKeepFormOpenAfterSave(true);
+              (document.getElementById('lodging-form') as HTMLFormElement)?.requestSubmit();
+            }}
+            leftContent={
+              <DraftIndicator
+                isSaving={draft.isSaving}
+                lastSavedAt={draft.lastSavedAt}
+                show={draft.hasDraft && !manager.editingId}
+              />
+            }
+          />
         }
       >
         {/* Draft Restore Prompt */}
@@ -938,28 +820,28 @@ export default function LodgingManager({
           />
         ) : (
           sortedLodging.map((lodging, index) => {
-            const isSelected = bulkSelection.isSelected(lodging.id);
+            const isSelected = bulk.selection.isSelected(lodging.id);
             return (
             <div
               key={lodging.id}
               data-entity-id={`lodging-${lodging.id}`}
-              onClick={bulkSelection.selectionMode ? (e) => {
+              onClick={bulk.selection.selectionMode ? (e) => {
                 e.stopPropagation();
-                bulkSelection.toggleItemSelection(lodging.id, index, e.shiftKey, sortedLodging);
+                bulk.selection.toggleItemSelection(lodging.id, index, e.shiftKey, sortedLodging);
               } : undefined}
-              className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow ${bulkSelection.selectionMode ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
+              className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow ${bulk.selection.selectionMode ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
             >
               {/* Header with title and type */}
               <div className="flex items-start gap-2 mb-3 flex-wrap">
                 {/* Selection checkbox */}
-                {bulkSelection.selectionMode && (
+                {bulk.selection.selectionMode && (
                   <div className="flex items-center justify-center w-6 h-6 mr-1">
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={(e) => {
                         e.stopPropagation();
-                        bulkSelection.toggleItemSelection(lodging.id, index, (e.nativeEvent as MouseEvent).shiftKey ?? false, sortedLodging);
+                        bulk.selection.toggleItemSelection(lodging.id, index, (e.nativeEvent as MouseEvent).shiftKey ?? false, sortedLodging);
                       }}
                       className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
                     />
@@ -1092,30 +974,30 @@ export default function LodgingManager({
       </div>
 
       {/* Bulk Action Bar */}
-      {bulkSelection.selectionMode && (
+      {bulk.selection.selectionMode && (
         <BulkActionBar
           entityType="lodging"
-          selectedCount={bulkSelection.selectedCount}
+          selectedCount={bulk.selection.selectedCount}
           totalCount={manager.items.length}
-          onSelectAll={() => bulkSelection.selectAll(manager.items)}
-          onDeselectAll={bulkSelection.deselectAll}
-          onExitSelectionMode={bulkSelection.exitSelectionMode}
-          onBulkDelete={handleBulkDelete}
-          onBulkEdit={() => setShowBulkEditModal(true)}
-          isDeleting={isBulkDeleting}
-          isEditing={isBulkEditing}
+          onSelectAll={() => bulk.selection.selectAll(manager.items)}
+          onDeselectAll={bulk.selection.deselectAll}
+          onExitSelectionMode={bulk.selection.exitSelectionMode}
+          onBulkDelete={bulk.handleBulkDelete}
+          onBulkEdit={bulk.openBulkEditModal}
+          isDeleting={bulk.isBulkDeleting}
+          isEditing={bulk.isBulkEditing}
         />
       )}
 
       {/* Bulk Edit Modal */}
       <BulkEditModal
-        isOpen={showBulkEditModal}
-        onClose={() => setShowBulkEditModal(false)}
+        isOpen={bulk.showBulkEditModal}
+        onClose={bulk.closeBulkEditModal}
         entityType="lodging"
-        selectedCount={bulkSelection.selectedCount}
+        selectedCount={bulk.selection.selectedCount}
         fields={bulkEditFields}
-        onSubmit={handleBulkEdit}
-        isSubmitting={isBulkEditing}
+        onSubmit={bulk.handleBulkEdit}
+        isSubmitting={bulk.isBulkEditing}
       />
     </div>
   );

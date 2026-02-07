@@ -31,6 +31,8 @@ docs/
 │   └── UI_UX_IMPROVEMENT_PLAN.md
 ├── guides/                   # How-to guides
 │   ├── BUILD_AND_PUSH.md
+│   ├── DEVELOPMENT_WORKFLOWS.md
+│   ├── DEBUGGING_AND_OPTIMIZATION.md
 │   ├── TESTING_GUIDE.md
 │   └── ROUTING_SETUP.md
 ├── plans/                    # Future planning documents
@@ -53,8 +55,10 @@ Start with architecture documentation to understand the codebase:
 
 Then review development processes:
 
-4. **[Build and Push Guide](guides/BUILD_AND_PUSH.md)** - How to build and release
-5. **[Testing Guide](guides/TESTING_GUIDE.md)** - Testing strategy and patterns
+1. **[Development Workflows](guides/DEVELOPMENT_WORKFLOWS.md)** - Step-by-step guides for working with each feature
+1. **[Debugging & Optimization](guides/DEBUGGING_AND_OPTIMIZATION.md)** - Agent-based debugging and code optimization
+1. **[Build and Push Guide](guides/BUILD_AND_PUSH.md)** - How to build and release
+1. **[Testing Guide](guides/TESTING_GUIDE.md)** - Testing strategy and patterns
 
 ### For DevOps / System Administrators
 

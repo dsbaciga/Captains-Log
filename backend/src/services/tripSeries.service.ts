@@ -27,7 +27,7 @@ export class TripSeriesService {
       select: { id: true },
     });
 
-    await Promise.all(
+    await prisma.$transaction(
       trips.map((trip, index) =>
         prisma.trip.update({
           where: { id: trip.id },
@@ -272,8 +272,8 @@ export class TripSeriesService {
       throw new AppError('All trips in the series must be included in the reorder', 400);
     }
 
-    // Update order
-    await Promise.all(
+    // Update order atomically
+    await prisma.$transaction(
       tripIds.map((tripId, index) =>
         prisma.trip.update({
           where: { id: tripId },

@@ -467,11 +467,12 @@ export default function DailyView({
         // Add journal entries (only standalone ones without activity/lodging/transportation links)
         journal.forEach((entry) => {
           if (entry.date) {
-            // Only include standalone journal entries
-            const entryAny = entry as Record<string, unknown>;
-            const hasActivityLinks = Array.isArray(entryAny.activityAssignments) && (entryAny.activityAssignments as unknown[]).length > 0;
-            const hasLodgingLinks = Array.isArray(entryAny.lodgingAssignments) && (entryAny.lodgingAssignments as unknown[]).length > 0;
-            const hasTransportationLinks = Array.isArray(entryAny.transportationAssignments) && (entryAny.transportationAssignments as unknown[]).length > 0;
+            // Only include standalone journal entries - check entity links via link summary
+            const journalKey = `JOURNAL_ENTRY:${entry.id}`;
+            const journalLinkSummary = linkSummary[journalKey];
+            const hasActivityLinks = (journalLinkSummary?.linkCounts?.ACTIVITY ?? 0) > 0;
+            const hasLodgingLinks = (journalLinkSummary?.linkCounts?.LODGING ?? 0) > 0;
+            const hasTransportationLinks = (journalLinkSummary?.linkCounts?.TRANSPORTATION ?? 0) > 0;
 
             if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
               // Use parseDateOnlyAsLocal to avoid UTC timezone shift issues.

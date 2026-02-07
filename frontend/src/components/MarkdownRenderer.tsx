@@ -8,19 +8,27 @@ interface MarkdownRendererProps {
   className?: string;
 }
 
+const SAFE_URL_PATTERN = /^(https?:|mailto:|tel:|#)/i;
+
 const components: Components = {
-  a: ({ href, children }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer">
-      {children}
-    </a>
-  ),
+  a: ({ href, children }) => {
+    const safeHref = href && SAFE_URL_PATTERN.test(href) ? href : undefined;
+    return (
+      <a href={safeHref} target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    );
+  },
   // Disable img rendering — render as a plain link instead to prevent
   // arbitrary external images from breaking layouts and leaking IPs
-  img: ({ src, alt }) => (
-    <a href={src} target="_blank" rel="noopener noreferrer">
-      {alt || src || 'image'}
-    </a>
-  ),
+  img: ({ src, alt }) => {
+    const safeSrc = src && SAFE_URL_PATTERN.test(src) ? src : undefined;
+    return (
+      <a href={safeSrc} target="_blank" rel="noopener noreferrer">
+        {alt || src || 'image'}
+      </a>
+    );
+  },
 };
 
 export default function MarkdownRenderer({ content, compact = false, className = '' }: MarkdownRendererProps) {

@@ -130,6 +130,12 @@ router.get('/:id', tagController.getTagById);
 router.put('/:id', tagController.updateTag);
 router.delete('/:id', tagController.deleteTag);
 
+// NOTE: Trip-tag association routes use paths like /trips/:tripId/tags/:tagId.
+// Since this router is mounted at /api/tags, the full paths become
+// /api/tags/trips/:tripId/tags/:tagId, which reads oddly with "tags" appearing
+// twice. However, changing these routes would be a breaking API change for the
+// frontend, so the current structure is intentionally preserved.
+
 /**
  * @openapi
  * /api/tags/link:

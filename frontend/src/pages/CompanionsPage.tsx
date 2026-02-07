@@ -36,6 +36,8 @@ interface CompanionWithTrips extends Companion {
   }>;
 }
 
+let immichConfiguredCache: boolean | null = null;
+
 export default function CompanionsPage() {
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,13 +65,19 @@ export default function CompanionsPage() {
   const [immichTargetCompanion, setImmichTargetCompanion] = useState<Companion | null>(null);
   const [immichConfigured, setImmichConfigured] = useState(false);
 
-  // Check if Immich is configured
+  // Check if Immich is configured (cached per session to avoid repeated API calls)
   useEffect(() => {
+    if (immichConfiguredCache !== null) {
+      setImmichConfigured(immichConfiguredCache);
+      return;
+    }
     const checkImmich = async () => {
       try {
         await immichService.getAssets({ take: 1 });
+        immichConfiguredCache = true;
         setImmichConfigured(true);
       } catch {
+        immichConfiguredCache = false;
         setImmichConfigured(false);
       }
     };
@@ -353,8 +361,9 @@ export default function CompanionsPage() {
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="label">Name *</label>
+              <label htmlFor="companion-name" className="label">Name *</label>
               <input
+                id="companion-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -366,8 +375,9 @@ export default function CompanionsPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Email</label>
+                <label htmlFor="companion-email" className="label">Email</label>
                 <input
+                  id="companion-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -376,8 +386,9 @@ export default function CompanionsPage() {
                 />
               </div>
               <div>
-                <label className="label">Phone</label>
+                <label htmlFor="companion-phone" className="label">Phone</label>
                 <input
+                  id="companion-phone"
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -388,8 +399,9 @@ export default function CompanionsPage() {
               </div>
             </div>
             <div>
-              <label className="label">Notes</label>
+              <label htmlFor="companion-notes" className="label">Notes</label>
               <textarea
+                id="companion-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="input"
@@ -399,11 +411,12 @@ export default function CompanionsPage() {
               />
             </div>
             <div>
-              <label className="label">Dietary Preferences</label>
+              <label htmlFor="companion-dietary" className="label">Dietary Preferences</label>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 Track dietary restrictions to easily find suitable restaurants when traveling together.
               </p>
               <DietaryTagSelector
+                id="companion-dietary"
                 selectedTags={dietaryPreferences}
                 onChange={setDietaryPreferences}
                 compact
@@ -458,6 +471,7 @@ export default function CompanionsPage() {
                     {/* Add to Trip button in top right corner */}
                     <button
                       onClick={() => handleOpenAddToTrip(companion)}
+                      aria-label={`Add ${companion.name} to trip`}
                       className="absolute top-3 right-3 px-2 py-1 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 font-medium transition-colors"
                     >
                       + Add to trip
@@ -570,12 +584,14 @@ export default function CompanionsPage() {
                     <div className="flex gap-2 mt-auto">
                       <button
                         onClick={() => startEdit(companion)}
+                        aria-label={`Edit ${companion.name}`}
                         className="flex-1 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 font-medium"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteCompanion(companion.id)}
+                        aria-label={`Delete ${companion.name}`}
                         className="flex-1 px-3 py-2 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 font-medium"
                       >
                         Delete
@@ -623,6 +639,7 @@ export default function CompanionsPage() {
                   }
                   className="flex-shrink-0 p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
                   title="Remove companion from this trip"
+                  aria-label="Remove companion from this trip"
                 >
                   <TrashIcon />
                 </button>

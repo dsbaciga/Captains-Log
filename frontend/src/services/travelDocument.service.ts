@@ -13,7 +13,7 @@ export const travelDocumentService = {
    */
   async getAll(): Promise<TravelDocument[]> {
     const response = await axios.get('/travel-documents');
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -21,7 +21,7 @@ export const travelDocumentService = {
    */
   async getById(documentId: number): Promise<TravelDocument> {
     const response = await axios.get(`/travel-documents/${documentId}`);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -29,7 +29,7 @@ export const travelDocumentService = {
    */
   async create(data: CreateTravelDocumentInput): Promise<TravelDocument> {
     const response = await axios.post('/travel-documents', data);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -37,7 +37,7 @@ export const travelDocumentService = {
    */
   async update(documentId: number, data: UpdateTravelDocumentInput): Promise<TravelDocument> {
     const response = await axios.put(`/travel-documents/${documentId}`, data);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -52,7 +52,7 @@ export const travelDocumentService = {
    */
   async getAlerts(): Promise<DocumentAlert[]> {
     const response = await axios.get('/travel-documents/alerts');
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -60,7 +60,7 @@ export const travelDocumentService = {
    */
   async checkForTrip(tripId: number): Promise<DocumentValidityCheck> {
     const response = await axios.get(`/travel-documents/trip/${tripId}/check`);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -68,7 +68,7 @@ export const travelDocumentService = {
    */
   async getPrimaryPassport(): Promise<TravelDocument | null> {
     const response = await axios.get('/travel-documents/primary-passport');
-    return response.data.data;
+    return response.data;
   },
 };
 

@@ -111,6 +111,7 @@ export default function JournalManager({
 
   // Check for existing draft when form opens in create mode
   // Use initialDraftExists to only show prompt for drafts from previous sessions
+  // TODO: Replace with useDraftRestore hook
   useEffect(() => {
     if (manager.showForm && !manager.editingId && draft.initialDraftExists) {
       setShowDraftPrompt(true);
@@ -133,6 +134,7 @@ export default function JournalManager({
   }, [draft]);
 
   // Create wrappers for useFormReset hook
+  // TODO: Replace with useManagerFormWrapper hook
   const setShowForm = useCallback((show: boolean) => {
     if (show) {
       if (!manager.showForm) manager.toggleForm();

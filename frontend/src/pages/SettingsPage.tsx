@@ -690,7 +690,7 @@ export default function SettingsPage() {
                 Change Password
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Update your password (minimum 6 characters).
+                Update your password (minimum 8 characters).
               </p>
               <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div>
@@ -716,7 +716,7 @@ export default function SettingsPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="input w-full max-w-md"
-                    minLength={6}
+                    minLength={8}
                     required
                   />
                 </div>
@@ -730,7 +730,7 @@ export default function SettingsPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="input w-full max-w-md"
-                    minLength={6}
+                    minLength={8}
                     required
                   />
                 </div>
@@ -923,7 +923,7 @@ export default function SettingsPage() {
                   type="text"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleAddCategory()}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
                   placeholder="New category name"
                   className="input flex-1"
                 />
@@ -1140,7 +1140,7 @@ export default function SettingsPage() {
                   type="text"
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleCreateTag()}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateTag()}
                   placeholder="New tag name"
                   className="input w-full"
                 />

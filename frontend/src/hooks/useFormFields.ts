@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 /**
  * Generic hook for managing form field state
@@ -13,17 +13,18 @@ import { useState, useCallback } from 'react';
  *
  * <input value={values.name} onChange={(e) => setField('name', e.target.value)} />
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useFormFields<T extends Record<string, any>>(initialValues: T) {
+export function useFormFields<T extends Record<string, unknown>>(initialValues: T) {
   const [values, setValues] = useState<T>(initialValues);
+  const initialValuesRef = useRef(initialValues);
+  initialValuesRef.current = initialValues;
 
   const setField = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
     setValues(prev => ({ ...prev, [field]: value }));
   }, []);
 
   const resetFields = useCallback(() => {
-    setValues(initialValues);
-  }, [initialValues]);
+    setValues(initialValuesRef.current);
+  }, []);
 
   const setAllFields = useCallback((newValues: Partial<T>) => {
     setValues(prev => ({ ...prev, ...newValues }));

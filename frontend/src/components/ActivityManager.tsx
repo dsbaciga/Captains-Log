@@ -114,6 +114,7 @@ export default function ActivityManager({
 
   // Create wrappers for useFormReset hook
   // ActivityManager uses editingActivity instead of form fields, so we adapt the pattern
+  // TODO: Replace with useManagerFormWrapper hook
   const setShowForm = useCallback((show: boolean) => {
     if (show) {
       if (!manager.showForm) manager.toggleForm();

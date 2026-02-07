@@ -376,7 +376,8 @@ class RoutingService {
           distance,
           duration,
           profile,
-          routeGeometry: geometry || null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- number[][] is valid JSON but Prisma's InputJsonValue doesn't accept it directly
+          routeGeometry: (geometry ?? null) as any,
         },
       });
     } catch (error) {

@@ -110,7 +110,7 @@ export default function LocationQuickAdd({ tripId, onLocationCreated, onCancel }
           <div className="max-h-60 overflow-y-auto space-y-1 border border-gray-300 dark:border-gray-600 rounded">
             {searchResults.map((result, index) => (
               <button
-                key={index}
+                key={result.place_id}
                 type="button"
                 onClick={() => handleResultClick(result)}
                 disabled={creating}

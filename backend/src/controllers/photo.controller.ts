@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import photoService from '../services/photo.service';
 import albumSuggestionService from '../services/albumSuggestion.service';
 import {
@@ -9,13 +10,19 @@ import {
   acceptAlbumSuggestionSchema,
   PhotoWithOptionalAlbums,
   TransformedPhoto,
-  PhotoSortByType,
-  SortOrderType,
 } from '../types/photo.types';
 import { AppError } from '../utils/errors';
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
 import { requireUserId } from '../utils/controllerHelpers';
+
+const photoQuerySchema = z.object({
+  skip: z.coerce.number().int().min(0).default(0),
+  take: z.coerce.number().int().min(1).max(100).default(20),
+  albumId: z.coerce.number().int().optional(),
+  sortBy: z.enum(['date', 'caption', 'location', 'created']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+});
 
 // Helper function to add Immich URLs for photos and transform album assignments
 function transformPhoto(photo: PhotoWithOptionalAlbums): TransformedPhoto {
@@ -59,7 +66,7 @@ export const photoController = {
       validatedData
     );
 
-    res.status(201).json(transformPhoto(photo));
+    res.status(201).json({ status: 'success', data: transformPhoto(photo) });
   }),
 
   linkImmichPhoto: asyncHandler(async (req: Request, res: Response) => {
@@ -69,7 +76,7 @@ export const photoController = {
       validatedData
     );
 
-    res.status(201).json(transformPhoto(photo));
+    res.status(201).json({ status: 'success', data: transformPhoto(photo) });
   }),
 
   linkImmichPhotosBatch: asyncHandler(async (req: Request, res: Response) => {
@@ -88,10 +95,7 @@ export const photoController = {
 
   getPhotosByTrip: asyncHandler(async (req: Request, res: Response) => {
     const tripId = parseId(req.params.tripId, 'tripId');
-    const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
-    const take = req.query.take ? parseInt(req.query.take as string) : undefined;
-    const sortBy = req.query.sortBy as PhotoSortByType | undefined;
-    const sortOrder = req.query.sortOrder as SortOrderType | undefined;
+    const { skip, take, sortBy, sortOrder } = photoQuerySchema.parse(req.query);
 
     const result = await photoService.getPhotosByTrip(requireUserId(req), tripId, {
       skip,
@@ -101,27 +105,28 @@ export const photoController = {
     });
 
     // Add thumbnail URLs for Immich photos
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma returns partial album selects and Decimal types that don't match PhotoWithOptionalAlbums at compile time
     const photosWithUrls = result.photos.map((photo: any) => transformPhoto(photo));
 
     res.json({
-      photos: photosWithUrls,
-      total: result.total,
-      hasMore: result.hasMore,
+      status: 'success',
+      data: {
+        photos: photosWithUrls,
+        total: result.total,
+        hasMore: result.hasMore,
+      },
     });
   }),
 
   getImmichAssetIdsByTrip: asyncHandler(async (req: Request, res: Response) => {
     const tripId = parseId(req.params.tripId, 'tripId');
     const assetIds = await photoService.getImmichAssetIdsByTrip(requireUserId(req), tripId);
-    res.json({ assetIds });
+    res.json({ status: 'success', data: { assetIds } });
   }),
 
   getUnsortedPhotosByTrip: asyncHandler(async (req: Request, res: Response) => {
     const tripId = parseId(req.params.tripId, 'tripId');
-    const skip = req.query.skip ? parseInt(req.query.skip as string) : undefined;
-    const take = req.query.take ? parseInt(req.query.take as string) : undefined;
-    const sortBy = req.query.sortBy as PhotoSortByType | undefined;
-    const sortOrder = req.query.sortOrder as SortOrderType | undefined;
+    const { skip, take, sortBy, sortOrder } = photoQuerySchema.parse(req.query);
 
     const result = await photoService.getUnsortedPhotosByTrip(requireUserId(req), tripId, {
       skip,
@@ -131,12 +136,16 @@ export const photoController = {
     });
 
     // Add thumbnail URLs for Immich photos
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma returns partial album selects and Decimal types that don't match PhotoWithOptionalAlbums at compile time
     const photosWithUrls = result.photos.map((photo: any) => transformPhoto(photo));
 
     res.json({
-      photos: photosWithUrls,
-      total: result.total,
-      hasMore: result.hasMore,
+      status: 'success',
+      data: {
+        photos: photosWithUrls,
+        total: result.total,
+        hasMore: result.hasMore,
+      },
     });
   }),
 
@@ -144,7 +153,11 @@ export const photoController = {
     const photoId = parseId(req.params.id);
     const photo = await photoService.getPhotoById(requireUserId(req), photoId);
 
-    res.json(transformPhoto(photo));
+    if (!photo) {
+      throw new AppError('Photo not found', 404);
+    }
+
+    res.json({ status: 'success', data: transformPhoto(photo) });
   }),
 
   updatePhoto: asyncHandler(async (req: Request, res: Response) => {
@@ -156,7 +169,7 @@ export const photoController = {
       validatedData
     );
 
-    res.json(transformPhoto(photo));
+    res.json({ status: 'success', data: transformPhoto(photo) });
   }),
 
   deletePhoto: asyncHandler(async (req: Request, res: Response) => {
@@ -175,7 +188,7 @@ export const photoController = {
       tripId,
       timezone
     );
-    res.json(result);
+    res.json({ status: 'success', data: result });
   }),
 
   getPhotosByDate: asyncHandler(async (req: Request, res: Response) => {
@@ -202,12 +215,16 @@ export const photoController = {
     );
 
     // Transform photos for frontend
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Raw SQL returns DecimalValue types and partial album data that don't match PhotoWithOptionalAlbums at compile time
     const photosWithUrls = result.photos.map((photo: any) => transformPhoto(photo));
 
     res.json({
-      photos: photosWithUrls,
-      date: result.date,
-      count: result.count,
+      status: 'success',
+      data: {
+        photos: photosWithUrls,
+        date: result.date,
+        count: result.count,
+      },
     });
   }),
 
@@ -218,7 +235,7 @@ export const photoController = {
       tripId
     );
 
-    res.json(suggestions);
+    res.json({ status: 'success', data: suggestions });
   }),
 
   acceptAlbumSuggestion: asyncHandler(async (req: Request, res: Response) => {
@@ -241,6 +258,6 @@ export const photoController = {
       { name, photoIds }
     );
 
-    res.status(201).json(result);
+    res.status(201).json({ status: 'success', data: result });
   }),
 };

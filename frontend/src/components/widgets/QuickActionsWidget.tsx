@@ -88,9 +88,9 @@ export default function QuickActionsWidget() {
 
       {/* Actions Grid */}
       <div className="grid grid-cols-2 gap-3">
-        {actions.map((action, index) => (
+        {actions.map((action) => (
           <button
-            key={index}
+            key={action.label}
             onClick={action.onClick}
             className={`p-4 rounded-xl bg-gradient-to-br ${action.color} text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 active:scale-100 group`}
           >

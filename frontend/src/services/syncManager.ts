@@ -350,7 +350,7 @@ class SyncManager {
 
     try {
       const response = await axiosInstance.get(url);
-      const serverData = response.data.data;
+      const serverData = response.data;
 
       if (!serverData) {
         // Entity was deleted on server

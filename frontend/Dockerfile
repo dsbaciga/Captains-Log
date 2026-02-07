@@ -11,6 +11,12 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Create non-root user, give ownership of app dir, and switch to it
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 appuser && \
+    chown -R appuser:nodejs /app
+USER appuser
+
 # Expose port
 EXPOSE 3000
 

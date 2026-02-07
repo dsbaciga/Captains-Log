@@ -76,8 +76,10 @@ export async function verifyEntityInTrip(
 }
 
 /**
- * Generic function to verify entity exists and user owns the associated trip
- * Consolidates verifyAlbumAccess, verifyActivityAccess, verifyLodgingAccess, etc.
+ * Generic function to verify entity exists and user owns the associated trip.
+ *
+ * Note: For permission-aware access checks that support collaborators,
+ * prefer verifyEntityAccessWithPermission() instead.
  *
  * @param entityType - The type of entity to verify
  * @param entityId - The ID of the entity
@@ -320,6 +322,8 @@ export async function verifyEntityAccessWithPermission<T = unknown>(
  * Verifies entity belongs to user's trip
  * @throws {AppError} 404 if entity not found, 403 if access denied
  * @returns The entity if access is granted
+ * @deprecated Use verifyEntityAccessWithPermission() for permission-aware access checks.
+ * Kept for backward compatibility with existing tests.
  */
 export async function verifyEntityAccess<T extends { trip: { userId: number } }>(
   entity: T | null,
@@ -338,81 +342,11 @@ export async function verifyEntityAccess<T extends { trip: { userId: number } }>
 }
 
 /**
- * Verifies location belongs to specified trip
- * @throws {AppError} 404 if location not found or doesn't belong to trip
- * @deprecated Use verifyEntityInTrip('location', locationId, tripId) instead
- */
-export async function verifyLocationInTrip(
-  locationId: number,
-  tripId: number
-): Promise<void> {
-  return verifyEntityInTrip('location', locationId, tripId);
-}
-
-/**
- * Verifies photo belongs to specified trip
- * @throws {AppError} 404 if photo not found or doesn't belong to trip
- * @deprecated Use verifyEntityInTrip('photo', photoId, tripId) instead
- */
-export async function verifyPhotoInTrip(
-  photoId: number,
-  tripId: number
-): Promise<void> {
-  return verifyEntityInTrip('photo', photoId, tripId);
-}
-
-/**
- * Verifies album belongs to user
- * @throws {AppError} 404 if album not found, 403 if access denied
- * @deprecated Use verifyEntityAccessById('album', albumId, userId) instead
- */
-export async function verifyAlbumAccess(
-  albumId: number,
-  userId: number
-): Promise<void> {
-  await verifyEntityAccessById('album', albumId, userId);
-}
-
-/**
- * Verifies activity belongs to user's trip
- * @throws {AppError} 404 if not found, 403 if access denied
- * @deprecated Use verifyEntityAccessById('activity', activityId, userId) instead
- */
-export async function verifyActivityAccess(
-  activityId: number,
-  userId: number
-): Promise<void> {
-  await verifyEntityAccessById('activity', activityId, userId);
-}
-
-/**
- * Verifies lodging belongs to user's trip
- * @throws {AppError} 404 if not found, 403 if access denied
- * @deprecated Use verifyEntityAccessById('lodging', lodgingId, userId) instead
- */
-export async function verifyLodgingAccess(
-  lodgingId: number,
-  userId: number
-): Promise<void> {
-  await verifyEntityAccessById('lodging', lodgingId, userId);
-}
-
-/**
- * Verifies transportation belongs to user's trip
- * @throws {AppError} 404 if not found, 403 if access denied
- * @deprecated Use verifyEntityAccessById('transportation', transportationId, userId) instead
- */
-export async function verifyTransportationAccess(
-  transportationId: number,
-  userId: number
-): Promise<void> {
-  await verifyEntityAccessById('transportation', transportationId, userId);
-}
-
-/**
  * Builds update data object, converting empty strings to null
  * Only includes fields that are defined (not undefined)
  * This ensures empty fields are cleared in updates
+ *
+ * @deprecated Use buildConditionalUpdateData() instead, which supports transformers
  */
 export function buildUpdateData<T extends Record<string, unknown>>(
   data: Partial<T>
@@ -462,7 +396,8 @@ export function buildConditionalUpdateData<T extends Record<string, unknown>>(
   data: Partial<T>,
   options: {
     emptyStringToNull?: boolean;
-    transformers?: Record<string, (value: unknown) => unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Transformers accept various input types
+    transformers?: Record<string, (value: any) => any>;
   } = {}
 ): Partial<T> {
   const { emptyStringToNull = true, transformers = {} } = options;
@@ -511,6 +446,8 @@ export function tripDateTransformer(dateStr: string | null): Date | null {
 /**
  * Generic function to verify entity ownership through trip relationship
  * More flexible version that works with any entity type
+ *
+ * @deprecated Use verifyEntityAccessWithPermission() for permission-aware access checks
  */
 export async function verifyEntityOwnership<T extends { trip: { userId: number } }>(
   findQuery: () => Promise<T | null>,

@@ -23,7 +23,7 @@ export const entityLinkController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = createEntityLinkSchema.parse({ ...req.body, tripId });
     const link = await entityLinkService.createLink(userId, data);
-    res.status(201).json(link);
+    res.status(201).json({ status: 'success', data: link });
   }),
 
   /**
@@ -35,7 +35,7 @@ export const entityLinkController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = bulkCreateEntityLinksSchema.parse({ ...req.body, tripId });
     const result = await entityLinkService.bulkCreateLinks(userId, data);
-    res.status(201).json(result);
+    res.status(201).json({ status: 'success', data: result });
   }),
 
   /**
@@ -47,7 +47,7 @@ export const entityLinkController = {
     const tripId = parseId(req.params.tripId, 'tripId');
     const data = bulkLinkPhotosSchema.parse({ ...req.body, tripId });
     const result = await entityLinkService.bulkLinkPhotos(userId, data);
-    res.status(201).json(result);
+    res.status(201).json({ status: 'success', data: result });
   }),
 
   /**
@@ -69,7 +69,7 @@ export const entityLinkController = {
       sourceId,
       targetType,
     });
-    res.json(links);
+    res.json({ status: 'success', data: links });
   }),
 
   /**
@@ -91,7 +91,7 @@ export const entityLinkController = {
       targetId,
       sourceType,
     });
-    res.json(links);
+    res.json({ status: 'success', data: links });
   }),
 
   /**
@@ -110,7 +110,7 @@ export const entityLinkController = {
       entityType,
       entityId
     );
-    res.json(result);
+    res.json({ status: 'success', data: result });
   }),
 
   /**
@@ -129,7 +129,7 @@ export const entityLinkController = {
       entityType,
       entityId
     );
-    res.json(photos);
+    res.json({ status: 'success', data: photos });
   }),
 
   /**
@@ -146,7 +146,7 @@ export const entityLinkController = {
       tripId,
       targetType
     );
-    res.json(links);
+    res.json({ status: 'success', data: links });
   }),
 
   /**
@@ -165,7 +165,7 @@ export const entityLinkController = {
       summary[key] = value;
     });
 
-    res.json(summary);
+    res.json({ status: 'success', data: summary });
   }),
 
   /**
@@ -202,7 +202,7 @@ export const entityLinkController = {
     const linkId = parseId(req.params.linkId, 'linkId');
     const data = updateEntityLinkSchema.parse(req.body);
     const link = await entityLinkService.updateLink(userId, tripId, linkId, data);
-    res.json(link);
+    res.json({ status: 'success', data: link });
   }),
 
   /**
@@ -221,6 +221,6 @@ export const entityLinkController = {
       entityType,
       entityId
     );
-    res.json(result);
+    res.json({ status: 'success', data: result });
   }),
 };

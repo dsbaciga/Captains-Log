@@ -15,6 +15,12 @@ export interface DebugContext {
   timestamp?: number;
 }
 
+declare global {
+  interface Window {
+    __debugLogger?: DebugLogger;
+  }
+}
+
 class DebugLogger {
   private context: DebugContext[] = [];
   private maxContextSize = 50;
@@ -230,7 +236,7 @@ export const debugLogger = new DebugLogger();
 
 // Export helper to attach to window for console access
 if (typeof window !== 'undefined') {
-  (window as unknown as Record<string, unknown>).__debugLogger = debugLogger;
+  window.__debugLogger = debugLogger;
   console.log('[DEBUG] Debug logger attached to window.__debugLogger');
   console.log('[DEBUG] Use window.__debugLogger.getRecentContext() to see recent logs');
 }

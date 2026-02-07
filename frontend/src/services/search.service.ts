@@ -11,16 +11,13 @@ export interface SearchResult {
 }
 
 export interface GlobalSearchResponse {
-  status: string;
-  data: {
-    results: SearchResult[];
-    total: number;
-  };
+  results: SearchResult[];
+  total: number;
 }
 
 class SearchService {
   async globalSearch(query: string, type: string = 'all'): Promise<GlobalSearchResponse> {
-    const response = await axios.get<GlobalSearchResponse>('/search', {
+    const response = await axios.get('/search', {
       params: { q: query, type },
     });
     return response.data;

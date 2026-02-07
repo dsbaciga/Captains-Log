@@ -41,7 +41,7 @@ export type Trip = {
     id: number;
     localPath: string | null;
     thumbnailPath: string | null;
-    source: string;
+    source: 'local' | 'immich';
     immichAssetId: string | null;
   } | null;
   tagAssignments?: {

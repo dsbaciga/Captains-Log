@@ -50,6 +50,7 @@ export default function TripSeriesPage() {
   const [saving, setSaving] = useState(false);
   const [addingTrip, setAddingTrip] = useState(false);
   const [selectedTripToAdd, setSelectedTripToAdd] = useState<string>('');
+  const [reordering, setReordering] = useState(false);
 
   const { data: series, isLoading } = useQuery({
     queryKey: ['tripSeries', seriesId],
@@ -127,26 +128,32 @@ export default function TripSeriesPage() {
   };
 
   const handleMoveUp = async (index: number) => {
-    if (index <= 0) return;
+    if (index <= 0 || reordering) return;
     const newOrder = [...sortedTrips];
     [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
     try {
+      setReordering(true);
       await tripSeriesService.reorderTrips(seriesId, newOrder.map((t) => t.id));
       await queryClient.invalidateQueries({ queryKey: ['tripSeries', seriesId] });
     } catch {
       toast.error('Failed to reorder trips');
+    } finally {
+      setReordering(false);
     }
   };
 
   const handleMoveDown = async (index: number) => {
-    if (index >= sortedTrips.length - 1) return;
+    if (index >= sortedTrips.length - 1 || reordering) return;
     const newOrder = [...sortedTrips];
     [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
     try {
+      setReordering(true);
       await tripSeriesService.reorderTrips(seriesId, newOrder.map((t) => t.id));
       await queryClient.invalidateQueries({ queryKey: ['tripSeries', seriesId] });
     } catch {
       toast.error('Failed to reorder trips');
+    } finally {
+      setReordering(false);
     }
   };
 

@@ -75,7 +75,7 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
 
     try {
       const response = await searchService.globalSearch(searchQuery);
-      setResults(response.data.results);
+      setResults(response.results);
     } catch (error) {
       console.error('Search failed:', error);
       setResults([]);
@@ -295,9 +295,9 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
                   Clear
                 </button>
               </div>
-              {recentSearches.map((search, index) => (
+              {recentSearches.map((search) => (
                 <button
-                  key={index}
+                  key={search}
                   onClick={() => handleRecentSearch(search)}
                   className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >

@@ -80,14 +80,14 @@ jest.mock('../../utils/serviceHelpers', () => {
   const originalModule = jest.requireActual('../../utils/serviceHelpers');
   return {
     ...originalModule,
-    verifyTripAccess: jest.fn(),
-    verifyEntityAccess: jest.fn(),
+    verifyTripAccessWithPermission: jest.fn(),
+    verifyEntityAccessWithPermission: jest.fn(),
     cleanupEntityLinks: jest.fn(),
   };
 });
 
 import photoAlbumService from '../photoAlbum.service';
-import { verifyTripAccess, verifyEntityAccess, cleanupEntityLinks } from '../../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../utils/serviceHelpers';
 import { AppError } from '../../utils/errors';
 
 describe('PhotoAlbumService', () => {
@@ -101,6 +101,13 @@ describe('PhotoAlbumService', () => {
     title: 'Summer Vacation',
     startDate: new Date('2025-06-01'),
     endDate: new Date('2025-06-15'),
+    privacyLevel: 'Private',
+  };
+
+  const mockTripAccessResult = {
+    trip: mockTrip,
+    isOwner: true,
+    permissionLevel: 'admin',
   };
 
   const mockPhoto = {
@@ -140,10 +147,10 @@ describe('PhotoAlbumService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (verifyTripAccess as jest.Mock).mockResolvedValue(mockTrip);
-    (verifyEntityAccess as jest.Mock).mockImplementation(async (entity) => {
-      if (!entity) throw new AppError('Album not found', 404);
-      return entity;
+    (verifyTripAccessWithPermission as jest.Mock).mockResolvedValue(mockTripAccessResult);
+    (verifyEntityAccessWithPermission as jest.Mock).mockResolvedValue({
+      entity: { ...mockAlbum, tripId: mockTripId },
+      tripAccess: mockTripAccessResult,
     });
     (cleanupEntityLinks as jest.Mock).mockResolvedValue(undefined);
   });
@@ -163,7 +170,7 @@ describe('PhotoAlbumService', () => {
 
       const result = await photoAlbumService.createAlbum(mockUserId, createInput);
 
-      expect(verifyTripAccess).toHaveBeenCalledWith(mockUserId, mockTripId);
+      expect(verifyTripAccessWithPermission).toHaveBeenCalledWith(mockUserId, mockTripId, 'edit');
       expect(mockPrisma.photoAlbum.create).toHaveBeenCalledWith({
         data: {
           tripId: mockTripId,
@@ -211,7 +218,7 @@ describe('PhotoAlbumService', () => {
     });
 
     it('should throw error if user does not own the trip', async () => {
-      (verifyTripAccess as jest.Mock).mockRejectedValue(
+      (verifyTripAccessWithPermission as jest.Mock).mockRejectedValue(
         new AppError('Trip not found or access denied', 404)
       );
 
@@ -244,7 +251,7 @@ describe('PhotoAlbumService', () => {
         { photoIds }
       );
 
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(mockPrisma.photo.findMany).toHaveBeenCalledWith({
         where: {
           id: { in: photoIds },
@@ -308,7 +315,7 @@ describe('PhotoAlbumService', () => {
         photoId
       );
 
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(mockPrisma.photoAlbumAssignment.delete).toHaveBeenCalledWith({
         where: {
           albumId_photoId: {
@@ -322,7 +329,7 @@ describe('PhotoAlbumService', () => {
 
     it('should throw error if album not found', async () => {
       mockPrisma.photoAlbum.findUnique.mockResolvedValue(null);
-      (verifyEntityAccess as jest.Mock).mockRejectedValue(
+      (verifyEntityAccessWithPermission as jest.Mock).mockRejectedValue(
         new AppError('Album not found', 404)
       );
 
@@ -459,7 +466,7 @@ describe('PhotoAlbumService', () => {
 
       const result = await photoAlbumService.getAlbumsByTrip(mockUserId, mockTripId);
 
-      expect(verifyTripAccess).toHaveBeenCalledWith(mockUserId, mockTripId);
+      expect(verifyTripAccessWithPermission).toHaveBeenCalledWith(mockUserId, mockTripId, 'view');
       expect(mockPrisma.photoAlbum.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { tripId: mockTripId },
@@ -643,7 +650,7 @@ describe('PhotoAlbumService', () => {
         name: 'Renamed Album',
       });
 
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(mockPrisma.photoAlbum.update).toHaveBeenCalledWith({
         where: { id: mockAlbumId },
         data: expect.objectContaining({
@@ -713,7 +720,7 @@ describe('PhotoAlbumService', () => {
     it('should delete album and clean up entity links', async () => {
       const result = await photoAlbumService.deleteAlbum(mockUserId, mockAlbumId);
 
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(cleanupEntityLinks).toHaveBeenCalledWith(
         mockTripId,
         'PHOTO_ALBUM',
@@ -727,7 +734,7 @@ describe('PhotoAlbumService', () => {
 
     it('should throw error if album not found', async () => {
       mockPrisma.photoAlbum.findUnique.mockResolvedValue(null);
-      (verifyEntityAccess as jest.Mock).mockRejectedValue(
+      (verifyEntityAccessWithPermission as jest.Mock).mockRejectedValue(
         new AppError('Album not found', 404)
       );
 
@@ -742,7 +749,7 @@ describe('PhotoAlbumService', () => {
         trip: { ...mockTrip, userId: 999 },
       };
       mockPrisma.photoAlbum.findUnique.mockResolvedValue(otherUserAlbum);
-      (verifyEntityAccess as jest.Mock).mockRejectedValue(
+      (verifyEntityAccessWithPermission as jest.Mock).mockRejectedValue(
         new AppError('Access denied', 403)
       );
 

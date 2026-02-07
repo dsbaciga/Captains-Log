@@ -77,8 +77,11 @@ export const photoAlbumController = {
     });
 
     res.json({
-      ...result,
-      albums: transformedAlbums,
+      status: 'success',
+      data: {
+        ...result,
+        albums: transformedAlbums,
+      },
     });
   }),
 
@@ -86,7 +89,7 @@ export const photoAlbumController = {
     const userId = requireUserId(req);
     const validatedData = createAlbumSchema.parse(req.body);
     const album = await photoAlbumService.createAlbum(userId, validatedData);
-    res.status(201).json(album);
+    res.status(201).json({ status: 'success', data: album });
   }),
 
   getAlbumsByTrip: asyncHandler(async (req: Request, res: Response) => {
@@ -121,8 +124,11 @@ export const photoAlbumController = {
     });
 
     res.json({
-      ...result,
-      albums: transformedAlbums,
+      status: 'success',
+      data: {
+        ...result,
+        albums: transformedAlbums,
+      },
     });
   }),
 
@@ -173,7 +179,7 @@ export const photoAlbumController = {
       });
     }
 
-    res.json(transformed);
+    res.json({ status: 'success', data: transformed });
   }),
 
   updateAlbum: asyncHandler(async (req: Request, res: Response) => {
@@ -185,7 +191,7 @@ export const photoAlbumController = {
       albumId,
       validatedData
     );
-    res.json(album);
+    res.json({ status: 'success', data: album });
   }),
 
   deleteAlbum: asyncHandler(async (req: Request, res: Response) => {
@@ -204,7 +210,7 @@ export const photoAlbumController = {
       albumId,
       validatedData
     );
-    res.json(result);
+    res.json({ status: 'success', data: result });
   }),
 
   removePhotoFromAlbum: asyncHandler(async (req: Request, res: Response) => {

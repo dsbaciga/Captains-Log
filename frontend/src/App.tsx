@@ -18,8 +18,22 @@ const PlacesVisitedPage = React.lazy(() => import('./pages/PlacesVisitedPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const ChecklistsPage = React.lazy(() => import('./pages/ChecklistsPage'));
 const ChecklistDetailPage = React.lazy(() => import('./pages/ChecklistDetailPage'));
-const TripSeriesListPage = React.lazy(() => import('./pages/TripSeriesListPage'));
-const TripSeriesPage = React.lazy(() => import('./pages/TripSeriesPage'));
+const TripSeriesListPage = React.lazy(() =>
+  import('./pages/TripSeriesListPage').catch((err) => {
+    if (err?.name === 'ChunkLoadError' || err?.message?.includes('Loading chunk')) {
+      window.location.reload();
+    }
+    return import('./pages/TripSeriesListPage');
+  })
+);
+const TripSeriesPage = React.lazy(() =>
+  import('./pages/TripSeriesPage').catch((err) => {
+    if (err?.name === 'ChunkLoadError' || err?.message?.includes('Loading chunk')) {
+      window.location.reload();
+    }
+    return import('./pages/TripSeriesPage');
+  })
+);
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';

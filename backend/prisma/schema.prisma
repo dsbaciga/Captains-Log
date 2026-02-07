@@ -27,6 +27,7 @@ model User {
   weatherApiKey      String?  @map("weather_api_key") @db.VarChar(500)
   aviationstackApiKey String? @map("aviationstack_api_key") @db.VarChar(500)
   openrouteserviceApiKey String? @map("openrouteservice_api_key") @db.VarChar(500)
+  passwordVersion    Int      @default(0) @map("password_version")
   useCustomMapStyle  Boolean  @default(true) @map("use_custom_map_style")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")

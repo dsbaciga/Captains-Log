@@ -8,17 +8,17 @@ import type {
 class JournalEntryService {
   async createJournalEntry(data: CreateJournalEntryInput): Promise<JournalEntry> {
     const response = await api.post('/journal', data);
-    return response.data.data;
+    return response.data;
   }
 
   async getJournalEntriesByTrip(tripId: number): Promise<JournalEntry[]> {
     const response = await api.get(`/journal/trip/${tripId}`);
-    return response.data.data;
+    return response.data;
   }
 
   async getJournalEntryById(id: number): Promise<JournalEntry> {
     const response = await api.get(`/journal/${id}`);
-    return response.data.data;
+    return response.data;
   }
 
   async updateJournalEntry(
@@ -26,7 +26,7 @@ class JournalEntryService {
     data: UpdateJournalEntryInput
   ): Promise<JournalEntry> {
     const response = await api.put(`/journal/${id}`, data);
-    return response.data.data;
+    return response.data;
   }
 
   async deleteJournalEntry(id: number): Promise<void> {

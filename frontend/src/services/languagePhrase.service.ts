@@ -13,7 +13,7 @@ class LanguagePhraseService {
    */
   async getAvailableLanguages(): Promise<AvailableLanguage[]> {
     const response = await axios.get('/languages');
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -21,7 +21,7 @@ class LanguagePhraseService {
    */
   async getPhrasesByLanguage(languageCode: string): Promise<LanguageWithPhrases> {
     const response = await axios.get(`/phrases/${languageCode}`);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -32,7 +32,7 @@ class LanguagePhraseService {
     category: PhraseCategory
   ): Promise<LanguageWithPhrases> {
     const response = await axios.get(`/phrases/${languageCode}/category/${category}`);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -40,7 +40,7 @@ class LanguagePhraseService {
    */
   async getCategories(): Promise<PhraseCategory[]> {
     const response = await axios.get('/phrases/categories');
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -49,7 +49,7 @@ class LanguagePhraseService {
   async getTripLanguages(tripId: number): Promise<TripLanguage[]> {
     const response = await axios.get(`/trips/${tripId}/languages`);
     // Map API field names to frontend field names
-    return response.data.data.map((lang: { id: number; tripId: number; languageCode: string; language: string }) => ({
+    return response.data.map((lang: { id: number; tripId: number; languageCode: string; language: string }) => ({
       ...lang,
       languageName: lang.language,
     }));
@@ -66,7 +66,7 @@ class LanguagePhraseService {
     };
     const response = await axios.post(`/trips/${tripId}/languages`, apiData);
     // Map API response back to frontend field names
-    const apiResult = response.data.data;
+    const apiResult = response.data;
     return {
       ...apiResult,
       languageName: apiResult.language,
@@ -85,7 +85,7 @@ class LanguagePhraseService {
    */
   async getTripPhrases(tripId: number): Promise<{ languages: LanguageWithPhrases[] }> {
     const response = await axios.get(`/trips/${tripId}/phrases`);
-    return response.data.data;
+    return response.data;
   }
 }
 

@@ -430,3 +430,45 @@ export function extractDatePortion(dateString: string): string {
   const date = new Date(dateString);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
+
+/**
+ * Create a reusable date/time formatter for manager components.
+ *
+ * Returns a function that formats a datetime string for display, using the
+ * trip timezone as fallback. This eliminates the duplicated `formatDateTime`
+ * wrapper found in ActivityManager, LodgingManager, and TransportationManager.
+ *
+ * The returned function supports an optional `isAllDay` parameter: when true,
+ * it formats as date-only (no time component) using `formatDateInTimezone`.
+ *
+ * @param tripTimezone - The trip's default timezone, used as fallback
+ * @returns A formatter function: (dateTime, timezone?, isAllDay?) => string
+ *
+ * @example
+ * ```tsx
+ * const formatDateTime = createDateTimeFormatter(tripTimezone);
+ * formatDateTime(activity.startTime, activity.timezone);
+ * formatDateTime(activity.startTime, activity.timezone, activity.allDay);
+ * ```
+ */
+export function createDateTimeFormatter(
+  tripTimezone?: string | null
+): (
+  dateTime: string | null,
+  timezone?: string | null,
+  isAllDay?: boolean
+) => string {
+  return (
+    dateTime: string | null,
+    timezone?: string | null,
+    isAllDay?: boolean
+  ): string => {
+    if (isAllDay) {
+      return formatDateInTimezone(dateTime, timezone, tripTimezone);
+    }
+    return formatDateTimeInTimezone(dateTime, timezone, tripTimezone, {
+      includeTimezone: true,
+      format: "medium",
+    });
+  };
+}

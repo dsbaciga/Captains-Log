@@ -226,25 +226,6 @@ export function useOfflineSearch(
   }, []);
 
   /**
-   * Performs an online search using the API.
-   */
-  const performOnlineSearch = useCallback(async (searchQuery: string): Promise<void> => {
-    try {
-      const response = await searchService.globalSearch(searchQuery);
-      const unifiedResults = response.data.results.map(convertOnlineResult);
-      setResults(unifiedResults);
-      setGroupedResults(null); // Online search doesn't provide grouped results
-      setError(null);
-    } catch (err) {
-      console.error('[useOfflineSearch] Online search failed:', err);
-
-      // Fall back to offline search
-      console.log('[useOfflineSearch] Falling back to offline search');
-      await performOfflineSearch(searchQuery);
-    }
-  }, [performOfflineSearch]);
-
-  /**
    * Performs an offline search using IndexedDB.
    */
   const performOfflineSearch = useCallback(async (searchQuery: string): Promise<void> => {
@@ -263,6 +244,29 @@ export function useOfflineSearch(
       setGroupedResults(null);
     }
   }, [opts.searchOptions]);
+
+  // Use a ref to break the circular dependency between performOnlineSearch and performOfflineSearch
+  const performOfflineSearchRef = useRef(performOfflineSearch);
+  performOfflineSearchRef.current = performOfflineSearch;
+
+  /**
+   * Performs an online search using the API.
+   */
+  const performOnlineSearch = useCallback(async (searchQuery: string): Promise<void> => {
+    try {
+      const response = await searchService.globalSearch(searchQuery);
+      const unifiedResults = response.results.map(convertOnlineResult);
+      setResults(unifiedResults);
+      setGroupedResults(null); // Online search doesn't provide grouped results
+      setError(null);
+    } catch (err) {
+      console.error('[useOfflineSearch] Online search failed:', err);
+
+      // Fall back to offline search
+      console.log('[useOfflineSearch] Falling back to offline search');
+      await performOfflineSearchRef.current(searchQuery);
+    }
+  }, []);
 
   /**
    * Main search function with debouncing.

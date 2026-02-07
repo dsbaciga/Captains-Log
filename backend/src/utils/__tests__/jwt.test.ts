@@ -105,7 +105,7 @@ describe('JWT utilities', () => {
     it('should create and verify access token lifecycle', () => {
       const payload: JwtPayload = { id: 42, userId: 42, email: 'test@example.com' };
       const token = generateAccessToken(payload);
-      const decoded = verifyAccessToken(token) as any;
+      const decoded = verifyAccessToken(token) as JwtPayload & { iat: number; exp: number };
 
       expect(decoded.userId).toBe(payload.userId);
       expect(decoded.iat).toBeDefined();
@@ -115,7 +115,7 @@ describe('JWT utilities', () => {
     it('should create and verify refresh token lifecycle', () => {
       const payload: JwtPayload = { id: 42, userId: 42, email: 'test@example.com' };
       const token = generateRefreshToken(payload);
-      const decoded = verifyRefreshToken(token) as any;
+      const decoded = verifyRefreshToken(token) as JwtPayload & { iat: number; exp: number };
 
       expect(decoded.userId).toBe(payload.userId);
       expect(decoded.iat).toBeDefined();

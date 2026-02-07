@@ -12,8 +12,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
  * See: https://github.com/prisma/prisma/issues/18628
  */
 
-// @ts-ignore -- Prisma.defineExtension has incomplete type definitions for query callbacks
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// @ts-expect-error -- Prisma.defineExtension has incomplete type definitions for query callbacks
 export const postgisExtension = Prisma.defineExtension((client: PrismaClient) => {
   return client.$extends({
     name: 'postgis-sync',

@@ -7,7 +7,7 @@ class PackingSuggestionService {
    */
   async getSuggestions(tripId: number): Promise<PackingSuggestionsResponse> {
     const response = await axios.get(`/trips/${tripId}/packing-suggestions`);
-    return response.data.data;
+    return response.data;
   }
 }
 

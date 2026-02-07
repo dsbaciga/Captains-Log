@@ -66,14 +66,23 @@ jest.mock('../../utils/serviceHelpers', () => {
   const originalModule = jest.requireActual('../../utils/serviceHelpers');
   return {
     ...originalModule,
-    verifyTripAccess: jest.fn(),
-    verifyEntityAccess: jest.fn(),
+    verifyTripAccessWithPermission: jest.fn(),
+    verifyEntityAccessWithPermission: jest.fn(),
     cleanupEntityLinks: jest.fn(),
   };
 });
 
+// Mock crudHelpers (deleteEntity uses prisma.$transaction internally)
+jest.mock('../../utils/crudHelpers', () => ({
+  deleteEntity: jest.fn(),
+  bulkDeleteEntities: jest.fn(),
+  bulkUpdateEntities: jest.fn(),
+}));
+
 import lodgingService from '../lodging.service';
-import { verifyTripAccess, verifyEntityAccess, cleanupEntityLinks } from '../../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../utils/serviceHelpers';
+import { deleteEntity } from '../../utils/crudHelpers';
+import { AppError } from '../../utils/errors';
 import { LodgingType } from '../../types/lodging.types';
 
 describe('LodgingService', () => {
@@ -86,6 +95,13 @@ describe('LodgingService', () => {
     userId: mockUserId,
     title: 'Test Trip',
     timezone: 'America/New_York',
+    privacyLevel: 'Private',
+  };
+
+  const mockTripAccessResult = {
+    trip: mockTrip,
+    isOwner: true,
+    permissionLevel: 'admin',
   };
 
   const mockLodging = {
@@ -109,12 +125,13 @@ describe('LodgingService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (verifyTripAccess as jest.Mock).mockResolvedValue(mockTrip);
-    (verifyEntityAccess as jest.Mock).mockImplementation(async (entity) => {
-      if (!entity) throw new Error('Entity not found');
-      return entity;
+    (verifyTripAccessWithPermission as jest.Mock).mockResolvedValue(mockTripAccessResult);
+    (verifyEntityAccessWithPermission as jest.Mock).mockResolvedValue({
+      entity: { ...mockLodging, tripId: mockTripId },
+      tripAccess: mockTripAccessResult,
     });
     (cleanupEntityLinks as jest.Mock).mockResolvedValue(undefined);
+    (deleteEntity as jest.Mock).mockResolvedValue({ success: true });
   });
 
   describe('LODG-001: Create lodging with dates', () => {
@@ -141,7 +158,7 @@ describe('LodgingService', () => {
 
       const result = await lodgingService.createLodging(mockUserId, createInput);
 
-      expect(verifyTripAccess).toHaveBeenCalledWith(mockUserId, mockTripId);
+      expect(verifyTripAccessWithPermission).toHaveBeenCalledWith(mockUserId, mockTripId, 'edit');
       expect(mockPrisma.lodging.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           tripId: mockTripId,
@@ -379,7 +396,7 @@ describe('LodgingService', () => {
         updateInput
       );
 
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(mockPrisma.lodging.update).toHaveBeenCalledWith({
         where: { id: mockLodgingId },
         data: expect.objectContaining({
@@ -491,29 +508,15 @@ describe('LodgingService', () => {
   });
 
   describe('LODG-007: Delete lodging', () => {
-    beforeEach(() => {
-      mockPrisma.lodging.findUnique.mockResolvedValue(mockLodging);
-      mockPrisma.lodging.delete.mockResolvedValue(mockLodging);
-    });
-
     it('should delete lodging and clean up entity links', async () => {
       const result = await lodgingService.deleteLodging(mockUserId, mockLodgingId);
 
-      expect(verifyEntityAccess).toHaveBeenCalled();
-      expect(cleanupEntityLinks).toHaveBeenCalledWith(
-        mockTripId,
-        'LODGING',
-        mockLodgingId
-      );
-      expect(mockPrisma.lodging.delete).toHaveBeenCalledWith({
-        where: { id: mockLodgingId },
-      });
+      expect(deleteEntity).toHaveBeenCalledWith('lodging', mockLodgingId, mockUserId);
       expect(result).toEqual({ success: true });
     });
 
     it('should throw error if lodging not found', async () => {
-      mockPrisma.lodging.findUnique.mockResolvedValue(null);
-      (verifyEntityAccess as jest.Mock).mockRejectedValue(new Error('Lodging not found'));
+      (deleteEntity as jest.Mock).mockRejectedValue(new AppError('Lodging not found', 404));
 
       await expect(
         lodgingService.deleteLodging(mockUserId, 999)
@@ -521,12 +524,7 @@ describe('LodgingService', () => {
     });
 
     it('should throw error if user does not own the lodging', async () => {
-      const otherUserLodging = {
-        ...mockLodging,
-        trip: { ...mockTrip, userId: 999 },
-      };
-      mockPrisma.lodging.findUnique.mockResolvedValue(otherUserLodging);
-      (verifyEntityAccess as jest.Mock).mockRejectedValue(new Error('Access denied'));
+      (deleteEntity as jest.Mock).mockRejectedValue(new AppError('Access denied', 403));
 
       await expect(
         lodgingService.deleteLodging(mockUserId, mockLodgingId)
@@ -546,7 +544,7 @@ describe('LodgingService', () => {
 
       const result = await lodgingService.getLodgingByTrip(mockUserId, mockTripId);
 
-      expect(verifyTripAccess).toHaveBeenCalledWith(mockUserId, mockTripId);
+      expect(verifyTripAccessWithPermission).toHaveBeenCalledWith(mockUserId, mockTripId, 'view');
       expect(mockPrisma.lodging.findMany).toHaveBeenCalledWith({
         where: { tripId: mockTripId },
         orderBy: [{ checkInDate: 'asc' }, { createdAt: 'asc' }],
@@ -565,7 +563,7 @@ describe('LodgingService', () => {
         where: { id: mockLodgingId },
         include: { trip: true },
       });
-      expect(verifyEntityAccess).toHaveBeenCalled();
+      expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
       expect(result).toEqual(mockLodging);
     });
   });

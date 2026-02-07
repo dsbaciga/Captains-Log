@@ -253,14 +253,55 @@ const startServer = async () => {
 
 startServer();
 
+// Graceful shutdown helper
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+  try {
+    // Close database connection
+    await prisma.$disconnect();
+    logger.info('Database connection closed.');
+  } catch (error) {
+    logger.error('Error during database disconnect:', error);
+  }
+
+  process.exit(0);
+};
+
 // Global handlers for unhandled errors outside Express middleware
 process.on('unhandledRejection', (reason: unknown) => {
-  logger.error('Unhandled promise rejection:', reason);
+  // Extract error details if reason is an Error object
+  if (reason instanceof Error) {
+    logger.error('Unhandled promise rejection:', {
+      name: reason.name,
+      message: reason.message,
+      stack: reason.stack,
+    });
+  } else {
+    logger.error('Unhandled promise rejection:', reason);
+  }
 });
 
-process.on('uncaughtException', (error: Error) => {
-  logger.error('Uncaught exception — shutting down:', error);
+process.on('uncaughtException', async (error: Error) => {
+  logger.error('Uncaught exception — shutting down:', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+  });
+
+  try {
+    // Attempt to close database connection before exiting
+    await prisma.$disconnect();
+    logger.info('Database connection closed during shutdown.');
+  } catch (disconnectError) {
+    logger.error('Error closing database during shutdown:', disconnectError);
+  }
+
   process.exit(1);
 });
+
+// Handle termination signals for graceful shutdown (e.g., Docker stop, Kubernetes pod termination)
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export default app;

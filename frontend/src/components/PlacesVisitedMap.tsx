@@ -1,25 +1,12 @@
 import { Marker, Popup, Polyline } from "react-leaflet";
 import MarkerClusterGroup from "@changey/react-leaflet-markercluster";
-import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import type { Location } from "../types/location";
 import type { Transportation } from "../types/transportation";
 import { Link } from "react-router-dom";
-
-// Fix for default marker icon in Leaflet with Vite
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-delete (Icon.Default.prototype as unknown as { _getIconUrl?: unknown })
-  ._getIconUrl;
-Icon.Default.mergeOptions({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-});
+import '../utils/mapUtils';
 
 interface PlacesVisitedMapProps {
     locations: Location[];

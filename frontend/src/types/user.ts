@@ -8,6 +8,9 @@ export interface TripTypeCategory {
   emoji: string;
 }
 
+// Alias to match backend type naming (backend uses 'TripType')
+export type TripType = TripTypeCategory;
+
 export interface User {
   id: number;
   username: string;

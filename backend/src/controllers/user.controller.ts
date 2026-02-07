@@ -28,7 +28,7 @@ const updateUsernameSchema = z.object({
 
 const updatePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(6),
+  newPassword: z.string().min(8).max(100),
 });
 
 const searchUsersQuerySchema = z.object({
@@ -44,14 +44,14 @@ export const userController = {
   getMe: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const user = await userService.getUserById(userId);
-    res.json(user);
+    res.json({ status: 'success', data: user });
   }),
 
   updateSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const data = updateUserSettingsSchema.parse(req.body);
     const user = await userService.updateUserSettings(userId, data);
-    res.json(user);
+    res.json({ status: 'success', data: user });
   }),
 
   updateImmichSettings: asyncHandler(async (req: Request, res: Response) => {
@@ -65,16 +65,18 @@ export const userController = {
 
     const user = await userService.updateImmichSettings(userId, data);
     res.json({
-      success: true,
-      message: 'Immich settings updated successfully',
-      immichConfigured: !!(user.immichApiUrl && user.immichApiKey),
+      status: 'success',
+      data: {
+        message: 'Immich settings updated successfully',
+        immichConfigured: !!(user.immichApiUrl && user.immichApiKey),
+      },
     });
   }),
 
   getImmichSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const settings = await userService.getImmichSettings(userId);
-    res.json(settings);
+    res.json({ status: 'success', data: settings });
   }),
 
   updateWeatherSettings: asyncHandler(async (req: Request, res: Response) => {
@@ -82,16 +84,18 @@ export const userController = {
     const data = weatherSettingsSchema.parse(req.body);
     const user = await userService.updateWeatherSettings(userId, data);
     res.json({
-      success: true,
-      message: 'Weather API key updated successfully',
-      weatherApiKeySet: !!user.weatherApiKey,
+      status: 'success',
+      data: {
+        message: 'Weather API key updated successfully',
+        weatherApiKeySet: !!user.weatherApiKey,
+      },
     });
   }),
 
   getWeatherSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const settings = await userService.getWeatherSettings(userId);
-    res.json(settings);
+    res.json({ status: 'success', data: settings });
   }),
 
   updateAviationstackSettings: asyncHandler(async (req: Request, res: Response) => {
@@ -99,16 +103,18 @@ export const userController = {
     const data = aviationstackSettingsSchema.parse(req.body);
     const user = await userService.updateAviationstackSettings(userId, data);
     res.json({
-      success: true,
-      message: 'Aviationstack API key updated successfully',
-      aviationstackApiKeySet: !!user.aviationstackApiKey,
+      status: 'success',
+      data: {
+        message: 'Aviationstack API key updated successfully',
+        aviationstackApiKeySet: !!user.aviationstackApiKey,
+      },
     });
   }),
 
   getAviationstackSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const settings = await userService.getAviationstackSettings(userId);
-    res.json(settings);
+    res.json({ status: 'success', data: settings });
   }),
 
   updateOpenrouteserviceSettings: asyncHandler(async (req: Request, res: Response) => {
@@ -116,16 +122,18 @@ export const userController = {
     const data = openrouteserviceSettingsSchema.parse(req.body);
     const user = await userService.updateOpenrouteserviceSettings(userId, data);
     res.json({
-      success: true,
-      message: 'OpenRouteService API key updated successfully',
-      openrouteserviceApiKeySet: !!user.openrouteserviceApiKey,
+      status: 'success',
+      data: {
+        message: 'OpenRouteService API key updated successfully',
+        openrouteserviceApiKeySet: !!user.openrouteserviceApiKey,
+      },
     });
   }),
 
   getOpenrouteserviceSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const settings = await userService.getOpenrouteserviceSettings(userId);
-    res.json(settings);
+    res.json({ status: 'success', data: settings });
   }),
 
   updateUsername: asyncHandler(async (req: Request, res: Response) => {
@@ -133,9 +141,11 @@ export const userController = {
     const data = updateUsernameSchema.parse(req.body);
     const user = await userService.updateUsername(userId, data.username);
     res.json({
-      success: true,
-      message: 'Username updated successfully',
-      username: user.username,
+      status: 'success',
+      data: {
+        message: 'Username updated successfully',
+        username: user.username,
+      },
     });
   }),
 
@@ -144,8 +154,10 @@ export const userController = {
     const data = updatePasswordSchema.parse(req.body);
     await userService.updatePassword(userId, data.currentPassword, data.newPassword);
     res.json({
-      success: true,
-      message: 'Password updated successfully',
+      status: 'success',
+      data: {
+        message: 'Password updated successfully',
+      },
     });
   }),
 
@@ -153,13 +165,13 @@ export const userController = {
     const userId = req.user!.userId;
     const { query } = searchUsersQuerySchema.parse(req.query);
     const users = await userService.searchUsers(userId, query);
-    res.json(users);
+    res.json({ status: 'success', data: users });
   }),
 
   getTravelPartnerSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const settings = await userService.getTravelPartnerSettings(userId);
-    res.json(settings);
+    res.json({ status: 'success', data: settings });
   }),
 
   renameTripType: asyncHandler(async (req: Request, res: Response) => {
@@ -192,9 +204,11 @@ export const userController = {
     const data = travelPartnerSettingsSchema.parse(req.body);
     const settings = await userService.updateTravelPartnerSettings(userId, data);
     res.json({
-      success: true,
-      message: 'Travel partner settings updated successfully',
-      ...settings,
+      status: 'success',
+      data: {
+        message: 'Travel partner settings updated successfully',
+        ...settings,
+      },
     });
   }),
 };

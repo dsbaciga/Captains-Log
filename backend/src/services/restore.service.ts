@@ -60,7 +60,7 @@ export async function restoreFromBackup(
   try {
     // Use a transaction to ensure atomicity
     await prisma.$transaction(
-      async (tx: any) => {
+      async (tx: Prisma.TransactionClient) => {
         // Step 1: Clear existing data if requested
         if (options.clearExistingData) {
           await clearUserData(userId, tx);
@@ -249,13 +249,13 @@ export async function restoreFromBackup(
                 notes: locationData.notes,
               },
             });
-            locationMap.set(locationData.id, location.id);
+            if (locationData.id != null) locationMap.set(locationData.id, location.id);
             stats.locationsImported++;
           }
 
           // Second pass: update parent location IDs
           for (const locationData of tripData.locations || []) {
-            if (locationData.parentId) {
+            if (locationData.parentId && locationData.id != null) {
               const newLocationId = locationMap.get(locationData.id);
               const newParentId = locationMap.get(locationData.parentId);
               if (newLocationId && newParentId) {
@@ -284,7 +284,7 @@ export async function restoreFromBackup(
                   takenAt: photoData.takenAt ? new Date(photoData.takenAt) : null,
                 },
               });
-              photoMap.set(photoData.id, photo.id);
+              if (photoData.id != null) photoMap.set(photoData.id, photo.id);
               stats.photosImported++;
             }
 
@@ -325,13 +325,13 @@ export async function restoreFromBackup(
                 manualOrder: activityData.manualOrder,
               },
             });
-            activityMap.set(activityData.id, activity.id);
+            if (activityData.id != null) activityMap.set(activityData.id, activity.id);
             stats.activitiesImported++;
           }
 
           // Second pass: update parent activity IDs
           for (const activityData of tripData.activities || []) {
-            if (activityData.parentId) {
+            if (activityData.parentId && activityData.id != null) {
               const newActivityId = activityMap.get(activityData.id);
               const newParentId = activityMap.get(activityData.parentId);
               if (newActivityId && newParentId) {
@@ -381,7 +381,7 @@ export async function restoreFromBackup(
                 distanceSource: transportData.distanceSource,
               },
             });
-            transportationMap.set(transportData.id, transportation.id);
+            if (transportData.id != null) transportationMap.set(transportData.id, transportation.id);
             stats.transportationImported++;
 
             // Import flight tracking if exists
@@ -420,7 +420,7 @@ export async function restoreFromBackup(
                 notes: lodgingData.notes,
               },
             });
-            lodgingMap.set(lodgingData.id, lodging.id);
+            if (lodgingData.id != null) lodgingMap.set(lodgingData.id, lodging.id);
             stats.lodgingImported++;
           }
 
@@ -454,7 +454,7 @@ export async function restoreFromBackup(
                 coverPhotoId: albumData.coverPhotoId ? photoMap.get(albumData.coverPhotoId) : null,
               },
             });
-            albumMap.set(albumData.id, album.id);
+            if (albumData.id != null) albumMap.set(albumData.id, album.id);
 
             // Link photos to album
             if (albumData.photos && options.importPhotos) {

@@ -110,9 +110,6 @@ model OAuthIdentity {
   subject        String   @db.VarChar(500)   // OIDC "sub" claim (unique user ID at the provider)
   email          String?  @db.VarChar(255)   // Email from the provider (for display/matching)
   displayName    String?  @map("display_name") @db.VarChar(255)
-  accessToken    String?  @map("access_token") @db.Text  // Provider access token (if needed)
-  refreshToken   String?  @map("refresh_token") @db.Text // Provider refresh token (if needed)
-  tokenExpiresAt DateTime? @map("token_expires_at")
   rawClaims      Json?    @map("raw_claims")             // Full OIDC claims for debugging
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -124,6 +121,8 @@ model OAuthIdentity {
   @@map("oauth_identities")
 }
 ```
+
+> **Decision:** Provider access/refresh tokens are **not stored**. They are only needed during the initial code exchange and are discarded after extracting user claims. This eliminates the risk of token leakage if the database is compromised. If a future feature requires calling the provider's API on behalf of the user, encrypted token storage can be added then.
 
 Add relation to User:
 
@@ -156,6 +155,10 @@ This migration:
 Add to `.env`:
 
 ```env
+# Cookie signing secret (required for OAuth — used by cookie-parser for signed cookies)
+# Can reuse JWT_SECRET or generate a separate random value
+COOKIE_SECRET=your-cookie-signing-secret
+
 # OAuth / OIDC Configuration (optional - enables OAuth login)
 OAUTH_ENABLED=true
 OAUTH_PROVIDER_NAME=Authelia           # Display name for the login button
@@ -168,7 +171,7 @@ OAUTH_CALLBACK_URL=https://travel.example.com/api/auth/oauth/callback
 # Optional behavior flags
 OAUTH_AUTO_REGISTER=true               # Auto-create users on first OAuth login
 OAUTH_DISABLE_PASSWORD_LOGIN=false     # Set to true for OAuth-only mode
-OAUTH_ALLOW_ACCOUNT_LINKING=true       # Allow linking OAuth to existing accounts by email match
+OAUTH_ALLOW_ACCOUNT_LINKING=true       # Allow linking OAuth to existing accounts (requires email_verified claim)
 ```
 
 #### 2.2 Config Module Update
@@ -176,6 +179,12 @@ OAUTH_ALLOW_ACCOUNT_LINKING=true       # Allow linking OAuth to existing account
 Add to `backend/src/config/index.ts`:
 
 ```typescript
+// Cookie signing secret (used by cookie-parser for signed cookies)
+cookie: {
+  // ... existing cookie config ...
+  secret: process.env.COOKIE_SECRET || process.env.JWT_SECRET,  // NEW — required for signed OAuth state cookies
+},
+
 // OAuth / OIDC
 oauth: {
   enabled: process.env.OAUTH_ENABLED === 'true',
@@ -189,6 +198,30 @@ oauth: {
   disablePasswordLogin: process.env.OAUTH_DISABLE_PASSWORD_LOGIN === 'true',
   allowAccountLinking: process.env.OAUTH_ALLOW_ACCOUNT_LINKING !== 'false',  // default true
 },
+```
+
+Update `backend/src/index.ts` to pass cookie secret to cookie-parser:
+
+```typescript
+// BEFORE:  app.use(cookieParser());
+// AFTER:
+app.use(cookieParser(config.cookie.secret));
+```
+
+#### 2.3 Startup Validation
+
+Fail fast with a clear error if required OAuth env vars are missing when `OAUTH_ENABLED=true`:
+
+```typescript
+// In config/index.ts, after config object definition:
+if (config.oauth.enabled) {
+  const required = ['OAUTH_ISSUER_URL', 'OAUTH_CLIENT_ID', 'OAUTH_CLIENT_SECRET', 'OAUTH_CALLBACK_URL'];
+  for (const varName of required) {
+    if (!process.env[varName]) {
+      throw new Error(`${varName} is required when OAUTH_ENABLED=true`);
+    }
+  }
+}
 ```
 
 ---
@@ -223,23 +256,43 @@ Responsibilities:
 
 ```typescript
 // Initialization (called once at startup)
-import { discovery } from 'openid-client';
+// Uses openid-client v6 — top-level function imports, NOT the v5 Issuer/Client pattern
+import {
+  discovery,
+  buildAuthorizationUrl,
+  authorizationCodeGrant,
+  calculatePKCECodeChallenge,   // NOTE: this is async in v6
+  randomPKCECodeVerifier,        // NOTE: replaces generators.codeVerifier() from v5
+  type Configuration,
+} from 'openid-client';
 
-let oidcConfig: Configuration;
+let oidcConfig: Configuration | null = null;
 
 async function initialize(): Promise<void> {
   if (!config.oauth.enabled) return;
 
-  oidcConfig = await discovery(
-    new URL(config.oauth.issuerUrl),
-    config.oauth.clientId,
-    config.oauth.clientSecret
-  );
+  try {
+    oidcConfig = await discovery(
+      new URL(config.oauth.issuerUrl),
+      config.oauth.clientId,
+      config.oauth.clientSecret
+    );
+    logger.info('OIDC provider discovered successfully');
+  } catch (error) {
+    logger.error('OIDC discovery failed. OAuth login will be unavailable until provider is reachable.', error);
+    // Don't throw — allow server to start so password login still works
+    oidcConfig = null;
+  }
 }
 
 // Generate authorization URL
-function getAuthorizationUrl(state: string, nonce: string, codeVerifier: string): string {
-  const codeChallenge = calculatePKCECodeChallenge(codeVerifier);
+// NOTE: async because calculatePKCECodeChallenge returns a Promise in openid-client v6
+async function getAuthorizationUrl(state: string, nonce: string, codeVerifier: string): Promise<string> {
+  if (!oidcConfig) {
+    throw new AppError('OAuth provider is currently unavailable. Please try again later.', 503);
+  }
+
+  const codeChallenge = await calculatePKCECodeChallenge(codeVerifier);  // MUST await
 
   const params = buildAuthorizationUrl(oidcConfig, {
     redirect_uri: config.oauth.callbackUrl,
@@ -260,21 +313,34 @@ async function handleCallback(
   expectedNonce: string,
   codeVerifier: string
 ): Promise<OAuthUserInfo> {
+  if (!oidcConfig) {
+    throw new AppError('OAuth provider is currently unavailable.', 503);
+  }
+
   const currentUrl = new URL(`${config.oauth.callbackUrl}?code=${code}&state=${expectedState}`);
 
   const tokens = await authorizationCodeGrant(oidcConfig, currentUrl, {
     pkceCodeVerifier: codeVerifier,
-    expectedNonce,
+    expectedNonce,        // openid-client validates nonce in the ID token automatically
     expectedState,
   });
 
   const claims = tokens.claims();
   // claims contains: sub, email, name, preferred_username, etc.
 
+  // Validate required claims before trusting them
+  if (!claims.sub || typeof claims.sub !== 'string') {
+    throw new AppError('OIDC provider returned invalid identity (missing sub claim)', 502);
+  }
+  if (claims.email && typeof claims.email !== 'string') {
+    throw new AppError('OIDC provider returned invalid email claim', 502);
+  }
+
   return {
     subject: claims.sub,
-    email: claims.email,
-    name: claims.name || claims.preferred_username,
+    email: typeof claims.email === 'string' ? claims.email : undefined,
+    emailVerified: claims.email_verified === true,  // Needed for safe account linking
+    name: (claims.name || claims.preferred_username) as string | undefined,
     rawClaims: claims,
   };
 }
@@ -284,11 +350,12 @@ async function handleCallback(
 
 When an OIDC callback arrives, resolve to a local user:
 
-```
+```text
 1. Look up OAuthIdentity by (provider, subject)
    → Found: return existing user
 
-2. If OAUTH_ALLOW_ACCOUNT_LINKING is true:
+2. If OAUTH_ALLOW_ACCOUNT_LINKING is true
+   AND claims.email_verified is true:
    Look up User by email (from OIDC claims)
    → Found: create OAuthIdentity linking to this user, return user
 
@@ -298,7 +365,36 @@ When an OIDC callback arrives, resolve to a local user:
 4. Otherwise: return error "No account found. Contact administrator."
 ```
 
-**Important:** When auto-creating users, also create the default "Myself" companion and default location categories (same as the existing registration flow in `auth.service.ts`).
+> **Security note — email-based account linking:** Step 2 **requires** the OIDC provider to assert `email_verified: true` in the ID token claims. Without this check, an attacker could register at a permissive OIDC provider using a victim's email and take over their account. If `email_verified` is `false` or missing, skip step 2 and fall through to step 3 (auto-register as a new user) or step 4 (reject).
+
+**Important:** When auto-creating users in step 3, replicate the same initialization as the existing registration flow in `auth.service.ts`:
+
+```typescript
+// In findOrCreateUser(), when creating a new OAuth user:
+const user = await prisma.$transaction(async (tx) => {
+  const newUser = await tx.user.create({
+    data: {
+      username: claims.name || claims.email?.split('@')[0] || `user_${claims.subject.slice(0, 8)}`,
+      email: claims.email || `${claims.subject}@oauth.local`,
+      passwordHash: null,  // OAuth-only user, no password
+      oauthIdentities: {
+        create: {
+          provider: config.oauth.issuerUrl,
+          subject: claims.subject,
+          email: claims.email,
+          displayName: claims.name,
+          rawClaims: claims.rawClaims,
+        },
+      },
+    },
+  });
+
+  // Create default "Myself" companion (same as password registration)
+  await companionService.createMyselfCompanion(newUser.id, newUser.username);
+
+  return newUser;
+});
+```
 
 ---
 
@@ -340,10 +436,10 @@ async authorize(req: Request, res: Response) {
   // 1. Generate cryptographic state, nonce, and PKCE code_verifier
   const state = crypto.randomBytes(32).toString('hex');
   const nonce = crypto.randomBytes(32).toString('hex');
-  const codeVerifier = generators.codeVerifier();
+  const codeVerifier = randomPKCECodeVerifier();  // openid-client v6 function (NOT generators.codeVerifier)
 
   // 2. Store state + nonce + codeVerifier in a short-lived httpOnly cookie
-  //    (signed, encrypted, 10 min expiry)
+  //    (signed, 10 min expiry — requires cookie-parser initialized with a secret)
   res.cookie('oauth_state', JSON.stringify({ state, nonce, codeVerifier }), {
     httpOnly: true,
     secure: config.cookie.secure,
@@ -352,8 +448,8 @@ async authorize(req: Request, res: Response) {
     signed: true,
   });
 
-  // 3. Redirect to OIDC provider
-  const url = oauthService.getAuthorizationUrl(state, nonce, codeVerifier);
+  // 3. Redirect to OIDC provider (getAuthorizationUrl is async — PKCE challenge calculation)
+  const url = await oauthService.getAuthorizationUrl(state, nonce, codeVerifier);
   res.redirect(url);
 }
 ```
@@ -368,8 +464,13 @@ async callback(req: Request, res: Response) {
     return res.redirect(`${config.frontendUrl}/login?error=oauth_denied`);
   }
 
-  // 2. Retrieve and validate state from cookie
-  const stored = JSON.parse(req.signedCookies.oauth_state);
+  // 2. Retrieve and validate state from signed cookie
+  const oauthStateCookie = req.signedCookies?.oauth_state;
+  if (!oauthStateCookie) {
+    return res.redirect(`${config.frontendUrl}/login?error=oauth_expired`);
+  }
+
+  const stored = JSON.parse(oauthStateCookie);
   if (state !== stored.state) {
     return res.redirect(`${config.frontendUrl}/login?error=oauth_state_mismatch`);
   }
@@ -377,33 +478,37 @@ async callback(req: Request, res: Response) {
   // 3. Clear the state cookie
   res.clearCookie('oauth_state');
 
-  // 4. Exchange code for tokens + validate
+  // 4. Exchange code for tokens + validate (nonce validated by openid-client automatically)
   const userInfo = await oauthService.handleCallback(
-    code, stored.state, stored.nonce, stored.codeVerifier
+    code as string, stored.state, stored.nonce, stored.codeVerifier
   );
 
   // 5. Find or create local user
   const user = await oauthService.findOrCreateUser(userInfo);
 
-  // 6. Issue local JWT session (same as password login)
-  const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
-  const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email });
+  // 6. Issue local JWT session — MUST include passwordVersion (auth middleware checks it)
+  const accessToken = generateAccessToken({
+    id: user.id,
+    userId: user.id,
+    email: user.email,
+    passwordVersion: user.passwordVersion ?? 0,
+  });
+  const refreshToken = generateRefreshToken({
+    id: user.id,
+    userId: user.id,
+    email: user.email,
+    passwordVersion: user.passwordVersion ?? 0,
+  });
 
   // 7. Set refresh token cookie + CSRF cookie (reuse existing helpers)
   setRefreshTokenCookie(res, refreshToken);
-  setCsrfCookie(res);
+  const csrfToken = generateCsrfToken();   // Must generate token first
+  setCsrfCookie(res, csrfToken);           // setCsrfCookie requires (res, token)
 
-  // 8. Redirect to frontend with access token in a short-lived cookie
-  //    (frontend reads it once and stores in memory, then cookie is cleared)
-  res.cookie('oauth_access_token', accessToken, {
-    httpOnly: false,  // Frontend JS needs to read this
-    secure: config.cookie.secure,
-    sameSite: 'strict',
-    maxAge: 60 * 1000,  // 1 minute — just long enough for frontend to grab it
-    path: '/oauth/callback',  // Only accessible on callback page
-  });
-
-  res.redirect(`${config.frontendUrl}/oauth/callback`);
+  // 8. Redirect to frontend with access token in URL fragment
+  //    Fragment (#) is never sent to the server, preventing referer leaks and server-side logging.
+  //    Frontend reads it from window.location.hash and clears it immediately.
+  res.redirect(`${config.frontendUrl}/oauth/callback#access_token=${accessToken}`);
 }
 ```
 
@@ -412,11 +517,15 @@ async callback(req: Request, res: Response) {
 | Concern | Mitigation |
 |---------|------------|
 | CSRF during OAuth flow | `state` parameter validated against signed cookie |
-| Replay attacks | `nonce` validated in ID token |
+| Replay attacks | `nonce` validated in ID token by openid-client |
 | Code interception | PKCE (S256) prevents authorization code theft |
-| Token exposure in URL | Access token passed via short-lived scoped cookie, not URL fragment |
-| State cookie tampering | Cookie is signed (`signed: true`) |
+| Token exposure in URL | Access token in URL fragment (`#`) — never sent to servers, not logged |
+| State cookie tampering | Cookie is signed (`signed: true`, requires `COOKIE_SECRET`) |
 | Open redirect | Callback URL is hardcoded in config, not from user input |
+| Account takeover via email | Account linking only when provider asserts `email_verified: true` |
+| Provider token leakage | Provider tokens discarded after claim extraction, not stored in DB |
+| OIDC claim injection | Claims validated (required `sub`, typed checks) before DB storage |
+| Rate limiting | OAuth endpoints rate-limited (10 req/min authorize, 20 req/min callback) |
 
 #### 4.4 Register Routes
 
@@ -431,11 +540,27 @@ if (config.oauth.enabled) {
 }
 ```
 
-Update CSRF middleware to exclude OAuth callback (similar to how auth routes are excluded):
+**CSRF middleware note:** No changes needed to `csrf.ts`. The existing middleware already:
+
+- Skips GET/HEAD/OPTIONS requests (covers `/authorize` and `/callback` which are both GET)
+- Skips all paths starting with `/auth/` (covers `/auth/oauth/*`)
+
+The OAuth `POST /link` and `POST /unlink` endpoints are authenticated and will be validated by CSRF normally, which is correct — they require the user's CSRF token from their active session.
+
+**Rate limiting:** Add rate limiting to OAuth routes:
 
 ```typescript
-// In csrf.ts - add to excluded paths
-const CSRF_EXCLUDED_PATHS = ['/api/auth', '/api/auth/oauth/callback'];
+// In oauth.routes.ts
+import rateLimit from 'express-rate-limit';
+
+const oauthRateLimit = rateLimit({
+  windowMs: 60 * 1000,  // 1 minute
+  max: 10,              // 10 requests per minute per IP for authorize
+  message: { status: 'error', message: 'Too many OAuth requests. Try again later.' },
+});
+
+router.get('/authorize', oauthRateLimit, oauthController.authorize);
+router.get('/callback', rateLimit({ windowMs: 60_000, max: 20 }), oauthController.callback);
 ```
 
 ---
@@ -444,29 +569,52 @@ const CSRF_EXCLUDED_PATHS = ['/api/auth', '/api/auth/oauth/callback'];
 
 **Goal:** Adjust existing auth to work alongside OAuth.
 
-#### 5.1 Login Guard
+#### 5.1 Login & Registration Guard
 
-If `OAUTH_DISABLE_PASSWORD_LOGIN=true`, reject password login attempts:
+If `OAUTH_DISABLE_PASSWORD_LOGIN=true`, reject both password login and registration:
 
 ```typescript
 // In auth.service.ts login()
 if (config.oauth.disablePasswordLogin) {
   throw new AppError('Password login is disabled. Please use SSO.', 403);
 }
+
+// In auth.service.ts register()
+if (config.oauth.disablePasswordLogin) {
+  throw new AppError('Password registration is disabled. Please use SSO.', 403);
+}
 ```
 
-Also block registration when password login is disabled.
+Also block the `updatePassword` endpoint for OAuth-only users (no passwordHash):
+
+```typescript
+// In user.service.ts updatePassword()
+const user = await prisma.user.findUnique({ where: { id: userId } });
+if (!user?.passwordHash) {
+  throw new AppError('Cannot change password for an SSO-only account. Set a password first via account settings.', 400);
+}
+```
 
 #### 5.2 Password Requirement Changes
 
-When a user was created via OAuth (no `passwordHash`), they cannot use password-based endpoints:
+When a user was created via OAuth (no `passwordHash`), they cannot use password-based endpoints.
+
+**IMPORTANT:** Check for null `passwordHash` BEFORE calling `comparePassword()`, otherwise `comparePassword(password, null)` will throw an unhandled error:
 
 ```typescript
-// In auth.service.ts login()
+// In auth.service.ts login() — MUST check passwordHash before comparePassword
 const user = await prisma.user.findUnique({ where: { email } });
-if (!user) throw new AppError('Invalid credentials', 401);
+if (!user) throw new AppError('Invalid email or password', 401);
+
+// Check FIRST — OAuth-only users have no passwordHash
 if (!user.passwordHash) {
   throw new AppError('This account uses SSO login. Please log in with your identity provider.', 403);
+}
+
+// Now safe to compare
+const isPasswordValid = await comparePassword(data.password, user.passwordHash);
+if (!isPasswordValid) {
+  throw new AppError('Invalid email or password', 401);
 }
 ```
 
@@ -509,6 +657,30 @@ export interface OAuthConfig {
 }
 ```
 
+**Config loading timing:** Fetch OAuth config early in the app lifecycle to avoid a flash of password-only UI. Add to `authStore.ts`:
+
+```typescript
+// In authStore.ts — add oauthConfig state
+interface AuthState {
+  // ... existing fields ...
+  oauthConfig: OAuthConfig | null;
+  fetchOAuthConfig: () => Promise<void>;
+}
+
+// Fetch on app initialization (parallel with initializeAuth)
+fetchOAuthConfig: async () => {
+  try {
+    const config = await oauthService.getConfig();
+    set({ oauthConfig: config });
+  } catch {
+    // OAuth config unavailable — password login only
+    set({ oauthConfig: { enabled: false, providerName: '', disablePasswordLogin: false } });
+  }
+},
+```
+
+Call `fetchOAuthConfig()` in `App.tsx` `useEffect` alongside `initializeAuth()`.
+
 #### 6.2 Login Page Changes
 
 Modify `frontend/src/pages/LoginPage.tsx`:
@@ -544,7 +716,7 @@ const handleOAuthLogin = () => {
 
 **New file:** `frontend/src/pages/OAuthCallbackPage.tsx`
 
-This page handles the redirect back from the OAuth flow:
+This page handles the redirect back from the OAuth flow. The access token arrives in the URL fragment (`#access_token=xxx`), which is never sent to the server.
 
 ```typescript
 export default function OAuthCallbackPage() {
@@ -552,23 +724,31 @@ export default function OAuthCallbackPage() {
   const { initializeAuth } = useAuthStore();
 
   useEffect(() => {
-    // 1. Read the one-time access token cookie
-    const token = getCookie('oauth_access_token');
+    // 1. Read the access token from the URL fragment (hash)
+    //    Fragment is never sent to the server, preventing referer leaks
+    const hash = window.location.hash.substring(1);  // Remove the '#'
+    const params = new URLSearchParams(hash);
+    const token = params.get('access_token');
+
+    // 2. Clear the fragment immediately to prevent token from lingering in browser history
+    window.history.replaceState(null, '', window.location.pathname);
+
+    // 3. Check for error query params (set by backend on OAuth failure)
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
 
     if (token) {
-      // 2. Store in memory (same as normal login)
+      // 4. Store in memory (same as normal login)
       setAccessToken(token);
 
-      // 3. Clear the cookie immediately
-      document.cookie = 'oauth_access_token=; path=/oauth/callback; max-age=0';
-
-      // 4. Initialize auth state (fetches user profile)
+      // 5. Initialize auth state (fetches user profile)
       initializeAuth().then(() => {
         navigate('/dashboard', { replace: true });
       });
     } else {
-      // No token — something went wrong, redirect to login
-      navigate('/login?error=oauth_failed', { replace: true });
+      // No token — redirect to login with error
+      const errorMsg = error || 'oauth_failed';
+      navigate(`/login?error=${errorMsg}`, { replace: true });
     }
   }, []);
 
@@ -578,10 +758,13 @@ export default function OAuthCallbackPage() {
 
 #### 6.4 Route Registration
 
-Add to `frontend/src/App.tsx`:
+Add to `frontend/src/App.tsx` as a **public route** (outside `<ProtectedRoute>`), since the user isn't authenticated yet when the callback fires:
 
 ```typescript
-<Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+{/* Public routes */}
+<Route path="/login" element={<LoginPage />} />
+<Route path="/register" element={<RegisterPage />} />
+<Route path="/oauth/callback" element={<OAuthCallbackPage />} />  {/* Must be public */}
 ```
 
 #### 6.5 Register Page Changes
@@ -674,6 +857,30 @@ OAUTH_CLIENT_ID=<pocket-id-client-id>
 OAUTH_CLIENT_SECRET=<pocket-id-client-secret>
 OAUTH_SCOPES=openid profile email
 OAUTH_CALLBACK_URL=https://travel.example.com/api/auth/oauth/callback
+```
+
+#### 7.3 Backup & Restore Updates
+
+The backup/restore system must handle OAuth data:
+
+- **Backup:** Include `OAuthIdentity` records in user backup data (alongside trips, companions, etc.)
+- **Restore:** Handle users with `passwordHash: null` — don't reject them as invalid
+- **Cross-instance restore:** Document that OAuth identities are tied to a specific OIDC provider. Restoring to an instance with a different provider will leave OAuth links non-functional (but the user account and all data will restore correctly).
+
+```typescript
+// In backup.service.ts — add to user data export:
+const user = await prisma.user.findUnique({
+  where: { id: userId },
+  include: {
+    // ... existing includes ...
+    oauthIdentities: {
+      select: { provider: true, subject: true, email: true, displayName: true },
+    },
+  },
+});
+
+// In restore.service.ts — handle nullable passwordHash:
+// Don't reject users where passwordHash is null (they're OAuth-only users)
 ```
 
 ---
@@ -792,11 +999,14 @@ Phases 6 and 7 can be done in parallel once Phase 4 is complete.
 | `backend/src/config/index.ts` | Add `oauth` config section |
 | `backend/src/index.ts` | Register OAuth routes |
 | `backend/src/services/auth.service.ts` | Add password login guard, handle passwordless users |
-| `backend/src/utils/csrf.ts` | Exclude OAuth callback from CSRF validation |
+| `backend/src/utils/csrf.ts` | No changes needed (existing `/auth/` exclusion covers OAuth routes) |
 | `frontend/src/pages/LoginPage.tsx` | Add OAuth button, conditional password form |
 | `frontend/src/pages/RegisterPage.tsx` | Hide when password login disabled |
 | `frontend/src/App.tsx` | Add `/oauth/callback` route |
 | `frontend/src/store/authStore.ts` | Handle OAuth config state |
+| `backend/src/services/backup.service.ts` | Include `OAuthIdentity` in user backup data |
+| `backend/src/services/restore.service.ts` | Handle restore of `OAuthIdentity` records and `passwordHash: null` users |
+| `backend/src/services/user.service.ts` | Block `updatePassword` for OAuth-only users without existing password |
 | `docker-compose.yml` | Add OAuth environment variables |
 | `docker-compose.prod.yml` | Add OAuth environment variables |
 | `.env.example` | Document OAuth variables |
@@ -807,20 +1017,42 @@ Phases 6 and 7 can be done in parallel once Phase 4 is complete.
 
 ### Manual Testing Checklist
 
+**Basic flows:**
+
 - [ ] OAuth disabled: app works exactly as before (no OAuth button, password login works)
 - [ ] OAuth enabled + password enabled: both login methods visible and functional
 - [ ] OAuth enabled + password disabled: only OAuth button shown, password endpoints return 403
-- [ ] First OAuth login with auto-register: new user created, logged in, default companion created
+- [ ] OAuth enabled + password disabled: registration endpoint also returns 403
+- [ ] First OAuth login with auto-register: new user created, logged in, default "Myself" companion created
 - [ ] Second OAuth login: existing user found by OIDC subject, logged in
-- [ ] Account linking: existing password user logs in via OAuth, identities merged by email
+- [ ] Account linking: existing password user logs in via OAuth, identity linked (only if `email_verified: true`)
+- [ ] Account linking rejected: provider returns `email_verified: false`, creates new account instead of linking
 - [ ] Account unlinking: user with password can unlink OAuth
 - [ ] Account unlinking guard: OAuth-only user cannot unlink (must set password first)
+
+**Security:**
+
 - [ ] State mismatch: tampered state parameter rejected
-- [ ] Expired state cookie: returns error, redirects to login
-- [ ] Provider down: graceful error, redirects to login with error message
-- [ ] Session management: OAuth-initiated sessions work with existing refresh/logout flow
-- [ ] File access: OAuth users can access uploaded files (existing auth middleware)
+- [ ] Expired state cookie: returns error, redirects to login with clear message
+- [ ] Nonce mismatch: rejected by openid-client during token validation
+- [ ] Provider down during OAuth flow: graceful error, redirects to login with error message
+- [ ] Provider down at startup: server starts, password login works, OAuth shows 503
+- [ ] Rate limiting: rapid OAuth requests are throttled
 - [ ] CSRF: protected endpoints still validate CSRF for OAuth users
+
+**Session management:**
+
+- [ ] OAuth-initiated sessions work with existing refresh/logout flow
+- [ ] OAuth user logout blacklists refresh token (same as password logout)
+- [ ] File access: OAuth users can access uploaded files (existing auth middleware)
+- [ ] OAuth-only user cannot call `updatePassword` endpoint
+
+**Edge cases:**
+
+- [ ] OAuth user starts flow in one browser, completes in another: state mismatch error
+- [ ] User refreshes `/oauth/callback` page: handled gracefully (no token in fragment)
+- [ ] Backup/restore: OAuth-only user data is preserved, OAuth links included
+- [ ] Missing `OAUTH_ISSUER_URL` with `OAUTH_ENABLED=true`: server fails fast with clear error
 
 ### Integration Testing
 
@@ -829,6 +1061,7 @@ Phases 6 and 7 can be done in parallel once Phase 4 is complete.
 - [ ] Test OIDC discovery with both providers
 - [ ] Test token refresh flow after OAuth login
 - [ ] Test concurrent sessions (password + OAuth for same user)
+- [ ] Test password user changes email, then logs in via OAuth: still recognized by `subject` not email
 
 ---
 
@@ -864,12 +1097,52 @@ Once the generic OIDC foundation is in place, these become straightforward addit
 
 ---
 
-## Open Questions
+## Resolved Design Decisions
 
-1. **Cookie signing secret** — The `oauth_state` cookie uses `signed: true`, which requires `cookie-parser` to be configured with a secret. Need to add a `COOKIE_SECRET` env var (can reuse `JWT_SECRET` or add a separate one).
+These were originally open questions, now resolved during plan review:
 
-2. **Access token delivery** — The plan uses a short-lived, path-scoped cookie to pass the access token from the backend callback to the frontend. An alternative is using a URL fragment (`#access_token=xxx`) which is never sent to servers but is accessible via JavaScript. The cookie approach is slightly more secure against referer leaks but requires careful path scoping. Either approach works.
+1. **Cookie signing secret** — **Resolved:** Add `COOKIE_SECRET` env var (falls back to `JWT_SECRET`). Pass it to `cookieParser(config.cookie.secret)` in `index.ts`. See Phase 2.2.
 
-3. **User merge conflicts** — If an OAuth user's email matches an existing local account, should we auto-link or require the user to log in with their password first to confirm ownership? The plan defaults to auto-linking (simpler for self-hosted personal use), but a stricter option would require password confirmation first.
+2. **Access token delivery** — **Resolved: URL fragment approach.** The backend callback redirects to `${frontendUrl}/oauth/callback#access_token=xxx`. Fragments are never sent to servers, preventing referer leaks and server-side logging. The frontend reads the token from `window.location.hash`, stores it in memory, and clears the fragment via `history.replaceState()`. See Phase 4.2 and Phase 6.3.
 
-4. **Token storage encryption** — Should provider access/refresh tokens (stored in `OAuthIdentity`) be encrypted at rest? For self-hosted personal use this is low priority, but would be important for multi-user deployments.
+3. **User merge conflicts** — **Resolved: Require `email_verified: true` for auto-linking.** Account linking by email only happens when the OIDC provider asserts `email_verified: true` in the ID token claims. This prevents account takeover by an attacker who registers at a permissive provider using a victim's email. If `email_verified` is false or missing, the user is treated as a new account (auto-register) or rejected. See Phase 3.3 security note.
+
+4. **Token storage encryption** — **Resolved: Don't store provider tokens.** Provider access/refresh tokens are discarded after extracting user claims during the initial code exchange. They're not needed after login since we issue our own JWT session. This eliminates the DB leakage risk entirely. If a future feature requires calling the provider's API on behalf of the user, encrypted storage (AES-256-GCM with a key from env var) can be added to the `OAuthIdentity` model then. See Phase 1.2.
+
+---
+
+## Appendix: Plan Review Findings
+
+This plan was reviewed by three specialized agents for errors, missed items, and security concerns. All critical and high-priority findings have been incorporated into the plan above. Below are the medium/low items that were noted but deferred or documented as acceptable trade-offs.
+
+### Accepted Limitations
+
+| Item | Decision | Rationale |
+| ---- | -------- | --------- |
+| Single-server only (cookie-based state) | Documented limitation | Self-hosted personal app; multi-server would need Redis session store |
+| No OIDC logout (RP-initiated) | Deferred to Future Extensions | Acceptable for Phase 1; provider session stays active after app logout |
+| OAuth config endpoint leaks provider name | Acceptable | Non-sensitive info; needed for frontend to render correct button text |
+| No OIDC claims sanitization for XSS | Handled by React | React auto-escapes rendered strings; `rawClaims` is JSON (not rendered directly) |
+| 10-minute state cookie expiry | Acceptable | Standard timeout; clear error message on expiry guides user to retry |
+| `passwordVersion` for OAuth-only users | Works as-is | OAuth users have `passwordVersion: 0` permanently; auth middleware check passes |
+| OAuth logout uses existing `/api/auth/logout` | Works as-is | Existing endpoint blacklists refresh token, which is the same for OAuth sessions |
+
+### Documentation Updates Needed at Implementation Time
+
+When implementing this plan, also update:
+
+- `README.md` — Add OAuth/SSO as a listed feature
+- `CLAUDE.md` — Document `COOKIE_SECRET` and OAuth env vars in "Environment Setup" section
+- `docs/architecture/BACKEND_ARCHITECTURE.md` — Document OAuth service, routes, `OAuthIdentity` table
+- `docs/api/README.md` — Add OAuth endpoints (`/config`, `/authorize`, `/callback`, `/link`, `/unlink`)
+- `DEPLOYMENT.md` — Add "OAuth/SSO Configuration" section with Authelia and Pocket ID examples
+- `.env.example` — Add all OAuth environment variables with comments
+- `docs/user-guide/README.md` — Add OAuth login instructions for end users
+
+### Review Methodology
+
+| Agent | Focus | Critical Findings | Incorporated |
+| ----- | ----- | ----------------- | ------------ |
+| Error Reviewer | API correctness, code bugs | 7 critical/high errors | All 7 fixed |
+| Architecture Reviewer | Missing items, integration gaps | 5 high-priority gaps | All 5 addressed |
+| Security Reviewer | Vulnerabilities, attack vectors | 1 critical + 3 high | All 4 mitigated |

@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import logger from '../config/logger';
 import { AppError } from '../utils/errors';
 import { verifyTripAccessWithPermission } from '../utils/serviceHelpers';
 
@@ -416,46 +417,48 @@ export const entityLinkService = {
     let created = 0;
     let skipped = 0;
 
-    // Create links in a transaction
+    // Create links in a transaction using batch queries to avoid N+1
     await prisma.$transaction(async (tx: TransactionClient) => {
-      for (const target of data.targets) {
-        // Skip self-links
-        if (data.sourceType === target.targetType && data.sourceId === target.targetId) {
-          skipped++;
-          continue;
-        }
+      // Get all existing links for this source using pair-wise OR conditions
+      // (avoids cross-product matching that { in: [...types], in: [...ids] } would produce)
+      const existingLinks = await tx.entityLink.findMany({
+        where: {
+          tripId: data.tripId,
+          sourceType: data.sourceType,
+          sourceId: data.sourceId,
+          OR: data.targets.map(t => ({
+            targetType: t.targetType,
+            targetId: t.targetId,
+          })),
+        },
+        select: { targetType: true, targetId: true },
+      });
 
-        // Check if link already exists
-        const existing = await tx.entityLink.findFirst({
-          where: {
+      const existingSet = new Set(
+        existingLinks.map(l => `${l.targetType}:${l.targetId}`)
+      );
+
+      // Filter to only new, non-self links
+      const newLinks = data.targets
+        .filter(t => !(data.sourceType === t.targetType && data.sourceId === t.targetId))
+        .filter(t => !existingSet.has(`${t.targetType}:${t.targetId}`));
+
+      skipped = data.targets.length - newLinks.length;
+
+      if (newLinks.length > 0) {
+        await tx.entityLink.createMany({
+          data: newLinks.map(t => ({
             tripId: data.tripId,
             sourceType: data.sourceType,
             sourceId: data.sourceId,
-            targetType: target.targetType,
-            targetId: target.targetId,
-          },
+            targetType: t.targetType,
+            targetId: t.targetId,
+            relationship: t.relationship || getDefaultRelationship(data.sourceType, t.targetType),
+            sortOrder: t.sortOrder,
+            notes: t.notes,
+          })),
         });
-
-        if (existing) {
-          skipped++;
-          continue;
-        }
-
-        const relationship = target.relationship || getDefaultRelationship(data.sourceType, target.targetType);
-
-        await tx.entityLink.create({
-          data: {
-            tripId: data.tripId,
-            sourceType: data.sourceType,
-            sourceId: data.sourceId,
-            targetType: target.targetType,
-            targetId: target.targetId,
-            relationship,
-            sortOrder: target.sortOrder,
-            notes: target.notes,
-          },
-        });
-        created++;
+        created = newLinks.length;
       }
     });
 
@@ -488,34 +491,37 @@ export const entityLinkService = {
     const relationship = data.relationship || getDefaultRelationship('PHOTO', data.targetType);
 
     await prisma.$transaction(async (tx: TransactionClient) => {
-      for (const photoId of data.photoIds) {
-        // Check if link already exists
-        const existing = await tx.entityLink.findFirst({
-          where: {
-            tripId: data.tripId,
-            sourceType: 'PHOTO',
-            sourceId: photoId,
-            targetType: data.targetType,
-            targetId: data.targetId,
-          },
-        });
+      // Get all existing links for these photos in one query
+      const existingLinks = await tx.entityLink.findMany({
+        where: {
+          tripId: data.tripId,
+          sourceType: 'PHOTO',
+          sourceId: { in: data.photoIds },
+          targetType: data.targetType,
+          targetId: data.targetId,
+        },
+        select: { sourceId: true },
+      });
 
-        if (existing) {
-          skipped++;
-          continue;
-        }
+      const existingPhotoIds = new Set(existingLinks.map(l => l.sourceId));
 
-        await tx.entityLink.create({
-          data: {
+      // Filter to only photos that don't already have a link
+      const newPhotoIds = data.photoIds.filter(id => !existingPhotoIds.has(id));
+
+      skipped = data.photoIds.length - newPhotoIds.length;
+
+      if (newPhotoIds.length > 0) {
+        await tx.entityLink.createMany({
+          data: newPhotoIds.map(photoId => ({
             tripId: data.tripId,
             sourceType: 'PHOTO',
             sourceId: photoId,
             targetType: data.targetType,
             targetId: data.targetId,
             relationship,
-          },
+          })),
         });
-        created++;
+        created = newPhotoIds.length;
       }
     });
 
@@ -840,9 +846,16 @@ export const entityLinkService = {
   ): Promise<Map<string, EntityLinkSummary>> {
     await verifyTripAccessWithPermission(userId, tripId, 'view');
 
+    // Safety limit to prevent runaway queries on corrupted data
+    const SAFETY_LIMIT = 10000;
     const links = await prisma.entityLink.findMany({
       where: { tripId },
+      take: SAFETY_LIMIT,
     });
+
+    if (links.length === SAFETY_LIMIT) {
+      logger.warn(`Entity link summary for trip ${tripId} hit the ${SAFETY_LIMIT} row safety limit. Results may be incomplete.`);
+    }
 
     const summaryMap = new Map<string, EntityLinkSummary>();
 

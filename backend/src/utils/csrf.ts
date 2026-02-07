@@ -57,7 +57,9 @@ export const validateCsrf = (req: Request, res: Response, next: NextFunction): v
 
   // Skip CSRF validation for auth routes (these bootstrap the CSRF token)
   // Login, register, refresh, and silent-refresh set the CSRF cookie
-  if (req.path.startsWith('/auth/')) {
+  // Use exact path matching to prevent bypass via crafted path prefixes
+  const AUTH_CSRF_EXEMPT = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/silent-refresh'];
+  if (AUTH_CSRF_EXEMPT.includes(req.path)) {
     return next();
   }
 

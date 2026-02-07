@@ -85,34 +85,49 @@ export class LocationService {
     return convertDecimals(locations);
   }
 
-  async getAllVisitedLocations(userId: number) {
-    // Get all locations from user's trips that have coordinates
-    const locations = await prisma.location.findMany({
-      where: {
-        trip: {
-          userId,
-          addToPlacesVisited: true,
-        },
-        AND: [
-          { latitude: { not: null } },
-          { longitude: { not: null } },
-        ],
+  async getAllVisitedLocations(userId: number, page = 1, limit = 200) {
+    const skip = (page - 1) * limit;
+
+    const where = {
+      trip: {
+        userId,
+        addToPlacesVisited: true,
       },
-      include: {
-        category: true,
-        trip: {
-          select: {
-            id: true,
-            title: true,
-            startDate: true,
-            endDate: true,
+      AND: [
+        { latitude: { not: null } },
+        { longitude: { not: null } },
+      ],
+    };
+
+    // Get locations and total count in parallel
+    const [locations, total] = await Promise.all([
+      prisma.location.findMany({
+        where,
+        include: {
+          category: true,
+          trip: {
+            select: {
+              id: true,
+              title: true,
+              startDate: true,
+              endDate: true,
+            },
           },
         },
-      },
-      orderBy: { visitDatetime: 'desc' },
-    });
+        orderBy: { visitDatetime: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.location.count({ where }),
+    ]);
 
-    return convertDecimals(locations);
+    return {
+      locations: convertDecimals(locations),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async getLocationById(userId: number, locationId: number) {
@@ -206,7 +221,8 @@ export class LocationService {
 
     const updatedLocation = await prisma.location.update({
       where: { id: locationId },
-      data: updateData,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
+      data: updateData as any,
       include: {
         category: true,
         parent: {
@@ -306,9 +322,9 @@ export class LocationService {
     const updated = await prisma.locationCategory.update({
       where: { id: categoryId },
       data: {
-        name: data.name,
-        icon: data.icon,
-        color: data.color,
+        ...(data.name !== undefined && data.name !== null && { name: data.name }),
+        ...(data.icon !== undefined && { icon: data.icon }),
+        ...(data.color !== undefined && { color: data.color }),
       },
     });
 

@@ -485,12 +485,14 @@ class ChecklistService {
    * Auto-check items based on trip data
    */
   async autoCheckFromTrips(userId: number): Promise<{ updated: number }> {
-    let updated = 0;
+    // Collect all item IDs to check across all 4 loops, then batch update once
+    const itemsToCheck: number[] = [];
 
     // Get user's checklists
     const checklists = await prisma.checklist.findMany({
       where: { userId },
       include: { items: true },
+      take: 100,
     }) as ChecklistFromPrisma[];
 
     // Get user's trips with locations and transportation
@@ -505,6 +507,7 @@ class ChecklistService {
           where: { type: 'Flight' },
         },
       },
+      take: 500,
     }) as TripForAutoPopulate[];
 
     // Process Airports checklist
@@ -526,16 +529,12 @@ class ChecklistService {
         });
       });
 
-      // Check off visited airports
+      // Collect visited airport item IDs
       for (const item of airportsChecklist.items) {
         if (!item.isChecked && item.metadata && typeof item.metadata === 'object' && 'code' in item.metadata) {
           const code = getMetadataValue<AirportMetadata>(item.metadata, 'code') as string;
           if (code && visitedAirportCodes.has(code)) {
-            await prisma.checklistItem.update({
-              where: { id: item.id },
-              data: { isChecked: true, checkedAt: new Date() },
-            });
-            updated++;
+            itemsToCheck.push(item.id);
           }
         }
       }
@@ -559,7 +558,7 @@ class ChecklistService {
         });
       });
 
-      // Check off visited countries
+      // Collect visited country item IDs
       for (const item of countriesChecklist.items) {
         if (!item.isChecked) {
           const countryName = item.name;
@@ -570,11 +569,7 @@ class ChecklistService {
           );
 
           if (isVisited) {
-            await prisma.checklistItem.update({
-              where: { id: item.id },
-              data: { isChecked: true, checkedAt: new Date() },
-            });
-            updated++;
+            itemsToCheck.push(item.id);
           }
         }
       }
@@ -600,7 +595,7 @@ class ChecklistService {
         });
       });
 
-      // Check off visited cities
+      // Collect visited city item IDs
       for (const item of citiesChecklist.items) {
         if (!item.isChecked) {
           const cityName = item.name;
@@ -611,11 +606,7 @@ class ChecklistService {
           );
 
           if (isVisited) {
-            await prisma.checklistItem.update({
-              where: { id: item.id },
-              data: { isChecked: true, checkedAt: new Date() },
-            });
-            updated++;
+            itemsToCheck.push(item.id);
           }
         }
       }
@@ -644,7 +635,7 @@ class ChecklistService {
         });
       });
 
-      // Check off visited states
+      // Collect visited state item IDs
       for (const item of usStatesChecklist.items) {
         if (!item.isChecked && item.metadata && typeof item.metadata === 'object' && 'code' in item.metadata) {
           const code = getMetadataValue<StateMetadata>(item.metadata, 'code') as string | undefined;
@@ -660,18 +651,22 @@ class ChecklistService {
             );
 
             if (isVisited) {
-              await prisma.checklistItem.update({
-                where: { id: item.id },
-                data: { isChecked: true, checkedAt: new Date() },
-              });
-              updated++;
+              itemsToCheck.push(item.id);
             }
           }
         }
       }
     }
 
-    return { updated };
+    // Batch update all matched items in a single query
+    if (itemsToCheck.length > 0) {
+      await prisma.checklistItem.updateMany({
+        where: { id: { in: itemsToCheck } },
+        data: { isChecked: true, checkedAt: new Date(), updatedAt: new Date() },
+      });
+    }
+
+    return { updated: itemsToCheck.length };
   }
 
   /**

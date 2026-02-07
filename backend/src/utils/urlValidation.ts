@@ -24,12 +24,16 @@ const BLOCKED_HOSTNAMES = [
  * Check if an IPv4 address is in a private/internal range.
  *
  * Blocked ranges:
- * - 127.0.0.0/8     (loopback)
- * - 10.0.0.0/8      (private)
- * - 172.16.0.0/12   (private)
- * - 192.168.0.0/16  (private)
- * - 169.254.0.0/16  (link-local)
- * - 0.0.0.0/8       (unspecified)
+ * - 127.0.0.0/8         (loopback)
+ * - 10.0.0.0/8          (private)
+ * - 172.16.0.0/12       (private)
+ * - 192.168.0.0/16      (private)
+ * - 169.254.0.0/16      (link-local)
+ * - 0.0.0.0/8           (unspecified)
+ * - 255.255.255.255     (broadcast)
+ * - 224.0.0.0/4         (multicast)
+ * - 100.64.0.0/10       (shared address space / CGNAT)
+ * - 240.0.0.0/4         (reserved)
  */
 function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split('.').map(Number);
@@ -51,6 +55,14 @@ function isPrivateIPv4(ip: string): boolean {
   if (a === 169 && b === 254) return true;
   // 0.0.0.0/8 - unspecified
   if (a === 0) return true;
+  // 255.255.255.255 - broadcast
+  if (a === 255 && b === 255) return true;
+  // 224.0.0.0/4 - multicast (224-239.x.x.x)
+  if (a >= 224 && a <= 239) return true;
+  // 100.64.0.0/10 - shared address space (CGNAT)
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  // 240.0.0.0/4 - reserved (240-255.x.x.x, except 255 already caught)
+  if (a >= 240) return true;
 
   return false;
 }

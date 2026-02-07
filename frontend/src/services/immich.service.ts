@@ -42,7 +42,7 @@ class ImmichService {
     take?: number;
     isFavorite?: boolean;
     isArchived?: boolean;
-  }): Promise<{ assets: ImmichAsset[]; total: number }> {
+  }): Promise<{ assets: ImmichAsset[]; hasMore: boolean }> {
     const response = await axios.get('/immich/assets', { params: options });
     return response.data;
   }
@@ -95,7 +95,7 @@ class ImmichService {
       skip?: number;
       take?: number;
     }
-  ): Promise<{ assets: ImmichAsset[]; total: number }> {
+  ): Promise<{ assets: ImmichAsset[]; hasMore: boolean }> {
     const response = await axios.get('/immich/assets/date-range', {
       params: { startDate, endDate, ...options },
     });

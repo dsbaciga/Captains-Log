@@ -36,4 +36,5 @@ export interface JwtPayload {
   id: number;  // User ID (aliased for convenience)
   userId: number;  // Same as id (for compatibility)
   email: string;
+  passwordVersion?: number;  // Used to invalidate tokens after password change
 }

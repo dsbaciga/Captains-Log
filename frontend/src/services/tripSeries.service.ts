@@ -4,22 +4,22 @@ import type { TripSeries, CreateTripSeriesInput, UpdateTripSeriesInput } from '.
 class TripSeriesService {
   async getAll(): Promise<TripSeries[]> {
     const response = await axios.get('/trip-series');
-    return response.data.data;
+    return response.data;
   }
 
   async getById(id: number): Promise<TripSeries> {
     const response = await axios.get(`/trip-series/${id}`);
-    return response.data.data;
+    return response.data;
   }
 
   async create(data: CreateTripSeriesInput): Promise<TripSeries> {
     const response = await axios.post('/trip-series', data);
-    return response.data.data;
+    return response.data;
   }
 
   async update(id: number, data: UpdateTripSeriesInput): Promise<TripSeries> {
     const response = await axios.put(`/trip-series/${id}`, data);
-    return response.data.data;
+    return response.data;
   }
 
   async delete(id: number): Promise<void> {

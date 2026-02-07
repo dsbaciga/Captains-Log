@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import {
@@ -38,8 +39,11 @@ function convertAlbumPhotoDecimals<T extends WithOptionalCoverPhoto>(album: T): 
 }
 
 // Helper function to build orderBy clause for album photo assignments based on sort options
-function buildAlbumPhotoOrderBy(sortBy?: string, sortOrder?: string) {
-  const order = sortOrder === SortOrder.ASC ? 'asc' : 'desc';
+function buildAlbumPhotoOrderBy(
+  sortBy?: string,
+  sortOrder?: string
+): Prisma.PhotoAlbumAssignmentOrderByWithRelationInput[] {
+  const order: Prisma.SortOrder = sortOrder === SortOrder.ASC ? 'asc' : 'desc';
 
   switch (sortBy) {
     case PhotoSortBy.DATE:
@@ -297,7 +301,7 @@ class PhotoAlbumService {
           include: {
             photo: true,
           },
-          orderBy: orderBy as any,
+          orderBy,
           skip,
           take,
         },
@@ -311,8 +315,8 @@ class PhotoAlbumService {
       throw new AppError('Album not found', 404);
     }
 
-    const loadedCount = skip + (album as any).photoAssignments.length;
-    const totalCount = (album as any)._count.photoAssignments;
+    const loadedCount = skip + album.photoAssignments.length;
+    const totalCount = album._count.photoAssignments;
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[PhotoAlbumService] getAlbumById pagination:', {
@@ -328,7 +332,7 @@ class PhotoAlbumService {
 
     return {
       ...album,
-      photoAssignments: (album as any).photoAssignments.map((assignment: any) => ({
+      photoAssignments: album.photoAssignments.map((assignment) => ({
         ...assignment,
         photo: convertPhotoDecimals(assignment.photo),
       })),

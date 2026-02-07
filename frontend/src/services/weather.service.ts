@@ -7,7 +7,7 @@ class WeatherService {
    */
   async getWeatherForTrip(tripId: number): Promise<WeatherData[]> {
     const response = await axios.get(`/trips/${tripId}/weather`);
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -17,7 +17,7 @@ class WeatherService {
     const response = await axios.post(`/trips/${tripId}/weather/refresh`, {
       date,
     });
-    return response.data.data;
+    return response.data;
   }
 
   /**
@@ -26,7 +26,7 @@ class WeatherService {
    */
   async refreshAllWeather(tripId: number): Promise<WeatherData[]> {
     const response = await axios.post(`/trips/${tripId}/weather/refresh-all`);
-    return response.data.data;
+    return response.data;
   }
 }
 

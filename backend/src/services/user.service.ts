@@ -3,6 +3,7 @@ import { AppError } from '../utils/errors';
 import { UpdateUserSettingsInput } from '../types/userSettings.types';
 import bcrypt from 'bcrypt';
 import { companionService } from './companion.service';
+import { invalidatePasswordVersionCache } from '../middleware/auth';
 import { buildConditionalUpdateData } from '../utils/serviceHelpers';
 
 class UserService {
@@ -342,11 +343,23 @@ class UserService {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
-    // Update password
+    // Evict cached passwordVersion BEFORE the write so concurrent auth requests
+    // cache-miss and hit the DB, reducing the window for stale re-caching.
+    invalidatePasswordVersionCache(userId);
+
+    // Update password and increment passwordVersion to invalidate existing tokens
     await prisma.user.update({
       where: { id: userId },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        passwordVersion: { increment: 1 },
+      },
     });
+
+    // Evict again after the write for defense-in-depth. A narrow race remains
+    // where a concurrent request re-caches the old value between the two
+    // invalidations; the 60s cache TTL is the ultimate safeguard.
+    invalidatePasswordVersionCache(userId);
   }
 
   /**

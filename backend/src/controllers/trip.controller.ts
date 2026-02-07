@@ -66,14 +66,11 @@ export const tripController = {
   deleteTrip: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.id, 'tripId');
-    const result = await tripService.deleteTrip(userId, tripId);
+    await tripService.deleteTrip(userId, tripId);
 
     logger.info(`Trip deleted: ${tripId} by user ${userId}`);
 
-    res.status(200).json({
-      status: 'success',
-      data: result,
-    });
+    res.status(204).send();
   }),
 
   updateCoverPhoto: asyncHandler(async (req: Request, res: Response) => {

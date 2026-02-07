@@ -56,9 +56,19 @@
       "Bash(npx madge:*)",
       "Bash(npx eslint:*)",
       "Bash(npm test:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__claude-flow__hooks_post-task",
+      "mcp__claude-flow__hooks_list",
+      "Bash(ls:*)",
+      "Bash(findstr:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx jest:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "claude-flow"
+  ]
 }

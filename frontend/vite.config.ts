@@ -197,10 +197,21 @@ export default defineConfig({
         manualChunks: {
           // Split large vendor libraries into separate cacheable chunks
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-leaflet': ['leaflet', 'react-leaflet'],
+          'vendor-leaflet': [
+            'leaflet',
+            'react-leaflet',
+            '@react-leaflet/core',
+            'leaflet.markercluster',
+            '@changey/react-leaflet-markercluster',
+          ],
           'vendor-date': ['date-fns'],
+          'vendor-tiptap': ['@tiptap/react', '@tiptap/starter-kit'],
           'vendor-markdown': ['react-markdown', 'remark-gfm'],
-          'vendor-query': ['@tanstack/react-query'],
+          'vendor-query': ['@tanstack/react-query', '@tanstack/react-query-persist-client'],
+          'vendor-emoji': ['emoji-picker-react'],
+          'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          'vendor-icons': ['lucide-react', '@heroicons/react'],
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
         },
       }
     }

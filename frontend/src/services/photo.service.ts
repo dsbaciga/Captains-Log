@@ -56,7 +56,7 @@ class PhotoService {
     }>;
   }): Promise<{ total: number; successful: number; failed: number; errors: string[]; photoIds: number[] }> {
     const response = await api.post('/photos/immich/batch', data);
-    return response.data.data;
+    return response.data;
   }
 
   async getPhotosByTrip(

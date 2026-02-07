@@ -309,7 +309,11 @@ class AviationstackService {
       },
     });
 
-    return this.mapFlightTrackingToResult(flightTracking);
+    const result = this.mapFlightTrackingToResult(flightTracking);
+    if (!result) {
+      throw new AppError('Failed to map flight tracking data', 500);
+    }
+    return result;
   }
 
   /**

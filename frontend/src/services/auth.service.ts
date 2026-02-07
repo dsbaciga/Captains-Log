@@ -4,17 +4,17 @@ import type { AuthResponse, LoginInput, RegisterInput, User } from '../types/aut
 class AuthService {
   async register(data: RegisterInput): Promise<AuthResponse> {
     const response = await axios.post('/auth/register', data);
-    return response.data.data;
+    return response.data;
   }
 
   async login(data: LoginInput): Promise<AuthResponse> {
     const response = await axios.post('/auth/login', data);
-    return response.data.data;
+    return response.data;
   }
 
   async getCurrentUser(): Promise<User> {
     const response = await axios.get('/auth/me');
-    return response.data.data;
+    return response.data;
   }
 
   async logout(): Promise<void> {
@@ -29,7 +29,7 @@ class AuthService {
     try {
       const response = await axios.post('/auth/silent-refresh');
       // Backend returns null in data if no session, { user, accessToken } if valid
-      return response.data.data;
+      return response.data;
     } catch (error) {
       console.error('Silent refresh failed:', error);
       return null;
@@ -42,7 +42,7 @@ class AuthService {
    */
   async refreshToken(): Promise<{ accessToken: string }> {
     const response = await axios.post('/auth/refresh');
-    return response.data.data;
+    return response.data;
   }
 }
 

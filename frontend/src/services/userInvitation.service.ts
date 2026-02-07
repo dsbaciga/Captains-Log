@@ -14,7 +14,7 @@ const userInvitationService = {
    */
   async getEmailStatus(): Promise<EmailStatusResponse> {
     const response = await axios.get('/user-invitations/email-status');
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -22,7 +22,7 @@ const userInvitationService = {
    */
   async getSentInvitations(): Promise<UserInvitation[]> {
     const response = await axios.get('/user-invitations');
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -30,7 +30,7 @@ const userInvitationService = {
    */
   async sendInvitation(data: SendUserInvitationInput): Promise<UserInvitation> {
     const response = await axios.post('/user-invitations', data);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -38,7 +38,7 @@ const userInvitationService = {
    */
   async cancelInvitation(invitationId: number): Promise<{ message: string }> {
     const response = await axios.delete(`/user-invitations/${invitationId}`);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -46,7 +46,7 @@ const userInvitationService = {
    */
   async resendInvitation(invitationId: number): Promise<UserInvitation> {
     const response = await axios.post(`/user-invitations/${invitationId}/resend`);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -54,7 +54,7 @@ const userInvitationService = {
    */
   async getInvitationByToken(token: string): Promise<UserInvitationPublicInfo> {
     const response = await axios.get(`/user-invitations/token/${token}`);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -62,7 +62,7 @@ const userInvitationService = {
    */
   async acceptInvitation(data: AcceptInvitationInput): Promise<AcceptInvitationResponse> {
     const response = await axios.post('/user-invitations/accept', data);
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -70,7 +70,7 @@ const userInvitationService = {
    */
   async declineInvitation(token: string): Promise<{ message: string }> {
     const response = await axios.post(`/user-invitations/decline/${token}`);
-    return response.data.data;
+    return response.data;
   },
 };
 

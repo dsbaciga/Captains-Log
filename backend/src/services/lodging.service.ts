@@ -5,8 +5,8 @@ import {
   BulkDeleteLodgingInput,
   BulkUpdateLodgingInput,
 } from '../types/lodging.types';
-import { AppError } from '../utils/errors';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, buildConditionalUpdateData, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, buildConditionalUpdateData } from '../utils/serviceHelpers';
+import { deleteEntity, bulkDeleteEntities, bulkUpdateEntities } from '../utils/crudHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
@@ -88,29 +88,15 @@ class LodgingService {
 
     const updatedLodging = await prisma.lodging.update({
       where: { id: lodgingId },
-      data: updateData,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
+      data: updateData as any,
     });
 
     return convertDecimals(updatedLodging);
   }
 
   async deleteLodging(userId: number, lodgingId: number) {
-    // Verify user has edit permission on the lodging's trip
-    const { entity: lodging } = await verifyEntityAccessWithPermission<{ tripId: number }>(
-      'lodging',
-      lodgingId,
-      userId,
-      'edit'
-    );
-
-    // Clean up entity links before deleting
-    await cleanupEntityLinks(lodging.tripId, 'LODGING', lodgingId);
-
-    await prisma.lodging.delete({
-      where: { id: lodgingId },
-    });
-
-    return { success: true };
+    return deleteEntity('lodging', lodgingId, userId);
   }
 
   /**
@@ -118,36 +104,7 @@ class LodgingService {
    * Verifies edit permission for all items before deletion
    */
   async bulkDeleteLodging(userId: number, tripId: number, data: BulkDeleteLodgingInput) {
-    // Verify user has edit permission on the trip
-    await verifyTripAccessWithPermission(userId, tripId, 'edit');
-
-    // Verify all lodging items belong to this trip
-    const lodgings = await prisma.lodging.findMany({
-      where: {
-        id: { in: data.ids },
-        tripId,
-      },
-      include: { trip: true },
-    });
-
-    if (lodgings.length !== data.ids.length) {
-      throw new AppError('One or more lodging items not found or do not belong to this trip', 404);
-    }
-
-    // Clean up entity links for all lodging items
-    for (const lodging of lodgings) {
-      await cleanupEntityLinks(lodging.tripId, 'LODGING', lodging.id);
-    }
-
-    // Delete all lodging items
-    const result = await prisma.lodging.deleteMany({
-      where: {
-        id: { in: data.ids },
-        tripId,
-      },
-    });
-
-    return { success: true, deletedCount: result.count };
+    return bulkDeleteEntities('lodging', userId, tripId, data.ids);
   }
 
   /**
@@ -155,40 +112,9 @@ class LodgingService {
    * Verifies edit permission for all items before update
    */
   async bulkUpdateLodging(userId: number, tripId: number, data: BulkUpdateLodgingInput) {
-    // Verify user has edit permission on the trip
-    await verifyTripAccessWithPermission(userId, tripId, 'edit');
-
-    // Verify all lodging items belong to this trip
-    const lodgings = await prisma.lodging.findMany({
-      where: {
-        id: { in: data.ids },
-        tripId,
-      },
+    return bulkUpdateEntities('lodging', userId, tripId, data.ids, data.updates, {
+      allowedFields: ['type', 'notes'],
     });
-
-    if (lodgings.length !== data.ids.length) {
-      throw new AppError('One or more lodging items not found or do not belong to this trip', 404);
-    }
-
-    // Build update data from non-undefined values
-    const updateData: Record<string, unknown> = {};
-    if (data.updates.type !== undefined) updateData.type = data.updates.type;
-    if (data.updates.notes !== undefined) updateData.notes = data.updates.notes;
-
-    if (Object.keys(updateData).length === 0) {
-      throw new AppError('No valid update fields provided', 400);
-    }
-
-    // Update all lodging items
-    const result = await prisma.lodging.updateMany({
-      where: {
-        id: { in: data.ids },
-        tripId,
-      },
-      data: updateData,
-    });
-
-    return { success: true, updatedCount: result.count };
   }
 }
 

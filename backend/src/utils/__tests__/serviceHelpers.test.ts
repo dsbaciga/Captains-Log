@@ -133,8 +133,8 @@ describe('Service Helpers', () => {
 
       expect(result.startDate).toBeInstanceOf(Date);
       expect(result.endDate).toBeInstanceOf(Date);
-      expect((result.startDate as any)?.toISOString()).toBe('2025-01-15T00:00:00.000Z');
-      expect((result.endDate as any)?.toISOString()).toBe('2025-01-20T00:00:00.000Z');
+      expect((result.startDate as Date)?.toISOString()).toBe('2025-01-15T00:00:00.000Z');
+      expect((result.endDate as Date)?.toISOString()).toBe('2025-01-20T00:00:00.000Z');
     });
 
     it('should convert empty strings to null by default', () => {

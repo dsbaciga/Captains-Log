@@ -43,7 +43,7 @@ export default function ImmichBrowser({
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalAssets, setTotalAssets] = useState(0);
+  const [hasMoreAssets, setHasMoreAssets] = useState(false);
   const ITEMS_PER_PAGE = 50;
   const [isLinking, setIsLinking] = useState(false);
   const [isLoadingAll, setIsLoadingAll] = useState(false);
@@ -65,22 +65,6 @@ export default function ImmichBrowser({
     }
     return assets.filter((asset) => !excludeAssetIds.has(asset.id));
   }, [assets, excludeAssetIds]);
-
-  // Calculate available total (estimate based on current page's exclusion ratio)
-  const availableTotalAssets = useMemo(() => {
-    if (!excludeAssetIds || excludeAssetIds.size === 0 || assets.length === 0) {
-      return totalAssets;
-    }
-    // Count how many assets on current page are excluded
-    const excludedOnPage = assets.filter((asset) => excludeAssetIds.has(asset.id)).length;
-    if (excludedOnPage === 0) {
-      return totalAssets; // No exclusions on this page, assume none overall
-    }
-    // Estimate based on the ratio of excluded assets on current page
-    const exclusionRatio = excludedOnPage / assets.length;
-    const estimatedAvailable = Math.round(totalAssets * (1 - exclusionRatio));
-    return Math.max(0, estimatedAvailable);
-  }, [totalAssets, excludeAssetIds, assets]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -169,12 +153,12 @@ export default function ImmichBrowser({
         console.log("[ImmichBrowser] Loading albums");
         const result = await immichService.getAlbums(false);
         setAlbums(result.albums || []);
-        setTotalAssets(0); // Albums don't have pagination yet
+        setHasMoreAssets(false); // Albums don't have pagination yet
       } else if (selectedAlbum) {
         console.log("[ImmichBrowser] Loading album:", selectedAlbum);
         const album = await immichService.getAlbumById(selectedAlbum);
         setAssets(album.assets || []);
-        setTotalAssets(album.assets?.length || 0);
+        setHasMoreAssets(false);
       } else if (filterByTripDates && tripStartDate && tripEndDate) {
         console.log(
           `[ImmichBrowser] Loading assets by date range (page ${currentPage}):`,
@@ -190,8 +174,8 @@ export default function ImmichBrowser({
         console.log(
           "[ImmichBrowser] Received assets:",
           result.assets?.length || 0,
-          "of",
-          result.total
+          "hasMore:",
+          result.hasMore
         );
         if (result.assets && result.assets.length > 0) {
           console.log("[ImmichBrowser] First asset sample:", {
@@ -201,14 +185,14 @@ export default function ImmichBrowser({
           });
         }
         setAssets(result.assets || []);
-        setTotalAssets(result.total || 0);
+        setHasMoreAssets(result.hasMore);
       } else {
         console.log(
           `[ImmichBrowser] Loading all assets (page ${currentPage}, no date filter)`
         );
         const result = await immichService.getAssets({ skip, take });
         setAssets(result.assets || []);
-        setTotalAssets(result.total || 0);
+        setHasMoreAssets(result.hasMore);
       }
     } catch (error) {
       console.error("[ImmichBrowser] Failed to load Immich data:", error);
@@ -289,7 +273,7 @@ export default function ImmichBrowser({
       filterByTripDates,
       tripStartDate,
       tripEndDate,
-      currentTotalAssets: totalAssets
+      hasMoreAssets,
     });
 
     if (!filterByTripDates || !tripStartDate || !tripEndDate) {
@@ -309,7 +293,7 @@ export default function ImmichBrowser({
       );
 
       const allAssets = result.assets || [];
-      console.log(`[ImmichBrowser] Loaded ${allAssets.length} total assets for selection (expected: ${totalAssets})`);
+      console.log(`[ImmichBrowser] Loaded ${allAssets.length} total assets for selection`);
 
       // Filter out already-linked assets
       const assetsToSelect = excludeAssetIds
@@ -451,7 +435,7 @@ export default function ImmichBrowser({
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   placeholder="Search photos..."
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
@@ -550,7 +534,7 @@ export default function ImmichBrowser({
                       ? "Deselect All on Page"
                       : "Select All on Page"}
                   </button>
-                  {filterByTripDates && tripStartDate && tripEndDate && availableTotalAssets > ITEMS_PER_PAGE && (
+                  {filterByTripDates && tripStartDate && tripEndDate && (hasMoreAssets || displayAssets.length > 0) && (
                     <>
                       <button
                         onClick={handleSelectAll}
@@ -558,7 +542,7 @@ export default function ImmichBrowser({
                         type="button"
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isLoadingAll ? "Loading..." : `Select All ${availableTotalAssets} Photos`}
+                        {isLoadingAll ? "Loading..." : "Select All Photos"}
                       </button>
                       {selectedAssetsMap.size > 0 && (
                         <button
@@ -580,7 +564,7 @@ export default function ImmichBrowser({
               )}
 
               {/* Pagination Controls - Top */}
-              {!isLoading && view === "assets" && totalAssets > ITEMS_PER_PAGE && (
+              {!isLoading && view === "assets" && (currentPage > 1 || hasMoreAssets) && (
                 <div className="flex justify-center items-center gap-4 mb-6">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -591,18 +575,11 @@ export default function ImmichBrowser({
                     Previous
                   </button>
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Page {currentPage} of {Math.ceil(totalAssets / ITEMS_PER_PAGE)}{" "}
-                    ({totalAssets} total photos)
+                    Page {currentPage}
                   </span>
                   <button
-                    onClick={() =>
-                      setCurrentPage((p) =>
-                        Math.min(Math.ceil(totalAssets / ITEMS_PER_PAGE), p + 1)
-                      )
-                    }
-                    disabled={
-                      currentPage >= Math.ceil(totalAssets / ITEMS_PER_PAGE)
-                    }
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    disabled={!hasMoreAssets}
                     type="button"
                     className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -702,7 +679,7 @@ export default function ImmichBrowser({
           )}
 
           {/* Pagination Controls - Bottom */}
-          {!isLoading && view === "assets" && totalAssets > ITEMS_PER_PAGE && (
+          {!isLoading && view === "assets" && (currentPage > 1 || hasMoreAssets) && (
             <div className="flex justify-center items-center gap-4 mt-6">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -713,18 +690,11 @@ export default function ImmichBrowser({
                 Previous
               </button>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Page {currentPage} of {Math.ceil(totalAssets / ITEMS_PER_PAGE)}{" "}
-                ({totalAssets} total photos)
+                Page {currentPage}
               </span>
               <button
-                onClick={() =>
-                  setCurrentPage((p) =>
-                    Math.min(Math.ceil(totalAssets / ITEMS_PER_PAGE), p + 1)
-                  )
-                }
-                disabled={
-                  currentPage >= Math.ceil(totalAssets / ITEMS_PER_PAGE)
-                }
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={!hasMoreAssets}
                 type="button"
                 className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

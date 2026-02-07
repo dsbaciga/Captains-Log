@@ -6,6 +6,7 @@ interface DietaryTagSelectorProps {
   showLabels?: boolean;
   className?: string;
   compact?: boolean;
+  id?: string;
 }
 
 /**
@@ -18,6 +19,7 @@ export default function DietaryTagSelector({
   showLabels = true,
   className = "",
   compact = false,
+  id,
 }: DietaryTagSelectorProps) {
   const toggleTag = (tagId: DietaryTagId) => {
     if (selectedTags.includes(tagId)) {
@@ -71,6 +73,7 @@ export default function DietaryTagSelector({
         Select dietary preferences by clicking the options below. Use arrow keys to navigate.
       </span>
       <div
+        id={id}
         role="group"
         aria-label="Dietary preference options"
         aria-describedby="dietary-tags-description"

@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import activityService from '../services/activity.service';
 import {
   createActivitySchema,
@@ -6,85 +5,51 @@ import {
   bulkDeleteActivitiesSchema,
   bulkUpdateActivitiesSchema,
 } from '../types/activity.types';
-import { asyncHandler } from '../utils/asyncHandler';
+import { createCrudController } from '../utils/crudHelpers';
 import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
 
-export const activityController = {
-  createActivity: asyncHandler(async (req: Request, res: Response) => {
-    const userId = requireUserId(req);
-    const data = createActivitySchema.parse(req.body);
-    const activity = await activityService.createActivity(userId, data);
-    res.status(201).json({
-      status: 'success',
-      data: activity,
-    });
-  }),
-
-  getActivitiesByTrip: asyncHandler(async (req: Request, res: Response) => {
-    const userId = requireUserId(req);
-    const tripId = parseId(req.params.tripId, 'tripId');
-    const activities = await activityService.getActivitiesByTrip(userId, tripId);
-    res.json({
-      status: 'success',
-      data: activities,
-    });
-  }),
-
-  getActivityById: asyncHandler(async (req: Request, res: Response) => {
-    const userId = requireUserId(req);
-    const activityId = parseId(req.params.id);
-    const activity = await activityService.getActivityById(userId, activityId);
-    res.json({
-      status: 'success',
-      data: activity,
-    });
-  }),
-
-  updateActivity: asyncHandler(async (req: Request, res: Response) => {
-    const userId = requireUserId(req);
-    const activityId = parseId(req.params.id);
-    const data = updateActivitySchema.parse(req.body);
-    const activity = await activityService.updateActivity(
-      userId,
-      activityId,
-      data
-    );
-    res.json({
-      status: 'success',
-      data: activity,
-    });
-  }),
-
-  deleteActivity: asyncHandler(async (req: Request, res: Response) => {
-    const userId = requireUserId(req);
-    const activityId = parseId(req.params.id);
-    const result = await activityService.deleteActivity(userId, activityId);
-    res.status(200).json({
-      status: 'success',
-      data: result,
-    });
-  }),
-
-  bulkDeleteActivities: asyncHandler(async (req: Request, res: Response) => {
-    const userId = requireUserId(req);
-    const tripId = parseId(req.params.tripId, 'tripId');
-    const data = bulkDeleteActivitiesSchema.parse(req.body);
-    const result = await activityService.bulkDeleteActivities(userId, tripId, data);
-    res.json({
-      status: 'success',
-      data: result,
-    });
-  }),
-
-  bulkUpdateActivities: asyncHandler(async (req: Request, res: Response) => {
-    const userId = requireUserId(req);
-    const tripId = parseId(req.params.tripId, 'tripId');
-    const data = bulkUpdateActivitiesSchema.parse(req.body);
-    const result = await activityService.bulkUpdateActivities(userId, tripId, data);
-    res.json({
-      status: 'success',
-      data: result,
-    });
-  }),
-};
+export const activityController = createCrudController({
+  service: activityService,
+  handlers: {
+    createActivity: {
+      method: 'createActivity',
+      statusCode: 201,
+      bodySchema: createActivitySchema,
+    },
+    getActivitiesByTrip: {
+      method: 'getActivitiesByTrip',
+      buildArgs: (userId, req) => [userId, parseId(req.params.tripId, 'tripId')],
+    },
+    getActivityById: {
+      method: 'getActivityById',
+      buildArgs: (userId, req) => [userId, parseId(req.params.id)],
+    },
+    updateActivity: {
+      method: 'updateActivity',
+      bodySchema: updateActivitySchema,
+      buildArgs: (userId, req, body) => [userId, parseId(req.params.id), body],
+    },
+    deleteActivity: {
+      method: 'deleteActivity',
+      buildArgs: (userId, req) => [userId, parseId(req.params.id)],
+    },
+    bulkDeleteActivities: {
+      method: 'bulkDeleteActivities',
+      bodySchema: bulkDeleteActivitiesSchema,
+      buildArgs: (userId, req, body) => [
+        userId,
+        parseId(req.params.tripId, 'tripId'),
+        body,
+      ],
+    },
+    bulkUpdateActivities: {
+      method: 'bulkUpdateActivities',
+      bodySchema: bulkUpdateActivitiesSchema,
+      buildArgs: (userId, req, body) => [
+        userId,
+        parseId(req.params.tripId, 'tripId'),
+        body,
+      ],
+    },
+  },
+});

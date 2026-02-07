@@ -624,27 +624,24 @@ const Timeline = ({
             return;
           }
           if (entry && entry.date) {
-            // Cast to any for dynamic property checks (these properties may not exist in the type)
-            const entryAny = entry as Record<string, unknown>;
             logger.log(`Processing journal entry ${index}`, {
               operation: 'loadTimelineData.journal.item',
               data: {
-                hasActivityAssignments: 'activityAssignments' in entryAny,
-                activityAssignmentsIsArray: Array.isArray(entryAny.activityAssignments),
-                activityAssignmentsLength: Array.isArray(entryAny.activityAssignments) ? (entryAny.activityAssignments as unknown[]).length : 'N/A',
-                hasLodgingAssignments: 'lodgingAssignments' in entryAny,
-                lodgingAssignmentsIsArray: Array.isArray(entryAny.lodgingAssignments),
-                hasTransportationAssignments: 'transportationAssignments' in entryAny,
-                transportationAssignmentsIsArray: Array.isArray(entryAny.transportationAssignments),
+                hasActivityAssignments: !!entry.activityAssignments,
+                activityAssignmentsIsArray: Array.isArray(entry.activityAssignments),
+                activityAssignmentsLength: Array.isArray(entry.activityAssignments) ? entry.activityAssignments.length : 'N/A',
+                hasLodgingAssignments: !!entry.lodgingAssignments,
+                lodgingAssignmentsIsArray: Array.isArray(entry.lodgingAssignments),
+                hasTransportationAssignments: !!entry.transportationAssignments,
+                transportationAssignmentsIsArray: Array.isArray(entry.transportationAssignments),
               }
             });
-            const hasActivityLinks = Array.isArray(entryAny.activityAssignments) && (entryAny.activityAssignments as unknown[]).length > 0;
-            const hasLodgingLinks = Array.isArray(entryAny.lodgingAssignments) && (entryAny.lodgingAssignments as unknown[]).length > 0;
-            const hasTransportationLinks = Array.isArray(entryAny.transportationAssignments) && (entryAny.transportationAssignments as unknown[]).length > 0;
+            const hasActivityLinks = Array.isArray(entry.activityAssignments) && entry.activityAssignments.length > 0;
+            const hasLodgingLinks = Array.isArray(entry.lodgingAssignments) && entry.lodgingAssignments.length > 0;
+            const hasTransportationLinks = Array.isArray(entry.transportationAssignments) && entry.transportationAssignments.length > 0;
 
             if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
               const content = (entry.content != null && typeof entry.content === 'string') ? entry.content : '';
-              const locationAssignments = entryAny.locationAssignments as { location?: { name?: string } }[] | undefined;
               // Use parseDateOnlyAsLocal to avoid UTC timezone shift issues.
               // Journal entry dates are stored as date-only in the database (e.g., "2025-01-15").
               // When parsed with new Date(), JavaScript interprets this as midnight UTC,
@@ -656,7 +653,7 @@ const Timeline = ({
                 title: entry.title || 'Untitled Entry',
                 description:
                   content.substring(0, 150) + (content.length > 150 ? '...' : ''),
-                location: locationAssignments?.[0]?.location?.name,
+                location: entry.locationAssignments?.[0]?.location?.name,
                 data: entry,
               });
             }

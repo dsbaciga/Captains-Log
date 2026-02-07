@@ -192,44 +192,51 @@ export class TripService {
 
     const timezone = data.timezone || user?.timezone || 'UTC';
 
-    const trip = await prisma.trip.create({
-      data: {
-        userId,
-        title: data.title,
-        description: data.description,
-        startDate: data.startDate ? new Date(data.startDate + 'T00:00:00.000Z') : null,
-        endDate: data.endDate ? new Date(data.endDate + 'T00:00:00.000Z') : null,
-        timezone,
-        status: data.status,
-        privacyLevel: data.privacyLevel,
-        addToPlacesVisited,
-        excludeFromAutoShare: data.excludeFromAutoShare || false,
-        tripType: data.tripType || null,
-        tripTypeEmoji: data.tripTypeEmoji || null,
-      },
-    });
-
-    // Auto-add "Myself" companion to new trips
+    // Pre-fetch "Myself" companion outside transaction (read-only)
     const myselfCompanion = await companionService.getMyselfCompanion(userId);
-    if (myselfCompanion) {
-      await prisma.tripCompanion.create({
-        data: {
-          tripId: trip.id,
-          companionId: myselfCompanion.id,
-        },
-      });
-    }
 
-    // Auto-add travel partner as collaborator (if set and not excluded)
-    if (user?.travelPartnerId && !data.excludeFromAutoShare) {
-      await prisma.tripCollaborator.create({
+    // Wrap all writes in a transaction for atomicity
+    const trip = await prisma.$transaction(async (tx) => {
+      const newTrip = await tx.trip.create({
         data: {
-          tripId: trip.id,
-          userId: user.travelPartnerId,
-          permissionLevel: toSafePermissionLevel(user.defaultPartnerPermission, 'edit'),
+          userId,
+          title: data.title,
+          description: data.description,
+          startDate: data.startDate ? new Date(data.startDate + 'T00:00:00.000Z') : null,
+          endDate: data.endDate ? new Date(data.endDate + 'T00:00:00.000Z') : null,
+          timezone,
+          status: data.status,
+          privacyLevel: data.privacyLevel,
+          addToPlacesVisited,
+          excludeFromAutoShare: data.excludeFromAutoShare || false,
+          tripType: data.tripType || null,
+          tripTypeEmoji: data.tripTypeEmoji || null,
         },
       });
-    }
+
+      // Auto-add "Myself" companion to new trips
+      if (myselfCompanion) {
+        await tx.tripCompanion.create({
+          data: {
+            tripId: newTrip.id,
+            companionId: myselfCompanion.id,
+          },
+        });
+      }
+
+      // Auto-add travel partner as collaborator (if set and not excluded)
+      if (user?.travelPartnerId && !data.excludeFromAutoShare) {
+        await tx.tripCollaborator.create({
+          data: {
+            tripId: newTrip.id,
+            userId: user.travelPartnerId,
+            permissionLevel: toSafePermissionLevel(user.defaultPartnerPermission, 'edit'),
+          },
+        });
+      }
+
+      return newTrip;
+    });
 
     return convertDecimals(trip);
   }
@@ -359,72 +366,82 @@ export class TripService {
    * Does not update trips that are Completed or Cancelled
    */
   async autoUpdateGlobalTripStatuses() {
-    const trips = await prisma.trip.findMany({
-      where: {
-        startDate: { not: null },
-        endDate: { not: null },
-        status: {
-          notIn: [TripStatus.COMPLETED, TripStatus.CANCELLED],
-        },
-      },
-      select: {
-        id: true,
-        status: true,
-        startDate: true,
-        endDate: true,
-      },
-    });
+    const BATCH_SIZE = 500;
+    let totalUpdated = 0;
+    let hasMore = true;
+    let cursor: number | undefined;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    interface TripForStatusUpdate {
-      id: number;
-      status: string;
-      startDate: Date | null;
-      endDate: Date | null;
-    }
+    while (hasMore) {
+      const trips = await prisma.trip.findMany({
+        where: {
+          startDate: { not: null },
+          endDate: { not: null },
+          status: {
+            notIn: [TripStatus.COMPLETED, TripStatus.CANCELLED],
+          },
+        },
+        select: {
+          id: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+        },
+        take: BATCH_SIZE,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        orderBy: { id: 'asc' },
+      });
 
-    const updates = trips
-      .map((trip: TripForStatusUpdate) => {
-        if (!trip.startDate || !trip.endDate) return null;
+      hasMore = trips.length === BATCH_SIZE;
+      if (trips.length > 0) {
+        cursor = trips[trips.length - 1].id;
+      }
+
+      // Collect IDs grouped by target status for batch updates
+      const toComplete: number[] = [];
+      const toInProgress: number[] = [];
+
+      for (const trip of trips) {
+        if (!trip.startDate || !trip.endDate) continue;
 
         const startDate = new Date(trip.startDate);
         startDate.setHours(0, 0, 0, 0);
-
         const endDate = new Date(trip.endDate);
         endDate.setHours(0, 0, 0, 0);
 
-        let newStatus: string | null = null;
-
         // If today is after end date, mark as Completed
         if (today > endDate && trip.status !== TripStatus.COMPLETED) {
-          newStatus = TripStatus.COMPLETED;
+          toComplete.push(trip.id);
         }
         // If today is within trip dates (inclusive), mark as In Progress
         else if (today >= startDate && today <= endDate && trip.status !== TripStatus.IN_PROGRESS) {
-          newStatus = TripStatus.IN_PROGRESS;
+          toInProgress.push(trip.id);
         }
+      }
 
-        if (newStatus) {
-          return prisma.trip.update({
-            where: { id: trip.id },
-            data: {
-              status: newStatus,
-              addToPlacesVisited: newStatus === TripStatus.COMPLETED ? true : undefined,
-            },
-          });
-        }
+      // Batch updates using updateMany instead of individual updates
+      // Note: Prisma's @updatedAt doesn't auto-update with updateMany, so we set it manually
+      const now = new Date();
+      if (toComplete.length > 0) {
+        await prisma.trip.updateMany({
+          where: { id: { in: toComplete } },
+          data: { status: TripStatus.COMPLETED, addToPlacesVisited: true, updatedAt: now },
+        });
+      }
 
-        return null;
-      })
-      .filter((update): update is NonNullable<typeof update> => update !== null);
+      if (toInProgress.length > 0) {
+        await prisma.trip.updateMany({
+          where: { id: { in: toInProgress } },
+          data: { status: TripStatus.IN_PROGRESS, updatedAt: now },
+        });
+      }
 
-    if (updates.length > 0) {
-      await Promise.all(updates);
-      return updates.length;
+      totalUpdated += toComplete.length + toInProgress.length;
     }
-    return 0;
+
+    return totalUpdated;
   }
 
   async getTripById(userId: number, tripId: number) {
@@ -495,7 +512,8 @@ export class TripService {
 
     const trip = await prisma.trip.update({
       where: { id: tripId },
-      data: updateData,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
+      data: updateData as any,
     });
 
     return convertDecimals(trip);
@@ -913,6 +931,7 @@ export class TripService {
       const journals = sourceTrip.journalEntries as SourceJournal[];
       if (journals.length > 0) {
         await tx.journalEntry.createMany({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma Exact type incompatible with mapped arrays
           data: journals.map((journal) => ({
             tripId: newTrip.id,
             date: null,
@@ -921,7 +940,7 @@ export class TripService {
             entryType: journal.entryType,
             mood: journal.mood,
             weatherNotes: journal.weatherNotes,
-          })),
+          })) as any,
         });
         // Query back and build ID map using composite key for uniqueness
         // Note: Using title + entryType + content prefix to handle duplicate titles
@@ -1006,7 +1025,8 @@ export class TripService {
           }
         }
         if (allAssignments.length > 0) {
-          await tx.photoAlbumAssignment.createMany({ data: allAssignments });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma Exact type incompatible with dynamically-built arrays
+          await tx.photoAlbumAssignment.createMany({ data: allAssignments as any });
         }
       }
     }
@@ -1053,6 +1073,7 @@ export class TripService {
       if (checklists.length > 0) {
         // Create all checklists first
         await tx.checklist.createMany({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma Exact type incompatible with mapped arrays
           data: checklists.map((checklist) => ({
             userId,
             tripId: newTrip.id,
@@ -1061,7 +1082,7 @@ export class TripService {
             type: checklist.type,
             isDefault: checklist.isDefault,
             sortOrder: checklist.sortOrder,
-          })),
+          })) as any,
         });
         // Query back new checklists using composite key for uniqueness
         // Note: Using name + type + description prefix to handle duplicate checklist names
@@ -1105,7 +1126,8 @@ export class TripService {
           }
         }
         if (allItems.length > 0) {
-          await tx.checklistItem.createMany({ data: allItems });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma Exact type incompatible with dynamically-built arrays
+          await tx.checklistItem.createMany({ data: allItems as any });
         }
       }
     }

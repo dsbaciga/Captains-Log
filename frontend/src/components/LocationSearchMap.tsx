@@ -1,22 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import { Icon, LatLng } from 'leaflet';
+import { LatLng } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import '../utils/mapUtils';
 import geocodingService from '../services/geocoding.service';
 import type { GeocodingResult } from '../services/geocoding.service';
 import toast from 'react-hot-toast';
-
-// Fix for default marker icon
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-delete (Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-Icon.Default.mergeOptions({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-});
 
 interface LocationSearchMapProps {
   onLocationSelect: (data: {

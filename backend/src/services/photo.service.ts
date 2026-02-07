@@ -296,27 +296,14 @@ class PhotoService {
           const thumbnailFilename = `thumb-${filename.replace(ext, '.jpg')}`;
           const thumbnailPath = path.join(THUMBNAIL_DIR, thumbnailFilename);
 
+          // NOTE: Thumbnail generation runs synchronously within the request.
+          // For high-volume uploads, consider moving to a background job queue.
           await sharp(filepath)
             .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
             .jpeg({ quality: 80 })
             .toFile(thumbnailPath);
 
           thumbnailPathUrl = `/uploads/thumbnails/${thumbnailFilename}`;
-
-          // Extract EXIF data for GPS coordinates if available
-          try {
-            const metadata = await sharp(filepath).metadata();
-            if (metadata.exif) {
-              // Parse EXIF data for GPS and date
-              // Note: More robust EXIF parsing could be added with exif-parser library
-              if (!takenAt && metadata.exif) {
-                // Extract date from EXIF if available
-              }
-            }
-          } catch (error) {
-            // Continue without EXIF data if parsing fails - log for debugging
-            console.error('[PhotoService] Failed to parse EXIF data:', error instanceof Error ? error.message : error);
-          }
         }
       }
 
@@ -597,6 +584,7 @@ class PhotoService {
       select: {
         immichAssetId: true,
       },
+      take: 10000,
     });
 
     return photos.map((p) => p.immichAssetId).filter((id): id is string => id !== null);

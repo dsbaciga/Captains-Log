@@ -28,8 +28,7 @@
  * // Result: { name: "Trip to Paris" }
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildCreateData<T extends Record<string, any>>(
+export function buildCreateData<T extends Record<string, unknown>>(
   values: Partial<T>
 ): Partial<T> {
   const data: Partial<T> = {};
@@ -67,8 +66,7 @@ export function buildCreateData<T extends Record<string, any>>(
  * // Result: { name: "Trip to Paris", description: null, notes: "Some note" }
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildUpdateData<T extends Record<string, any>>(
+export function buildUpdateData<T extends Record<string, unknown>>(
   values: Partial<T>
 ): Partial<T> {
   const data: Partial<T> = {};
@@ -78,8 +76,7 @@ export function buildUpdateData<T extends Record<string, any>>(
 
     if (value === '') {
       // Convert empty string to null to clear field
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data[key] = null as any;
+      (data as Record<string, unknown>)[key as string] = null;
     } else if (value !== undefined) {
       // Include all defined values (including null)
       data[key] = value;
@@ -104,8 +101,7 @@ export function buildUpdateData<T extends Record<string, any>>(
  * const data = buildFormData(values, editingId ? 'update' : 'create');
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildFormData<T extends Record<string, any>>(
+export function buildFormData<T extends Record<string, unknown>>(
   values: Partial<T>,
   mode: 'create' | 'update'
 ): Partial<T> {
@@ -140,8 +136,7 @@ export function buildFormData<T extends Record<string, any>>(
  * );
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildFormDataWithOverrides<T extends Record<string, any>>(
+export function buildFormDataWithOverrides<T extends Record<string, unknown>>(
   values: Partial<T>,
   mode: 'create' | 'update',
   overrides: Partial<T> = {}
@@ -219,8 +214,7 @@ export function formatDateForAPI(
  * );
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function pickFields<T extends Record<string, any>>(
+export function pickFields<T extends Record<string, unknown>>(
   values: Partial<T>,
   fields: (keyof T)[],
   mode: 'create' | 'update'
@@ -237,8 +231,7 @@ export function pickFields<T extends Record<string, any>>(
         }
       } else {
         if (value === '') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          picked[field] = null as any;
+          (picked as Record<string, unknown>)[field as string] = null;
         } else if (value !== undefined) {
           picked[field] = value;
         }

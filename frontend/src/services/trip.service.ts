@@ -4,7 +4,7 @@ import type { Trip, CreateTripInput, UpdateTripInput, TripListResponse, Validati
 class TripService {
   async createTrip(data: CreateTripInput): Promise<Trip> {
     const response = await axios.post('/trips', data);
-    return response.data.data;
+    return response.data;
   }
 
   async getTrips(params?: {
@@ -15,17 +15,17 @@ class TripService {
     tripType?: string;
   }): Promise<TripListResponse> {
     const response = await axios.get('/trips', { params });
-    return response.data.data;
+    return response.data;
   }
 
   async getTripById(id: number): Promise<Trip> {
     const response = await axios.get(`/trips/${id}`);
-    return response.data.data;
+    return response.data;
   }
 
   async updateTrip(id: number, data: UpdateTripInput): Promise<Trip> {
     const response = await axios.put(`/trips/${id}`, data);
-    return response.data.data;
+    return response.data;
   }
 
   async deleteTrip(id: number): Promise<void> {
@@ -34,17 +34,17 @@ class TripService {
 
   async updateCoverPhoto(tripId: number, photoId: number | null): Promise<Trip> {
     const response = await axios.put(`/trips/${tripId}/cover-photo`, { photoId });
-    return response.data.data;
+    return response.data;
   }
 
   async validateTrip(tripId: number): Promise<ValidationResult> {
     const response = await axios.get(`/trips/${tripId}/validate`);
-    return response.data.data;
+    return response.data;
   }
 
   async getValidationStatus(tripId: number): Promise<ValidationQuickStatus> {
     const response = await axios.get(`/trips/${tripId}/validation-status`);
-    return response.data.data;
+    return response.data;
   }
 
   async dismissValidationIssue(
@@ -69,7 +69,7 @@ class TripService {
 
   async duplicateTrip(tripId: number, data: DuplicateTripInput): Promise<Trip> {
     const response = await axios.post(`/trips/${tripId}/duplicate`, data);
-    return response.data.data;
+    return response.data;
   }
 }
 

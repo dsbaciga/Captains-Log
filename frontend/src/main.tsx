@@ -3,6 +3,12 @@ import { Workbox } from 'workbox-window'
 import './index.css'
 import App from './App.tsx'
 
+declare global {
+  interface Window {
+    workbox?: Workbox;
+  }
+}
+
 // Always use dark mode
 document.documentElement.classList.add('dark');
 
@@ -50,7 +56,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     });
 
   // Expose the workbox instance globally for components to use
-  (window as unknown as { workbox: Workbox }).workbox = wb;
+  window.workbox = wb;
 }
 
 createRoot(document.getElementById('root')!).render(

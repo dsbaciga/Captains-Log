@@ -36,9 +36,9 @@ export class AuthService {
     // Create "Myself" companion for new user
     await companionService.createMyselfCompanion(user.id, user.username);
 
-    // Generate tokens
-    const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
-    const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email });
+    // Generate tokens (new user always starts at passwordVersion 0)
+    const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email, passwordVersion: 0 });
+    const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email, passwordVersion: 0 });
 
     return {
       user: {
@@ -72,9 +72,9 @@ export class AuthService {
     // Ensure "Myself" companion exists for existing users (migration support)
     await companionService.createMyselfCompanion(user.id, user.username);
 
-    // Generate tokens
-    const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
-    const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email });
+    // Generate tokens with passwordVersion to support invalidation on password change
+    const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email, passwordVersion: user.passwordVersion ?? 0 });
+    const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email, passwordVersion: user.passwordVersion ?? 0 });
 
     return {
       user: {
@@ -93,18 +93,31 @@ export class AuthService {
       // Verify refresh token
       const decoded = verifyRefreshToken(token);
 
-      // Verify user still exists
+      // Verify user still exists and fetch current passwordVersion
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          avatarUrl: true,
+          passwordVersion: true,
+        },
       });
 
       if (!user) {
         throw new AppError('User not found', 404);
       }
 
-      // Generate new tokens
-      const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email });
-      const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email });
+      // Reject refresh if password was changed since this token was issued
+      const tokenPasswordVersion = decoded.passwordVersion ?? 0;
+      if (tokenPasswordVersion !== user.passwordVersion) {
+        throw new AppError('Password has been changed. Please log in again.', 401);
+      }
+
+      // Generate new tokens with current passwordVersion
+      const accessToken = generateAccessToken({ id: user.id, userId: user.id, email: user.email, passwordVersion: user.passwordVersion });
+      const refreshToken = generateRefreshToken({ id: user.id, userId: user.id, email: user.email, passwordVersion: user.passwordVersion });
 
       return {
         accessToken,

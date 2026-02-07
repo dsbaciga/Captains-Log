@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import transportationService from '../services/transportation.service';
 import {
   createTransportationSchema,
@@ -9,6 +10,11 @@ import {
 import { asyncHandler } from '../utils/asyncHandler';
 import { parseId } from '../utils/parseId';
 import { requireUserId } from '../utils/controllerHelpers';
+
+const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
 
 export const transportationController = {
   createTransportation: asyncHandler(async (req: Request, res: Response) => {
@@ -26,12 +32,20 @@ export const transportationController = {
 
   getAllTransportation: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
-    const transportations = await transportationService.getAllTransportation(
-      userId
+    const { page, limit } = paginationQuerySchema.parse(req.query);
+    const result = await transportationService.getAllTransportation(
+      userId,
+      { page, limit }
     );
     res.json({
       status: 'success',
-      data: transportations,
+      data: {
+        items: result.data,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
     });
   }),
 

@@ -28,6 +28,7 @@ jest.mock('../../config/database', () => {
       delete: jest.fn(),
       deleteMany: jest.fn(),
       update: jest.fn(),
+      createMany: jest.fn(),
     },
     photo: {
       findFirst: jest.fn(),
@@ -80,19 +81,19 @@ jest.mock('../../config/database', () => {
   };
 });
 
-// Mock serviceHelpers
+// Mock serviceHelpers - mock verifyTripAccessWithPermission (the function the service actually uses)
 jest.mock('../../utils/serviceHelpers', () => ({
-  verifyTripAccess: jest.fn(),
+  verifyTripAccessWithPermission: jest.fn(),
 }));
 
 import { entityLinkService } from '../entityLink.service';
 import prisma from '../../config/database';
-import { verifyTripAccess } from '../../utils/serviceHelpers';
+import { verifyTripAccessWithPermission } from '../../utils/serviceHelpers';
 import { AppError } from '../../utils/errors';
 
 // Type the mocks
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
-const mockVerifyTripAccess = verifyTripAccess as jest.Mock;
+const mockVerifyTripAccessWithPermission = verifyTripAccessWithPermission as jest.Mock;
 
 // Test fixtures
 const TEST_USER_ID = 1;
@@ -102,10 +103,20 @@ const mockTrip = {
   id: TEST_TRIP_ID,
   userId: TEST_USER_ID,
   title: 'Test Trip',
-  status: 'Planning',
   privacyLevel: 'Private',
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  collaborators: [],
+};
+
+// Default TripAccessResult returned by verifyTripAccessWithPermission
+const mockTripAccessResult = {
+  trip: {
+    id: TEST_TRIP_ID,
+    userId: TEST_USER_ID,
+    title: 'Test Trip',
+    privacyLevel: 'Private',
+  },
+  isOwner: true,
+  permissionLevel: 'admin',
 };
 
 const mockPhoto = {
@@ -170,8 +181,8 @@ const createMockEntityLink = (overrides = {}) => ({
 describe('EntityLinkService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default mock: trip access is granted
-    mockVerifyTripAccess.mockResolvedValue(mockTrip);
+    // Default mock: trip access is granted (returns TripAccessResult)
+    mockVerifyTripAccessWithPermission.mockResolvedValue(mockTripAccessResult);
   });
 
   // ==========================================================================
@@ -199,7 +210,9 @@ describe('EntityLinkService', () => {
       const result = await entityLinkService.createLink(TEST_USER_ID, input);
 
       // Assert
-      expect(mockVerifyTripAccess).toHaveBeenCalledWith(TEST_USER_ID, TEST_TRIP_ID);
+      expect(mockVerifyTripAccessWithPermission).toHaveBeenCalledWith(
+        TEST_USER_ID, TEST_TRIP_ID, 'edit'
+      );
       expect(mockPrisma.photo.findFirst).toHaveBeenCalledWith({
         where: { id: 1, tripId: TEST_TRIP_ID },
       });
@@ -459,8 +472,8 @@ describe('EntityLinkService', () => {
       mockPrisma.photoAlbum.findFirst.mockResolvedValue(mockPhotoAlbum);
       mockPrisma.location.count.mockResolvedValue(2);
       mockPrisma.activity.count.mockResolvedValue(1);
-      mockPrisma.entityLink.findFirst.mockResolvedValue(null); // No existing links
-      mockPrisma.entityLink.create.mockResolvedValue(createMockEntityLink());
+      mockPrisma.entityLink.findMany.mockResolvedValue([]); // No existing links
+      mockPrisma.entityLink.createMany.mockResolvedValue({ count: 3 });
 
       const result = await entityLinkService.bulkCreateLinks(TEST_USER_ID, input);
 
@@ -481,10 +494,11 @@ describe('EntityLinkService', () => {
 
       mockPrisma.photoAlbum.findFirst.mockResolvedValue(mockPhotoAlbum);
       mockPrisma.location.count.mockResolvedValue(2);
-      mockPrisma.entityLink.findFirst
-        .mockResolvedValueOnce(createMockEntityLink()) // First exists
-        .mockResolvedValueOnce(null); // Second doesn't
-      mockPrisma.entityLink.create.mockResolvedValue(createMockEntityLink());
+      // Return one existing link matching targetId: 2
+      mockPrisma.entityLink.findMany.mockResolvedValue([
+        { targetType: 'LOCATION', targetId: 2 },
+      ]);
+      mockPrisma.entityLink.createMany.mockResolvedValue({ count: 1 });
 
       const result = await entityLinkService.bulkCreateLinks(TEST_USER_ID, input);
 
@@ -506,8 +520,8 @@ describe('EntityLinkService', () => {
       mockPrisma.photoAlbum.findFirst.mockResolvedValue(mockPhotoAlbum);
       mockPrisma.photoAlbum.count.mockResolvedValue(1);
       mockPrisma.location.count.mockResolvedValue(1);
-      mockPrisma.entityLink.findFirst.mockResolvedValue(null);
-      mockPrisma.entityLink.create.mockResolvedValue(createMockEntityLink());
+      mockPrisma.entityLink.findMany.mockResolvedValue([]);
+      mockPrisma.entityLink.createMany.mockResolvedValue({ count: 1 });
 
       const result = await entityLinkService.bulkCreateLinks(TEST_USER_ID, input);
 
@@ -530,8 +544,8 @@ describe('EntityLinkService', () => {
 
       mockPrisma.location.findFirst.mockResolvedValue(mockLocation);
       mockPrisma.photo.count.mockResolvedValue(3);
-      mockPrisma.entityLink.findFirst.mockResolvedValue(null);
-      mockPrisma.entityLink.create.mockResolvedValue(createMockEntityLink());
+      mockPrisma.entityLink.findMany.mockResolvedValue([]);
+      mockPrisma.entityLink.createMany.mockResolvedValue({ count: 3 });
 
       const result = await entityLinkService.bulkLinkPhotos(TEST_USER_ID, input);
 
@@ -549,18 +563,20 @@ describe('EntityLinkService', () => {
 
       mockPrisma.location.findFirst.mockResolvedValue(mockLocation);
       mockPrisma.photo.count.mockResolvedValue(1);
-      mockPrisma.entityLink.findFirst.mockResolvedValue(null);
-      mockPrisma.entityLink.create.mockImplementation(async (args) => {
-        return createMockEntityLink({ relationship: args.data.relationship });
+      mockPrisma.entityLink.findMany.mockResolvedValue([]);
+      mockPrisma.entityLink.createMany.mockImplementation(async (args) => {
+        return { count: args.data.length };
       });
 
       await entityLinkService.bulkLinkPhotos(TEST_USER_ID, input);
 
-      expect(mockPrisma.entityLink.create).toHaveBeenCalledWith(
+      expect(mockPrisma.entityLink.createMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            relationship: 'TAKEN_AT',
-          }),
+          data: expect.arrayContaining([
+            expect.objectContaining({
+              relationship: 'TAKEN_AT',
+            }),
+          ]),
         })
       );
     });
@@ -575,18 +591,20 @@ describe('EntityLinkService', () => {
 
       mockPrisma.photoAlbum.findFirst.mockResolvedValue(mockPhotoAlbum);
       mockPrisma.photo.count.mockResolvedValue(1);
-      mockPrisma.entityLink.findFirst.mockResolvedValue(null);
-      mockPrisma.entityLink.create.mockImplementation(async (args) => {
-        return createMockEntityLink({ relationship: args.data.relationship });
+      mockPrisma.entityLink.findMany.mockResolvedValue([]);
+      mockPrisma.entityLink.createMany.mockImplementation(async (args) => {
+        return { count: args.data.length };
       });
 
       await entityLinkService.bulkLinkPhotos(TEST_USER_ID, input);
 
-      expect(mockPrisma.entityLink.create).toHaveBeenCalledWith(
+      expect(mockPrisma.entityLink.createMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            relationship: 'FEATURED_IN',
-          }),
+          data: expect.arrayContaining([
+            expect.objectContaining({
+              relationship: 'FEATURED_IN',
+            }),
+          ]),
         })
       );
     });
@@ -1001,11 +1019,13 @@ describe('EntityLinkService', () => {
 
       await entityLinkService.createLink(TEST_USER_ID, input);
 
-      expect(mockVerifyTripAccess).toHaveBeenCalledWith(TEST_USER_ID, TEST_TRIP_ID);
+      expect(mockVerifyTripAccessWithPermission).toHaveBeenCalledWith(
+        TEST_USER_ID, TEST_TRIP_ID, 'edit'
+      );
     });
 
     it('should throw error if user does not own trip', async () => {
-      mockVerifyTripAccess.mockRejectedValue(
+      mockVerifyTripAccessWithPermission.mockRejectedValue(
         new AppError('Trip not found or access denied', 404)
       );
 

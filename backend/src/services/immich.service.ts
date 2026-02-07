@@ -114,18 +114,24 @@ class ImmichService {
   }
 
   /**
-   * Get user's Immich assets with pagination
+   * Get user's Immich assets with server-side pagination
+   * Uses the Immich API's size parameter to fetch only the required assets
    */
   async getAssets(
     apiUrl: string,
     apiKey: string,
     options?: ImmichAssetOptions
-  ): Promise<{ assets: ImmichAsset[]; total: number }> {
+  ): Promise<{ assets: ImmichAsset[]; hasMore: boolean }> {
     try {
       const client = this.createClient(apiUrl, apiKey);
 
-      // Use search/metadata endpoint with no filters to get all assets
-      const searchQuery: ImmichSearchQuery = {};
+      const skip = options?.skip || 0;
+      const take = options?.take || 100;
+
+      // Build search query with filters
+      const searchQuery: ImmichSearchQuery & { size?: number; page?: string } = {
+        size: take,
+      };
       if (options?.isFavorite !== undefined) {
         searchQuery.isFavorite = options.isFavorite;
       }
@@ -133,25 +139,83 @@ class ImmichService {
         searchQuery.isArchived = options.isArchived;
       }
 
-      const response = await client.post('/api/search/metadata', searchQuery);
-      const assets = response.data.assets?.items || [];
+      // For skip > 0, we need to paginate through pages using the nextPage cursor
+      // Each page returns up to 'size' items, so we need to skip through pages
+      let collectedAssets: ImmichAsset[] = [];
+      let nextPage: string | null = null;
+      let skippedCount = 0;
+      let pageNum = 0;
+      const maxPages = 100; // Safety limit
 
-      // Apply pagination manually (only if pagination options are provided)
-      if (options && (options.skip !== undefined || options.take !== undefined)) {
-        const skip = options.skip || 0;
-        const take = options.take || 100;
-        const paginatedAssets = assets.slice(skip, skip + take);
+      // First, skip through pages until we reach the desired offset
+      while (skippedCount < skip && pageNum < maxPages) {
+        const skipQuery = { ...searchQuery };
+        if (nextPage) {
+          skipQuery.page = nextPage;
+        }
 
-        return {
-          assets: paginatedAssets,
-          total: assets.length,
-        };
+        const response = await client.post('/api/search/metadata', skipQuery);
+        const pageAssets = response.data.assets?.items || [];
+        nextPage = response.data.assets?.nextPage || null;
+        pageNum++;
+
+        if (pageAssets.length === 0) {
+          // No more assets available
+          return {
+            assets: [],
+            hasMore: false,
+          };
+        }
+
+        const remainingToSkip = skip - skippedCount;
+        if (remainingToSkip >= pageAssets.length) {
+          // Skip this entire page
+          skippedCount += pageAssets.length;
+        } else {
+          // Take some assets from this page (partial skip)
+          const assetsFromThisPage = pageAssets.slice(remainingToSkip);
+          collectedAssets = assetsFromThisPage.slice(0, take);
+          skippedCount = skip;
+          break;
+        }
+
+        if (!nextPage) {
+          // No more pages, we've skipped past all available assets
+          return {
+            assets: [],
+            hasMore: false,
+          };
+        }
       }
 
-      // No pagination requested - return all assets
+      // If we still need more assets to fill the 'take' requirement
+      while (collectedAssets.length < take && nextPage && pageNum < maxPages) {
+        const collectQuery = { ...searchQuery, page: nextPage };
+        const response = await client.post('/api/search/metadata', collectQuery);
+        const pageAssets = response.data.assets?.items || [];
+        nextPage = response.data.assets?.nextPage || null;
+        pageNum++;
+
+        const needed = take - collectedAssets.length;
+        collectedAssets = collectedAssets.concat(pageAssets.slice(0, needed));
+
+        if (pageAssets.length === 0) {
+          break;
+        }
+      }
+
+      // If skip was 0, we need to fetch the first page
+      if (skip === 0 && collectedAssets.length === 0) {
+        const response = await client.post('/api/search/metadata', searchQuery);
+        collectedAssets = response.data.assets?.items || [];
+        nextPage = response.data.assets?.nextPage || null;
+      }
+
+      const hasMore = nextPage !== null || collectedAssets.length === take;
+
       return {
-        assets: assets,
-        total: assets.length,
+        assets: collectedAssets.slice(0, take),
+        hasMore,
       };
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error);
@@ -308,7 +372,8 @@ class ImmichService {
   }
 
   /**
-   * Get assets within a date range with pagination
+   * Get assets within a date range with server-side pagination
+   * Uses the Immich API's size and page parameters to avoid loading all assets into memory
    */
   async getAssetsByDateRange(
     apiUrl: string,
@@ -316,55 +381,95 @@ class ImmichService {
     startDate: string,
     endDate: string,
     options?: Pick<ImmichAssetOptions, 'skip' | 'take'>
-  ): Promise<{ assets: ImmichAsset[]; total: number }> {
+  ): Promise<{ assets: ImmichAsset[]; hasMore: boolean }> {
     try {
       const client = this.createClient(apiUrl, apiKey);
 
-      // Fetch all pages from Immich using nextPage cursor
-      let allAssets: ImmichAsset[] = [];
+      const skip = options?.skip || 0;
+      const take = options?.take || 100;
+
+      // Build request with date range and size parameter for server-side pagination
+      const baseRequest: { takenAfter: string; takenBefore: string; size: number; page?: string } = {
+        takenAfter: startDate,
+        takenBefore: endDate,
+        size: take,
+      };
+
+      let collectedAssets: ImmichAsset[] = [];
       let nextPage: string | null = null;
-      let pageNum = 1;
+      let skippedCount = 0;
+      let pageNum = 0;
+      const maxPages = 100; // Safety limit
 
-      do {
-        const requestBody: { takenAfter: string; takenBefore: string; page?: string } = {
-          takenAfter: startDate,
-          takenBefore: endDate,
-        };
-
+      // Skip through pages until we reach the desired offset
+      while (skippedCount < skip && pageNum < maxPages) {
+        const requestBody = { ...baseRequest };
         if (nextPage) {
           requestBody.page = nextPage;
         }
 
         const response = await client.post('/api/search/metadata', requestBody);
         const pageAssets = response.data.assets?.items || response.data.assets || [];
-
-        allAssets = allAssets.concat(pageAssets);
         nextPage = response.data.assets?.nextPage || null;
         pageNum++;
 
-        // Safety check to avoid infinite loops
-        if (pageNum > 100) {
-          console.warn('[Immich Service] Reached maximum page limit (100), stopping pagination');
+        if (pageAssets.length === 0) {
+          // No more assets available
+          return {
+            assets: [],
+            hasMore: false,
+          };
+        }
+
+        const remainingToSkip = skip - skippedCount;
+        if (remainingToSkip >= pageAssets.length) {
+          // Skip this entire page
+          skippedCount += pageAssets.length;
+        } else {
+          // Take some assets from this page (partial skip)
+          const assetsFromThisPage = pageAssets.slice(remainingToSkip);
+          collectedAssets = assetsFromThisPage.slice(0, take);
+          skippedCount = skip;
           break;
         }
-      } while (nextPage);
 
-      // Apply our own pagination (only if pagination options are provided)
-      if (options && (options.skip !== undefined || options.take !== undefined)) {
-        const skip = options.skip || 0;
-        const take = options.take || 100;
-        const paginatedAssets = allAssets.slice(skip, skip + take);
-
-        return {
-          assets: paginatedAssets,
-          total: allAssets.length,
-        };
+        if (!nextPage) {
+          // No more pages, we've skipped past all available assets
+          return {
+            assets: [],
+            hasMore: false,
+          };
+        }
       }
 
-      // No pagination requested - return all assets
+      // If we still need more assets to fill the 'take' requirement
+      while (collectedAssets.length < take && nextPage && pageNum < maxPages) {
+        const requestBody = { ...baseRequest, page: nextPage };
+        const response = await client.post('/api/search/metadata', requestBody);
+        const pageAssets = response.data.assets?.items || response.data.assets || [];
+        nextPage = response.data.assets?.nextPage || null;
+        pageNum++;
+
+        const needed = take - collectedAssets.length;
+        collectedAssets = collectedAssets.concat(pageAssets.slice(0, needed));
+
+        if (pageAssets.length === 0) {
+          break;
+        }
+      }
+
+      // If skip was 0, we need to fetch the first page
+      if (skip === 0 && collectedAssets.length === 0) {
+        const response = await client.post('/api/search/metadata', baseRequest);
+        collectedAssets = response.data.assets?.items || response.data.assets || [];
+        nextPage = response.data.assets?.nextPage || null;
+      }
+
+      const hasMore = nextPage !== null || collectedAssets.length === take;
+
       return {
-        assets: allAssets,
-        total: allAssets.length,
+        assets: collectedAssets.slice(0, take),
+        hasMore,
       };
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error);

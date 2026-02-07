@@ -425,6 +425,7 @@ export default function TransportationManager({
     useFormFields<TransportationFormFields>(getInitialFormState);
 
   // Create wrappers for useFormReset hook
+  // TODO: Replace with useManagerFormWrapper hook
   const setShowForm = useCallback((show: boolean) => {
     if (show) {
       if (!manager.showForm) manager.toggleForm();

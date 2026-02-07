@@ -40,8 +40,8 @@ export const restoreFromBackup = asyncHandler(async (req: Request, res: Response
 
   res.json({
     status: 'success',
-    message: result.message,
     data: {
+      message: result.message,
       stats: result.stats,
     },
   });

@@ -10,20 +10,20 @@ export const tagController = {
     const userId = requireUserId(req);
     const data = createTagSchema.parse(req.body);
     const tag = await tagService.createTag(userId, data);
-    res.status(201).json(tag);
+    res.status(201).json({ status: 'success', data: tag });
   }),
 
   getTagsByUser: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const tags = await tagService.getTagsByUser(userId);
-    res.json(tags);
+    res.json({ status: 'success', data: tags });
   }),
 
   getTagById: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const tagId = parseId(req.params.id);
     const tag = await tagService.getTagById(userId, tagId);
-    res.json(tag);
+    res.json({ status: 'success', data: tag });
   }),
 
   updateTag: asyncHandler(async (req: Request, res: Response) => {
@@ -31,7 +31,7 @@ export const tagController = {
     const tagId = parseId(req.params.id);
     const data = updateTagSchema.parse(req.body);
     const tag = await tagService.updateTag(userId, tagId, data);
-    res.json(tag);
+    res.json({ status: 'success', data: tag });
   }),
 
   deleteTag: asyncHandler(async (req: Request, res: Response) => {
@@ -45,7 +45,7 @@ export const tagController = {
     const userId = requireUserId(req);
     const data = linkTagToTripSchema.parse(req.body);
     const link = await tagService.linkTagToTrip(userId, data);
-    res.status(201).json(link);
+    res.status(201).json({ status: 'success', data: link });
   }),
 
   unlinkTagFromTrip: asyncHandler(async (req: Request, res: Response) => {
@@ -60,6 +60,6 @@ export const tagController = {
     const userId = requireUserId(req);
     const tripId = parseId(req.params.tripId, 'tripId');
     const tags = await tagService.getTagsByTrip(userId, tripId);
-    res.json(tags);
+    res.json({ status: 'success', data: tags });
   }),
 };
