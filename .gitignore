@@ -52,3 +52,4 @@ temp/
 .agents/
 .gemini/
 gha-creds-*.json
+.claude/
