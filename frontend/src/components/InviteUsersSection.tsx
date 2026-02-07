@@ -4,6 +4,7 @@ import userInvitationService from '../services/userInvitation.service';
 import type { UserInvitation } from '../types/userInvitation';
 import toast from 'react-hot-toast';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import PendingInvitations from './PendingInvitations';
 
 export default function InviteUsersSection() {
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
@@ -165,6 +166,9 @@ export default function InviteUsersSection() {
 
   return (
     <div className="space-y-6">
+      {/* Received Trip Collaboration Invitations */}
+      <PendingInvitations onUpdate={loadInvitations} />
+
       {/* Email Configuration Warning */}
       {!emailConfigured && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
