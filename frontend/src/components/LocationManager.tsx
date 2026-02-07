@@ -25,6 +25,9 @@ import LocationSearchMap from "./LocationSearchMap";
 import TripLocationsMap from "./TripLocationsMap";
 import BulkActionBar from "./BulkActionBar";
 import BulkEditModal from "./BulkEditModal";
+import MarkdownRenderer from "./MarkdownRenderer";
+import MarkdownEditor from "./MarkdownEditor";
+import { stripMarkdown } from "../utils/stripMarkdown";
 
 /**
  * LocationManager handles CRUD operations for trip locations (points of interest).
@@ -426,13 +429,22 @@ export default function LocationManager({
                 )}
               </div>
               {location.notes && (
-                <p
-                  className={`text-gray-700 dark:text-gray-300 text-sm mt-2 line-clamp-2 sm:line-clamp-none ${
-                    isChild ? "ml-6" : ""
-                  }`}
-                >
-                  {location.notes}
-                </p>
+                <>
+                  <p
+                    className={`text-gray-700 dark:text-gray-300 text-sm mt-2 line-clamp-2 sm:hidden ${
+                      isChild ? "ml-6" : ""
+                    }`}
+                  >
+                    {stripMarkdown(location.notes)}
+                  </p>
+                  <div
+                    className={`text-gray-700 dark:text-gray-300 text-sm mt-2 hidden sm:block ${
+                      isChild ? "ml-6" : ""
+                    }`}
+                  >
+                    <MarkdownRenderer content={location.notes} compact />
+                  </div>
+                </>
               )}
               {location.category && (
                 <span
@@ -740,22 +752,14 @@ export default function LocationManager({
               </div>
             )}
 
-            <div>
-              <label
-                htmlFor="location-notes"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Notes
-              </label>
-              <textarea
-                id="location-notes"
-                value={values.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-                className="input"
-                rows={2}
-                placeholder="Additional notes..."
-              />
-            </div>
+            <MarkdownEditor
+              value={values.notes}
+              onChange={(val) => handleChange("notes", val)}
+              rows={2}
+              placeholder="Additional notes..."
+              label="Notes"
+              compact
+            />
           </FormSection>
         </form>
       </FormModal>

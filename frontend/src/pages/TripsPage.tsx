@@ -2,8 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import tripService from '../services/trip.service';
 import tagService from '../services/tag.service';
+import userService from '../services/user.service';
 import type { Trip, TripListResponse, TripStatusType } from '../types/trip';
 import type { TripTag } from '../types/tag';
+import type { TripTypeCategory } from '../types/user';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
 import { getFullAssetUrl } from '../lib/config';
@@ -26,7 +28,9 @@ type ViewMode = 'grid' | 'kanban' | 'list';
 export default function TripsPage() {
   const queryClient = useQueryClient();
   const [allTags, setAllTags] = useState<TripTag[]>([]);
+  const [allTripTypes, setAllTripTypes] = useState<TripTypeCategory[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [tripTypeFilter, setTripTypeFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [startDateFrom, setStartDateFrom] = useState('');
@@ -59,6 +63,7 @@ export default function TripsPage() {
     page: currentPage,
     limit: pageSize,
     status: statusFilter,
+    tripType: tripTypeFilter,
     search: debouncedSearchQuery.trim(),
     startDateFrom,
     startDateTo,
@@ -186,7 +191,7 @@ export default function TripsPage() {
     await updateTripStatusMutation.mutateAsync({ tripId, status: newStatus });
   };
 
-  // Load tags once on mount
+  // Load tags and trip types once on mount
   useEffect(() => {
     const loadTags = async () => {
       try {
@@ -196,7 +201,16 @@ export default function TripsPage() {
         console.error('Failed to load tags');
       }
     };
+    const loadTripTypes = async () => {
+      try {
+        const user = await userService.getMe();
+        setAllTripTypes(user.tripTypes || []);
+      } catch {
+        console.error('Failed to load trip types');
+      }
+    };
     loadTags();
+    loadTripTypes();
   }, []);
 
   // Load cover photos with authentication for Immich photos
@@ -287,6 +301,7 @@ export default function TripsPage() {
     setStartDateTo('');
     setSelectedTags([]);
     setStatusFilter('');
+    setTripTypeFilter('');
     setSortOption('startDate-desc');
     setCurrentPage(1);
   };
@@ -294,6 +309,11 @@ export default function TripsPage() {
   // Reset to page 1 when filters change
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);
+    setCurrentPage(1);
+  };
+
+  const handleTripTypeFilterChange = (typeName: string) => {
+    setTripTypeFilter(typeName);
     setCurrentPage(1);
   };
 
@@ -332,7 +352,7 @@ export default function TripsPage() {
     setCurrentPage(1);
   }, [viewMode]);
 
-  const hasActiveFilters = searchQuery || startDateFrom || startDateTo || selectedTags.length > 0;
+  const hasActiveFilters = searchQuery || startDateFrom || startDateTo || selectedTags.length > 0 || tripTypeFilter;
 
   // Render pagination controls (used at both top and bottom)
   const renderPaginationControls = (position: 'top' | 'bottom') => {
@@ -537,6 +557,38 @@ export default function TripsPage() {
               </button>
             ))}
           </div>
+
+          {/* Trip Type Filter Pills */}
+          {allTripTypes.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleTripTypeFilterChange('')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  tripTypeFilter === ''
+                    ? 'bg-primary-600 dark:bg-sky text-white dark:text-navy-900'
+                    : 'bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600'
+                }`}
+              >
+                All Types
+              </button>
+              {allTripTypes.map((tripType) => (
+                <button
+                  type="button"
+                  key={tripType.name}
+                  onClick={() => handleTripTypeFilterChange(tripType.name)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    tripTypeFilter === tripType.name
+                      ? 'bg-primary-600 dark:bg-sky text-white dark:text-navy-900'
+                      : 'bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600'
+                  }`}
+                >
+                  {tripType.emoji && <span className="mr-1">{tripType.emoji}</span>}
+                  {tripType.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Advanced Filters Panel */}
           {showAdvancedFilters && (

@@ -26,6 +26,8 @@ import BulkActionBar from "./BulkActionBar";
 import BulkEditModal from "./BulkEditModal";
 import DietaryBadges from "./DietaryBadges";
 import { DIETARY_TAGS } from "../constants/dietaryTags";
+import MarkdownRenderer from "./MarkdownRenderer";
+import { stripMarkdown } from "../utils/stripMarkdown";
 
 /**
  * ActivityManager handles CRUD operations for trip activities (things to do).
@@ -593,9 +595,12 @@ export default function ActivityManager({
           {activity.notes && (
             <div className="mt-2">
               <span className="font-medium">Notes:</span>
-              <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:line-clamp-none">
-                {activity.notes}
+              <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:hidden">
+                {stripMarkdown(activity.notes)}
               </p>
+              <div className="text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
+                <MarkdownRenderer content={activity.notes} compact />
+              </div>
             </div>
           )}
         </div>

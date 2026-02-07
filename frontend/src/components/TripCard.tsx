@@ -16,6 +16,7 @@ import type { Trip } from '../types/trip';
 import { getTripStatusRibbonColor } from '../utils/statusColors';
 import { formatTripDates, getTripDateStatus, formatTripDuration } from '../utils/dateFormat';
 import { MapPinIcon, PhotoIcon, CalendarIcon } from './icons';
+import { stripMarkdown } from '../utils/stripMarkdown';
 
 interface TripCardProps {
   trip: Trip;
@@ -79,8 +80,16 @@ export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = 
         )}
 
         {/* Status Ribbon Badge */}
-        <div className={`absolute top-3 left-3 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg shadow-md ${getTripStatusRibbonColor(trip.status)}`}>
-          {trip.status}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+          <div className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg shadow-md ${getTripStatusRibbonColor(trip.status)}`}>
+            {trip.status}
+          </div>
+          {trip.tripType && (
+            <div className="px-2.5 py-1.5 text-xs font-medium rounded-lg shadow-md bg-white/90 dark:bg-navy-800/90 text-charcoal dark:text-warm-gray backdrop-blur-sm">
+              {trip.tripTypeEmoji && <span className="mr-1">{trip.tripTypeEmoji}</span>}
+              {trip.tripType}
+            </div>
+          )}
         </div>
 
         {/* Tags overlay on photo */}
@@ -118,7 +127,7 @@ export default function TripCard({ trip, coverPhotoUrl, onDelete, showActions = 
         {/* Description (if available) */}
         {trip.description && (
           <p className="text-sm text-slate dark:text-warm-gray/70 line-clamp-1 mb-2">
-            {trip.description}
+            {stripMarkdown(trip.description)}
           </p>
         )}
 

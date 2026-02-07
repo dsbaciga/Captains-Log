@@ -34,6 +34,9 @@ import LocationQuickAdd from "./LocationQuickAdd";
 import BulkActionBar from "./BulkActionBar";
 import BulkEditModal from "./BulkEditModal";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
+import MarkdownRenderer from "./MarkdownRenderer";
+import MarkdownEditor from "./MarkdownEditor";
+import { stripMarkdown } from "../utils/stripMarkdown";
 
 /**
  * TransportationManager handles CRUD operations for trip transportation segments.
@@ -329,9 +332,12 @@ function TransportationItem({
         {transportation.notes && (
           <div className="mt-2">
             <span className="font-medium">Notes:</span>
-            <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:line-clamp-none">
-              {transportation.notes}
+            <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:hidden">
+              {stripMarkdown(transportation.notes)}
             </p>
+            <div className="text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
+              <MarkdownRenderer content={transportation.notes} compact />
+            </div>
           </div>
         )}
       </div>
@@ -1447,22 +1453,14 @@ export default function TransportationManager({
             </FormSection>
 
             {/* Notes */}
-            <div>
-              <label
-                htmlFor="transportation-notes"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Notes
-              </label>
-              <textarea
-                id="transportation-notes"
-                value={values.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-                className="input"
-                rows={3}
-                placeholder="Additional notes..."
-              />
-            </div>
+            <MarkdownEditor
+              value={values.notes}
+              onChange={(val) => handleChange("notes", val)}
+              rows={3}
+              placeholder="Additional notes..."
+              label="Notes"
+              compact
+            />
           </CollapsibleSection>
         </form>
         </FormModal>

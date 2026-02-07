@@ -23,6 +23,8 @@ interface DateTimeNullableFilter {
 interface TripWhereInput {
   userId?: number;
   status?: string;
+  tripType?: string;
+  seriesId?: number;
   startDate?: DateTimeNullableFilter | Date | string | null;
   tagAssignments?: { some?: { tagId?: { in?: number[] } } };
   OR?: Array<{
@@ -202,6 +204,8 @@ export class TripService {
         privacyLevel: data.privacyLevel,
         addToPlacesVisited,
         excludeFromAutoShare: data.excludeFromAutoShare || false,
+        tripType: data.tripType || null,
+        tripTypeEmoji: data.tripTypeEmoji || null,
       },
     });
 
@@ -262,6 +266,16 @@ export class TripService {
       }
     }
 
+    // Filter by trip type
+    if (query.tripType) {
+      where.tripType = query.tripType;
+    }
+
+    // Filter by series
+    if (query.seriesId) {
+      where.seriesId = parseInt(query.seriesId);
+    }
+
     // Filter by tags
     if (query.tags) {
       const tagIds = query.tags.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
@@ -308,6 +322,9 @@ export class TripService {
         take: limit,
         include: {
           coverPhoto: true,
+          series: {
+            select: { id: true, name: true },
+          },
           tagAssignments: {
             include: {
               tag: true,
@@ -427,6 +444,9 @@ export class TripService {
       include: {
         coverPhoto: true,
         bannerPhoto: true,
+        series: {
+          select: { id: true, name: true },
+        },
         tagAssignments: {
           include: {
             tag: true,
@@ -618,6 +638,8 @@ export class TripService {
         status: TripStatus.DREAM,
         privacyLevel: sourceTrip.privacyLevel,
         addToPlacesVisited: false,
+        tripType: sourceTrip.tripType,
+        tripTypeEmoji: sourceTrip.tripTypeEmoji,
       },
     });
 

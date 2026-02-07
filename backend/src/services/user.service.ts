@@ -16,6 +16,7 @@ class UserService {
         avatarUrl: true,
         timezone: true,
         activityCategories: true,
+        tripTypes: true,
         dietaryPreferences: true,
         useCustomMapStyle: true,
         createdAt: true,
@@ -43,6 +44,7 @@ class UserService {
         avatarUrl: true,
         timezone: true,
         activityCategories: true,
+        tripTypes: true,
         dietaryPreferences: true,
         useCustomMapStyle: true,
         createdAt: true,
@@ -232,6 +234,7 @@ class UserService {
         avatarUrl: true,
         timezone: true,
         activityCategories: true,
+        tripTypes: true,
         dietaryPreferences: true,
         useCustomMapStyle: true,
         createdAt: true,
@@ -243,6 +246,76 @@ class UserService {
     await companionService.updateMyselfCompanionName(userId, newUsername);
 
     return user;
+  }
+
+  /**
+   * Rename a trip type and update all trips using the old name
+   */
+  async renameTripType(userId: number, oldName: string, newName: string) {
+    return await prisma.$transaction(async (tx) => {
+      // Get current trip types
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { tripTypes: true },
+      });
+
+      if (!user) {
+        throw new AppError('User not found', 404);
+      }
+
+      const tripTypes = user.tripTypes as Array<{ name: string; emoji: string }>;
+      const updatedTypes = tripTypes.map((t) =>
+        t.name === oldName ? { ...t, name: newName } : t
+      );
+
+      // Update user's trip types
+      await tx.user.update({
+        where: { id: userId },
+        data: { tripTypes: updatedTypes },
+      });
+
+      // Update all trips using the old name
+      await tx.trip.updateMany({
+        where: { userId, tripType: oldName },
+        data: { tripType: newName },
+      });
+
+      return updatedTypes;
+    });
+  }
+
+  /**
+   * Delete a trip type and clear it from all trips using it
+   */
+  async deleteTripType(userId: number, typeName: string) {
+    return await prisma.$transaction(async (tx) => {
+      // Get current trip types
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { tripTypes: true },
+      });
+
+      if (!user) {
+        throw new AppError('User not found', 404);
+      }
+
+      const tripTypes = user.tripTypes as Array<{ name: string; emoji: string }>;
+      const updatedTypes = tripTypes.filter((t) => t.name !== typeName);
+
+      // Update user's trip types
+      await tx.user.update({
+        where: { id: userId },
+        data: { tripTypes: updatedTypes },
+      });
+
+      // Clear trip type from all trips using it
+      await tx.trip.updateMany({
+        where: { userId, tripType: typeName },
+        data: { tripType: null, tripTypeEmoji: null },
+      });
+
+      return updatedTypes;
+    });
   }
 
   async updatePassword(userId: number, currentPassword: string, newPassword: string) {

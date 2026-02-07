@@ -16,6 +16,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         email: true,
         timezone: true,
         activityCategories: true,
+        tripTypes: true,
         immichApiUrl: true,
         immichApiKey: true,
         weatherApiKey: true,
@@ -98,6 +99,16 @@ export async function createBackup(userId: number): Promise<BackupData> {
         notes: true,
         isPrimary: true,
         alertDaysBefore: true,
+      },
+    });
+
+    // Fetch trip series
+    const tripSeries = await prisma.tripSeries.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
       },
     });
 
@@ -275,6 +286,12 @@ export async function createBackup(userId: number): Promise<BackupData> {
         sortOrder: checklist.sortOrder,
         items: checklist.items,
       })),
+      // Trip series
+      tripSeries: tripSeries.map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+      })),
       // Travel documents with masked document numbers for security
       travelDocuments: travelDocuments.map((doc) => ({
         type: doc.type,
@@ -296,10 +313,14 @@ export async function createBackup(userId: number): Promise<BackupData> {
         endDate: trip.endDate,
         timezone: trip.timezone,
         status: trip.status,
+        tripType: trip.tripType,
+        tripTypeEmoji: trip.tripTypeEmoji,
         privacyLevel: trip.privacyLevel,
         coverPhotoId: trip.coverPhotoId,
         bannerPhotoId: trip.bannerPhotoId,
         addToPlacesVisited: trip.addToPlacesVisited,
+        seriesId: trip.seriesId,
+        seriesOrder: trip.seriesOrder,
 
         // Related entities
         locations: trip.locations,

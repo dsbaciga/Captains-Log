@@ -16,6 +16,8 @@ import tagService from "../services/tag.service";
 import companionService from "../services/companion.service";
 import userService from "../services/user.service";
 import checklistService from "../services/checklist.service";
+import TripSeriesBadge from "../components/TripSeriesBadge";
+import TripSeriesNav from "../components/TripSeriesNav";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import type { Photo } from "../types/photo";
 import { TripStatus, type TripStatusType } from "../types/trip";
@@ -67,6 +69,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "../components/Skeleton";
 import JetLagCalculator from "../components/JetLagCalculator";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
 // All possible tab IDs for the grouped navigation
 type TabId =
@@ -1001,6 +1004,21 @@ export default function TripDetailPage() {
                     >
                       {trip.status}
                     </span>
+                    {trip.tripType && (
+                      <span className="inline-block mt-2 ml-2 px-3 py-1 text-sm font-medium rounded bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
+                        {trip.tripTypeEmoji && <span className="mr-1">{trip.tripTypeEmoji}</span>}
+                        {trip.tripType}
+                      </span>
+                    )}
+                    {trip.series && (
+                      <span className="inline-block mt-2 ml-2">
+                        <TripSeriesBadge
+                          seriesId={trip.series.id}
+                          seriesName={trip.series.name}
+                          seriesOrder={trip.seriesOrder}
+                        />
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                     <button
@@ -1077,9 +1095,9 @@ export default function TripDetailPage() {
 
                 <div>
                   {trip.description && (
-                    <p className="text-white/90 mb-4 drop-shadow-md">
-                      {trip.description}
-                    </p>
+                    <div className="text-white/90 mb-4 drop-shadow-md">
+                      <MarkdownRenderer content={trip.description} className="prose-invert" />
+                    </div>
                   )}
 
                   {/* Trip Dates - Natural Language Format */}
@@ -1177,6 +1195,12 @@ export default function TripDetailPage() {
                   >
                     {trip.status}
                   </span>
+                  {trip.tripType && (
+                    <span className="inline-block mt-2 ml-2 px-3 py-1 text-sm font-medium rounded bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
+                      {trip.tripTypeEmoji && <span className="mr-1">{trip.tripTypeEmoji}</span>}
+                      {trip.tripType}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                   <button
@@ -1233,9 +1257,9 @@ export default function TripDetailPage() {
               </button>
 
               {trip.description && (
-                <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  {trip.description}
-                </p>
+                <div className="text-gray-700 dark:text-gray-300 mb-4">
+                  <MarkdownRenderer content={trip.description} />
+                </div>
               )}
 
               {/* Trip Dates - Natural Language Format */}
@@ -1323,6 +1347,15 @@ export default function TripDetailPage() {
           )}
         </div>
 
+        {/* Trip Series Navigation */}
+        {trip.series && (
+          <TripSeriesNav
+            tripId={trip.id}
+            seriesId={trip.series.id}
+            seriesName={trip.series.name}
+          />
+        )}
+
         {/* Navigation Layout Toggle - Desktop only */}
         <div className="hidden md:flex justify-end mb-2">
           <NavigationLayoutToggle />
@@ -1406,6 +1439,8 @@ export default function TripDetailPage() {
                   tripStartDate={trip.startDate || undefined}
                   tripEndDate={trip.endDate || undefined}
                   tripStatus={trip.status || undefined}
+                  tripType={trip.tripType || undefined}
+                  tripTypeEmoji={trip.tripTypeEmoji || undefined}
                   onNavigateToTab={(tab) => changeTab(tab as TabId)}
                   onRefresh={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
                 />

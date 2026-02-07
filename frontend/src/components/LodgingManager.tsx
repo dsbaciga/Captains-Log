@@ -28,6 +28,9 @@ import { ListItemSkeleton } from "./SkeletonLoader";
 import BulkActionBar from "./BulkActionBar";
 import BulkEditModal from "./BulkEditModal";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
+import MarkdownRenderer from "./MarkdownRenderer";
+import MarkdownEditor from "./MarkdownEditor";
+import { stripMarkdown } from "../utils/stripMarkdown";
 
 // Note: Location association is handled via EntityLink system, not direct FK
 
@@ -891,22 +894,14 @@ export default function LodgingManager({
             </FormSection>
 
             {/* Notes */}
-            <div>
-              <label
-                htmlFor="lodging-notes"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Notes
-              </label>
-              <textarea
-                id="lodging-notes"
-                value={values.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-                className="input"
-                rows={3}
-                placeholder="Additional notes..."
-              />
-            </div>
+            <MarkdownEditor
+              value={values.notes}
+              onChange={(val) => handleChange("notes", val)}
+              rows={3}
+              placeholder="Additional notes..."
+              label="Notes"
+              compact
+            />
           </CollapsibleSection>
         </form>
         </FormModal>
@@ -1047,9 +1042,12 @@ export default function LodgingManager({
                 {lodging.notes && (
                   <div className="mt-2">
                     <span className="font-medium">Notes:</span>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:line-clamp-none">
-                      {lodging.notes}
+                    <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 sm:hidden">
+                      {stripMarkdown(lodging.notes)}
                     </p>
+                    <div className="text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
+                      <MarkdownRenderer content={lodging.notes} compact />
+                    </div>
                   </div>
                 )}
               </div>

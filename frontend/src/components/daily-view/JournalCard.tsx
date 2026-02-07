@@ -6,6 +6,8 @@ import type { PhotoAlbum } from '../../types/photo';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
 import EmbeddedAlbumCard from './EmbeddedAlbumCard';
 import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
+import MarkdownRenderer from '../MarkdownRenderer';
+import { stripMarkdown } from '../../utils/stripMarkdown';
 import { getTypeColors, getMoodEmoji } from './utils';
 
 interface JournalCardProps {
@@ -116,16 +118,20 @@ export default function JournalCard({
           </div>
         )}
 
-        {/* Content - using whitespace-pre-wrap for safe rendering without XSS risk */}
+        {/* Content */}
         {journal.content && (
           <div className="mt-4">
-            <p
-              className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${
-                !isExpanded && isLongContent ? 'line-clamp-6' : ''
-              }`}
-            >
-              {journal.content}
-            </p>
+            {isExpanded ? (
+              <MarkdownRenderer content={journal.content} />
+            ) : (
+              <p
+                className={`text-gray-700 dark:text-gray-300 ${
+                  isLongContent ? 'line-clamp-6' : ''
+                }`}
+              >
+                {stripMarkdown(journal.content)}
+              </p>
+            )}
 
             {isLongContent && (
               <button

@@ -73,6 +73,7 @@ export default function Navbar() {
     { path: "/companions", label: "Companions" },
     { path: "/places-visited", label: "Places" },
     { path: "/checklists", label: "Checklists" },
+    { path: "/trip-series", label: "Series" },
   ];
 
   const NavLink = ({

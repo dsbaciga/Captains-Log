@@ -1,5 +1,6 @@
 import { TripStatus, type Trip } from '../../types/trip';
 import TripDayIndicator from './TripDayIndicator';
+import { stripMarkdown } from '../../utils/stripMarkdown';
 
 interface DashboardHeroProps {
   trip: Trip;
@@ -121,7 +122,7 @@ export default function DashboardHero({
             {/* Description (if exists) */}
             {trip.description && (
               <p className="text-white/90 text-base sm:text-lg max-w-2xl line-clamp-2 drop-shadow-md">
-                {trip.description}
+                {stripMarkdown(trip.description)}
               </p>
             )}
 
@@ -215,7 +216,7 @@ export default function DashboardHero({
           {/* Description (if exists) */}
           {trip.description && (
             <p className="text-white/80 text-base sm:text-lg max-w-2xl line-clamp-2">
-              {trip.description}
+              {stripMarkdown(trip.description)}
             </p>
           )}
 

@@ -66,6 +66,8 @@ router.get('/me', userController.getMe);
  *         description: Unauthorized
  */
 router.put('/settings', userController.updateSettings);
+router.put('/settings/trip-types/rename', userController.renameTripType);
+router.delete('/settings/trip-types/:typeName', userController.deleteTripType);
 
 /**
  * @openapi

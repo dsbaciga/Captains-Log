@@ -76,6 +76,9 @@ export const createTripSchema = z.object({
   ]).default(PrivacyLevel.PRIVATE),
   addToPlacesVisited: z.boolean().optional(),
   excludeFromAutoShare: z.boolean().optional(),
+  seriesId: z.number().nullable().optional(),
+  tripType: z.string().nullable().optional(),
+  tripTypeEmoji: z.string().nullable().optional(),
 });
 
 export const updateTripSchema = z.object({
@@ -99,6 +102,9 @@ export const updateTripSchema = z.object({
   ]).optional(),
   addToPlacesVisited: z.boolean().optional(),
   excludeFromAutoShare: z.boolean().optional(),
+  seriesId: z.number().nullable().optional(),
+  tripType: z.string().nullable().optional(),
+  tripTypeEmoji: z.string().nullable().optional(),
 });
 
 export const getTripQuerySchema = z.object({
@@ -110,6 +116,8 @@ export const getTripQuerySchema = z.object({
   startDateFrom: z.string().optional(),
   startDateTo: z.string().optional(),
   tags: z.string().optional(), // Comma-separated tag IDs
+  tripType: z.string().optional(),
+  seriesId: z.string().optional(), // Filter by series ID
 });
 
 // Types
@@ -126,11 +134,16 @@ export interface TripResponse {
   endDate: string | null;
   timezone: string | null;
   status: string;
+  tripType: string | null;
+  tripTypeEmoji: string | null;
   privacyLevel: string;
   addToPlacesVisited: boolean;
   excludeFromAutoShare: boolean;
   coverPhotoId: number | null;
   bannerPhotoId: number | null;
+  seriesId: number | null;
+  seriesOrder: number | null;
+  series: { id: number; name: string } | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -25,7 +25,7 @@ interface RestoreStats {
  * v1.0.0 - Original backup format
  * v1.1.0 - Added travelDocuments and tripLanguages
  */
-const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0'];
+const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0', '1.2.0'];
 
 /**
  * Restore user data from a backup
@@ -72,6 +72,7 @@ export async function restoreFromBackup(
           data: {
             timezone: backupData.user.timezone,
             activityCategories: backupData.user.activityCategories as Prisma.JsonArray,
+            ...(backupData.user.tripTypes ? { tripTypes: backupData.user.tripTypes as Prisma.JsonArray } : {}),
             immichApiUrl: backupData.user.immichApiUrl,
             immichApiKey: backupData.user.immichApiKey,
             weatherApiKey: backupData.user.weatherApiKey,
@@ -185,8 +186,26 @@ export async function restoreFromBackup(
           }
         }
 
+        // Step 6.7: Import trip series (added in v1.2.0)
+        const seriesMap = new Map<number, number>(); // old ID -> new ID
+        if (backupData.tripSeries) {
+          for (const seriesData of backupData.tripSeries) {
+            const created = await tx.tripSeries.create({
+              data: {
+                userId,
+                name: seriesData.name,
+                description: seriesData.description || null,
+              },
+            });
+            seriesMap.set(seriesData.id, created.id);
+          }
+        }
+
         // Step 7: Import trips with all related data
         for (const tripData of backupData.trips) {
+          // Map seriesId from old to new
+          const mappedSeriesId = tripData.seriesId ? seriesMap.get(tripData.seriesId) || null : null;
+
           // Create the trip
           const trip = await tx.trip.create({
             data: {
@@ -197,8 +216,12 @@ export async function restoreFromBackup(
               endDate: tripData.endDate ? new Date(tripData.endDate) : null,
               timezone: tripData.timezone,
               status: tripData.status,
+              tripType: tripData.tripType || null,
+              tripTypeEmoji: tripData.tripTypeEmoji || null,
               privacyLevel: tripData.privacyLevel,
               addToPlacesVisited: tripData.addToPlacesVisited,
+              seriesId: mappedSeriesId,
+              seriesOrder: mappedSeriesId ? (tripData.seriesOrder || null) : null,
             },
           });
           stats.tripsImported++;
@@ -595,6 +618,11 @@ export async function restoreFromBackup(
 async function clearUserData(userId: number, tx: Prisma.TransactionClient) {
   // Delete all trips (cascades to most related entities including tripLanguages)
   await tx.trip.deleteMany({
+    where: { userId },
+  });
+
+  // Delete trip series
+  await tx.tripSeries.deleteMany({
     where: { userId },
   });
 

@@ -17,6 +17,7 @@ import type { Lodging } from '../types/lodging';
 import type { Transportation } from '../types/transportation';
 import type { JournalEntry } from '../types/journalEntry';
 import type { Photo, AlbumWithPhotos } from '../types/photo';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface EntityDetailModalProps {
   isOpen: boolean;
@@ -150,7 +151,7 @@ function LocationDetails({ entity }: { entity: Location }) {
           value={`${entity.latitude.toFixed(6)}, ${entity.longitude.toFixed(6)}`}
         />
       )}
-      <DetailRow label="Notes" value={entity.notes} className="whitespace-pre-wrap" />
+      <DetailRow label="Notes" value={entity.notes ? <MarkdownRenderer content={entity.notes} compact /> : null} />
     </dl>
   );
 }
@@ -159,7 +160,7 @@ function ActivityDetails({ entity }: { entity: Activity }) {
   return (
     <dl className="divide-y divide-gray-200 dark:divide-gray-700">
       <DetailRow label="Name" value={entity.name} />
-      <DetailRow label="Description" value={entity.description} className="whitespace-pre-wrap" />
+      <DetailRow label="Description" value={entity.description ? <MarkdownRenderer content={entity.description} compact /> : null} />
       <DetailRow label="Category" value={entity.category} />
       {entity.allDay ? (
         <DetailRow label="Time" value="All Day" />
@@ -188,7 +189,7 @@ function ActivityDetails({ entity }: { entity: Activity }) {
           }
         />
       )}
-      <DetailRow label="Notes" value={entity.notes} className="whitespace-pre-wrap" />
+      <DetailRow label="Notes" value={entity.notes ? <MarkdownRenderer content={entity.notes} compact /> : null} />
     </dl>
   );
 }
@@ -229,7 +230,7 @@ function LodgingDetails({ entity }: { entity: Lodging }) {
           }
         />
       )}
-      <DetailRow label="Notes" value={entity.notes} className="whitespace-pre-wrap" />
+      <DetailRow label="Notes" value={entity.notes ? <MarkdownRenderer content={entity.notes} compact /> : null} />
     </dl>
   );
 }
@@ -298,7 +299,7 @@ function TransportationDetails({ entity }: { entity: Transportation }) {
           <DetailRow label="Baggage Claim" value={entity.flightTracking.baggageClaim} />
         </>
       )}
-      <DetailRow label="Notes" value={entity.notes} className="whitespace-pre-wrap" />
+      <DetailRow label="Notes" value={entity.notes ? <MarkdownRenderer content={entity.notes} compact /> : null} />
     </dl>
   );
 }
@@ -316,7 +317,7 @@ function JournalDetails({ entity }: { entity: JournalEntry }) {
       <DetailRow label="Weather" value={entity.weatherNotes} />
       <DetailRow
         label="Content"
-        value={<div className="whitespace-pre-wrap">{entity.content}</div>}
+        value={entity.content ? <MarkdownRenderer content={entity.content} /> : null}
       />
     </dl>
   );
@@ -403,7 +404,7 @@ function AlbumDetails({ entity }: { entity: AlbumWithPhotos }) {
   return (
     <dl className="divide-y divide-gray-200 dark:divide-gray-700">
       <DetailRow label="Name" value={entity.name} />
-      <DetailRow label="Description" value={entity.description} className="whitespace-pre-wrap" />
+      <DetailRow label="Description" value={entity.description ? <MarkdownRenderer content={entity.description} compact /> : null} />
       <DetailRow label="Photos" value={`${photoCount} photos`} />
       {entity.photos && entity.photos.length > 0 && (
         <div className="py-4">

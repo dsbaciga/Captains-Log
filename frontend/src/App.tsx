@@ -18,6 +18,8 @@ const PlacesVisitedPage = React.lazy(() => import('./pages/PlacesVisitedPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const ChecklistsPage = React.lazy(() => import('./pages/ChecklistsPage'));
 const ChecklistDetailPage = React.lazy(() => import('./pages/ChecklistDetailPage'));
+const TripSeriesListPage = React.lazy(() => import('./pages/TripSeriesListPage'));
+const TripSeriesPage = React.lazy(() => import('./pages/TripSeriesPage'));
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -249,6 +251,26 @@ function App() {
                   <ProtectedRoute>
                     <ErrorBoundary>
                       <ChecklistDetailPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trip-series"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <TripSeriesListPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trip-series/:id"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <TripSeriesPage />
                     </ErrorBoundary>
                   </ProtectedRoute>
                 }

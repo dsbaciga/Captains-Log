@@ -4,6 +4,7 @@ import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
 import PrintMiniMap, { PrintRouteMap } from './PrintMiniMap';
+import MarkdownRenderer from '../MarkdownRenderer';
 
 interface UnscheduledData {
   activities: Activity[];
@@ -16,6 +17,8 @@ interface PrintableItineraryProps {
   tripStartDate?: string;
   tripEndDate?: string;
   tripTimezone?: string;
+  tripType?: string;
+  tripTypeEmoji?: string;
   dayGroups: DayGroup[];
   unscheduled: UnscheduledData;
   showMaps?: boolean;
@@ -134,8 +137,8 @@ const ActivityItem = ({ item, timezone, showMaps }: { item: TimelineItem; timezo
       {activity.cost && (
         <div className="print-item-detail">Cost: {formatCost(activity.cost, activity.currency)}</div>
       )}
-      {activity.notes && <div className="print-item-notes">Notes: {activity.notes}</div>}
-      {activity.description && <div className="print-item-description">{activity.description}</div>}
+      {activity.notes && <div className="print-item-notes">Notes: <MarkdownRenderer content={activity.notes} compact /></div>}
+      {activity.description && <div className="print-item-description"><MarkdownRenderer content={activity.description} compact /></div>}
       {showMaps && hasCoords && (
         <div className="print-item-map">
           <PrintMiniMap
@@ -191,7 +194,7 @@ const TransportationItem = ({ item, timezone, showMaps }: { item: TimelineItem; 
       {transport.cost && (
         <div className="print-item-detail">Cost: {formatCost(transport.cost, transport.currency)}</div>
       )}
-      {transport.notes && <div className="print-item-notes">Notes: {transport.notes}</div>}
+      {transport.notes && <div className="print-item-notes">Notes: <MarkdownRenderer content={transport.notes} compact /></div>}
       {showMaps && hasRouteCoords && (
         <div className="print-item-map">
           <PrintRouteMap
@@ -242,7 +245,7 @@ const LodgingItem = ({ item, timezone }: { item: TimelineItem; timezone?: string
       {lodging.cost && (
         <div className="print-item-detail">Cost: {formatCost(lodging.cost, lodging.currency)}</div>
       )}
-      {lodging.notes && <div className="print-item-notes">Notes: {lodging.notes}</div>}
+      {lodging.notes && <div className="print-item-notes">Notes: <MarkdownRenderer content={lodging.notes} compact /></div>}
     </div>
   );
 };
@@ -256,7 +259,7 @@ const JournalItem = ({ item }: { item: TimelineItem }) => {
       </div>
       {item.title && <div className="print-item-title">{item.title}</div>}
       {item.description && (
-        <div className="print-item-description">{item.description}</div>
+        <div className="print-item-description"><MarkdownRenderer content={item.description} compact /></div>
       )}
     </div>
   );
@@ -292,8 +295,8 @@ const UnscheduledActivityItem = ({ activity }: { activity: Activity }) => (
     {activity.cost && (
       <div className="print-item-detail">Cost: {formatCost(activity.cost, activity.currency)}</div>
     )}
-    {activity.notes && <div className="print-item-notes">Notes: {activity.notes}</div>}
-    {activity.description && <div className="print-item-description">{activity.description}</div>}
+    {activity.notes && <div className="print-item-notes">Notes: <MarkdownRenderer content={activity.notes} compact /></div>}
+    {activity.description && <div className="print-item-description"><MarkdownRenderer content={activity.description} compact /></div>}
   </div>
 );
 
@@ -319,7 +322,7 @@ const UnscheduledTransportationItem = ({ transport }: { transport: Transportatio
     {transport.cost && (
       <div className="print-item-detail">Cost: {formatCost(transport.cost, transport.currency)}</div>
     )}
-    {transport.notes && <div className="print-item-notes">Notes: {transport.notes}</div>}
+    {transport.notes && <div className="print-item-notes">Notes: <MarkdownRenderer content={transport.notes} compact /></div>}
   </div>
 );
 
@@ -346,7 +349,7 @@ const UnscheduledLodgingItem = ({ lodging }: { lodging: Lodging }) => (
 );
 
 const PrintableItinerary = forwardRef<HTMLDivElement, PrintableItineraryProps>(
-  ({ tripTitle, tripStartDate, tripEndDate, tripTimezone, dayGroups, unscheduled, showMaps }, ref) => {
+  ({ tripTitle, tripStartDate, tripEndDate, tripTimezone, tripType, tripTypeEmoji, dayGroups, unscheduled, showMaps }, ref) => {
     const formatTripDateRange = () => {
       if (!tripStartDate) return '';
       const start = new Date(tripStartDate);
@@ -381,6 +384,9 @@ const PrintableItinerary = forwardRef<HTMLDivElement, PrintableItineraryProps>(
         <div className="print-header">
           <h1 className="print-title">{tripTitle}</h1>
           <p className="print-dates">{formatTripDateRange()}</p>
+          {tripType && (
+            <p className="print-trip-type">{tripTypeEmoji && `${tripTypeEmoji} `}{tripType}</p>
+          )}
           {tripTimezone && <p className="print-timezone">All times in {tripTimezone}</p>}
         </div>
 

@@ -162,6 +162,31 @@ export const userController = {
     res.json(settings);
   }),
 
+  renameTripType: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const { oldName, newName } = z.object({
+      oldName: z.string().min(1),
+      newName: z.string().min(1),
+    }).parse(req.body);
+    const updatedTypes = await userService.renameTripType(userId, oldName, newName);
+    res.json({
+      success: true,
+      message: 'Trip type renamed successfully',
+      tripTypes: updatedTypes,
+    });
+  }),
+
+  deleteTripType: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const typeName = decodeURIComponent(req.params.typeName);
+    const updatedTypes = await userService.deleteTripType(userId, typeName);
+    res.json({
+      success: true,
+      message: 'Trip type deleted successfully',
+      tripTypes: updatedTypes,
+    });
+  }),
+
   updateTravelPartnerSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const data = travelPartnerSettingsSchema.parse(req.body);
