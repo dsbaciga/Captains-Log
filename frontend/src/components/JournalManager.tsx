@@ -152,7 +152,6 @@ export default function JournalManager({
   // Generate IDs for accessibility
   const titleFieldId = useId();
   const entryDateFieldId = useId();
-  const contentFieldId = useId();
 
   // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
   const handleEdit = useCallback((entry: JournalEntry) => {
