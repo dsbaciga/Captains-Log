@@ -59,6 +59,7 @@ export async function restoreFromBackup(
 
   try {
     // Use a transaction to ensure atomicity
+    // @ts-expect-error -- Deep type instantiation in Prisma transaction with complex nested writes
     await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         // Step 1: Clear existing data if requested

@@ -148,16 +148,14 @@ export const photoAlbumController = {
     });
 
     // Transform photoAssignments to photos for frontend compatibility
-    // photoAssignments is an array of { photo: Photo, addedAt: Date }
-    // We need to extract and transform each photo object
-    const photoAssignments = album.photoAssignments as Array<{
-      photo: PhotoWithOptionalAlbums;
-      addedAt: Date;
-    }> | undefined;
+    // photoAssignments is an array of { photo: Photo, createdAt: Date, ... }
+    // We map createdAt -> addedAt for the frontend API contract
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma returns Decimal types that don't match PhotoWithOptionalAlbums at compile time
+    const photoAssignments = album.photoAssignments as any[] | undefined;
 
     const photos = photoAssignments?.map((assignment) => ({
       photo: transformPhoto(assignment.photo),
-      addedAt: assignment.addedAt,
+      addedAt: assignment.createdAt,
     })) || [];
 
     // Build response without photoAssignments

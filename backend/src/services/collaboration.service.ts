@@ -359,7 +359,6 @@ export const collaborationService = {
     }
 
     // Create collaborator and update invitation in a transaction
-    // @ts-expect-error -- Deep type instantiation in Prisma v7
     const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const collaborator = await tx.tripCollaborator.create({
         data: {
