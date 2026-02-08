@@ -5,7 +5,7 @@ import { getAccessToken, setAccessToken, triggerAuthClear } from './tokenManager
 
 export { getAccessToken, setAccessToken };
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Retry configuration for rate limiting (429) errors
 const MAX_RETRIES = 4;

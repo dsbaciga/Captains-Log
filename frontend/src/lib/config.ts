@@ -6,7 +6,7 @@
 export function getApiBaseUrl(): string {
   // In production builds, VITE_API_URL will be '/api' (relative)
   // In development, it will be 'http://localhost:5000/api'
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return import.meta.env.VITE_API_URL || '/api';
 }
 
 /**
