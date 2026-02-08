@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import userService from '../services/user.service';
 import { updateUserSettingsSchema } from '../types/userSettings.types';
 import { asyncHandler } from '../utils/asyncHandler';
-import { validateUrlNotInternal } from '../utils/urlValidation';
 import { z } from 'zod';
 
 const immichSettingsSchema = z.object({
@@ -58,10 +57,9 @@ export const userController = {
     const userId = req.user!.userId;
     const data = immichSettingsSchema.parse(req.body);
 
-    // Validate URL to prevent SSRF attacks (only when setting a URL, not when clearing it)
-    if (data.immichApiUrl) {
-      await validateUrlNotInternal(data.immichApiUrl);
-    }
+    // Note: No SSRF validation for Immich URLs. This is a self-hosted app where
+    // Immich typically runs on the same LAN (private IPs like 192.168.x.x).
+    // Only authenticated users can set their own Immich URL.
 
     const user = await userService.updateImmichSettings(userId, data);
     res.json({

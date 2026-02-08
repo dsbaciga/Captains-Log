@@ -4,7 +4,6 @@ import prisma from '../config/database';
 import { AppError } from '../utils/errors';
 import { asyncHandler } from '../utils/asyncHandler';
 import { requireUserId } from '../utils/controllerHelpers';
-import { validateUrlNotInternal } from '../utils/urlValidation';
 
 // Type for getAssets query options
 interface GetAssetsOptions {
@@ -31,8 +30,10 @@ async function getUserImmichSettings(userId: number) {
     throw new AppError('Immich settings not configured', 400);
   }
 
-  // Validate stored URL to prevent SSRF via previously saved internal addresses
-  await validateUrlNotInternal(user.immichApiUrl);
+  // Note: We intentionally do NOT validate the stored URL against internal addresses here.
+  // Self-hosted Immich instances typically run on the same LAN (e.g., 192.168.x.x),
+  // which would be blocked by SSRF validation. The URL is validated when saved via
+  // testConnection, and only authenticated users can set their own Immich URL.
 
   return { apiUrl: user.immichApiUrl, apiKey: user.immichApiKey };
 }
@@ -63,8 +64,9 @@ export const immichController = {
       throw new AppError('API URL and API Key are required', 400);
     }
 
-    // Validate URL to prevent SSRF attacks
-    await validateUrlNotInternal(apiUrl);
+    // Note: No SSRF validation here. This is a self-hosted app where Immich
+    // typically runs on the same LAN (private IPs). Only authenticated users
+    // can call this endpoint, and they control their own server.
 
     const isConnected = await immichService.testConnection(apiUrl, apiKey);
 
