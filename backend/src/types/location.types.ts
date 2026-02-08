@@ -14,7 +14,7 @@ import {
 // Validation schemas
 export const createLocationSchema = z.object({
   tripId: z.number(),
-  parentId: z.number().optional(),
+  parentId: z.number().optional().nullable(),
   name: requiredStringWithMax(500),
   address: z.string().optional(),
   latitude: z.number().min(-90).max(90).optional(),
