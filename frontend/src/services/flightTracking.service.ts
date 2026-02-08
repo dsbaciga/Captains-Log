@@ -18,7 +18,7 @@ class FlightTrackingService {
     const response = await axios.get<{ status: string; data: FlightTracking | null }>(
       `/transportation/${transportationId}/flight-status`
     );
-    return response.data;
+    return response.data.data;
   }
 
   /**
@@ -32,7 +32,7 @@ class FlightTrackingService {
       `/transportation/${transportationId}/flight-status`,
       data
     );
-    return response.data;
+    return response.data.data;
   }
 
   /**
@@ -42,7 +42,7 @@ class FlightTrackingService {
     const response = await axios.post<{ status: string; data: FlightTracking[]; message: string }>(
       `/trips/${tripId}/flights/refresh`
     );
-    return response.data;
+    return response.data.data;
   }
 }
 

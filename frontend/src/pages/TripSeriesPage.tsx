@@ -231,7 +231,7 @@ export default function TripSeriesPage() {
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {ConfirmDialogComponent}
+      <ConfirmDialogComponent />
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Breadcrumbs
           items={[

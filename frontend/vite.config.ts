@@ -205,7 +205,7 @@ export default defineConfig({
             '@changey/react-leaflet-markercluster',
           ],
           'vendor-date': ['date-fns'],
-          'vendor-tiptap': ['@tiptap/react', '@tiptap/starter-kit'],
+          // 'vendor-tiptap': ['@tiptap/react', '@tiptap/starter-kit'], // Not yet installed
           'vendor-markdown': ['react-markdown', 'remark-gfm'],
           'vendor-query': ['@tanstack/react-query', '@tanstack/react-query-persist-client'],
           'vendor-emoji': ['emoji-picker-react'],

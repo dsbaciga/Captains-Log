@@ -13,7 +13,7 @@ import { useState, useCallback, useRef } from 'react';
  *
  * <input value={values.name} onChange={(e) => setField('name', e.target.value)} />
  */
-export function useFormFields<T extends Record<string, unknown>>(initialValues: T) {
+export function useFormFields<T extends object>(initialValues: T) {
   const [values, setValues] = useState<T>(initialValues);
   const initialValuesRef = useRef(initialValues);
   initialValuesRef.current = initialValues;

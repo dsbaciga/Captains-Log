@@ -99,7 +99,7 @@ export default function AcceptInvitePage() {
       });
 
       // Log the user in with the credentials they just created
-      await login({ username: username.trim(), password });
+      await login({ email, password });
 
       toast.success('Account created successfully! Welcome to Travel Life!');
       navigate('/dashboard');

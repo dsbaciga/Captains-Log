@@ -192,7 +192,7 @@ export default function LodgingManager({
   });
 
   // Draft restore/discard via shared hook (Pattern 13)
-  const { showDraftPrompt, handleRestoreDraft, handleDiscardDraft } = useDraftRestore({
+  const { showDraftPrompt, setShowDraftPrompt, handleRestoreDraft, handleDiscardDraft } = useDraftRestore({
     draft,
     setAllFields,
     isFormOpen: manager.showForm,
