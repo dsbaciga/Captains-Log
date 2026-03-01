@@ -454,4 +454,7 @@ router.get('/search', sensitiveEndpointRateLimiter, userController.searchUsers);
 router.get('/travel-partner', userController.getTravelPartnerSettings);
 router.put('/travel-partner', sensitiveEndpointRateLimiter, userController.updateTravelPartnerSettings);
 
+router.get('/forwarding-email', userController.getForwardingEmailSettings);
+router.put('/forwarding-email', userController.updateForwardingEmail);
+
 export default router;

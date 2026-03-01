@@ -36,6 +36,7 @@ import travelDocumentRoutes from './routes/travelDocument.routes';
 import languagePhraseRoutes from './routes/languagePhrase.routes';
 import userInvitationRoutes from './routes/userInvitation.routes';
 import tripSeriesRoutes from './routes/tripSeries.routes';
+import emailImportRoutes from './routes/emailImport.routes';
 
 // Read version from package.json
 let packageJson: { version: string; name: string };
@@ -269,6 +270,7 @@ app.use('/api/travel-documents', travelDocumentRoutes);
 app.use('/api', languagePhraseRoutes);
 app.use('/api/user-invitations', userInvitationRoutes);
 app.use('/api/trip-series', tripSeriesRoutes);
+app.use('/api/email-imports', emailImportRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

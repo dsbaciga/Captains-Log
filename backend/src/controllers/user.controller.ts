@@ -308,4 +308,25 @@ export const userController = {
       });
     }
   }),
+
+  getForwardingEmailSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const settings = await userService.getForwardingEmailSettings(userId);
+    res.json({ status: 'success', data: settings });
+  }),
+
+  updateForwardingEmail: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const data = z.object({
+      forwardingEmail: z.string().email().optional().nullable(),
+    }).parse(req.body);
+    const user = await userService.updateForwardingEmail(userId, data);
+    res.json({
+      status: 'success',
+      data: {
+        message: 'Forwarding email updated successfully',
+        forwardingEmail: user.forwardingEmail,
+      },
+    });
+  }),
 };

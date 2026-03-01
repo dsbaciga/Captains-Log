@@ -93,6 +93,25 @@ export const config = {
     from: process.env.SMTP_FROM || 'Travel Life <noreply@example.com>',
   },
 
+  // Email Import (Gmail + LLM)
+  emailImport: {
+    enabled: process.env.EMAIL_IMPORT_ENABLED === 'true',
+    pollIntervalMinutes: Math.max(1, parseInt(process.env.EMAIL_IMPORT_POLL_INTERVAL || '5', 10)),
+    maxEmailsPerPoll: parseInt(process.env.EMAIL_IMPORT_MAX_EMAILS_PER_POLL || '20', 10),
+    gmail: {
+      clientId: process.env.GMAIL_CLIENT_ID || '',
+      clientSecret: process.env.GMAIL_CLIENT_SECRET || '',
+      refreshToken: process.env.GMAIL_REFRESH_TOKEN || '',
+      inboxEmail: process.env.GMAIL_INBOX_EMAIL || '',
+    },
+    llm: {
+      baseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+      apiKey: process.env.LLM_API_KEY || '',
+      model: process.env.LLM_MODEL || 'gpt-4o-mini',
+      maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '4096', 10),
+    },
+  },
+
   // Frontend URL (for email links)
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 };

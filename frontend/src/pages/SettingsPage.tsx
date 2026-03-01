@@ -26,6 +26,7 @@ const SmtpSettings = lazy(() => import("../components/SmtpSettings"));
 const TravelDocumentManager = lazy(() => import("../components/TravelDocumentManager"));
 const InviteUsersSection = lazy(() => import("../components/InviteUsersSection"));
 const TravelPartnerSettings = lazy(() => import("../components/TravelPartnerSettings"));
+const EmailImportSettings = lazy(() => import("../components/email-import/EmailImportSettings"));
 
 type TabType =
   | "account"
@@ -1689,6 +1690,9 @@ export default function SettingsPage() {
 
             {/* OpenRouteService Settings */}
             <OpenRouteServiceSettings />
+
+            {/* Email Import Settings */}
+            <EmailImportSettings />
           </div>
           </Suspense>
           </ErrorBoundary>

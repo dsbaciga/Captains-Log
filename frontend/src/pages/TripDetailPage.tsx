@@ -16,6 +16,7 @@ import tagService from "../services/tag.service";
 import companionService from "../services/companion.service";
 import userService from "../services/user.service";
 import checklistService from "../services/checklist.service";
+import emailImportService from "../services/emailImport.service";
 import TripSeriesBadge from "../components/TripSeriesBadge";
 import TripSeriesNav from "../components/TripSeriesNav";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -195,6 +196,12 @@ export default function TripDetailPage() {
   const { data: checklists = [] } = useQuery({
     queryKey: ['checklists', tripId],
     queryFn: () => checklistService.getChecklistsByTripId(tripId),
+    enabled: !!tripId,
+  });
+
+  const { data: pendingForTrip } = useQuery({
+    queryKey: ['emailImport', 'pending', 'trip', tripId],
+    queryFn: () => emailImportService.getPendingEntities({ tripId: Number(tripId), status: 'PENDING' }),
     enabled: !!tripId,
   });
 
@@ -1363,6 +1370,26 @@ export default function TripDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Pending Email Imports Banner */}
+        {(() => {
+          const pendingCount = Array.isArray(pendingForTrip) ? pendingForTrip.length : (pendingForTrip?.total ?? 0);
+          return pendingCount > 0 ? (
+            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-4 mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-primary-600 dark:text-gold flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span className="text-primary-800 dark:text-primary-200">
+                  {pendingCount} email-imported {pendingCount === 1 ? 'item' : 'items'} matched to this trip
+                </span>
+              </div>
+              <Link to="/email-imports" className="text-primary-600 dark:text-gold hover:underline font-medium text-sm whitespace-nowrap ml-4">
+                Review imports
+              </Link>
+            </div>
+          ) : null;
+        })()}
 
         {/* Trip Series Navigation */}
         {trip.series && (
