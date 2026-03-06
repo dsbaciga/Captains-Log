@@ -1,6 +1,9 @@
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
+import axios, { AxiosError } from 'axios';
 import prisma from '../config/database';
 import config from '../config';
+import logger from '../config/logger';
 
 export interface EmailImportSettingsResponse {
   gmailClientId: string | null;
@@ -12,6 +15,38 @@ export interface EmailImportSettingsResponse {
   llmModel: string | null;
   emailImportEnabled: boolean;
   emailImportPollInterval: number;
+}
+
+export interface LlmTestResult {
+  success: boolean;
+  message: string;
+}
+
+const llmChatResponseSchema = z.object({
+  choices: z.array(z.object({
+    message: z.object({
+      content: z.string().nullable().optional(),
+      reasoning: z.string().nullable().optional(),
+    }).optional(),
+  })).optional(),
+}).passthrough();
+
+const llmErrorResponseSchema = z.object({
+  error: z.object({
+    message: z.string().optional(),
+  }).optional(),
+}).passthrough();
+
+export interface EmailImportSettingsUpdate {
+  gmailClientId?: string | null;
+  gmailClientSecret?: string | null;
+  gmailRefreshToken?: string | null;
+  gmailInboxEmail?: string | null;
+  llmBaseUrl?: string | null;
+  llmApiKey?: string | null;
+  llmModel?: string | null;
+  emailImportEnabled?: boolean;
+  emailImportPollInterval?: number;
 }
 
 export interface RawEmailImportSettings {
@@ -64,17 +99,7 @@ class AppSettingsService {
     };
   }
 
-  async updateEmailImportSettings(data: {
-    gmailClientId?: string | null;
-    gmailClientSecret?: string | null;
-    gmailRefreshToken?: string | null;
-    gmailInboxEmail?: string | null;
-    llmBaseUrl?: string | null;
-    llmApiKey?: string | null;
-    llmModel?: string | null;
-    emailImportEnabled?: boolean;
-    emailImportPollInterval?: number;
-  }): Promise<void> {
+  async updateEmailImportSettings(data: EmailImportSettingsUpdate): Promise<void> {
     // Build update object - only include fields that were explicitly provided
     const updateData: Prisma.AppSettingsUncheckedUpdateInput = {};
     if (data.gmailClientId !== undefined) updateData.gmailClientId = data.gmailClientId;
@@ -104,6 +129,59 @@ class AppSettingsService {
       create: createData,
       update: updateData,
     });
+  }
+
+  async testLlmConnection(): Promise<LlmTestResult> {
+    const raw = await this.getRawEmailImportSettings();
+    const { llmBaseUrl: baseUrl, llmApiKey: apiKey, llmModel: model } = raw;
+
+    if (!apiKey) {
+      return { success: false, message: 'LLM API key is not configured' };
+    }
+
+    try {
+      const response = await axios.post(
+        `${baseUrl}/chat/completions`,
+        {
+          model,
+          messages: [{ role: 'user', content: 'Respond with exactly the word "hello".' }],
+          max_tokens: 200,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 60000,
+        }
+      );
+      logger.debug('LLM test raw response:', JSON.stringify(response.data));
+      const parsed = llmChatResponseSchema.safeParse(response.data);
+      if (!parsed.success) {
+        logger.warn('LLM test returned unexpected response shape:', JSON.stringify(response.data));
+        return { success: false, message: 'LLM returned an unexpected response format.' };
+      }
+      const message = parsed.data.choices?.[0]?.message;
+      const reply = message?.content?.trim();
+      const hasReasoning = !!(message?.reasoning);
+      if (!reply && !hasReasoning) {
+        logger.warn('LLM test returned empty content. Raw response:', JSON.stringify(response.data));
+        return { success: false, message: 'LLM returned an empty response. Check your model name and API configuration.' };
+      }
+      const displayReply = reply ? reply : '(thinking model — reasoning received)';
+      logger.info(`LLM test connection successful: ${displayReply}`);
+      return { success: true, message: `LLM connection successful. Response: "${displayReply}"` };
+    } catch (err: unknown) {
+      let detail = 'Connection failed';
+      if (err instanceof AxiosError) {
+        const errParsed = llmErrorResponseSchema.safeParse(err.response?.data);
+        detail = errParsed.success ? (errParsed.data.error?.message ?? err.message) : err.message;
+      } else if (err instanceof Error) {
+        detail = err.message;
+      }
+      logger.warn(`LLM test connection failed: ${detail}`);
+      return { success: false, message: `LLM connection failed: ${detail}` };
+    }
   }
 }
 

@@ -1,18 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import axios, { AxiosError } from 'axios';
 import { asyncHandler } from '../utils/asyncHandler';
 import { requireUserId } from '../utils/controllerHelpers';
 import appSettingsService from '../services/appSettings.service';
-import logger from '../config/logger';
-
-interface LlmChatResponse {
-  choices?: Array<{ message?: { content?: string } }>;
-}
-
-interface LlmErrorResponse {
-  error?: { message?: string };
-}
 
 const updateEmailImportSettingsSchema = z.object({
   gmailClientId: z.string().nullable().optional(),
@@ -42,52 +32,11 @@ export const appSettingsController = {
 
   testLlmConnection: asyncHandler(async (req: Request, res: Response) => {
     requireUserId(req);
-    const raw = await appSettingsService.getRawEmailImportSettings();
-    const baseUrl = raw.llmBaseUrl;
-    const apiKey = raw.llmApiKey;
-    const model = raw.llmModel;
-
-    if (!apiKey) {
-      res.status(400).json({ status: 'error', message: 'LLM API key is not configured' });
+    const result = await appSettingsService.testLlmConnection();
+    if (!result.success) {
+      res.status(400).json({ status: 'error', message: result.message });
       return;
     }
-
-    try {
-      const response = await axios.post(
-        `${baseUrl}/chat/completions`,
-        {
-          model,
-          messages: [{ role: 'user', content: 'Respond with exactly the word "hello".' }],
-          max_tokens: 20,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: 15000,
-        }
-      );
-      const llmData = response.data as LlmChatResponse;
-      logger.debug('LLM test raw response:', JSON.stringify(response.data));
-      const reply = llmData.choices?.[0]?.message?.content?.trim();
-      if (!reply) {
-        logger.warn('LLM test returned empty content. Raw response:', JSON.stringify(response.data));
-        res.status(400).json({ status: 'error', message: 'LLM returned an empty response. Check your model name and API configuration.' });
-        return;
-      }
-      logger.info(`LLM test connection successful: ${reply}`);
-      res.json({ status: 'success', message: `LLM connection successful. Response: "${reply}"` });
-    } catch (err: unknown) {
-      let detail = 'Connection failed';
-      if (err instanceof AxiosError) {
-        const errData = err.response?.data as LlmErrorResponse | undefined;
-        detail = errData?.error?.message || err.message;
-      } else if (err instanceof Error) {
-        detail = err.message;
-      }
-      logger.warn(`LLM test connection failed: ${detail}`);
-      res.status(400).json({ status: 'error', message: `LLM connection failed: ${detail}` });
-    }
+    res.json({ status: 'success', message: result.message });
   }),
 };
