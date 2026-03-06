@@ -57,21 +57,23 @@ export const appSettingsController = {
         `${baseUrl}/chat/completions`,
         {
           model,
-          messages: [{ role: 'user', content: 'Say "ok" in one word.' }],
-          max_tokens: 5,
+          messages: [{ role: 'user', content: 'Respond with exactly the word "hello".' }],
+          max_tokens: 20,
         },
         {
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
-          timeout: 10000,
+          timeout: 15000,
         }
       );
       const llmData = response.data as LlmChatResponse;
-      const reply = llmData.choices?.[0]?.message?.content;
+      logger.debug('LLM test raw response:', JSON.stringify(response.data));
+      const reply = llmData.choices?.[0]?.message?.content?.trim();
       if (!reply) {
-        res.status(400).json({ status: 'error', message: 'LLM returned an empty response' });
+        logger.warn('LLM test returned empty content. Raw response:', JSON.stringify(response.data));
+        res.status(400).json({ status: 'error', message: 'LLM returned an empty response. Check your model name and API configuration.' });
         return;
       }
       logger.info(`LLM test connection successful: ${reply}`);
