@@ -38,7 +38,7 @@ export const emailImportController = {
   getStatus: asyncHandler(async (req: Request, res: Response) => {
     requireUserId(req);
 
-    const status = emailImportService.getConfigurationStatus();
+    const status = await emailImportService.getConfigurationStatus();
 
     res.json({
       status: 'success',

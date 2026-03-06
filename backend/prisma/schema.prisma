@@ -862,3 +862,26 @@ model PendingEntity {
   @@index([matchedTripId])
   @@map("pending_entities")
 }
+
+// =============================================================================
+// APP SETTINGS (SINGLETON)
+// =============================================================================
+// Global application settings stored in the database.
+// Always a single row with id=1. Env vars are used as fallback when DB values are null.
+
+model AppSettings {
+  id                      Int      @id @default(1)
+  gmailClientId           String?  @map("gmail_client_id") @db.VarChar(500)
+  gmailClientSecret       String?  @map("gmail_client_secret") @db.VarChar(500)
+  gmailRefreshToken       String?  @map("gmail_refresh_token") @db.Text
+  gmailInboxEmail         String?  @map("gmail_inbox_email") @db.VarChar(255)
+  llmBaseUrl              String?  @map("llm_base_url") @db.VarChar(500)
+  llmApiKey               String?  @map("llm_api_key") @db.VarChar(500)
+  llmModel                String?  @map("llm_model") @db.VarChar(100)
+  emailImportEnabled      Boolean  @default(false) @map("email_import_enabled")
+  emailImportPollInterval Int      @default(5) @map("email_import_poll_interval")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}

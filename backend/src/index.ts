@@ -37,6 +37,7 @@ import languagePhraseRoutes from './routes/languagePhrase.routes';
 import userInvitationRoutes from './routes/userInvitation.routes';
 import tripSeriesRoutes from './routes/tripSeries.routes';
 import emailImportRoutes from './routes/emailImport.routes';
+import appSettingsRoutes from './routes/appSettings.routes';
 
 // Read version from package.json
 let packageJson: { version: string; name: string };
@@ -50,6 +51,9 @@ try {
 }
 
 const app: Application = express();
+
+// Trust first proxy (Nginx in Docker) so express-rate-limit reads X-Forwarded-For correctly
+app.set('trust proxy', 1);
 
 // Security middleware
 const isProduction = config.nodeEnv === 'production';
@@ -271,6 +275,7 @@ app.use('/api', languagePhraseRoutes);
 app.use('/api/user-invitations', userInvitationRoutes);
 app.use('/api/trip-series', tripSeriesRoutes);
 app.use('/api/email-imports', emailImportRoutes);
+app.use('/api/app-settings', appSettingsRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

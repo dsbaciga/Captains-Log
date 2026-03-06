@@ -19,12 +19,40 @@ const MAX_BODY_LENGTH = 50_000;
 class GmailService {
   private oauth2Client: OAuth2Client | null = null;
   private gmailClient: gmail_v1.Gmail | null = null;
+  private overrides: { clientId: string; clientSecret: string; refreshToken: string } | null = null;
+
+  /**
+   * Set credential overrides from DB settings. Resets cached client
+   * so next getClient() call uses the new credentials.
+   */
+  setOverrides(creds: { clientId: string; clientSecret: string; refreshToken: string }): void {
+    const hasOverrides = !!(creds.clientId && creds.clientSecret && creds.refreshToken);
+    const newOverrides = hasOverrides ? creds : null;
+
+    // Reset cached client if overrides changed
+    const prev = this.overrides;
+    if (
+      prev?.clientId !== newOverrides?.clientId ||
+      prev?.clientSecret !== newOverrides?.clientSecret ||
+      prev?.refreshToken !== newOverrides?.refreshToken
+    ) {
+      this.oauth2Client = null;
+      this.gmailClient = null;
+    }
+
+    this.overrides = newOverrides;
+  }
+
+  private getCredentials(): { clientId: string; clientSecret: string; refreshToken: string } {
+    if (this.overrides) return this.overrides;
+    return config.emailImport.gmail;
+  }
 
   /**
    * Check whether Gmail credentials are configured
    */
   isConfigured(): boolean {
-    const { clientId, clientSecret, refreshToken } = config.emailImport.gmail;
+    const { clientId, clientSecret, refreshToken } = this.getCredentials();
     return !!(clientId && clientSecret && refreshToken);
   }
 
@@ -37,7 +65,7 @@ class GmailService {
       return { auth: this.oauth2Client, gmail: this.gmailClient };
     }
 
-    const { clientId, clientSecret, refreshToken } = config.emailImport.gmail;
+    const { clientId, clientSecret, refreshToken } = this.getCredentials();
 
     if (!clientId || !clientSecret || !refreshToken) {
       throw new Error(

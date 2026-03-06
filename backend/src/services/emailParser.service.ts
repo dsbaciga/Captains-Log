@@ -25,12 +25,28 @@ interface ParseResult {
 
 class EmailParserService {
   private readonly llmConfig = config.emailImport.llm;
+  private overrides: { baseUrl: string; apiKey: string; model: string } | null = null;
+
+  /**
+   * Set LLM config overrides from DB settings.
+   */
+  setOverrides(creds: { baseUrl: string; apiKey: string; model: string }): void {
+    this.overrides = (creds.apiKey && creds.baseUrl) ? creds : null;
+  }
+
+  private getLlmConfig(): { baseUrl: string; apiKey: string; model: string; maxTokens: number } {
+    if (this.overrides) {
+      return { ...this.overrides, maxTokens: this.llmConfig.maxTokens };
+    }
+    return this.llmConfig;
+  }
 
   /**
    * Check if the LLM API is configured with required credentials
    */
   isConfigured(): boolean {
-    return !!(this.llmConfig.apiKey && this.llmConfig.baseUrl);
+    const cfg = this.getLlmConfig();
+    return !!(cfg.apiKey && cfg.baseUrl);
   }
 
   /**
@@ -38,7 +54,7 @@ class EmailParserService {
    */
   async parseEmail(emailBody: string, subject: string): Promise<ParseResult> {
     if (!this.isConfigured()) {
-      throw new Error('LLM API is not configured. Set LLM_API_KEY and LLM_BASE_URL.');
+      throw new Error('LLM API is not configured. Set LLM_API_KEY and LLM_BASE_URL, or configure in app settings.');
     }
 
     const systemPrompt = this.buildSystemPrompt();
@@ -227,25 +243,26 @@ Rules:
    * Call the LLM chat completions API with retry on 429 (rate limit)
    */
   private async callLLM(systemPrompt: string, userMessage: string, retries = 1): Promise<string> {
-    const url = `${this.llmConfig.baseUrl}/chat/completions`;
+    const cfg = this.getLlmConfig();
+    const url = `${cfg.baseUrl}/chat/completions`;
 
     try {
       const response = await axios.post(
         url,
         {
-          model: this.llmConfig.model,
+          model: cfg.model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage },
           ],
-          max_tokens: this.llmConfig.maxTokens,
+          max_tokens: cfg.maxTokens,
           temperature: 0.1,
           response_format: { type: 'json_object' },
         },
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.llmConfig.apiKey}`,
+            Authorization: `Bearer ${cfg.apiKey}`,
           },
           timeout: 60000,
         }

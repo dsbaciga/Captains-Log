@@ -48,6 +48,18 @@ export interface EmailImportStatus {
   inboxEmail: string;
 }
 
+export interface EmailImportConfig {
+  gmailClientId: string | null;
+  gmailClientSecretSet: boolean;
+  gmailRefreshTokenSet: boolean;
+  gmailInboxEmail: string | null;
+  llmBaseUrl: string | null;
+  llmApiKeySet: boolean;
+  llmModel: string | null;
+  emailImportEnabled: boolean;
+  emailImportPollInterval: number;
+}
+
 const emailImportService = {
   async getStatus(): Promise<EmailImportStatus> {
     const response = await axios.get('/email-imports/status');
@@ -131,6 +143,30 @@ const emailImportService = {
 
   async updateForwardingEmail(forwardingEmail: string | null): Promise<unknown> {
     const response = await axios.put('/users/forwarding-email', { forwardingEmail });
+    return response.data;
+  },
+
+  async getEmailImportConfig(): Promise<EmailImportConfig> {
+    const response = await axios.get('/app-settings/email-import');
+    return response.data;
+  },
+
+  async updateEmailImportConfig(data: Partial<{
+    gmailClientId: string | null;
+    gmailClientSecret: string | null;
+    gmailRefreshToken: string | null;
+    gmailInboxEmail: string | null;
+    llmBaseUrl: string | null;
+    llmApiKey: string | null;
+    llmModel: string | null;
+    emailImportEnabled: boolean;
+    emailImportPollInterval: number;
+  }>): Promise<void> {
+    await axios.put('/app-settings/email-import', data);
+  },
+
+  async testLlmConnection(): Promise<{ message: string }> {
+    const response = await axios.post('/app-settings/email-import/test-llm');
     return response.data;
   },
 };

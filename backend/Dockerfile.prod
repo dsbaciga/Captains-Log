@@ -48,6 +48,9 @@ RUN npx prisma generate
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
+# Copy data files (visa requirements, etc.)
+COPY data ./data/
+
 # Copy startup script and ensure Unix line endings (fixes "no such file" error on Windows builds)
 COPY scripts/migrate-and-start.sh /usr/local/bin/
 RUN sed -i 's/\r$//' /usr/local/bin/migrate-and-start.sh && chmod +x /usr/local/bin/migrate-and-start.sh

@@ -3,6 +3,7 @@ import config from '../config';
 import logger from '../config/logger';
 import gmailService from './gmail.service';
 import emailParserService from './emailParser.service';
+import appSettingsService from './appSettings.service';
 import transportationService from './transportation.service';
 import lodgingService from './lodging.service';
 import activityService from './activity.service';
@@ -35,16 +36,39 @@ let consecutiveFailures: number = 0;
 
 class EmailImportService {
   /**
-   * Check if both Gmail and LLM parser are configured
+   * Apply DB settings as overrides to gmail and emailParser services.
+   * DB values take priority; env vars serve as fallback.
    */
-  isConfigured(): boolean {
+  private async applyDbSettings(): Promise<void> {
+    try {
+      const raw = await appSettingsService.getRawEmailImportSettings();
+      gmailService.setOverrides({
+        clientId: raw.gmailClientId,
+        clientSecret: raw.gmailClientSecret,
+        refreshToken: raw.gmailRefreshToken,
+      });
+      emailParserService.setOverrides({
+        baseUrl: raw.llmBaseUrl,
+        apiKey: raw.llmApiKey,
+        model: raw.llmModel,
+      });
+    } catch (err) {
+      logger.warn('[EmailImport] Failed to load DB settings, using env vars only', { error: err });
+    }
+  }
+
+  /**
+   * Check if both Gmail and LLM parser are configured (async, checks DB settings)
+   */
+  async isConfigured(): Promise<boolean> {
+    await this.applyDbSettings();
     return gmailService.isConfigured() && emailParserService.isConfigured();
   }
 
   /**
    * Get the current configuration status for the email import system
    */
-  getConfigurationStatus(): {
+  async getConfigurationStatus(): Promise<{
     gmailConfigured: boolean;
     llmConfigured: boolean;
     enabled: boolean;
@@ -52,12 +76,14 @@ class EmailImportService {
     lastSuccessfulPoll: Date | null;
     lastError: string | null;
     consecutiveFailures: number;
-  } {
+  }> {
+    await this.applyDbSettings();
+    const raw = await appSettingsService.getRawEmailImportSettings();
     return {
       gmailConfigured: gmailService.isConfigured(),
       llmConfigured: emailParserService.isConfigured(),
-      enabled: config.emailImport.enabled,
-      inboxEmail: config.emailImport.gmail.inboxEmail,
+      enabled: raw.emailImportEnabled || config.emailImport.enabled,
+      inboxEmail: raw.gmailInboxEmail || config.emailImport.gmail.inboxEmail,
       lastSuccessfulPoll,
       lastError,
       consecutiveFailures,
@@ -86,6 +112,9 @@ class EmailImportService {
     let errors = 0;
 
     try {
+      // Apply DB settings before polling
+      await this.applyDbSettings();
+
       const emails = await gmailService.fetchUnreadEmails(config.emailImport.maxEmailsPerPoll);
 
       if (emails.length === 0) {
