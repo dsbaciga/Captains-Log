@@ -6,8 +6,8 @@ import { AppError } from '../utils/errors';
 import prisma from '../config/database';
 import { RouteStep, isAxiosError } from '../types/prisma-helpers';
 
-function toJsonValue(geometry: number[][] | undefined): Prisma.InputJsonValue | null {
-  if (!geometry) return null;
+function toJsonValue(geometry: number[][] | undefined): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (!geometry) return Prisma.JsonNull;
   return JSON.parse(JSON.stringify(geometry)) as Prisma.InputJsonValue;
 }
 
@@ -117,7 +117,7 @@ class RoutingService {
         const routeData = await this.fetchRouteFromAPI(from, to, profile);
         const hasGeometry = routeData.geometry && routeData.geometry.length > 0;
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[Routing Service] API response received: distance=${routeData.distance.toFixed(2)}km, hasGeometry=${hasGeometry}, points=${hasGeometry ? routeData.geometry.length : 0}`);
+          console.log(`[Routing Service] API response received: distance=${routeData.distance.toFixed(2)}km, hasGeometry=${hasGeometry}, points=${hasGeometry ? routeData.geometry!.length : 0}`);
         }
 
         // Cache the result
@@ -391,7 +391,7 @@ class RoutingService {
     try {
       await prisma.routeCache.upsert({
         where: {
-          fromLat_fromLon_toLat_toLon_profile: {
+          route_cache_coords_profile_unique: {
             fromLat: from.latitude,
             fromLon: from.longitude,
             toLat: to.latitude,

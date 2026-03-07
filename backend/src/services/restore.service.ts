@@ -4,6 +4,8 @@ import { BackupData, RestoreOptions } from '../types/backup.types';
 import { AppError } from '../utils/errors';
 import { validateUrlNotInternal } from '../utils/urlValidation';
 
+type TransactionClient = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>;
+
 /**
  * Statistics returned after a restore operation
  */
@@ -60,9 +62,8 @@ export async function restoreFromBackup(
 
   try {
     // Use a transaction to ensure atomicity
-    // @ts-expect-error -- Deep type instantiation in Prisma transaction with complex nested writes
     await prisma.$transaction(
-      async (tx: Prisma.TransactionClient) => {
+      async (tx) => {
         // Step 1: Clear existing data if requested
         if (options.clearExistingData) {
           await clearUserData(userId, tx);
@@ -159,7 +160,10 @@ export async function restoreFromBackup(
               isDefault: checklist.isDefault,
               sortOrder: checklist.sortOrder,
               items: {
-                create: checklist.items,
+                create: checklist.items?.map(item => ({
+                  ...item,
+                  metadata: item.metadata === null ? Prisma.JsonNull : item.metadata,
+                })),
               },
             },
           });
@@ -549,7 +553,10 @@ export async function restoreFromBackup(
                 isDefault: checklistData.isDefault,
                 sortOrder: checklistData.sortOrder,
                 items: {
-                  create: checklistData.items,
+                  create: checklistData.items?.map(item => ({
+                    ...item,
+                    metadata: item.metadata === null ? Prisma.JsonNull : item.metadata,
+                  })),
                 },
               },
             });
@@ -636,7 +643,7 @@ export async function restoreFromBackup(
 /**
  * Clear all user data (for restore with clearExistingData option)
  */
-async function clearUserData(userId: number, tx: Prisma.TransactionClient) {
+async function clearUserData(userId: number, tx: TransactionClient) {
   // Delete all trips (cascades to most related entities including tripLanguages)
   await tx.trip.deleteMany({
     where: { userId },

@@ -6,7 +6,7 @@ import type {
   UpdateCollaboratorInput,
   PermissionLevelType,
 } from '../types/collaboration.types';
-import type { Prisma } from '@prisma/client';
+
 import { PermissionLevel, InvitationStatus } from '../types/collaboration.types';
 
 // Default invitation expiry: 7 days
@@ -359,7 +359,7 @@ export const collaborationService = {
     }
 
     // Create collaborator and update invitation in a transaction
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       const collaborator = await tx.tripCollaborator.create({
         data: {
           tripId: invitation.tripId,
