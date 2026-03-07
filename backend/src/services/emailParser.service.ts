@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { z } from 'zod';
 import config from '../config';
 import logger from '../config/logger';
 import { isAxiosError } from '../types/prisma-helpers';
@@ -7,9 +8,47 @@ import { isAxiosError } from '../types/prisma-helpers';
 // TYPES
 // =============================================================================
 
+// =============================================================================
+// LLM RESPONSE SCHEMA (simple format the LLM outputs)
+// =============================================================================
+
+const VALID_LLM_TYPES = ['flight', 'hotel', 'rental_car', 'train', 'bus', 'activity', 'other'] as const;
+
+const llmEntitySchema = z.object({
+  type: z.string(),
+  summary: z.string().optional().default(''),
+  details: z.record(z.unknown()).optional().default({}),
+});
+
+const llmResponseSchema = z.object({
+  entities: z.array(llmEntitySchema),
+});
+
+// =============================================================================
+// APP ENTITY TYPES (what the app uses internally)
+// =============================================================================
+
+const VALID_ENTITY_TYPES = ['TRANSPORTATION', 'LODGING', 'ACTIVITY', 'LOCATION'] as const;
+type EntityType = (typeof VALID_ENTITY_TYPES)[number];
+
+/** Map LLM simple types to app entity types and sub-types */
+const LLM_TYPE_MAP: Record<string, { entityType: EntityType; subType: string }> = {
+  flight:     { entityType: 'TRANSPORTATION', subType: 'flight' },
+  train:      { entityType: 'TRANSPORTATION', subType: 'train' },
+  bus:        { entityType: 'TRANSPORTATION', subType: 'bus' },
+  rental_car: { entityType: 'TRANSPORTATION', subType: 'car' },
+  ferry:      { entityType: 'TRANSPORTATION', subType: 'ferry' },
+  hotel:      { entityType: 'LODGING', subType: 'hotel' },
+  hostel:     { entityType: 'LODGING', subType: 'hostel' },
+  airbnb:     { entityType: 'LODGING', subType: 'airbnb' },
+  resort:     { entityType: 'LODGING', subType: 'resort' },
+  activity:   { entityType: 'ACTIVITY', subType: '' },
+  other:      { entityType: 'ACTIVITY', subType: '' },
+};
+
 interface ParsedEntity {
-  entityType: 'TRANSPORTATION' | 'LODGING' | 'ACTIVITY' | 'LOCATION';
-  confidence: number; // 0.0 to 1.0
+  entityType: EntityType;
+  confidence: number;
   data: Record<string, unknown>;
   warnings?: string[];
 }
@@ -77,173 +116,144 @@ class EmailParserService {
    * Build the system prompt that instructs the LLM how to extract travel entities
    */
   buildSystemPrompt(): string {
-    return `You are a travel email parser. Your job is to extract structured travel information from emails and return it as JSON. Travel emails include booking confirmations, itineraries, receipts, flight/schedule updates, gate changes, delay notifications, check-in reminders, boarding passes, hotel confirmations, rental car confirmations, tour/activity bookings, and any other travel-related correspondence.
+    return `You extract travel info from emails and return JSON only.
 
-Return a JSON object with a single key "entities" containing an array of extracted entities. Each entity has:
-- "entityType": one of "TRANSPORTATION", "LODGING", "ACTIVITY", "LOCATION"
-- "confidence": a number from 0.0 to 1.0
-- "data": an object with fields specific to the entity type
+Output format — a JSON object with one key "entities", an array of items. Each item has:
+- "type": one of "flight", "hotel", "rental_car", "train", "bus", "activity", "other"
+- "summary": short one-line description
+- "details": object with any relevant fields you find (dates, times, locations, confirmation numbers, costs, names, flight numbers, etc.)
 
-Field schemas per entity type:
+Example output:
+{"entities":[{"type":"flight","summary":"AA 1234 DFW to LAX Mar 15","details":{"airline":"American Airlines","flightNumber":"AA 1234","from":"DFW","to":"LAX","date":"2026-03-15","departureTime":"14:30","arrivalTime":"16:45","confirmationNumber":"ABC123"}}]}
 
-TRANSPORTATION:
-- type (required, must be one of: flight, train, bus, car, ferry, bicycle, walk, other)
-- fromLocationName (string)
-- toLocationName (string)
-- departureTime (ISO 8601 datetime string)
-- arrivalTime (ISO 8601 datetime string)
-- startTimezone (IANA timezone, e.g. "America/New_York")
-- endTimezone (IANA timezone)
-- carrier (string, e.g. airline or train company name)
-- vehicleNumber (string, e.g. flight number "UA 1234")
-- confirmationNumber (string)
-- cost (number)
-- currency (string, e.g. "USD")
-- notes (string)
-
-LODGING:
-- type (required, must be one of: hotel, hostel, airbnb, vacation_rental, camping, resort, motel, bed_and_breakfast, apartment, friends_family, other)
-- name (required, string, name of the hotel/property)
-- address (string)
-- checkInDate (ISO 8601 date or datetime string)
-- checkOutDate (ISO 8601 date or datetime string)
-- timezone (IANA timezone)
-- confirmationNumber (string)
-- cost (number)
-- currency (string)
-- bookingUrl (string)
-- notes (string)
-
-ACTIVITY:
-- name (required, string)
-- description (string)
-- category (string)
-- startTime (ISO 8601 datetime string)
-- endTime (ISO 8601 datetime string)
-- timezone (IANA timezone)
-- cost (number)
-- currency (string)
-- bookingReference (string)
-- bookingUrl (string)
-- notes (string)
-
-LOCATION:
-- name (required, string)
-- address (string)
-- visitDatetime (ISO 8601 datetime string)
-- notes (string)
+If no travel info found, return: {"entities":[]}
 
 Rules:
-1. Extract ALL entities found in the email. A round-trip flight should produce 2 TRANSPORTATION entities (outbound and return).
-2. Assign confidence scores: 1.0 for explicitly stated information, 0.8 for reasonably inferred information, 0.5 for uncertain/ambiguous information.
-3. Do NOT hallucinate or invent information that is not present or reasonably inferable from the email.
-4. If the email is not travel-related or contains no extractable travel entities, return {"entities": []}.
-5. Output ONLY valid JSON. No explanations, no markdown, no extra text.`;
+1. Return ONLY the JSON object. No other text, no explanations, no markdown.
+2. Extract only information explicitly stated in the email. Do not invent data.
+3. A round-trip produces 2 separate entities.
+4. Include ALL relevant details you find in the "details" object.`;
   }
 
   /**
    * Validate and normalize the raw parsed output from the LLM
    */
   validateAndNormalizeParsedEntities(raw: unknown): ParsedEntity[] {
-    if (!raw || typeof raw !== 'object') {
-      logger.warn('LLM returned non-object response');
+    const parsed = llmResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      logger.warn('LLM response failed schema validation', { errors: parsed.error.issues });
       return [];
     }
 
-    const obj = raw as Record<string, unknown>;
-    const entities = obj.entities;
-
-    if (!Array.isArray(entities)) {
-      logger.warn('LLM response missing "entities" array');
-      return [];
-    }
-
-    const validEntityTypes = new Set<ParsedEntity['entityType']>(['TRANSPORTATION', 'LODGING', 'ACTIVITY', 'LOCATION']);
-
-    function isValidEntityType(value: string): value is ParsedEntity['entityType'] {
-      return validEntityTypes.has(value as ParsedEntity['entityType']);
-    }
     const result: ParsedEntity[] = [];
 
-    for (const entity of entities) {
-      if (!entity || typeof entity !== 'object') {
-        logger.warn('Skipping non-object entity in LLM response');
+    for (const entity of parsed.data.entities) {
+      const llmType = entity.type.toLowerCase();
+      const mapping = LLM_TYPE_MAP[llmType];
+
+      if (!mapping) {
+        logger.warn(`Skipping entity with unknown type: ${entity.type}`);
         continue;
       }
 
-      const e = entity as Record<string, unknown>;
-
-      // Validate entityType
-      const entityTypeRaw = typeof e.entityType === 'string' ? e.entityType.toUpperCase() : '';
-      if (!isValidEntityType(entityTypeRaw)) {
-        logger.warn(`Skipping entity with invalid entityType: ${e.entityType}`);
-        continue;
-      }
-      const entityType = entityTypeRaw;
-
-      // Validate confidence
-      let confidence = typeof e.confidence === 'number' ? e.confidence : 0.5;
-      confidence = Math.max(0, Math.min(1, confidence));
-
-      // Validate data
-      if (!e.data || typeof e.data !== 'object') {
-        logger.warn(`Skipping entity with missing or invalid data field`);
-        continue;
-      }
-
-      const data = { ...e.data } as Record<string, unknown>;
+      const { entityType, subType } = mapping;
+      const details = entity.details;
       const warnings: string[] = [];
 
-      // Normalize type fields to lowercase
-      if (typeof data.type === 'string') {
-        data.type = data.type.toLowerCase();
+      // Build the data object by mapping LLM details to app entity fields
+      const data: Record<string, unknown> = { ...details };
+
+      // Set the sub-type (flight, hotel, train, etc.)
+      if (subType) {
+        data.type = subType;
       }
 
-      // Add warnings for missing key fields per entity type
-      switch (entityType) {
-        case 'TRANSPORTATION':
-          if (!data.type) {
-            warnings.push('Missing required field: type');
-          }
-          break;
-
-        case 'LODGING':
-          if (!data.name) {
-            warnings.push('Missing required field: name');
-          }
-          if (!data.type) {
-            warnings.push('Missing required field: type');
-          }
-          if (!data.checkInDate) {
-            warnings.push('Missing field: checkInDate');
-          }
-          if (!data.checkOutDate) {
-            warnings.push('Missing field: checkOutDate');
-          }
-          break;
-
-        case 'ACTIVITY':
-          if (!data.name) {
-            warnings.push('Missing required field: name');
-          }
-          break;
-
-        case 'LOCATION':
-          if (!data.name) {
-            warnings.push('Missing required field: name');
-          }
-          break;
+      // Include the summary as notes if no notes field exists
+      if (entity.summary && !data.notes) {
+        data.notes = entity.summary;
       }
+
+      // Map common LLM detail field names to app field names
+      this.normalizeFieldNames(entityType, data);
 
       result.push({
         entityType,
-        confidence,
+        confidence: 0.8,
         data,
         ...(warnings.length > 0 ? { warnings } : {}),
       });
     }
 
     return result;
+  }
+
+  /**
+   * Normalize field names from free-form LLM output to the app's expected field names.
+   */
+  private normalizeFieldNames(entityType: EntityType, data: Record<string, unknown>): void {
+    // Common flight field mappings
+    if (entityType === 'TRANSPORTATION') {
+      if (data.from && !data.fromLocationName) {
+        data.fromLocationName = data.from;
+        delete data.from;
+      }
+      if (data.to && !data.toLocationName) {
+        data.toLocationName = data.to;
+        delete data.to;
+      }
+      if (data.airline && !data.carrier) {
+        data.carrier = data.airline;
+        delete data.airline;
+      }
+      if (data.flightNumber && !data.vehicleNumber) {
+        data.vehicleNumber = data.flightNumber;
+        delete data.flightNumber;
+      }
+      if (data.departure && !data.departureTime) {
+        data.departureTime = data.departure;
+        delete data.departure;
+      }
+      if (data.arrival && !data.arrivalTime) {
+        data.arrivalTime = data.arrival;
+        delete data.arrival;
+      }
+      if (data.confirmation && !data.confirmationNumber) {
+        data.confirmationNumber = data.confirmation;
+        delete data.confirmation;
+      }
+    }
+
+    // Common lodging field mappings
+    if (entityType === 'LODGING') {
+      if (data.checkIn && !data.checkInDate) {
+        data.checkInDate = data.checkIn;
+        delete data.checkIn;
+      }
+      if (data.checkOut && !data.checkOutDate) {
+        data.checkOutDate = data.checkOut;
+        delete data.checkOut;
+      }
+      if (data.hotelName && !data.name) {
+        data.name = data.hotelName;
+        delete data.hotelName;
+      }
+      if (data.confirmation && !data.confirmationNumber) {
+        data.confirmationNumber = data.confirmation;
+        delete data.confirmation;
+      }
+    }
+
+    // Common activity field mappings
+    if (entityType === 'ACTIVITY') {
+      if (data.activityName && !data.name) {
+        data.name = data.activityName;
+        delete data.activityName;
+      }
+      if (data.booking && !data.bookingReference) {
+        data.bookingReference = data.booking;
+        delete data.booking;
+      }
+    }
   }
 
   /**
@@ -306,7 +316,7 @@ Rules:
       }
 
       if (isAxiosError(error)) {
-        const status = error.response?.status || 'unknown';
+        const status = error.response?.status ?? 'unknown';
         const message = error.response?.data
           ? JSON.stringify(error.response.data)
           : error.message;
@@ -336,12 +346,69 @@ Rules:
       try {
         return JSON.parse(codeFenceMatch[1]);
       } catch {
-        // Ignore and fall through to error
+        // Ignore and try next fallback
+      }
+    }
+
+    // Attempt to find a JSON object anywhere in the response text
+    const jsonObjectMatch = raw.match(/\{[\s\S]*"entities"\s*:\s*\[[\s\S]*\]/);
+    if (jsonObjectMatch?.[0]) {
+      // Find the matching closing brace
+      const jsonStr = this.extractBalancedJson(jsonObjectMatch[0]);
+      if (jsonStr) {
+        try {
+          return JSON.parse(jsonStr);
+        } catch {
+          // Ignore and fall through to error
+        }
       }
     }
 
     logger.error('Failed to parse LLM response as JSON', { rawResponse: raw.substring(0, 500) });
     throw new Error('Failed to parse LLM response as JSON');
+  }
+
+  /**
+   * Extract a balanced JSON object string starting from the first '{'.
+   */
+  private extractBalancedJson(text: string): string | null {
+    const start = text.indexOf('{');
+    if (start === -1) return null;
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+
+      if (escape) {
+        escape = false;
+        continue;
+      }
+
+      if (ch === '\\' && inString) {
+        escape = true;
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (inString) continue;
+
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          return text.substring(start, i + 1);
+        }
+      }
+    }
+
+    return null;
   }
 }
 
