@@ -161,7 +161,12 @@ export async function restoreFromBackup(
               sortOrder: checklist.sortOrder,
               items: {
                 create: checklist.items?.map(item => ({
-                  ...item,
+                  name: item.name,
+                  description: item.description,
+                  sortOrder: item.sortOrder,
+                  isDefault: item.isDefault,
+                  isChecked: item.isChecked,
+                  checkedAt: item.checkedAt,
                   metadata: item.metadata === null ? Prisma.JsonNull : item.metadata,
                 })),
               },
@@ -554,7 +559,12 @@ export async function restoreFromBackup(
                 sortOrder: checklistData.sortOrder,
                 items: {
                   create: checklistData.items?.map(item => ({
-                    ...item,
+                    name: item.name,
+                    description: item.description,
+                    sortOrder: item.sortOrder,
+                    isDefault: item.isDefault,
+                    isChecked: item.isChecked,
+                    checkedAt: item.checkedAt,
                     metadata: item.metadata === null ? Prisma.JsonNull : item.metadata,
                   })),
                 },
