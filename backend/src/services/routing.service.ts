@@ -1,8 +1,26 @@
 import axios from 'axios';
+import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import config from '../config';
 import { AppError } from '../utils/errors';
 import prisma from '../config/database';
 import { RouteStep, isAxiosError } from '../types/prisma-helpers';
+
+function toJsonValue(geometry: number[][] | undefined): Prisma.InputJsonValue | null {
+  if (!geometry) return null;
+  return JSON.parse(JSON.stringify(geometry)) as Prisma.InputJsonValue;
+}
+
+const routeErrorSchema = z.object({
+  error: z.object({
+    message: z.string().optional(),
+  }).optional(),
+}).passthrough();
+
+function parseGeometry(value: Prisma.JsonValue | null): number[][] | null {
+  if (!value || !Array.isArray(value)) return null;
+  return value as number[][];
+}
 
 interface RouteCoordinates {
   latitude: number;
@@ -56,7 +74,7 @@ interface RouteCacheEntry {
 
 class RoutingService {
   private readonly API_KEY = config.openRouteService.apiKey;
-  private readonly API_URL = config.openRouteService.url || 'https://api.openrouteservice.org';
+  private readonly API_URL = config.openRouteService.url ?? 'https://api.openrouteservice.org';
   private readonly CACHE_DAYS = 30; // Cache routes for 30 days
 
   /**
@@ -85,7 +103,7 @@ class RoutingService {
         duration: cached.duration,
         haversineDistance: this.calculateHaversineDistance(from, to),
         source: 'route',
-        geometry: cached.routeGeometry as number[][] | undefined,
+        geometry: cached.routeGeometry ?? undefined,
       };
     }
 
@@ -99,7 +117,7 @@ class RoutingService {
         const routeData = await this.fetchRouteFromAPI(from, to, profile);
         const hasGeometry = routeData.geometry && routeData.geometry.length > 0;
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[Routing Service] API response received: distance=${routeData.distance.toFixed(2)}km, hasGeometry=${hasGeometry}, points=${hasGeometry ? routeData.geometry!.length : 0}`);
+          console.log(`[Routing Service] API response received: distance=${routeData.distance.toFixed(2)}km, hasGeometry=${hasGeometry}, points=${hasGeometry ? routeData.geometry.length : 0}`);
         }
 
         // Cache the result
@@ -114,9 +132,9 @@ class RoutingService {
         };
       } catch (error: unknown) {
         if (isAxiosError(error)) {
-          const responseData = error.response?.data as { error?: { message?: string } } | undefined;
-          const errorMsg = responseData?.error?.message || error.message;
-          const statusCode = error.response?.status || 'N/A';
+          const parsed = routeErrorSchema.safeParse(error.response?.data);
+          const errorMsg = (parsed.success ? parsed.data.error?.message : undefined) ?? error.message;
+          const statusCode = error.response?.status ?? 'N/A';
           console.warn(`[Routing Service] API call failed (status: ${statusCode}): ${errorMsg}`);
         } else if (error instanceof Error) {
           console.warn(`[Routing Service] API call failed: ${error.message}`);
@@ -290,7 +308,7 @@ class RoutingService {
       'foot-walking': 5,
     };
 
-    const speed = speeds[profile] || 80;
+    const speed = speeds[profile] ?? 80;
     return (distanceKm / speed) * 60; // Convert hours to minutes
   }
 
@@ -338,14 +356,18 @@ class RoutingService {
 
       if (cached) {
         return {
-          ...cached,
+          id: cached.id,
           fromLat: parseFloat(cached.fromLat.toString()),
           fromLon: parseFloat(cached.fromLon.toString()),
           toLat: parseFloat(cached.toLat.toString()),
           toLon: parseFloat(cached.toLon.toString()),
           distance: parseFloat(cached.distance.toString()),
           duration: parseFloat(cached.duration.toString()),
-        } as any;
+          profile: cached.profile,
+          routeGeometry: parseGeometry(cached.routeGeometry),
+          createdAt: cached.createdAt,
+          updatedAt: cached.updatedAt,
+        };
       }
 
       return null;
@@ -367,8 +389,22 @@ class RoutingService {
     geometry?: number[][]
   ): Promise<void> {
     try {
-      await prisma.routeCache.create({
-        data: {
+      await prisma.routeCache.upsert({
+        where: {
+          fromLat_fromLon_toLat_toLon_profile: {
+            fromLat: from.latitude,
+            fromLon: from.longitude,
+            toLat: to.latitude,
+            toLon: to.longitude,
+            profile,
+          },
+        },
+        update: {
+          distance,
+          duration,
+          routeGeometry: toJsonValue(geometry),
+        },
+        create: {
           fromLat: from.latitude,
           fromLon: from.longitude,
           toLat: to.latitude,
@@ -376,8 +412,7 @@ class RoutingService {
           distance,
           duration,
           profile,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- number[][] is valid JSON but Prisma's InputJsonValue doesn't accept it directly
-          routeGeometry: (geometry ?? null) as any,
+          routeGeometry: toJsonValue(geometry),
         },
       });
     } catch (error) {

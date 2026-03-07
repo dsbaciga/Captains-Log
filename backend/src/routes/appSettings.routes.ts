@@ -9,5 +9,6 @@ router.use(authenticate);
 router.get('/email-import', appSettingsController.getEmailImportSettings);
 router.put('/email-import', appSettingsController.updateEmailImportSettings);
 router.post('/email-import/test-llm', appSettingsController.testLlmConnection);
+router.post('/email-import/test-gmail', appSettingsController.testGmailConnection);
 
 export default router;

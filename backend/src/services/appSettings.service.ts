@@ -4,6 +4,7 @@ import axios, { AxiosError } from 'axios';
 import prisma from '../config/database';
 import config from '../config';
 import logger from '../config/logger';
+import gmailService from './gmail.service';
 
 export interface EmailImportSettingsResponse {
   gmailClientId: string | null;
@@ -129,6 +130,40 @@ class AppSettingsService {
       create: createData,
       update: updateData,
     });
+  }
+
+  async testGmailConnection(): Promise<LlmTestResult> {
+    const raw = await this.getRawEmailImportSettings();
+
+    // Apply overrides so gmailService uses DB credentials
+    gmailService.setOverrides({
+      clientId: raw.gmailClientId,
+      clientSecret: raw.gmailClientSecret,
+      refreshToken: raw.gmailRefreshToken,
+    });
+
+    if (!gmailService.isConfigured()) {
+      return { success: false, message: 'Gmail credentials are not configured. Set Client ID, Client Secret, and Refresh Token.' };
+    }
+
+    try {
+      const { gmail } = gmailService.getClient();
+      // Try listing 1 message to verify OAuth credentials work
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults: 1,
+      });
+      const total = response.data.resultSizeEstimate ?? 0;
+      logger.info(`Gmail test connection successful. Messages in inbox: ~${total}`);
+      return { success: true, message: `Gmail connection successful. Inbox has ~${total} messages.` };
+    } catch (err: unknown) {
+      let detail = 'Connection failed';
+      if (err instanceof Error) {
+        detail = err.message;
+      }
+      logger.warn(`Gmail test connection failed: ${detail}`);
+      return { success: false, message: `Gmail connection failed: ${detail}` };
+    }
   }
 
   async testLlmConnection(): Promise<LlmTestResult> {

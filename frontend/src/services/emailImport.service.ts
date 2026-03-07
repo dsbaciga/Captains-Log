@@ -169,6 +169,11 @@ const emailImportService = {
     const response = await axios.post('/app-settings/email-import/test-llm');
     return response.data;
   },
+
+  async testGmailConnection(): Promise<{ message: string }> {
+    const response = await axios.post('/app-settings/email-import/test-gmail');
+    return response.data;
+  },
 };
 
 export default emailImportService;

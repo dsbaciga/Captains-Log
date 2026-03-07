@@ -39,4 +39,14 @@ export const appSettingsController = {
     }
     res.json({ status: 'success', message: result.message });
   }),
+
+  testGmailConnection: asyncHandler(async (req: Request, res: Response) => {
+    requireUserId(req);
+    const result = await appSettingsService.testGmailConnection();
+    if (!result.success) {
+      res.status(400).json({ status: 'error', message: result.message });
+      return;
+    }
+    res.json({ status: 'success', message: result.message });
+  }),
 };

@@ -9,6 +9,7 @@ export default function EmailImportSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isTestingGmail, setIsTestingGmail] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // General
@@ -114,6 +115,20 @@ export default function EmailImportSettings() {
       setMessage({ type: 'error', text: error.response?.data?.message || 'LLM connection test failed' });
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const handleTestGmail = async () => {
+    setIsTestingGmail(true);
+    setMessage(null);
+    try {
+      const result = await emailImportService.testGmailConnection();
+      setMessage({ type: 'success', text: result.message });
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Gmail connection test failed' });
+    } finally {
+      setIsTestingGmail(false);
     }
   };
 
@@ -305,6 +320,15 @@ export default function EmailImportSettings() {
                 The shared Gmail inbox where users forward their confirmation emails.
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={handleTestGmail}
+              disabled={isTestingGmail || isSaving}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed text-sm font-body"
+            >
+              {isTestingGmail ? 'Testing...' : 'Test Gmail Connection'}
+            </button>
           </div>
         )}
 
