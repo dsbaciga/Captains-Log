@@ -36,9 +36,9 @@ class EmailParserService {
 
   private getLlmConfig(): { baseUrl: string; apiKey: string; model: string; maxTokens: number } {
     if (this.overrides) {
-      return { ...this.overrides, maxTokens: this.llmConfig.maxTokens };
+      return { ...this.overrides, maxTokens: Math.max(this.llmConfig.maxTokens, 8192) };
     }
-    return this.llmConfig;
+    return { ...this.llmConfig, maxTokens: Math.max(this.llmConfig.maxTokens, 8192) };
   }
 
   /**
@@ -61,9 +61,11 @@ class EmailParserService {
     const userMessage = `Subject: ${subject}\n\nBody:\n${emailBody}`;
 
     const rawResponse = await this.callLLM(systemPrompt, userMessage);
+    logger.debug(`[EmailParser] Raw LLM response (first 500 chars): ${rawResponse.substring(0, 500)}`);
 
     const parsed = this.extractJSON(rawResponse);
     const entities = this.validateAndNormalizeParsedEntities(parsed);
+    logger.info(`[EmailParser] Parsed ${entities.length} entity(ies) from email "${subject}"`);
 
     return {
       entities,
@@ -75,7 +77,7 @@ class EmailParserService {
    * Build the system prompt that instructs the LLM how to extract travel entities
    */
   buildSystemPrompt(): string {
-    return `You are a travel email parser. Your job is to extract structured travel information from emails (booking confirmations, itineraries, receipts, etc.) and return it as JSON.
+    return `You are a travel email parser. Your job is to extract structured travel information from emails and return it as JSON. Travel emails include booking confirmations, itineraries, receipts, flight/schedule updates, gate changes, delay notifications, check-in reminders, boarding passes, hotel confirmations, rental car confirmations, tour/activity bookings, and any other travel-related correspondence.
 
 Return a JSON object with a single key "entities" containing an array of extracted entities. Each entity has:
 - "entityType": one of "TRANSPORTATION", "LODGING", "ACTIVITY", "LOCATION"
@@ -156,7 +158,11 @@ Rules:
       return [];
     }
 
-    const validEntityTypes = new Set(['TRANSPORTATION', 'LODGING', 'ACTIVITY', 'LOCATION']);
+    const validEntityTypes = new Set<ParsedEntity['entityType']>(['TRANSPORTATION', 'LODGING', 'ACTIVITY', 'LOCATION']);
+
+    function isValidEntityType(value: string): value is ParsedEntity['entityType'] {
+      return validEntityTypes.has(value as ParsedEntity['entityType']);
+    }
     const result: ParsedEntity[] = [];
 
     for (const entity of entities) {
@@ -168,11 +174,12 @@ Rules:
       const e = entity as Record<string, unknown>;
 
       // Validate entityType
-      const entityType = typeof e.entityType === 'string' ? e.entityType.toUpperCase() : '';
-      if (!validEntityTypes.has(entityType)) {
+      const entityTypeRaw = typeof e.entityType === 'string' ? e.entityType.toUpperCase() : '';
+      if (!isValidEntityType(entityTypeRaw)) {
         logger.warn(`Skipping entity with invalid entityType: ${e.entityType}`);
         continue;
       }
+      const entityType = entityTypeRaw;
 
       // Validate confidence
       let confidence = typeof e.confidence === 'number' ? e.confidence : 0.5;
@@ -229,7 +236,7 @@ Rules:
       }
 
       result.push({
-        entityType: entityType as ParsedEntity['entityType'],
+        entityType,
         confidence,
         data,
         ...(warnings.length > 0 ? { warnings } : {}),
@@ -257,27 +264,39 @@ Rules:
           ],
           max_tokens: cfg.maxTokens,
           temperature: 0.1,
-          response_format: { type: 'json_object' },
         },
         {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${cfg.apiKey}`,
           },
-          timeout: 60000,
+          timeout: 120000,
         }
       );
 
-      const content = response.data?.choices?.[0]?.message?.content;
-      if (typeof content !== 'string' || !content.trim()) {
-        throw new Error('LLM returned empty or invalid response content');
+      const message = response.data?.choices?.[0]?.message;
+      const content = message?.content;
+      const reasoning = message?.reasoning;
+
+      if (typeof content === 'string' && content.trim()) {
+        return content;
       }
 
-      return content;
+      // For thinking models: reasoning may contain the JSON if content is empty
+      if (typeof reasoning === 'string' && reasoning.trim()) {
+        logger.info('[EmailParser] Content empty but reasoning present (thinking model). Extracting JSON from reasoning.');
+        return reasoning;
+      }
+
+      logger.error('[EmailParser] LLM returned empty content and no reasoning', {
+        rawResponse: JSON.stringify(response.data).substring(0, 500),
+      });
+      throw new Error('LLM returned empty or invalid response content');
     } catch (error: unknown) {
       if (isAxiosError(error) && error.response?.status === 429 && retries > 0) {
+        const retryAfterHeader = error.response.headers?.['retry-after'];
         const retryAfter = parseInt(
-          (error.response.headers?.['retry-after'] as string) || '2',
+          typeof retryAfterHeader === 'string' ? retryAfterHeader : '2',
           10
         );
         const delay = Math.min(retryAfter * 1000, 10000);
