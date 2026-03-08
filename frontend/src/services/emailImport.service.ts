@@ -131,6 +131,11 @@ const emailImportService = {
     return response.data;
   },
 
+  async reparseEmailImport(id: number): Promise<{ parsed: number }> {
+    const response = await axios.post(`/email-imports/${id}/reparse`);
+    return response.data;
+  },
+
   async triggerPoll(): Promise<{ processed: number; errors: number }> {
     const response = await axios.post('/email-imports/trigger');
     return response.data;

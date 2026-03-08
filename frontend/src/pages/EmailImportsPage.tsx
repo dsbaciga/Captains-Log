@@ -240,6 +240,18 @@ export default function EmailImportsPage() {
     },
   });
 
+  const reparseMutation = useMutation({
+    mutationFn: (id: number) => emailImportService.reparseEmailImport(id),
+    onSuccess: (data) => {
+      toast.success(`Reparse successful: ${data.parsed} entity(ies) found`);
+      queryClient.invalidateQueries({ queryKey: ['emailImport'] });
+    },
+    onError: () => {
+      toast.error('Reparse failed');
+      queryClient.invalidateQueries({ queryKey: ['emailImport'] });
+    },
+  });
+
   // --- Handlers ---
 
   const handleAccept = (id: number) => {
@@ -289,7 +301,7 @@ export default function EmailImportsPage() {
   const isConfigured = status?.gmailConfigured && status?.llmConfigured;
 
   const pendingList = pendingEntities?.entities ?? [];
-  const pendingCount = pendingEntities?.total ?? pendingList.length;
+  const pendingCount = pendingEntities?.total ?? 0;
 
   const tabs: TabGroupItem[] = useMemo(
     () => [
@@ -517,6 +529,9 @@ export default function EmailImportsPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-slate dark:text-warm-gray/70 uppercase tracking-wider">
                             Received
                           </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-slate dark:text-warm-gray/70 uppercase tracking-wider">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -525,15 +540,16 @@ export default function EmailImportsPage() {
                             key={email.id}
                             className="hover:bg-parchment/50 dark:hover:bg-navy-700/50 transition-colors"
                           >
-                            <td className="px-6 py-4 text-sm text-charcoal dark:text-cream-100 font-body max-w-xs truncate">
-                              {email.subject || '(no subject)'}
+                            <td className="px-6 py-4 text-sm text-charcoal dark:text-cream font-body max-w-xs truncate">
+                              {email.subject ?? '(no subject)'}
                             </td>
                             <td className="px-6 py-4 text-sm text-slate dark:text-warm-gray font-body max-w-xs truncate">
-                              {email.fromAddress || '-'}
+                              {email.fromAddress ?? '-'}
                             </td>
                             <td className="px-6 py-4">
                               <span
                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_CLASSES[email.status]}`}
+                                title={email.status === 'PARSE_FAILED' && email.errorMessage ? email.errorMessage : undefined}
                               >
                                 {STATUS_LABELS[email.status]}
                               </span>
@@ -543,6 +559,17 @@ export default function EmailImportsPage() {
                             </td>
                             <td className="px-6 py-4 text-sm text-slate dark:text-warm-gray font-body whitespace-nowrap">
                               {formatReceivedDate(email.receivedAt)}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              {(email.status === 'PARSE_FAILED' || email.status === 'NO_ENTITIES') && (
+                                <button
+                                  onClick={() => reparseMutation.mutate(email.id)}
+                                  disabled={reparseMutation.isPending}
+                                  className="text-xs text-terracotta hover:text-terracotta/80 dark:text-terracotta-light dark:hover:text-terracotta-light/80 font-medium disabled:opacity-50"
+                                >
+                                  Reparse
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -559,15 +586,21 @@ export default function EmailImportsPage() {
                       className="card p-4"
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-sm font-medium text-charcoal dark:text-cream-100 font-body truncate flex-1">
-                          {email.subject || '(no subject)'}
+                        <p className="text-sm font-medium text-charcoal dark:text-cream font-body truncate flex-1">
+                          {email.subject ?? '(no subject)'}
                         </p>
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${STATUS_BADGE_CLASSES[email.status]}`}
+                          title={email.status === 'PARSE_FAILED' && email.errorMessage ? email.errorMessage : undefined}
                         >
                           {STATUS_LABELS[email.status]}
                         </span>
                       </div>
+                      {email.status === 'PARSE_FAILED' && email.errorMessage && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mb-2 line-clamp-2">
+                          {email.errorMessage}
+                        </p>
+                      )}
                       <div className="text-xs text-slate dark:text-warm-gray font-body space-y-1">
                         {email.fromAddress && (
                           <p className="truncate">
@@ -583,6 +616,15 @@ export default function EmailImportsPage() {
                             {formatReceivedDate(email.receivedAt)}
                           </span>
                         </div>
+                        {(email.status === 'PARSE_FAILED' || email.status === 'NO_ENTITIES') && (
+                          <button
+                            onClick={() => reparseMutation.mutate(email.id)}
+                            disabled={reparseMutation.isPending}
+                            className="mt-2 text-xs text-terracotta hover:text-terracotta/80 dark:text-terracotta-light dark:hover:text-terracotta-light/80 font-medium disabled:opacity-50"
+                          >
+                            Reparse
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

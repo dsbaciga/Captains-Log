@@ -14,6 +14,7 @@ router.get('/pending/count', emailImportController.getPendingCount);
 router.post('/pending/:id/accept', emailImportController.acceptPendingEntity);
 router.post('/pending/:id/reject', emailImportController.rejectPendingEntity);
 router.put('/pending/:id', emailImportController.updatePendingEntity);
+router.post('/:id/reparse', emailImportController.reparseEmailImport);
 router.post('/trigger', emailImportController.triggerPoll);
 
 export default router;

@@ -11,6 +11,18 @@ import { parseId } from '../utils/parseId';
 import { requireUserId } from '../utils/controllerHelpers';
 import logger from '../config/logger';
 
+const UNSAFE_KEYS = new Set(['id', 'userId', 'createdAt', 'updatedAt']);
+
+function stripUnsafeKeys(data: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (!UNSAFE_KEYS.has(key)) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 /** Rate limit: track last trigger time per user */
 const lastTriggerByUser = new Map<number, number>();
 
@@ -87,8 +99,7 @@ export const emailImportController = {
     const body = acceptPendingEntitySchema.parse(req.body);
 
     if (body.data) {
-      const { id: _id, userId: _uid, createdAt: _ca, updatedAt: _ua, ...safeData } = body.data as Record<string, unknown>;
-      body.data = safeData;
+      body.data = stripUnsafeKeys(body.data);
     }
 
     const result = await emailImportService.acceptPendingEntity(userId, id, body);
@@ -127,11 +138,26 @@ export const emailImportController = {
     const body = updatePendingEntitySchema.parse(req.body);
 
     if (body.parsedData) {
-      const { id: _id, userId: _uid, createdAt: _ca, updatedAt: _ua, ...safeData } = body.parsedData as Record<string, unknown>;
-      body.parsedData = safeData;
+      body.parsedData = stripUnsafeKeys(body.parsedData);
     }
 
     const result = await emailImportService.updatePendingEntity(userId, id, body);
+
+    res.json({
+      status: 'success',
+      data: result,
+    });
+  }),
+
+  /**
+   * Re-parse a failed email import
+   * POST /api/email-imports/:id/reparse
+   */
+  reparseEmailImport: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const id = parseId(req.params.id);
+
+    const result = await emailImportService.reparseEmailImport(userId, id);
 
     res.json({
       status: 'success',

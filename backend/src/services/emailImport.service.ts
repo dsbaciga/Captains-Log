@@ -8,6 +8,7 @@ import transportationService from './transportation.service';
 import lodgingService from './lodging.service';
 import activityService from './activity.service';
 import locationService from './location.service';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import { ZodError } from 'zod';
 import { createTransportationSchema } from '../types/transportation.types';
@@ -20,7 +21,7 @@ import { createLocationSchema } from '../types/location.types';
 // =============================================================================
 
 let processingLock: { active: boolean; startedAt: number } = { active: false, startedAt: 0 };
-const LOCK_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const LOCK_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes — accounts for slow LLM responses with retries
 
 // =============================================================================
 // HEALTH TRACKING
@@ -82,8 +83,8 @@ class EmailImportService {
     return {
       gmailConfigured: gmailService.isConfigured(),
       llmConfigured: emailParserService.isConfigured(),
-      enabled: raw.emailImportEnabled || config.emailImport.enabled,
-      inboxEmail: raw.gmailInboxEmail || config.emailImport.gmail.inboxEmail,
+      enabled: raw.emailImportEnabled ?? config.emailImport.enabled,
+      inboxEmail: raw.gmailInboxEmail ?? config.emailImport.gmail.inboxEmail,
       lastSuccessfulPoll,
       lastError,
       consecutiveFailures,
@@ -140,13 +141,13 @@ class EmailImportService {
           const emailImport = await prisma.emailImport.create({
             data: {
               gmailMessageId: email.messageId,
-              threadId: email.threadId || null,
-              subject: email.subject || null,
-              fromAddress: email.fromAddress || null,
-              forwardedBy: email.forwardedBy || null,
-              rawContent: email.bodyText || null,
+              threadId: email.threadId ?? null,
+              subject: email.subject ?? null,
+              fromAddress: email.fromAddress ?? null,
+              forwardedBy: email.forwardedBy ?? null,
+              rawContent: email.bodyText ?? null,
               status: 'FETCHED',
-              receivedAt: email.receivedAt || null,
+              receivedAt: email.receivedAt ?? null,
             },
           });
 
@@ -177,7 +178,7 @@ class EmailImportService {
               logger.error('[EmailImport] Failed to mark message as read', { error: err })
             );
 
-            logger.info(`[EmailImport] No user matched for email from: ${email.forwardedBy || email.fromAddress}`);
+            logger.info(`[EmailImport] No user matched for email from: ${email.forwardedBy ?? email.fromAddress}`);
             continue;
           }
 
@@ -320,7 +321,7 @@ class EmailImportService {
       select: { id: true },
     });
 
-    return user?.id ?? null;
+    return user ? user.id : null;
   }
 
   /**
@@ -333,27 +334,28 @@ class EmailImportService {
     entityData: Record<string, unknown>,
     entityType: string
   ): Promise<number | null> {
-    // Extract relevant dates from the entity data based on type
-    const entityDates: Date[] = [];
-
+    // Extract relevant date field names based on entity type
+    const dateFieldNames: string[] = [];
     switch (entityType) {
-      case 'TRANSPORTATION': {
-        if (entityData.departureTime) entityDates.push(new Date(entityData.departureTime as string));
-        if (entityData.arrivalTime) entityDates.push(new Date(entityData.arrivalTime as string));
+      case 'TRANSPORTATION':
+        dateFieldNames.push('departureTime', 'arrivalTime');
         break;
-      }
-      case 'LODGING': {
-        if (entityData.checkInDate) entityDates.push(new Date(entityData.checkInDate as string));
-        if (entityData.checkOutDate) entityDates.push(new Date(entityData.checkOutDate as string));
+      case 'LODGING':
+        dateFieldNames.push('checkInDate', 'checkOutDate');
         break;
-      }
-      case 'ACTIVITY': {
-        if (entityData.startTime) entityDates.push(new Date(entityData.startTime as string));
+      case 'ACTIVITY':
+        dateFieldNames.push('startTime');
         break;
-      }
-      case 'LOCATION': {
-        if (entityData.visitDatetime) entityDates.push(new Date(entityData.visitDatetime as string));
+      case 'LOCATION':
+        dateFieldNames.push('visitDatetime');
         break;
+    }
+
+    const entityDates: Date[] = [];
+    for (const field of dateFieldNames) {
+      const value = entityData[field];
+      if (typeof value === 'string') {
+        entityDates.push(new Date(value));
       }
     }
 
@@ -361,6 +363,7 @@ class EmailImportService {
     const validDates = entityDates.filter((d) => !isNaN(d.getTime()));
 
     if (validDates.length === 0) {
+      logger.debug(`[EmailImport] No valid dates found in ${entityType} entity for trip matching`);
       return null;
     }
 
@@ -387,6 +390,8 @@ class EmailImportService {
       const tripStart = new Date(trip.startDate);
       const tripEnd = new Date(trip.endDate);
 
+      if (isNaN(tripStart.getTime()) || isNaN(tripEnd.getTime())) continue;
+
       // Set trip end to end of day for inclusive matching
       tripEnd.setUTCHours(23, 59, 59, 999);
 
@@ -399,6 +404,7 @@ class EmailImportService {
     }
 
     if (matchingTrips.length === 0) {
+      logger.debug(`[EmailImport] No trip date overlap found for ${entityType} entity (dates: ${validDates.map(d => d.toISOString()).join(', ')})`);
       return null;
     }
 
@@ -416,7 +422,7 @@ class EmailImportService {
     page: number,
     limit: number
   ): Promise<{
-    imports: unknown[];
+    imports: Prisma.EmailImportGetPayload<{ include: { _count: { select: { pendingEntities: true } } } }>[];
     total: number;
     page: number;
     limit: number;
@@ -460,7 +466,7 @@ class EmailImportService {
     page: number = 1,
     limit: number = 50
   ) {
-    const where: Record<string, unknown> = { userId };
+    const where: Prisma.PendingEntityWhereInput = { userId };
 
     if (filters?.tripId) {
       where.matchedTripId = filters.tripId;
@@ -529,6 +535,92 @@ class EmailImportService {
   }
 
   /**
+   * Re-parse a failed email import by running the LLM parser again on the stored rawContent.
+   */
+  async reparseEmailImport(userId: number, emailImportId: number): Promise<{ parsed: number }> {
+    const emailImport = await prisma.emailImport.findFirst({
+      where: { id: emailImportId, userId },
+    });
+
+    if (!emailImport) {
+      throw new AppError('Email import not found', 404);
+    }
+
+    if (!emailImport.rawContent) {
+      throw new AppError('Email content is no longer available for reparsing', 400);
+    }
+
+    await this.applyDbSettings();
+
+    if (!emailParserService.isConfigured()) {
+      throw new AppError('LLM is not configured', 400);
+    }
+
+    // Set status to PARSING
+    await prisma.emailImport.update({
+      where: { id: emailImportId },
+      data: { status: 'PARSING', errorMessage: null },
+    });
+
+    try {
+      const parseResult = await emailParserService.parseEmail(
+        emailImport.rawContent,
+        emailImport.subject ?? ''
+      );
+
+      if (parseResult.entities.length === 0) {
+        await prisma.emailImport.update({
+          where: { id: emailImportId },
+          data: { status: 'NO_ENTITIES', processedAt: new Date() },
+        });
+        return { parsed: 0 };
+      }
+
+      // Delete any existing pending entities from previous parse attempts
+      await prisma.pendingEntity.deleteMany({
+        where: { emailImportId, status: 'PENDING' },
+      });
+
+      await prisma.emailImport.update({
+        where: { id: emailImportId },
+        data: { status: 'PARSED', errorMessage: null, processedAt: new Date() },
+      });
+
+      for (const entity of parseResult.entities) {
+        const matchedTripId = await this.matchTrip(userId, entity.data, entity.entityType);
+
+        await prisma.pendingEntity.create({
+          data: {
+            emailImportId,
+            userId,
+            entityType: entity.entityType,
+            parsedData: { ...entity.data, ...(entity.warnings?.length ? { _warnings: entity.warnings } : {}) },
+            confidence: entity.confidence,
+            matchedTripId,
+            status: 'PENDING',
+          },
+        });
+      }
+
+      // Clear rawContent after successful parse
+      await prisma.emailImport.update({
+        where: { id: emailImportId },
+        data: { rawContent: null },
+      });
+
+      logger.info(`[EmailImport] Reparse successful for import ${emailImportId}: ${parseResult.entities.length} entities`);
+      return { parsed: parseResult.entities.length };
+    } catch (parseError) {
+      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+      await prisma.emailImport.update({
+        where: { id: emailImportId },
+        data: { status: 'PARSE_FAILED', errorMessage, processedAt: new Date() },
+      });
+      throw new AppError(`Reparse failed: ${errorMessage}`, 400);
+    }
+  }
+
+  /**
    * Accept a pending entity: create the actual entity in the appropriate service
    * and update the PendingEntity record.
    */
@@ -536,7 +628,7 @@ class EmailImportService {
     userId: number,
     id: number,
     overrides?: { tripId?: number; data?: Record<string, unknown> }
-  ): Promise<{ entity: unknown; type: string }> {
+  ): Promise<{ entity: Record<string, unknown>; type: string }> {
     const pendingEntity = await prisma.pendingEntity.findFirst({
       where: { id, userId },
     });
@@ -555,9 +647,12 @@ class EmailImportService {
     }
 
     // Merge overrides.data into parsedData if provided
+    const storedData = typeof pendingEntity.parsedData === 'object' && pendingEntity.parsedData !== null
+      ? pendingEntity.parsedData as Record<string, unknown>
+      : {};
     const parsedData = {
-      ...(pendingEntity.parsedData as Record<string, unknown>),
-      ...(overrides?.data || {}),
+      ...storedData,
+      ...overrides?.data,
     };
 
     // Determine tripId
@@ -596,7 +691,7 @@ class EmailImportService {
     }
 
     // Call the appropriate service create method with Zod validation
-    let createdEntity: unknown;
+    let createdEntity: Record<string, unknown>;
     const entityType = pendingEntity.entityType;
 
     try {
@@ -637,7 +732,7 @@ class EmailImportService {
     }
 
     // Get the created entity's ID
-    const createdEntityId = (createdEntity as { id?: number })?.id ?? null;
+    const createdEntityId = typeof createdEntity.id === 'number' ? createdEntity.id : null;
 
     // Update PendingEntity with status ACCEPTED
     await prisma.pendingEntity.update({
@@ -685,7 +780,7 @@ class EmailImportService {
     userId: number,
     id: number,
     data: { parsedData?: Record<string, unknown>; matchedTripId?: number | null }
-  ): Promise<unknown> {
+  ): Promise<Prisma.PendingEntityGetPayload<object>> {
     const pendingEntity = await prisma.pendingEntity.findFirst({
       where: { id, userId },
     });
@@ -706,7 +801,7 @@ class EmailImportService {
       }
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.PendingEntityUncheckedUpdateInput = {};
 
     if (data.parsedData !== undefined) {
       updateData.parsedData = data.parsedData;

@@ -31,6 +31,9 @@ const llmResponseSchema = z.object({
 const VALID_ENTITY_TYPES = ['TRANSPORTATION', 'LODGING', 'ACTIVITY', 'LOCATION'] as const;
 type EntityType = (typeof VALID_ENTITY_TYPES)[number];
 
+/** Default confidence for LLM-extracted entities (high but not certain) */
+const DEFAULT_ENTITY_CONFIDENCE = 0.8;
+
 /** Map LLM simple types to app entity types and sub-types */
 const LLM_TYPE_MAP: Record<string, { entityType: EntityType; subType: string }> = {
   flight:     { entityType: 'TRANSPORTATION', subType: 'flight' },
@@ -75,6 +78,7 @@ class EmailParserService {
 
   private getLlmConfig(): { baseUrl: string; apiKey: string; model: string; maxTokens: number } {
     if (this.overrides) {
+      // Minimum 8192 tokens — thinking models need headroom for reasoning before JSON output
       return { ...this.overrides, maxTokens: Math.max(this.llmConfig.maxTokens, 8192) };
     }
     return { ...this.llmConfig, maxTokens: Math.max(this.llmConfig.maxTokens, 8192) };
@@ -97,7 +101,16 @@ class EmailParserService {
     }
 
     const systemPrompt = this.buildSystemPrompt();
-    const userMessage = `Subject: ${subject}\n\nBody:\n${emailBody}`;
+    // Truncate very long emails — most travel info is in the first portion
+    const truncatedBody = emailBody.length > 15000 ? emailBody.substring(0, 15000) : emailBody;
+    const userMessage = `Parse this email and return ONLY a JSON object with extracted travel entities. No other text.
+
+Subject: ${subject}
+
+Body:
+${truncatedBody}
+
+Remember: respond with ONLY valid JSON like {"entities":[...]}. No explanations.`;
 
     const rawResponse = await this.callLLM(systemPrompt, userMessage);
     logger.debug(`[EmailParser] Raw LLM response (first 500 chars): ${rawResponse.substring(0, 500)}`);
@@ -116,23 +129,14 @@ class EmailParserService {
    * Build the system prompt that instructs the LLM how to extract travel entities
    */
   buildSystemPrompt(): string {
-    return `You extract travel info from emails and return JSON only.
+    return `You are a JSON API. You receive emails and respond with ONLY a JSON object. Never respond with natural language. Never explain or summarize. Your entire output must be valid JSON.
 
-Output format — a JSON object with one key "entities", an array of items. Each item has:
-- "type": one of "flight", "hotel", "rental_car", "train", "bus", "activity", "other"
-- "summary": short one-line description
-- "details": object with any relevant fields you find (dates, times, locations, confirmation numbers, costs, names, flight numbers, etc.)
+Format: {"entities":[{"type":"flight","summary":"AA 1234 DFW-LAX","details":{...}}]}
 
-Example output:
-{"entities":[{"type":"flight","summary":"AA 1234 DFW to LAX Mar 15","details":{"airline":"American Airlines","flightNumber":"AA 1234","from":"DFW","to":"LAX","date":"2026-03-15","departureTime":"14:30","arrivalTime":"16:45","confirmationNumber":"ABC123"}}]}
-
-If no travel info found, return: {"entities":[]}
-
-Rules:
-1. Return ONLY the JSON object. No other text, no explanations, no markdown.
-2. Extract only information explicitly stated in the email. Do not invent data.
-3. A round-trip produces 2 separate entities.
-4. Include ALL relevant details you find in the "details" object.`;
+Types: flight, hotel, rental_car, train, bus, activity, other
+Details: include dates, times, locations, confirmation numbers, costs, flight numbers, names — whatever you find.
+Ignore: baggage policies, liability notices, passenger protection regulations, terms and conditions, legal disclaimers. Only extract actual trip/booking details.
+No travel info? Return: {"entities":[]}`;
   }
 
   /**
@@ -148,11 +152,22 @@ Rules:
     const result: ParsedEntity[] = [];
 
     for (const entity of parsed.data.entities) {
-      const llmType = entity.type.toLowerCase();
-      const mapping = LLM_TYPE_MAP[llmType];
+      const llmType = entity.type.toLowerCase().trim();
+      let mapping = LLM_TYPE_MAP[llmType];
+
+      // Fuzzy match: try to find a type that starts with the LLM value or contains it
+      if (!mapping) {
+        const fuzzyKey = Object.keys(LLM_TYPE_MAP).find(
+          (key) => key.startsWith(llmType) || llmType.startsWith(key)
+        );
+        if (fuzzyKey) {
+          mapping = LLM_TYPE_MAP[fuzzyKey];
+          logger.info(`[EmailParser] Fuzzy matched LLM type "${entity.type}" to "${fuzzyKey}"`);
+        }
+      }
 
       if (!mapping) {
-        logger.warn(`Skipping entity with unknown type: ${entity.type}`);
+        logger.warn(`[EmailParser] Skipping entity with unknown type: "${entity.type}"`);
         continue;
       }
 
@@ -178,7 +193,7 @@ Rules:
 
       result.push({
         entityType,
-        confidence: 0.8,
+        confidence: DEFAULT_ENTITY_CONFIDENCE,
         data,
         ...(warnings.length > 0 ? { warnings } : {}),
       });
@@ -305,6 +320,7 @@ Rules:
     } catch (error: unknown) {
       if (isAxiosError(error) && error.response?.status === 429 && retries > 0) {
         const retryAfterHeader = error.response.headers?.['retry-after'];
+        // Default 2s retry if no Retry-After header — conservative for rate-limited APIs
         const retryAfter = parseInt(
           typeof retryAfterHeader === 'string' ? retryAfterHeader : '2',
           10

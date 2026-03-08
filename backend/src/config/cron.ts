@@ -26,36 +26,29 @@ export function initCronJobs() {
     .then(count => logger.info(`Initial trip status update complete. ${count} trips updated.`))
     .catch(err => logger.error('Initial trip status update failed:', err));
 
-  // Email import polling and cleanup
-  // Check async (DB settings may override env vars)
-  emailImportService.isConfigured().then((configured) => {
-    if (config.emailImport.enabled || configured) {
-      const interval = config.emailImport.pollIntervalMinutes;
-      cron.schedule(`*/${interval} * * * *`, async () => {
-        try {
-          // Re-check each poll cycle in case settings changed
-          const isReady = await emailImportService.isConfigured();
-          if (!isReady) return;
-          const result = await emailImportService.pollAndProcessEmails();
-          logger.info(`Email import: processed=${result.processed}, errors=${result.errors}`);
-        } catch (error) {
-          logger.error('Error during email import poll:', error);
-        }
-      });
-      logger.info(`Email import polling enabled (every ${interval} minutes)`);
-
-      // Weekly cleanup: purge rawContent from old PARSE_FAILED records (PII protection)
-      cron.schedule('0 3 * * 0', async () => {
-        try {
-          await emailImportService.cleanupOldRecords(30);
-          logger.info('Email import cleanup completed');
-        } catch (error) {
-          logger.error('Error during email import cleanup:', error);
-        }
-      });
+  // Email import polling — always register, check config each cycle
+  // so settings changes via app UI take effect without restart
+  const interval = config.emailImport.pollIntervalMinutes;
+  cron.schedule(`*/${interval} * * * *`, async () => {
+    try {
+      const isReady = await emailImportService.isConfigured();
+      if (!isReady) return;
+      const result = await emailImportService.pollAndProcessEmails();
+      logger.info(`Email import: processed=${result.processed}, errors=${result.errors}`);
+    } catch (error) {
+      logger.error('Error during email import poll:', error);
     }
-  }).catch((err) => {
-    logger.error('Failed to check email import configuration:', err);
+  });
+  logger.info(`Email import polling registered (every ${interval} minutes, checks config each cycle)`);
+
+  // Weekly cleanup: purge rawContent from old PARSE_FAILED records (PII protection)
+  cron.schedule('0 3 * * 0', async () => {
+    try {
+      await emailImportService.cleanupOldRecords(30);
+      logger.info('Email import cleanup completed');
+    } catch (error) {
+      logger.error('Error during email import cleanup:', error);
+    }
   });
 
   logger.info('Cron jobs initialized.');
