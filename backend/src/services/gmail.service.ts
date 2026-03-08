@@ -10,6 +10,7 @@ interface GmailMessage {
   fromAddress: string;
   forwardedBy: string | null;
   bodyText: string;
+  bodyHtml: string;
   receivedAt: Date | null;
 }
 
@@ -128,6 +129,7 @@ class GmailService {
         const subject = getHeader('Subject');
         const fromAddress = getHeader('From');
         const bodyText = this.extractBodyText(msg.payload);
+        const bodyHtml = this.extractBodyHtml(msg.payload);
         const forwardedBy = this.extractForwardedBy(headers, bodyText);
 
         // internalDate is milliseconds since epoch
@@ -142,6 +144,7 @@ class GmailService {
           fromAddress,
           forwardedBy,
           bodyText,
+          bodyHtml,
           receivedAt: internalDate,
         });
       } catch (error) {
@@ -165,6 +168,24 @@ class GmailService {
         removeLabelIds: ['UNREAD'],
       },
     });
+  }
+
+  /**
+   * Extract the raw HTML body from a Gmail message payload.
+   * Used for LLM parsing where HTML tables are more informative than stripped text.
+   * Returns empty string if no HTML part is found.
+   */
+  extractBodyHtml(payload: gmail_v1.Schema$MessagePart | undefined): string {
+    if (!payload) return '';
+
+    const htmlParts: string[] = [];
+    this.collectHtmlParts(payload, htmlParts);
+
+    const combined = htmlParts.join('\n').trim();
+    if (combined.length > MAX_BODY_LENGTH) {
+      return combined.substring(0, MAX_BODY_LENGTH);
+    }
+    return combined;
   }
 
   /**
@@ -242,6 +263,50 @@ class GmailService {
       // For other multipart types (mixed, related, etc.), recurse into all parts
       for (const childPart of part.parts) {
         this.collectTextParts(childPart, result);
+      }
+    }
+  }
+
+  /**
+   * Recursively collect raw HTML content from message parts.
+   * Prefers text/html. Used for LLM parsing of complex formatted emails.
+   */
+  private collectHtmlParts(
+    part: gmail_v1.Schema$MessagePart,
+    result: string[]
+  ): void {
+    const mimeType = part.mimeType || '';
+
+    if (
+      mimeType.startsWith('image/') ||
+      mimeType.startsWith('audio/') ||
+      mimeType.startsWith('video/') ||
+      mimeType.startsWith('application/')
+    ) {
+      return;
+    }
+
+    if (part.body?.data) {
+      const decoded = this.decodeBase64Url(part.body.data);
+
+      if (mimeType === 'text/html') {
+        result.push(decoded);
+        return;
+      }
+    }
+
+    if (part.parts && part.parts.length > 0) {
+      if (mimeType === 'multipart/alternative') {
+        // Prefer text/html for LLM parsing
+        const htmlPart = part.parts.find((p) => p.mimeType === 'text/html');
+        if (htmlPart) {
+          this.collectHtmlParts(htmlPart, result);
+          return;
+        }
+      }
+
+      for (const childPart of part.parts) {
+        this.collectHtmlParts(childPart, result);
       }
     }
   }

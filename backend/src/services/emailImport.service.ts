@@ -145,7 +145,7 @@ class EmailImportService {
               subject: email.subject ?? null,
               fromAddress: email.fromAddress ?? null,
               forwardedBy: email.forwardedBy ?? null,
-              rawContent: email.bodyText ?? null,
+              rawContent: email.bodyHtml || email.bodyText || null,
               status: 'FETCHED',
               receivedAt: email.receivedAt ?? null,
             },
@@ -197,7 +197,7 @@ class EmailImportService {
           let parseResult;
           try {
             parseResult = await emailParserService.parseEmail(
-              email.bodyText,
+              email.bodyHtml || email.bodyText,
               email.subject
             );
           } catch (parseError) {
