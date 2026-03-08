@@ -67,7 +67,7 @@ const LLM_TYPE_MAP: Record<string, { entityType: EntityType; subType: string }> 
 
 /** Types that should be silently ignored (not real travel entities) */
 const IGNORED_LLM_TYPES = new Set([
-  'organization', 'company', 'person', 'contact', 'email',
+  'organization', 'org', 'company', 'person', 'contact', 'email',
   'phone', 'website', 'url', 'policy', 'insurance', 'payment',
   'tip', 'tips', 'note', 'notes', 'disclaimer', 'terms',
   'address', 'location', 'place',
@@ -125,16 +125,11 @@ class EmailParserService {
     }
 
     const systemPrompt = this.buildSystemPrompt();
-    // Truncate very long emails — most travel info is in the first portion
-    const truncatedBody = emailBody.length > 15000 ? emailBody.substring(0, 15000) : emailBody;
-    const userMessage = `Parse this email and return ONLY a JSON object with extracted travel entities. No other text.
+    const cleanedBody = this.cleanEmailBody(emailBody);
+    logger.debug(`[EmailParser] Email body size: ${emailBody.length} -> cleaned: ${cleanedBody.length}`);
+    const userMessage = `Subject: ${subject}
 
-Subject: ${subject}
-
-Body:
-${truncatedBody}
-
-Remember: respond with ONLY valid JSON like {"entities":[...]}. No explanations.`;
+${cleanedBody}`;
 
     const rawResponse = await this.callLLM(systemPrompt, userMessage);
     logger.debug(`[EmailParser] Raw LLM response (first 500 chars): ${rawResponse.substring(0, 500)}`);
@@ -153,24 +148,79 @@ Remember: respond with ONLY valid JSON like {"entities":[...]}. No explanations.
    * Build the system prompt that instructs the LLM how to extract travel entities
    */
   buildSystemPrompt(): string {
-    return `You are a JSON API. You receive emails and respond with ONLY a JSON object. Never respond with natural language. Never explain or summarize. Your entire output must be valid JSON.
+    return `You are a JSON-only API that extracts travel booking data from emails. Your entire output must be valid JSON — no prose, no explanations, no markdown.
 
-Format: {"entities":[{"type":"<type>","summary":"<short description>","details":{...}}]}
+The email body may be raw HTML. Read through HTML tags, tables (<table>, <tr>, <td>), and formatting to find the actual booking data.
+
+Output format: {"entities":[{"type":"<type>","summary":"<one-line summary>","details":{...}}]}
 
 RULES:
-1. "type" MUST be exactly one of: flight, hotel, rental_car, train, bus, activity, other
-2. NEVER use types like "address", "organization", "location", "company", "person", or ANY other value not in the list above.
-3. Each email = ONE entity per booking/reservation. A car rental email = one "rental_car" entity. A flight email = one "flight" entity. Put ALL details (locations, dates, costs, confirmation numbers) into that single entity's "details" object.
-4. Do NOT create separate entities for addresses, locations, or organizations mentioned in the email. Those are part of the booking entity.
+1. "type" MUST be exactly one of: flight, hotel, rental_car, train, bus, activity, other. No other values.
+2. Return exactly ONE entity per booking/reservation in the email. Combine ALL related information (dates, locations, costs, confirmation numbers, vehicle/room details) into that single entity.
+3. Never create separate entities for addresses, locations, organizations, or people. Those belong inside the booking entity's details.
+4. Use the field names shown in the examples below. Use camelCase.
+
+Field names by type:
+- rental_car: confirmationNumber, pickupDate, pickupTime, dropoffDate, dropoffTime, pickupLocation, dropoffLocation, carType, totalCost, company, transmission
+- flight: flightNumber, airline, from, to, departure, arrival, confirmationNumber, cost, seatClass
+- hotel: hotelName, checkIn, checkOut, confirmationNumber, cost, address, roomType
+- train/bus: from, to, departure, arrival, confirmationNumber, cost, operator, seatClass
+- activity: name, date, time, location, confirmationNumber, cost
+Use ISO date format (YYYY-MM-DD) for dates and 24h format (HH:MM) for times when possible.
 
 Examples:
-- Car rental confirmation (e.g. Budget, Hertz, Enterprise) → {"entities":[{"type":"rental_car","summary":"Budget rental #12345 Munich Airport","details":{"confirmationNumber":"12345","pickupDate":"2026-06-27","pickupTime":"10:00","dropoffDate":"2026-07-07","dropoffTime":"10:00","pickupLocation":"Munich Airport, MUC","dropoffLocation":"Munich Airport, MUC","carType":"Cupra Leon SW or similar","totalCost":"$648.62","company":"Budget"}}]}
-- Flight booking → {"entities":[{"type":"flight","summary":"AA 1234 DFW-LAX","details":{"flightNumber":"AA 1234","airline":"American Airlines","from":"DFW","to":"LAX","departure":"2026-06-15T08:00","arrival":"2026-06-15T10:30","confirmationNumber":"ABC123","cost":"$350.00"}}]}
-- Hotel reservation → {"entities":[{"type":"hotel","summary":"Marriott Downtown 3 nights","details":{"hotelName":"Marriott Downtown","checkIn":"2026-06-15","checkOut":"2026-06-18","confirmationNumber":"H789","cost":"$450.00","address":"123 Main St"}}]}
+- Car rental: {"entities":[{"type":"rental_car","summary":"Budget #41871212US5 Munich Airport Jun 27 - Jul 7","details":{"confirmationNumber":"41871212US5","pickupDate":"2026-06-27","pickupTime":"10:00","dropoffDate":"2026-07-07","dropoffTime":"10:00","pickupLocation":"Munich Airport, MUC","dropoffLocation":"Munich Airport, MUC","carType":"Cupra Leon SW or similar","transmission":"Automatic","totalCost":"$648.62","company":"Budget"}}]}
+- Flight: {"entities":[{"type":"flight","summary":"AA 1234 DFW-LAX Jun 15","details":{"flightNumber":"AA 1234","airline":"American Airlines","from":"DFW","to":"LAX","departure":"2026-06-15T08:00","arrival":"2026-06-15T10:30","confirmationNumber":"ABC123","cost":"$350.00"}}]}
+- Hotel: {"entities":[{"type":"hotel","summary":"Marriott Downtown 3 nights Jun 15-18","details":{"hotelName":"Marriott Downtown","checkIn":"2026-06-15","checkOut":"2026-06-18","confirmationNumber":"H789","cost":"$450.00","address":"123 Main St"}}]}
 
-Include in details: dates, times, locations, confirmation numbers, costs, flight numbers, car types, names — whatever booking data you find.
-Ignore: baggage policies, liability notices, terms and conditions, legal disclaimers, insurance offers, tips, helpful reminders. Only extract actual booking details.
-No travel info? Return: {"entities":[]}`;
+Extract: dates, times, locations, confirmation/reservation numbers, costs (with currency), vehicle/room types, carrier/company names.
+Ignore: legal disclaimers, terms and conditions, insurance offers, tips, baggage policies, marketing content.
+No travel booking found? Return: {"entities":[]}`;
+  }
+
+  /**
+   * Clean email body for LLM parsing.
+   * Strips unnecessary HTML bloat (styles, scripts, images, tracking pixels)
+   * while preserving the content structure that helps the LLM extract data.
+   */
+  private cleanEmailBody(body: string): string {
+    let cleaned = body;
+
+    // If it looks like HTML, strip the bloat but keep structure
+    if (cleaned.includes('<') && cleaned.includes('>')) {
+      // Remove <head> section entirely (styles, meta tags, etc.)
+      cleaned = cleaned.replace(/<head[\s\S]*?<\/head>/gi, '');
+      // Remove <style> tags and contents
+      cleaned = cleaned.replace(/<style[\s\S]*?<\/style>/gi, '');
+      // Remove <script> tags and contents
+      cleaned = cleaned.replace(/<script[\s\S]*?<\/script>/gi, '');
+      // Remove HTML comments
+      cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
+      // Remove tracking pixels and tiny images
+      cleaned = cleaned.replace(/<img[^>]*(?:width\s*=\s*["']?1|height\s*=\s*["']?1|tracking|pixel|beacon)[^>]*>/gi, '');
+      // Remove all other img tags (not useful for text extraction)
+      cleaned = cleaned.replace(/<img[^>]*>/gi, '');
+      // Remove inline styles from remaining tags (reduce token waste)
+      cleaned = cleaned.replace(/\s+style\s*=\s*"[^"]*"/gi, '');
+      cleaned = cleaned.replace(/\s+style\s*=\s*'[^']*'/gi, '');
+      // Remove class attributes
+      cleaned = cleaned.replace(/\s+class\s*=\s*"[^"]*"/gi, '');
+      cleaned = cleaned.replace(/\s+class\s*=\s*'[^']*'/gi, '');
+      // Remove width/height/align/valign/bgcolor/border attributes
+      cleaned = cleaned.replace(/\s+(?:width|height|align|valign|bgcolor|border|cellpadding|cellspacing)\s*=\s*"[^"]*"/gi, '');
+      cleaned = cleaned.replace(/\s+(?:width|height|align|valign|bgcolor|border|cellpadding|cellspacing)\s*=\s*'[^']*'/gi, '');
+      // Collapse multiple whitespace/newlines
+      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+      cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+    }
+
+    // Final truncation after cleaning
+    const MAX_BODY = 30000;
+    if (cleaned.length > MAX_BODY) {
+      cleaned = cleaned.substring(0, MAX_BODY);
+    }
+
+    return cleaned.trim();
   }
 
   /**
