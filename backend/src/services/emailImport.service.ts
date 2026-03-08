@@ -8,7 +8,7 @@ import transportationService from './transportation.service';
 import lodgingService from './lodging.service';
 import activityService from './activity.service';
 import locationService from './location.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, PendingEntityStatus, PendingEntityType } from '@prisma/client';
 import { AppError } from '../utils/errors';
 import { ZodError } from 'zod';
 import { createTransportationSchema } from '../types/transportation.types';
@@ -472,10 +472,10 @@ class EmailImportService {
       where.matchedTripId = filters.tripId;
     }
     if (filters?.status) {
-      where.status = filters.status;
+      where.status = filters.status as PendingEntityStatus;
     }
     if (filters?.entityType) {
-      where.entityType = filters.entityType;
+      where.entityType = filters.entityType as PendingEntityType;
     }
 
     const skip = (page - 1) * limit;
@@ -691,7 +691,7 @@ class EmailImportService {
     }
 
     // Call the appropriate service create method with Zod validation
-    let createdEntity: Record<string, unknown>;
+    let createdEntity: unknown;
     const entityType = pendingEntity.entityType;
 
     try {
@@ -732,7 +732,8 @@ class EmailImportService {
     }
 
     // Get the created entity's ID
-    const createdEntityId = typeof createdEntity.id === 'number' ? createdEntity.id : null;
+    const entityObj = createdEntity as { id?: number };
+    const createdEntityId = typeof entityObj.id === 'number' ? entityObj.id : null;
 
     // Update PendingEntity with status ACCEPTED
     await prisma.pendingEntity.update({
@@ -744,7 +745,7 @@ class EmailImportService {
       },
     });
 
-    return { entity: createdEntity, type: entityType };
+    return { entity: createdEntity as Record<string, unknown>, type: entityType };
   }
 
   /**
@@ -804,7 +805,7 @@ class EmailImportService {
     const updateData: Prisma.PendingEntityUncheckedUpdateInput = {};
 
     if (data.parsedData !== undefined) {
-      updateData.parsedData = data.parsedData;
+      updateData.parsedData = data.parsedData as Prisma.InputJsonValue;
     }
 
     if (data.matchedTripId !== undefined) {
