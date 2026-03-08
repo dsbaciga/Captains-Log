@@ -105,9 +105,9 @@ export const config = {
       inboxEmail: process.env.GMAIL_INBOX_EMAIL || '',
     },
     llm: {
-      baseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+      baseUrl: process.env.LLM_BASE_URL || 'http://localhost:11434/v1',
       apiKey: process.env.LLM_API_KEY || '',
-      model: process.env.LLM_MODEL || 'gpt-4o-mini',
+      model: process.env.LLM_MODEL || 'qwen2.5:7b',
       maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '4096', 10),
     },
   },
