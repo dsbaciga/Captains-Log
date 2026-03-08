@@ -65,10 +65,6 @@ const LLM_TYPE_MAP: Record<string, { entityType: EntityType; subType: string }> 
   reservation: { entityType: 'ACTIVITY', subType: '' },
   booking:    { entityType: 'ACTIVITY', subType: '' },
   other:      { entityType: 'ACTIVITY', subType: '' },
-  // Location
-  address:    { entityType: 'LOCATION', subType: '' },
-  location:   { entityType: 'LOCATION', subType: '' },
-  place:      { entityType: 'LOCATION', subType: '' },
 };
 
 /** Types that should be silently ignored (not real travel entities) */
@@ -76,6 +72,7 @@ const IGNORED_LLM_TYPES = new Set([
   'organization', 'company', 'person', 'contact', 'email',
   'phone', 'website', 'url', 'policy', 'insurance', 'payment',
   'tip', 'tips', 'note', 'notes', 'disclaimer', 'terms',
+  'address', 'location', 'place',
 ]);
 
 interface ParsedEntity {
@@ -162,18 +159,19 @@ Remember: respond with ONLY valid JSON like {"entities":[...]}. No explanations.
 
 Format: {"entities":[{"type":"<type>","summary":"<short description>","details":{...}}]}
 
-IMPORTANT: "type" MUST be one of these exact values: flight, hotel, rental_car, train, bus, activity, other
-Do NOT use types like "address", "organization", "location", "company", "person", or any other value.
-Each email should produce ONE entity per booking/reservation. Combine all related info (locations, dates, costs, confirmation numbers) into a single entity.
+RULES:
+1. "type" MUST be exactly one of: flight, hotel, rental_car, train, bus, activity, other
+2. NEVER use types like "address", "organization", "location", "company", "person", or ANY other value not in the list above.
+3. Each email = ONE entity per booking/reservation. A car rental email = one "rental_car" entity. A flight email = one "flight" entity. Put ALL details (locations, dates, costs, confirmation numbers) into that single entity's "details" object.
+4. Do NOT create separate entities for addresses, locations, or organizations mentioned in the email. Those are part of the booking entity.
 
 Examples:
-- Car rental confirmation → type: "rental_car", details: {confirmationNumber, pickupDate, pickupTime, dropoffDate, dropoffTime, pickupLocation, dropoffLocation, carType, totalCost, company}
-- Flight booking → type: "flight", details: {flightNumber, airline, from, to, departure, arrival, confirmationNumber, cost}
-- Hotel reservation → type: "hotel", details: {hotelName, checkIn, checkOut, confirmationNumber, cost, address}
-- Train/bus ticket → type: "train" or "bus", details: {from, to, departure, arrival, confirmationNumber, cost}
+- Car rental confirmation (e.g. Budget, Hertz, Enterprise) → {"entities":[{"type":"rental_car","summary":"Budget rental #12345 Munich Airport","details":{"confirmationNumber":"12345","pickupDate":"2026-06-27","pickupTime":"10:00","dropoffDate":"2026-07-07","dropoffTime":"10:00","pickupLocation":"Munich Airport, MUC","dropoffLocation":"Munich Airport, MUC","carType":"Cupra Leon SW or similar","totalCost":"$648.62","company":"Budget"}}]}
+- Flight booking → {"entities":[{"type":"flight","summary":"AA 1234 DFW-LAX","details":{"flightNumber":"AA 1234","airline":"American Airlines","from":"DFW","to":"LAX","departure":"2026-06-15T08:00","arrival":"2026-06-15T10:30","confirmationNumber":"ABC123","cost":"$350.00"}}]}
+- Hotel reservation → {"entities":[{"type":"hotel","summary":"Marriott Downtown 3 nights","details":{"hotelName":"Marriott Downtown","checkIn":"2026-06-15","checkOut":"2026-06-18","confirmationNumber":"H789","cost":"$450.00","address":"123 Main St"}}]}
 
-Details: include dates, times, locations, confirmation numbers, costs, flight numbers, names — whatever you find in the email.
-Ignore: baggage policies, liability notices, passenger protection regulations, terms and conditions, legal disclaimers, insurance offers, tips, helpful reminders. Only extract actual trip/booking details.
+Include in details: dates, times, locations, confirmation numbers, costs, flight numbers, car types, names — whatever booking data you find.
+Ignore: baggage policies, liability notices, terms and conditions, legal disclaimers, insurance offers, tips, helpful reminders. Only extract actual booking details.
 No travel info? Return: {"entities":[]}`;
   }
 
