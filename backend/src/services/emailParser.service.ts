@@ -12,8 +12,6 @@ import { isAxiosError } from '../types/prisma-helpers';
 // LLM RESPONSE SCHEMA (simple format the LLM outputs)
 // =============================================================================
 
-const VALID_LLM_TYPES = ['flight', 'hotel', 'rental_car', 'train', 'bus', 'activity', 'other'] as const;
-
 const llmEntitySchema = z.object({
   type: z.string(),
   summary: z.string().optional().default(''),

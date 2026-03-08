@@ -268,11 +268,9 @@ class EmailImportService {
             );
           }
 
-          // j. Clear rawContent after successful parse (PII protection)
-          await prisma.emailImport.update({
-            where: { id: emailImport.id },
-            data: { rawContent: null },
-          });
+          // j. rawContent is preserved until all pending entities are resolved
+          //    (accepted/rejected) to allow reparsing with improved prompts.
+          //    Cleared in acceptPendingEntity/rejectPendingEntity when none remain.
 
           // k. Mark Gmail message as read
           await gmailService.markAsRead(email.messageId).catch((err) =>
@@ -602,11 +600,7 @@ class EmailImportService {
         });
       }
 
-      // Clear rawContent after successful parse
-      await prisma.emailImport.update({
-        where: { id: emailImportId },
-        data: { rawContent: null },
-      });
+      // rawContent preserved for future reparsing — cleared when entities are resolved
 
       logger.info(`[EmailImport] Reparse successful for import ${emailImportId}: ${parseResult.entities.length} entities`);
       return { parsed: parseResult.entities.length };
@@ -745,6 +739,9 @@ class EmailImportService {
       },
     });
 
+    // Clear rawContent when no pending entities remain (PII protection)
+    await this.clearRawContentIfResolved(pendingEntity.emailImportId);
+
     return { entity: createdEntity as Record<string, unknown>, type: entityType };
   }
 
@@ -771,6 +768,27 @@ class EmailImportService {
         reviewedAt: new Date(),
       },
     });
+
+    // Clear rawContent when no pending entities remain (PII protection)
+    await this.clearRawContentIfResolved(pendingEntity.emailImportId);
+  }
+
+  /**
+   * Clear rawContent from an email import once all its pending entities are resolved.
+   * This protects PII while still allowing reparsing when entities are still pending.
+   */
+  private async clearRawContentIfResolved(emailImportId: number): Promise<void> {
+    const pendingCount = await prisma.pendingEntity.count({
+      where: { emailImportId, status: 'PENDING' },
+    });
+
+    if (pendingCount === 0) {
+      await prisma.emailImport.update({
+        where: { id: emailImportId },
+        data: { rawContent: null },
+      });
+      logger.debug(`[EmailImport] Cleared rawContent for import ${emailImportId} (all entities resolved)`);
+    }
   }
 
   /**
