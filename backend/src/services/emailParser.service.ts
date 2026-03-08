@@ -36,18 +36,47 @@ const DEFAULT_ENTITY_CONFIDENCE = 0.8;
 
 /** Map LLM simple types to app entity types and sub-types */
 const LLM_TYPE_MAP: Record<string, { entityType: EntityType; subType: string }> = {
+  // Transportation
   flight:     { entityType: 'TRANSPORTATION', subType: 'flight' },
   train:      { entityType: 'TRANSPORTATION', subType: 'train' },
   bus:        { entityType: 'TRANSPORTATION', subType: 'bus' },
   rental_car: { entityType: 'TRANSPORTATION', subType: 'car' },
+  car_rental: { entityType: 'TRANSPORTATION', subType: 'car' },
+  car:        { entityType: 'TRANSPORTATION', subType: 'car' },
+  rental:     { entityType: 'TRANSPORTATION', subType: 'car' },
   ferry:      { entityType: 'TRANSPORTATION', subType: 'ferry' },
+  cruise:     { entityType: 'TRANSPORTATION', subType: 'ferry' },
+  taxi:       { entityType: 'TRANSPORTATION', subType: 'car' },
+  shuttle:    { entityType: 'TRANSPORTATION', subType: 'bus' },
+  transfer:   { entityType: 'TRANSPORTATION', subType: 'car' },
+  transportation: { entityType: 'TRANSPORTATION', subType: '' },
+  // Lodging
   hotel:      { entityType: 'LODGING', subType: 'hotel' },
   hostel:     { entityType: 'LODGING', subType: 'hostel' },
   airbnb:     { entityType: 'LODGING', subType: 'airbnb' },
   resort:     { entityType: 'LODGING', subType: 'resort' },
+  accommodation: { entityType: 'LODGING', subType: 'hotel' },
+  lodging:    { entityType: 'LODGING', subType: 'hotel' },
+  // Activity / Other
   activity:   { entityType: 'ACTIVITY', subType: '' },
+  tour:       { entityType: 'ACTIVITY', subType: '' },
+  event:      { entityType: 'ACTIVITY', subType: '' },
+  excursion:  { entityType: 'ACTIVITY', subType: '' },
+  reservation: { entityType: 'ACTIVITY', subType: '' },
+  booking:    { entityType: 'ACTIVITY', subType: '' },
   other:      { entityType: 'ACTIVITY', subType: '' },
+  // Location
+  address:    { entityType: 'LOCATION', subType: '' },
+  location:   { entityType: 'LOCATION', subType: '' },
+  place:      { entityType: 'LOCATION', subType: '' },
 };
+
+/** Types that should be silently ignored (not real travel entities) */
+const IGNORED_LLM_TYPES = new Set([
+  'organization', 'company', 'person', 'contact', 'email',
+  'phone', 'website', 'url', 'policy', 'insurance', 'payment',
+  'tip', 'tips', 'note', 'notes', 'disclaimer', 'terms',
+]);
 
 interface ParsedEntity {
   entityType: EntityType;
@@ -131,11 +160,20 @@ Remember: respond with ONLY valid JSON like {"entities":[...]}. No explanations.
   buildSystemPrompt(): string {
     return `You are a JSON API. You receive emails and respond with ONLY a JSON object. Never respond with natural language. Never explain or summarize. Your entire output must be valid JSON.
 
-Format: {"entities":[{"type":"flight","summary":"AA 1234 DFW-LAX","details":{...}}]}
+Format: {"entities":[{"type":"<type>","summary":"<short description>","details":{...}}]}
 
-Types: flight, hotel, rental_car, train, bus, activity, other
-Details: include dates, times, locations, confirmation numbers, costs, flight numbers, names — whatever you find.
-Ignore: baggage policies, liability notices, passenger protection regulations, terms and conditions, legal disclaimers. Only extract actual trip/booking details.
+IMPORTANT: "type" MUST be one of these exact values: flight, hotel, rental_car, train, bus, activity, other
+Do NOT use types like "address", "organization", "location", "company", "person", or any other value.
+Each email should produce ONE entity per booking/reservation. Combine all related info (locations, dates, costs, confirmation numbers) into a single entity.
+
+Examples:
+- Car rental confirmation → type: "rental_car", details: {confirmationNumber, pickupDate, pickupTime, dropoffDate, dropoffTime, pickupLocation, dropoffLocation, carType, totalCost, company}
+- Flight booking → type: "flight", details: {flightNumber, airline, from, to, departure, arrival, confirmationNumber, cost}
+- Hotel reservation → type: "hotel", details: {hotelName, checkIn, checkOut, confirmationNumber, cost, address}
+- Train/bus ticket → type: "train" or "bus", details: {from, to, departure, arrival, confirmationNumber, cost}
+
+Details: include dates, times, locations, confirmation numbers, costs, flight numbers, names — whatever you find in the email.
+Ignore: baggage policies, liability notices, passenger protection regulations, terms and conditions, legal disclaimers, insurance offers, tips, helpful reminders. Only extract actual trip/booking details.
 No travel info? Return: {"entities":[]}`;
   }
 
@@ -167,7 +205,11 @@ No travel info? Return: {"entities":[]}`;
       }
 
       if (!mapping) {
-        logger.warn(`[EmailParser] Skipping entity with unknown type: "${entity.type}"`);
+        if (IGNORED_LLM_TYPES.has(llmType)) {
+          logger.debug(`[EmailParser] Ignoring non-travel entity type: "${entity.type}"`);
+        } else {
+          logger.warn(`[EmailParser] Skipping entity with unknown type: "${entity.type}"`);
+        }
         continue;
       }
 
@@ -235,6 +277,76 @@ No travel info? Return: {"entities":[]}`;
       if (data.confirmation && !data.confirmationNumber) {
         data.confirmationNumber = data.confirmation;
         delete data.confirmation;
+      }
+      if (data.confirmation_number && !data.confirmationNumber) {
+        data.confirmationNumber = data.confirmation_number;
+        delete data.confirmation_number;
+      }
+      // Rental car specific mappings
+      if (data.pickupLocation && !data.fromLocationName) {
+        data.fromLocationName = data.pickupLocation;
+        delete data.pickupLocation;
+      }
+      if (data.pickup_location && !data.fromLocationName) {
+        data.fromLocationName = data.pickup_location;
+        delete data.pickup_location;
+      }
+      if (data.dropoffLocation && !data.toLocationName) {
+        data.toLocationName = data.dropoffLocation;
+        delete data.dropoffLocation;
+      }
+      if (data.dropoff_location && !data.toLocationName) {
+        data.toLocationName = data.dropoff_location;
+        delete data.dropoff_location;
+      }
+      if (data.pickupDate && !data.departureTime) {
+        // Combine date and time if both exist
+        const time = data.pickupTime || data.pickup_time;
+        data.departureTime = time ? `${data.pickupDate} ${time}` : data.pickupDate;
+        delete data.pickupDate;
+        delete data.pickupTime;
+        delete data.pickup_time;
+      }
+      if (data.pickup_date && !data.departureTime) {
+        const time = data.pickup_time || data.pickupTime;
+        data.departureTime = time ? `${data.pickup_date} ${time}` : data.pickup_date;
+        delete data.pickup_date;
+        delete data.pickup_time;
+        delete data.pickupTime;
+      }
+      if (data.dropoffDate && !data.arrivalTime) {
+        const time = data.dropoffTime || data.dropoff_time;
+        data.arrivalTime = time ? `${data.dropoffDate} ${time}` : data.dropoffDate;
+        delete data.dropoffDate;
+        delete data.dropoffTime;
+        delete data.dropoff_time;
+      }
+      if (data.dropoff_date && !data.arrivalTime) {
+        const time = data.dropoff_time || data.dropoffTime;
+        data.arrivalTime = time ? `${data.dropoff_date} ${time}` : data.dropoff_date;
+        delete data.dropoff_date;
+        delete data.dropoff_time;
+        delete data.dropoffTime;
+      }
+      if (data.company && !data.carrier) {
+        data.carrier = data.company;
+        delete data.company;
+      }
+      if (data.totalCost && !data.cost) {
+        data.cost = data.totalCost;
+        delete data.totalCost;
+      }
+      if (data.total_cost && !data.cost) {
+        data.cost = data.total_cost;
+        delete data.total_cost;
+      }
+      if (data.carType && !data.vehicleType) {
+        data.vehicleType = data.carType;
+        delete data.carType;
+      }
+      if (data.car_type && !data.vehicleType) {
+        data.vehicleType = data.car_type;
+        delete data.car_type;
       }
     }
 
