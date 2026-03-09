@@ -127,9 +127,15 @@ class EmailParserService {
     const systemPrompt = this.buildSystemPrompt();
     const cleanedBody = this.cleanEmailBody(emailBody);
     logger.debug(`[EmailParser] Email body size: ${emailBody.length} -> cleaned: ${cleanedBody.length}`);
-    const userMessage = `Subject: ${subject}
+    const userMessage = `Extract travel bookings from this email as JSON. Output ONLY {"entities":[...]} — no other text.
 
-${cleanedBody}`;
+Subject: ${subject}
+
+<email>
+${cleanedBody}
+</email>
+
+Respond with ONLY valid JSON. Do NOT describe or summarize the email.`;
 
     const rawResponse = await this.callLLM(systemPrompt, userMessage);
     logger.debug(`[EmailParser] Raw LLM response (first 500 chars): ${rawResponse.substring(0, 500)}`);
@@ -150,7 +156,9 @@ ${cleanedBody}`;
   buildSystemPrompt(): string {
     return `You are a JSON-only API that extracts travel booking data from emails. Your entire output must be valid JSON — no prose, no explanations, no markdown.
 
-The email body may be raw HTML. Read through HTML tags, tables (<table>, <tr>, <td>), and formatting to find the actual booking data.
+GOAL: The user is building a trip itinerary. They forward booking confirmation emails (flights, hotels, car rentals, trains, activities) so the app can automatically create trip events. Your job is to extract the key booking details — dates, times, locations, confirmation numbers, costs — so each email becomes a structured trip event.
+
+The email body may be raw HTML. Read through HTML tags, tables (<table>, <tr>, <td>), and formatting to find the actual booking data. Do not describe or summarize the HTML — extract the data from it.
 
 Output format: {"entities":[{"type":"<type>","summary":"<one-line summary>","details":{...}}]}
 
@@ -175,7 +183,9 @@ Examples:
 
 Extract: dates, times, locations, confirmation/reservation numbers, costs (with currency), vehicle/room types, carrier/company names.
 Ignore: legal disclaimers, terms and conditions, insurance offers, tips, baggage policies, marketing content.
-No travel booking found? Return: {"entities":[]}`;
+No travel booking found? Return: {"entities":[]}
+
+CRITICAL: Your response must be ONLY a JSON object. Do not write any natural language, descriptions, summaries, or explanations. Do not use markdown. Just output raw JSON.`;
   }
 
   /**
@@ -347,28 +357,28 @@ No travel booking found? Return: {"entities":[]}`;
       }
       if (data.pickupDate && !data.departureTime) {
         // Combine date and time if both exist
-        const time = data.pickupTime || data.pickup_time;
+        const time = data.pickupTime ?? data.pickup_time;
         data.departureTime = time ? `${data.pickupDate} ${time}` : data.pickupDate;
         delete data.pickupDate;
         delete data.pickupTime;
         delete data.pickup_time;
       }
       if (data.pickup_date && !data.departureTime) {
-        const time = data.pickup_time || data.pickupTime;
+        const time = data.pickup_time ?? data.pickupTime;
         data.departureTime = time ? `${data.pickup_date} ${time}` : data.pickup_date;
         delete data.pickup_date;
         delete data.pickup_time;
         delete data.pickupTime;
       }
       if (data.dropoffDate && !data.arrivalTime) {
-        const time = data.dropoffTime || data.dropoff_time;
+        const time = data.dropoffTime ?? data.dropoff_time;
         data.arrivalTime = time ? `${data.dropoffDate} ${time}` : data.dropoffDate;
         delete data.dropoffDate;
         delete data.dropoffTime;
         delete data.dropoff_time;
       }
       if (data.dropoff_date && !data.arrivalTime) {
-        const time = data.dropoff_time || data.dropoffTime;
+        const time = data.dropoff_time ?? data.dropoffTime;
         data.arrivalTime = time ? `${data.dropoff_date} ${time}` : data.dropoff_date;
         delete data.dropoff_date;
         delete data.dropoff_time;
