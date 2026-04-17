@@ -1,15 +1,12 @@
 import cron from 'node-cron';
 import tripService from '../services/trip.service';
-import emailImportService from '../services/emailImport.service';
-import config from './index';
 import logger from './logger';
 
 /**
  * Initializes all cron jobs for the application
  */
-export function initCronJobs() {
+export function initCronJobs(): void {
   // Run trip status auto-update every day at midnight
-  // Schedule: 0 0 * * *
   cron.schedule('0 0 * * *', async () => {
     logger.info('Running daily trip status auto-update...');
     try {
@@ -20,37 +17,11 @@ export function initCronJobs() {
     }
   });
 
-  // You can also run it once on startup to ensure data is fresh
+  // Run once on startup to ensure data is fresh
   logger.info('Performing initial trip status update on startup...');
   tripService.autoUpdateGlobalTripStatuses()
     .then(count => logger.info(`Initial trip status update complete. ${count} trips updated.`))
     .catch(err => logger.error('Initial trip status update failed:', err));
 
-  // Email import polling — always register, check config each cycle
-  // so settings changes via app UI take effect without restart
-  const interval = config.emailImport.pollIntervalMinutes;
-  cron.schedule(`*/${interval} * * * *`, async () => {
-    try {
-      const isReady = await emailImportService.isConfigured();
-      if (!isReady) return;
-      const result = await emailImportService.pollAndProcessEmails();
-      logger.info(`Email import: processed=${result.processed}, errors=${result.errors}`);
-    } catch (error) {
-      logger.error('Error during email import poll:', error);
-    }
-  });
-  logger.info(`Email import polling registered (every ${interval} minutes, checks config each cycle)`);
-
-  // Weekly cleanup: purge rawContent from old PARSE_FAILED records (PII protection)
-  cron.schedule('0 3 * * 0', async () => {
-    try {
-      await emailImportService.cleanupOldRecords(30);
-      logger.info('Email import cleanup completed');
-    } catch (error) {
-      logger.error('Error during email import cleanup:', error);
-    }
-  });
-
   logger.info('Cron jobs initialized.');
 }
-

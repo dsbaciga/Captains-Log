@@ -36,8 +36,9 @@ import travelDocumentRoutes from './routes/travelDocument.routes';
 import languagePhraseRoutes from './routes/languagePhrase.routes';
 import userInvitationRoutes from './routes/userInvitation.routes';
 import tripSeriesRoutes from './routes/tripSeries.routes';
-import emailImportRoutes from './routes/emailImport.routes';
-import appSettingsRoutes from './routes/appSettings.routes';
+import aiRoutes from './routes/ai.routes';
+import pdfImportRoutes from './routes/pdfImport.routes';
+import { pdfImportService } from './services/pdfImport.service';
 
 // Read version from package.json
 let packageJson: { version: string; name: string };
@@ -274,8 +275,8 @@ app.use('/api/travel-documents', travelDocumentRoutes);
 app.use('/api', languagePhraseRoutes);
 app.use('/api/user-invitations', userInvitationRoutes);
 app.use('/api/trip-series', tripSeriesRoutes);
-app.use('/api/email-imports', emailImportRoutes);
-app.use('/api/app-settings', appSettingsRoutes);
+app.use('/api/trips/:tripId/ai', aiRoutes);
+app.use('/api/pdf-imports', pdfImportRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
@@ -294,6 +295,9 @@ const startServer = async () => {
     // Check database connection before starting the server
     // Increased retries for TrueNAS environment
     await checkDatabaseConnection(10, 5000);
+
+    // Reset any PDF imports stuck in PARSING from a previous server crash
+    await pdfImportService.resetStaleParsing();
 
     app.listen(PORT, () => {
       logger.info(`Server running in ${config.nodeEnv} mode on port ${PORT}`);

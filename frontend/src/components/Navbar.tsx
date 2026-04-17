@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import { useUser, useLogout } from "../store/authStore";
 import { useClearPosition } from "../store/scrollStore";
-import emailImportService from '../services/emailImport.service';
 import GlobalSearch from "./GlobalSearch";
+import pdfImportService from "../services/pdfImport.service";
 
 // Hoisted outside Navbar to maintain stable component identity across renders
 function NavLink({
@@ -60,12 +60,13 @@ const Navbar = memo(function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
-  const { data: pendingCount } = useQuery({
-    queryKey: ['emailImport', 'pendingCount'],
-    queryFn: () => emailImportService.getPendingCount(),
-    refetchInterval: 60000, // 60 seconds
+  const { data: pendingCountData } = useQuery({
+    queryKey: ['pendingCount'],
+    queryFn: () => pdfImportService.getPendingCount(),
+    refetchInterval: 60_000,
     enabled: !!user,
   });
+  const pendingCount = pendingCountData?.count ?? 0;
 
   const handleLogout = () => {
     logout();
@@ -83,13 +84,15 @@ const Navbar = memo(function Navbar() {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        event.target instanceof Node &&
+        !dropdownRef.current.contains(event.target)
       ) {
         setShowDropdown(false);
       }
       if (
         mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(event.target as Node)
+        event.target instanceof Node &&
+        !mobileMenuRef.current.contains(event.target)
       ) {
         setShowMobileMenu(false);
       }
@@ -168,24 +171,6 @@ const Navbar = memo(function Navbar() {
             {navLinks.map((link) => (
               <NavLink key={link.path} path={link.path} label={link.label} onClick={link.onClick} isActive={isActivePath(link.path)} />
             ))}
-            <Link
-              to="/email-imports"
-              className={`px-3 py-2.5 rounded-lg font-body font-medium relative transition-colors ${
-                isActivePath('/email-imports')
-                  ? 'text-primary-600 dark:text-gold bg-primary-50 dark:bg-navy-800'
-                  : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold hover:bg-primary-50/50 dark:hover:bg-navy-800/50'
-              }`}
-              title="Email Imports"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              {(pendingCount ?? 0) > 0 && (
-                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
-                  {pendingCount! > 9 ? '9+' : pendingCount}
-                </span>
-              )}
-            </Link>
           </div>
 
           {/* Global Search */}
@@ -229,10 +214,15 @@ const Navbar = memo(function Navbar() {
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-xl py-2 z-[100] border-2 border-primary-500/10 dark:border-gold/20 backdrop-blur-sm">
                   <Link
                     to="/settings"
-                    className="block px-4 py-2.5 text-sm font-body text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-700 hover:text-primary-600 dark:hover:text-gold transition-colors"
+                    className="flex items-center justify-between px-4 py-2.5 text-sm font-body text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-700 hover:text-primary-600 dark:hover:text-gold transition-colors"
                     onClick={() => setShowDropdown(false)}
                   >
                     Settings
+                    {pendingCount > 0 && (
+                      <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-xs font-bold bg-amber-500 text-white">
+                        {pendingCount}
+                      </span>
+                    )}
                   </Link>
                   <button
                     type="button"
@@ -354,25 +344,6 @@ const Navbar = memo(function Navbar() {
                 mobile
               />
             ))}
-            {/* Email Imports - separate entry with badge */}
-            <Link
-              to="/email-imports"
-              className={`block w-full px-4 py-2.5 text-base rounded-lg font-body font-medium relative transition-colors ${
-                isActivePath('/email-imports')
-                  ? 'text-primary-600 dark:text-gold bg-primary-50 dark:bg-navy-800'
-                  : 'text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold hover:bg-primary-50/50 dark:hover:bg-navy-800/50'
-              }`}
-              onClick={closeMobileMenu}
-            >
-              <span className="relative z-10">
-                Email Imports
-                {(pendingCount ?? 0) > 0 && (
-                  <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
-                    {pendingCount! > 9 ? '9+' : pendingCount}
-                  </span>
-                )}
-              </span>
-            </Link>
           </nav>
 
           {/* Mobile User Section */}
@@ -394,10 +365,15 @@ const Navbar = memo(function Navbar() {
             </div>
             <Link
               to="/settings"
-              className="block w-full px-4 py-3 text-center rounded-lg font-medium text-primary-600 dark:text-gold bg-primary-50 dark:bg-navy-800 hover:bg-primary-100 dark:hover:bg-navy-700 transition-colors mb-2"
+              className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg font-medium text-primary-600 dark:text-gold bg-primary-50 dark:bg-navy-800 hover:bg-primary-100 dark:hover:bg-navy-700 transition-colors mb-2"
               onClick={() => setShowMobileMenu(false)}
             >
               Settings
+              {pendingCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-xs font-bold bg-amber-500 text-white">
+                  {pendingCount}
+                </span>
+              )}
             </Link>
             <button
               type="button"

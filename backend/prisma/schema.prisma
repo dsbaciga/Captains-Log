@@ -54,15 +54,12 @@ model User {
   tripSeries         TripSeries[]
   userInvitationsSent     UserInvitation[] @relation("UserInvitationsSent")
   userInvitationsAccepted UserInvitation[] @relation("UserInvitationsAccepted")
-  emailImports       EmailImport[]
-  pendingEntities    PendingEntity[]
+  pdfImports              PdfImport[]
+  pendingEntities         PendingEntity[]
 
   // Self-relation for travel partner
   travelPartner      User?   @relation("TravelPartner", fields: [travelPartnerId], references: [id], onDelete: SetNull)
   partnerOf          User[]  @relation("TravelPartner")
-
-  // Alternative email for email import forwarding
-  forwardingEmail    String?  @unique @map("forwarding_email") @db.VarChar(255)
 
   @@index([travelPartnerId])
   @@map("users")
@@ -580,6 +577,32 @@ enum EntityType {
   TRANSPORTATION
   JOURNAL_ENTRY
   PHOTO_ALBUM
+  PDF_IMPORT
+}
+
+// =============================================================================
+// PDF IMPORT SYSTEM
+// =============================================================================
+
+enum PdfImportStatus {
+  UPLOADED
+  PARSING
+  PARSED
+  PARSE_FAILED
+  NO_ENTITIES
+}
+
+enum PendingEntityType {
+  TRANSPORTATION
+  LODGING
+  ACTIVITY
+  LOCATION
+}
+
+enum PendingEntityStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 enum LinkRelationship {
@@ -752,6 +775,51 @@ model LanguagePhrase {
   @@map("language_phrases")
 }
 
+model PdfImport {
+  id              Int             @id @default(autoincrement())
+  userId          Int             @map("user_id")
+  originalName    String          @map("original_name") @db.VarChar(500)
+  storedPath      String          @map("stored_path") @db.VarChar(500)
+  fileSizeBytes   Int             @map("file_size_bytes")
+  status          PdfImportStatus @default(UPLOADED)
+  errorMessage    String?         @map("error_message") @db.Text
+  processedAt     DateTime?       @map("processed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pendingEntities PendingEntity[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("pdf_imports")
+}
+
+model PendingEntity {
+  id                Int                 @id @default(autoincrement())
+  pdfImportId       Int                 @map("pdf_import_id")
+  userId            Int                 @map("user_id")
+  entityType        PendingEntityType   @map("entity_type")
+  parsedData        Json                @map("parsed_data")
+  confidence        Float               @default(0.8)
+  matchedTripId     Int?                @map("matched_trip_id")
+  status            PendingEntityStatus @default(PENDING)
+  createdEntityId   Int?                @map("created_entity_id")
+  createdEntityType PendingEntityType?  @map("created_entity_type")
+  reviewedAt        DateTime?           @map("reviewed_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  pdfImport    PdfImport @relation(fields: [pdfImportId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchedTrip  Trip?     @relation(fields: [matchedTripId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([pdfImportId])
+  @@index([matchedTripId])
+  @@map("pending_entities")
+}
+
 // =============================================================================
 // USER INVITATION SYSTEM
 // =============================================================================
@@ -787,101 +855,3 @@ model UserInvitation {
   @@map("user_invitations")
 }
 
-// =============================================================================
-// EMAIL IMPORT SYSTEM
-// =============================================================================
-// Allows users to forward booking confirmation emails to a shared Gmail inbox
-// for automatic parsing into trip entities (transportation, lodging, activity, location)
-
-enum EmailImportStatus {
-  FETCHED
-  PARSING
-  PARSED
-  PARSE_FAILED
-  NO_ENTITIES
-  NO_USER
-}
-
-enum PendingEntityType {
-  TRANSPORTATION
-  LODGING
-  ACTIVITY
-  LOCATION
-}
-
-enum PendingEntityStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-}
-
-model EmailImport {
-  id               Int               @id @default(autoincrement())
-  gmailMessageId   String            @unique @map("gmail_message_id") @db.VarChar(255)
-  threadId         String?           @map("thread_id") @db.VarChar(255)
-  subject          String?           @db.VarChar(1000)
-  fromAddress      String?           @map("from_address") @db.VarChar(500)
-  forwardedBy      String?           @map("forwarded_by") @db.VarChar(500)
-  userId           Int?              @map("user_id")
-  rawContent       String?           @map("raw_content") @db.Text
-  status           EmailImportStatus @default(FETCHED)
-  errorMessage     String?           @map("error_message") @db.Text
-  processedAt      DateTime?         @map("processed_at")
-  receivedAt       DateTime?         @map("received_at")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
-
-  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  pendingEntities  PendingEntity[]
-
-  @@index([userId])
-  @@index([status])
-  @@map("email_imports")
-}
-
-model PendingEntity {
-  id              Int                 @id @default(autoincrement())
-  emailImportId   Int                 @map("email_import_id")
-  userId          Int                 @map("user_id")
-  entityType      PendingEntityType   @map("entity_type")
-  parsedData      Json                @map("parsed_data")
-  confidence      Float?
-  matchedTripId   Int?                @map("matched_trip_id")
-  status          PendingEntityStatus @default(PENDING)
-  createdEntityId Int?                @map("created_entity_id")
-  reviewedAt      DateTime?           @map("reviewed_at")
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
-
-  emailImport     EmailImport         @relation(fields: [emailImportId], references: [id], onDelete: Cascade)
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  matchedTrip     Trip?               @relation(fields: [matchedTripId], references: [id], onDelete: SetNull)
-
-  @@index([userId, status])
-  @@index([emailImportId])
-  @@index([matchedTripId])
-  @@map("pending_entities")
-}
-
-// =============================================================================
-// APP SETTINGS (SINGLETON)
-// =============================================================================
-// Global application settings stored in the database.
-// Always a single row with id=1. Env vars are used as fallback when DB values are null.
-
-model AppSettings {
-  id                      Int      @id @default(1)
-  gmailClientId           String?  @map("gmail_client_id") @db.VarChar(500)
-  gmailClientSecret       String?  @map("gmail_client_secret") @db.VarChar(500)
-  gmailRefreshToken       String?  @map("gmail_refresh_token") @db.Text
-  gmailInboxEmail         String?  @map("gmail_inbox_email") @db.VarChar(255)
-  llmBaseUrl              String?  @map("llm_base_url") @db.VarChar(500)
-  llmApiKey               String?  @map("llm_api_key") @db.VarChar(500)
-  llmModel                String?  @map("llm_model") @db.VarChar(100)
-  emailImportEnabled      Boolean  @default(false) @map("email_import_enabled")
-  emailImportPollInterval Int      @default(5) @map("email_import_poll_interval")
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
-
-  @@map("app_settings")
-}

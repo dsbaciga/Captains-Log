@@ -34,7 +34,6 @@ const TripSeriesPage = React.lazy(() =>
     return import('./pages/TripSeriesPage');
   })
 );
-const EmailImportsPage = React.lazy(() => import('./pages/EmailImportsPage'));
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -296,16 +295,6 @@ function App() {
                   <ProtectedRoute>
                     <ErrorBoundary>
                       <SettingsPage />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/email-imports"
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary>
-                      <EmailImportsPage />
                     </ErrorBoundary>
                   </ProtectedRoute>
                 }

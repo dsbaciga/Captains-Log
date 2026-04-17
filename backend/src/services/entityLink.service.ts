@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import logger from '../config/logger';
 import { AppError } from '../utils/errors';
@@ -6,15 +7,7 @@ import { verifyTripAccessWithPermission } from '../utils/serviceHelpers';
 // Type for Prisma transaction client
 type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
-// Prisma-like filter types
-interface EntityLinkWhereInput {
-  tripId?: number;
-  sourceType?: string;
-  sourceId?: number;
-  targetType?: string;
-  targetId?: number;
-  [key: string]: unknown;
-}
+
 import type {
   EntityType,
   LinkRelationship,
@@ -30,8 +23,8 @@ import type {
   EntityLinkSummary,
 } from '../types/entityLink.types';
 
-// Entity details return type
-type EntityDetails = { id: number; name?: string; title?: string; caption?: string; thumbnailPath?: string; date?: string };
+// Entity details return type — nullable fields match what Prisma returns
+type EntityDetails = { id: number; name?: string | null; title?: string | null; caption?: string | null; thumbnailPath?: string | null; date?: string | null };
 
 // Generic entity record type returned from findFirst/findUnique
 type EntityRecord = { id: number } & Record<string, unknown>;
@@ -51,7 +44,7 @@ const ENTITY_CONFIG: Record<EntityType, {
         where: { id: entityId },
         select: { id: true, caption: true, thumbnailPath: true },
       });
-      return photo ? { id: photo.id, caption: photo.caption || undefined, thumbnailPath: photo.thumbnailPath || undefined } : null;
+      return photo ? { id: photo.id, caption: photo.caption, thumbnailPath: photo.thumbnailPath } : null;
     },
   },
   LOCATION: {
@@ -103,7 +96,7 @@ const ENTITY_CONFIG: Record<EntityType, {
         where: { id: entityId },
         select: { id: true, title: true, date: true },
       });
-      return journal ? { id: journal.id, title: journal.title || undefined, date: journal.date?.toISOString() } : null;
+      return journal ? { id: journal.id, title: journal.title, date: journal.date?.toISOString() ?? null } : null;
     },
   },
   PHOTO_ALBUM: {
@@ -114,6 +107,17 @@ const ENTITY_CONFIG: Record<EntityType, {
         select: { id: true, name: true },
       });
       return album ? { id: album.id, name: album.name } : null;
+    },
+  },
+  PDF_IMPORT: {
+    findInTrip: async (_tripId, entityId) =>
+      prisma.pdfImport.findUnique({ where: { id: entityId } }),
+    getDetails: async (entityId) => {
+      const pdf = await prisma.pdfImport.findUnique({
+        where: { id: entityId },
+        select: { id: true, originalName: true },
+      });
+      return pdf ? { id: pdf.id, name: pdf.originalName } : null;
     },
   },
 };
@@ -189,6 +193,9 @@ async function batchVerifyEntitiesInTrip(
       case 'PHOTO_ALBUM':
         foundCount = await prisma.photoAlbum.count({ where: { id: { in: uniqueIds }, tripId } });
         break;
+      case 'PDF_IMPORT':
+        foundCount = uniqueIds.length; // PDF_IMPORT is not trip-scoped; always passes
+        break;
       default:
         throw new AppError(`Unknown entity type: ${entityType}`, 400);
     }
@@ -236,8 +243,8 @@ async function batchGetEntityDetails(
         for (const photo of photos) {
           result.set(`PHOTO:${photo.id}`, {
             id: photo.id,
-            caption: photo.caption || undefined,
-            thumbnailPath: photo.thumbnailPath || undefined,
+            caption: photo.caption,
+            thumbnailPath: photo.thumbnailPath,
           });
         }
         break;
@@ -293,7 +300,7 @@ async function batchGetEntityDetails(
         for (const journal of journals) {
           result.set(`JOURNAL_ENTRY:${journal.id}`, {
             id: journal.id,
-            title: journal.title || undefined,
+            title: journal.title,
             date: journal.date?.toISOString(),
           });
         }
@@ -306,6 +313,16 @@ async function batchGetEntityDetails(
         });
         for (const album of albums) {
           result.set(`PHOTO_ALBUM:${album.id}`, { id: album.id, name: album.name });
+        }
+        break;
+      }
+      case 'PDF_IMPORT': {
+        const pdfs = await prisma.pdfImport.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, originalName: true },
+        });
+        for (const pdf of pdfs) {
+          result.set(`PDF_IMPORT:${pdf.id}`, { id: pdf.id, name: pdf.originalName });
         }
         break;
       }
@@ -363,7 +380,7 @@ export const entityLinkService = {
     }
 
     // Determine relationship if not provided
-    const relationship = data.relationship || getDefaultRelationship(data.sourceType, data.targetType);
+    const relationship = data.relationship ?? getDefaultRelationship(data.sourceType, data.targetType);
 
     // Check if link already exists
     const existingLink = await prisma.entityLink.findFirst({
@@ -453,7 +470,7 @@ export const entityLinkService = {
             sourceId: data.sourceId,
             targetType: t.targetType,
             targetId: t.targetId,
-            relationship: t.relationship || getDefaultRelationship(data.sourceType, t.targetType),
+            relationship: t.relationship ?? getDefaultRelationship(data.sourceType, t.targetType),
             sortOrder: t.sortOrder,
             notes: t.notes,
           })),
@@ -488,7 +505,7 @@ export const entityLinkService = {
     let created = 0;
     let skipped = 0;
 
-    const relationship = data.relationship || getDefaultRelationship('PHOTO', data.targetType);
+    const relationship = data.relationship ?? getDefaultRelationship('PHOTO', data.targetType);
 
     await prisma.$transaction(async (tx: TransactionClient) => {
       // Get all existing links for these photos in one query
@@ -537,24 +554,19 @@ export const entityLinkService = {
   ): Promise<EnrichedEntityLink[]> {
     await verifyTripAccessWithPermission(userId, data.tripId, 'view');
 
-    const where: EntityLinkWhereInput = {
-      tripId: data.tripId,
-      sourceType: data.sourceType,
-      sourceId: data.sourceId,
-    };
-
-    if (data.targetType) {
-      where.targetType = data.targetType;
-    }
-
     const links = await prisma.entityLink.findMany({
-      where: where as any,
+      where: {
+        tripId: data.tripId,
+        sourceType: data.sourceType,
+        sourceId: data.sourceId,
+        ...(data.targetType !== undefined ? { targetType: data.targetType } : {}),
+      },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
 
     // Batch fetch all target entity details
     const targetEntities = links.map(link => ({
-      entityType: link.targetType as EntityType,
+      entityType: link.targetType,
       entityId: link.targetId,
     }));
     const detailsMap = await batchGetEntityDetails(targetEntities);
@@ -564,10 +576,7 @@ export const entityLinkService = {
       const targetEntity = detailsMap.get(`${link.targetType}:${link.targetId}`);
       return {
         ...link,
-        sourceType: link.sourceType as EntityType,
-        targetType: link.targetType as EntityType,
-        relationship: link.relationship as LinkRelationship,
-        targetEntity: targetEntity || undefined,
+        targetEntity,
       };
     });
 
@@ -583,24 +592,19 @@ export const entityLinkService = {
   ): Promise<EnrichedEntityLink[]> {
     await verifyTripAccessWithPermission(userId, data.tripId, 'view');
 
-    const where: EntityLinkWhereInput = {
-      tripId: data.tripId,
-      targetType: data.targetType,
-      targetId: data.targetId,
-    };
-
-    if (data.sourceType) {
-      where.sourceType = data.sourceType;
-    }
-
     const links = await prisma.entityLink.findMany({
-      where: where as any,
+      where: {
+        tripId: data.tripId,
+        targetType: data.targetType,
+        targetId: data.targetId,
+        ...(data.sourceType !== undefined ? { sourceType: data.sourceType } : {}),
+      },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
 
     // Batch fetch all source entity details
     const sourceEntities = links.map(link => ({
-      entityType: link.sourceType as EntityType,
+      entityType: link.sourceType,
       entityId: link.sourceId,
     }));
     const detailsMap = await batchGetEntityDetails(sourceEntities);
@@ -610,10 +614,7 @@ export const entityLinkService = {
       const sourceEntity = detailsMap.get(`${link.sourceType}:${link.sourceId}`);
       return {
         ...link,
-        sourceType: link.sourceType as EntityType,
-        targetType: link.targetType as EntityType,
-        relationship: link.relationship as LinkRelationship,
-        sourceEntity: sourceEntity || undefined,
+        sourceEntity,
       };
     });
 
@@ -643,18 +644,19 @@ export const entityLinkService = {
         this.getLinksTo(userId, { tripId, targetType: entityType, targetId: entityId }),
       ]);
     } catch (error) {
-      console.error(`Failed to fetch links for entity ${entityType}:${entityId} in trip ${tripId}:`, error);
-      throw new AppError('Failed to fetch entity links: ' + (error as Error).message, 500);
+      logger.error(`Failed to fetch links for entity ${entityType}:${entityId} in trip ${tripId}:`, error);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new AppError('Failed to fetch entity links: ' + message, 500);
     }
 
     // Build summary counts
     const linkCounts: { [key in EntityType]?: number } = {};
 
     for (const link of linksFrom) {
-      linkCounts[link.targetType] = (linkCounts[link.targetType] || 0) + 1;
+      linkCounts[link.targetType] = (linkCounts[link.targetType] ?? 0) + 1;
     }
     for (const link of linksTo) {
-      linkCounts[link.sourceType] = (linkCounts[link.sourceType] || 0) + 1;
+      linkCounts[link.sourceType] = (linkCounts[link.sourceType] ?? 0) + 1;
     }
 
     return {
@@ -732,7 +734,7 @@ export const entityLinkService = {
       throw new AppError('Link not found', 404);
     }
 
-    const updateData: { relationship?: string; notes?: string | null } = {};
+    const updateData: Prisma.EntityLinkUpdateInput = {};
     if (data.relationship !== undefined) {
       updateData.relationship = data.relationship;
     }
@@ -742,7 +744,7 @@ export const entityLinkService = {
 
     return await prisma.entityLink.update({
       where: { id: linkId },
-      data: updateData as any,
+      data: updateData,
     });
   },
 
@@ -830,7 +832,7 @@ export const entityLinkService = {
     });
 
     return links.map(link => ({
-      sourceType: link.sourceType as EntityType,
+      sourceType: link.sourceType,
       sourceId: link.sourceId,
       targetId: link.targetId,
     }));
@@ -865,15 +867,15 @@ export const entityLinkService = {
       let sourceSummary = summaryMap.get(sourceKey);
       if (!sourceSummary) {
         sourceSummary = {
-          entityType: link.sourceType as EntityType,
+          entityType: link.sourceType,
           entityId: link.sourceId,
           linkCounts: {},
           totalLinks: 0,
         };
         summaryMap.set(sourceKey, sourceSummary);
       }
-      sourceSummary.linkCounts[link.targetType as EntityType] =
-        (sourceSummary.linkCounts[link.targetType as EntityType] || 0) + 1;
+      sourceSummary.linkCounts[link.targetType] =
+        (sourceSummary.linkCounts[link.targetType] ?? 0) + 1;
       sourceSummary.totalLinks++;
 
       // Count for target entity
@@ -881,15 +883,15 @@ export const entityLinkService = {
       let targetSummary = summaryMap.get(targetKey);
       if (!targetSummary) {
         targetSummary = {
-          entityType: link.targetType as EntityType,
+          entityType: link.targetType,
           entityId: link.targetId,
           linkCounts: {},
           totalLinks: 0,
         };
         summaryMap.set(targetKey, targetSummary);
       }
-      targetSummary.linkCounts[link.sourceType as EntityType] =
-        (targetSummary.linkCounts[link.sourceType as EntityType] || 0) + 1;
+      targetSummary.linkCounts[link.sourceType] =
+        (targetSummary.linkCounts[link.sourceType] ?? 0) + 1;
       targetSummary.totalLinks++;
     }
 
@@ -929,8 +931,8 @@ export async function cleanupOrphanedEntityLinks(tripId: number): Promise<number
     const targetKey = link.targetType;
     if (!entityRefs.has(sourceKey)) entityRefs.set(sourceKey, new Set());
     if (!entityRefs.has(targetKey)) entityRefs.set(targetKey, new Set());
-    entityRefs.get(sourceKey)!.add(link.sourceId);
-    entityRefs.get(targetKey)!.add(link.targetId);
+    entityRefs.get(sourceKey)?.add(link.sourceId);
+    entityRefs.get(targetKey)?.add(link.targetId);
   }
 
   // For each entity type, query which IDs actually exist
@@ -983,6 +985,12 @@ export async function cleanupOrphanedEntityLinks(tripId: number): Promise<number
           select: { id: true },
         })).map(e => e.id);
         break;
+      case 'PDF_IMPORT':
+        foundIds = (await prisma.pdfImport.findMany({
+          where: { id: { in: idArray } },
+          select: { id: true },
+        })).map(e => e.id);
+        break;
       default:
         // Unknown entity type - skip (don't delete, could be a new type)
         logger.warn(`cleanupOrphanedEntityLinks: unknown entity type "${entityType}" - skipping`);
@@ -996,8 +1004,10 @@ export async function cleanupOrphanedEntityLinks(tripId: number): Promise<number
   // Find links where either source or target entity no longer exists
   const orphanedLinkIds: number[] = [];
   for (const link of links) {
-    const sourceExists = existingIds.get(link.sourceType)?.has(link.sourceId) ?? false;
-    const targetExists = existingIds.get(link.targetType)?.has(link.targetId) ?? false;
+    const sourceSet = existingIds.get(link.sourceType);
+    const sourceExists = sourceSet ? sourceSet.has(link.sourceId) : false;
+    const targetSet = existingIds.get(link.targetType);
+    const targetExists = targetSet ? targetSet.has(link.targetId) : false;
 
     if (!sourceExists || !targetExists) {
       orphanedLinkIds.push(link.id);

@@ -1,32 +1,18 @@
 import { z } from 'zod';
+import { EntityType, LinkRelationship } from '@prisma/client';
 import {
   optionalStringWithMax,
 } from '../utils/zodHelpers';
 
-// Entity types that can be linked
-export const entityTypeEnum = z.enum([
-  'PHOTO',
-  'LOCATION',
-  'ACTIVITY',
-  'LODGING',
-  'TRANSPORTATION',
-  'JOURNAL_ENTRY',
-  'PHOTO_ALBUM',
-]);
+// Re-export Prisma's enums so callers get the same type that Prisma returns,
+// eliminating the need for `as EntityType` / `as LinkRelationship` casts throughout the service.
+export type { EntityType, LinkRelationship };
 
-export type EntityType = z.infer<typeof entityTypeEnum>;
+// Entity types that can be linked — validates request strings against Prisma's enum
+export const entityTypeEnum = z.nativeEnum(EntityType);
 
-// Relationship types
-export const linkRelationshipEnum = z.enum([
-  'RELATED',
-  'TAKEN_AT',
-  'OCCURRED_AT',
-  'PART_OF',
-  'DOCUMENTS',
-  'FEATURED_IN',
-]);
-
-export type LinkRelationship = z.infer<typeof linkRelationshipEnum>;
+// Relationship types — validates request strings against Prisma's enum
+export const linkRelationshipEnum = z.nativeEnum(LinkRelationship);
 
 // Create a single link
 export const createEntityLinkSchema = z.object({
@@ -35,7 +21,7 @@ export const createEntityLinkSchema = z.object({
   sourceId: z.number().int().positive(),
   targetType: entityTypeEnum,
   targetId: z.number().int().positive(),
-  relationship: linkRelationshipEnum.optional().default('RELATED'),
+  relationship: linkRelationshipEnum.optional().default(LinkRelationship.RELATED),
   sortOrder: z.number().int().optional(),
   notes: z.string().max(1000).optional(),
 });
@@ -51,7 +37,7 @@ export const bulkCreateEntityLinksSchema = z.object({
     z.object({
       targetType: entityTypeEnum,
       targetId: z.number().int().positive(),
-      relationship: linkRelationshipEnum.optional().default('RELATED'),
+      relationship: linkRelationshipEnum.optional().default(LinkRelationship.RELATED),
       sortOrder: z.number().int().optional(),
       notes: z.string().max(1000).optional(),
     })
@@ -138,17 +124,17 @@ export interface EntityLinkResponse {
 export interface EnrichedEntityLink extends EntityLinkResponse {
   sourceEntity?: {
     id: number;
-    name?: string;
-    title?: string;
-    caption?: string;
-    thumbnailPath?: string;
+    name?: string | null;
+    title?: string | null;
+    caption?: string | null;
+    thumbnailPath?: string | null;
   };
   targetEntity?: {
     id: number;
-    name?: string;
-    title?: string;
-    caption?: string;
-    thumbnailPath?: string;
+    name?: string | null;
+    title?: string | null;
+    caption?: string | null;
+    thumbnailPath?: string | null;
   };
 }
 

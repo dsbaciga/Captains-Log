@@ -16,7 +16,6 @@ import tagService from "../services/tag.service";
 import companionService from "../services/companion.service";
 import userService from "../services/user.service";
 import checklistService from "../services/checklist.service";
-import emailImportService from "../services/emailImport.service";
 import TripSeriesBadge from "../components/TripSeriesBadge";
 import TripSeriesNav from "../components/TripSeriesNav";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -75,6 +74,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "../components/Skeleton";
 import JetLagCalculator from "../components/JetLagCalculator";
 import MarkdownRenderer from "../components/MarkdownRenderer";
+import PdfImportButton from "../components/PdfImportButton";
 
 // All possible tab IDs for the grouped navigation
 type TabId =
@@ -93,9 +93,24 @@ type TabId =
   | "unscheduled"
   | "companions";
 
+const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "unscheduled", "companions"]);
+
+function isTabId(value: string | null | undefined): value is TabId {
+  return value != null && VALID_TAB_IDS.has(value);
+}
+
+const VALID_TRIP_STATUSES = new Set<string>(Object.values(TripStatus));
+
+function isTripStatusType(value: string): value is TripStatusType {
+  return VALID_TRIP_STATUSES.has(value);
+}
+
+const DEFAULT_TAG_BG_COLOR = "#3B82F6";
+const DEFAULT_TAG_TEXT_COLOR = "#FFFFFF";
+
 export default function TripDetailPage() {
   const { id } = useParams();
-  const tripId = parseInt(id!);
+  const tripId = parseInt(id ?? '');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
@@ -113,16 +128,22 @@ export default function TripDetailPage() {
   const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   
   // Initialize activeTab from URL parameter or default to 'dashboard'
-  const initialTab = (searchParams.get("tab") as TabId) || "dashboard";
+  const tabParam = searchParams.get("tab");
+  const initialTab: TabId = isTabId(tabParam) ? tabParam : "dashboard";
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
   // Sync activeTab with URL when tab parameter changes externally (e.g., from EntityDetailModal navigation)
   useEffect(() => {
-    const urlTab = searchParams.get("tab") as TabId | null;
-    if (urlTab && urlTab !== activeTab) {
+    const urlTab = searchParams.get("tab");
+    if (isTabId(urlTab) && urlTab !== activeTab) {
       setActiveTab(urlTab);
     }
   }, [searchParams, activeTab]);
+
+  // Redirect to trips list if the URL param is not a valid numeric ID
+  useEffect(() => {
+    if (isNaN(tripId)) navigate('/trips', { replace: true });
+  }, [tripId, navigate]);
 
   // Enable scroll-to-highlight for entity link navigation
   // When navigating from LinkPanel with hash like #activity-123, scrolls to and highlights the item
@@ -199,12 +220,6 @@ export default function TripDetailPage() {
     enabled: !!tripId,
   });
 
-  const { data: pendingForTrip } = useQuery({
-    queryKey: ['emailImport', 'pending', 'trip', tripId],
-    queryFn: () => emailImportService.getPendingEntities({ tripId: Number(tripId), status: 'PENDING' }),
-    enabled: !!tripId,
-  });
-
   const { data: companionsData, isLoading: areCompanionsLoading } = useQuery({
     queryKey: ['companions', tripId],
     queryFn: () => companionService.getCompanionsByTrip(tripId),
@@ -218,17 +233,20 @@ export default function TripDetailPage() {
   });
 
   const { albums = [], unsortedCount: unsortedPhotosCount = 0, totalCount: totalPhotosCount = 0 } = albumsData || {};
-  
-  const activitiesCount = useMemo(() => activitiesData?.length || 0, [activitiesData]);
-  const unscheduledActivitiesCount = useMemo(() => activitiesData?.filter(a => !a.startTime && !a.allDay).length || 0, [activitiesData]);
-  const transportationCount = useMemo(() => transportationData?.length || 0, [transportationData]);
-  const unscheduledTransportationCount = useMemo(() => transportationData?.filter(t => !t.departureTime).length || 0, [transportationData]);
-  const lodgingCount = useMemo(() => lodgingData?.length || 0, [lodgingData]);
-  const unscheduledLodgingCount = useMemo(() => lodgingData?.filter(l => !l.checkInDate).length || 0, [lodgingData]);
+  const currentAlbum = selectedAlbumId !== null && selectedAlbumId > 0
+    ? albums.find((a) => a.id === selectedAlbumId)
+    : undefined;
+
+  const activitiesCount = useMemo(() => activitiesData?.length ?? 0, [activitiesData]);
+  const unscheduledActivitiesCount = useMemo(() => activitiesData?.filter(a => !a.startTime && !a.allDay).length ?? 0, [activitiesData]);
+  const transportationCount = useMemo(() => transportationData?.length ?? 0, [transportationData]);
+  const unscheduledTransportationCount = useMemo(() => transportationData?.filter(t => !t.departureTime).length ?? 0, [transportationData]);
+  const lodgingCount = useMemo(() => lodgingData?.length ?? 0, [lodgingData]);
+  const unscheduledLodgingCount = useMemo(() => lodgingData?.filter(l => !l.checkInDate).length ?? 0, [lodgingData]);
   const unscheduledCount = useMemo(() => unscheduledActivitiesCount + unscheduledTransportationCount + unscheduledLodgingCount, [unscheduledActivitiesCount, unscheduledTransportationCount, unscheduledLodgingCount]);
-  const journalCount = useMemo(() => journalData?.length || 0, [journalData]);
-  const tagsCount = useMemo(() => tags?.length || 0, [tags]);
-  const companionsCount = useMemo(() => companionsData?.length || 0, [companionsData]);
+  const journalCount = useMemo(() => journalData?.length ?? 0, [journalData]);
+  const tagsCount = useMemo(() => tags?.length ?? 0, [tags]);
+  const companionsCount = useMemo(() => companionsData?.length ?? 0, [companionsData]);
   
   // Photo sorting state
   const sortByRef = useRef<string>("date");
@@ -330,7 +348,7 @@ export default function TripDetailPage() {
   useEffect(() => {
     let cancelled = false;
     if (id) {
-      photoService.getImmichAssetIdsByTrip(tripId)
+      photoService.getImmichAssetIdsByTrip(parseInt(id, 10))
         .then(assetIds => { if (!cancelled) setExistingImmichAssetIds(new Set(assetIds)); })
         .catch(error => { if (!cancelled) console.error("Failed to load Immich asset IDs:", error); });
     }
@@ -338,7 +356,6 @@ export default function TripDetailPage() {
       .then(user => { if (!cancelled) setUserTimezone(user.timezone || ""); })
       .catch(() => { if (!cancelled) console.error("Failed to load user timezone"); });
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Load user's permission level for this trip
@@ -824,7 +841,7 @@ export default function TripDetailPage() {
       } else {
         // Create new album
         await photoService.createAlbum({
-          tripId: trip!.id,
+          tripId,
           ...data,
         });
         toast.success("Album created");
@@ -898,8 +915,12 @@ export default function TripDetailPage() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    if (!isTripStatusType(newStatus)) {
+      toast.error('Invalid trip status');
+      return;
+    }
     try {
-      await tripService.updateTrip(tripId, { status: newStatus as TripStatusType });
+      await tripService.updateTrip(tripId, { status: newStatus });
       toast.success(`Trip status updated to ${newStatus}`);
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
     } catch (error) {
@@ -1100,6 +1121,7 @@ export default function TripDetailPage() {
                     >
                       Edit Trip
                     </Link>
+                    <PdfImportButton tripId={trip.id} />
                   </div>
                 </div>
 
@@ -1259,6 +1281,7 @@ export default function TripDetailPage() {
                   >
                     Edit Trip
                   </Link>
+                  <PdfImportButton tripId={trip.id} />
                 </div>
               </div>
 
@@ -1371,26 +1394,6 @@ export default function TripDetailPage() {
           )}
         </div>
 
-        {/* Pending Email Imports Banner */}
-        {(() => {
-          const pendingCount = Array.isArray(pendingForTrip) ? pendingForTrip.length : (pendingForTrip?.total ?? 0);
-          return pendingCount > 0 ? (
-            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-4 mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-primary-600 dark:text-gold flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <span className="text-primary-800 dark:text-primary-200">
-                  {pendingCount} email-imported {pendingCount === 1 ? 'item' : 'items'} matched to this trip
-                </span>
-              </div>
-              <Link to="/email-imports" className="text-primary-600 dark:text-gold hover:underline font-medium text-sm whitespace-nowrap ml-4">
-                Review imports
-              </Link>
-            </div>
-          ) : null;
-        })()}
-
         {/* Trip Series Navigation */}
         {trip.series && (
           <TripSeriesNav
@@ -1412,7 +1415,7 @@ export default function TripDetailPage() {
             <TripSidebar
               tabs={tabGroups}
               activeTab={activeTab}
-              onTabChange={(tabId) => changeTab(tabId as TabId)}
+              onTabChange={(tabId) => { if (isTabId(tabId)) changeTab(tabId); }}
               className="sticky top-32 h-[calc(100vh-8rem)] rounded-lg shadow flex-shrink-0"
             />
           )}
@@ -1424,7 +1427,7 @@ export default function TripDetailPage() {
         <TabGroup
           tabs={tabGroups}
           activeTab={activeTab}
-          onTabChange={(tabId) => changeTab(tabId as TabId)}
+          onTabChange={(tabId) => { if (isTabId(tabId)) changeTab(tabId); }}
           className={`mb-6 sticky top-28 sm:top-32 bg-gray-50 dark:bg-gray-900 z-10 ${
             navigationLayout === 'sidebar' ? 'md:hidden' : ''
           }`}
@@ -1457,7 +1460,7 @@ export default function TripDetailPage() {
                     handleOpenDuplicateDialog();
                     return;
                   }
-                  changeTab(tab as TabId);
+                  if (isTabId(tab)) changeTab(tab);
                   if (options?.action === "add") {
                     // Handle specific actions if needed
                   }
@@ -1491,7 +1494,7 @@ export default function TripDetailPage() {
                   tripStatus={trip.status || undefined}
                   tripType={trip.tripType || undefined}
                   tripTypeEmoji={trip.tripTypeEmoji || undefined}
-                  onNavigateToTab={(tab) => changeTab(tab as TabId)}
+                  onNavigateToTab={(tab) => { if (isTabId(tab)) changeTab(tab); }}
                   onRefresh={() => queryClient.invalidateQueries({ queryKey: ['trip', tripId] })}
                 />
                 </Suspense>
@@ -1650,29 +1653,14 @@ export default function TripDetailPage() {
                         ? `All Photos (${totalPhotosCount})`
                         : selectedAlbumId === -1
                         ? `Unsorted (${unsortedPhotosCount})`
-                        : `${
-                            albums.find((a) => a.id === selectedAlbumId)
-                              ?.name || "Album"
-                          } (${
-                            albums.find((a) => a.id === selectedAlbumId)?._count
-                              ?.photoAssignments || 0
-                          })`}
+                        : `${currentAlbum?.name ?? "Album"} (${currentAlbum?._count?.photoAssignments ?? 0})`}
                     </h2>
-                    {selectedAlbumId !== null &&
-                      selectedAlbumId !== -1 &&
-                      albums.find((a) => a.id === selectedAlbumId)
-                        ?.description && (
+                    {currentAlbum?.description && (
                         <p
                           className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
-                          title={
-                            albums.find((a) => a.id === selectedAlbumId)
-                              ?.description || ""
-                          }
+                          title={currentAlbum.description}
                         >
-                          {
-                            albums.find((a) => a.id === selectedAlbumId)
-                              ?.description
-                          }
+                          {currentAlbum.description}
                         </p>
                       )}
                   </div>
@@ -1893,9 +1881,7 @@ export default function TripDetailPage() {
               <AddPhotosToAlbumModal
                 tripId={trip.id}
                 albumId={selectedAlbumId}
-                albumName={
-                  albums.find((a) => a.id === selectedAlbumId)?.name || "Album"
-                }
+                albumName={currentAlbum?.name ?? "Album"}
                 existingPhotoIds={new Set(filteredPhotos.map((p) => p.id))}
                 onClose={() => setShowAddPhotosModal(false)}
                 onPhotosAdded={() => {
@@ -2095,7 +2081,7 @@ export default function TripDetailPage() {
         <CollaboratorsManager
           tripId={trip.id}
           tripTitle={trip.title}
-          isOwner={userPermission?.isOwner ?? true}
+          isOwner={userPermission?.isOwner ?? false}
           userPermission={userPermission?.permissionLevel ?? null}
         />
         </Suspense>

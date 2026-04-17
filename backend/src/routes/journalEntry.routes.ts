@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { journalEntryController } from '../controllers/journalEntry.controller';
+import { aiController } from '../controllers/ai.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -132,5 +133,6 @@ router.get('/trip/:tripId', journalEntryController.getJournalEntriesByTrip);
 router.get('/:id', journalEntryController.getJournalEntryById);
 router.put('/:id', journalEntryController.updateJournalEntry);
 router.delete('/:id', journalEntryController.deleteJournalEntry);
+router.post('/:id/ai-enhance', aiController.enhanceJournalEntry);
 
 export default router;

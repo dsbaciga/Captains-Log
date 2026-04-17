@@ -20,7 +20,6 @@ class UserService {
         tripTypes: true,
         dietaryPreferences: true,
         useCustomMapStyle: true,
-        forwardingEmail: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -756,40 +755,6 @@ class UserService {
     });
   }
 
-  async getForwardingEmailSettings(userId: number) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        forwardingEmail: true,
-      },
-    });
-
-    if (!user) {
-      throw new AppError('User not found', 404);
-    }
-
-    return {
-      forwardingEmail: user.forwardingEmail,
-    };
-  }
-
-  async updateForwardingEmail(
-    userId: number,
-    data: { forwardingEmail?: string | null }
-  ) {
-    const updateData = buildConditionalUpdateData(data);
-
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        forwardingEmail: true,
-      },
-    });
-
-    return user;
-  }
 }
 
 export default new UserService();

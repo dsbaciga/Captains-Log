@@ -26,15 +26,27 @@ const SmtpSettings = lazy(() => import("../components/SmtpSettings"));
 const TravelDocumentManager = lazy(() => import("../components/TravelDocumentManager"));
 const InviteUsersSection = lazy(() => import("../components/InviteUsersSection"));
 const TravelPartnerSettings = lazy(() => import("../components/TravelPartnerSettings"));
-const EmailImportSettings = lazy(() => import("../components/email-import/EmailImportSettings"));
 
-type TabType =
-  | "account"
-  | "tags-categories"
-  | "documents"
-  | "integrations"
-  | "invites"
-  | "backup";
+const TAB_VALUES = ["account", "tags-categories", "documents", "integrations", "invites", "backup"] as const;
+type TabType = typeof TAB_VALUES[number];
+
+function isTabType(s: string | null): s is TabType {
+  return s !== null && TAB_VALUES.some((v) => v === s);
+}
+
+interface ApiError {
+  response?: { data?: { message?: string } };
+  message?: string;
+}
+
+function isApiError(err: unknown): err is ApiError {
+  return err !== null && typeof err === 'object' && ('response' in err || 'message' in err);
+}
+
+function getApiErrorMessage(err: unknown): string | undefined {
+  if (!isApiError(err)) return undefined;
+  return err.response?.data?.message ?? err.message;
+}
 
 export default function SettingsPage() {
   const updateUser = useUpdateUser();
@@ -44,7 +56,8 @@ export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Get initial tab from URL or default to 'account'
-  const initialTab = (searchParams.get("tab") as TabType) || "account";
+  const tabParam = searchParams.get("tab");
+  const initialTab: TabType = isTabType(tabParam) ? tabParam : "account";
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   const [categories, setCategories] = useState<ActivityCategory[]>([]);
@@ -519,8 +532,7 @@ export default function SettingsPage() {
       updateUser({ username: result.username });
       toast.success(result.message);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || "Failed to update username");
+      toast.error(getApiErrorMessage(err) || "Failed to update username");
     }
   };
 
@@ -553,8 +565,7 @@ export default function SettingsPage() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || "Failed to update password");
+      toast.error(getApiErrorMessage(err) || "Failed to update password");
     }
   };
 
@@ -565,8 +576,7 @@ export default function SettingsPage() {
       backupService.downloadBackupFile(backupData);
       toast.success("Backup created and downloaded successfully");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || "Failed to create backup");
+      toast.error(getApiErrorMessage(err) || "Failed to create backup");
     } finally {
       setBackupInProgress(false);
     }
@@ -624,15 +634,7 @@ export default function SettingsPage() {
         toast.error(result.message || "Restore failed");
       }
     } catch (err: unknown) {
-      const error = err as {
-        response?: { data?: { message?: string } };
-        message?: string;
-      };
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to restore from backup",
-      );
+      toast.error(getApiErrorMessage(err) || "Failed to restore from backup");
     } finally {
       setRestoreInProgress(false);
     }
@@ -681,7 +683,7 @@ export default function SettingsPage() {
           <select
             id="mobile-tab-select"
             value={activeTab}
-            onChange={(e) => handleTabChange(e.target.value as TabType)}
+            onChange={(e) => { if (isTabType(e.target.value)) handleTabChange(e.target.value); }}
             className="input w-full"
           >
             <option value="account">Account</option>
@@ -1691,8 +1693,6 @@ export default function SettingsPage() {
             {/* OpenRouteService Settings */}
             <OpenRouteServiceSettings />
 
-            {/* Email Import Settings */}
-            <EmailImportSettings />
           </div>
           </Suspense>
           </ErrorBoundary>

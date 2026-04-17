@@ -70,7 +70,11 @@
       "Bash(npx vite build:*)",
       "Bash(xargs:*)",
       "Bash(npx skills:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(wc -l docs/architecture/*.md)",
+      "Bash(git -C /c/Users/dsbac/travel-life log --oneline --all)",
+      "Bash(git -C /c/Users/dsbac/travel-life diff HEAD~5 HEAD -- \"backend/src/services\")",
+      "Bash(python3 -c ':*)"
     ],
     "deny": [],
     "ask": []
