@@ -109,7 +109,7 @@ export default function TripCalendarWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10">
+      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20">
         <div className="flex items-center gap-3 mb-6">
           <Skeleton className="w-10 h-10 rounded-lg" />
           <Skeleton className="h-6 w-48 rounded" />
@@ -120,7 +120,7 @@ export default function TripCalendarWidget() {
   }
 
   return (
-    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20 hover:shadow-xl transition-shadow duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">

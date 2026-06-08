@@ -95,7 +95,7 @@ class ChecklistService {
   /**
    * Auto-check items based on trip data
    */
-  async autoCheckFromTrips(): Promise<{ updated: number }> {
+  async autoCheckFromTrips(): Promise<{ updated: number; added: number }> {
     const response = await axios.post(`${this.baseUrl}/auto-check`);
     return response.data;
   }

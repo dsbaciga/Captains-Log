@@ -35,11 +35,11 @@ jest.mock('../weather.service', () => ({
 }));
 
 // Mock serviceHelpers
-jest.mock('../../utils/serviceHelpers', () => ({
+jest.mock('../../services/_shared/serviceHelpers', () => ({
   verifyTripAccess: jest.fn().mockImplementation(async (userId: number, tripId: number) => {
     const trip = await mockPrisma.trip.findFirst({ where: { id: tripId, userId } });
     if (!trip) {
-      const { AppError } = require('../../utils/errors');
+      const { AppError } = require('../../errors/errors');
       throw new AppError('Trip not found or access denied', 404);
     }
     return trip;

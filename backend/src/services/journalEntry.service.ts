@@ -3,7 +3,7 @@ import {
   CreateJournalEntryInput,
   UpdateJournalEntryInput,
 } from '../types/journalEntry.types';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
 import { fromZonedTime } from 'date-fns-tz';
 import { parseISO } from 'date-fns';
 

@@ -6,10 +6,10 @@ import {
   UpdateChecklistItemSchema,
   SelectiveChecklistOperationSchema,
 } from '../types/checklist.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { requireUserId } from '../utils/controllerHelpers';
-import { parseId } from '../utils/parseId';
-import { AppError } from '../utils/errors';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
+import { parseId } from '../http/parseId';
+import { AppError } from '../errors/errors';
 
 export const checklistController = {
   /**

@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
 import userService from '../services/user.service';
 import { updateUserSettingsSchema } from '../types/userSettings.types';
-import { asyncHandler } from '../utils/asyncHandler';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
 import { z } from 'zod';
 import { emailService } from '../services/email.service';
-import { validateUrlNotInternal } from '../utils/urlValidation';
-import { AppError } from '../utils/errors';
+import { validateUrlNotInternal } from '../security/urlValidation';
+import { AppError } from '../errors/errors';
 import logger from '../config/logger';
 
 const immichSettingsSchema = z.object({
@@ -23,6 +24,12 @@ const aviationstackSettingsSchema = z.object({
 
 const openrouteserviceSettingsSchema = z.object({
   openrouteserviceApiKey: z.string().min(1).optional().nullable(),
+});
+
+const llmSettingsSchema = z.object({
+  llmApiKey: z.string().min(1).optional().nullable(),
+  llmBaseUrl: z.string().url().optional().nullable(),
+  llmModel: z.string().min(1).max(200).optional().nullable(),
 });
 
 const smtpSettingsSchema = z.object({
@@ -55,20 +62,20 @@ const travelPartnerSettingsSchema = z.object({
 
 export const userController = {
   getMe: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const user = await userService.getUserById(userId);
     res.json({ status: 'success', data: user });
   }),
 
   updateSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = updateUserSettingsSchema.parse(req.body);
     const user = await userService.updateUserSettings(userId, data);
     res.json({ status: 'success', data: user });
   }),
 
   updateImmichSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = immichSettingsSchema.parse(req.body);
 
     // Enforce HTTPS for public/external Immich URLs.
@@ -106,13 +113,13 @@ export const userController = {
   }),
 
   getImmichSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const settings = await userService.getImmichSettings(userId);
     res.json({ status: 'success', data: settings });
   }),
 
   updateWeatherSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = weatherSettingsSchema.parse(req.body);
     const user = await userService.updateWeatherSettings(userId, data);
     res.json({
@@ -125,13 +132,13 @@ export const userController = {
   }),
 
   getWeatherSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const settings = await userService.getWeatherSettings(userId);
     res.json({ status: 'success', data: settings });
   }),
 
   updateAviationstackSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = aviationstackSettingsSchema.parse(req.body);
     const user = await userService.updateAviationstackSettings(userId, data);
     res.json({
@@ -144,13 +151,13 @@ export const userController = {
   }),
 
   getAviationstackSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const settings = await userService.getAviationstackSettings(userId);
     res.json({ status: 'success', data: settings });
   }),
 
   updateOpenrouteserviceSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = openrouteserviceSettingsSchema.parse(req.body);
     const user = await userService.updateOpenrouteserviceSettings(userId, data);
     res.json({
@@ -163,13 +170,63 @@ export const userController = {
   }),
 
   getOpenrouteserviceSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const settings = await userService.getOpenrouteserviceSettings(userId);
     res.json({ status: 'success', data: settings });
   }),
 
+  updateLlmSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const data = llmSettingsSchema.parse(req.body);
+
+    // Validate the LLM base URL. Local addresses (localhost, 127.x, 192.168.x, etc.)
+    // are allowed so users can point to local LLMs like Ollama — but HTTPS is still
+    // required for any non-local address to protect transmitted API keys.
+    // SSRF validation is skipped for local addresses (they are intentionally reachable).
+    if (data.llmBaseUrl) {
+      const url = new URL(data.llmBaseUrl);
+      const hostname = url.hostname.toLowerCase();
+      const isLocal = ['localhost', '127.0.0.1', '::1'].includes(hostname) ||
+                      hostname.startsWith('192.168.') ||
+                      hostname.startsWith('10.') ||
+                      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+                      hostname.endsWith('.local');
+      if (!isLocal) {
+        if (url.protocol !== 'https:') {
+          throw new AppError('LLM URL must use HTTPS for non-local connections', 400);
+        }
+        // SSRF validation: block cloud metadata, DNS rebinding, etc.
+        await validateUrlNotInternal(data.llmBaseUrl);
+      } else if (url.protocol !== 'https:') {
+        logger.warn('LLM URL uses HTTP on local network — API key may be transmitted insecurely', {
+          host: hostname,
+        });
+      }
+    }
+
+    const user = await userService.updateLlmSettings(userId, data);
+    res.json({
+      status: 'success',
+      data: {
+        message: 'LLM settings updated successfully',
+        llmApiKeySet: !!user.llmApiKey,
+        llmBaseUrl: user.llmBaseUrl,
+        llmModel: user.llmModel,
+        // Configured if user has their own API key, a local base URL (no-auth),
+        // or a per-user model override that will ride on top of the global env key.
+        llmConfigured: !!(user.llmApiKey || user.llmBaseUrl || user.llmModel),
+      },
+    });
+  }),
+
+  getLlmSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const settings = await userService.getLlmSettings(userId);
+    res.json({ status: 'success', data: settings });
+  }),
+
   updateUsername: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = updateUsernameSchema.parse(req.body);
     const user = await userService.updateUsername(userId, data.username);
     res.json({
@@ -182,7 +239,7 @@ export const userController = {
   }),
 
   updatePassword: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = updatePasswordSchema.parse(req.body);
     await userService.updatePassword(userId, data.currentPassword, data.newPassword);
     res.json({
@@ -194,20 +251,20 @@ export const userController = {
   }),
 
   searchUsers: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const { query } = searchUsersQuerySchema.parse(req.query);
     const users = await userService.searchUsers(userId, query);
     res.json({ status: 'success', data: users });
   }),
 
   getTravelPartnerSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const settings = await userService.getTravelPartnerSettings(userId);
     res.json({ status: 'success', data: settings });
   }),
 
   renameTripType: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const { oldName, newName } = z.object({
       oldName: z.string().min(1),
       newName: z.string().min(1),
@@ -221,7 +278,7 @@ export const userController = {
   }),
 
   deleteTripType: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const typeName = decodeURIComponent(req.params.typeName);
     const updatedTypes = await userService.deleteTripType(userId, typeName);
     res.json({
@@ -232,7 +289,7 @@ export const userController = {
   }),
 
   renameCategory: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const { oldName, newName } = z.object({
       oldName: z.string().min(1),
       newName: z.string().min(1),
@@ -246,7 +303,7 @@ export const userController = {
   }),
 
   deleteCategory: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const categoryName = decodeURIComponent(req.params.categoryName);
     const updatedCategories = await userService.deleteCategory(userId, categoryName);
     res.json({
@@ -257,7 +314,7 @@ export const userController = {
   }),
 
   updateTravelPartnerSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = travelPartnerSettingsSchema.parse(req.body);
     const settings = await userService.updateTravelPartnerSettings(userId, data);
     res.json({
@@ -270,13 +327,13 @@ export const userController = {
   }),
 
   getSmtpSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const settings = await userService.getSmtpSettings(userId);
     res.json({ status: 'success', data: settings });
   }),
 
   updateSmtpSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const data = smtpSettingsSchema.parse(req.body);
     const user = await userService.updateSmtpSettings(userId, data);
     res.json({
@@ -289,7 +346,7 @@ export const userController = {
   }),
 
   testSmtpSettings: asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = requireUserId(req);
     const user = await userService.getUserById(userId);
 
     // Try user-level SMTP config first, then fall back to global

@@ -94,7 +94,7 @@ import {
 } from '../../__tests__/helpers/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 import { testTrips, validCreateTripInput, validUpdateTripInput } from '../../__tests__/fixtures/trips';
-import { AppError } from '../../utils/errors';
+import { AppError } from '../../errors/errors';
 
 // Helper to flush microtask queue so asyncHandler's .catch(next) resolves
 const flushPromises = () => new Promise(resolve => process.nextTick(resolve));

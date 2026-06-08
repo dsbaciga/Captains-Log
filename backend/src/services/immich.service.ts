@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import logger from '../config/logger';
 import {
   ImmichAsset,

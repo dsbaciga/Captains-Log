@@ -5,8 +5,8 @@ import {
   bulkDeleteLodgingSchema,
   bulkUpdateLodgingSchema,
 } from '../types/lodging.types';
-import { createCrudController } from '../utils/crudHelpers';
-import { parseId } from '../utils/parseId';
+import { createCrudController } from '../prisma/crudHelpers';
+import { parseId } from '../http/parseId';
 
 export const lodgingController = createCrudController({
   service: lodgingService,

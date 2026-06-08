@@ -5,8 +5,8 @@ import {
   bulkDeleteActivitiesSchema,
   bulkUpdateActivitiesSchema,
 } from '../types/activity.types';
-import { createCrudController } from '../utils/crudHelpers';
-import { parseId } from '../utils/parseId';
+import { createCrudController } from '../prisma/crudHelpers';
+import { parseId } from '../http/parseId';
 
 export const activityController = createCrudController({
   service: activityService,

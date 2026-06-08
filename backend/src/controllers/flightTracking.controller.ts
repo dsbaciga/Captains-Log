@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import aviationstackService from '../services/aviationstack.service';
 import { updateFlightTrackingSchema } from '../types/flightTracking.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
 
 export const flightTrackingController = {
   /**

@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import immichService from '../services/immich.service';
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
-import { asyncHandler } from '../utils/asyncHandler';
-import { requireUserId } from '../utils/controllerHelpers';
+import { AppError } from '../errors/errors';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
 
 // Type for getAssets query options
 interface GetAssetsOptions {

@@ -5,8 +5,8 @@ import {
   BulkDeleteLodgingInput,
   BulkUpdateLodgingInput,
 } from '../types/lodging.types';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, buildConditionalUpdateData } from '../utils/serviceHelpers';
-import { deleteEntity, bulkDeleteEntities, bulkUpdateEntities } from '../utils/crudHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, buildConditionalUpdateData } from '../services/_shared/serviceHelpers';
+import { deleteEntity, bulkDeleteEntities, bulkUpdateEntities } from '../prisma/crudHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 

@@ -9,10 +9,10 @@ import {
   entityTypeEnum,
   type EntityLinkSummary,
 } from '../types/entityLink.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
-import { verifyTripAccessWithPermission } from '../utils/serviceHelpers';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
+import { verifyTripAccessWithPermission } from '../services/_shared/serviceHelpers';
 
 export const entityLinkController = {
   /**

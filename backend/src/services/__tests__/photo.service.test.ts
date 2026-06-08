@@ -159,7 +159,7 @@ jest.mock('exifr', () => ({
 
 // Import after mocks are set up
 import photoService from '../photo.service';
-import { AppError } from '../../utils/errors';
+import { AppError } from '../../errors/errors';
 import axios from 'axios';
 
 describe('PhotoService', () => {

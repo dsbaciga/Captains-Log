@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { tagService } from '../services/tag.service';
 import { createTagSchema, updateTagSchema, linkTagToTripSchema } from '../types/tag.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
 import { z } from 'zod';
 
 export const tagController = {

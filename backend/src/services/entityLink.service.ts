@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import logger from '../config/logger';
-import { AppError } from '../utils/errors';
-import { verifyTripAccessWithPermission } from '../utils/serviceHelpers';
+import { AppError } from '../errors/errors';
+import { verifyTripAccessWithPermission } from '../services/_shared/serviceHelpers';
 
 // Type for Prisma transaction client
 type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -34,7 +34,9 @@ type EntityRecord = { id: number } & Record<string, unknown>;
  * Maps entity types to their verification and details functions
  */
 const ENTITY_CONFIG: Record<EntityType, {
-  findInTrip: (tripId: number, entityId: number) => Promise<EntityRecord | null>;
+  // userId is optional and only consulted by user-scoped types (e.g. PDF_IMPORT)
+  // which are not trip-scoped. Trip-scoped types ignore it.
+  findInTrip: (tripId: number, entityId: number, userId?: number) => Promise<EntityRecord | null>;
   getDetails: (entityId: number) => Promise<EntityDetails | null>;
 }> = {
   PHOTO: {
@@ -110,8 +112,14 @@ const ENTITY_CONFIG: Record<EntityType, {
     },
   },
   PDF_IMPORT: {
-    findInTrip: async (_tripId, entityId) =>
-      prisma.pdfImport.findUnique({ where: { id: entityId } }),
+    // PdfImport is user-scoped, not trip-scoped. Require a userId here so a
+    // user cannot create an EntityLink that references another user's
+    // pdfImport row. If no userId is supplied (defensive fallback), refuse
+    // rather than leaking ownership.
+    findInTrip: async (_tripId, entityId, userId) => {
+      if (userId === undefined) return null;
+      return prisma.pdfImport.findFirst({ where: { id: entityId, userId } });
+    },
     getDetails: async (entityId) => {
       const pdf = await prisma.pdfImport.findUnique({
         where: { id: entityId },
@@ -125,18 +133,22 @@ const ENTITY_CONFIG: Record<EntityType, {
 /**
  * Verifies that an entity exists within the specified trip
  * @throws AppError if entity not found or doesn't belong to trip
+ *
+ * `userId` is required for user-scoped entity types (e.g. PDF_IMPORT) and
+ * ignored for trip-scoped types.
  */
 async function verifyEntityInTrip(
   tripId: number,
   entityType: EntityType,
-  entityId: number
+  entityId: number,
+  userId?: number
 ): Promise<void> {
   const config = ENTITY_CONFIG[entityType];
   if (!config) {
     throw new AppError(`Unknown entity type: ${entityType}`, 400);
   }
 
-  const entity = await config.findInTrip(tripId, entityId);
+  const entity = await config.findInTrip(tripId, entityId, userId);
   if (!entity) {
     throw new AppError(
       `${entityType} with ID ${entityId} not found in trip ${tripId}`,
@@ -148,10 +160,13 @@ async function verifyEntityInTrip(
 /**
  * Batch verify that multiple entities exist within a trip
  * Groups by entity type to minimize queries
+ *
+ * `userId` is required for user-scoped entity types (e.g. PDF_IMPORT).
  */
 async function batchVerifyEntitiesInTrip(
   tripId: number,
-  entities: Array<{ entityType: EntityType; entityId: number }>
+  entities: Array<{ entityType: EntityType; entityId: number }>,
+  userId?: number
 ): Promise<void> {
   if (entities.length === 0) return;
 
@@ -194,7 +209,12 @@ async function batchVerifyEntitiesInTrip(
         foundCount = await prisma.photoAlbum.count({ where: { id: { in: uniqueIds }, tripId } });
         break;
       case 'PDF_IMPORT':
-        foundCount = uniqueIds.length; // PDF_IMPORT is not trip-scoped; always passes
+        // PDF_IMPORT is user-scoped, not trip-scoped. Require userId so a
+        // user cannot link to another user's pdfImport rows.
+        if (userId === undefined) {
+          throw new AppError('PDF_IMPORT entity reference requires authenticated user context', 400);
+        }
+        foundCount = await prisma.pdfImport.count({ where: { id: { in: uniqueIds }, userId } });
         break;
       default:
         throw new AppError(`Unknown entity type: ${entityType}`, 400);
@@ -370,9 +390,10 @@ export const entityLinkService = {
     // Verify user owns the trip
     await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
-    // Verify both entities exist in the trip
-    await verifyEntityInTrip(data.tripId, data.sourceType, data.sourceId);
-    await verifyEntityInTrip(data.tripId, data.targetType, data.targetId);
+    // Verify both entities exist in the trip (userId is required for
+    // user-scoped types like PDF_IMPORT)
+    await verifyEntityInTrip(data.tripId, data.sourceType, data.sourceId, userId);
+    await verifyEntityInTrip(data.tripId, data.targetType, data.targetId, userId);
 
     // Prevent self-linking
     if (data.sourceType === data.targetType && data.sourceId === data.targetId) {
@@ -422,14 +443,14 @@ export const entityLinkService = {
     await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Verify source entity exists
-    await verifyEntityInTrip(data.tripId, data.sourceType, data.sourceId);
+    await verifyEntityInTrip(data.tripId, data.sourceType, data.sourceId, userId);
 
     // Batch verify all target entities exist
     const targetEntities = data.targets.map(target => ({
       entityType: target.targetType,
       entityId: target.targetId,
     }));
-    await batchVerifyEntitiesInTrip(data.tripId, targetEntities);
+    await batchVerifyEntitiesInTrip(data.tripId, targetEntities, userId);
 
     let created = 0;
     let skipped = 0;
@@ -493,14 +514,14 @@ export const entityLinkService = {
     await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // Verify target entity exists
-    await verifyEntityInTrip(data.tripId, data.targetType, data.targetId);
+    await verifyEntityInTrip(data.tripId, data.targetType, data.targetId, userId);
 
     // Batch verify all photos exist
     const photoEntities = data.photoIds.map(photoId => ({
       entityType: 'PHOTO' as EntityType,
       entityId: photoId,
     }));
-    await batchVerifyEntitiesInTrip(data.tripId, photoEntities);
+    await batchVerifyEntitiesInTrip(data.tripId, photoEntities, userId);
 
     let created = 0;
     let skipped = 0;

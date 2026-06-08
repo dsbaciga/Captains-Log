@@ -4,12 +4,10 @@ import { randomUUID } from 'crypto';
 import prisma from '../config/database';
 import { config } from '../config';
 import logger from '../config/logger';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
+import { TransportationType, type TransportationTypeEnum } from '../types/transportation.types';
+import { LodgingType, type LodgingTypeEnum } from '../types/lodging.types';
 import { pdfParserService } from './pdfParser.service';
-import activityService from './activity.service';
-import lodgingService from './lodging.service';
-import transportationService from './transportation.service';
-import locationService from './location.service';
 import type { UpdatePendingEntityInput } from '../types/pdfImport.types';
 import {
   PdfImportStatus,
@@ -26,24 +24,21 @@ interface MulterFile {
   mimetype: string;
 }
 
-const TRANSPORTATION_TYPES = ['flight', 'train', 'bus', 'car', 'ferry', 'bicycle', 'walk', 'other'] as const;
-type TransportationTypeLiteral = (typeof TRANSPORTATION_TYPES)[number];
+const TRANSPORTATION_TYPE_VALUES = Object.values(TransportationType) as readonly string[];
+const LODGING_TYPE_VALUES = Object.values(LodgingType) as readonly string[];
 
-const LODGING_TYPES = ['hotel', 'hostel', 'airbnb', 'vacation_rental', 'camping', 'resort', 'motel', 'bed_and_breakfast', 'apartment', 'friends_family', 'other'] as const;
-type LodgingTypeLiteral = (typeof LODGING_TYPES)[number];
-
-function normalizeTransportationType(raw: unknown): TransportationTypeLiteral {
-  if (typeof raw === 'string' && (TRANSPORTATION_TYPES as readonly string[]).includes(raw)) {
-    return raw as TransportationTypeLiteral;
+function normalizeTransportationType(raw: unknown): TransportationTypeEnum {
+  if (typeof raw === 'string' && TRANSPORTATION_TYPE_VALUES.includes(raw)) {
+    return raw as TransportationTypeEnum;
   }
-  return 'other';
+  return TransportationType.OTHER;
 }
 
-function normalizeLodgingType(raw: unknown): LodgingTypeLiteral {
-  if (typeof raw === 'string' && (LODGING_TYPES as readonly string[]).includes(raw)) {
-    return raw as LodgingTypeLiteral;
+function normalizeLodgingType(raw: unknown): LodgingTypeEnum {
+  if (typeof raw === 'string' && LODGING_TYPE_VALUES.includes(raw)) {
+    return raw as LodgingTypeEnum;
   }
-  return 'other';
+  return LodgingType.OTHER;
 }
 
 /** Extracts an optional string from parsed LLM data, returning undefined for non-strings. */
@@ -75,7 +70,7 @@ class PdfImportService {
     file: MulterFile,
     hintTripId?: number
   ) {
-    if (!pdfParserService.isConfigured()) {
+    if (!(await pdfParserService.isConfigured(userId))) {
       throw new AppError('LLM not configured — cannot process PDFs. Set LLM_API_KEY to enable.', 503);
     }
 
@@ -93,7 +88,10 @@ class PdfImportService {
     mkdirSync(pdfDir, { recursive: true });
 
     const storedFilename = `${randomUUID()}.pdf`;
-    const storedPath = join('pdfs', String(userId), storedFilename); // relative
+    // Use forward slashes explicitly so the value stored in the DB is portable
+    // across Windows (dev) and Linux (Docker / prod). resolveStoredPath() uses
+    // path.resolve() which normalizes either separator on each platform.
+    const storedPath = ['pdfs', String(userId), storedFilename].join('/');
     const absolutePath = join(config.upload.dir, storedPath);
 
     // Create DB record FIRST so we can clean up on failure
@@ -160,8 +158,10 @@ class PdfImportService {
         return;
       }
 
-      // Match trip for each entity or use hint
-      await Promise.all(
+      // Match trip for each entity or use hint. Use allSettled so a single
+      // DB write failure does not lose every parsed entity — partial success
+      // is preferred over throwing away all of the LLM's work.
+      const results = await Promise.allSettled(
         entities.map(async (entity) => {
           const matchedTripId = hintTripId ?? await this.matchTrip(userId, entity.data);
           return prisma.pendingEntity.create({
@@ -177,9 +177,49 @@ class PdfImportService {
         })
       );
 
+      const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+      const rejected = results.filter(
+        (r): r is PromiseRejectedResult => r.status === 'rejected'
+      );
+
+      // Log every failure individually so they show up in alerts/logs.
+      for (const failure of rejected) {
+        logger.warn('PDF pendingEntity creation failed (partial)', {
+          pdfImportId,
+          err: failure.reason,
+        });
+      }
+
+      if (succeeded === 0) {
+        // Every entity failed — mark the whole import as failed.
+        const firstErr = rejected[0]?.reason;
+        await prisma.pdfImport.update({
+          where: { id: pdfImportId },
+          data: {
+            status: PdfImportStatus.PARSE_FAILED,
+            errorMessage: firstErr instanceof Error
+              ? `All ${entities.length} parsed entities failed to save: ${firstErr.message}`
+              : `All ${entities.length} parsed entities failed to save`,
+            processedAt: new Date(),
+          },
+        });
+        return;
+      }
+
+      // At least one entity made it. Mark as PARSED and surface the partial
+      // failure count via errorMessage so the UI can show a warning.
+      const partialFailureMessage =
+        rejected.length > 0
+          ? `${succeeded} of ${entities.length} entities saved; ${rejected.length} failed (see server logs)`
+          : null;
+
       await prisma.pdfImport.update({
         where: { id: pdfImportId },
-        data: { status: PdfImportStatus.PARSED, processedAt: new Date() },
+        data: {
+          status: PdfImportStatus.PARSED,
+          processedAt: new Date(),
+          errorMessage: partialFailureMessage,
+        },
       });
     } catch (err) {
       logger.error('PDF processing failed', { pdfImportId, err });
@@ -278,8 +318,20 @@ class PdfImportService {
   }
 
   /**
-   * Accept a pending entity: create the actual trip entity + EntityLink back to PDF.
-   * Uses an atomic claim (updateMany WHERE status=PENDING) to prevent duplicate accepts.
+   * Accept a pending entity: create the actual trip entity + EntityLink back
+   * to PDF, recording the result on the pending entity row.
+   *
+   * The whole happy path runs inside `prisma.$transaction`, so if anything
+   * after the atomic claim throws, the claim itself is rolled back along with
+   * any partial entity / link writes. The legacy manual-rollback block is
+   * gone — Prisma handles it via abort.
+   *
+   * We inline the Prisma `.create()` calls for each entity type because the
+   * domain services (transportationService.createTransportation, etc.) take
+   * the global prisma client and have no transactional variant. Inlining
+   * costs us a few side-effects from those services (e.g. async route
+   * distance calculation for transportation, decimal conversion in the
+   * response) — that's an accepted trade-off for correctness here.
    */
   async acceptPendingEntity(
     userId: number,
@@ -287,137 +339,135 @@ class PdfImportService {
     tripId: number,
     overrides?: Record<string, unknown>
   ) {
-    // Atomically claim the entity — only succeeds if it's still PENDING
-    const claimed = await prisma.pendingEntity.updateMany({
-      where: { id, userId, status: PendingEntityStatus.PENDING },
-      data: { status: PendingEntityStatus.ACCEPTED, reviewedAt: new Date() },
-    });
-    if (claimed.count === 0) {
-      // Could be 404 or already reviewed — check which
-      const entity = await prisma.pendingEntity.findFirst({ where: { id, userId } });
-      if (!entity) throw new AppError('Pending entity not found', 404);
-      throw new AppError('Entity has already been reviewed', 400);
-    }
-
-    const entity = await prisma.pendingEntity.findFirst({
-      where: { id, userId },
-      include: { pdfImport: true },
-    });
-    if (!entity) throw new AppError('Pending entity not found', 404);
-
-    // Verify user owns the trip
+    // Verify user owns the trip BEFORE entering the transaction. We don't
+    // want to claim the pending entity only to roll back because of an auth
+    // failure that we could have detected up front.
     const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
     if (!trip) {
-      // Roll back the claim
-      await prisma.pendingEntity.update({
-        where: { id },
-        data: { status: PendingEntityStatus.PENDING, reviewedAt: null },
-      });
       throw new AppError('Trip not found or access denied', 404);
     }
 
-    const data = { ...(entity.parsedData as Record<string, unknown>), ...overrides };
-    let createdEntityId: number;
-    const createdEntityType = entity.entityType;
+    return prisma.$transaction(async (tx) => {
+      // Atomically claim the entity — only succeeds if it's still PENDING.
+      // This is the first statement in the transaction; if any later step
+      // throws, the claim is rolled back automatically.
+      const claimed = await tx.pendingEntity.updateMany({
+        where: { id, userId, status: PendingEntityStatus.PENDING },
+        data: { status: PendingEntityStatus.ACCEPTED, reviewedAt: new Date() },
+      });
+      if (claimed.count === 0) {
+        const existing = await tx.pendingEntity.findFirst({ where: { id, userId } });
+        if (!existing) throw new AppError('Pending entity not found', 404);
+        throw new AppError('Entity has already been reviewed', 400);
+      }
 
-    try {
+      const entity = await tx.pendingEntity.findFirst({
+        where: { id, userId },
+      });
+      if (!entity) throw new AppError('Pending entity not found', 404);
+
+      const data = { ...(entity.parsedData as Record<string, unknown>), ...overrides };
+      let createdEntityId: number;
+      const createdEntityType = entity.entityType;
+
       switch (entity.entityType) {
-        case PendingEntityType.TRANSPORTATION:
-          {
-            const created = await transportationService.createTransportation(userId, {
+        case PendingEntityType.TRANSPORTATION: {
+          const created = await tx.transportation.create({
+            data: {
               tripId,
               type: normalizeTransportationType(data.type),
-              fromLocationName: optStr(data.fromLocationName),
-              toLocationName: optStr(data.toLocationName),
-              departureTime: optStr(data.departureTime),
-              arrivalTime: optStr(data.arrivalTime),
-              carrier: optStr(data.carrier),
-              vehicleNumber: optStr(data.vehicleNumber),
-              confirmationNumber: optStr(data.confirmationNumber),
-              notes: optStr(data.notes),
-            });
-            createdEntityId = created.id;
-          }
+              startLocationText: optStr(data.fromLocationName) ?? null,
+              endLocationText: optStr(data.toLocationName) ?? null,
+              scheduledStart: optStr(data.departureTime) ? new Date(optStr(data.departureTime)!) : null,
+              scheduledEnd: optStr(data.arrivalTime) ? new Date(optStr(data.arrivalTime)!) : null,
+              company: optStr(data.carrier) ?? null,
+              referenceNumber: optStr(data.vehicleNumber) ?? null,
+              bookingReference: optStr(data.confirmationNumber) ?? null,
+              notes: optStr(data.notes) ?? null,
+            },
+            select: { id: true },
+          });
+          createdEntityId = created.id;
           break;
-        case PendingEntityType.LODGING:
-          {
-            if (typeof data.checkInDate !== 'string' || typeof data.checkOutDate !== 'string') {
-              throw new AppError('Lodging requires checkInDate and checkOutDate', 400);
-            }
-            const created = await lodgingService.createLodging(userId, {
+        }
+        case PendingEntityType.LODGING: {
+          if (typeof data.checkInDate !== 'string' || typeof data.checkOutDate !== 'string') {
+            throw new AppError('Lodging requires checkInDate and checkOutDate', 400);
+          }
+          const created = await tx.lodging.create({
+            data: {
               tripId,
               type: normalizeLodgingType(data.type),
               name: typeof data.name === 'string' ? data.name : 'Unnamed Lodging',
-              address: optStr(data.address),
-              checkInDate: data.checkInDate,
-              checkOutDate: data.checkOutDate,
-              confirmationNumber: optStr(data.confirmationNumber),
-              notes: optStr(data.notes),
-            });
-            createdEntityId = created.id;
-          }
+              address: optStr(data.address) ?? null,
+              checkInDate: new Date(data.checkInDate),
+              checkOutDate: new Date(data.checkOutDate),
+              confirmationNumber: optStr(data.confirmationNumber) ?? null,
+              notes: optStr(data.notes) ?? null,
+            },
+            select: { id: true },
+          });
+          createdEntityId = created.id;
           break;
-        case PendingEntityType.ACTIVITY:
-          {
-            if (typeof data.name !== 'string') {
-              throw new AppError('Activity requires a name', 400);
-            }
-            const created = await activityService.createActivity(userId, {
+        }
+        case PendingEntityType.ACTIVITY: {
+          if (typeof data.name !== 'string') {
+            throw new AppError('Activity requires a name', 400);
+          }
+          const created = await tx.activity.create({
+            data: {
               tripId,
               name: data.name,
-              description: optStr(data.description),
-              startTime: optStr(data.startTime),
-              endTime: optStr(data.endTime),
-              bookingReference: optStr(data.bookingReference),
-              notes: optStr(data.notes),
-            });
-            createdEntityId = created.id;
-          }
+              description: optStr(data.description) ?? null,
+              startTime: optStr(data.startTime) ? new Date(optStr(data.startTime)!) : null,
+              endTime: optStr(data.endTime) ? new Date(optStr(data.endTime)!) : null,
+              bookingReference: optStr(data.bookingReference) ?? null,
+              notes: optStr(data.notes) ?? null,
+            },
+            select: { id: true },
+          });
+          createdEntityId = created.id;
           break;
-        case PendingEntityType.LOCATION:
-          {
-            if (typeof data.name !== 'string') {
-              throw new AppError('Location requires a name', 400);
-            }
-            const created = await locationService.createLocation(userId, {
+        }
+        case PendingEntityType.LOCATION: {
+          if (typeof data.name !== 'string') {
+            throw new AppError('Location requires a name', 400);
+          }
+          const created = await tx.location.create({
+            data: {
               tripId,
               name: data.name,
-              address: optStr(data.address),
-            });
-            createdEntityId = created.id;
-          }
+              address: optStr(data.address) ?? null,
+            },
+            select: { id: true },
+          });
+          createdEntityId = created.id;
           break;
+        }
         default:
           throw new AppError('Unknown entity type', 400);
       }
-    } catch (err) {
-      // Roll back the claim so user can retry
-      await prisma.pendingEntity.update({
-        where: { id },
-        data: { status: PendingEntityStatus.PENDING, reviewedAt: null },
+
+      // Create EntityLink back to the source PdfImport row.
+      await tx.entityLink.create({
+        data: {
+          tripId,
+          sourceType: 'PDF_IMPORT',
+          sourceId: entity.pdfImportId,
+          targetType: entity.entityType,
+          targetId: createdEntityId,
+          relationship: 'RELATED',
+        },
       });
-      throw err;
-    }
 
-    // Create EntityLink directly (bypassing createLink() which requires entity-in-trip validation for source)
-    await prisma.entityLink.create({
-      data: {
-        tripId,
-        sourceType: 'PDF_IMPORT',
-        sourceId: entity.pdfImportId,
-        targetType: entity.entityType,
-        targetId: createdEntityId,
-        relationship: 'RELATED',
-      },
+      // Record the created entity on the pending entity row.
+      await tx.pendingEntity.update({
+        where: { id },
+        data: { createdEntityId, createdEntityType },
+      });
+
+      return { createdEntityId, createdEntityType };
     });
-
-    // Record the created entity on the pending entity row
-    await prisma.pendingEntity.update({
-      where: { id },
-      data: { createdEntityId, createdEntityType },
-    });
-
-    return { createdEntityId, createdEntityType };
   }
 
   async rejectPendingEntity(userId: number, id: number) {

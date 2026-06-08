@@ -50,7 +50,7 @@ jest.mock('../../config/database', () => ({
 const mockVerifyTripAccessWithPermission = jest.fn();
 const mockVerifyEntityAccessWithPermission = jest.fn();
 
-jest.mock('../serviceHelpers', () => ({
+jest.mock('../../services/_shared/serviceHelpers', () => ({
   verifyTripAccessWithPermission: (...args: unknown[]) =>
     mockVerifyTripAccessWithPermission(...args),
   verifyEntityAccessWithPermission: (...args: unknown[]) =>
@@ -64,7 +64,7 @@ import {
   bulkDeleteEntities,
   bulkUpdateEntities,
 } from '../crudHelpers';
-import { AppError } from '../errors';
+import { AppError } from '../../errors/errors';
 import {
   createMockRequest,
   createMockResponse,

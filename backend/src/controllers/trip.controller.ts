@@ -9,9 +9,9 @@ import {
 } from '../types/trip.types';
 import { z } from 'zod';
 import logger from '../config/logger';
-import { parseId } from '../utils/parseId';
-import { asyncHandler } from '../utils/asyncHandler';
-import { requireUserId } from '../utils/controllerHelpers';
+import { parseId } from '../http/parseId';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
 
 export const tripController = {
   createTrip: asyncHandler(async (req: Request, res: Response) => {

@@ -92,7 +92,11 @@ export default function ChecklistsPage() {
     try {
       const result = await checklistService.autoCheckFromTrips();
       await loadChecklists();
-      alert(`Successfully auto-checked ${result.updated} items based on your trips!`);
+      let message = `Successfully auto-checked ${result.updated} item${result.updated === 1 ? '' : 's'} based on your trips!`;
+      if (result.added > 0) {
+        message += `\nAdded ${result.added} new airport${result.added === 1 ? '' : 's'} from your trips to the Airports list.`;
+      }
+      alert(message);
     } catch (err) {
       console.error('Failed to auto-check items:', err);
       alert('Failed to auto-check items from trips');

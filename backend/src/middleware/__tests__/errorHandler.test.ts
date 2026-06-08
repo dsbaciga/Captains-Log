@@ -21,7 +21,7 @@ jest.mock('../../types/prisma-helpers', () => ({
 
 // Import after mocks
 import { errorHandler, AppError } from '../errorHandler';
-import { AppError as UtilsAppError } from '../../utils/errors';
+import { AppError as UtilsAppError } from '../../errors/errors';
 
 describe('errorHandler', () => {
   let mockRequest: Partial<Request>;
@@ -191,7 +191,7 @@ describe('errorHandler', () => {
   });
 
   describe('AppError class (re-exported)', () => {
-    it('should re-export AppError from utils/errors', () => {
+    it('should re-export AppError from errors/errors', () => {
       // The errorHandler module re-exports AppError for backwards compatibility
       expect(AppError).toBe(UtilsAppError);
     });

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   nullableOptional,
   optionalTimezone,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 // Trip status enum
 export const TripStatus = {

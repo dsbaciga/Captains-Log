@@ -11,10 +11,10 @@ import {
   PhotoWithOptionalAlbums,
   TransformedPhoto,
 } from '../types/photo.types';
-import { AppError } from '../utils/errors';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
+import { AppError } from '../errors/errors';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
 
 const photoQuerySchema = z.object({
   skip: z.coerce.number().int().min(0).default(0),

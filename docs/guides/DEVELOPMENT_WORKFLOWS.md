@@ -124,10 +124,10 @@ await entityLinkService.bulkCreateLinks(userId, tripId, {
 
 ```typescript
 // Get all links for an entity (bidirectional)
-const links = await entityLinkService.getLinksForEntity(userId, tripId, 'PHOTO', photoId);
+const links = await entityLinkService.getAllLinksForEntity(userId, tripId, 'PHOTO', photoId);
 
 // Get trip-wide link summary (for UI badges)
-const summary = await entityLinkService.getTripLinksSummary(userId, tripId);
+const summary = await entityLinkService.getTripLinkSummary(userId, tripId);
 ```
 
 **Frontend - UI Components**:
@@ -274,8 +274,9 @@ The Checklist system allows users to create and manage trip-specific checklists 
 **Backend - Checklist Service**:
 
 ```typescript
-// Create a checklist for a trip
-await checklistService.create(userId, tripId, {
+// Create a checklist for a trip (tripId is part of the data object)
+await checklistService.createChecklist(userId, {
+  tripId,
   name: 'Packing List',
   category: 'PACKING',
   items: [
@@ -284,8 +285,8 @@ await checklistService.create(userId, tripId, {
   ]
 });
 
-// Auto-populate default checklists
-await checklistService.populateDefaults(userId, tripId);
+// Initialize default checklists for the user
+await checklistService.initializeDefaultChecklists(userId);
 ```
 
 **Frontend - ChecklistManager Component**:
@@ -384,16 +385,18 @@ The Collaboration system allows sharing trips with other users with permission l
 
 ```typescript
 // Invite a collaborator by email
-await collaborationService.inviteCollaborator(userId, tripId, {
+await collaborationService.sendInvitation(userId, tripId, {
   email: 'friend@example.com',
-  permission: 'EDIT'
+  permissionLevel: 'edit'
 });
 
-// Accept an invitation
-await collaborationService.acceptInvitation(userId, invitationToken);
+// Accept an invitation (takes the numeric invitation ID, not a token)
+await collaborationService.acceptInvitation(userId, invitationId);
 
 // Update collaborator permission
-await collaborationService.updatePermission(userId, tripId, collaboratorId, 'ADMIN');
+await collaborationService.updateCollaborator(userId, tripId, collaboratorUserId, {
+  permissionLevel: 'admin'
+});
 ```
 
 **Frontend - CollaboratorsManager Component**:

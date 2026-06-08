@@ -5,7 +5,7 @@ import {
   optionalDatetime,
   optionalStringWithMax,
   optionalNumber,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 export const PhotoSource = {
   LOCAL: 'local',

@@ -30,7 +30,7 @@ jest.mock('@prisma/client', () => {
 });
 
 // Mock the database config to avoid actual DB connections
-jest.mock('../../config/database', () => ({
+jest.mock('../../../config/database', () => ({
   __esModule: true,
   default: {},
 }));

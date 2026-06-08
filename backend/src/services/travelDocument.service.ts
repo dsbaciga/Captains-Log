@@ -1,5 +1,5 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import {
   CreateTravelDocumentInput,
   UpdateTravelDocumentInput,
@@ -10,7 +10,7 @@ import {
   maskDocumentNumber,
   DocumentType,
 } from '../types/travelDocument.types';
-import { buildConditionalUpdateData, tripDateTransformer } from '../utils/serviceHelpers';
+import { buildConditionalUpdateData, tripDateTransformer } from '../services/_shared/serviceHelpers';
 import { TravelDocument } from '@prisma/client';
 
 /**

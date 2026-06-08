@@ -1,6 +1,7 @@
 # Travel Life - Implementation Status
 
-Last Updated: 2026-01-25
+Last Updated: 2026-05-15
+Version: v5.4.0
 
 ## ✅ Completed Features
 
@@ -237,6 +238,57 @@ Last Updated: 2026-01-25
 - [x] Weather data integration (OpenWeatherMap) - Full service with caching, forecast and historical data
 - [x] Flight tracking integration (AviationStack) - Real-time flight status, gate/terminal info
 
+### Travel Documents & Visa Intelligence
+
+- [x] Travel document CRUD endpoints (backend)
+- [x] Travel document model (passports, visas, ID cards, insurance, vaccination records, etc.)
+- [x] Document expiry tracking and alerts
+- [x] **Visa requirement intelligence** - Per-destination visa requirement lookup
+- [x] Travel document manager UI (`TravelDocumentManager.tsx`)
+- [x] Document alerts component for expiring/missing documents (`DocumentAlerts.tsx`)
+
+### Trip Series
+
+- [x] Trip series CRUD endpoints (backend)
+- [x] Trip series model linking related trips (recurring/multi-part journeys)
+- [x] Trip series list page (`TripSeriesListPage.tsx`)
+- [x] Trip series detail page (`TripSeriesPage.tsx`)
+- [x] Aggregate statistics across trips in a series
+
+### Language Phrases / Phrase Bank
+
+- [x] Language phrase CRUD endpoints (backend)
+- [x] Language phrase model and per-trip language tracking
+- [x] Trip language service for associating languages with trips
+- [x] Phrase Bank UI for browsing and managing useful travel phrases (`PhraseBank.tsx`)
+
+### Packing Suggestions
+
+- [x] Packing suggestion service (backend) - generates suggestions based on trip details and weather
+- [x] Packing suggestions UI (`PackingSuggestions.tsx`)
+- [x] Weather- and destination-aware recommendations
+
+### Dietary Preferences
+
+- [x] Dietary preference tracking for companions and trips
+- [x] Dietary badges display component (`DietaryBadges.tsx`)
+- [x] Dietary tag selector for choosing dietary needs (`DietaryTagSelector.tsx`)
+
+### PDF + AI Import
+
+- [x] PDF import endpoints (`pdfImport.controller.ts`)
+- [x] PDF import and parsing services (`pdfImport.service.ts`, `pdfParser.service.ts`)
+- [x] LLM-powered extraction of bookings (flights, hotels, activities) from uploaded PDFs
+- [x] Pending entity review workflow (`PendingEntity` model)
+- [x] PDF import button, upload modal, and review modal UI (`PdfImportButton.tsx`, `PdfUploadModal.tsx`, `PdfReviewModal.tsx`)
+- [x] Replaces the previous email-import feature (removed in v5.4.0)
+
+### LLM Settings / AI Integration
+
+- [x] LLM service for AI-powered features (`llm.service.ts`)
+- [x] LLM settings UI for configuring the AI provider (`LlmSettings.tsx`)
+- [x] Powers PDF + AI import and AI-assisted suggestions
+
 ### Trip Validation & Planning
 
 - [x] **Trip Health Check** - Automated validation system identifying schedule conflicts, missing accommodations, transportation gaps
@@ -296,8 +348,9 @@ These are non-critical improvements identified during code reviews that would en
 - [x] Photo pagination for large galleries
 - [x] Combine Albums and Photos tabs (under consideration)
 - [ ] XML import/export
-- [ ] Print-friendly reports
-- [ ] PDF export
+- [x] Print-friendly reports ✅ `PrintableItinerary` component with `@media print` styles
+- [x] PDF export (print-based) ✅ Export via browser print dialog ("Save as PDF") from `PrintableItinerary`
+- [ ] Server-side PDF generation - Native PDF rendering without the browser print dialog (not started)
 
 ### Phase 6: Polish & Optimization
 
@@ -327,11 +380,17 @@ These are non-critical improvements identified during code reviews that would en
 | Companions             | 100%       |
 | Timeline               | 100%       |
 | User Settings          | 100%       |
+| Travel Documents       | 100%       |
+| Trip Series            | 100%       |
+| Language Phrases       | 100%       |
+| Packing Suggestions    | 100%       |
+| PDF + AI Import         | 100%       |
+| LLM / AI Integration   | 100%       |
 | UI/UX Polish           | 98%        |
-| Advanced Features      | 85%        |
-| External Integrations  | 75%        |
+| Advanced Features      | 90%        |
+| External Integrations  | 80%        |
 
-**Overall Progress: ~92% of core features complete**
+**Overall Progress: ~95% of core features complete**
 
 ## 🏗️ Technical Stack Status
 
@@ -340,7 +399,7 @@ These are non-critical improvements identified during code reviews that would en
 - ✅ Express server running on port 5000
 - ✅ TypeScript configured
 - ✅ Prisma ORM fully operational
-- ✅ Database schema complete with 19 tables
+- ✅ Database schema complete with 32 tables
 - ✅ JWT authentication working
 - ✅ All major CRUD endpoints implemented
 - ✅ File uploads with Multer and Sharp
@@ -379,15 +438,18 @@ These are non-critical improvements identified during code reviews that would en
 
 ## 📝 Database Schema
 
-All 21 tables are created and operational:
+All 32 tables are created and operational:
 
-- `users` - User accounts with timezone and settings
-- `trips` - Trip records with status, dates, timezone
+- `users` - User accounts with timezone, settings, and custom trip types
+- `trips` - Trip records with status, dates, timezone, trip type
+- `trip_series` - Series linking related trips (recurring/multi-part journeys)
 - `trip_tags` - Tag definitions with colors
 - `trip_tag_assignments` - Many-to-many trip-tag relationships
 - `travel_companions` - Companion records with contact info
 - `trip_companions` - Many-to-many trip-companion relationships
 - `trip_collaborators` - Trip sharing with permissions
+- `trip_invitations` - Pending invitations to collaborate on a trip
+- `user_invitations` - Pending invitations for new user accounts
 - `locations` - Points of interest with coordinates
 - `location_categories` - Custom location categories
 - `photos` - Photo records (local or Immich)
@@ -399,10 +461,17 @@ All 21 tables are created and operational:
 - `checklists` - Trip checklists with categories
 - `checklist_items` - Individual checklist items with completion status
 - `journal_entries` - Journal entries with mood and weather
-- `journal_photos` - Many-to-many journal-photo relationships
-- `journal_locations` - Many-to-many journal-location relationships
-- `weather_data` - Weather information (not yet used)
-- `flight_tracking` - Flight tracking data (not yet used)
+- `entity_links` - Cross-entity link relationships
+- `weather_data` - Weather information (integrated with weather service)
+- `flight_tracking` - Flight tracking data (integrated with AviationStack)
+- `route_cache` - Cached route/distance calculations
+- `dismissed_validation_issues` - Trip health check issues a user has dismissed
+- `travel_documents` - Travel documents (passports, visas, insurance, etc.)
+- `visa_requirements` - Per-destination visa requirement data
+- `trip_languages` - Languages associated with a trip
+- `language_phrases` - Phrase bank entries for travel languages
+- `pdf_imports` - Uploaded PDF import jobs for AI-powered parsing
+- `pending_entities` - Extracted entities awaiting user review from PDF imports
 
 ## 🎯 Feature Highlights
 

@@ -1,8 +1,9 @@
 import prisma from '../config/database';
 import { Prisma } from '@prisma/client';
 import { BackupData, RestoreOptions } from '../types/backup.types';
-import { AppError } from '../utils/errors';
-import { validateUrlNotInternal } from '../utils/urlValidation';
+import { AppError } from '../errors/errors';
+import { validateUrlNotInternal } from '../security/urlValidation';
+import logger from '../config/logger';
 
 type TransactionClient = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>;
 
@@ -27,8 +28,10 @@ interface RestoreStats {
  * Supported backup versions that can be restored
  * v1.0.0 - Original backup format
  * v1.1.0 - Added travelDocuments and tripLanguages
+ * v1.2.0 - Added tripTypes and tripSeries
+ * v1.3.0 - Removed plaintext secrets (API keys, SMTP password) from exports
  */
-const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0', '1.2.0'];
+const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0', '1.2.0', '1.3.0'];
 
 /**
  * Restore user data from a backup
@@ -85,6 +88,61 @@ export async function restoreFromBackup(
           }
         }
 
+        // Validate LLM base URL from backup to prevent SSRF
+        let sanitizedLlmBaseUrl = backupData.user.llmBaseUrl ?? null;
+        if (sanitizedLlmBaseUrl) {
+          try {
+            await validateUrlNotInternal(sanitizedLlmBaseUrl);
+          } catch {
+            logger.warn('Restore: rejected llmBaseUrl that failed SSRF validation', {
+              userId,
+            });
+            sanitizedLlmBaseUrl = null;
+          }
+        }
+
+        // Secret fields (v1.3.0+ backups null these out by design).
+        // Only overwrite the user's existing secret if the backup provides a
+        // non-null plaintext value (legacy v1.0.0–v1.2.0 backups). For null/
+        // missing values we leave the existing DB value untouched so a user
+        // restoring a recent backup doesn't lose their currently-configured keys.
+        const secretUpdates: Prisma.UserUpdateInput = {};
+        const legacySecretsPresent: string[] = [];
+        if (backupData.user.immichApiKey != null) {
+          // Only restore the Immich key if the URL passed SSRF validation
+          if (sanitizedImmichUrl) {
+            secretUpdates.immichApiKey = backupData.user.immichApiKey;
+            legacySecretsPresent.push('immichApiKey');
+          }
+        }
+        if (backupData.user.weatherApiKey != null) {
+          secretUpdates.weatherApiKey = backupData.user.weatherApiKey;
+          legacySecretsPresent.push('weatherApiKey');
+        }
+        if (backupData.user.aviationstackApiKey != null) {
+          secretUpdates.aviationstackApiKey = backupData.user.aviationstackApiKey;
+          legacySecretsPresent.push('aviationstackApiKey');
+        }
+        if (backupData.user.openrouteserviceApiKey != null) {
+          secretUpdates.openrouteserviceApiKey = backupData.user.openrouteserviceApiKey;
+          legacySecretsPresent.push('openrouteserviceApiKey');
+        }
+        if (backupData.user.llmApiKey != null) {
+          secretUpdates.llmApiKey = backupData.user.llmApiKey;
+          legacySecretsPresent.push('llmApiKey');
+        }
+        if (backupData.user.smtpPassword != null) {
+          secretUpdates.smtpPassword = backupData.user.smtpPassword;
+          legacySecretsPresent.push('smtpPassword');
+        }
+        if (legacySecretsPresent.length > 0) {
+          logger.warn('Restoring plaintext secrets from legacy backup; please rotate these keys', {
+            userId,
+            backupVersion: backupData.version,
+            fields: legacySecretsPresent,
+          });
+        }
+
         await tx.user.update({
           where: { id: userId },
           data: {
@@ -92,10 +150,12 @@ export async function restoreFromBackup(
             activityCategories: backupData.user.activityCategories as Prisma.JsonArray,
             ...(backupData.user.tripTypes ? { tripTypes: backupData.user.tripTypes as Prisma.JsonArray } : {}),
             immichApiUrl: sanitizedImmichUrl,
-            immichApiKey: sanitizedImmichUrl ? backupData.user.immichApiKey : null,
-            weatherApiKey: backupData.user.weatherApiKey,
-            aviationstackApiKey: backupData.user.aviationstackApiKey,
-            openrouteserviceApiKey: backupData.user.openrouteserviceApiKey,
+            // If we have no Immich URL after sanitization, also clear any existing
+            // Immich key — an orphan key without a URL is meaningless and confusing.
+            ...(sanitizedImmichUrl ? {} : { immichApiKey: null }),
+            llmBaseUrl: sanitizedLlmBaseUrl,
+            llmModel: backupData.user.llmModel ?? null,
+            ...secretUpdates,
           },
         });
 
@@ -641,6 +701,7 @@ export async function restoreFromBackup(
       stats,
     };
   } catch (error) {
+    if (error instanceof AppError) throw error;
     console.error('Error restoring from backup:', error);
     throw new AppError(
       `Failed to restore from backup: ${error instanceof Error ? error.message : 'Unknown error'}`,

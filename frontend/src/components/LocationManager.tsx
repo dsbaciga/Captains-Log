@@ -12,6 +12,7 @@ import LinkPanel from "./LinkPanel";
 import DraftIndicator from "./DraftIndicator";
 import DraftRestorePrompt from "./DraftRestorePrompt";
 import { useFormFields } from "../hooks/useFormFields";
+import { useFieldErrors } from "../hooks/useFieldErrors";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
@@ -121,6 +122,10 @@ export default function LocationManager({
   const { values, handleChange, reset, setAllFields } =
     useFormFields<LocationFormFields>(initialFormState);
 
+  const locationFieldErrors = useFieldErrors({
+    name: { validate: (v) => v.trim() ? null : 'Location name is required' },
+  });
+
   // Auto-save draft for form data
   const draftKey = manager.editingId ? manager.editingId : tripId;
   const draft = useAutoSaveDraft(values, {
@@ -190,11 +195,12 @@ export default function LocationManager({
 
   const resetForm = useCallback(() => {
     reset();
+    locationFieldErrors.resetErrors();
     manager.setEditingId(null);
     setKeepFormOpenAfterSave(false);
     setShowDraftPrompt(false);
     draft.clearDraft();
-  }, [reset, manager, draft]);
+  }, [reset, locationFieldErrors, manager, draft]);
 
   const handleLocationSelect = (data: {
     name: string;
@@ -384,10 +390,10 @@ export default function LocationManager({
             bulkSelection.toggleItemSelection(location.id, index, e.shiftKey, topLevelLocations);
           } : undefined}
           onKeyDown={bulkSelection.selectionMode && !isChild ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bulkSelection.toggleItemSelection(location.id, index, false, topLevelLocations); } } : undefined}
-          className={`border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow ${
+          className={`border border-primary-100 dark:border-gold/20 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow ${
             isChild
-              ? "bg-gray-50 dark:bg-gray-700"
-              : "bg-white dark:bg-gray-800"
+              ? "bg-parchment/50 dark:bg-navy-800/50"
+              : "bg-white dark:bg-navy-800"
           } ${bulkSelection.selectionMode && !isChild ? "cursor-pointer" : ""} ${isSelected && !isChild ? "ring-2 ring-primary-500 dark:ring-primary-400" : ""}`}
         >
           {/* Header row: Title + badge on mobile, with actions on larger screens */}
@@ -426,7 +432,7 @@ export default function LocationManager({
                   />
                 </div>
                 {!isChild && children.length > 0 && (
-                  <span className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded whitespace-nowrap flex-shrink-0">
+                  <span className="px-2 py-0.5 text-xs bg-primary-100 dark:bg-navy-700 text-primary-700 dark:text-warm-gray/70 rounded whitespace-nowrap flex-shrink-0">
                     {children.length} {children.length === 1 ? "place" : "places"}
                   </span>
                 )}
@@ -451,7 +457,7 @@ export default function LocationManager({
               )}
               {location.category && (
                 <span
-                  className={`inline-block mt-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded ${
+                  className={`inline-block mt-2 px-2 py-1 text-xs bg-primary-50 dark:bg-navy-700 text-primary-700 dark:text-gold/80 rounded ${
                     isChild ? "ml-6" : ""
                   }`}
                 >
@@ -462,7 +468,7 @@ export default function LocationManager({
             </div>
 
             {/* Action buttons - own row on mobile, inline on larger screens */}
-            <div className="flex gap-2 items-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-600">
+            <div className="flex gap-2 items-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-primary-100/50 dark:border-gold/10">
               {/* Photo preview badge with popover */}
               {(() => {
                 const linkSummary = getLinkSummary("LOCATION", location.id);
@@ -497,7 +503,7 @@ export default function LocationManager({
               />
               <button
                 onClick={() => handleEdit(location)}
-                className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                className="px-2.5 py-1 text-sm bg-primary-50 dark:bg-navy-700 text-primary-700 dark:text-gold/80 rounded hover:bg-primary-100 dark:hover:bg-navy-600 whitespace-nowrap"
                 aria-label={`Edit location ${location.name}`}
               >
                 Edit
@@ -535,7 +541,7 @@ export default function LocationManager({
     <div className="space-y-6">
       <ConfirmDialogComponent />
       <div className="flex flex-col-reverse items-start gap-3 sm:flex-row sm:justify-between sm:items-center">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-xl sm:text-2xl font-bold text-charcoal dark:text-warm-gray">
           Locations
         </h2>
         <div className="flex items-center gap-2">
@@ -635,7 +641,7 @@ export default function LocationManager({
             <div>
               <label
                 htmlFor="location-name"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1"
               >
                 Location Name *
               </label>
@@ -646,10 +652,18 @@ export default function LocationManager({
                 autoComplete="off"
                 value={values.name}
                 onChange={(e) => handleChange("name", e.target.value)}
-                className="input"
+                onBlur={(e) => locationFieldErrors.handleBlur("name", e.target.value)}
+                className={`input ${locationFieldErrors.inputErrorClass("name")}`}
+                aria-invalid={locationFieldErrors.touched.name && !!locationFieldErrors.errors.name}
+                aria-describedby={locationFieldErrors.errors.name ? "location-name-error" : undefined}
                 required
                 placeholder="Eiffel Tower"
               />
+              {locationFieldErrors.touched.name && locationFieldErrors.errors.name && (
+                <p id="location-name-error" className="text-red-600 dark:text-red-400 text-xs mt-1">
+                  {locationFieldErrors.errors.name}
+                </p>
+              )}
             </div>
 
             {/* Parent Location - only show if this location doesn't have children */}
@@ -662,7 +676,7 @@ export default function LocationManager({
                 <div>
                   <label
                     htmlFor="location-parent"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1"
                   >
                     Parent Location (City/Region)
                   </label>
@@ -715,7 +729,7 @@ export default function LocationManager({
             <div>
               <label
                 htmlFor="location-address"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1"
               >
                 Address
               </label>
@@ -735,7 +749,7 @@ export default function LocationManager({
               <div>
                 <label
                   htmlFor="location-category"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1"
                 >
                   Category
                 </label>
@@ -797,7 +811,7 @@ export default function LocationManager({
 
       {/* Locations Map */}
       {manager.items.length > 0 && (
-        <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-8 pt-8 border-t border-primary-100 dark:border-gold/20">
           <TripLocationsMap locations={manager.items} />
         </div>
       )}

@@ -83,6 +83,31 @@ export interface SelectiveChecklistOperationDTO {
 }
 
 /**
+ * Metadata structure for airport checklist items.
+ * Stored in the ChecklistItem.metadata JSON field. The `code` field is what
+ * the "sync from trips" auto-check matches against, so it must always be set.
+ *
+ * Declared as a type alias (not an interface) so it remains assignable to the
+ * `Record<string, unknown>` shape expected by AddChecklistItemDTO.metadata.
+ */
+export type AirportMetadata = {
+  /** 3-letter IATA code, e.g. "JFK" */
+  code: string;
+  /** ICAO code, e.g. "KJFK" */
+  icao?: string;
+  /** City served by the airport */
+  city: string;
+  /** Country the airport is in */
+  country: string;
+  /** Latitude — from OpenStreetMap when confirmed, otherwise the airport dataset */
+  latitude?: number;
+  /** Longitude — from OpenStreetMap when confirmed, otherwise the airport dataset */
+  longitude?: number;
+  /** Canonical OpenStreetMap address, when a nearby match was found */
+  address?: string;
+};
+
+/**
  * Metadata structure for souvenir checklist items.
  * Stored in the ChecklistItem.metadata JSON field.
  */

@@ -1,9 +1,9 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import { WeatherDataInput } from '../types/weather.types';
 import config from '../config';
 import axios, { AxiosRequestConfig } from 'axios';
-import { verifyTripAccess, convertDecimals } from '../utils/serviceHelpers';
+import { verifyTripAccess, convertDecimals } from '../services/_shared/serviceHelpers';
 import { isAxiosError } from '../types/prisma-helpers';
 
 interface OpenWeatherResponse {

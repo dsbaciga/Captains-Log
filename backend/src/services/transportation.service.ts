@@ -6,9 +6,9 @@ import {
   BulkDeleteTransportationInput,
   BulkUpdateTransportationInput,
 } from '../types/transportation.types';
-import { AppError } from '../utils/errors';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, verifyEntityInTrip, convertDecimals, cleanupEntityLinks, buildConditionalUpdateData } from '../utils/serviceHelpers';
-import { locationWithAddressSelect } from '../utils/prismaIncludes';
+import { AppError } from '../errors/errors';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, verifyEntityInTrip, convertDecimals, cleanupEntityLinks, buildConditionalUpdateData } from '../services/_shared/serviceHelpers';
+import { locationWithAddressSelect } from '../prisma/prismaIncludes';
 import routingService from './routing.service';
 
 // Type for transportation with included relations

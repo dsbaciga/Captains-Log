@@ -58,7 +58,7 @@ jest.mock('../companion.service', () => ({
 }));
 
 // Mock password utilities
-jest.mock('../../utils/password', () => ({
+jest.mock('../../auth/password', () => ({
   hashPassword: jest.fn(async (password: string) => `hashed_${password}`),
   comparePassword: jest.fn(async (password: string, hash: string) => hash === `hashed_${password}`),
 }));
@@ -314,7 +314,7 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       // Generate a valid refresh token for testing
-      const { generateRefreshToken } = await import('../../utils/jwt');
+      const { generateRefreshToken } = await import('../../auth/jwt');
       const originalRefreshToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
 
       const result = await authService.refreshToken(originalRefreshToken);
@@ -339,7 +339,7 @@ describe('AuthService', () => {
     it('AUTH-013: should return user info along with new tokens', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      const { generateRefreshToken } = await import('../../utils/jwt');
+      const { generateRefreshToken } = await import('../../auth/jwt');
       const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
 
       const result = await authService.refreshToken(validToken);
@@ -356,7 +356,7 @@ describe('AuthService', () => {
     it('should reject refresh if user no longer exists', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      const { generateRefreshToken } = await import('../../utils/jwt');
+      const { generateRefreshToken } = await import('../../auth/jwt');
       const validToken = generateRefreshToken({ id: 999, userId: 999, email: 'deleted@example.com', passwordVersion: 0 });
 
       await expect(authService.refreshToken(validToken)).rejects.toThrow('Invalid refresh token');
@@ -366,7 +366,7 @@ describe('AuthService', () => {
     it('AUTH-014: should generate unique tokens on each refresh call', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      const { generateRefreshToken } = await import('../../utils/jwt');
+      const { generateRefreshToken } = await import('../../auth/jwt');
       const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
 
       // Call refresh multiple times in quick succession

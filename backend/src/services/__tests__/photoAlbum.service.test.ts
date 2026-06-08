@@ -76,8 +76,8 @@ jest.mock('../../config/database', () => ({
 }));
 
 // Mock service helpers
-jest.mock('../../utils/serviceHelpers', () => {
-  const originalModule = jest.requireActual('../../utils/serviceHelpers');
+jest.mock('../../services/_shared/serviceHelpers', () => {
+  const originalModule = jest.requireActual('../../services/_shared/serviceHelpers');
   return {
     ...originalModule,
     verifyTripAccessWithPermission: jest.fn(),
@@ -87,8 +87,8 @@ jest.mock('../../utils/serviceHelpers', () => {
 });
 
 import photoAlbumService from '../photoAlbum.service';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../utils/serviceHelpers';
-import { AppError } from '../../utils/errors';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../services/_shared/serviceHelpers';
+import { AppError } from '../../errors/errors';
 
 describe('PhotoAlbumService', () => {
   const mockUserId = 1;

@@ -11,6 +11,7 @@
  * AUTH-M07: Rate limit exceeded returns 429 (note: rate limiting is not in auth middleware)
  * AUTH-M08: Reject token with stale passwordVersion after password change
  * AUTH-M09: Reject token when user no longer exists
+ * AUTH-M10: Reject blacklisted access token (e.g., after logout)
  */
 
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
@@ -40,10 +41,17 @@ jest.mock('../../config/database', () => ({
   },
 }));
 
+// Mock the token blacklist service so we don't touch disk or start intervals
+const mockIsBlacklisted = jest.fn();
+jest.mock('../../services/tokenBlacklist.service', () => ({
+  __esModule: true,
+  isBlacklisted: (...args: unknown[]) => mockIsBlacklisted(...args),
+}));
+
 // Import after mocks
 import { authenticate, clearPasswordVersionCache } from '../auth';
-import { AppError } from '../../utils/errors';
-import { generateAccessToken } from '../../utils/jwt';
+import { AppError } from '../../errors/errors';
+import { generateAccessToken } from '../../auth/jwt';
 import { JwtPayload } from '../../types/auth.types';
 
 /**
@@ -77,6 +85,8 @@ describe('Auth Middleware - authenticate', () => {
 
     // Default: user exists with passwordVersion 0
     mockFindUnique.mockResolvedValue({ passwordVersion: 0 });
+    // Default: token is not blacklisted
+    mockIsBlacklisted.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -519,6 +529,50 @@ describe('Auth Middleware - authenticate', () => {
       const error = (nextFunction as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('Token invalidated. Please log in again.');
       expect(error.statusCode).toBe(401);
+    });
+  });
+
+  // AUTH-M10: Reject blacklisted access token (e.g., after logout)
+  describe('AUTH-M10: Blacklisted access token', () => {
+    it('should reject a blacklisted access token with 401 "Token has been revoked"', async () => {
+      mockFindUnique.mockResolvedValue({ passwordVersion: 0 });
+      mockIsBlacklisted.mockReturnValue(true);
+
+      const payload: JwtPayload = { id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 };
+      const token = generateAccessToken(payload);
+
+      mockRequest.headers = {
+        authorization: `Bearer ${token}`,
+      };
+
+      await runAuthenticate(mockRequest, mockResponse, nextFunction);
+
+      expect(mockIsBlacklisted).toHaveBeenCalledWith(token);
+      expect(nextFunction).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (nextFunction as jest.Mock).mock.calls[0][0] as AppError;
+      expect(error.message).toBe('Token has been revoked');
+      expect(error.statusCode).toBe(401);
+      // Must reject before attaching user
+      expect(mockRequest.user).toBeUndefined();
+    });
+
+    it('should accept a non-blacklisted token (default path)', async () => {
+      mockFindUnique.mockResolvedValue({ passwordVersion: 0 });
+      mockIsBlacklisted.mockReturnValue(false);
+
+      const payload: JwtPayload = { id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 };
+      const token = generateAccessToken(payload);
+
+      mockRequest.headers = {
+        authorization: `Bearer ${token}`,
+      };
+
+      await runAuthenticate(mockRequest, mockResponse, nextFunction);
+
+      expect(mockIsBlacklisted).toHaveBeenCalledWith(token);
+      // Success: next called with no error and user attached
+      expect((nextFunction as jest.Mock).mock.calls[0][0]).toBeUndefined();
+      expect(mockRequest.user).toBeDefined();
     });
   });
 

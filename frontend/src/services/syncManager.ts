@@ -34,6 +34,33 @@ export interface SyncResult {
 }
 
 /**
+ * Outcome of processing a single queued change.
+ *
+ * - `'resolved'`: the change was either successfully pushed to the server or
+ *   auto-resolved (local-wins / merged) and applied. The queue entry is safe
+ *   to delete.
+ * - `'parked'`: the change conflicts with server state in a way that requires
+ *   user input. A SyncConflict record has been stored and the queue entry
+ *   MUST remain so the change is not lost if the app reloads before the user
+ *   resolves it. `resolveConflict` will remove the queue entry after the user
+ *   picks a resolution.
+ * - `'failed'`: the change could not be applied. The caller is responsible
+ *   for retry/backoff handling on the queue entry.
+ */
+export type ProcessChangeOutcome = 'resolved' | 'parked' | 'failed';
+
+/**
+ * Internal result of processing a single change.
+ */
+interface ProcessChangeResult {
+  outcome: ProcessChangeOutcome;
+  /** Conflict info, populated when outcome is 'parked' (or when an
+   *  auto-resolve was applied — exposed for callers that surface conflict
+   *  details to the user). */
+  conflict?: ConflictInfo;
+}
+
+/**
  * Information about a sync conflict
  */
 export interface ConflictInfo {
@@ -172,32 +199,24 @@ class SyncManager {
         try {
           const changeResult = await this.processChange(change);
 
-          if (changeResult.conflict) {
-            // Check if we can auto-resolve
-            const resolution = this.autoResolve(changeResult.conflict);
-
-            if (resolution === 'local') {
-              // Push local change
-              await this.pushChange(change, true);
-              result.synced++;
-            } else if (resolution === 'merge') {
-              // Merge and push
-              await this.pushMergedChange(change, changeResult.conflict);
-              result.synced++;
-            } else {
-              // Requires user decision
+          if (changeResult.outcome === 'resolved') {
+            result.synced++;
+          } else if (changeResult.outcome === 'parked') {
+            // Conflict stored for user decision; surface to caller.
+            if (changeResult.conflict) {
               this.pendingConflicts.push(changeResult.conflict);
               result.conflicts.push(changeResult.conflict);
-              await this.storeConflict(changeResult.conflict);
             }
-          } else if (changeResult.success) {
-            result.synced++;
           } else {
             result.failed++;
           }
 
-          // Remove from queue after processing
-          if (change.id !== undefined) {
+          // CRITICAL: Only remove the queue entry when the change is fully
+          // resolved. Parked conflicts must remain in the queue so the
+          // pending change is not lost if the app reloads before the user
+          // resolves the conflict (resolveConflict deletes the queue entry
+          // once the user picks a resolution).
+          if (changeResult.outcome === 'resolved' && change.id !== undefined) {
             await offlineService.removeSyncedChange(change.id);
           }
         } catch (error) {
@@ -279,12 +298,14 @@ class SyncManager {
         try {
           const changeResult = await this.processChange(change);
 
-          if (changeResult.success && !changeResult.conflict) {
+          if (changeResult.outcome === 'resolved') {
             result.synced++;
+            // Safe to remove: change is fully synced or auto-resolved.
             if (change.id !== undefined) {
               await offlineService.removeSyncedChange(change.id);
             }
-          } else if (changeResult.conflict) {
+          } else if (changeResult.outcome === 'parked' && changeResult.conflict) {
+            // Keep queue entry; conflict is parked in syncConflicts for the user.
             result.conflicts.push(changeResult.conflict);
           } else {
             result.failed++;
@@ -310,27 +331,51 @@ class SyncManager {
   }
 
   /**
-   * Process a single sync operation
+   * Process a single sync operation.
+   *
+   * Returns one of three outcomes:
+   * - `'resolved'` — the change reached the server (either directly or via
+   *   an auto-resolution) and the queue entry can safely be removed.
+   * - `'parked'` — a conflict was detected that requires user input. A
+   *   SyncConflict record has been stored. The caller MUST leave the queue
+   *   entry in place; `resolveConflict` deletes it once the user chooses.
+   * - `'failed'` — the change could not be applied. The caller decides
+   *   whether to retry or drop based on retry count.
    */
-  private async processChange(
-    change: SyncOperation
-  ): Promise<{ success: boolean; conflict?: ConflictInfo }> {
+  private async processChange(change: SyncOperation): Promise<ProcessChangeResult> {
     const endpoint = ENTITY_ENDPOINTS[change.entityType];
 
     if (!endpoint) {
       console.error(`Unknown entity type: ${change.entityType}`);
-      return { success: false };
+      return { outcome: 'failed' };
     }
 
     // For updates and deletes, check server version first
     if (change.operation === 'update' || change.operation === 'delete') {
       const conflict = await this.checkForConflict(change);
       if (conflict) {
-        return { success: false, conflict };
+        // Try to auto-resolve. If we can't, park the conflict for the user
+        // and leave the queue entry so the pending change survives reloads.
+        const resolution = this.autoResolve(conflict);
+
+        if (resolution === 'local') {
+          const pushResult = await this.pushChange(change, true);
+          return { outcome: pushResult.success ? 'resolved' : 'failed', conflict };
+        }
+
+        if (resolution === 'merge') {
+          const pushResult = await this.pushMergedChange(change, conflict);
+          return { outcome: pushResult.success ? 'resolved' : 'failed', conflict };
+        }
+
+        // resolution === null → user decision required.
+        await this.storeConflict(conflict, change.id);
+        return { outcome: 'parked', conflict };
       }
     }
 
-    return this.pushChange(change, false);
+    const pushResult = await this.pushChange(change, false);
+    return { outcome: pushResult.success ? 'resolved' : 'failed' };
   }
 
   /**
@@ -554,13 +599,26 @@ class SyncManager {
   }
 
   /**
-   * Store a conflict for user resolution
+   * Store a conflict for user resolution.
+   *
+   * @param conflict   Conflict details captured during sync.
+   * @param syncQueueId ID of the originating syncQueue entry. The queue entry
+   *                    is intentionally left in place when a conflict is
+   *                    parked, so this id is recorded on the conflict record
+   *                    and used by `resolveConflict` to clean up the queue
+   *                    once the user picks a resolution.
    */
-  private async storeConflict(conflict: ConflictInfo): Promise<void> {
+  private async storeConflict(
+    conflict: ConflictInfo,
+    syncQueueId: number | undefined,
+  ): Promise<void> {
     const db = await getDb();
     await db.add('syncConflicts', {
       entityType: conflict.entityType,
       entityId: conflict.entityId,
+      localId: conflict.localId,
+      tripId: conflict.tripId,
+      syncQueueId,
       localData: conflict.localData,
       serverData: conflict.serverData,
       localTimestamp: conflict.localTimestamp,
@@ -617,6 +675,16 @@ class SyncManager {
         resolvedAt: Date.now(),
       });
 
+      // Clean up the originating syncQueue entry. processChange leaves the
+      // queued change in place when it parks a conflict so the pending
+      // change survives reloads; once the user picks a resolution the entry
+      // has fulfilled its purpose and must be removed to keep the queue
+      // consistent (otherwise the next syncAll would re-process and re-park
+      // the same change).
+      if (typeof conflict.syncQueueId === 'number') {
+        await offlineService.removeSyncedChange(conflict.syncQueueId);
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Error resolving conflict:', error);
@@ -663,11 +731,14 @@ class SyncManager {
     // Process the change
     const result = await this.processChange(operation);
 
-    if (result.success && !result.conflict) {
+    // Only remove the queue entry if the change is fully resolved. Parked
+    // conflicts must remain so the user's pending change survives reloads;
+    // resolveConflict cleans up the queue entry when the user decides.
+    if (result.outcome === 'resolved') {
       await offlineService.removeSyncedChange(operationId);
     }
 
-    return { success: result.success };
+    return { success: result.outcome === 'resolved' };
   }
 
   /**

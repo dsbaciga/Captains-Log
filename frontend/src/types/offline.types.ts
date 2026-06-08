@@ -139,6 +139,16 @@ export interface SyncConflict {
   entityType: SyncEntityType;
   /** Entity ID with conflict */
   entityId: string;
+  /** Local UUID for offline-created entities (carried over from the queue entry) */
+  localId?: string;
+  /** Trip ID for trip-scoped entities (carried over from the queue entry) */
+  tripId?: string;
+  /**
+   * ID of the originating syncQueue entry that is parked while the user
+   * decides how to resolve. Required so resolveConflict can clean up the
+   * queued operation once the user picks a resolution.
+   */
+  syncQueueId?: number;
   /** Local version of the data */
   localData: unknown;
   /** Server version of the data */

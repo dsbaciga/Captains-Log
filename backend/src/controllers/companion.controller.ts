@@ -5,10 +5,10 @@ import {
   updateCompanionSchema,
   linkCompanionToTripSchema,
 } from '../types/companion.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
-import { AppError } from '../utils/errors';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
+import { AppError } from '../errors/errors';
 
 export const companionController = {
   createCompanion: asyncHandler(async (req: Request, res: Response) => {

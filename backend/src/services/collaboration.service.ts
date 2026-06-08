@@ -1,5 +1,5 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import crypto from 'crypto';
 import type {
   SendInvitationInput,

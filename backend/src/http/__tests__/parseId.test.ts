@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { parseId } from '../parseId';
-import { AppError } from '../errors';
+import { AppError } from '../../errors/errors';
 
 describe('parseId', () => {
   describe('valid inputs', () => {

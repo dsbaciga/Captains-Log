@@ -7,7 +7,7 @@ import {
   optionalPositiveNumber,
   optionalCurrencyCode,
   optionalNotesWithMax,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 export const TransportationType = {
   FLIGHT: 'flight',

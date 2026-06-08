@@ -8,7 +8,7 @@ import {
   type BackupChecklistItem,
 } from '../types/backup.types';
 import { maskDocumentNumber } from '../types/travelDocument.types';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 
 type Decimal = Prisma.Decimal;
 
@@ -374,10 +374,8 @@ export async function createBackup(userId: number): Promise<BackupData> {
         activityCategories: true,
         tripTypes: true,
         immichApiUrl: true,
-        immichApiKey: true,
-        weatherApiKey: true,
-        aviationstackApiKey: true,
-        openrouteserviceApiKey: true,
+        llmBaseUrl: true,
+        llmModel: true,
       },
     });
 
@@ -513,11 +511,31 @@ export async function createBackup(userId: number): Promise<BackupData> {
       }
     }
 
-    // Build backup data with the pre-transformed trips
+    // Build backup data with the pre-transformed trips.
+    // SECURITY: Secret fields (API keys, SMTP password) are masked to null in the
+    // exported JSON. The DB-fetched values are intentionally discarded here so they
+    // never reach disk. Restore handles null by preserving the user's existing keys.
+    const sanitizedUser: BackupData['user'] = {
+      username: user.username,
+      email: user.email,
+      timezone: user.timezone,
+      activityCategories: user.activityCategories as BackupData['user']['activityCategories'],
+      tripTypes: user.tripTypes as BackupData['user']['tripTypes'],
+      immichApiUrl: user.immichApiUrl,
+      immichApiKey: null,
+      weatherApiKey: null,
+      aviationstackApiKey: null,
+      openrouteserviceApiKey: null,
+      llmApiKey: null,
+      llmBaseUrl: user.llmBaseUrl,
+      llmModel: user.llmModel,
+      smtpPassword: null,
+    };
+
     const backupData: BackupData = {
       version: BACKUP_VERSION,
       exportDate: new Date().toISOString(),
-      user: user as BackupData['user'],
+      user: sanitizedUser,
       tags,
       companions: companions.map((c) => ({
         ...c,

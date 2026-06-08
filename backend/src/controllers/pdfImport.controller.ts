@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
 import { pdfImportService } from '../services/pdfImport.service';
 import {
   acceptPendingEntitySchema,

@@ -1,4 +1,4 @@
-import { AppError } from './errors';
+import { AppError } from '../errors/errors';
 import { URL } from 'url';
 import dns from 'dns';
 import { promisify } from 'util';

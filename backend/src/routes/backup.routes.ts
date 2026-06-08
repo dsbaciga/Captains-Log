@@ -1,10 +1,14 @@
 import express from 'express';
 import backupController from '../controllers/backup.controller';
 import { authenticate } from '../middleware/auth';
+import { backupLimiter } from '../middleware/rateLimit';
 
 const router = express.Router();
 
-// All backup routes require authentication
+// All backup routes require authentication.
+// `backupLimiter` is applied per-route below (only on the expensive create/restore
+// endpoints, not on the cheap /info endpoint), and runs AFTER `authenticate`
+// here so it can key off req.user.id.
 router.use(authenticate);
 
 /**
@@ -29,7 +33,7 @@ router.use(authenticate);
  *       500:
  *         description: Backup creation failed
  */
-router.post('/create', backupController.createBackup);
+router.post('/create', backupLimiter, backupController.createBackup);
 
 /**
  * @openapi
@@ -61,7 +65,7 @@ router.post('/create', backupController.createBackup);
  *       500:
  *         description: Restore failed
  */
-router.post('/restore', backupController.restoreFromBackup);
+router.post('/restore', backupLimiter, backupController.restoreFromBackup);
 
 /**
  * @openapi

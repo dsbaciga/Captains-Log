@@ -1,7 +1,7 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import { CreateTripSeriesInput, UpdateTripSeriesInput } from '../types/tripSeries.types';
-import { convertDecimals } from '../utils/serviceHelpers';
+import { convertDecimals } from '../services/_shared/serviceHelpers';
 
 export class TripSeriesService {
   /**

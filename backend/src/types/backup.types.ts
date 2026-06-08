@@ -3,7 +3,8 @@ import { z } from 'zod';
 // Backup file format version
 // v1.1.0 - Added travelDocuments and tripLanguages
 // v1.2.0 - Added tripTypes and tripSeries
-export const BACKUP_VERSION = '1.2.0';
+// v1.3.0 - Removed plaintext secrets (API keys, SMTP password) from exports
+export const BACKUP_VERSION = '1.3.0';
 
 // =============================================================================
 // Shared/Reusable Schemas
@@ -370,10 +371,18 @@ export const BackupDataSchema = z.object({
       emoji: z.string().optional(),
     })).optional(),
     immichApiUrl: z.string().nullable(),
+    // Secret fields are NEVER serialized as plaintext in v1.3.0+ backups.
+    // We accept the legacy plaintext shape (z.string().nullable()) for backward
+    // compatibility when restoring older backups, but new exports always write null.
     immichApiKey: z.string().nullable(),
     weatherApiKey: z.string().nullable(),
     aviationstackApiKey: z.string().nullable().optional(),
     openrouteserviceApiKey: z.string().nullable().optional(),
+    llmApiKey: z.string().nullable().optional(),
+    llmBaseUrl: z.string().nullable().optional(),
+    llmModel: z.string().nullable().optional(),
+    // SMTP secret (added to type in v1.3.0); plaintext only present in legacy backups
+    smtpPassword: z.string().nullable().optional(),
   }),
   tags: z.array(BackupTagSchema),
   companions: z.array(BackupCompanionSchema),

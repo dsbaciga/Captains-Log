@@ -11,7 +11,7 @@ import {
   optionalCurrencyCode,
   optionalUrlOrEmpty,
   optionalNotes,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 export const createActivitySchema = z.object({

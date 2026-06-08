@@ -1,6 +1,6 @@
 import prisma from '../config/database';
-import { hashPassword, comparePassword } from '../utils/password';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
+import { hashPassword, comparePassword } from '../auth/password';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../auth/jwt';
 import { AppError } from '../middleware/errorHandler';
 import { RegisterInput, LoginInput, AuthResponse } from '../types/auth.types';
 import { companionService } from './companion.service';

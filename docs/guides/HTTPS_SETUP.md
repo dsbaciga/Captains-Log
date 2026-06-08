@@ -126,18 +126,50 @@ volumes:
 
 ## Cookie Security
 
-When running behind HTTPS, update your backend cookie settings. In `backend/src/controllers/auth.controller.ts`, the refresh token cookie should use `secure: true`:
+The refresh token cookie is already configured to require HTTPS in production —
+no code changes are needed.
+
+`backend/src/controllers/auth.controller.ts` does not set the cookie inline.
+Instead it calls the `setRefreshTokenCookie` helper imported from `../http/cookies`:
 
 ```typescript
-res.cookie('refreshToken', refreshToken, {
+import { setRefreshTokenCookie } from '../http/cookies';
+
+// ...inside the login/refresh handlers:
+setRefreshTokenCookie(res, result.refreshToken);
+```
+
+The cookie options live in `backend/src/http/cookies.ts`, which reads all values
+from `config.cookie`:
+
+```typescript
+res.cookie(REFRESH_TOKEN_COOKIE_NAME, token, {
   httpOnly: true,
-  secure: true,        // Only send over HTTPS
-  sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60 * 1000,
+  secure: config.cookie.secure,
+  sameSite: config.cookie.sameSite,
+  domain: config.cookie.domain,
+  path: config.cookie.path,
+  maxAge: config.cookie.maxAge,
 });
 ```
 
-The app already sets `secure: process.env.NODE_ENV === 'production'`, so this works automatically in production mode.
+The `config.cookie` object is defined in `backend/src/config/index.ts`, where
+`secure` is derived from the environment:
+
+```typescript
+cookie: {
+  secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+  sameSite: /* COOKIE_SAME_SITE env, defaults to 'strict' */,
+  domain: process.env.COOKIE_DOMAIN || undefined,
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+}
+```
+
+Because `config.cookie.secure` resolves to `process.env.NODE_ENV === 'production'`,
+the refresh token cookie is sent with the `Secure` flag automatically whenever the
+app runs in production mode — so HTTPS cookie security works without any manual
+configuration.
 
 ## Verifying Your Setup
 

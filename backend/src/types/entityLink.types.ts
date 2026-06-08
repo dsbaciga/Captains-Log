@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { EntityType, LinkRelationship } from '@prisma/client';
 import {
   optionalStringWithMax,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 // Re-export Prisma's enums so callers get the same type that Prisma returns,
 // eliminating the need for `as EntityType` / `as LinkRelationship` casts throughout the service.

@@ -1,8 +1,8 @@
-import prisma from '../config/database';
-import { AppError } from './errors';
+import prisma from '../../config/database';
+import { AppError } from '../../errors/errors';
 import { EntityType, Prisma } from '@prisma/client';
 type Decimal = Prisma.Decimal;
-import { PrismaModelDelegate } from '../types/prisma-helpers';
+import { PrismaModelDelegate } from '../../types/prisma-helpers';
 
 /**
  * Service helper utilities to reduce duplication across service files
@@ -304,18 +304,28 @@ export async function verifyEntityAccessWithPermission<T = unknown>(
     where: { id: entityId },
   });
 
-  if (!entity || !(entity as { tripId?: number }).tripId) {
+  if (!entity || !hasNumericTripId(entity)) {
     throw new AppError(`${config.displayName} not found`, 404);
   }
 
   // Then verify trip access with permission
   const tripAccess = await verifyTripAccessWithPermission(
     userId,
-    (entity as { tripId: number }).tripId,
+    entity.tripId,
     requiredPermission
   );
 
   return { entity: entity as T, tripAccess };
+}
+
+/**
+ * Type guard: true if `value` is an object with a numeric `tripId` field.
+ * Used after dynamic Prisma model dispatch where the returned entity's type
+ * is not statically known.
+ */
+function hasNumericTripId(value: unknown): value is { tripId: number } {
+  if (typeof value !== 'object' || value === null || !('tripId' in value)) return false;
+  return typeof (value as { tripId: unknown }).tripId === 'number';
 }
 
 /**

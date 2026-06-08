@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { CreateTripInput, UpdateTripInput, GetTripQuery, TripStatus, DuplicateTripInput } from '../types/trip.types';
 import { companionService } from './companion.service';
-import { buildConditionalUpdateData, tripDateTransformer, convertDecimals, toSafePermissionLevel } from '../utils/serviceHelpers';
+import { buildConditionalUpdateData, tripDateTransformer, convertDecimals, toSafePermissionLevel } from '../services/_shared/serviceHelpers';
 
 // Type aliases for Prisma types
 type DecimalValue = number | string | { toNumber(): number };

@@ -94,6 +94,10 @@ describe('BackupService', () => {
     weatherApiKey: 'weather-key',
     aviationstackApiKey: 'aviation-key',
     openrouteserviceApiKey: 'ors-key',
+    llmApiKey: null,
+    llmBaseUrl: null,
+    llmModel: null,
+    smtpPassword: 'smtp-secret',
   };
 
   const mockTags = [
@@ -168,20 +172,27 @@ describe('BackupService', () => {
     it('BKP-001: generates correct JSON structure with version and exportDate', async () => {
       const result = await createBackup(1);
 
-      expect(result.version).toBe('1.2.0');
+      expect(result.version).toBe('1.3.0');
       expect(result.exportDate).toBeDefined();
       expect(new Date(result.exportDate).getTime()).not.toBeNaN();
     });
 
-    it('BKP-002: includes user settings', async () => {
+    it('BKP-002: includes non-secret user settings and masks all secret fields to null', async () => {
       const result = await createBackup(1);
 
+      // Non-secret config travels with the backup
       expect(result.user.username).toBe('testuser');
       expect(result.user.email).toBe('test@example.com');
       expect(result.user.timezone).toBe('America/New_York');
       expect(result.user.immichApiUrl).toBe('http://localhost:2283');
-      expect(result.user.immichApiKey).toBe('immich-key');
-      expect(result.user.weatherApiKey).toBe('weather-key');
+
+      // SECURITY: secret fields must NEVER be exported as plaintext
+      expect(result.user.immichApiKey).toBeNull();
+      expect(result.user.weatherApiKey).toBeNull();
+      expect(result.user.aviationstackApiKey).toBeNull();
+      expect(result.user.openrouteserviceApiKey).toBeNull();
+      expect(result.user.llmApiKey).toBeNull();
+      expect(result.user.smtpPassword).toBeNull();
     });
 
     it('BKP-003: includes tags and companions', async () => {

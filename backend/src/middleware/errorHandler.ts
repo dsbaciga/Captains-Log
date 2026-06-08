@@ -1,11 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import logger from '../config/logger';
-import { AppError as UtilsAppError } from '../utils/errors';
-import { isPrismaError, PrismaError } from '../types/prisma-helpers';
+import { AppError as UtilsAppError } from '../errors/errors';
+import { isPrismaError } from '../types/prisma-helpers';
 
-// Re-export AppError from utils/errors for backwards compatibility
-export { AppError } from '../utils/errors';
+// Extract the first column name from a Prisma constraint violation's `meta.target`.
+// Prisma types `meta` as Record<string, unknown>; verify the shape at runtime.
+const getConstraintTarget = (meta: Record<string, unknown> | undefined): string | undefined => {
+  if (!meta) return undefined;
+  const target = meta.target;
+  if (Array.isArray(target) && typeof target[0] === 'string') return target[0];
+  return undefined;
+};
+
+// Re-export AppError from errors/errors for backwards compatibility
+export { AppError } from '../errors/errors';
 
 // Sensitive field names that should never be logged
 const SENSITIVE_FIELDS = new Set([
@@ -22,20 +31,22 @@ const SENSITIVE_FIELDS = new Set([
 ]);
 
 // Sanitize an object by redacting sensitive fields
-const sanitizeForLogging = (obj: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
-  if (!obj || typeof obj !== 'object') return undefined;
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+const sanitizeForLogging = (input: unknown): unknown => {
+  if (!isPlainObject(input)) return undefined;
 
   const sanitized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
+  for (const [key, value] of Object.entries(input)) {
     const lowerKey = key.toLowerCase();
     if (SENSITIVE_FIELDS.has(lowerKey) || lowerKey.includes('password') || lowerKey.includes('secret') || lowerKey.includes('token') || lowerKey.includes('apikey') || lowerKey.includes('api_key') || lowerKey.includes('authorization')) {
       sanitized[key] = '[REDACTED]';
-    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-      sanitized[key] = sanitizeForLogging(value as Record<string, unknown>);
+    } else if (isPlainObject(value)) {
+      sanitized[key] = sanitizeForLogging(value);
     } else if (Array.isArray(value)) {
-      sanitized[key] = value.map(item =>
-        typeof item === 'object' && item !== null ? sanitizeForLogging(item as Record<string, unknown>) : item
-      );
+      sanitized[key] = value.map(item => isPlainObject(item) ? sanitizeForLogging(item) : item);
     } else {
       sanitized[key] = value;
     }
@@ -76,8 +87,8 @@ export const errorHandler = (
   _next: NextFunction
 ) => {
   // Extract Prisma error properties if available
-  const prismaErrorInfo = isPrismaError(err)
-    ? { code: (err as PrismaError).code, meta: (err as PrismaError).meta }
+  const errInfo = isPrismaError(err)
+    ? { code: err.code, meta: err.meta }
     : {};
 
   // Enhanced logging with error details (sensitive data redacted)
@@ -88,9 +99,9 @@ export const errorHandler = (
     method: req.method,
     params: req.params,
     // Only log sanitized body in development for debugging
-    body: process.env.NODE_ENV === 'development' ? sanitizeForLogging(req.body as Record<string, unknown>) : undefined,
+    body: process.env.NODE_ENV === 'development' ? sanitizeForLogging(req.body) : undefined,
     // Prisma errors have a 'code' property
-    ...prismaErrorInfo,
+    ...errInfo,
   });
 
   // Zod validation errors - return only field names, not full schema details
@@ -105,19 +116,17 @@ export const errorHandler = (
 
   // Prisma errors - use the type guard
   if (isPrismaError(err)) {
-    const prismaError = err as PrismaError;
-
     // P2002: Unique constraint violation
-    if (prismaError.code === 'P2002') {
+    if (err.code === 'P2002') {
       return res.status(400).json({
         status: 'error',
         message: 'A record with this value already exists',
-        field: prismaError.meta?.target?.[0],
+        field: getConstraintTarget(err.meta),
       });
     }
 
     // P2003: Foreign key constraint violation
-    if (prismaError.code === 'P2003') {
+    if (err.code === 'P2003') {
       return res.status(400).json({
         status: 'error',
         message: 'Referenced record does not exist',
@@ -125,7 +134,7 @@ export const errorHandler = (
     }
 
     // P2025: Record not found
-    if (prismaError.code === 'P2025') {
+    if (err.code === 'P2025') {
       return res.status(404).json({
         status: 'error',
         message: 'Record not found',
@@ -134,8 +143,8 @@ export const errorHandler = (
 
     // Other Prisma errors
     logger.error('Unhandled Prisma error:', {
-      code: prismaError.code,
-      meta: prismaError.meta,
+      code: err.code,
+      meta: err.meta,
     });
   }
 

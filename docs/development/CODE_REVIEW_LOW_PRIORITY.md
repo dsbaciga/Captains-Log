@@ -51,15 +51,18 @@ These are minor improvements identified during the code review of the new featur
 - Dynamic update objects not satisfying `Exact<>` constraints
 - Order-by arrays with conditional types
 
-**Workaround:** The build completes with warnings (`'Build completed with warnings'`), but strict TypeScript checking fails.
-**Suggestion:** Refactor affected services to use proper Prisma input types, or consider:
+**Current build behavior:** The production build script is `tsc -p tsconfig.prod.json`. `tsconfig.prod.json` sets `strict: false`, `noImplicitAny: false`, and `skipLibCheck: true`, so the Prisma-related strict-type errors do not surface during a production build. Crucially, it also sets `noEmitOnError: true`, so the prod build no longer "completes with warnings" — it either succeeds cleanly or fails outright. A separate `build:strict` script (plain `tsc`, which uses the strict base `tsconfig.json`) is available for surfacing the strict-mode type issues.
+
+**Suggestion:** The strict-mode gap is intentionally isolated to `build:strict`. To eventually close it, refactor affected services to use proper Prisma input types, or consider:
 
 1. Creating helper functions that properly type update/create inputs
 2. Using Prisma's generated input types directly (e.g., `Prisma.TripUpdateInput`)
 3. Adding explicit type casts where the type is known to be correct
 
-**Impact:** Low - application works correctly, only affects development-time type checking.
+Once the strict errors are resolved, `build:strict` can become the default build.
+
+**Impact:** Low - the production build is clean and the application works correctly; this only affects the optional `build:strict` strict-mode type check.
 
 ---
 
-*Generated from code review on [date]. These issues are tracked for future cleanup but do not affect functionality.*
+*Generated from code review on 2026-05-15. These issues are tracked for future cleanup but do not affect functionality.*

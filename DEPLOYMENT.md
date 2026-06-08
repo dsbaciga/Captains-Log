@@ -81,9 +81,13 @@ Contact maintainers for Helm charts and K8s manifests.
 git clone https://github.com/dsbaciga/travel-life.git
 cd travel-life
 
-# Create production environment file
-cp .env.example .env.production
+# Create production environment file from the backend template
+cp backend/.env.example .env.production
 ```
+
+Then adapt `.env.production` to the production deployment variables shown in
+[Step 2](#step-2-configure-environment) (database credentials, JWT secrets,
+`VITE_*` URLs, ports, and optional integrations).
 
 ### Step 2: Configure Environment
 
@@ -361,8 +365,8 @@ docker logs -f travel-life-db
 ### Using Release Script
 
 ```bash
-# Check current version
-cat VERSION
+# Check current version (version lives in package.json)
+node -p "require('./backend/package.json').version"
 
 # Pull latest changes
 git pull origin main
@@ -393,9 +397,9 @@ docker-compose -f docker-compose.prod.yml down
 # Start previous version
 docker-compose -f docker-compose.prod.yml up -d --no-build
 
-# Or specify version explicitly
-docker pull ghcr.io/dsbaciga/travel-life-backend:v4.5.7
-docker pull ghcr.io/dsbaciga/travel-life-frontend:v4.5.7
+# Or specify version explicitly (replace vX.Y.Z with the target version tag)
+docker pull ghcr.io/dsbaciga/travel-life-backend:vX.Y.Z
+docker pull ghcr.io/dsbaciga/travel-life-frontend:vX.Y.Z
 ```
 
 ## Security Checklist

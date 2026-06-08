@@ -1,8 +1,8 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import config from '../config';
 import axios, { AxiosRequestConfig } from 'axios';
-import { verifyTripAccess } from '../utils/serviceHelpers';
+import { verifyTripAccess } from '../services/_shared/serviceHelpers';
 import { isAxiosError } from '../types/prisma-helpers';
 
 /**

@@ -78,7 +78,7 @@ jest.mock('../../config/database', () => ({
 const { Prisma } = require('@prisma/client');
 
 import activityService from '../activity.service';
-import { AppError } from '../../utils/errors';
+import { AppError } from '../../errors/errors';
 
 describe('ActivityService', () => {
   beforeEach(() => {

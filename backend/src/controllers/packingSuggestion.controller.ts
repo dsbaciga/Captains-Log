@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import packingSuggestionService from '../services/packingSuggestion.service';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
 
 export const packingSuggestionController = {
   /**

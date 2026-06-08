@@ -579,8 +579,9 @@ describe('User Controller', () => {
 
   describe('searchUsers', () => {
     it('should search users and return results with 200', async () => {
+      // Email is intentionally NOT returned by searchUsers (privacy/email-leak fix)
       const mockUsers = [
-        { id: 2, username: 'testuser2', email: 'test2@example.com' },
+        { id: 2, username: 'testuser2', avatarUrl: null },
       ];
       mockSearchUsers.mockResolvedValue(mockUsers);
 

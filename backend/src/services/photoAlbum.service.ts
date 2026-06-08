@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import {
   CreateAlbumInput,
   UpdateAlbumInput,
@@ -9,7 +9,7 @@ import {
   PhotoSortBy,
   SortOrder,
 } from '../types/photo.types';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
 import { WithOptionalCoordinates } from '../types/prisma-helpers';
 
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs

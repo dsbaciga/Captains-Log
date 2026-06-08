@@ -1,10 +1,10 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import { UpdateUserSettingsInput } from '../types/userSettings.types';
 import bcrypt from 'bcrypt';
 import { companionService } from './companion.service';
 import { invalidatePasswordVersionCache } from '../middleware/auth';
-import { buildConditionalUpdateData } from '../utils/serviceHelpers';
+import { buildConditionalUpdateData } from '../services/_shared/serviceHelpers';
 
 class UserService {
   async getUserById(userId: number) {
@@ -209,6 +209,52 @@ class UserService {
     return {
       // Return whether key is set, but not the actual key for security
       openrouteserviceApiKeySet: !!user.openrouteserviceApiKey,
+    };
+  }
+
+  async updateLlmSettings(
+    userId: number,
+    data: { llmApiKey?: string | null; llmBaseUrl?: string | null; llmModel?: string | null }
+  ) {
+    const updateData = buildConditionalUpdateData(data);
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        llmApiKey: true,
+        llmBaseUrl: true,
+        llmModel: true,
+      },
+    });
+
+    return user;
+  }
+
+  async getLlmSettings(userId: number) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        llmApiKey: true,
+        llmBaseUrl: true,
+        llmModel: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    return {
+      // Never return the actual key — only whether it's set
+      llmApiKeySet: !!user.llmApiKey,
+      llmBaseUrl: user.llmBaseUrl,
+      llmModel: user.llmModel,
+      // Configured if user set a base URL (local no-auth) or an API key
+      llmConfigured: !!(user.llmApiKey || user.llmBaseUrl),
     };
   }
 
@@ -519,8 +565,16 @@ class UserService {
   }
 
   /**
-   * Search users by email or username for travel partner selection
-   * Excludes the current user from results
+   * Search users by email or username for travel partner selection.
+   * Excludes the current user from results.
+   *
+   * SECURITY: The query still matches against `email` (so users can find a
+   * known partner by typing their email), but the response NEVER includes
+   * the email field. Returning email on substring matches would let an
+   * attacker enumerate user emails by guessing common substrings.
+   * Exact-match invitation flows (which legitimately need an email) should
+   * use a separate path that takes the email as input rather than reading
+   * it back from a search response.
    */
   async searchUsers(userId: number, query: string) {
     // Minimum 3 characters required (matches controller and frontend validation)
@@ -539,7 +593,6 @@ class UserService {
       select: {
         id: true,
         username: true,
-        email: true,
         avatarUrl: true,
       },
       take: 10,

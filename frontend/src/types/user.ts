@@ -37,7 +37,6 @@ export interface UpdateUserSettingsInput {
 export interface UserSearchResult {
   id: number;
   username: string;
-  email: string;
   avatarUrl: string | null;
 }
 

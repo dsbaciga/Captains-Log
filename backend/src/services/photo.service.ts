@@ -1,5 +1,5 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 
 // Type alias for Prisma decimal fields
 type DecimalValue = number | string | { toNumber(): number };
@@ -21,7 +21,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
 import ffmpeg from 'fluent-ffmpeg';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
 const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');

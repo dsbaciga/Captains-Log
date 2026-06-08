@@ -1,7 +1,7 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import type { CreateCompanionInput, UpdateCompanionInput, LinkCompanionToTripInput } from '../types/companion.types';
-import { verifyTripAccess } from '../utils/serviceHelpers';
+import { verifyTripAccess } from '../services/_shared/serviceHelpers';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';

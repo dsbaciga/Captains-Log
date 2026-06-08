@@ -15,9 +15,10 @@ Welcome to Travel Life, your comprehensive travel documentation application. Thi
 9. [Timeline View](#timeline-view)
 10. [Entity Linking](#entity-linking)
 11. [Tags & Companions](#tags--companions)
-12. [Search](#search)
-13. [Settings](#settings)
-14. [Keyboard Shortcuts](#keyboard-shortcuts)
+12. [PDF Import](#pdf-import)
+13. [Search](#search)
+14. [Settings](#settings)
+15. [Keyboard Shortcuts](#keyboard-shortcuts)
 
 ---
 
@@ -340,6 +341,37 @@ Track who you travel with:
 
 ---
 
+## PDF Import
+
+Travel Life can extract trip details directly from PDF documents such as airline
+booking confirmations, hotel reservations, and itineraries, so you don't have to
+type everything in by hand.
+
+### Importing a PDF
+
+1. Click the **Import PDF** button in the navigation bar (also available on trip
+   pages)
+2. Select or drag in a PDF document (e.g. a booking confirmation or itinerary)
+3. The application uploads the PDF and uses AI to extract structured data such
+   as flights, lodging, activities, and dates
+
+### Reviewing Extracted Data
+
+Before anything is saved, you review what the AI found:
+
+1. The extracted items are shown grouped by type (transportation, lodging,
+   activities, etc.)
+2. Check each item for accuracy and edit any fields that need correcting
+3. Deselect any items you don't want to import
+4. Choose the trip to import into (or create a new trip)
+5. Click **Import** to add the reviewed items to your trip
+
+> PDF Import relies on the AI/LLM service being configured. If AI features are
+> disabled or no LLM API key is set, PDF Import will be unavailable. See the
+> **AI / LLM** entry under [External Services](#external-services).
+
+---
+
 ## Search
 
 ### Global Search
@@ -389,6 +421,9 @@ Configure API keys for:
 - **OpenWeatherMap**: Weather data
 - **AviationStack**: Flight tracking
 - **OpenRouteService**: Road distances
+- **AI / LLM**: Powers PDF Import and AI-assisted suggestions. Configure the LLM
+  API key, base URL, and model in the **LLM (AI) Settings** section of the
+  Settings page (typically administered via backend environment variables)
 
 ### Backup & Restore
 
@@ -459,4 +494,4 @@ After completing trips, view all your visited locations on a global map:
 ## Related Documentation
 
 - [docs/README.md](../README.md) - Documentation index
-- [docs/architecture/](../architecture/) - Technical documentation
+- [Backend Architecture](../architecture/BACKEND_ARCHITECTURE.md) - Technical documentation

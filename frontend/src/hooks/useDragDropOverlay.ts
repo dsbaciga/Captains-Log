@@ -29,16 +29,25 @@ export function useDragDropOverlay() {
 
   // Setup global drag listeners
   const setupListeners = () => {
+    // Hoist the dragover handler to a stable reference so the same function
+    // is passed to add and remove. The previous code used two separate
+    // anonymous arrows, which removeEventListener cannot match — that meant
+    // every mount of a consumer (e.g. PhotoUpload) leaked one listener.
+    const handleWindowDragOver = (e: globalThis.DragEvent) => {
+      // Prevent default to allow drop.
+      e.preventDefault();
+    };
+
     window.addEventListener("dragenter", handleWindowDragEnter);
     window.addEventListener("dragleave", handleWindowDragLeave);
     window.addEventListener("drop", handleWindowDrop);
-    window.addEventListener("dragover", (e) => e.preventDefault()); // Prevent default to allow drop
+    window.addEventListener("dragover", handleWindowDragOver);
 
     return () => {
       window.removeEventListener("dragenter", handleWindowDragEnter);
       window.removeEventListener("dragleave", handleWindowDragLeave);
       window.removeEventListener("drop", handleWindowDrop);
-      window.removeEventListener("dragover", (e) => e.preventDefault());
+      window.removeEventListener("dragover", handleWindowDragOver);
     };
   };
 

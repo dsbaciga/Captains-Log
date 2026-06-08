@@ -94,14 +94,14 @@ jest.mock('../../config/database', () => {
 });
 
 // Mock serviceHelpers - mock verifyTripAccessWithPermission (the function the service actually uses)
-jest.mock('../../utils/serviceHelpers', () => ({
+jest.mock('../../services/_shared/serviceHelpers', () => ({
   verifyTripAccessWithPermission: jest.fn(),
 }));
 
 import { entityLinkService } from '../entityLink.service';
 import prisma from '../../config/database';
-import { verifyTripAccessWithPermission } from '../../utils/serviceHelpers';
-import { AppError } from '../../utils/errors';
+import { verifyTripAccessWithPermission } from '../../services/_shared/serviceHelpers';
+import { AppError } from '../../errors/errors';
 
 // Type the mocks
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;

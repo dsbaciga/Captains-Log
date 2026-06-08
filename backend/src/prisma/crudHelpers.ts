@@ -2,15 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodType } from 'zod';
 import { EntityType } from '@prisma/client';
 import prisma from '../config/database';
-import { AppError } from './errors';
-import { asyncHandler } from './asyncHandler';
-import { requireUserId } from './controllerHelpers';
+import { AppError } from '../errors/errors';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
 import { PrismaModelDelegate } from '../types/prisma-helpers';
 import {
   verifyTripAccessWithPermission,
   verifyEntityAccessWithPermission,
   VerifiableEntityType,
-} from './serviceHelpers';
+} from '../services/_shared/serviceHelpers';
 
 // =============================================================================
 // CONTROLLER FACTORY

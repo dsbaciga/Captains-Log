@@ -3,9 +3,9 @@ import { Request, Response } from 'express';
 import backupService from '../services/backup.service';
 import restoreService from '../services/restore.service';
 import { BackupDataSchema, RestoreOptionsSchema } from '../types/backup.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { requireUserId } from '../utils/controllerHelpers';
-import { AppError } from '../utils/errors';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
+import { AppError } from '../errors/errors';
 import config from '../config';
 import logger from '../config/logger';
 

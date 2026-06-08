@@ -5,7 +5,7 @@ import {
   optionalStringWithMax,
   optionalBoolean,
   optionalNotes,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 // Document types matching Prisma enum
 export const DOCUMENT_TYPES = [

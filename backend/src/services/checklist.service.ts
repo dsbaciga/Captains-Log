@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateChecklist, UpdateChecklist, UpdateChecklistItem, ChecklistWithItems, ChecklistType } from '../types/checklist.types';
 import { DEFAULT_AIRPORTS, DEFAULT_COUNTRIES, DEFAULT_CITIES, DEFAULT_US_STATES } from '../data/checklist-defaults';
+import { searchAirports } from './airport.service';
 
 // Type for checklist item metadata shapes
 interface AirportMetadata {
@@ -484,9 +485,12 @@ class ChecklistService {
   /**
    * Auto-check items based on trip data
    */
-  async autoCheckFromTrips(userId: number): Promise<{ updated: number }> {
+  async autoCheckFromTrips(userId: number): Promise<{ updated: number; added: number }> {
     // Collect all item IDs to check across all 4 loops, then batch update once
     const itemsToCheck: number[] = [];
+    // Count of new checklist items created (e.g. visited airports missing from
+    // the default list) so callers can report them separately from auto-checks.
+    let itemsAdded = 0;
 
     // Get user's checklists
     const checklists = await prisma.checklist.findMany({
@@ -529,13 +533,51 @@ class ChecklistService {
         });
       });
 
-      // Collect visited airport item IDs
+      // Collect visited airport item IDs, and track which codes already exist
+      // as items so we can detect airports missing from the default list.
+      const knownCodes = new Set<string>();
       for (const item of airportsChecklist.items) {
-        if (!item.isChecked && item.metadata && typeof item.metadata === 'object' && 'code' in item.metadata) {
+        if (item.metadata && typeof item.metadata === 'object' && 'code' in item.metadata) {
           const code = getMetadataValue<AirportMetadata>(item.metadata, 'code') as string;
-          if (code && visitedAirportCodes.has(code)) {
-            itemsToCheck.push(item.id);
+          if (code) {
+            knownCodes.add(code);
+            if (!item.isChecked && visitedAirportCodes.has(code)) {
+              itemsToCheck.push(item.id);
+            }
           }
+        }
+      }
+
+      // Add visited airports that aren't in the list yet. Each unknown code is
+      // resolved to airport details via the airport search; codes the airport
+      // database can't resolve are skipped (likely not real airports). New
+      // items are created already-checked since the trip data proves a visit.
+      const unknownCodes = [...visitedAirportCodes].filter((code) => !knownCodes.has(code));
+      if (unknownCodes.length > 0) {
+        const now = new Date();
+        let nextSortOrder =
+          airportsChecklist.items.reduce((max, item) => Math.max(max, item.sortOrder), -1) + 1;
+        const newItems: Prisma.ChecklistItemCreateManyInput[] = [];
+
+        for (const code of unknownCodes) {
+          const airport = searchAirports(code).find((r) => r.iata === code);
+          if (!airport) continue;
+
+          newItems.push({
+            checklistId: airportsChecklist.id,
+            name: `${airport.name} (${airport.iata})`,
+            description: airport.city ? `${airport.city}, ${airport.country}` : airport.country,
+            isChecked: true,
+            isDefault: false,
+            sortOrder: nextSortOrder++,
+            checkedAt: now,
+            metadata: { code: airport.iata, city: airport.city, country: airport.country },
+          });
+        }
+
+        if (newItems.length > 0) {
+          await prisma.checklistItem.createMany({ data: newItems });
+          itemsAdded += newItems.length;
         }
       }
     }
@@ -666,7 +708,7 @@ class ChecklistService {
       });
     }
 
-    return { updated: itemsToCheck.length };
+    return { updated: itemsToCheck.length, added: itemsAdded };
   }
 
   /**

@@ -27,7 +27,7 @@ All documentation is organized in the `docs/` folder. Start with the [Documentat
 - **API**: [Complete API Reference](docs/api/README.md)
 - **Development**: [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md), [Feature Backlog](docs/development/FEATURE_BACKLOG.md), [UI/UX Plan](docs/development/UI_UX_IMPROVEMENT_PLAN.md), [Bugs](docs/development/BUGS.md)
 - **Guides**: [Build & Push](docs/guides/BUILD_AND_PUSH.md), [Development Workflows](docs/guides/DEVELOPMENT_WORKFLOWS.md), [Debugging & Optimization](docs/guides/DEBUGGING_AND_OPTIMIZATION.md), [Testing](docs/guides/TESTING_GUIDE.md), [Routing Setup](docs/guides/ROUTING_SETUP.md)
-- **Plans**: [Google Maps](docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md), [Google Photos](docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md), [UI Improvements](docs/plans/UI_IMPROVEMENTS.md), [Trip Dashboard](docs/plans/TRIP_DASHBOARD_PLAN.md)
+- **Plans**: [Google Maps](docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md), [Google Photos](docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md), [UI Improvements](docs/plans/UI_IMPROVEMENTS.md)
 - **User Guide**: [End-user documentation](docs/user-guide/README.md)
 - **Agents**: [Debugger](.agents/DEBUGGER.md), [Code Optimizer](.agents/CODE_OPTIMIZER.md)
 - **Root**: [Deployment](DEPLOYMENT.md), [Quick Start Production](QUICK_START_PRODUCTION.md), [Release Checklist](RELEASE_CHECKLIST.md), [README](README.md)
@@ -38,9 +38,9 @@ Travel Life is a full-stack travel documentation application built with a React 
 
 ### Current Implementation Status
 
-**The application is ~92% complete and production-ready for personal use.** See [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md) for detailed progress and [Feature Backlog](docs/development/FEATURE_BACKLOG.md) for future enhancements.
+**The application is production-ready for personal use.** See [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md) for detailed progress and [Feature Backlog](docs/development/FEATURE_BACKLOG.md) for future enhancements.
 
-**Core Features (100% Complete)**: Authentication, Trip Management, Locations, Photos (local + Immich), Transportation, Lodging, Activities, Journal Entries, Tags & Companions, Entity Linking, Timeline View, User Settings, Dark Mode, Checklists, Trip Health Check, Trip Collaboration, Backup & Restore, Advanced Dashboard, Global Search, Places Visited Map, Calendar View, Batch Operations, Auto-Save Drafts, Weather Integration, Flight Tracking.
+**Core Features (100% Complete)**: Authentication, Trip Management, Locations, Photos (local + Immich), Transportation, Lodging, Activities, Journal Entries, Tags & Companions, Entity Linking, Timeline View, User Settings, Dark Mode, Checklists, Trip Health Check, Trip Collaboration, Backup & Restore, Advanced Dashboard, Global Search, Places Visited Map, Calendar View, Batch Operations, Auto-Save Drafts, Weather Integration, Flight Tracking, PDF + AI Import.
 
 **Still in Progress**: Public trip sharing, Google Photos integration, PDF export, Offline support / PWA, Mobile app.
 
@@ -56,6 +56,7 @@ Travel Life is a full-stack travel documentation application built with a React 
 
 - `npm run dev` - Start development server with hot reload (tsx watch)
 - `npm run build` - Compile TypeScript to JavaScript
+- `npm run build:strict` - Compile with full strict type-checking (`build` uses relaxed `tsconfig.prod.json`)
 - `npm start` - Run production build
 - `npm test` - Run Jest tests
 - `npm run prisma:generate` - Generate Prisma Client after schema changes
@@ -65,9 +66,12 @@ Travel Life is a full-stack travel documentation application built with a React 
 ### Frontend (run from `frontend/` directory)
 
 - `npm run dev` - Start Vite dev server (typically runs on port 5173 locally, 3000 in Docker)
-- `npm run build` - Build production bundle (runs TypeScript compiler first)
+- `npm run build` - Build production bundle (⚠️ TypeScript errors are NON-blocking)
+- `npm run build:strict` - Build with strict type-checking (TypeScript errors DO fail the build)
 - `npm run lint` - Run ESLint
+- `npm test` - Run Vitest tests (`test:ui`, `test:coverage` also available)
 - `npm run preview` - Preview production build
+- `npm run analyze` - Build with bundle analyzer (`analyze:win` on Windows)
 
 ### Docker Commands (run from project root)
 
@@ -139,7 +143,9 @@ The backend follows a layered architecture: **Routes -> Controllers -> Services 
 
 - [Backend Architecture](docs/architecture/BACKEND_ARCHITECTURE.md) - Layered architecture, services, middleware, authentication flow, database patterns
 - [Frontend Architecture](docs/architecture/FRONTEND_ARCHITECTURE.md) - Components, hooks, state management, API communication, routing
-- [Database Schema](docs/architecture/DATABASE_SCHEMA.md) - 21 tables, relationships, entity linking, design patterns
+- [Database Schema](docs/architecture/DATABASE_SCHEMA.md) - 32 models, relationships, entity linking, design patterns
+
+Cross-cutting backend code lives in dedicated `src/` subdirectories: `src/auth/` (auth helpers), `src/errors/` (the `AppError` class), `src/http/` (HTTP helpers), `src/prisma/` (Prisma client), `src/security/` (security utilities), `src/validation/` (Zod schemas), and `src/services/_shared/` (shared service helpers). There is no `src/utils/` directory.
 
 ## Development Workflows
 
@@ -187,6 +193,13 @@ NOMINATIM_URL=http://localhost:8080
 - `IMMICH_API_URL` and `IMMICH_API_KEY` - For Immich integration
 - `OPENWEATHERMAP_API_KEY` - For weather data
 - `AVIATIONSTACK_API_KEY` - For flight tracking
+- `AI_ENABLED` - Enables AI features such as PDF import and AI suggestions (set to `false` to disable; defaults to enabled)
+- `LLM_API_KEY` - API key for the LLM provider (powers PDF import and AI suggestions)
+- `LLM_BASE_URL` - LLM API base URL (defaults to `https://api.openai.com/v1`)
+- `LLM_MODEL` - LLM model name (defaults to `gpt-4o-mini`)
+- `LLM_MAX_TOKENS` - Maximum tokens per LLM request (defaults to `2048`)
+- `AI_RATE_LIMIT_MAX` - Maximum AI requests per window (defaults to `20`)
+- `AI_RATE_LIMIT_WINDOW_MS` - AI rate limit window in milliseconds (defaults to `3600000`)
 
 **Frontend** (`.env` file in `frontend/`):
 
@@ -210,7 +223,7 @@ Check running servers: `netstat -ano | findstr "LISTENING" | findstr ":3000 :500
 
 ### Error Handling
 
-**Backend**: Use `AppError` class from `src/utils/errors.ts`:
+**Backend**: Use `AppError` class from `src/errors/errors.ts`:
 
 ```typescript
 throw new AppError('Resource not found', 404);
@@ -229,6 +242,8 @@ All backend responses follow this structure:
   message?: string
 }
 ```
+
+**Frontend**: `lib/axios.ts` has a response interceptor that unwraps the `{ status, data }` envelope — services receive the inner `data` directly. Type axios calls with the *unwrapped* payload (`axios.get<Foo[]>(url)`, then `return response.data`), not the envelope.
 
 ### File Uploads
 

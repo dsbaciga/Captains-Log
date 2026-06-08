@@ -25,14 +25,14 @@ export default function FormSection({
       {/* Section Header */}
       <div className="flex items-center gap-2">
         {icon && <span className="text-lg">{icon}</span>}
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+        <h3 className="text-sm font-semibold text-charcoal dark:text-warm-gray uppercase tracking-wide">
           {title}
         </h3>
       </div>
 
       {/* Optional Description */}
       {description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">
+        <p className="text-xs text-slate/70 dark:text-warm-gray/60 -mt-1">
           {description}
         </p>
       )}
@@ -69,12 +69,12 @@ export function CollapsibleSection({
   badge,
 }: CollapsibleSectionProps) {
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+    <div className="border-t border-primary-100 dark:border-gold/20 pt-4">
       {/* Toggle Button */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between py-2 px-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+        className="w-full flex items-center justify-between py-2 px-3 text-sm font-medium text-primary-600 dark:text-gold hover:text-primary-700 dark:hover:text-gold/80 bg-primary-50 dark:bg-navy-800 rounded-lg border border-primary-200 dark:border-gold/30 hover:border-primary-300 dark:hover:border-gold/50 transition-colors"
         {...{ 'aria-expanded': isExpanded }}
         aria-label={isExpanded ? `Collapse ${title}` : `Expand ${title}`}
       >
@@ -82,7 +82,7 @@ export function CollapsibleSection({
           {icon && <span>{icon}</span>}
           <span>{isExpanded ? `Hide ${title}` : `Show ${title}`}</span>
           {badge && !isExpanded && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-slate/70 dark:text-warm-gray/60">
               ({badge})
             </span>
           )}

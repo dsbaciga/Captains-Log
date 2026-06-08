@@ -12,6 +12,19 @@ export interface SmtpSettingsResponse {
   smtpConfigured: boolean;
 }
 
+export interface LlmSettingsResponse {
+  llmApiKeySet: boolean;
+  llmBaseUrl: string | null;
+  llmModel: string | null;
+  llmConfigured: boolean;
+}
+
+export interface UpdateLlmSettingsInput {
+  llmApiKey?: string | null;
+  llmBaseUrl?: string | null;
+  llmModel?: string | null;
+}
+
 export interface UpdateSmtpSettingsInput {
   smtpProvider?: string | null;
   smtpHost?: string | null;
@@ -70,6 +83,16 @@ const userService = {
 
   async updateOpenrouteserviceSettings(data: { openrouteserviceApiKey: string | null }): Promise<{ success: boolean; message: string; openrouteserviceApiKeySet: boolean }> {
     const response = await axios.put('/users/openrouteservice-settings', data);
+    return response.data;
+  },
+
+  async getLlmSettings(): Promise<LlmSettingsResponse> {
+    const response = await axios.get('/users/llm-settings');
+    return response.data;
+  },
+
+  async updateLlmSettings(data: UpdateLlmSettingsInput): Promise<LlmSettingsResponse & { message: string }> {
+    const response = await axios.put('/users/llm-settings', data);
     return response.data;
   },
 

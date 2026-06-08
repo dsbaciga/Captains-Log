@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import config from '../config';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import prisma from '../config/database';
 import { RouteStep, isAxiosError } from '../types/prisma-helpers';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { Request } from 'express';
 import { requireUser, requireUserId } from '../controllerHelpers';
-import { AppError } from '../errors';
+import { AppError } from '../../errors/errors';
 
 describe('controllerHelpers', () => {
   describe('requireUser', () => {

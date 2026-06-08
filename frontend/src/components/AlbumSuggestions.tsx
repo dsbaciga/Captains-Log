@@ -114,8 +114,8 @@ export default function AlbumSuggestions({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center gap-2 text-sm text-slate dark:text-warm-gray/70">
+        <div className="w-4 h-4 border-2 border-primary-500 dark:border-gold border-t-transparent rounded-full animate-spin" />
         Analyzing photos for album suggestions...
       </div>
     );
@@ -126,20 +126,20 @@ export default function AlbumSuggestions({
   }
 
   return (
-    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+    <div className="bg-primary-50 dark:bg-navy-800/80 border border-primary-200 dark:border-gold/25 rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5 text-primary-600 dark:text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
-          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+          <h3 className="text-sm font-semibold text-charcoal dark:text-warm-gray">
             Smart Album Suggestions
           </h3>
         </div>
         <button
           type="button"
           onClick={handleDismissAll}
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+          className="text-slate/60 dark:text-warm-gray/50 hover:text-slate dark:hover:text-warm-gray"
           title="Dismiss all suggestions"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -156,7 +156,7 @@ export default function AlbumSuggestions({
           return (
             <div
               key={key}
-              className="flex items-center justify-between gap-3 bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm"
+              className="flex items-center justify-between gap-3 bg-white dark:bg-navy-800 rounded-lg p-3 shadow-sm border border-primary-100 dark:border-gold/15"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -170,11 +170,11 @@ export default function AlbumSuggestions({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   )}
-                  <span className="font-medium text-gray-900 dark:text-white truncate">
+                  <span className="font-medium text-charcoal dark:text-warm-gray truncate">
                     {suggestion.name}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="text-xs text-slate dark:text-warm-gray/60 mt-0.5">
                   {suggestion.photoIds.length} photos
                   <span className="mx-1">·</span>
                   {Math.round(suggestion.confidence * 100)}% match
@@ -186,7 +186,7 @@ export default function AlbumSuggestions({
                   type="button"
                   onClick={() => handleDismiss(suggestion)}
                   disabled={isAccepting}
-                  className="px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                  className="px-2 py-1 text-xs text-slate dark:text-warm-gray/70 hover:bg-primary-50 dark:hover:bg-navy-700 rounded"
                 >
                   Dismiss
                 </button>
@@ -194,7 +194,7 @@ export default function AlbumSuggestions({
                   type="button"
                   onClick={() => handleAccept(suggestion)}
                   disabled={isAccepting}
-                  className="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  className="px-3 py-1 text-xs font-medium bg-primary-500 dark:bg-gold text-white dark:text-navy-900 rounded hover:bg-primary-600 dark:hover:bg-gold/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
                   {isAccepting ? (
                     <>

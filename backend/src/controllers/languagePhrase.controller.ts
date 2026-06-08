@@ -2,10 +2,10 @@ import { Request, Response } from 'express';
 import tripLanguageService from '../services/tripLanguage.service';
 import languagePhraseService from '../services/languagePhrase.service';
 import { AddTripLanguageSchema, LanguageCodeSchema, PhraseCategorySchema } from '../types/languagePhrase.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { requireUserId } from '../utils/controllerHelpers';
-import { parseId } from '../utils/parseId';
-import { AppError } from '../utils/errors';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
+import { parseId } from '../http/parseId';
+import { AppError } from '../errors/errors';
 
 export const languagePhraseController = {
   /**

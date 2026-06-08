@@ -72,7 +72,7 @@ router.post('/:invitationId/resend', authenticate, invitationLimiter, userInvita
 //    - All inputs are validated with Zod schemas
 //    - Token format and existence are verified before processing
 //
-// The CSRF middleware in src/utils/csrf.ts explicitly skips these routes
+// The CSRF middleware in src/security/csrf.ts explicitly skips these routes
 // because the invitation token provides equivalent protection.
 // ============================================
 

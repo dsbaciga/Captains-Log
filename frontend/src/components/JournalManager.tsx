@@ -9,6 +9,7 @@ import FormModal from "./FormModal";
 import DraftIndicator from "./DraftIndicator";
 import DraftRestorePrompt from "./DraftRestorePrompt";
 import { useFormFields } from "../hooks/useFormFields";
+import { useFieldErrors } from "../hooks/useFieldErrors";
 import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -98,6 +99,10 @@ export default function JournalManager({
   }), [defaultEntryDate]);
 
   const { values: formValues, setField, resetFields, setAllFields } = useFormFields(initialFormValues);
+
+  const journalFieldErrors = useFieldErrors({
+    title: { validate: (v) => v.trim() ? null : 'Title is required' },
+  });
 
   // Track unsaved changes for browser close/refresh warning
   const { captureInitialValues, isDirty: isFormDirty, markSaved } = useUnsavedChangesWarning(formValues, manager.showForm);
@@ -250,6 +255,7 @@ export default function JournalManager({
         if (keepFormOpenAfterSave) {
           // Reset form but keep modal open for quick successive entries
           resetFields();
+          journalFieldErrors.resetErrors();
           setKeepFormOpenAfterSave(false);
           // Focus first input for quick data entry
           setTimeout(() => {
@@ -373,7 +379,7 @@ export default function JournalManager({
           <div>
             <label
               htmlFor={titleFieldId}
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1"
             >
               Title *
             </label>
@@ -384,17 +390,25 @@ export default function JournalManager({
               autoComplete="off"
               value={formValues.title}
               onChange={(e) => setField('title', e.target.value)}
-              className="input"
+              onBlur={(e) => journalFieldErrors.handleBlur('title', e.target.value)}
+              className={`input ${journalFieldErrors.inputErrorClass('title')}`}
+              aria-invalid={journalFieldErrors.touched.title && !!journalFieldErrors.errors.title}
+              aria-describedby={journalFieldErrors.errors.title ? "journal-title-error" : undefined}
               placeholder="Day 1 in Paris"
               required
             />
+            {journalFieldErrors.touched.title && journalFieldErrors.errors.title && (
+              <p id="journal-title-error" className="text-red-600 dark:text-red-400 text-xs mt-1">
+                {journalFieldErrors.errors.title}
+              </p>
+            )}
           </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor={entryDateFieldId}
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-sm font-medium text-charcoal dark:text-warm-gray mb-1"
                 >
                   Entry Date
                 </label>

@@ -419,10 +419,10 @@ describe('UserService', () => {
   // USR-013: Search users
   // ============================================================
   describe('USR-013: Search users', () => {
-    it('should search users by email or username', async () => {
+    it('should search users by email or username (without leaking email in response)', async () => {
       const foundUsers = [
-        { id: 2, username: 'johndoe', email: 'john@example.com', avatarUrl: null },
-        { id: 3, username: 'janedoe', email: 'jane@example.com', avatarUrl: null },
+        { id: 2, username: 'johndoe', avatarUrl: null },
+        { id: 3, username: 'janedoe', avatarUrl: null },
       ];
       mockPrisma.user.findMany.mockResolvedValue(foundUsers);
 
@@ -439,12 +439,13 @@ describe('UserService', () => {
         select: {
           id: true,
           username: true,
-          email: true,
           avatarUrl: true,
         },
         take: 10,
       });
       expect(result).toHaveLength(2);
+      // Security: response must not contain email
+      expect(result[0]).not.toHaveProperty('email');
     });
   });
 

@@ -215,7 +215,7 @@ export default function TravelStatsWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10">
+      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20">
         <div className="flex items-center gap-3 mb-6">
           <Skeleton className="w-10 h-10 rounded-lg" />
           <Skeleton className="h-6 w-32 rounded" />
@@ -230,7 +230,7 @@ export default function TravelStatsWidget() {
   }
 
   return (
-    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20 hover:shadow-xl transition-shadow duration-300">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center">

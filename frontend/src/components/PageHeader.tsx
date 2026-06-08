@@ -110,18 +110,18 @@ export default function PageHeader({
       {backLink && (
         <Link
           to={backLink.href}
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-2 inline-block"
+          className="text-primary-600 dark:text-gold hover:text-primary-800 dark:hover:text-gold/80 mb-2 inline-block"
         >
           {backLink.label}
         </Link>
       )}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-charcoal dark:text-warm-gray">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>
+            <p className="text-slate dark:text-warm-gray/70 mt-1">{subtitle}</p>
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -146,11 +146,11 @@ PageHeader.Section = function SectionHeader({
   return (
     <div className={`flex justify-between items-center mb-4 ${className}`}>
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-lg font-semibold text-charcoal dark:text-warm-gray">
           {title}
         </h3>
         {subtitle && (
-          <p className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>
+          <p className="text-sm text-slate dark:text-warm-gray/70">{subtitle}</p>
         )}
       </div>
       {action && (

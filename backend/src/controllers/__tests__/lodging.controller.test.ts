@@ -48,7 +48,7 @@ jest.mock('../../config/database', () => ({
 }));
 
 // Mock serviceHelpers (required by crudHelpers)
-jest.mock('../../utils/serviceHelpers', () => ({
+jest.mock('../../services/_shared/serviceHelpers', () => ({
   verifyTripAccessWithPermission: jest.fn(),
   verifyEntityAccessWithPermission: jest.fn(),
 }));

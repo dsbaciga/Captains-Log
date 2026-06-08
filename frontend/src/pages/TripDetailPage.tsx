@@ -1002,7 +1002,7 @@ export default function TripDetailPage() {
 
   if (isTripLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-cream dark:bg-navy-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">
@@ -1018,7 +1018,7 @@ export default function TripDetailPage() {
   }
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="bg-cream dark:bg-navy-900 min-h-screen">
       {/* Floating Trip Header - appears when main header scrolls out */}
       <FloatingTripHeader trip={trip} observeRef={tripHeaderRef} />
 
@@ -1028,7 +1028,7 @@ export default function TripDetailPage() {
           items={[{ label: "Trips", href: "/trips", onClick: () => clearTripsPageState('trips-page') }, { label: trip.title }]}
         />
         {/* Trip Header */}
-        <div ref={tripHeaderRef} className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+        <div ref={tripHeaderRef} className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 mb-6">
           {/* Cover Photo Background */}
           {coverPhotoUrl ? (
             // Dynamic background image requires CSS variable - cannot be moved to static CSS
@@ -1232,10 +1232,10 @@ export default function TripDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="p-6 relative">
+            <div className="p-6 relative bg-gradient-to-br from-primary-50/50 to-parchment dark:from-navy-800 dark:to-navy-900 rounded-2xl">
               <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
                 <div className="min-w-0 flex-1 pr-4">
-                  <h1 className="trip-title-hero text-gray-900 dark:text-white break-words">
+                  <h1 className="trip-title-hero text-charcoal dark:text-warm-gray break-words">
                     {trip.title}
                   </h1>
                   <span
@@ -1428,7 +1428,7 @@ export default function TripDetailPage() {
           tabs={tabGroups}
           activeTab={activeTab}
           onTabChange={(tabId) => { if (isTabId(tabId)) changeTab(tabId); }}
-          className={`mb-6 sticky top-28 sm:top-32 bg-gray-50 dark:bg-gray-900 z-10 ${
+          className={`mb-6 sticky top-28 sm:top-32 bg-cream dark:bg-navy-900 z-10 ${
             navigationLayout === 'sidebar' ? 'md:hidden' : ''
           }`}
         />
@@ -1478,7 +1478,7 @@ export default function TripDetailPage() {
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
             <div className="space-y-6 animate-fadeIn">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                   Timeline
                 </h2>
@@ -1506,7 +1506,7 @@ export default function TripDetailPage() {
           {/* Day By Day Tab */}
           {activeTab === "daily" && (
             <div className="space-y-6 animate-fadeIn">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6">
                 <ErrorBoundary>
                 <Suspense fallback={<LoadingSpinner.FullPage message="Loading daily view..." />}>
                 <DailyView
@@ -1527,7 +1527,7 @@ export default function TripDetailPage() {
           {/* Trip Map Tab */}
           {activeTab === "trip-map" && (
             <div className="space-y-6 animate-fadeIn">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                   Trip Map
                 </h2>
@@ -1549,7 +1549,7 @@ export default function TripDetailPage() {
 
         {/* Locations Tab */}
         {activeTab === "locations" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             <ErrorBoundary>
               {isLocationsLoading ? <Skeleton /> : (
               <Suspense fallback={<LoadingSpinner.FullPage message="Loading locations..." />}>
@@ -1592,13 +1592,17 @@ export default function TripDetailPage() {
               existingImmichAssetIds={existingImmichAssetIds}
             />
 
-            {/* Smart Album Suggestions */}
-            {selectedAlbumId === -1 && unsortedPhotosCount >= 3 && (
+            {/* Smart Album Suggestions — show in "All Photos" and "Unsorted" views */}
+            {(selectedAlbumId === null || selectedAlbumId === -1) && unsortedPhotosCount >= 3 && (
               <AlbumSuggestions
                 tripId={trip.id}
                 onAlbumCreated={() => {
                   queryClient.invalidateQueries({ queryKey: ['albums', tripId] });
-                  unsortedPagination.loadInitial();
+                  if (selectedAlbumId === null) {
+                    photosPagination.loadInitial();
+                  } else {
+                    unsortedPagination.loadInitial();
+                  }
                 }}
               />
             )}
@@ -1607,7 +1611,7 @@ export default function TripDetailPage() {
             {/* Position accounts for MobileBottomNav (h-16 = 4rem) plus padding */}
             <button
               onClick={() => setShowAlbumsMobileDrawer(true)}
-              className="md:hidden fixed bottom-20 left-6 z-30 p-4 bg-blue-600 dark:bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+              className="md:hidden fixed bottom-20 left-6 z-30 p-4 bg-primary-500 dark:bg-gold text-white dark:text-navy-900 rounded-full shadow-lg hover:bg-primary-600 dark:hover:bg-gold/80 transition-colors"
               aria-label="Open albums"
             >
               <svg
@@ -1626,7 +1630,7 @@ export default function TripDetailPage() {
             </button>
 
             {/* Sidebar Layout */}
-            <div className="flex gap-0 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <div className="flex gap-0 bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 overflow-hidden">
               {/* Left: Albums Sidebar */}
               {areAlbumsLoading ? <Skeleton className="w-64" /> : (
               <AlbumsSidebar
@@ -1905,7 +1909,7 @@ export default function TripDetailPage() {
 
         {/* Photo Map Tab */}
         {activeTab === "photo-map" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
               Photo Map
             </h2>
@@ -1925,7 +1929,7 @@ export default function TripDetailPage() {
 
         {/* Photo Timeline Tab */}
         {activeTab === "photo-timeline" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
               Photo Timeline
             </h2>
@@ -1943,7 +1947,7 @@ export default function TripDetailPage() {
 
         {/* Activities Tab */}
         {activeTab === "activities" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             {isActivitiesLoading ? <Skeleton /> : (
             <ErrorBoundary>
             <Suspense fallback={<LoadingSpinner.FullPage message="Loading activities..." />}>
@@ -1962,7 +1966,7 @@ export default function TripDetailPage() {
 
         {/* Unscheduled Tab */}
         {activeTab === "unscheduled" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             {isActivitiesLoading || isTransportationLoading || isLodgingLoading ? <Skeleton /> : (
             <ErrorBoundary>
             <Suspense fallback={<LoadingSpinner.FullPage message="Loading unscheduled items..." />}>
@@ -1981,7 +1985,7 @@ export default function TripDetailPage() {
 
         {/* Transportation Tab */}
         {activeTab === "transportation" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             {isTransportationLoading ? <Skeleton /> : (
             <ErrorBoundary>
             <Suspense fallback={<LoadingSpinner.FullPage message="Loading transportation..." />}>
@@ -2000,7 +2004,7 @@ export default function TripDetailPage() {
 
         {/* Lodging Tab */}
         {activeTab === "lodging" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             {isLodgingLoading ? <Skeleton /> : (
             <ErrorBoundary>
             <Suspense fallback={<LoadingSpinner.FullPage message="Loading lodging..." />}>
@@ -2019,7 +2023,7 @@ export default function TripDetailPage() {
 
         {/* Journal Tab */}
         {activeTab === "journal" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             {isJournalLoading ? <Skeleton /> : (
             <ErrorBoundary>
             <Suspense fallback={<LoadingSpinner.FullPage message="Loading journal..." />}>
@@ -2036,7 +2040,7 @@ export default function TripDetailPage() {
 
         {/* Companions Tab */}
         {activeTab === "companions" && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
             {areCompanionsLoading ? <Skeleton /> : (
             <ErrorBoundary>
             <Suspense fallback={<LoadingSpinner.FullPage message="Loading companions..." />}>
@@ -2062,6 +2066,10 @@ export default function TripDetailPage() {
           onClose={() => setShowTagsModal(false)}
           onTagsUpdated={() => {
             queryClient.invalidateQueries({ queryKey: ['tags', tripId] });
+            // Also refresh the trip detail and trips list so their
+            // embedded tagAssignments reflect the change
+            queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+            queryClient.invalidateQueries({ queryKey: ['trips'] });
           }}
         />
         </Suspense>
@@ -2091,7 +2099,7 @@ export default function TripDetailPage() {
       {/* Duplicate Trip Dialog */}
       {showDuplicateDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-xl border border-primary-100 dark:border-gold/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
                 Duplicate Trip
@@ -2116,7 +2124,7 @@ export default function TripDetailPage() {
                   Select What to Copy
                 </h3>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.locations}
@@ -2128,7 +2136,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.photos}
@@ -2140,7 +2148,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.activities}
@@ -2152,7 +2160,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.transportation}
@@ -2164,7 +2172,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.lodging}
@@ -2176,7 +2184,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.journalEntries}
@@ -2188,7 +2196,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.photoAlbums}
@@ -2200,7 +2208,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.tags}
@@ -2212,7 +2220,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.companions}
@@ -2224,7 +2232,7 @@ export default function TripDetailPage() {
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                  <label className="flex items-center gap-2 p-2 hover:bg-parchment dark:hover:bg-navy-700 rounded">
                     <input
                       type="checkbox"
                       checked={duplicateOptions.checklists}

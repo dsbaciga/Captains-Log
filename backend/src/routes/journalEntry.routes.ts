@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { journalEntryController } from '../controllers/journalEntry.controller';
 import { aiController } from '../controllers/ai.controller';
 import { authenticate } from '../middleware/auth';
+import { aiLimiter } from '../middleware/rateLimit';
 
 const router = Router();
 
@@ -133,6 +134,7 @@ router.get('/trip/:tripId', journalEntryController.getJournalEntriesByTrip);
 router.get('/:id', journalEntryController.getJournalEntryById);
 router.put('/:id', journalEntryController.updateJournalEntry);
 router.delete('/:id', journalEntryController.deleteJournalEntry);
-router.post('/:id/ai-enhance', aiController.enhanceJournalEntry);
+// aiLimiter applied after router-level authenticate, so it can key off req.user.id.
+router.post('/:id/ai-enhance', aiLimiter, aiController.enhanceJournalEntry);
 
 export default router;

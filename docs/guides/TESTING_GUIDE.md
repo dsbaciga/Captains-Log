@@ -4,9 +4,24 @@ This document outlines the testing strategy and setup for Travel Life.
 
 ## Current Testing Status
 
-**Backend**: Jest configured but no tests written
-**Frontend**: No testing infrastructure configured
-**E2E Tests**: Not configured
+Both the backend and frontend have working test infrastructure with test suites in place.
+
+**Backend** (Jest + ts-jest): Fully configured with ~69 test files, including:
+
+- `backend/src/controllers/__tests__/` - ~25 controller test files
+- `backend/src/services/__tests__/` - ~34 service test files
+- `backend/src/middleware/__tests__/` - middleware tests (`auth.test.ts`, `errorHandler.test.ts`)
+- Additional test files across other backend modules
+
+**Frontend** (Vitest + React Testing Library): Fully configured with test files in:
+
+- `frontend/src/components/__tests__/` - component tests
+- `frontend/src/services/__tests__/` - service tests
+- `frontend/src/utils/__tests__/` - utility tests
+
+**E2E Tests**: Not configured. There is no Playwright (or Cypress) config in the
+repository. The E2E section below is a recommendation for future work, not a
+description of an existing setup.
 
 ## Testing Strategy
 
@@ -56,16 +71,19 @@ This document outlines the testing strategy and setup for Travel Life.
 
 ## Frontend Testing Setup
 
-### Step 1: Install Dependencies
+The frontend testing infrastructure is already in place. This section documents
+the existing configuration.
 
-```bash
-cd frontend
-npm install -D vitest @vitest/ui @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
-```
+### Existing Dependencies
 
-### Step 2: Create Vitest Configuration
+The following dev dependencies are already installed (see `frontend/package.json`):
+`vitest`, `@vitest/ui`, `@vitest/coverage-v8`, `@testing-library/react`,
+`@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom`, and
+`fake-indexeddb`.
 
-Create `frontend/vitest.config.ts`:
+### Vitest Configuration
+
+The config lives at `frontend/vitest.config.ts`:
 
 ```typescript
 import { defineConfig } from 'vitest/config';
@@ -79,6 +97,20 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.spec.{ts,tsx}',
+        'src/test/**',
+        'src/types/**',
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+        'src/**/*.d.ts',
+      ],
+    },
   },
   resolve: {
     alias: {
@@ -88,24 +120,14 @@ export default defineConfig({
 });
 ```
 
-### Step 3: Create Test Setup File
+### Test Setup File
 
-Create `frontend/src/test/setup.ts`:
+The setup file referenced by the config exists at `frontend/src/test/setup.ts`.
+It registers `@testing-library/jest-dom` matchers and runs cleanup after each test.
 
-```typescript
-import '@testing-library/jest-dom';
-import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+### package.json Scripts
 
-// Cleanup after each test
-afterEach(() => {
-  cleanup();
-});
-```
-
-### Step 4: Update package.json Scripts
-
-Add to `frontend/package.json`:
+The following scripts are already defined in `frontend/package.json`:
 
 ```json
 {
@@ -121,7 +143,9 @@ Add to `frontend/package.json`:
 
 ## Example Test: Manager Component (Infinite Loop Prevention)
 
-Create `frontend/src/components/__tests__/ActivityManager.test.tsx`:
+`frontend/src/components/__tests__/ActivityManager.test.tsx` already exists. The
+pattern below illustrates how Manager components are tested for infinite-loop
+regressions:
 
 ```typescript
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -212,7 +236,8 @@ describe('ActivityManager', () => {
 
 ## Example Test: Photo Loading (Race Condition Prevention)
 
-Create `frontend/src/components/__tests__/PhotoGallery.test.tsx`:
+`frontend/src/components/__tests__/PhotoGallery.test.tsx` already exists. The
+pattern below illustrates how photo loading is tested for race conditions:
 
 ```typescript
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -285,44 +310,58 @@ describe('PhotoGallery', () => {
 
 ## Backend Testing Setup
 
-### Step 1: Create Jest Configuration
+The backend testing infrastructure is already in place. This section documents
+the existing configuration.
 
-Create `backend/jest.config.js`:
+### Jest Configuration
+
+The config lives at `backend/jest.config.js`:
 
 ```javascript
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/index.ts',
+    '!src/types/**',
   ],
-  setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  coverageThreshold: {
+    global: {
+      branches: 50,
+      functions: 50,
+      lines: 50,
+      statements: 50,
+    },
+  },
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.test.json',
+      },
+    ],
+  },
 };
 ```
 
-### Step 2: Create Test Setup
+### Test Setup File
 
-Create `backend/src/test/setup.ts`:
+The setup file referenced by `setupFilesAfterEnv` exists at
+`backend/src/__tests__/setup.ts` (note: under `src/__tests__/`, not `src/test/`).
+It handles global test environment configuration.
 
-```typescript
-// Global test setup
-beforeAll(() => {
-  // Set test environment
-  process.env.NODE_ENV = 'test';
-});
+### Example Service Test
 
-afterAll(() => {
-  // Cleanup
-});
-```
-
-### Step 3: Example Service Test
-
-Create `backend/src/services/__tests__/activity.service.test.ts`:
+`backend/src/services/__tests__/activity.service.test.ts` already exists. The
+pattern below illustrates how services are tested for ownership verification:
 
 ```typescript
 import { describe, it, expect, beforeEach } from '@jest/globals';
@@ -380,6 +419,9 @@ describe('ActivityService', () => {
 
 ## E2E Testing Setup
 
+E2E testing is **not yet configured** — there is no Playwright or Cypress config
+in the repository. The steps below describe how to add it.
+
 ### Recommended: Playwright
 
 ```bash
@@ -418,13 +460,19 @@ npm run test:coverage    # Generate coverage report
 
 ### Backend Tests
 
+The backend `test` script is `jest --passWithNoTests` (the `--passWithNoTests`
+flag means the run succeeds even if a glob matches no test files).
+
 ```bash
 cd backend
-npm test                 # Run all tests
+npm test                 # Run all tests (jest --passWithNoTests)
 npm test -- --coverage   # With coverage
 ```
 
 ### E2E Tests
+
+E2E tests are not yet configured. Once Playwright has been added (see the E2E
+Testing Setup section above), they can be run with:
 
 ```bash
 npx playwright test              # Run all E2E tests
@@ -500,6 +548,6 @@ jobs:
 
 ## Related Documentation
 
-- [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - Current project status
-- [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) - Feature documentation
-- [CLAUDE.md](../CLAUDE.md) - Development guidelines
+- [IMPLEMENTATION_STATUS.md](../development/IMPLEMENTATION_STATUS.md) - Current project status
+- [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) - Feature development workflows
+- [CLAUDE.md](../../CLAUDE.md) - Development guidelines

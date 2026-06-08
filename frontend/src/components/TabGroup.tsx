@@ -134,7 +134,7 @@ export default function TabGroup({
                 className={`flex-1 py-4 px-4 text-sm font-body font-medium relative flex flex-col items-center gap-1 transition-all duration-200 ${
                   isActive
                     ? "text-primary-600 dark:text-gold bg-primary-50/50 dark:bg-gold/5"
-                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                    : "text-slate dark:text-warm-gray hover:text-primary-600 dark:hover:text-gold hover:bg-parchment dark:hover:bg-navy-700/30"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export default function TabGroup({
           return (
             <div
               key={`${tab.id}-subtabs`}
-              className="flex items-center gap-1 px-4 py-2 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-200/50 dark:border-gray-700/50 overflow-x-auto"
+              className="flex items-center gap-1 px-4 py-2 bg-parchment/50 dark:bg-navy-900/50 border-b border-primary-100 dark:border-gold/15 overflow-x-auto"
             >
               {tab.subTabs.map((subTab) => {
                 const isSubActive = subTab.id === activeTab;
@@ -178,8 +178,8 @@ export default function TabGroup({
                     onClick={() => handleSubTabClick(subTab.id)}
                     className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-200 flex items-center gap-2 ${
                       isSubActive
-                        ? "bg-white dark:bg-gray-700 text-primary-600 dark:text-gold shadow-sm"
-                        : "text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-gold hover:bg-white/50 dark:hover:bg-gray-700/50"
+                        ? "bg-white dark:bg-navy-700 text-primary-600 dark:text-gold shadow-sm"
+                        : "text-slate dark:text-warm-gray/70 hover:text-primary-600 dark:hover:text-gold hover:bg-white/60 dark:hover:bg-navy-700/60"
                     }`}
                   >
                     {subTab.icon && (
@@ -191,7 +191,7 @@ export default function TabGroup({
                         className={`px-1.5 py-0.5 text-xs rounded-full ${
                           isSubActive
                             ? "bg-primary-100 dark:bg-gold/20 text-primary-700 dark:text-gold"
-                            : "bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400"
+                            : "bg-primary-100/60 dark:bg-navy-700 text-slate dark:text-warm-gray/60"
                         }`}
                       >
                         {subTab.count}

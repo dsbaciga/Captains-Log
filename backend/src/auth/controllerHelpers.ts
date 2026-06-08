@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import { JwtPayload } from '../types/auth.types';
-import { AppError } from './errors';
+import { AppError } from '../errors/errors';
 
 /**
  * Extracts the authenticated user from the request.

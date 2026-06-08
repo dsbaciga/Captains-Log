@@ -76,11 +76,11 @@ import axios from 'axios';
 const mockAxios = axios as jest.Mocked<typeof axios>;
 
 // Mock serviceHelpers
-jest.mock('../../utils/serviceHelpers', () => ({
+jest.mock('../../services/_shared/serviceHelpers', () => ({
   verifyTripAccess: jest.fn(),
 }));
 
-import { verifyTripAccess } from '../../utils/serviceHelpers';
+import { verifyTripAccess } from '../../services/_shared/serviceHelpers';
 
 // Import the service after all mocks
 import aviationstackService from '../aviationstack.service';

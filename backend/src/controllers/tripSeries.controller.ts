@@ -7,9 +7,9 @@ import {
   reorderTripsInSeriesSchema,
 } from '../types/tripSeries.types';
 import logger from '../config/logger';
-import { parseId } from '../utils/parseId';
-import { asyncHandler } from '../utils/asyncHandler';
-import { requireUserId } from '../utils/controllerHelpers';
+import { parseId } from '../http/parseId';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
 
 export const tripSeriesController = {
   create: asyncHandler(async (req: Request, res: Response) => {

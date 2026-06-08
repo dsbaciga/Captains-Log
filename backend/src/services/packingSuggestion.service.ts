@@ -1,4 +1,4 @@
-import { verifyTripAccess } from '../utils/serviceHelpers';
+import { verifyTripAccess } from '../services/_shared/serviceHelpers';
 import weatherService from './weather.service';
 import type {
   PackingSuggestion,

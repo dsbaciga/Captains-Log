@@ -1,4 +1,18 @@
 import rateLimit from 'express-rate-limit';
+import type { Request } from 'express';
+
+/**
+ * Build a per-user key generator that falls back to client IP when the request
+ * is unauthenticated. Must be applied AFTER `authenticate` for the per-user
+ * keying to take effect; otherwise it degrades to per-IP.
+ */
+const userOrIpKey = (req: Request): string => {
+  const userId = req.user?.userId;
+  if (typeof userId === 'number') return `user:${userId}`;
+  // express-rate-limit's default key when no generator is supplied is req.ip,
+  // which it ensures is populated when `trust proxy` is set (it is in index.ts).
+  return `ip:${req.ip ?? 'unknown'}`;
+};
 
 /**
  * General rate limiter for normal API usage
@@ -47,5 +61,58 @@ export const authRateLimiter = rateLimit({
   message: {
     status: 'error',
     message: 'Too many authentication attempts. Please wait a moment before trying again. Limit: 5 requests per minute.',
+  },
+});
+
+/**
+ * Rate limiter for endpoints that call an external LLM provider.
+ * Each call costs real money or burns shared provider quota, so this is
+ * keyed per-user (with IP fallback for unauthenticated edge cases).
+ *
+ * IMPORTANT: This middleware MUST be applied AFTER `authenticate` so that
+ * `req.user.userId` is populated; otherwise it silently degrades to per-IP keying.
+ *
+ * Defaults: 20 requests per hour. Override via env vars:
+ *   - AI_RATE_LIMIT_MAX        (integer, default 20)
+ *   - AI_RATE_LIMIT_WINDOW_MS  (integer ms, default 3_600_000)
+ */
+const aiMax = Number(process.env.AI_RATE_LIMIT_MAX) || 20;
+const aiWindowMs = Number(process.env.AI_RATE_LIMIT_WINDOW_MS) || 60 * 60 * 1000;
+
+export const aiLimiter = rateLimit({
+  windowMs: aiWindowMs,
+  max: aiMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: userOrIpKey,
+  message: {
+    status: 'error',
+    message: `Too many AI requests. Please wait before trying again. Limit: ${aiMax} requests per hour.`,
+  },
+});
+
+/**
+ * Rate limiter for backup/restore endpoints. These operations are extremely
+ * expensive: `/backup/create` loads the entire user dataset, and
+ * `/backup/restore` accepts up to 100 MB and runs a long transaction.
+ *
+ * Per-user (with IP fallback). MUST be applied AFTER `authenticate`.
+ *
+ * Defaults: 5 requests per hour. Override via env vars:
+ *   - BACKUP_RATE_LIMIT_MAX        (integer, default 5)
+ *   - BACKUP_RATE_LIMIT_WINDOW_MS  (integer ms, default 3_600_000)
+ */
+const backupMax = Number(process.env.BACKUP_RATE_LIMIT_MAX) || 5;
+const backupWindowMs = Number(process.env.BACKUP_RATE_LIMIT_WINDOW_MS) || 60 * 60 * 1000;
+
+export const backupLimiter = rateLimit({
+  windowMs: backupWindowMs,
+  max: backupMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: userOrIpKey,
+  message: {
+    status: 'error',
+    message: `Too many backup/restore requests. Please wait before trying again. Limit: ${backupMax} requests per hour.`,
   },
 });

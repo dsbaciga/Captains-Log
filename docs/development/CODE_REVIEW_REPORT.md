@@ -24,6 +24,8 @@
 
 > **Update (2026-02-06):** All 5 critical, 20 high, 44 medium, and 29 low priority issues have been resolved. Only Testing Coverage gaps and Code Duplication patterns remain as improvement opportunities.
 
+> **Note (2026-05-15) — Path reorganization:** The former `backend/src/utils/` directory has since been split into focused modules: `src/auth/` (JWT, password hashing), `src/errors/` (`AppError` and friends), `src/http/` (async handler, cookies, ID parsing), `src/security/` (CSRF, URL validation, prompt safety), `src/prisma/`, `src/validation/` (Zod helpers), and `src/services/_shared/` (service helpers). The security fix verdicts below remain valid, but any `backend/src/utils/...` paths refer to the pre-reorganization layout. Current locations of the most-cited files: JWT → `backend/src/auth/jwt.ts`, CSRF → `backend/src/security/csrf.ts`, URL validation → `backend/src/security/urlValidation.ts`.
+
 ---
 
 ## 1. Security Vulnerabilities
@@ -38,7 +40,7 @@
 
 | # | File | Description | Status |
 |---|------|-------------|--------|
-| 2 | `backend/src/controllers/immich.controller.ts:56-62` | **SSRF via Immich test endpoint.** `POST /api/immich/test` accepts an arbitrary `apiUrl` from the request body and makes server-side HTTP requests to it. No URL validation or allowlist. | ✅ **Already fixed** - URL validation utility (`urlValidation.ts`) blocks private IPs, localhost, and internal hostnames |
+| 2 | `backend/src/controllers/immich.controller.ts:56-62` | **SSRF via Immich test endpoint.** `POST /api/immich/test` accepts an arbitrary `apiUrl` from the request body and makes server-side HTTP requests to it. No URL validation or allowlist. | ✅ **Already fixed** - URL validation utility (`backend/src/security/urlValidation.ts`) blocks private IPs, localhost, and internal hostnames |
 | 3 | `backend/src/controllers/immich.controller.ts:23-34` | **SSRF via stored Immich settings.** Authenticated users can set their Immich URL to an internal address and use proxy endpoints to read internal service data. | ✅ **Already fixed** - Validates stored URLs before use and validates on save in `user.controller.ts` |
 
 ### MEDIUM
@@ -47,14 +49,14 @@
 |---|------|-------------|--------|
 | 4 | `backend/src/index.ts:108` | **100MB JSON body limit applied globally.** Enables memory exhaustion DoS -- a few concurrent large payloads can crash the server. Should be scoped to backup route only. | ✅ **Already fixed** - Body limit scoped to `/api/backup` route only (lines 108-112), default is 1MB. |
 | 5 | `backend/src/services/tokenBlacklist.service.ts:65` | **In-memory token blacklist lost on restart.** Logged-out users regain access after server restart. | ✅ **FIXED** - Added file-based persistence to `data/token-blacklist.json`. Blacklist is saved to disk on changes and restored on startup. |
-| 6 | `backend/src/utils/jwt.ts:17-19` | **No JWT algorithm pinning.** `jwt.verify()` doesn't specify `{ algorithms: ['HS256'] }`, leaving open the theoretical risk of algorithm confusion. | ✅ **Already fixed** - Both `verifyAccessToken` and `verifyRefreshToken` specify `{ algorithms: ['HS256'] }`. |
+| 6 | `backend/src/auth/jwt.ts` (was `src/utils/jwt.ts:17-19`) | **No JWT algorithm pinning.** `jwt.verify()` doesn't specify `{ algorithms: ['HS256'] }`, leaving open the theoretical risk of algorithm confusion. | ✅ **Already fixed** - Both `verifyAccessToken` and `verifyRefreshToken` specify `{ algorithms: ['HS256'] }`. |
 | 7 | `backend/src/services/auth.service.ts:40-41` | **Tokens not invalidated on password change.** No `passwordVersion` claim in JWT -- stolen tokens remain valid after password change. | ✅ **FIXED** - Added `passwordVersion` field to User model and JWT payload. Tokens include `passwordVersion` claim; refresh is rejected when version doesn't match. Password changes increment the version. |
 
 ### LOW
 
 | # | File | Description | Status |
 |---|------|-------------|--------|
-| 8 | `backend/src/utils/csrf.ts:79` | CSRF token comparison uses `!==` instead of `crypto.timingSafeEqual()`. | ✅ **Already fixed** - Uses `crypto.timingSafeEqual()` with Buffer comparison (line 90). |
+| 8 | `backend/src/security/csrf.ts` (was `src/utils/csrf.ts:79`) | CSRF token comparison uses `!==` instead of `crypto.timingSafeEqual()`. | ✅ **Already fixed** - Uses `crypto.timingSafeEqual()` with Buffer comparison. |
 | 9 | `backend/src/services/photo.service.ts:212-213` | Predictable filenames use `Date.now()` + `Math.random()` instead of `crypto.randomUUID()`. | ✅ **Already fixed** - Uses `crypto.randomUUID()` (line 213). |
 
 ---
@@ -236,12 +238,14 @@
 
 ## 8. Testing Coverage
 
+> **Update (2026-05-15):** Backend test coverage has improved substantially since this report was first written. Backend controllers are now partially tested — `backend/src/controllers/__tests__/` contains 25 controller test files (out of 27 controllers), so the previous "0 tested, 0%" figures for controllers are no longer accurate. Backend service coverage has also grown to roughly 85% of service files. The figures below have been updated to reflect the current state.
+
 ### Current State
 
 | Area | Files Existing | Files Tested | Coverage |
 |------|:-:|:-:|:-:|
-| Backend Services | 33 | 11 | 33% |
-| Backend Controllers | 24 | 0 | **0%** |
+| Backend Services | ~40 | 34 | ~85% |
+| Backend Controllers | 27 | 25 | ~93% |
 | Backend Middleware | 2+ | 1 | ~50% |
 | Backend Utilities | 4+ | 4 | ~100% |
 | Frontend Components | 50+ | 4 | **~8%** |
@@ -250,16 +254,16 @@
 | Frontend Pages | 15 | 0 | **0%** |
 | E2E Tests | N/A | 0 | **0%** |
 
-### Critical Untested Areas
+### Critical Untested / Under-Tested Areas
 
 | # | Area | Risk |
 |---|------|------|
-| 1 | All 24 backend controllers | No validation of HTTP layer, status codes, auth guards |
-| 2 | No route/integration tests | Auth bypass vulnerabilities undetectable |
-| 3 | 22 untested backend services | Including `backup`, `restore`, `collaboration`, `tokenBlacklist` |
-| 4 | `tokenBlacklist.service.ts` | Security-critical, zero tests |
-| 5 | `backup.service.ts` / `restore.service.ts` | Data integrity risk, zero tests |
-| 6 | `collaboration.service.ts` | Permission enforcement untested |
+| 1 | 2 of 27 backend controllers still untested | Most controllers now have HTTP-layer tests; remaining gaps lack status code / auth guard coverage |
+| 2 | No route/integration tests | Controller tests exist, but full route wiring (middleware chains, auth bypass) is not exercised end-to-end |
+| 3 | ~6 untested backend services | Most services now have tests; verify any remaining gaps |
+| 4 | `tokenBlacklist.service.ts` | Security-critical — now has a dedicated test file; keep coverage current |
+| 5 | `backup.service.ts` / `restore.service.ts` | Now have dedicated test files; data-integrity paths should stay covered |
+| 6 | `collaboration.service.ts` | Now has a dedicated test file; verify permission-enforcement cases are covered |
 | 7 | All 27 frontend hooks | Including `usePagedPagination`, `useAutoSaveDraft`, `useManagerCRUD` |
 | 8 | All 31 frontend services | Serialization/URL construction bugs undetectable |
 | 9 | All 15 frontend pages | No page-level test coverage |
@@ -361,7 +365,7 @@
 
 11. ~~**Standardize API response format**~~ ✅ Fixed - Updated 8 controllers to use `{status, data}` format
 12. ~~**Add missing database indexes**~~ ✅ Already fixed - All indexes present in schema
-13. **Add controller and integration tests** (0% coverage currently)
+13. **Add route/integration tests and frontend tests** - Controller tests now exist (~93% of controllers); remaining gaps are end-to-end route/integration tests and frontend (hooks, services, pages) coverage
 14. ~~**Fix backup schema validation**~~ ✅ Fixed - Replaced `z.any()` with proper Zod schemas for all entities
 15. ~~**Scope 100MB JSON body limit**~~ ✅ Already fixed - Limited to `/api/backup` route only (see index.ts:108-112)
 

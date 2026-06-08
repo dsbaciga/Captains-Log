@@ -128,7 +128,7 @@ export default function RecentPhotosWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 h-full flex flex-col">
+      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20 h-full flex flex-col">
         <Skeleton className="h-6 w-32 rounded mb-4" />
         <Skeleton className="flex-1 min-h-[200px] w-full rounded-xl" />
       </div>
@@ -137,7 +137,7 @@ export default function RecentPhotosWidget() {
 
   if (photos.length === 0) {
     return (
-      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
+      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20 hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
             <svg
@@ -182,7 +182,7 @@ export default function RecentPhotosWidget() {
   const photoUrl = getPhotoUrl(currentPhoto);
 
   return (
-    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
+    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20 hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3 min-w-0 flex-1">

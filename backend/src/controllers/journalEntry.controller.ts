@@ -4,9 +4,9 @@ import {
   createJournalEntrySchema,
   updateJournalEntrySchema,
 } from '../types/journalEntry.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
 
 export const journalEntryController = {
   createJournalEntry: asyncHandler(async (req: Request, res: Response) => {

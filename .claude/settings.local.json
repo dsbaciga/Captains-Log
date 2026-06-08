@@ -74,7 +74,9 @@
       "Bash(wc -l docs/architecture/*.md)",
       "Bash(git -C /c/Users/dsbac/travel-life log --oneline --all)",
       "Bash(git -C /c/Users/dsbac/travel-life diff HEAD~5 HEAD -- \"backend/src/services\")",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Skill(code-review)",
+      "Skill(code-review:*)"
     ],
     "deny": [],
     "ask": []

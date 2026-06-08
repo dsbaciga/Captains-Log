@@ -13,6 +13,7 @@ A comprehensive travel documentation application for tracking trips, locations, 
 - **Places Visited Map**: Visualize all locations from completed trips on a global map
 - **Weather Integration**: Fetch historical and forecast weather data
 - **Search & Discovery**: Global search with advanced filtering, travel companions
+- **PDF Import**: Import bookings and itineraries from PDF documents using AI extraction
 - **Import/Export**: Export trips to XML and print-friendly reports
 
 ## Tech Stack
@@ -158,7 +159,7 @@ npm install
 npm run dev
 ```
 
-Frontend will run on http://localhost:3000
+Frontend will run on http://localhost:5173 (Vite default for local development)
 
 ## Project Structure
 
@@ -168,13 +169,20 @@ Travel-Life/
 │   ├── prisma/
 │   │   └── schema.prisma          # Database schema
 │   ├── src/
+│   │   ├── auth/                  # Authentication helpers
 │   │   ├── config/                # Configuration files
+│   │   ├── constants/             # Shared constants
 │   │   ├── controllers/           # Route controllers
+│   │   ├── data/                  # Seed and reference data
+│   │   ├── errors/                # AppError and error utilities
+│   │   ├── http/                  # HTTP helpers
 │   │   ├── middleware/            # Express middleware
+│   │   ├── prisma/                # Prisma client
 │   │   ├── routes/                # API routes
+│   │   ├── security/              # Security utilities
 │   │   ├── services/              # Business logic
 │   │   ├── types/                 # TypeScript types
-│   │   └── utils/                 # Utility functions
+│   │   └── validation/            # Zod validation schemas
 │   ├── Dockerfile
 │   └── package.json
 ├── frontend/
@@ -189,7 +197,7 @@ Travel-Life/
 │   ├── Dockerfile
 │   └── package.json
 ├── docker-compose.yml
-├── PLANNING.md                    # Detailed planning document
+├── docs/                          # Project documentation (see docs/README.md)
 └── README.md
 ```
 
@@ -286,7 +294,7 @@ AVIATIONSTACK_API_KEY=your-api-key
 
 1. Sign up at https://openrouteservice.org/dev/#/signup (free tier: 2,000 requests/day)
 2. Get your API key
-3. Add to root `.env` file:
+3. Add to `backend/.env`:
 
 ```
 OPENROUTESERVICE_API_KEY=your-api-key
@@ -296,7 +304,7 @@ OPENROUTESERVICE_API_KEY=your-api-key
 
 **Without this configuration**, distances will fall back to straight-line calculations which are significantly less accurate for road-based travel.
 
-See [ROUTING_SETUP.md](ROUTING_SETUP.md) for detailed setup instructions and troubleshooting.
+See [ROUTING_SETUP.md](docs/guides/ROUTING_SETUP.md) for detailed setup instructions and troubleshooting.
 
 ## Nominatim Configuration
 
@@ -394,6 +402,6 @@ MIT
 
 ## Support
 
-For detailed planning and architecture documentation, see [PLANNING.md](PLANNING.md)
+For detailed planning and architecture documentation, see the [Documentation Index](docs/README.md).
 
 For issues and feature requests, please use the GitHub issue tracker.

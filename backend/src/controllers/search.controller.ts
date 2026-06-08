@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import searchService from '../services/search.service';
 import { globalSearchQuerySchema } from '../types/search.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { requireUserId } from '../utils/controllerHelpers';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
 
 export const searchController = {
   globalSearch: asyncHandler(async (req: Request, res: Response) => {

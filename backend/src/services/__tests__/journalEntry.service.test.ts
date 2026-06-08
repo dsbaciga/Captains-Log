@@ -63,8 +63,8 @@ jest.mock('../../config/database', () => ({
 }));
 
 // Mock service helpers
-jest.mock('../../utils/serviceHelpers', () => {
-  const originalModule = jest.requireActual('../../utils/serviceHelpers');
+jest.mock('../../services/_shared/serviceHelpers', () => {
+  const originalModule = jest.requireActual('../../services/_shared/serviceHelpers');
   return {
     ...originalModule,
     verifyTripAccessWithPermission: jest.fn(),
@@ -79,8 +79,8 @@ jest.mock('date-fns-tz', () => ({
 }));
 
 import journalEntryService from '../journalEntry.service';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../utils/serviceHelpers';
-import { AppError } from '../../utils/errors';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../services/_shared/serviceHelpers';
+import { AppError } from '../../errors/errors';
 import { fromZonedTime } from 'date-fns-tz';
 
 describe('JournalEntryService', () => {

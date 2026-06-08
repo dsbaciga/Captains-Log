@@ -4,6 +4,7 @@ import type { Checklist, ChecklistItem } from "../types/checklist";
 import checklistService from "../services/checklist.service";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import Breadcrumbs from "../components/Breadcrumbs";
+import AirportSearchInput from "../components/AirportSearchInput";
 
 export default function ChecklistDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -146,6 +147,20 @@ export default function ChecklistDetailPage() {
 
   const { unchecked, checked } = getFilteredItems();
 
+  // Airports checklists use a dedicated airport picker instead of the generic
+  // name/description form, so added airports carry proper `code` metadata.
+  const isAirports = checklist.type === "airports";
+  const existingAirportCodes = new Set(
+    checklist.items
+      .map((item) => {
+        const meta = item.metadata;
+        return meta && typeof meta.code === "string"
+          ? meta.code.toUpperCase()
+          : null;
+      })
+      .filter((code): code is string => code !== null)
+  );
+
   const renderItem = (item: ChecklistItem, isChecked: boolean) => (
     <div
       key={item.id}
@@ -283,11 +298,23 @@ export default function ChecklistDetailPage() {
               onClick={() => setShowAddForm(!showAddForm)}
               className="btn btn-primary"
             >
-              {showAddForm ? "Cancel" : "+ Add Item"}
+              {showAddForm
+                ? "Cancel"
+                : isAirports
+                  ? "+ Add Airport"
+                  : "+ Add Item"}
             </button>
           </div>
 
-          {showAddForm && (
+          {showAddForm && isAirports && (
+            <AirportSearchInput
+              checklistId={checklist.id}
+              existingCodes={existingAirportCodes}
+              onAdded={loadChecklist}
+            />
+          )}
+
+          {showAddForm && !isAirports && (
             <form
               onSubmit={handleAddItem}
               className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"

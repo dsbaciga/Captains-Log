@@ -36,7 +36,7 @@ jest.mock('../../config/database', () => ({
 }));
 
 // Mock serviceHelpers to avoid complex import chains
-jest.mock('../../utils/serviceHelpers', () => ({
+jest.mock('../../services/_shared/serviceHelpers', () => ({
   buildConditionalUpdateData: jest.fn((data: Record<string, unknown>) => {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {

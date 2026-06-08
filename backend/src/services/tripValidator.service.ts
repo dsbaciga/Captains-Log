@@ -3,7 +3,7 @@ import travelTimeService from './travelTime.service';
 import travelDocumentService from './travelDocument.service';
 import visaRequirementService from './visaRequirement.service';
 import { TripWithRelations } from '../types/prisma-helpers';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 
 // =============================================================================
 // TYPES

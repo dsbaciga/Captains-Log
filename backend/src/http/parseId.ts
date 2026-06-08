@@ -1,4 +1,4 @@
-import { AppError } from './errors';
+import { AppError } from '../errors/errors';
 
 /**
  * Safely parses a string to an integer, throwing an AppError if invalid.

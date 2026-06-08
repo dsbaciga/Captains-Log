@@ -1,5 +1,6 @@
 import { useEffect, useState, useId, Suspense, lazy } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import userService from "../services/user.service";
 import tagService from "../services/tag.service";
 import apiService from "../services/api.service";
@@ -22,6 +23,7 @@ const ImmichSettings = lazy(() => import("../components/ImmichSettings"));
 const WeatherSettings = lazy(() => import("../components/WeatherSettings"));
 const AviationstackSettings = lazy(() => import("../components/AviationstackSettings"));
 const OpenRouteServiceSettings = lazy(() => import("../components/OpenRouteServiceSettings"));
+const LlmSettings = lazy(() => import("../components/LlmSettings"));
 const SmtpSettings = lazy(() => import("../components/SmtpSettings"));
 const TravelDocumentManager = lazy(() => import("../components/TravelDocumentManager"));
 const InviteUsersSection = lazy(() => import("../components/InviteUsersSection"));
@@ -50,8 +52,17 @@ function getApiErrorMessage(err: unknown): string | undefined {
 
 export default function SettingsPage() {
   const updateUser = useUpdateUser();
+  const queryClient = useQueryClient();
   const theme = useTheme();
   const toggleTheme = useToggleTheme();
+
+  // Tag edits (delete/rename/recolor) change tagAssignments embedded in the
+  // cached trip and trips-list queries, which are persisted offline. Invalidate
+  // them so the Trips page reflects the change instead of serving stale tags.
+  const invalidateTripTagCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ['trips'] });
+    queryClient.invalidateQueries({ queryKey: ['trip'] });
+  };
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -185,6 +196,7 @@ export default function SettingsPage() {
     try {
       await tagService.deleteTag(tagId);
       await loadTags();
+      invalidateTripTagCaches();
       toast.success("Tag deleted");
     } catch {
       toast.error("Failed to delete tag");
@@ -220,6 +232,7 @@ export default function SettingsPage() {
     try {
       await tagService.updateTag(tagId, { name: newName });
       await loadTags();
+      invalidateTripTagCaches();
       setEditingTagName(null);
       setEditingTagNewName("");
       toast.success("Tag renamed");
@@ -273,6 +286,7 @@ export default function SettingsPage() {
         textColor: editingTagTextColor,
       });
       await loadTags();
+      invalidateTripTagCaches();
       setEditingTagId(null);
       toast.success("Tag colors updated");
     } catch {
@@ -1692,6 +1706,9 @@ export default function SettingsPage() {
 
             {/* OpenRouteService Settings */}
             <OpenRouteServiceSettings />
+
+            {/* LLM (AI) Settings */}
+            <LlmSettings />
 
           </div>
           </Suspense>

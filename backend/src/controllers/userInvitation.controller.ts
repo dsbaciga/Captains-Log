@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { userInvitationService } from '../services/userInvitation.service';
 import userService from '../services/user.service';
 import { sendUserInvitationSchema, acceptInvitationSchema } from '../types/userInvitation.types';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { config } from '../config';
@@ -83,7 +83,7 @@ export const userInvitationController = {
       });
 
       // Set CSRF token as accessible cookie for frontend
-      // IMPORTANT: Must use 'csrf-token' (hyphen) to match CSRF_COOKIE_NAME in utils/csrf.ts
+      // IMPORTANT: Must use 'csrf-token' (hyphen) to match CSRF_COOKIE_NAME in security/csrf.ts
       const csrfToken = crypto.randomBytes(32).toString('hex');
       res.cookie('csrf-token', csrfToken, {
         httpOnly: false,

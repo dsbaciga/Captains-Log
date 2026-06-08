@@ -75,7 +75,7 @@ export default function UpcomingTripsWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10">
+      <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20">
         <div className="flex items-center gap-3 mb-6">
           <Skeleton className="w-10 h-10 rounded-lg" />
           <div className="flex-1">
@@ -92,7 +92,7 @@ export default function UpcomingTripsWidget() {
   }
 
   return (
-    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-sky/10 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white dark:bg-navy-800 rounded-2xl p-6 shadow-lg border-2 border-primary-100 dark:border-gold/20 hover:shadow-xl transition-shadow duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -145,7 +145,7 @@ export default function UpcomingTripsWidget() {
               to={`/trips/${trip.id}`}
               className="block group"
             >
-              <div className="p-4 rounded-xl bg-gray-50 dark:bg-navy-900/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 border-2 border-transparent hover:border-primary-200 dark:hover:border-sky/30 transition-all duration-200">
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-navy-900/50 hover:bg-primary-50 dark:hover:bg-primary-900/20 border-2 border-transparent hover:border-primary-200 dark:hover:border-gold/40 transition-all duration-200">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

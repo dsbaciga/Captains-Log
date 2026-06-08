@@ -7,9 +7,9 @@ import {
   bulkDeleteTransportationSchema,
   bulkUpdateTransportationSchema,
 } from '../types/transportation.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { parseId } from '../utils/parseId';
-import { requireUserId } from '../utils/controllerHelpers';
+import { asyncHandler } from '../http/asyncHandler';
+import { parseId } from '../http/parseId';
+import { requireUserId } from '../auth/controllerHelpers';
 
 const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

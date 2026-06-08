@@ -23,6 +23,8 @@
  * AUTH-CTRL-013: getCurrentUser - propagates service errors
  * AUTH-CTRL-014: logout - blacklists refresh token, clears cookies, returns 200
  * AUTH-CTRL-015: logout - handles missing refresh token cookie gracefully
+ * AUTH-CTRL-014b: logout - also blacklists access token from Authorization header
+ * AUTH-CTRL-014c: logout - tolerates malformed access token (logs warning, succeeds)
  * AUTH-CTRL-016: silentRefresh - returns null when no cookie
  * AUTH-CTRL-017: silentRefresh - returns null for blacklisted token, clears cookies
  * AUTH-CTRL-018: silentRefresh - returns user and accessToken for valid token
@@ -58,7 +60,7 @@ jest.mock('../../services/tokenBlacklist.service', () => ({
 const mockSetRefreshTokenCookie = jest.fn();
 const mockClearRefreshTokenCookie = jest.fn();
 const mockGetRefreshTokenFromCookie = jest.fn();
-jest.mock('../../utils/cookies', () => ({
+jest.mock('../../http/cookies', () => ({
   setRefreshTokenCookie: mockSetRefreshTokenCookie,
   clearRefreshTokenCookie: mockClearRefreshTokenCookie,
   getRefreshTokenFromCookie: mockGetRefreshTokenFromCookie,
@@ -68,7 +70,7 @@ jest.mock('../../utils/cookies', () => ({
 const mockGenerateCsrfToken = jest.fn();
 const mockSetCsrfCookie = jest.fn();
 const mockClearCsrfCookie = jest.fn();
-jest.mock('../../utils/csrf', () => ({
+jest.mock('../../security/csrf', () => ({
   generateCsrfToken: mockGenerateCsrfToken,
   setCsrfCookie: mockSetCsrfCookie,
   clearCsrfCookie: mockClearCsrfCookie,
@@ -95,7 +97,7 @@ import {
   expectSuccessResponse,
 } from '../../__tests__/helpers/requests';
 import { testUsers, validRegistrationInput, validLoginInput } from '../../__tests__/fixtures/users';
-import { AppError } from '../../utils/errors';
+import { AppError } from '../../errors/errors';
 
 // Helper to flush microtask queue so asyncHandler's .catch(next) resolves
 const flushPromises = () => new Promise(resolve => setImmediate(resolve));
@@ -525,6 +527,89 @@ describe('AuthController', () => {
 
       // Error propagated via asyncHandler -> next
       expect(next).toHaveBeenCalled();
+    });
+
+    // AUTH-CTRL-014b: Critical security fix - logout must blacklist access token too,
+    // otherwise a stolen access token remains valid until natural expiry (~15 min)
+    // even after the user has logged out.
+    it('should also blacklist the access token from the Authorization header', async () => {
+      // Reset any leftover throwing implementation from prior tests in this describe
+      mockBlacklistToken.mockReset();
+      mockGetRefreshTokenFromCookie.mockReturnValue('refresh-tok');
+
+      // Build a real JWT with a future exp so getRemainingTtlMs returns > 0.
+      // jwt.decode does not verify the signature, so the secret is irrelevant here.
+      const jsonwebtoken = jest.requireActual<typeof import('jsonwebtoken')>('jsonwebtoken');
+      const accessToken = jsonwebtoken.sign(
+        { id: 1, userId: 1, email: 'test@example.com' },
+        'any-secret-decode-doesnt-verify',
+        { expiresIn: '15m' }
+      );
+
+      const req = createMockRequest({
+        cookies: { refreshToken: 'refresh-tok' },
+        headers: { authorization: `Bearer ${accessToken}` },
+      });
+      const res = createMockResponse();
+      const next = createMockNext();
+
+      await authController.logout(req as never, res as never, next);
+
+      // Refresh token blacklisted with default TTL (1 arg)
+      expect(mockBlacklistToken).toHaveBeenCalledWith('refresh-tok');
+      // Access token blacklisted with computed remaining TTL (2 args)
+      const accessCall = mockBlacklistToken.mock.calls.find(
+        (args: unknown[]) => args[0] === accessToken
+      );
+      expect(accessCall).toBeDefined();
+      expect(typeof accessCall![1]).toBe('number');
+      // Should be roughly 15 min (allow generous slack)
+      expect(accessCall![1] as number).toBeGreaterThan(60_000);
+      expect(accessCall![1] as number).toBeLessThanOrEqual(15 * 60 * 1000 + 1000);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    // AUTH-CTRL-014c: a malformed/undecodable access token must not break logout
+    it('should tolerate a malformed access token and still complete logout', async () => {
+      mockBlacklistToken.mockReset();
+      mockGetRefreshTokenFromCookie.mockReturnValue(undefined);
+
+      const req = createMockRequest({
+        headers: { authorization: 'Bearer not-a-jwt-at-all' },
+      });
+      const res = createMockResponse();
+      const next = createMockNext();
+
+      await authController.logout(req as never, res as never, next);
+
+      // No blacklist call at all (refresh token absent + access token undecodable)
+      expect(mockBlacklistToken).not.toHaveBeenCalled();
+
+      // Cookies cleared, success returned
+      expect(mockClearRefreshTokenCookie).toHaveBeenCalledWith(res);
+      expect(mockClearCsrfCookie).toHaveBeenCalledWith(res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should skip access-token blacklist when no Authorization header is present', async () => {
+      mockBlacklistToken.mockReset();
+      mockGetRefreshTokenFromCookie.mockReturnValue('refresh-tok');
+
+      const req = createMockRequest({
+        cookies: { refreshToken: 'refresh-tok' },
+      });
+      const res = createMockResponse();
+      const next = createMockNext();
+
+      await authController.logout(req as never, res as never, next);
+
+      // Only the refresh token gets blacklisted
+      expect(mockBlacklistToken).toHaveBeenCalledTimes(1);
+      expect(mockBlacklistToken).toHaveBeenCalledWith('refresh-tok');
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 

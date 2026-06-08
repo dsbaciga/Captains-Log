@@ -127,7 +127,7 @@ export default function ConfirmDialog({
       {/* Dialog */}
       <div
         ref={dialogRef}
-        className="relative bg-white dark:bg-navy-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border-2 border-primary-500/10 dark:border-sky/10 animate-fade-in-up"
+        className="relative bg-white dark:bg-navy-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border-2 border-primary-500/10 dark:border-gold/20 animate-fade-in-up"
         style={{ animationDuration: '0.2s' }}
       >
         <div className="flex items-start space-x-4">

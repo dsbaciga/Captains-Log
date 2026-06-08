@@ -1,6 +1,6 @@
 # Feature Backlog
 
-**Last Updated**: 2026-01-25
+**Last Updated**: 2026-05-15
 
 This document consolidates all feature ideas and future enhancements for Travel Life. Features are organized by priority and category.
 
@@ -252,7 +252,9 @@ Good enhancements that improve the experience.
 - Study Abroad (courses, university, housing)
 - Pilgrimage (spiritual sites, rituals, significance)
 
-**Implementation**: Add custom field to Trip model.
+**Implementation**: `User.tripTypes` stores a user-defined list of trip types (each with a name and emoji); `Trip.tripType` and `Trip.tripTypeEmoji` assign a type per trip. Migrations `20260207_add_trip_types` and `20260211_widen_trip_type_emoji`.
+
+**Status**: ✅ Completed
 
 ### 16. Smart Suggestions
 
@@ -365,8 +367,9 @@ Good enhancements that improve the experience.
 
 **Description**: Allow formatted text in notes fields.
 
-**Current State**: Plain text only
-**Implementation**: Markdown parser + preview (library integration)
+**Implementation**: `MarkdownEditor` component provides a write/preview editor; `MarkdownRenderer` renders stored Markdown content throughout the app.
+
+**Status**: ✅ Completed
 
 ### 25. Trip Archive
 
@@ -1004,13 +1007,19 @@ Good enhancements that improve the experience.
 **Effort**: High
 **Impact**: High
 
-**Description**: Import confirmations from email (flights, hotels, activities).
+**Description**: Import booking confirmations (flights, hotels, activities) into trips.
+
+**Current State**: Delivered via the PDF + AI import system. Users upload a booking-confirmation PDF, which is parsed by an LLM (`pdfImport` controller/service + `pdfParser.service.ts`) to extract flights, lodging, and activities. Extracted items land in a review queue (`PendingEntity`) before being added to the trip.
+
+**Note**: An earlier email-parsing implementation was built and then removed (commit `8ffab4e`, migration `20260406000000_remove_email_import`) in favor of the PDF + AI import approach. There is no email parsing today.
 
 **Features**:
-- Email parsing
-- Auto-populate booking details
-- Link to trip
-- Update tracking
+- ✅ PDF upload + LLM-based parsing of booking confirmations
+- ✅ Auto-populate booking details (flights, hotels, activities)
+- ✅ Review/confirm extracted entities before linking to a trip
+- [ ] Direct integrations with booking provider APIs (not started)
+
+**Status**: ✅ Booking-confirmation import delivered via PDF + AI import
 
 ### 70. Expand Immich Integration
 
@@ -1391,11 +1400,11 @@ Good enhancements that improve the experience.
 - Trip Cloning (#1) ✅
 - Batch Operations (#4)
 - Activity Templates (#5)
-- Auto-Save Drafts (#6)
+- Auto-Save Drafts (#6) ✅
 - Favorite Places (#12)
-- Custom Trip Types (#15)
+- Custom Trip Types (#15) ✅
 - Keyboard Shortcuts (#23) ✅
-- Markdown Support (#24)
+- Markdown Support (#24) ✅
 - Compact View Mode (#28) ✅
 - Trip Cover Images (#31)
 - Activity Icons (#32)
@@ -1512,5 +1521,6 @@ Good enhancements that improve the experience.
 
 ## Update Log
 
+- **2026-05-15**: Marked Custom Trip Types (#15) and Markdown Support (#24) as completed; rewrote Booking Integrations (#69) to reflect PDF + AI import (email parsing was removed)
 - **2026-01-16**: Consolidated from FEATURE_IDEAS.md and FEATURE_IDEAS_EXTENDED.md, organized by priority
 - **Previous**: Multiple separate feature idea documents maintained

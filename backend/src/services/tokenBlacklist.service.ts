@@ -77,19 +77,24 @@ const DEFAULT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 const PERSIST_DIR = path.join(process.cwd(), 'data');
 const PERSIST_FILE = path.join(PERSIST_DIR, 'token-blacklist.json');
 
+// Serialize disk writes so concurrent logouts don't race over the same file.
+let persistInFlight: Promise<void> = Promise.resolve();
+
 /**
  * Persist the current blacklist to disk as JSON.
- * Uses async I/O to avoid blocking the event loop.
+ * Writes are serialized via a promise chain to prevent concurrent overwrites.
  */
-const persistBlacklist = async (): Promise<void> => {
-  try {
-    await fsPromises.mkdir(PERSIST_DIR, { recursive: true });
-    const entries = Array.from(blacklist.values());
-    await fsPromises.writeFile(PERSIST_FILE, JSON.stringify(entries), 'utf-8');
-    logger.debug(`Persisted ${entries.length} blacklist entries to disk`);
-  } catch (error) {
-    logger.error('Failed to persist token blacklist to disk', { error });
-  }
+const persistBlacklist = (): void => {
+  persistInFlight = persistInFlight.then(async () => {
+    try {
+      await fsPromises.mkdir(PERSIST_DIR, { recursive: true });
+      const entries = Array.from(blacklist.values());
+      await fsPromises.writeFile(PERSIST_FILE, JSON.stringify(entries), 'utf-8');
+      logger.debug(`Persisted ${entries.length} blacklist entries to disk`);
+    } catch (error) {
+      logger.error('Failed to persist token blacklist to disk', { error });
+    }
+  });
 };
 
 /**
@@ -138,7 +143,7 @@ export const blacklistToken = (token: string, expiresInMs: number = DEFAULT_EXPI
   const expiresAt = Date.now() + expiresInMs;
   blacklist.set(token, { token, expiresAt });
   logger.debug(`Token blacklisted, expires at ${new Date(expiresAt).toISOString()}`);
-  persistBlacklist().catch((err) => logger.error('Failed to persist blacklist after adding token', { error: err }));
+  persistBlacklist();
 };
 
 /**
@@ -174,7 +179,7 @@ export const cleanupExpired = (): number => {
   }
   if (removed > 0) {
     logger.debug(`Cleaned up ${removed} expired blacklist entries`);
-    persistBlacklist().catch((err) => logger.error('Failed to persist blacklist after cleanup', { error: err }));
+    persistBlacklist();
   }
   return removed;
 };

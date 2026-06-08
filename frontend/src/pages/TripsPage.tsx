@@ -521,14 +521,14 @@ export default function TripsPage() {
           <h2 className="text-3xl font-bold text-charcoal dark:text-warm-gray font-display">My Trips</h2>
           <div className="flex items-center gap-3">
             {/* View Mode Toggle */}
-            <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <div className="flex rounded-lg border border-primary-200 dark:border-gold/30 overflow-hidden">
               <button
                 type="button"
                 onClick={() => { setViewMode('grid'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   viewMode === 'grid'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    ? 'bg-primary-500 dark:bg-gold text-white dark:text-navy-900'
+                    : 'bg-white dark:bg-navy-800 text-slate dark:text-warm-gray/70 hover:bg-parchment dark:hover:bg-navy-700'
                 }`}
                 title="Grid View"
                 aria-label="Grid View"
@@ -542,8 +542,8 @@ export default function TripsPage() {
                 onClick={() => { setViewMode('list'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   viewMode === 'list'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    ? 'bg-primary-500 dark:bg-gold text-white dark:text-navy-900'
+                    : 'bg-white dark:bg-navy-800 text-slate dark:text-warm-gray/70 hover:bg-parchment dark:hover:bg-navy-700'
                 }`}
                 title="List View"
                 aria-label="List View"
@@ -557,8 +557,8 @@ export default function TripsPage() {
                 onClick={() => { setViewMode('kanban'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   viewMode === 'kanban'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    ? 'bg-primary-500 dark:bg-gold text-white dark:text-navy-900'
+                    : 'bg-white dark:bg-navy-800 text-slate dark:text-warm-gray/70 hover:bg-parchment dark:hover:bg-navy-700'
                 }`}
                 title="Kanban View"
                 aria-label="Kanban View"

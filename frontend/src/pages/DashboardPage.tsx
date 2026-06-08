@@ -86,7 +86,7 @@ export default function DashboardPage() {
 
         {/* Quick Links Section */}
         <div className="mb-8 animate-fade-in stagger-4">
-          <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-2xl font-display font-bold text-charcoal dark:text-warm-gray mb-4">
             Quick Links
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

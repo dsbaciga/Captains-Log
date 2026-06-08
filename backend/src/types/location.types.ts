@@ -9,7 +9,7 @@ import {
   optionalDatetime,
   optionalNotes,
   optionalPositiveNumber,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 // Validation schemas
 export const createLocationSchema = z.object({

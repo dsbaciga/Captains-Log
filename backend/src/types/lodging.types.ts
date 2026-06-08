@@ -9,7 +9,7 @@ import {
   optionalCurrencyCode,
   optionalUrl,
   optionalNotesWithMax,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 export const LodgingType = {
   HOTEL: 'hotel',

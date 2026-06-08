@@ -1,10 +1,20 @@
 import axios from 'axios';
 import { config } from '../config';
+import prisma from '../config/database';
 import logger from '../config/logger';
 
 interface LlmOptions {
   maxTokens?: number;
   temperature?: number;
+  userId?: number;
+}
+
+interface ResolvedLlmConfig {
+  baseUrl: string;
+  /** Null for local LLMs that require no auth (e.g., Ollama). */
+  apiKey: string | null;
+  model: string;
+  maxTokens: number;
 }
 
 /**
@@ -20,8 +30,55 @@ export class LlmError extends Error {
 }
 
 class LlmService {
-  isConfigured(): boolean {
-    return config.llm.enabled && config.llm.apiKey !== '';
+  /**
+   * Resolve effective LLM config for a user: per-user values override env defaults.
+   * Returns null if the global kill switch is off or no API key is available.
+   */
+  private async resolveConfig(userId?: number): Promise<ResolvedLlmConfig | null> {
+    if (!config.llm.enabled) return null;
+
+    let userApiKey: string | null = null;
+    let userBaseUrl: string | null = null;
+    let userModel: string | null = null;
+
+    if (userId !== undefined) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { llmApiKey: true, llmBaseUrl: true, llmModel: true },
+      });
+      userApiKey = user?.llmApiKey ?? null;
+      userBaseUrl = user?.llmBaseUrl ?? null;
+      userModel = user?.llmModel ?? null;
+    }
+
+    // Resolve the effective API key: prefer per-user, fall back to env.
+    // A user who sets only a custom model still needs the global env key.
+    const effectiveApiKey = userApiKey ?? (config.llm.apiKey || null);
+
+    // If the user set a custom base URL, use per-user settings.
+    // This supports no-auth local LLMs (e.g., Ollama) — base URL set, API key null.
+    if (userBaseUrl) {
+      return {
+        baseUrl: userBaseUrl,
+        apiKey: userApiKey, // null is valid for local LLMs
+        model: userModel || config.llm.model,
+        maxTokens: config.llm.maxTokens,
+      };
+    }
+
+    // No per-user base URL: use the env base URL with the resolved API key.
+    // A per-user model name is applied on top of the env config.
+    if (!effectiveApiKey) return null;
+    return {
+      baseUrl: config.llm.baseUrl,
+      apiKey: effectiveApiKey,
+      model: userModel || config.llm.model,
+      maxTokens: config.llm.maxTokens,
+    };
+  }
+
+  async isConfigured(userId?: number): Promise<boolean> {
+    return (await this.resolveConfig(userId)) !== null;
   }
 
   async chat(
@@ -29,28 +86,31 @@ class LlmService {
     userPrompt: string,
     options: LlmOptions = {}
   ): Promise<string> {
-    if (!this.isConfigured()) {
-      logger.warn('LLM not configured — AI features disabled. Set LLM_API_KEY to enable.');
+    const resolved = await this.resolveConfig(options.userId);
+    if (!resolved) {
+      logger.warn('LLM not configured — AI features disabled. Set an API key in Settings or LLM_API_KEY env var.');
       return '';
     }
 
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (resolved.apiKey) {
+        headers.Authorization = `Bearer ${resolved.apiKey}`;
+      }
+
       const response = await axios.post(
-        `${config.llm.baseUrl}/chat/completions`,
+        `${resolved.baseUrl}/chat/completions`,
         {
-          model: config.llm.model,
+          model: resolved.model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          max_tokens: options.maxTokens ?? config.llm.maxTokens,
+          max_tokens: options.maxTokens ?? resolved.maxTokens,
           temperature: options.temperature ?? 0.3,
         },
         {
-          headers: {
-            Authorization: `Bearer ${config.llm.apiKey}`,
-            'Content-Type': 'application/json',
-          },
+          headers,
           timeout: 30000,
         }
       );

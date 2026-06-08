@@ -3,7 +3,7 @@ import {
   optionalNullable,
   requiredStringWithMax,
   optionalDatetime,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 export interface JournalEntry {
   id: number;

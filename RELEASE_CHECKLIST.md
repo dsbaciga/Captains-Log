@@ -51,7 +51,8 @@ Or manually update:
 
 - [ ] `backend/package.json` - version field
 - [ ] `frontend/package.json` - version field
-- [ ] `VERSION` file (if exists)
+
+The version is tracked only in these two `package.json` files; there is no separate `VERSION` file. The `release.ps1` script updates both automatically.
 
 ## Build Verification
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   optionalNullable,
   optionalStringWithMax,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 export const createCompanionSchema = z.object({
   name: z.string().min(1).max(100),

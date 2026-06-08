@@ -9,6 +9,7 @@ Welcome to the Travel Life documentation. This guide will help you navigate the 
 | **Get started quickly** | [Quick Start Production](../QUICK_START_PRODUCTION.md) |
 | **Deploy to production** | [Deployment Guide](../DEPLOYMENT.md) |
 | **Understand the codebase** | [Backend Architecture](architecture/BACKEND_ARCHITECTURE.md) |
+| **Use the API** | [API Reference](api/README.md) |
 | **Work on the UI** | [Style Guide](architecture/STYLE_GUIDE.md) |
 | **Release a new version** | [Release Checklist](../RELEASE_CHECKLIST.md) |
 | **Track project progress** | [Implementation Status](development/IMPLEMENTATION_STATUS.md) |
@@ -18,6 +19,8 @@ Welcome to the Travel Life documentation. This guide will help you navigate the 
 ```
 docs/
 ├── README.md                 # You are here
+├── api/                      # API reference documentation
+│   └── README.md
 ├── architecture/             # Technical architecture documentation
 │   ├── BACKEND_ARCHITECTURE.md
 │   ├── FRONTEND_ARCHITECTURE.md
@@ -28,6 +31,8 @@ docs/
 │   ├── IMPLEMENTATION_STATUS.md
 │   ├── FEATURE_BACKLOG.md
 │   ├── BUGS.md
+│   ├── CODE_REVIEW_REPORT.md
+│   ├── CODE_REVIEW_LOW_PRIORITY.md
 │   └── UI_UX_IMPROVEMENT_PLAN.md
 ├── guides/                   # How-to guides
 │   ├── BUILD_AND_PUSH.md
@@ -39,6 +44,10 @@ docs/
 ├── plans/                    # Future planning documents
 │   ├── GOOGLE_MAPS_INTEGRATION_PLAN.md
 │   ├── GOOGLE_PHOTOS_INTEGRATION_PLAN.md
+│   ├── PHOTO_MAP_VIEW_PLAN.md
+│   ├── PWA_IMPLEMENTATION_PLAN.md
+│   ├── TEST_COVERAGE_PLAN.md
+│   ├── OAUTH_SUPPORT_PLAN.md
 │   └── UI_IMPROVEMENTS.md
 └── user-guide/               # End-user documentation
     └── README.md
@@ -53,6 +62,7 @@ Start with architecture documentation to understand the codebase:
 1. **[Backend Architecture](architecture/BACKEND_ARCHITECTURE.md)** - Server-side patterns, services, database access
 2. **[Frontend Architecture](architecture/FRONTEND_ARCHITECTURE.md)** - React components, state management, hooks
 3. **[Style Guide](architecture/STYLE_GUIDE.md)** - UI component patterns, colors, typography
+4. **[API Reference](api/README.md)** - REST API endpoints, request/response formats
 
 Then review development processes:
 

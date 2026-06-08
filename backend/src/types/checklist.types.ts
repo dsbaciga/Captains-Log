@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import {
   nullableOptional,
-} from '../utils/zodHelpers';
+} from '../validation/zodHelpers';
 
 // Zod Schemas
 export const ChecklistItemSchema = z.object({

@@ -219,9 +219,6 @@ export default function TravelPartnerSettings() {
                 <p className="font-medium text-gray-900 dark:text-white">
                   {settings.travelPartner.username}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {settings.travelPartner.email}
-                </p>
               </div>
               <button
                 onClick={handleRemovePartner}
@@ -301,9 +298,6 @@ export default function TravelPartnerSettings() {
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
                           {user.username}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {user.email}
                         </p>
                       </div>
                     </button>

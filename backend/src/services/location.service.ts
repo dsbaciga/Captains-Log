@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput, BulkDeleteLocationsInput, BulkUpdateLocationsInput } from '../types/location.types';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../utils/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
 
 /**
  * Validate latitude and longitude ranges.

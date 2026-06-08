@@ -49,11 +49,11 @@ export default function LocationDisplay({
   if (compact) {
     return (
       <div className={`flex items-baseline gap-1.5 ${className}`}>
-        <span className="font-semibold text-gray-900 dark:text-white">
+        <span className="font-semibold text-charcoal dark:text-warm-gray">
           {name}
         </span>
         {shouldShowSecondary && (
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="text-sm text-slate dark:text-warm-gray/60">
             · {secondaryLocation}
           </span>
         )}
@@ -63,16 +63,16 @@ export default function LocationDisplay({
 
   return (
     <div className={className}>
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white break-words">
+      <h3 className="text-lg font-semibold text-charcoal dark:text-warm-gray break-words">
         {name}
       </h3>
       {shouldShowSecondary && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+        <p className="text-sm text-slate dark:text-warm-gray/60 mt-0.5">
           {secondaryLocation}
         </p>
       )}
       {showFullAddress && address && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+        <p className="text-sm text-slate/80 dark:text-warm-gray/50 mt-1 line-clamp-2">
           {address}
         </p>
       )}

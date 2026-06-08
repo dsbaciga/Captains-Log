@@ -1,20 +1,15 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
-import rateLimit from 'express-rate-limit';
 import { pdfImportController } from '../controllers/pdfImport.controller';
 import { authenticate } from '../middleware/auth';
+import { aiLimiter } from '../middleware/rateLimit';
 
 const router = Router();
 router.use(authenticate);
 
-// Rate limit: 20 uploads per hour per IP (DoS protection for large file + LLM calls)
-const uploadRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20,
-  message: 'Too many PDF uploads from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// PDF upload triggers an LLM parsing pass — share the per-user aiLimiter
+// (default 20/hour) so a single account can't drain the shared LLM quota.
+// Must be applied AFTER `authenticate` (above) so it keys off req.user.id.
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -46,7 +41,7 @@ function uploadSingle(req: Request, res: Response, next: NextFunction): void {
 }
 
 // IMPORTANT: Static sub-paths must be registered before parameterized /:id
-router.post('/upload', uploadRateLimit, uploadSingle, pdfImportController.uploadPdf);
+router.post('/upload', aiLimiter, uploadSingle, pdfImportController.uploadPdf);
 router.get('/pending/count', pdfImportController.getPendingCount);
 router.get('/pending', pdfImportController.getPendingEntities);
 router.put('/pending/:id', pdfImportController.updatePendingEntity);
@@ -54,7 +49,8 @@ router.post('/pending/:id/accept', pdfImportController.acceptPendingEntity);
 router.post('/pending/:id/reject', pdfImportController.rejectPendingEntity);
 router.get('/', pdfImportController.getPdfImports);
 router.get('/:id', pdfImportController.getPdfImportById);
-router.post('/:id/reparse', pdfImportController.reparseImport);
+// Reparse re-invokes the LLM, so it shares the same per-user budget.
+router.post('/:id/reparse', aiLimiter, pdfImportController.reparseImport);
 router.delete('/:id', pdfImportController.deletePdfImport);
 
 export default router;

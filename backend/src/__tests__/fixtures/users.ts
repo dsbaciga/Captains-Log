@@ -15,6 +15,9 @@ export interface TestUser {
   weatherApiKey: string | null;
   aviationstackApiKey: string | null;
   openrouteserviceApiKey: string | null;
+  llmApiKey: string | null;
+  llmBaseUrl: string | null;
+  llmModel: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +51,9 @@ export const testUsers: Record<string, TestUser> = {
     weatherApiKey: null,
     aviationstackApiKey: null,
     openrouteserviceApiKey: null,
+    llmApiKey: null,
+    llmBaseUrl: null,
+    llmModel: null,
     createdAt: new Date('2024-01-01T00:00:00Z'),
     updatedAt: new Date('2024-01-01T00:00:00Z'),
   },
@@ -64,6 +70,9 @@ export const testUsers: Record<string, TestUser> = {
     weatherApiKey: null,
     aviationstackApiKey: null,
     openrouteserviceApiKey: null,
+    llmApiKey: null,
+    llmBaseUrl: null,
+    llmModel: null,
     createdAt: new Date('2024-01-02T00:00:00Z'),
     updatedAt: new Date('2024-01-02T00:00:00Z'),
   },
@@ -80,6 +89,9 @@ export const testUsers: Record<string, TestUser> = {
     weatherApiKey: 'test-weather-api-key',
     aviationstackApiKey: 'test-aviationstack-api-key',
     openrouteserviceApiKey: 'test-openrouteservice-api-key',
+    llmApiKey: null,
+    llmBaseUrl: null,
+    llmModel: null,
     createdAt: new Date('2024-01-03T00:00:00Z'),
     updatedAt: new Date('2024-01-03T00:00:00Z'),
   },

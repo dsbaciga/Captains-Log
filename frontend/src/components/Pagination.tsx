@@ -35,7 +35,7 @@ export default function Pagination({
     <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}>
       {/* Range info */}
       {rangeStart !== undefined && rangeEnd !== undefined && total !== undefined && (
-        <div className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="text-sm text-slate dark:text-warm-gray/70">
           Showing {rangeStart}-{rangeEnd} of {total.toLocaleString()}
         </div>
       )}
@@ -46,7 +46,7 @@ export default function Pagination({
         <button
           onClick={onPrevious}
           disabled={!hasPreviousPage || loading}
-          className="px-3 py-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:hover:bg-white dark:disabled:hover:bg-gray-700"
+          className="px-3 py-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-navy-800 border border-primary-200 dark:border-gold/30 text-charcoal dark:text-warm-gray hover:bg-parchment dark:hover:bg-navy-700 disabled:hover:bg-white dark:disabled:hover:bg-navy-800"
           aria-label="Previous page"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -60,7 +60,7 @@ export default function Pagination({
             page === 'ellipsis' ? (
               <span
                 key={`ellipsis-${index}`}
-                className="px-3 py-2 text-gray-500 dark:text-gray-400"
+                className="px-3 py-2 text-slate/50 dark:text-warm-gray/40"
               >
                 &hellip;
               </span>
@@ -71,8 +71,8 @@ export default function Pagination({
                 disabled={loading}
                 className={`px-3 py-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed ${
                   page === currentPage
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    ? 'bg-primary-500 dark:bg-gold text-white'
+                    : 'bg-white dark:bg-navy-800 border border-primary-200 dark:border-gold/30 text-charcoal dark:text-warm-gray hover:bg-parchment dark:hover:bg-navy-700'
                 }`}
                 aria-label={`Page ${page}`}
                 aria-current={page === currentPage ? 'page' : undefined}
@@ -84,7 +84,7 @@ export default function Pagination({
         </div>
 
         {/* Mobile page indicator */}
-        <span className="sm:hidden px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+        <span className="sm:hidden px-3 py-2 text-sm text-slate dark:text-warm-gray/70">
           Page {currentPage} of {totalPages}
         </span>
 
@@ -92,7 +92,7 @@ export default function Pagination({
         <button
           onClick={onNext}
           disabled={!hasNextPage || loading}
-          className="px-3 py-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:hover:bg-white dark:disabled:hover:bg-gray-700"
+          className="px-3 py-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-navy-800 border border-primary-200 dark:border-gold/30 text-charcoal dark:text-warm-gray hover:bg-parchment dark:hover:bg-navy-700 disabled:hover:bg-white dark:disabled:hover:bg-navy-800"
           aria-label="Next page"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

@@ -1,5 +1,5 @@
 import prisma from '../config/database';
-import { AppError } from '../utils/errors';
+import { AppError } from '../errors/errors';
 import { CreateActivityInput, UpdateActivityInput, BulkDeleteActivitiesInput, BulkUpdateActivitiesInput } from '../types/activity.types';
 import {
   verifyTripAccessWithPermission,
@@ -7,8 +7,8 @@ import {
   convertDecimals,
   buildConditionalUpdateData,
   verifyEntityAccessWithPermission,
-} from '../utils/serviceHelpers';
-import { deleteEntity, bulkDeleteEntities, bulkUpdateEntities } from '../utils/crudHelpers';
+} from '../services/_shared/serviceHelpers';
+import { deleteEntity, bulkDeleteEntities, bulkUpdateEntities } from '../prisma/crudHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
 

@@ -1,13 +1,42 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import authService from '../services/auth.service';
 import { registerSchema, loginSchema, refreshTokenSchema } from '../types/auth.types';
-import { asyncHandler } from '../utils/asyncHandler';
-import { requireUserId } from '../utils/controllerHelpers';
-import { setRefreshTokenCookie, clearRefreshTokenCookie, getRefreshTokenFromCookie } from '../utils/cookies';
-import { generateCsrfToken, setCsrfCookie, clearCsrfCookie } from '../utils/csrf';
+import { asyncHandler } from '../http/asyncHandler';
+import { requireUserId } from '../auth/controllerHelpers';
+import { setRefreshTokenCookie, clearRefreshTokenCookie, getRefreshTokenFromCookie } from '../http/cookies';
+import { generateCsrfToken, setCsrfCookie, clearCsrfCookie } from '../security/csrf';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../config/logger';
 import { blacklistToken, isBlacklisted } from '../services/tokenBlacklist.service';
+
+/**
+ * Extract the bearer access token from the Authorization header.
+ * Mirrors the extraction logic in the authenticate middleware.
+ * Returns undefined if not present or malformed.
+ */
+const getAccessTokenFromHeader = (req: Request): string | undefined => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return undefined;
+  }
+  const token = authHeader.substring(7).trim();
+  return token.length > 0 ? token : undefined;
+};
+
+/**
+ * Compute remaining TTL (in milliseconds) for a JWT based on its `exp` claim.
+ * Returns null if the token cannot be decoded or has no exp claim.
+ * Returns 0 if the token has already expired (caller may skip blacklisting).
+ */
+const getRemainingTtlMs = (token: string): number | null => {
+  const decoded = jwt.decode(token);
+  if (!decoded || typeof decoded !== 'object' || !('exp' in decoded)) return null;
+  const { exp } = decoded;
+  if (typeof exp !== 'number') return null;
+  const remainingMs = exp * 1000 - Date.now();
+  return remainingMs > 0 ? remainingMs : 0;
+};
 
 export const authController = {
   register: asyncHandler(async (req: Request, res: Response) => {
@@ -104,6 +133,25 @@ export const authController = {
     if (refreshToken) {
       blacklistToken(refreshToken);
       logger.debug('Refresh token blacklisted on logout');
+    }
+
+    // Also blacklist the access token so a stolen access token cannot be reused
+    // until its natural expiry (~15 min). Wrapped in try/catch because a malformed
+    // or already-expired access token must not fail the logout.
+    const accessToken = getAccessTokenFromHeader(req);
+    if (accessToken) {
+      try {
+        const remainingMs = getRemainingTtlMs(accessToken);
+        if (remainingMs === null) {
+          logger.warn('Could not decode access token on logout; skipping access-token blacklist');
+        } else if (remainingMs > 0) {
+          blacklistToken(accessToken, remainingMs);
+          logger.debug('Access token blacklisted on logout');
+        }
+        // remainingMs === 0: token already expired, no need to blacklist
+      } catch (err) {
+        logger.warn('Failed to blacklist access token on logout; continuing with logout', { error: err });
+      }
     }
 
     // Clear the refresh token cookie

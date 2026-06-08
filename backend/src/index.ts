@@ -26,6 +26,7 @@ import companionRoutes from './routes/companion.routes';
 import immichRoutes from './routes/immich.routes';
 import weatherRoutes from './routes/weather.routes';
 import checklistRoutes from './routes/checklist.routes';
+import airportRoutes from './routes/airport.routes';
 import searchRoutes from './routes/search.routes';
 import backupRoutes from './routes/backup.routes';
 import entityLinkRoutes from './routes/entityLink.routes';
@@ -164,10 +165,10 @@ app.use(cookieParser());
 
 // CSRF validation for defense-in-depth (prevents cross-site request forgery)
 // Auth routes are excluded since they bootstrap the CSRF token
-import { validateCsrf } from './utils/csrf';
-import { verifyAccessToken, verifyRefreshToken } from './utils/jwt';
+import { validateCsrf } from './security/csrf';
+import { verifyAccessToken, verifyRefreshToken } from './auth/jwt';
 import { isBlacklisted } from './services/tokenBlacklist.service';
-import { getRefreshTokenFromCookie } from './utils/cookies';
+import { getRefreshTokenFromCookie } from './http/cookies';
 app.use('/api', validateCsrf);
 
 // Authenticate access to uploaded files
@@ -265,6 +266,7 @@ app.use('/api/companions', companionRoutes);
 app.use('/api/immich', immichRoutes);
 app.use('/api', weatherRoutes);
 app.use('/api/checklists', checklistRoutes);
+app.use('/api/airports', airportRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/trips/:tripId/links', entityLinkRoutes);

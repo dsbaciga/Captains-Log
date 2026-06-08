@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken } from '../utils/jwt';
+import { verifyAccessToken } from '../auth/jwt';
 import { AppError } from './errorHandler';
 import { JwtPayload } from '../types/auth.types';
 import prisma from '../config/database';
+import { isBlacklisted } from '../services/tokenBlacklist.service';
 
 // Extend Express Request type to include user
 declare global {
@@ -77,6 +78,12 @@ export const authenticate = async (
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     const decoded = verifyAccessToken(token);
+
+    // Check if this access token has been revoked (e.g., user logged out).
+    // Done after signature verification so we don't waste a lookup on garbage tokens.
+    if (isBlacklisted(token)) {
+      throw new AppError('Token has been revoked', 401);
+    }
 
     // Check passwordVersion to reject tokens issued before a password change.
     // Uses a short-TTL cache to avoid a DB query on every request.
