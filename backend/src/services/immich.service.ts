@@ -168,7 +168,7 @@ class ImmichService {
       const take = options?.take ?? 100;
 
       // Build search query with filters
-      const searchQuery: ImmichSearchQuery & { size?: number; page?: string } = {
+      const searchQuery: ImmichSearchQuery & { size?: number; page?: number } = {
         size: take,
       };
       if (options?.isFavorite !== undefined) {
@@ -190,7 +190,9 @@ class ImmichService {
       while (skippedCount < skip && pageNum < maxPages) {
         const skipQuery = { ...searchQuery };
         if (nextPage) {
-          skipQuery.page = nextPage;
+          // Immich's search endpoint validates `page` as a number, even
+          // though the `nextPage` cursor it returns comes back as a string.
+          skipQuery.page = Number(nextPage);
         }
 
         const response = await client.post('/api/search/metadata', skipQuery);
@@ -229,7 +231,7 @@ class ImmichService {
 
       // If we still need more assets to fill the 'take' requirement
       while (collectedAssets.length < take && nextPage && pageNum < maxPages) {
-        const collectQuery = { ...searchQuery, page: nextPage };
+        const collectQuery = { ...searchQuery, page: Number(nextPage) };
         const response = await client.post('/api/search/metadata', collectQuery);
         const { items: pageAssets, nextPage: extractedNextPage } = this.extractAssetsPage(response);
         nextPage = extractedNextPage;
@@ -318,6 +320,10 @@ class ImmichService {
 
       return {
         stream: response.data,
+        // Immich thumbnails are JPEG by default; if the header is ever
+        // missing, guessing 'image/jpeg' keeps the (otherwise valid) image
+        // stream renderable instead of failing the whole request over a
+        // missing metadata header.
         contentType: response.headers['content-type'] || 'image/jpeg',
       };
     } catch (error: unknown) {
@@ -344,6 +350,10 @@ class ImmichService {
 
       return {
         stream: response.data,
+        // Original files can be any media type Immich stores; if the header
+        // is ever missing, 'application/octet-stream' lets the browser still
+        // download/handle the (otherwise valid) file rather than failing the
+        // whole request over a missing metadata header.
         contentType: response.headers['content-type'] || 'application/octet-stream',
       };
     } catch (error: unknown) {
@@ -438,7 +448,7 @@ class ImmichService {
       const takenBefore = `${endDate}T23:59:59.999Z`;
 
       // Build request with date range and size parameter for server-side pagination
-      const baseRequest: { takenAfter: string; takenBefore: string; size: number; page?: string } = {
+      const baseRequest: { takenAfter: string; takenBefore: string; size: number; page?: number } = {
         takenAfter,
         takenBefore,
         size: pageSize,
@@ -454,7 +464,9 @@ class ImmichService {
       while (skippedCount < skip && pageNum < maxPages) {
         const requestBody = { ...baseRequest };
         if (nextPage) {
-          requestBody.page = nextPage;
+          // Immich's search endpoint validates `page` as a number, even
+          // though the `nextPage` cursor it returns comes back as a string.
+          requestBody.page = Number(nextPage);
         }
 
         const response = await client.post('/api/search/metadata', requestBody);
@@ -493,7 +505,7 @@ class ImmichService {
 
       // If we still need more assets (or fetching all)
       while ((fetchAll || collectedAssets.length < take) && nextPage && pageNum < maxPages) {
-        const requestBody = { ...baseRequest, page: nextPage };
+        const requestBody = { ...baseRequest, page: Number(nextPage) };
         const response = await client.post('/api/search/metadata', requestBody);
         const { items: pageAssets, nextPage: extractedNextPage } = this.extractAssetsPage(response);
         nextPage = extractedNextPage;
@@ -522,7 +534,7 @@ class ImmichService {
       if (fetchAll) {
         // When fetching all, continue paginating until no more pages
         while (nextPage && pageNum < maxPages) {
-          const requestBody = { ...baseRequest, page: nextPage };
+          const requestBody = { ...baseRequest, page: Number(nextPage) };
           const response = await client.post('/api/search/metadata', requestBody);
           const { items: pageAssets, nextPage: extractedNextPage } = this.extractAssetsPage(response);
           nextPage = extractedNextPage;
