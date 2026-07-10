@@ -81,6 +81,20 @@ class ImmichService {
   }
 
   /**
+   * Parse a single page out of a POST /api/search/metadata response.
+   * Centralizes the response shape assumption (`{ assets: { items, nextPage } }`)
+   * so every call site doesn't repeat its own fallback chain.
+   */
+  private extractAssetsPage(response: {
+    data: { assets?: { items?: ImmichAsset[]; nextPage?: string | null } };
+  }): { items: ImmichAsset[]; nextPage: string | null } {
+    return {
+      items: response.data.assets?.items ?? [],
+      nextPage: response.data.assets?.nextPage ?? null,
+    };
+  }
+
+  /**
    * Test connection to Immich instance
    */
   async testConnection(apiUrl: string, apiKey: string): Promise<boolean> {
@@ -150,8 +164,8 @@ class ImmichService {
     try {
       const client = this.createClient(apiUrl, apiKey);
 
-      const skip = options?.skip || 0;
-      const take = options?.take || 100;
+      const skip = options?.skip ?? 0;
+      const take = options?.take ?? 100;
 
       // Build search query with filters
       const searchQuery: ImmichSearchQuery & { size?: number; page?: string } = {
@@ -180,8 +194,8 @@ class ImmichService {
         }
 
         const response = await client.post('/api/search/metadata', skipQuery);
-        const pageAssets = response.data.assets?.items || [];
-        nextPage = response.data.assets?.nextPage || null;
+        const { items: pageAssets, nextPage: extractedNextPage } = this.extractAssetsPage(response);
+        nextPage = extractedNextPage;
         pageNum++;
 
         if (pageAssets.length === 0) {
@@ -217,8 +231,8 @@ class ImmichService {
       while (collectedAssets.length < take && nextPage && pageNum < maxPages) {
         const collectQuery = { ...searchQuery, page: nextPage };
         const response = await client.post('/api/search/metadata', collectQuery);
-        const pageAssets = response.data.assets?.items || [];
-        nextPage = response.data.assets?.nextPage || null;
+        const { items: pageAssets, nextPage: extractedNextPage } = this.extractAssetsPage(response);
+        nextPage = extractedNextPage;
         pageNum++;
 
         const needed = take - collectedAssets.length;
@@ -232,8 +246,9 @@ class ImmichService {
       // If skip was 0, we need to fetch the first page
       if (skip === 0 && collectedAssets.length === 0) {
         const response = await client.post('/api/search/metadata', searchQuery);
-        collectedAssets = response.data.assets?.items || [];
-        nextPage = response.data.assets?.nextPage || null;
+        const page = this.extractAssetsPage(response);
+        collectedAssets = page.items;
+        nextPage = page.nextPage;
       }
 
       const hasMore = nextPage !== null || collectedAssets.length === take;
@@ -349,7 +364,7 @@ class ImmichService {
     try {
       const client = this.createClient(apiUrl, apiKey);
       const response = await client.post('/api/search/metadata', query);
-      return response.data.assets?.items || [];
+      return this.extractAssetsPage(response).items;
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error);
       console.error('Error searching Immich assets:', errorMessage);
@@ -412,14 +427,20 @@ class ImmichService {
 
       // When no options provided, fetch ALL assets (used by "Select All" feature)
       const fetchAll = !options;
-      const skip = options?.skip || 0;
-      const take = fetchAll ? Infinity : (options?.take || 100);
+      const skip = options?.skip ?? 0;
+      const take = fetchAll ? Infinity : (options?.take ?? 100);
       const pageSize = fetchAll ? 1000 : take;
+
+      // Immich's metadata search expects full ISO 8601 timestamps for
+      // takenAfter/takenBefore; bare "YYYY-MM-DD" dates are rejected with a
+      // 400. Expand to the full day so the end date is inclusive too.
+      const takenAfter = `${startDate}T00:00:00.000Z`;
+      const takenBefore = `${endDate}T23:59:59.999Z`;
 
       // Build request with date range and size parameter for server-side pagination
       const baseRequest: { takenAfter: string; takenBefore: string; size: number; page?: string } = {
-        takenAfter: startDate,
-        takenBefore: endDate,
+        takenAfter,
+        takenBefore,
         size: pageSize,
       };
 
@@ -437,8 +458,8 @@ class ImmichService {
         }
 
         const response = await client.post('/api/search/metadata', requestBody);
-        const pageAssets = response.data.assets?.items || response.data.assets || [];
-        nextPage = response.data.assets?.nextPage || null;
+        const { items: pageAssets, nextPage: extractedNextPage } = this.extractAssetsPage(response);
+        nextPage = extractedNextPage;
         pageNum++;
 
         if (pageAssets.length === 0) {
@@ -474,8 +495,8 @@ class ImmichService {
       while ((fetchAll || collectedAssets.length < take) && nextPage && pageNum < maxPages) {
         const requestBody = { ...baseRequest, page: nextPage };
         const response = await client.post('/api/search/metadata', requestBody);
-        const pageAssets = response.data.assets?.items || response.data.assets || [];
-        nextPage = response.data.assets?.nextPage || null;
+        const { items: pageAssets, nextPage: extractedNextPage } = this.extractAssetsPage(response);
+        nextPage = extractedNextPage;
         pageNum++;
 
         if (fetchAll) {
@@ -493,8 +514,9 @@ class ImmichService {
       // If skip was 0, we need to fetch the first page
       if (skip === 0 && collectedAssets.length === 0) {
         const response = await client.post('/api/search/metadata', baseRequest);
-        collectedAssets = response.data.assets?.items || response.data.assets || [];
-        nextPage = response.data.assets?.nextPage || null;
+        const page = this.extractAssetsPage(response);
+        collectedAssets = page.items;
+        nextPage = page.nextPage;
       }
 
       if (fetchAll) {
@@ -502,8 +524,8 @@ class ImmichService {
         while (nextPage && pageNum < maxPages) {
           const requestBody = { ...baseRequest, page: nextPage };
           const response = await client.post('/api/search/metadata', requestBody);
-          const pageAssets = response.data.assets?.items || response.data.assets || [];
-          nextPage = response.data.assets?.nextPage || null;
+          const { items: pageAssets, nextPage: extractedNextPage } = this.extractAssetsPage(response);
+          nextPage = extractedNextPage;
           pageNum++;
 
           collectedAssets = collectedAssets.concat(pageAssets);
@@ -528,7 +550,14 @@ class ImmichService {
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error);
       const errorCode = isAxiosError(error) ? error.code || 'Unknown' : 'Unknown';
-      console.error('[Immich Service] Error fetching assets by date range:', errorCode, '-', errorMessage);
+      const responseData = isAxiosError(error) ? error.response?.data : undefined;
+      console.error(
+        '[Immich Service] Error fetching assets by date range:',
+        errorCode,
+        '-',
+        errorMessage,
+        responseData ? `- Immich response: ${JSON.stringify(responseData)}` : ''
+      );
       throw new AppError('Failed to fetch assets by date range', 500);
     }
   }

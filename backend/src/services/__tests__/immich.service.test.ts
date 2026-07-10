@@ -30,15 +30,22 @@ import axios from 'axios';
 
 // Mock axios
 jest.mock('axios');
-const mockAxios = axios as jest.Mocked<typeof axios>;
+const mockAxios = jest.mocked(axios);
 
-// We need to mock axios.create to return our mock client
+// We only stub the methods immich.service.ts actually calls (get/post) rather
+// than implementing the full AxiosInstance interface, which would add a dozen
+// unused stub methods purely to satisfy the type checker.
 const mockClient = {
   get: jest.fn(),
   post: jest.fn(),
 };
 
-mockAxios.create.mockReturnValue(mockClient as unknown as ReturnType<typeof axios.create>);
+// Single source of truth for the mockClient-as-AxiosInstance cast, so the
+// unavoidable type assertion exists in exactly one place.
+function resetMockAxiosCreate(): void {
+  mockAxios.create.mockReturnValue(mockClient as unknown as ReturnType<typeof axios.create>);
+}
+resetMockAxiosCreate();
 
 // Import the service after mocks
 import immichService from '../immich.service';
@@ -46,11 +53,30 @@ import immichService from '../immich.service';
 const TEST_API_URL = 'http://localhost:2283';
 const TEST_API_KEY = 'test-immich-api-key';
 
+class MockAxiosError extends Error {
+  isAxiosError: true = true;
+  code: string;
+  response?: { status: number };
+
+  constructor(message: string, code: string, response?: { status: number }) {
+    super(message);
+    this.code = code;
+    this.response = response;
+  }
+}
+
+function createMockAxiosError(
+  message: string,
+  code: string,
+  response?: { status: number }
+): MockAxiosError {
+  return new MockAxiosError(message, code, response);
+}
+
 describe('ImmichService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Re-setup the mock client
-    mockAxios.create.mockReturnValue(mockClient as unknown as ReturnType<typeof axios.create>);
+    resetMockAxiosCreate();
   });
 
   describe('testConnection', () => {
@@ -72,13 +98,7 @@ describe('ImmichService', () => {
     });
 
     it('IMM-002: throws on ECONNREFUSED', async () => {
-      const error = new Error('Connection refused') as Error & {
-        isAxiosError: boolean;
-        code: string;
-        response?: { status: number };
-      };
-      error.isAxiosError = true;
-      error.code = 'ECONNREFUSED';
+      const error = createMockAxiosError('Connection refused', 'ECONNREFUSED');
       mockClient.get.mockRejectedValue(error);
 
       await expect(
@@ -87,13 +107,7 @@ describe('ImmichService', () => {
     });
 
     it('IMM-003: throws on ENOTFOUND', async () => {
-      const error = new Error('DNS lookup failed') as Error & {
-        isAxiosError: boolean;
-        code: string;
-        response?: { status: number };
-      };
-      error.isAxiosError = true;
-      error.code = 'ENOTFOUND';
+      const error = createMockAxiosError('DNS lookup failed', 'ENOTFOUND');
       mockClient.get.mockRejectedValue(error);
 
       await expect(
@@ -102,13 +116,7 @@ describe('ImmichService', () => {
     });
 
     it('IMM-004: throws on ETIMEDOUT', async () => {
-      const error = new Error('Connection timed out') as Error & {
-        isAxiosError: boolean;
-        code: string;
-        response?: { status: number };
-      };
-      error.isAxiosError = true;
-      error.code = 'ETIMEDOUT';
+      const error = createMockAxiosError('Connection timed out', 'ETIMEDOUT');
       mockClient.get.mockRejectedValue(error);
 
       await expect(
@@ -117,13 +125,7 @@ describe('ImmichService', () => {
     });
 
     it('IMM-005: throws on SSL certificate error', async () => {
-      const error = new Error('Self signed certificate') as Error & {
-        isAxiosError: boolean;
-        code: string;
-        response?: { status: number };
-      };
-      error.isAxiosError = true;
-      error.code = 'DEPTH_ZERO_SELF_SIGNED_CERT';
+      const error = createMockAxiosError('Self signed certificate', 'DEPTH_ZERO_SELF_SIGNED_CERT');
       mockClient.get.mockRejectedValue(error);
 
       await expect(
@@ -132,14 +134,7 @@ describe('ImmichService', () => {
     });
 
     it('IMM-006: throws on 401/403 (invalid API key)', async () => {
-      const error = new Error('Unauthorized') as Error & {
-        isAxiosError: boolean;
-        code: string;
-        response: { status: number };
-      };
-      error.isAxiosError = true;
-      error.code = 'ERR_BAD_REQUEST';
-      error.response = { status: 401 };
+      const error = createMockAxiosError('Unauthorized', 'ERR_BAD_REQUEST', { status: 401 });
       mockClient.get.mockRejectedValue(error);
 
       await expect(
@@ -148,14 +143,7 @@ describe('ImmichService', () => {
     });
 
     it('IMM-007: throws on 404 (wrong endpoint)', async () => {
-      const error = new Error('Not found') as Error & {
-        isAxiosError: boolean;
-        code: string;
-        response: { status: number };
-      };
-      error.isAxiosError = true;
-      error.code = 'ERR_BAD_REQUEST';
-      error.response = { status: 404 };
+      const error = createMockAxiosError('Not found', 'ERR_BAD_REQUEST', { status: 404 });
       mockClient.get.mockRejectedValue(error);
 
       await expect(
@@ -221,12 +209,7 @@ describe('ImmichService', () => {
     });
 
     it('IMM-010: throws on error fetching assets', async () => {
-      const error = new Error('Server error') as Error & {
-        isAxiosError: boolean;
-        code: string;
-      };
-      error.isAxiosError = true;
-      error.code = 'ERR_INTERNAL';
+      const error = createMockAxiosError('Server error', 'ERR_INTERNAL');
       mockClient.post.mockRejectedValue(error);
 
       await expect(
@@ -425,27 +408,23 @@ describe('ImmichService', () => {
         TEST_API_URL,
         TEST_API_KEY,
         '2024-07-01',
-        '2024-07-10'
+        '2024-07-10',
+        { skip: 0, take: 100 }
       );
 
       expect(result.assets).toEqual(mockAssets);
       expect(mockClient.post).toHaveBeenCalledWith(
         '/api/search/metadata',
         expect.objectContaining({
-          takenAfter: '2024-07-01',
-          takenBefore: '2024-07-10',
+          takenAfter: '2024-07-01T00:00:00.000Z',
+          takenBefore: '2024-07-10T23:59:59.999Z',
           size: 100,
         })
       );
     });
 
     it('IMM-024: throws on error fetching assets by date range', async () => {
-      const error = new Error('Server error') as Error & {
-        isAxiosError: boolean;
-        code: string;
-      };
-      error.isAxiosError = true;
-      error.code = 'ERR_INTERNAL';
+      const error = createMockAxiosError('Server error', 'ERR_INTERNAL');
       mockClient.post.mockRejectedValue(error);
 
       await expect(
@@ -508,12 +487,7 @@ describe('ImmichService', () => {
     });
 
     it('IMM-027: getAssetThumbnailStream throws on error', async () => {
-      const error = new Error('Stream error') as Error & {
-        isAxiosError: boolean;
-        code: string;
-      };
-      error.isAxiosError = true;
-      error.code = 'ERR_STREAM';
+      const error = createMockAxiosError('Stream error', 'ERR_STREAM');
       mockClient.get.mockRejectedValue(error);
 
       await expect(

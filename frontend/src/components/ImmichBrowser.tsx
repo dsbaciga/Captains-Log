@@ -17,6 +17,39 @@ interface ThumbnailCache {
   [assetId: string]: string; // Maps asset ID to blob URL
 }
 
+// Immich's API documents `duration` as a "HH:MM:SS.sss" string, but some
+// server versions/endpoints have been observed returning it as a plain
+// number of seconds (or omitting it). Handle both defensively so a shape
+// mismatch doesn't crash the whole browser.
+function formatAssetDuration(duration: ImmichAsset["duration"]): string | null {
+  if (duration === null || duration === undefined || duration === "") {
+    return null;
+  }
+  if (typeof duration === "string") {
+    return duration.split(".")[0];
+  }
+  const totalSeconds = Number(duration);
+  if (!Number.isFinite(totalSeconds)) {
+    return null;
+  }
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+// `assets`/`albums` are typed as required arrays, but responses are proxied
+// from Immich's API and not runtime-validated. Fail fast with a clear error
+// (caught by the surrounding try/catch, which already surfaces a user-facing
+// message) instead of silently treating a malformed response as "empty."
+function requireArrayField<T>(value: T[] | null | undefined, fieldName: string): T[] {
+  if (!value) {
+    throw new Error(`Immich API response is missing the expected "${fieldName}" field`);
+  }
+  return value;
+}
+
 export default function ImmichBrowser({
   onSelect,
   onImportAlbum,
@@ -38,6 +71,10 @@ export default function ImmichBrowser({
     new Map()
   );
   const [thumbnailCache, setThumbnailCache] = useState<ThumbnailCache>({});
+  // Mirrors thumbnailCache so the thumbnail-loading effect can read the latest
+  // value without depending on it (depending on it would re-run the effect
+  // every time a thumbnail loads, since that effect itself updates the cache).
+  const thumbnailCacheRef = useRef<ThumbnailCache>({});
   // Track blob URLs for cleanup (avoids stale closure issues)
   const blobUrlsRef = useRef<string[]>([]);
 
@@ -76,6 +113,12 @@ export default function ImmichBrowser({
     console.log(`[ImmichBrowser] Selection state changed: ${selectedAssetsMap.size} photos selected`);
   }, [selectedAssetsMap]);
 
+  // Keep the ref in sync so other effects can read the latest cache
+  // without needing to depend on (and re-run for) every cache update.
+  useEffect(() => {
+    thumbnailCacheRef.current = thumbnailCache;
+  }, [thumbnailCache]);
+
   // Load thumbnails with authentication
   useEffect(() => {
     const loadThumbnails = async () => {
@@ -87,7 +130,7 @@ export default function ImmichBrowser({
 
       for (const asset of assets) {
         // Skip if already cached
-        if (thumbnailCache[asset.id]) {
+        if (thumbnailCacheRef.current[asset.id]) {
           continue;
         }
 
@@ -132,8 +175,7 @@ export default function ImmichBrowser({
     if (assets.length > 0) {
       loadThumbnails();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assets]); // thumbnailCache excluded to avoid infinite loop
+  }, [assets]);
 
   // Cleanup blob URLs on unmount (separate effect to avoid stale closure)
   useEffect(() => {
@@ -152,12 +194,12 @@ export default function ImmichBrowser({
       if (view === "albums") {
         console.log("[ImmichBrowser] Loading albums");
         const result = await immichService.getAlbums(false);
-        setAlbums(result.albums || []);
+        setAlbums(requireArrayField(result.albums, "albums"));
         setHasMoreAssets(false); // Albums don't have pagination yet
       } else if (selectedAlbum) {
         console.log("[ImmichBrowser] Loading album:", selectedAlbum);
         const album = await immichService.getAlbumById(selectedAlbum);
-        setAssets(album.assets || []);
+        setAssets(requireArrayField(album.assets, "assets"));
         setHasMoreAssets(false);
       } else if (filterByTripDates && tripStartDate && tripEndDate) {
         console.log(
@@ -184,14 +226,14 @@ export default function ImmichBrowser({
             type: result.assets[0].type,
           });
         }
-        setAssets(result.assets || []);
+        setAssets(requireArrayField(result.assets, "assets"));
         setHasMoreAssets(result.hasMore);
       } else {
         console.log(
           `[ImmichBrowser] Loading all assets (page ${currentPage}, no date filter)`
         );
         const result = await immichService.getAssets({ skip, take });
-        setAssets(result.assets || []);
+        setAssets(requireArrayField(result.assets, "assets"));
         setHasMoreAssets(result.hasMore);
       }
     } catch (error) {
@@ -218,7 +260,7 @@ export default function ImmichBrowser({
     setIsLoading(true);
     try {
       const result = await immichService.searchAssets({ searchTerm });
-      setAssets(result.assets || []);
+      setAssets(requireArrayField(result.assets, "assets"));
     } catch (error) {
       console.error("Failed to search:", error);
     } finally {
@@ -292,7 +334,7 @@ export default function ImmichBrowser({
         tripEndDate
       );
 
-      const allAssets = result.assets || [];
+      const allAssets = requireArrayField(result.assets, "assets");
       console.log(`[ImmichBrowser] Loaded ${allAssets.length} total assets for selection`);
 
       // Filter out already-linked assets
@@ -344,7 +386,7 @@ export default function ImmichBrowser({
     try {
       // Load all assets in the album
       const albumData = await immichService.getAlbumById(album.id);
-      const albumAssets = albumData.assets || [];
+      const albumAssets = requireArrayField(albumData.assets, "assets");
 
       if (albumAssets.length === 0) {
         alert("This album has no photos to import");
@@ -637,9 +679,9 @@ export default function ImmichBrowser({
                             </div>
                           </div>
                           {/* Duration badge */}
-                          {asset.duration && (
+                          {formatAssetDuration(asset.duration) && (
                             <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded font-mono">
-                              {asset.duration.split('.')[0]}
+                              {formatAssetDuration(asset.duration)}
                             </div>
                           )}
                         </>

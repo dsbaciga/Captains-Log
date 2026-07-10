@@ -71,6 +71,9 @@ services:
       OPENWEATHERMAP_API_KEY: 2e96a9284968ea5aff9850c03d2e9de4
       AVIATIONSTACK_API_KEY: _
       OPENROUTESERVICE_API_KEY: ${OPENROUTESERVICE_API_KEY:-}
+      # REQUIRED: Set this to your frontend's public URL (the domain you access the app from)
+      # Without this, browser requests from your domain will be blocked by CORS
+      CORS_ORIGIN: https://dev.travellife.bacigalupo.us
     ports:
       - "30601:5000"
     volumes:
