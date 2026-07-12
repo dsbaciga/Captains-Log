@@ -56,7 +56,6 @@ import type { PhotoAlbum } from "../types/photo";
 import { usePagedPagination } from "../hooks/usePagedPagination";
 import Pagination from "../components/Pagination";
 import { useScrollToHighlight } from "../hooks/useScrollToHighlight";
-import { useSwipeGesture } from "../hooks/useSwipeGesture";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { useScrollStore } from "../store/scrollStore";
 import TabGroup from "../components/TabGroup";
@@ -374,48 +373,6 @@ export default function TripDetailPage() {
     setActiveTab(tab);
     setSearchParams({ tab });
   }, [setSearchParams]);
-
-  // Flat list of all tab IDs for swipe navigation (in display order)
-  const allTabIds: TabId[] = useMemo(() => [
-    "dashboard",
-    "timeline",
-    "daily",
-    "trip-map",
-    "activities",
-    "transportation",
-    "lodging",
-    "unscheduled",
-    "photos",
-    "photo-map",
-    "photo-timeline",
-    "journal",
-    "locations",
-    "companions",
-  ], []);
-
-  // Navigate to previous/next tab for swipe gestures
-  const navigateToPreviousTab = useCallback(() => {
-    const currentIndex = allTabIds.indexOf(activeTab);
-    if (currentIndex > 0) {
-      changeTab(allTabIds[currentIndex - 1]);
-    }
-  }, [activeTab, allTabIds, changeTab]);
-
-  const navigateToNextTab = useCallback(() => {
-    const currentIndex = allTabIds.indexOf(activeTab);
-    if (currentIndex < allTabIds.length - 1) {
-      changeTab(allTabIds[currentIndex + 1]);
-    }
-  }, [activeTab, allTabIds, changeTab]);
-
-  // Mobile swipe gestures for tab navigation
-  const swipeHandlers = useSwipeGesture({
-    onSwipeLeft: navigateToNextTab,
-    onSwipeRight: navigateToPreviousTab,
-  }, {
-    minSwipeDistance: 75, // Require slightly longer swipe to avoid accidental triggers
-    maxSwipeTime: 400,
-  });
 
   // Define the grouped tab configuration
   const tabGroups: TabGroupItem[] = useMemo(
@@ -1433,11 +1390,8 @@ export default function TripDetailPage() {
           }`}
         />
 
-        {/* Tab Content with smooth transitions - Swipe enabled on mobile */}
-        <div
-          className="transition-opacity duration-300 ease-in-out"
-          {...swipeHandlers}
-        >
+        {/* Tab Content with smooth transitions */}
+        <div className="transition-opacity duration-300 ease-in-out">
           {/* Dashboard Tab */}
           {activeTab === "dashboard" && (
             <div className="animate-fadeIn">

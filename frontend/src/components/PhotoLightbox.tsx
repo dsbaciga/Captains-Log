@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Photo } from "../types/photo";
-import { useSwipeGesture } from "../hooks/useSwipeGesture";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
@@ -86,16 +85,6 @@ export default function PhotoLightbox({
       onNavigate(photos[currentIndex + 1]);
     }
   }, [hasNext, currentIndex, photos, onNavigate, resetZoom]);
-
-  // Swipe gesture support for mobile
-  const swipeHandlers = useSwipeGesture({
-    onSwipeLeft: handleNext,
-    onSwipeRight: handlePrev,
-    onSwipeDown: onClose,
-  }, {
-    minSwipeDistance: 50,
-    maxSwipeTime: 300,
-  });
 
   const handleZoomIn = useCallback(() => {
     setZoom((prev) => Math.min(prev + 0.5, 4));
@@ -255,7 +244,6 @@ export default function PhotoLightbox({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        {...swipeHandlers}
       >
         {photoUrl ? (
           isVideo ? (
