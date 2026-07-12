@@ -560,7 +560,13 @@ export default function ActivityForm({
                     name="start-date"
                     autoComplete="off"
                     value={values.startDate}
-                    onChange={(e) => handleChange("startDate", e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleChange("startDate", value);
+                      if (value && !values.endDate) {
+                        handleChange("endDate", value);
+                      }
+                    }}
                     className="input"
                     disabled={isSubmitting}
                   />
@@ -578,7 +584,13 @@ export default function ActivityForm({
                     name="end-date"
                     autoComplete="off"
                     value={values.endDate}
-                    onChange={(e) => handleChange("endDate", e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleChange("endDate", value);
+                      if (value && !values.startDate) {
+                        handleChange("startDate", value);
+                      }
+                    }}
                     className="input"
                     disabled={isSubmitting}
                   />
@@ -601,7 +613,13 @@ export default function ActivityForm({
                         name="start-date"
                         autoComplete="off"
                         value={values.startDate}
-                        onChange={(e) => handleChange("startDate", e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleChange("startDate", value);
+                          if (value && !values.endDate) {
+                            handleChange("endDate", value);
+                          }
+                        }}
                         className="input flex-1"
                         disabled={isSubmitting}
                       />
@@ -633,7 +651,13 @@ export default function ActivityForm({
                         name="end-date"
                         autoComplete="off"
                         value={values.endDate}
-                        onChange={(e) => handleChange("endDate", e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleChange("endDate", value);
+                          if (value && !values.startDate) {
+                            handleChange("startDate", value);
+                          }
+                        }}
                         className="input flex-1"
                         disabled={isSubmitting}
                       />

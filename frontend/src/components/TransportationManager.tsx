@@ -1316,9 +1316,13 @@ export default function TransportationManager({
                     name="departure-time"
                     autoComplete="off"
                     value={values.departureTime}
-                    onChange={(e) =>
-                      handleChange("departureTime", e.target.value)
-                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleChange("departureTime", value);
+                      if (value && !values.arrivalTime) {
+                        handleChange("arrivalTime", value);
+                      }
+                    }}
                     className="input flex-1"
                   />
                   {values.departureTime && (
@@ -1357,7 +1361,13 @@ export default function TransportationManager({
                     name="arrival-time"
                     autoComplete="off"
                     value={values.arrivalTime}
-                    onChange={(e) => handleChange("arrivalTime", e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleChange("arrivalTime", value);
+                      if (value && !values.departureTime) {
+                        handleChange("departureTime", value);
+                      }
+                    }}
                     className="input flex-1"
                   />
                   {values.arrivalTime && (

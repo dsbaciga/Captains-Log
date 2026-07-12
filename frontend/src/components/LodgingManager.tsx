@@ -691,7 +691,13 @@ export default function LodgingManager({
                   name="check-in"
                   autoComplete="off"
                   value={values.checkInDate}
-                  onChange={(e) => handleChange("checkInDate", e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleChange("checkInDate", value);
+                    if (value && !values.checkOutDate) {
+                      handleChange("checkOutDate", value);
+                    }
+                  }}
                   className="input"
                   required
                 />
@@ -710,7 +716,13 @@ export default function LodgingManager({
                   name="check-out"
                   autoComplete="off"
                   value={values.checkOutDate}
-                  onChange={(e) => handleChange("checkOutDate", e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleChange("checkOutDate", value);
+                    if (value && !values.checkInDate) {
+                      handleChange("checkInDate", value);
+                    }
+                  }}
                   className="input"
                   required
                 />
