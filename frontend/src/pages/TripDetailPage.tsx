@@ -104,9 +104,6 @@ function isTripStatusType(value: string): value is TripStatusType {
   return VALID_TRIP_STATUSES.has(value);
 }
 
-const DEFAULT_TAG_BG_COLOR = "#3B82F6";
-const DEFAULT_TAG_TEXT_COLOR = "#FFFFFF";
-
 export default function TripDetailPage() {
   const { id } = useParams();
   const tripId = parseInt(id ?? '');
