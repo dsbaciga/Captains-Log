@@ -13,7 +13,9 @@ export interface ImmichAsset {
   updatedAt: string;
   isFavorite: boolean;
   isArchived: boolean;
-  duration: string | null;
+  // Documented as a "HH:MM:SS.sss" string, but some server versions/endpoints
+  // have been observed returning it as a plain number of seconds.
+  duration: string | number | null;
   thumbnailUrl?: string;
   fileUrl?: string;
   exifInfo?: {

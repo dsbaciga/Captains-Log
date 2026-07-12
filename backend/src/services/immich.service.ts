@@ -88,8 +88,16 @@ class ImmichService {
   private extractAssetsPage(response: {
     data: { assets?: { items?: ImmichAsset[]; nextPage?: string | null } };
   }): { items: ImmichAsset[]; nextPage: string | null } {
+    const items = response.data.assets?.items;
+    if (!items) {
+      // A well-formed response always includes `items` (even as an empty
+      // array). A missing field means the response is malformed, not that
+      // there are no assets — fail fast instead of silently treating it as
+      // "no more pages," which would mask a broken/misconfigured Immich API.
+      throw new AppError('Invalid Immich API response: missing "assets.items" field', 500);
+    }
     return {
-      items: response.data.assets?.items ?? [],
+      items,
       nextPage: response.data.assets?.nextPage ?? null,
     };
   }

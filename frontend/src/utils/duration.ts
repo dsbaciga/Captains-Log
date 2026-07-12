@@ -1,9 +1,17 @@
 /**
- * Parse duration string (HH:MM:SS or HH:MM:SS.mmm) to seconds
- * Used for parsing Immich duration format
+ * Parse duration to seconds.
+ * Used for parsing Immich duration format, which is documented as a
+ * "HH:MM:SS.sss" string but has been observed coming back as a plain number
+ * of seconds (or omitted) from some server versions/endpoints — handle both
+ * so a shape mismatch doesn't crash the caller.
  */
-export function parseDuration(duration: string | null | undefined): number | undefined {
-  if (!duration) return undefined;
+export function parseDuration(
+  duration: string | number | null | undefined
+): number | undefined {
+  if (duration === null || duration === undefined || duration === "") return undefined;
+  if (typeof duration === "number") {
+    return Number.isFinite(duration) ? Math.round(duration) : undefined;
+  }
   const match = duration.match(/^(\d+):(\d+):(\d+)(?:\.\d+)?$/);
   if (!match) return undefined;
   const hours = parseInt(match[1], 10);
