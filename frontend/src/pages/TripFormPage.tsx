@@ -241,6 +241,9 @@ export default function TripFormPage() {
 
   const handleStartDateChange = (value: string) => {
     setStartDate(value);
+    if (value && !endDate) {
+      setEndDate(value);
+    }
     if (errors.endDate) {
       setErrors(prev => ({ ...prev, endDate: undefined }));
     }
@@ -248,6 +251,9 @@ export default function TripFormPage() {
 
   const handleEndDateChange = (value: string) => {
     setEndDate(value);
+    if (value && !startDate) {
+      setStartDate(value);
+    }
     if (errors.endDate) {
       setErrors(prev => ({ ...prev, endDate: undefined }));
     }

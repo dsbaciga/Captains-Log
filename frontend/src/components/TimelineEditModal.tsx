@@ -756,6 +756,7 @@ export default function TimelineEditModal({
                 setActivityForm((prev) => ({
                   ...prev,
                   startDate: e.target.value,
+                  endDate: e.target.value && !prev.endDate ? e.target.value : prev.endDate,
                 }))
               }
               className="input"
@@ -776,6 +777,7 @@ export default function TimelineEditModal({
                 setActivityForm((prev) => ({
                   ...prev,
                   endDate: e.target.value,
+                  startDate: e.target.value && !prev.startDate ? e.target.value : prev.startDate,
                 }))
               }
               className="input"
@@ -797,6 +799,7 @@ export default function TimelineEditModal({
                   setActivityForm((prev) => ({
                     ...prev,
                     startDate: e.target.value,
+                    endDate: e.target.value && !prev.endDate ? e.target.value : prev.endDate,
                   }))
                 }
                 className="input flex-1"
@@ -828,6 +831,7 @@ export default function TimelineEditModal({
                   setActivityForm((prev) => ({
                     ...prev,
                     endDate: e.target.value,
+                    startDate: e.target.value && !prev.startDate ? e.target.value : prev.startDate,
                   }))
                 }
                 className="input flex-1"
@@ -1034,6 +1038,7 @@ export default function TimelineEditModal({
               setTransportationForm((prev) => ({
                 ...prev,
                 departureTime: e.target.value,
+                arrivalTime: e.target.value && !prev.arrivalTime ? e.target.value : prev.arrivalTime,
               }))
             }
             className="input"
@@ -1064,6 +1069,7 @@ export default function TimelineEditModal({
               setTransportationForm((prev) => ({
                 ...prev,
                 arrivalTime: e.target.value,
+                departureTime: e.target.value && !prev.departureTime ? e.target.value : prev.departureTime,
               }))
             }
             className="input"
@@ -1291,6 +1297,7 @@ export default function TimelineEditModal({
               setLodgingForm((prev) => ({
                 ...prev,
                 checkInDate: e.target.value,
+                checkOutDate: e.target.value && !prev.checkOutDate ? e.target.value : prev.checkOutDate,
               }))
             }
             className="input"
@@ -1312,6 +1319,7 @@ export default function TimelineEditModal({
               setLodgingForm((prev) => ({
                 ...prev,
                 checkOutDate: e.target.value,
+                checkInDate: e.target.value && !prev.checkInDate ? e.target.value : prev.checkInDate,
               }))
             }
             className="input"

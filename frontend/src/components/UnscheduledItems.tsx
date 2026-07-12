@@ -958,12 +958,13 @@ export default function UnscheduledItems({
                     type="date"
                     aria-label="Departure date"
                     value={transportationForm.values.departureDate}
-                    onChange={(e) =>
-                      transportationForm.handleChange(
-                        "departureDate",
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      transportationForm.handleChange("departureDate", value);
+                      if (value && !transportationForm.values.arrivalDate) {
+                        transportationForm.handleChange("arrivalDate", value);
+                      }
+                    }}
                     className="input flex-1"
                   />
                   <input
@@ -989,12 +990,13 @@ export default function UnscheduledItems({
                     type="date"
                     aria-label="Arrival date"
                     value={transportationForm.values.arrivalDate}
-                    onChange={(e) =>
-                      transportationForm.handleChange(
-                        "arrivalDate",
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      transportationForm.handleChange("arrivalDate", value);
+                      if (value && !transportationForm.values.departureDate) {
+                        transportationForm.handleChange("departureDate", value);
+                      }
+                    }}
                     className="input flex-1"
                   />
                   <input
@@ -1244,9 +1246,13 @@ export default function UnscheduledItems({
                   type="date"
                   id="unscheduled-lodging-checkin"
                   value={lodgingForm.values.checkInDate}
-                  onChange={(e) =>
-                    lodgingForm.handleChange("checkInDate", e.target.value)
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    lodgingForm.handleChange("checkInDate", value);
+                    if (value && !lodgingForm.values.checkOutDate) {
+                      lodgingForm.handleChange("checkOutDate", value);
+                    }
+                  }}
                   className="input"
                 />
               </div>
@@ -1261,9 +1267,13 @@ export default function UnscheduledItems({
                   type="date"
                   id="unscheduled-lodging-checkout"
                   value={lodgingForm.values.checkOutDate}
-                  onChange={(e) =>
-                    lodgingForm.handleChange("checkOutDate", e.target.value)
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    lodgingForm.handleChange("checkOutDate", value);
+                    if (value && !lodgingForm.values.checkInDate) {
+                      lodgingForm.handleChange("checkInDate", value);
+                    }
+                  }}
                   className="input"
                 />
               </div>
