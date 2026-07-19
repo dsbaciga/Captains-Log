@@ -119,6 +119,11 @@ export const config = {
       scopes: process.env.OIDC_SCOPES || 'openid profile email',
       buttonText: process.env.OIDC_BUTTON_TEXT || 'Sign in with SSO',
       autoProvision: process.env.OIDC_AUTO_PROVISION !== 'false',
+      // Opt-in for IdPs that never emit email_verified (e.g. some self-hosted
+      // providers): treat an ABSENT claim as verified when linking accounts by
+      // email. An explicit email_verified: false is still rejected. Only set
+      // this when you fully control the IdP and its email addresses.
+      trustEmail: process.env.OIDC_TRUST_EMAIL === 'true',
     };
   })(),
 

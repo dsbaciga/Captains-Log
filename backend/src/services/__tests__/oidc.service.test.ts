@@ -36,6 +36,7 @@ const mockOidcConfig = {
   scopes: 'openid profile email',
   buttonText: 'Sign in with SSO',
   autoProvision: true,
+  trustEmail: false,
 };
 
 jest.mock('../../config', () => ({
@@ -344,6 +345,73 @@ describe('OidcService', () => {
         data: { oidcSubject: 'https://idp.example.com|subject-123' },
       });
       expect(result.user.id).toBe(1);
+    });
+  });
+
+  describe('OIDC_TRUST_EMAIL linking relaxation (OIDC-011)', () => {
+    const noVerifiedClaimToken = buildIdToken({
+      sub: 'subject-123',
+      email: 'traveler@example.com',
+      // email_verified deliberately absent
+    });
+
+    beforeEach(() => {
+      mockAxios.post.mockResolvedValue({
+        data: { id_token: noVerifiedClaimToken, access_token: 'idp-access' },
+      });
+      // userinfo also omits email_verified, like IdPs that never emit the claim
+      mockAxios.get.mockImplementation((url: unknown) =>
+        Promise.resolve(
+          url === discoveryDocument.userinfo_endpoint
+            ? { data: { sub: 'subject-123', email: 'traveler@example.com' } }
+            : { data: discoveryDocument }
+        )
+      );
+    });
+
+    afterEach(() => {
+      mockOidcConfig.trustEmail = false;
+    });
+
+    it('links by email with an absent claim when trustEmail is enabled', async () => {
+      mockOidcConfig.trustEmail = true;
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null) // no user with this subject
+        .mockResolvedValueOnce(existingUser); // email matches
+      mockPrisma.user.update.mockResolvedValueOnce({
+        ...existingUser,
+        oidcSubject: 'https://idp.example.com|subject-123',
+      });
+
+      const result = await service.handleCallback('auth-code', 'verifier');
+
+      expect(result.user.id).toBe(1);
+    });
+
+    it('still rejects an explicit email_verified: false even with trustEmail', async () => {
+      mockOidcConfig.trustEmail = true;
+      const explicitlyUnverified = buildIdToken({
+        sub: 'subject-123',
+        email: 'traveler@example.com',
+        email_verified: false,
+      });
+      mockAxios.post.mockResolvedValue({
+        data: { id_token: explicitlyUnverified, access_token: 'idp-access' },
+      });
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toThrow(
+        'not verified'
+      );
+    });
+
+    it('still refuses to link an absent claim when trustEmail is disabled', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(existingUser);
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toThrow(
+        'not verified'
+      );
     });
   });
 

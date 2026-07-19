@@ -115,8 +115,13 @@ export const oidcController = {
       res.redirect(`${config.frontendUrl}${safeRedirectPath(statePayload.redirect)}`);
     } catch (error) {
       logger.error('OIDC callback failed', { error: error instanceof Error ? error.message : error });
-      const notAllowed = error instanceof AppError && error.statusCode === 403;
-      redirectToLoginWithError(res, notAllowed ? 'oidc_not_allowed' : 'oidc_failed');
+      // 403s carry two distinct user-facing meanings; showing "no account
+      // exists" for an unverified email sends admins down the wrong path.
+      let errorCode = 'oidc_failed';
+      if (error instanceof AppError && error.statusCode === 403) {
+        errorCode = error.message.includes('not verified') ? 'oidc_email_unverified' : 'oidc_not_allowed';
+      }
+      redirectToLoginWithError(res, errorCode);
     }
   }),
 };

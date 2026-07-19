@@ -256,9 +256,13 @@ export class OidcService {
     const byEmail = await prisma.user.findUnique({ where: { email } });
     if (byEmail) {
       // Linking by email would let anyone who controls this address at the
-      // IdP take over the account, so it requires an explicit verified claim
-      // (absent is treated the same as false).
-      if (claims.email_verified !== true) {
+      // IdP take over the account, so it requires an explicit verified claim.
+      // OIDC_TRUST_EMAIL relaxes only the ABSENT case for IdPs that never emit
+      // the claim; an explicit email_verified: false is always rejected.
+      const emailTrusted =
+        claims.email_verified === true ||
+        (config.oidc.trustEmail && claims.email_verified === undefined);
+      if (!emailTrusted) {
         throw new AppError('OIDC email address is not verified', 403);
       }
       logger.info(`Linking OIDC identity to existing account: ${email}`);

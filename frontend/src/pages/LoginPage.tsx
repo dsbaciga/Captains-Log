@@ -13,6 +13,8 @@ const OIDC_ERROR_MESSAGES: Record<string, string> = {
   oidc_failed: 'Single sign-on failed. Please try again.',
   oidc_disabled: 'Single sign-on is not enabled.',
   oidc_not_allowed: 'No account exists for this sign-in. Contact your administrator.',
+  oidc_email_unverified:
+    'Your identity provider did not report your email address as verified, so it cannot be linked to an existing account. Verify the email at your provider, or ask your administrator about OIDC_TRUST_EMAIL.',
 };
 
 export default function LoginPage() {

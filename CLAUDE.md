@@ -206,6 +206,7 @@ NOMINATIM_URL=http://localhost:8080
 - `OIDC_SCOPES` - OIDC scopes to request (defaults to `openid profile email`)
 - `OIDC_BUTTON_TEXT` - Label for the SSO button on the login page (defaults to `Sign in with SSO`)
 - `OIDC_AUTO_PROVISION` - Create accounts automatically on first SSO sign-in (defaults to enabled; set to `false` to require an existing account). `FRONTEND_URL` must point at the app for post-login redirects
+- `OIDC_TRUST_EMAIL` - Set to `true` to allow linking to an existing account by email when the IdP omits the `email_verified` claim entirely (e.g. some self-hosted providers). An explicit `email_verified: false` is always rejected. Only enable when you fully control the IdP
 
 **Frontend** (`.env` file in `frontend/`):
 
