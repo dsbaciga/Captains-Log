@@ -39,6 +39,7 @@ import userInvitationRoutes from './routes/userInvitation.routes';
 import tripSeriesRoutes from './routes/tripSeries.routes';
 import aiRoutes from './routes/ai.routes';
 import pdfImportRoutes from './routes/pdfImport.routes';
+import calendarRoutes from './routes/calendar.routes';
 import { pdfImportService } from './services/pdfImport.service';
 
 // Read version from package.json
@@ -286,6 +287,8 @@ app.use('/api/user-invitations', userInvitationRoutes);
 app.use('/api/trip-series', tripSeriesRoutes);
 app.use('/api/trips/:tripId/ai', aiRoutes);
 app.use('/api/pdf-imports', pdfImportRoutes);
+// Unauthenticated iCal subscription feed — the secret token in the URL is the credential
+app.use('/api/calendar', calendarRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

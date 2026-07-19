@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { sensitiveEndpointRateLimiter } from '../middleware/rateLimit';
 import { userController } from '../controllers/user.controller';
+import { calendarFeedController } from '../controllers/calendarFeed.controller';
 
 const router = Router();
 
@@ -22,6 +23,45 @@ router.use(authenticate);
  *         description: Unauthorized
  */
 router.get('/me', userController.getMe);
+
+/**
+ * @openapi
+ * /api/users/me/calendar-token:
+ *   get:
+ *     summary: Get the current iCal feed token (or null if none)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current token and feed path (both null if not generated)
+ *       401:
+ *         description: Unauthorized
+ *   post:
+ *     summary: Generate or rotate the iCal feed token
+ *     description: Rotating invalidates any previously issued feed URL.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: New token and feed path
+ *       401:
+ *         description: Unauthorized
+ *   delete:
+ *     summary: Revoke the iCal feed token
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token revoked, feed disabled
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/me/calendar-token', calendarFeedController.getCalendarToken);
+router.post('/me/calendar-token', calendarFeedController.rotateCalendarToken);
+router.delete('/me/calendar-token', calendarFeedController.revokeCalendarToken);
 
 /**
  * @openapi

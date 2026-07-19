@@ -25,6 +25,7 @@ const AviationstackSettings = lazy(() => import("../components/AviationstackSett
 const OpenRouteServiceSettings = lazy(() => import("../components/OpenRouteServiceSettings"));
 const LlmSettings = lazy(() => import("../components/LlmSettings"));
 const SmtpSettings = lazy(() => import("../components/SmtpSettings"));
+const CalendarFeedSettings = lazy(() => import("../components/CalendarFeedSettings"));
 const TravelDocumentManager = lazy(() => import("../components/TravelDocumentManager"));
 const InviteUsersSection = lazy(() => import("../components/InviteUsersSection"));
 const TravelPartnerSettings = lazy(() => import("../components/TravelPartnerSettings"));
@@ -1709,6 +1710,9 @@ export default function SettingsPage() {
 
             {/* LLM (AI) Settings */}
             <LlmSettings />
+
+            {/* Calendar Feed (iCal subscription) */}
+            <CalendarFeedSettings />
 
           </div>
           </Suspense>

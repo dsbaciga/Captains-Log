@@ -39,6 +39,7 @@ model User {
   smtpFrom           String?  @map("smtp_from") @db.VarChar(500)
   passwordVersion    Int      @default(0) @map("password_version")
   oidcSubject        String?  @unique @map("oidc_subject") @db.VarChar(500) // "issuer|sub" identity from OIDC single sign-on
+  calendarToken      String?  @unique @map("calendar_token") @db.VarChar(64) // Secret token for the read-only iCal feed URL
   useCustomMapStyle  Boolean  @default(true) @map("use_custom_map_style")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
