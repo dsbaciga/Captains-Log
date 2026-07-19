@@ -17,6 +17,7 @@ const CompanionsPage = React.lazy(() => import('./pages/CompanionsPage'));
 const PlacesVisitedPage = React.lazy(() => import('./pages/PlacesVisitedPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const ChecklistsPage = React.lazy(() => import('./pages/ChecklistsPage'));
+const YearInReviewPage = React.lazy(() => import('./pages/YearInReviewPage'));
 const ChecklistDetailPage = React.lazy(() => import('./pages/ChecklistDetailPage'));
 const TripSeriesListPage = React.lazy(() =>
   import('./pages/TripSeriesListPage').catch((err) => {
@@ -245,6 +246,16 @@ function App() {
                   <ProtectedRoute>
                     <ErrorBoundary>
                       <PlacesVisitedPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/year-in-review"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <YearInReviewPage />
                     </ErrorBoundary>
                   </ProtectedRoute>
                 }
