@@ -16,6 +16,7 @@ import tagService from "../services/tag.service";
 import companionService from "../services/companion.service";
 import userService from "../services/user.service";
 import checklistService from "../services/checklist.service";
+import expenseService from "../services/expense.service";
 import TripSeriesBadge from "../components/TripSeriesBadge";
 import TripSeriesNav from "../components/TripSeriesNav";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -41,6 +42,7 @@ const JournalManager = lazy(() => import("../components/JournalManager"));
 const CompanionManager = lazy(() => import("../components/CompanionManager"));
 const LocationManager = lazy(() => import("../components/LocationManager"));
 const CollaboratorsManager = lazy(() => import("../components/CollaboratorsManager"));
+const BudgetManager = lazy(() => import("../components/BudgetManager"));
 import Modal from "../components/Modal";
 import collaborationService from "../services/collaboration.service";
 import type { UserPermission } from "../types/collaboration";
@@ -89,10 +91,11 @@ type TabId =
   | "activities"
   | "transportation"
   | "lodging"
+  | "budget"
   | "unscheduled"
   | "companions";
 
-const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "unscheduled", "companions"]);
+const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "budget", "unscheduled", "companions"]);
 
 function isTabId(value: string | null | undefined): value is TabId {
   return value != null && VALID_TAB_IDS.has(value);
@@ -227,6 +230,20 @@ export default function TripDetailPage() {
     queryFn: () => photoService.getAlbumsByTrip(tripId),
     enabled: !!tripId,
   });
+
+  const { data: budgetSummary } = useQuery({
+    queryKey: ['budget-summary', tripId],
+    queryFn: () => expenseService.getBudgetSummary(tripId),
+    enabled: !!tripId,
+  });
+
+  // Only surface budget data on the dashboard when there is a budget set or
+  // at least some recorded spending — the widget hides otherwise
+  const budgetData = useMemo(() => {
+    if (!budgetSummary) return null;
+    if (budgetSummary.budget === null && budgetSummary.spent <= 0) return null;
+    return budgetSummary;
+  }, [budgetSummary]);
 
   const { albums = [], unsortedCount: unsortedPhotosCount = 0, totalCount: totalPhotosCount = 0 } = albumsData || {};
   const currentAlbum = selectedAlbumId !== null && selectedAlbumId > 0
@@ -501,6 +518,20 @@ export default function TripDetailPage() {
                   strokeLinejoin="round"
                   strokeWidth={2}
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "budget",
+            label: "Budget",
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                 />
               </svg>
             ),
@@ -1420,6 +1451,7 @@ export default function TripDetailPage() {
                 onPrintItinerary={handlePrintItinerary}
                 onToggleChecklistItem={handleToggleChecklistItem}
                 onNavigateToEntity={handleNavigateToEntity}
+                budgetData={budgetData}
               />
               </Suspense>
               </ErrorBoundary>
@@ -1969,6 +2001,25 @@ export default function TripDetailPage() {
             </Suspense>
             </ErrorBoundary>
             )}
+          </div>
+        )}
+
+        {/* Budget Tab */}
+        {activeTab === "budget" && (
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
+            <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner.FullPage message="Loading budget..." />}>
+            <BudgetManager
+              tripId={trip.id}
+              budget={trip.budget ?? null}
+              budgetCurrency={trip.budgetCurrency ?? null}
+              onUpdate={() => {
+                queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+                queryClient.invalidateQueries({ queryKey: ['budget-summary', tripId] });
+              }}
+            />
+            </Suspense>
+            </ErrorBoundary>
           </div>
         )}
 

@@ -35,6 +35,8 @@ export type Trip = {
   seriesId: number | null;
   seriesOrder: number | null;
   series: { id: number; name: string } | null;
+  budget?: number | null;
+  budgetCurrency?: string | null;
   createdAt: string;
   updatedAt: string;
   coverPhoto?: {
@@ -78,7 +80,10 @@ export type CreateTripInput = {
   seriesId?: number | null;
 };
 
-export type UpdateTripInput = Partial<CreateTripInput>;
+export type UpdateTripInput = Partial<CreateTripInput> & {
+  budget?: number | null;
+  budgetCurrency?: string | null;
+};
 
 export type TripListResponse = {
   trips: Trip[];
