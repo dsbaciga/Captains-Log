@@ -132,6 +132,7 @@ const Navbar = memo(function Navbar() {
     { path: "/albums", label: "Albums" },
     { path: "/companions", label: "Companions" },
     { path: "/places-visited", label: "Places" },
+    { path: "/year-in-review", label: "Year in Review" },
     { path: "/checklists", label: "Checklists" },
     { path: "/trip-series", label: "Series" },
   ];

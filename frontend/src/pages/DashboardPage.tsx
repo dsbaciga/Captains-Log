@@ -5,6 +5,7 @@ import UpcomingTripsWidget from '../components/widgets/UpcomingTripsWidget';
 import TravelStatsWidget from '../components/widgets/TravelStatsWidget';
 import RecentPhotosWidget from '../components/widgets/RecentPhotosWidget';
 import QuickActionsWidget from '../components/widgets/QuickActionsWidget';
+import OnThisDayWidget from '../components/widgets/OnThisDayWidget';
 import TripCalendarWidget from '../components/widgets/TripCalendarWidget';
 import PendingInvitations from '../components/PendingInvitations';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -53,6 +54,10 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Left Column */}
             <div className="flex flex-col gap-6">
+              {/* On This Day Memories (renders nothing when there are none,
+                  so it is not wrapped — an empty wrapper would add a flex gap) */}
+              <OnThisDayWidget />
+
               {/* Upcoming Trips */}
               <div className="animate-fade-in">
                 <UpcomingTripsWidget />
