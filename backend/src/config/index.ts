@@ -102,13 +102,14 @@ export const config = {
   // Frontend URL (for email links)
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 
-  // OAuth / OIDC single sign-on (enabled when issuer + client credentials are set)
+  // OAuth / OIDC single sign-on (enabled when issuer + client ID are set; client
+  // secret is optional — public clients rely on PKCE, which is always used)
   oidc: (() => {
     const issuerUrl = (process.env.OIDC_ISSUER_URL || '').replace(/\/+$/, '');
     const clientId = process.env.OIDC_CLIENT_ID || '';
     const clientSecret = process.env.OIDC_CLIENT_SECRET || '';
     return {
-      enabled: Boolean(issuerUrl && clientId && clientSecret),
+      enabled: Boolean(issuerUrl && clientId),
       issuerUrl,
       clientId,
       clientSecret,

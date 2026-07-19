@@ -346,4 +346,41 @@ describe('OidcService', () => {
       expect(result.user.id).toBe(1);
     });
   });
+
+  describe('public client / PKCE-only mode (OIDC-010)', () => {
+    const idToken = buildIdToken({
+      sub: 'subject-123',
+      email: 'traveler@example.com',
+      email_verified: true,
+    });
+
+    beforeEach(() => {
+      mockAxios.post.mockResolvedValue({ data: { id_token: idToken, access_token: 'idp-access' } });
+    });
+
+    afterEach(() => {
+      mockOidcConfig.clientSecret = 'test-secret';
+    });
+
+    it('omits client_secret from the token request when no secret is configured', async () => {
+      mockOidcConfig.clientSecret = '';
+      mockPrisma.user.findUnique.mockResolvedValueOnce(existingUser);
+
+      await service.handleCallback('auth-code', 'verifier');
+
+      const tokenRequestBody = String(mockAxios.post.mock.calls[0][1]);
+      expect(tokenRequestBody).not.toContain('client_secret');
+      expect(tokenRequestBody).toContain('code_verifier=verifier');
+      expect(tokenRequestBody).toContain('client_id=test-client');
+    });
+
+    it('still sends client_secret for confidential clients', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(existingUser);
+
+      await service.handleCallback('auth-code', 'verifier');
+
+      const tokenRequestBody = String(mockAxios.post.mock.calls[0][1]);
+      expect(tokenRequestBody).toContain('client_secret=test-secret');
+    });
+  });
 });

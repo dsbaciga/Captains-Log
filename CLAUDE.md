@@ -200,7 +200,8 @@ NOMINATIM_URL=http://localhost:8080
 - `LLM_MAX_TOKENS` - Maximum tokens per LLM request (defaults to `2048`)
 - `AI_RATE_LIMIT_MAX` - Maximum AI requests per window (defaults to `20`)
 - `AI_RATE_LIMIT_WINDOW_MS` - AI rate limit window in milliseconds (defaults to `3600000`)
-- `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` - Enable OAuth/OIDC single sign-on (all three required; works with Google, Authentik, Keycloak, or any OIDC provider). Register `<BASE_URL>/api/auth/oidc/callback` as the redirect URI with the provider
+- `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` - Enable OAuth/OIDC single sign-on (works with Google, Authentik, Keycloak, or any OIDC provider). Register `<BASE_URL>/api/auth/oidc/callback` as the redirect URI with the provider. PKCE (S256) is always used
+- `OIDC_CLIENT_SECRET` - Client secret for confidential clients; omit for public clients (PKCE-only)
 - `OIDC_REDIRECT_URL` - Override the OIDC callback URL (defaults to `<BASE_URL>/api/auth/oidc/callback`)
 - `OIDC_SCOPES` - OIDC scopes to request (defaults to `openid profile email`)
 - `OIDC_BUTTON_TEXT` - Label for the SSO button on the login page (defaults to `Sign in with SSO`)

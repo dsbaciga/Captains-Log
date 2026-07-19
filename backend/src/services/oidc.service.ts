@@ -158,9 +158,13 @@ export class OidcService {
       code,
       redirect_uri: config.oidc.redirectUrl,
       client_id: config.oidc.clientId,
-      client_secret: config.oidc.clientSecret,
       code_verifier: codeVerifier,
     });
+    // Public clients (no secret issued by the IdP) authenticate via PKCE alone;
+    // sending an empty client_secret makes some providers reject the request.
+    if (config.oidc.clientSecret) {
+      params.set('client_secret', config.oidc.clientSecret);
+    }
 
     const tokenResponse = await axios.post<OidcTokenResponse>(discovery.token_endpoint, params.toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
