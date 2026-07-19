@@ -61,7 +61,19 @@ export class OidcService {
     }
 
     const url = `${config.oidc.issuerUrl}/.well-known/openid-configuration`;
-    const response = await axios.get<OidcDiscoveryDocument>(url, { timeout: HTTP_TIMEOUT_MS });
+    let response;
+    try {
+      response = await axios.get<OidcDiscoveryDocument>(url, { timeout: HTTP_TIMEOUT_MS });
+    } catch (error: unknown) {
+      // Without this wrap a network/TLS/DNS failure surfaces to the client as a
+      // bare 500 "Internal server error", which is undiagnosable from the UI.
+      const detail = error instanceof Error ? error.message : String(error);
+      logger.error(`OIDC discovery fetch failed for ${url}: ${detail}`);
+      throw new AppError(
+        'Unable to reach the OIDC provider. Check that OIDC_ISSUER_URL is correct and reachable from the backend container.',
+        502
+      );
+    }
     const doc = response.data;
 
     if (!doc?.issuer || !doc.authorization_endpoint || !doc.token_endpoint) {
@@ -166,10 +178,23 @@ export class OidcService {
       params.set('client_secret', config.oidc.clientSecret);
     }
 
-    const tokenResponse = await axios.post<OidcTokenResponse>(discovery.token_endpoint, params.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      timeout: HTTP_TIMEOUT_MS,
-    });
+    let tokenResponse;
+    try {
+      tokenResponse = await axios.post<OidcTokenResponse>(discovery.token_endpoint, params.toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: HTTP_TIMEOUT_MS,
+      });
+    } catch (error: unknown) {
+      // IdPs return error/error_description bodies (no tokens) on failed
+      // exchanges; logging them is safe and is the only way to diagnose
+      // misconfigured client credentials or PKCE settings from the server side.
+      let detail = error instanceof Error ? error.message : String(error);
+      if (axios.isAxiosError(error) && error.response?.data) {
+        detail = `${detail} — IdP response: ${JSON.stringify(error.response.data).slice(0, 500)}`;
+      }
+      logger.error(`OIDC token exchange failed at ${discovery.token_endpoint}: ${detail}`);
+      throw new AppError('OIDC token exchange with the provider failed', 502);
+    }
 
     const { id_token: idToken, access_token: accessToken } = tokenResponse.data;
 
