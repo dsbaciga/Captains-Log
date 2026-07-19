@@ -30,6 +30,7 @@ export type Trip = {
   privacyLevel: PrivacyLevelType;
   addToPlacesVisited: boolean;
   excludeFromAutoShare: boolean;
+  archived: boolean;
   coverPhotoId: number | null;
   bannerPhotoId: number | null;
   seriesId: number | null;
@@ -73,6 +74,7 @@ export type CreateTripInput = {
   privacyLevel?: PrivacyLevelType;
   addToPlacesVisited?: boolean;
   excludeFromAutoShare?: boolean;
+  archived?: boolean;
   tripType?: string | null;
   tripTypeEmoji?: string | null;
   seriesId?: number | null;

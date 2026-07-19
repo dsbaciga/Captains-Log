@@ -1,5 +1,7 @@
 import prisma from '../config/database';
+import tzlookup from 'tz-lookup';
 import { AppError } from '../middleware/errorHandler';
+import logger from '../config/logger';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput, BulkDeleteLocationsInput, BulkUpdateLocationsInput } from '../types/location.types';
 import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
 
@@ -18,6 +20,33 @@ function validateLatLng(latitude?: number | null, longitude?: number | null): vo
 }
 
 export class LocationService {
+  /**
+   * If the location's parent trip has no timezone set, derive one from the
+   * location's coordinates and store it on the trip. A lookup failure must
+   * never break location creation, so all errors are swallowed (logged only).
+   */
+  private async autoSetTripTimezone(tripId: number, latitude?: number | null, longitude?: number | null): Promise<void> {
+    if (latitude == null || longitude == null) return;
+
+    try {
+      const trip = await prisma.trip.findUnique({
+        where: { id: tripId },
+        select: { timezone: true },
+      });
+
+      if (!trip || trip.timezone) return;
+
+      const timezone = tzlookup(latitude, longitude);
+      await prisma.trip.update({
+        where: { id: tripId },
+        data: { timezone },
+      });
+      logger.info(`Auto-set timezone "${timezone}" for trip ${tripId} from location coordinates`);
+    } catch (error) {
+      logger.warn(`Failed to auto-set timezone for trip ${tripId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   async createLocation(userId: number, data: CreateLocationInput) {
     // Verify user has edit permission on the trip
     await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
@@ -67,6 +96,10 @@ export class LocationService {
         },
       },
     });
+
+    // Auto-set the trip timezone from this location's coordinates if the trip
+    // has none yet. Failures are logged and never break location creation.
+    await this.autoSetTripTimezone(data.tripId, data.latitude, data.longitude);
 
     return convertDecimals(location);
   }
@@ -145,6 +178,38 @@ export class LocationService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /**
+   * Get all locations the user has marked as favorite, across all of their
+   * trips (owned or shared as collaborator), with trip id/title for navigation.
+   */
+  async getFavoriteLocations(userId: number) {
+    const locations = await prisma.location.findMany({
+      where: {
+        isFavorite: true,
+        trip: {
+          OR: [
+            { userId },
+            { collaborators: { some: { userId } } },
+          ],
+        },
+      },
+      include: {
+        category: true,
+        trip: {
+          select: {
+            id: true,
+            title: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return convertDecimals(locations);
   }
 
   async getLocationById(userId: number, locationId: number) {

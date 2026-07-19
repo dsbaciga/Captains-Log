@@ -518,6 +518,112 @@ describe('Trip Service', () => {
   });
 
   // ============================================================================
+  // Trip archiving: list filtering and update
+  // ============================================================================
+  describe('Trip archiving', () => {
+    it('should exclude archived trips by default', async () => {
+      mockPrisma.trip.findMany.mockResolvedValue([mockTripWithIncludes]);
+      mockPrisma.trip.count.mockResolvedValue(1);
+
+      await tripService.getTrips(mockUserId, {});
+
+      expect(mockPrisma.trip.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: mockUserId,
+            archived: false,
+          }),
+        })
+      );
+    });
+
+    it('should return only archived trips when archived=true', async () => {
+      mockPrisma.trip.findMany.mockResolvedValue([]);
+      mockPrisma.trip.count.mockResolvedValue(0);
+
+      await tripService.getTrips(mockUserId, { archived: 'true' });
+
+      expect(mockPrisma.trip.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            archived: true,
+          }),
+        })
+      );
+    });
+
+    it('should exclude archived trips when archived=false', async () => {
+      mockPrisma.trip.findMany.mockResolvedValue([]);
+      mockPrisma.trip.count.mockResolvedValue(0);
+
+      await tripService.getTrips(mockUserId, { archived: 'false' });
+
+      expect(mockPrisma.trip.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            archived: false,
+          }),
+        })
+      );
+    });
+
+    it('should not filter by archived when archived=all', async () => {
+      mockPrisma.trip.findMany.mockResolvedValue([]);
+      mockPrisma.trip.count.mockResolvedValue(0);
+
+      await tripService.getTrips(mockUserId, { archived: 'all' });
+
+      expect(mockPrisma.trip.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({
+            archived: expect.anything(),
+          }),
+        })
+      );
+    });
+
+    it('should allow archiving a trip via update', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
+      mockPrisma.trip.update.mockResolvedValue({
+        ...mockTrip,
+        archived: true,
+      });
+
+      const result = await tripService.updateTrip(mockUserId, mockTripId, {
+        archived: true,
+      });
+
+      expect(mockPrisma.trip.update).toHaveBeenCalledWith({
+        where: { id: mockTripId },
+        data: expect.objectContaining({
+          archived: true,
+        }),
+      });
+      expect(result.archived).toBe(true);
+    });
+
+    it('should allow unarchiving a trip via update', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue({ ...mockTrip, archived: true });
+      mockPrisma.trip.update.mockResolvedValue({
+        ...mockTrip,
+        archived: false,
+      });
+
+      const result = await tripService.updateTrip(mockUserId, mockTripId, {
+        archived: false,
+      });
+
+      expect(mockPrisma.trip.update).toHaveBeenCalledWith({
+        where: { id: mockTripId },
+        data: expect.objectContaining({
+          archived: false,
+        }),
+      });
+      expect(result.archived).toBe(false);
+    });
+  });
+
+  // ============================================================================
   // TRIP-007: List trips filters by tag
   // ============================================================================
   describe('TRIP-007: List trips filters by tag', () => {

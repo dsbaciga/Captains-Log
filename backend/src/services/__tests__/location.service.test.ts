@@ -68,6 +68,8 @@ jest.mock('@prisma/client', () => {
 const mockPrisma = {
   trip: {
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
   },
   location: {
     create: jest.fn(),
@@ -190,6 +192,90 @@ describe('LocationService', () => {
       await expect(locationService.createLocation(userId, input)).rejects.toThrow(
         AppError
       );
+    });
+  });
+
+  // ============================================================
+  // Auto-set trip timezone from first location coordinates
+  // ============================================================
+  describe('Auto-set trip timezone on location creation', () => {
+    const userId = 1;
+    const parisInput = {
+      tripId: 100,
+      name: 'Eiffel Tower',
+      latitude: 48.8584,
+      longitude: 2.2945,
+    };
+
+    const mockCreatedLocation = {
+      id: 1,
+      ...parisInput,
+      parentId: null,
+      address: null,
+      categoryId: null,
+      visitDatetime: null,
+      visitDurationMinutes: null,
+      notes: null,
+      isFavorite: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      latitude: new Prisma.Decimal(parisInput.latitude),
+      longitude: new Prisma.Decimal(parisInput.longitude),
+      category: null,
+      parent: null,
+    };
+
+    beforeEach(() => {
+      mockPrisma.location.create.mockResolvedValue(mockCreatedLocation);
+    });
+
+    it('should set the trip timezone from coordinates when trip has no timezone', async () => {
+      mockPrisma.trip.findUnique.mockResolvedValue({ timezone: null });
+      mockPrisma.trip.update.mockResolvedValue({ id: 100, timezone: 'Europe/Paris' });
+
+      await locationService.createLocation(userId, parisInput);
+
+      expect(mockPrisma.trip.findUnique).toHaveBeenCalledWith({
+        where: { id: parisInput.tripId },
+        select: { timezone: true },
+      });
+      expect(mockPrisma.trip.update).toHaveBeenCalledWith({
+        where: { id: parisInput.tripId },
+        data: { timezone: 'Europe/Paris' },
+      });
+    });
+
+    it('should not overwrite an existing trip timezone', async () => {
+      mockPrisma.trip.findUnique.mockResolvedValue({ timezone: 'America/New_York' });
+
+      await locationService.createLocation(userId, parisInput);
+
+      expect(mockPrisma.trip.update).not.toHaveBeenCalled();
+    });
+
+    it('should skip timezone lookup when location has no coordinates', async () => {
+      mockPrisma.location.create.mockResolvedValue({
+        ...mockCreatedLocation,
+        latitude: null,
+        longitude: null,
+      });
+
+      await locationService.createLocation(userId, {
+        tripId: 100,
+        name: 'No Coordinates',
+      });
+
+      expect(mockPrisma.trip.findUnique).not.toHaveBeenCalled();
+      expect(mockPrisma.trip.update).not.toHaveBeenCalled();
+    });
+
+    it('should not fail location creation when the timezone update fails', async () => {
+      mockPrisma.trip.findUnique.mockResolvedValue({ timezone: null });
+      mockPrisma.trip.update.mockRejectedValue(new Error('db error'));
+
+      const result = await locationService.createLocation(userId, parisInput);
+
+      expect(result.name).toBe('Eiffel Tower');
     });
   });
 

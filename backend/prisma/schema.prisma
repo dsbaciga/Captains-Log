@@ -81,6 +81,7 @@ model Trip {
   tripType            String?  @map("trip_type") @db.VarChar(100)
   tripTypeEmoji       String?  @map("trip_type_emoji") @db.VarChar(50)
   privacyLevel        String   @default("private") @map("privacy_level") @db.VarChar(50) // Private, Shared, Public
+  archived            Boolean  @default(false)
   coverPhotoId        Int?     @map("cover_photo_id")
   bannerPhotoId       Int?     @map("banner_photo_id")
   addToPlacesVisited  Boolean  @default(false) @map("add_to_places_visited")
@@ -242,6 +243,7 @@ model Location {
   visitDatetime        DateTime? @map("visit_datetime")
   visitDurationMinutes Int?      @map("visit_duration_minutes")
   notes                String?   @db.Text
+  isFavorite           Boolean   @default(false) @map("is_favorite")
   coordinates          Unsupported("geography(Point, 4326)")?
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")

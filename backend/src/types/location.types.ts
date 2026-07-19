@@ -9,6 +9,7 @@ import {
   optionalDatetime,
   optionalNotes,
   optionalPositiveNumber,
+  optionalBoolean,
 } from '../validation/zodHelpers';
 
 // Validation schemas
@@ -35,6 +36,7 @@ export const updateLocationSchema = z.object({
   visitDatetime: optionalDatetime(),
   visitDurationMinutes: optionalPositiveNumber(),
   notes: optionalNotes(),
+  isFavorite: optionalBoolean(),
 });
 
 export const createLocationCategorySchema = z.object({
@@ -82,6 +84,7 @@ export interface LocationResponse {
   visitDatetime: string | null;
   visitDurationMinutes: number | null;
   notes: string | null;
+  isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
   category?: {
