@@ -170,17 +170,32 @@ export class OidcService {
     const { id_token: idToken, access_token: accessToken } = tokenResponse.data;
 
     // The ID token comes straight from the token endpoint over TLS, so its
-    // claims can be trusted without JWKS signature verification.
+    // claims can be trusted without JWKS signature verification — but issuer
+    // and audience must still match, or a misconfigured/multi-tenant IdP
+    // could hand us a token minted for a different client or issuer.
     let claims: OidcClaims = {};
     if (idToken) {
-      const decodedClaims = oidcClaimsSchema.safeParse(jwt.decode(idToken));
+      const decoded = jwt.decode(idToken);
+      if (!decoded || typeof decoded !== 'object') {
+        throw new AppError('OIDC provider returned a malformed ID token', 502);
+      }
+      const audiences = Array.isArray(decoded.aud) ? decoded.aud : [decoded.aud];
+      if (decoded.iss !== discovery.issuer || !audiences.includes(config.oidc.clientId)) {
+        throw new AppError('OIDC ID token issuer or audience mismatch', 502);
+      }
+      const decodedClaims = oidcClaimsSchema.safeParse(decoded);
       if (decodedClaims.success) {
         claims = decodedClaims.data;
       }
     }
 
-    // Some providers omit profile/email claims from the ID token; fall back to userinfo
-    if ((!claims.sub || !claims.email) && discovery.userinfo_endpoint && accessToken) {
+    // Some providers omit profile/email claims (or email_verified, which
+    // account linking requires) from the ID token; fall back to userinfo
+    if (
+      (!claims.sub || !claims.email || claims.email_verified === undefined) &&
+      discovery.userinfo_endpoint &&
+      accessToken
+    ) {
       const userinfoResponse = await axios.get<unknown>(discovery.userinfo_endpoint, {
         headers: { Authorization: `Bearer ${accessToken}` },
         timeout: HTTP_TIMEOUT_MS,
@@ -211,6 +226,12 @@ export class OidcService {
     // 2. Existing password account with the same (verified) email - link it
     const byEmail = await prisma.user.findUnique({ where: { email } });
     if (byEmail) {
+      // Linking by email would let anyone who controls this address at the
+      // IdP take over the account, so it requires an explicit verified claim
+      // (absent is treated the same as false).
+      if (claims.email_verified !== true) {
+        throw new AppError('OIDC email address is not verified', 403);
+      }
       logger.info(`Linking OIDC identity to existing account: ${email}`);
       return prisma.user.update({
         where: { id: byEmail.id },

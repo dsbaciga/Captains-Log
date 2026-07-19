@@ -263,7 +263,7 @@ export default function AlbumDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-[1600px] mx-auto px-6 py-8 text-gray-900 dark:text-white">
-          Loading...
+          Loading
         </div>
       </div>
     );

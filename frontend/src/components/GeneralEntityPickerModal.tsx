@@ -483,7 +483,7 @@ export default function GeneralEntityPickerModal({
                     {loadingMore ? (
                       <span className="flex items-center justify-center gap-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                        Loading...
+                        Loading
                       </span>
                     ) : (
                       `Load More Photos (${total - entities.length} remaining)`

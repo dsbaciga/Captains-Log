@@ -68,10 +68,12 @@ const TripCard = memo(function TripCard({ trip, coverPhotoUrl, onDelete, showAct
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/60" />
           </>
         ) : (
-          /* Fallback gradient with map pin icon for trips without cover photos */
-          <div className="absolute inset-0 bg-gradient-to-br from-primary-400 via-accent-400 to-primary-600 dark:from-primary-600 dark:via-accent-600 dark:to-primary-800">
+          /* Fallback dark gradient with warm orange accents for trips without cover photos */
+          <div className="absolute inset-0 bg-gradient-to-br from-navy-900 via-navy-800 to-charcoal overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary-500/25 blur-3xl" />
+            <div className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full bg-accent-500/15 blur-3xl" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <svg className="w-20 h-20 text-white/20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <svg className="w-20 h-20 text-primary-400/40" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" />
               </svg>
             </div>

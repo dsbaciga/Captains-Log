@@ -9,6 +9,8 @@
  * - OIDC-005: Callback auto-provisions a new user with a unique username
  * - OIDC-006: Callback rejects first-time sign-in when auto-provisioning is disabled
  * - OIDC-007: Callback rejects unverified email addresses
+ * - OIDC-008: Callback rejects ID tokens with a mismatched issuer or audience
+ * - OIDC-009: Linking by email requires an explicit email_verified: true claim
  */
 
 import jwt from 'jsonwebtoken';
@@ -95,7 +97,10 @@ const discoveryDocument = {
 
 /** Builds a decodable (unverified) ID token like the one a real IdP returns. */
 const buildIdToken = (claims: Record<string, unknown>): string =>
-  jwt.sign(claims, 'irrelevant-signing-key');
+  jwt.sign(
+    { iss: 'https://idp.example.com', aud: 'test-client', ...claims },
+    'irrelevant-signing-key'
+  );
 
 const existingUser = {
   id: 1,
@@ -236,6 +241,109 @@ describe('OidcService', () => {
 
       await expect(service.handleCallback('auth-code', 'verifier')).rejects.toBeInstanceOf(AppError);
       expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('rejects ID tokens with a mismatched issuer (OIDC-008)', async () => {
+      const foreignToken = buildIdToken({
+        iss: 'https://evil.example.com',
+        sub: 'subject-123',
+        email: 'traveler@example.com',
+        email_verified: true,
+      });
+      mockAxios.post.mockResolvedValue({ data: { id_token: foreignToken } });
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toMatchObject({
+        statusCode: 502,
+      });
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('rejects ID tokens minted for a different client (OIDC-008)', async () => {
+      const foreignToken = buildIdToken({
+        aud: 'some-other-client',
+        sub: 'subject-123',
+        email: 'traveler@example.com',
+        email_verified: true,
+      });
+      mockAxios.post.mockResolvedValue({ data: { id_token: foreignToken } });
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toMatchObject({
+        statusCode: 502,
+      });
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('accepts ID tokens whose audience array contains the client (OIDC-008)', async () => {
+      const multiAudToken = buildIdToken({
+        aud: ['test-client', 'other-api'],
+        sub: 'subject-123',
+        email: 'traveler@example.com',
+        email_verified: true,
+      });
+      mockAxios.post.mockResolvedValue({ data: { id_token: multiAudToken } });
+      mockPrisma.user.findUnique.mockResolvedValueOnce(existingUser);
+
+      const result = await service.handleCallback('auth-code', 'verifier');
+
+      expect(result.user.id).toBe(1);
+    });
+
+    it('refuses to link by email without an explicit email_verified claim (OIDC-009)', async () => {
+      // No email_verified claim at all, and userinfo does not supply one either
+      const noVerifiedClaimToken = buildIdToken({
+        sub: 'subject-123',
+        email: 'traveler@example.com',
+      });
+      mockAxios.post.mockResolvedValue({
+        data: { id_token: noVerifiedClaimToken, access_token: 'idp-access' },
+      });
+      mockAxios.get.mockImplementation((url: unknown) =>
+        Promise.resolve(
+          url === discoveryDocument.userinfo_endpoint
+            ? { data: { sub: 'subject-123', email: 'traveler@example.com' } }
+            : { data: discoveryDocument }
+        )
+      );
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null) // no user with this subject
+        .mockResolvedValueOnce(existingUser); // but email matches
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toMatchObject({
+        statusCode: 403,
+      });
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('links by email when userinfo supplies email_verified: true (OIDC-009)', async () => {
+      const noVerifiedClaimToken = buildIdToken({
+        sub: 'subject-123',
+        email: 'traveler@example.com',
+      });
+      mockAxios.post.mockResolvedValue({
+        data: { id_token: noVerifiedClaimToken, access_token: 'idp-access' },
+      });
+      mockAxios.get.mockImplementation((url: unknown) =>
+        Promise.resolve(
+          url === discoveryDocument.userinfo_endpoint
+            ? { data: { sub: 'subject-123', email: 'traveler@example.com', email_verified: true } }
+            : { data: discoveryDocument }
+        )
+      );
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null) // no user with this subject
+        .mockResolvedValueOnce(existingUser); // but email matches
+      mockPrisma.user.update.mockResolvedValueOnce({
+        ...existingUser,
+        oidcSubject: 'https://idp.example.com|subject-123',
+      });
+
+      const result = await service.handleCallback('auth-code', 'verifier');
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { oidcSubject: 'https://idp.example.com|subject-123' },
+      });
+      expect(result.user.id).toBe(1);
     });
   });
 });

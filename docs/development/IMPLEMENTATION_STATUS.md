@@ -1,7 +1,7 @@
 # Travel Life - Implementation Status
 
-Last Updated: 2026-05-15
-Version: v5.4.0
+Last Updated: 2026-07-19
+Version: v5.4.1
 
 ## ✅ Completed Features
 
@@ -225,7 +225,7 @@ Version: v5.4.0
 - [x] **Global Search** - Autocomplete search across trips, locations, photos, journals (Ctrl+K/Cmd+K)
 - [x] **Photo Gallery Enhancements** - Grid/list view toggle, sorting options, hover zoom
 - [x] **Dashboard Widgets** - Upcoming trips, recent photos carousel, travel stats, quick actions
-- [x] **Mobile-First Optimizations** - Bottom navigation, swipe gestures, pull-to-refresh, camera integration
+- [x] **Mobile-First Optimizations** - Bottom navigation, pull-to-refresh, camera integration (swipe gestures were implemented and later removed in commit `ba8cdbf`)
 - [x] **Timeline View Modes** - Compact and standard view with user preference persistence
 - [x] **Drag & Drop Timeline Reordering** - Manual reordering of timeline items with visual feedback
 - [x] **Auto-Save Drafts** - Automatic form draft saving to localStorage with restore prompt, prevents data loss from browser crashes or accidental navigation
@@ -301,6 +301,67 @@ Version: v5.4.0
 - [x] **Places Visited Map** - Aggregate map showing all visited locations with clustering and transportation routes
 - [x] **Calendar View** - GitHub-style calendar heatmap showing travel activity over time
 
+### Trip Dashboard (In-Trip "Today" View)
+
+- [x] Dashboard tab on trip detail page (`trip-dashboard/TripDashboard.tsx`)
+- [x] Dashboard hero with trip day indicator and countdown timer
+- [x] "Next Up" card showing the next upcoming event
+- [x] Today's itinerary widget
+- [x] Weather forecast widget
+- [x] Flight status widget (live AviationStack data)
+- [x] Local time widget (trip timezone vs home timezone)
+- [x] Map preview, quick actions bar, recent activity, checklists, and companions widgets
+- [ ] Budget summary widget — component exists (`BudgetSummaryWidget.tsx`) but is **not wired up**: `TripDetailPage` never passes `budgetData`, there is no `budget` tab, and no budget/expense fields exist in the schema
+
+### Day By Day View
+
+- [x] Daily view tab with per-day cards for activities, transportation, lodging, journal (`daily-view/`)
+- [x] Day navigator for stepping through trip days
+- [x] Embedded location and album cards per day
+- [x] Printable single-day itinerary (`PrintableDayItinerary.tsx`)
+
+### PWA & Offline Support
+
+- [x] PWA via `vite-plugin-pwa` (manifest, icons, offline.html, install support)
+- [x] iOS install prompt and iOS storage warnings
+- [x] Offline download of trip data (`OfflineDownloadButton`/`OfflineDownloadModal`)
+- [x] Offline map tile caching (`useOfflineMap`, `MapCachePreview`)
+- [x] Offline search (`useOfflineSearch`, `OfflineSearchResults`)
+- [x] Storage management UI (usage bar, quota warnings, storage estimate)
+- [x] Sync with conflict resolution UI (`useSyncConflicts`, `ConflictResolutionModal`, `ConflictFieldDiff`)
+- [x] Network/offline status indicators and data freshness indicator
+- [ ] Push notifications (not started)
+
+### Trip Navigation & Views
+
+- [x] Grouped trip detail tabs: Dashboard, Overview (Timeline / Day By Day / Trip Map), Plan (Activities / Transport / Lodging / Unscheduled), Memories (Photos / Photo Map / Photo Timeline / Journal), Places, People
+- [x] Navigation layout toggle (tabs vs sidebar) with preference persistence
+- [x] Kanban board view for trips by status (`TripsKanbanView.tsx`)
+- [x] Floating trip header and breadcrumbs
+
+### Souvenirs & Trip Prep Extras
+
+- [x] Souvenir/gift tracking (`SouvenirManager.tsx`) — built on the checklist system using a `souvenirs` checklist type with per-item metadata (no dedicated model)
+- [x] Jet lag calculator (`JetLagCalculator.tsx`)
+
+### Authentication Additions
+
+- [x] OIDC/SSO login (Google, Authentik, Keycloak, or any OIDC provider) with optional auto-provisioning (`oidc.service.ts`)
+- [x] User invitation emails via SMTP (`email.service.ts`, per-user SMTP override in `SmtpSettings.tsx`)
+- [x] Travel partner settings — designate a partner user who is auto-added as collaborator on new trips (`TravelPartnerSettings.tsx`)
+
+### AI Features (beyond PDF Import)
+
+- [x] AI entity link suggestions (`GET /api/trips/:tripId/ai/link-suggestions`)
+- [x] AI journal summary generation (`POST /api/trips/:tripId/ai/journal-summary`)
+- [x] Album suggestions (`albumSuggestion.service.ts`, `AlbumSuggestions.tsx`)
+- [x] AI rate limiting middleware
+
+### Airport Search
+
+- [x] Airport lookup endpoints (`airport.routes.ts`, `airport.service.ts`)
+- [x] Airport autocomplete input for transportation forms (`AirportSearchInput.tsx`)
+
 ## 🚧 Known Issues
 
 _No known issues at this time._
@@ -317,6 +378,10 @@ These are non-critical improvements identified during code reviews that would en
 ### Auto-Save Drafts
 
 - [ ] **Include form validation state** - Enhance draft storage to include form validation state for complete state restoration, not just field values
+
+### Trip Dashboard
+
+- [ ] **Wire up or remove `BudgetSummaryWidget`** - The widget is fully built but dead code: no caller passes `budgetData`, there is no `budget` tab, and the schema has no trip budget or expense model. Either implement budget/expense tracking to feed it, or remove it
 
 ## 📋 Remaining Work
 
@@ -355,8 +420,9 @@ These are non-critical improvements identified during code reviews that would en
 ### Phase 6: Polish & Optimization
 
 - [x] Performance optimization (lazy loading, pagination)
-- [ ] Mobile app (React Native or PWA)
-- [ ] Offline support
+- [x] PWA (installable app with offline support, sync queue, and conflict resolution) ✅
+- [ ] Native mobile app (React Native) - not started; PWA covers mobile use
+- [x] Offline support ✅ Offline trip download, map tile caching, offline search, sync conflicts UI
 - [ ] Redis caching
 - [ ] CDN for photo delivery
 - [ ] Advanced photo editing

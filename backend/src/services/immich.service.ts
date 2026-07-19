@@ -326,13 +326,14 @@ class ImmichService {
         responseType: 'stream',
       });
 
+      const contentType = response.headers['content-type'];
       return {
         stream: response.data,
         // Immich thumbnails are JPEG by default; if the header is ever
         // missing, guessing 'image/jpeg' keeps the (otherwise valid) image
         // stream renderable instead of failing the whole request over a
         // missing metadata header.
-        contentType: response.headers['content-type'] || 'image/jpeg',
+        contentType: typeof contentType === 'string' ? contentType : 'image/jpeg',
       };
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error);
@@ -356,13 +357,14 @@ class ImmichService {
         responseType: 'stream',
       });
 
+      const contentType = response.headers['content-type'];
       return {
         stream: response.data,
         // Original files can be any media type Immich stores; if the header
         // is ever missing, 'application/octet-stream' lets the browser still
         // download/handle the (otherwise valid) file rather than failing the
         // whole request over a missing metadata header.
-        contentType: response.headers['content-type'] || 'application/octet-stream',
+        contentType: typeof contentType === 'string' ? contentType : 'application/octet-stream',
       };
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error);

@@ -466,7 +466,9 @@ Good enhancements that improve the experience.
 **Description**: Hero image for each trip (different from cover photo).
 
 **Use Case**: Visual appeal on trip list/dashboard
-**Implementation**: Add coverImage field to Trip model.
+**Implementation**: `Trip.bannerPhotoId` (separate from `coverPhotoId`) with hero display in the trip dashboard.
+
+**Status**: ✅ Completed
 
 ### 32. Activity Icons
 
@@ -615,6 +617,8 @@ Good enhancements that improve the experience.
 - Offline storage management
 - Sync when online
 
+**Status**: ✅ Completed — `useOfflineMap` hook, `MapCachePreview`, storage management UI, and sync as part of the PWA/offline system
+
 ### 43. Location History Import
 
 **Category**: Data Import
@@ -670,14 +674,13 @@ Good enhancements that improve the experience.
 **Effort**: Medium
 **Impact**: High
 
-**Current State**: Database schema complete via `TripCollaborator` model
-**Remaining Work**: Build UI for inviting others to view/edit trips.
-
 **Features**:
 - Invite by email
 - Permission levels (view/edit/admin)
 - Collaboration notifications
 - Activity feed
+
+**Status**: ✅ Completed — `CollaboratorsManager`, invitation emails via SMTP, permission levels, plus travel partner auto-collaboration (`TravelPartnerSettings`)
 
 ### 47. Public Trip Gallery
 
@@ -934,12 +937,14 @@ Good enhancements that improve the experience.
 **Impact**: Very High
 
 **Features**:
-- Offline support
-- Install as native app
-- Service worker setup
-- Cache-first strategy for photos
-- Offline editing with sync queue
-- Push notifications
+- ✅ Offline support (offline trip download, offline maps, offline search)
+- ✅ Install as native app (manifest, iOS install prompt)
+- ✅ Service worker setup (`vite-plugin-pwa` + workbox)
+- ✅ Cache-first strategy for photos
+- ✅ Offline editing with sync queue and conflict resolution UI
+- [ ] Push notifications
+
+**Status**: ✅ Substantially completed — only push notifications remain
 
 ### 65. Mobile-Optimized UI
 
@@ -1040,12 +1045,13 @@ Good enhancements that improve the experience.
 **Effort**: Medium
 **Impact**: Medium
 
-**Current State**: AviationStack API configured but not integrated
 **Features**:
 - Real-time status updates
 - Gate changes
 - Delay notifications
 - Flight history
+
+**Status**: ✅ Completed — `aviationstack.service.ts`, `flightTracking.routes.ts`, `FlightStatusBadge`, `FlightStatusWidget` on the trip dashboard
 
 ### 72. Weather Integration
 
@@ -1053,12 +1059,13 @@ Good enhancements that improve the experience.
 **Effort**: Medium
 **Impact**: Medium
 
-**Current State**: OpenWeatherMap API configured but not integrated
 **Features**:
 - Historical weather data
 - Weather forecasts during planning
 - Temperature trends
 - Precipitation tracking
+
+**Status**: ✅ Completed — `weather.service.ts` with caching, `WeatherCard`, `WeatherForecastWidget` on the trip dashboard
 
 ### 73. Mapping Services
 
@@ -1521,6 +1528,7 @@ Good enhancements that improve the experience.
 
 ## Update Log
 
+- **2026-07-19**: Code audit — marked as completed: Trip Cover Images (#31, via `bannerPhotoId`), Offline Maps (#42), Trip Collaboration UI (#46), PWA (#64, all but push notifications), Flight Tracking (#71), Weather Integration (#72). Also now in the app but never tracked here: trip dashboard ("today" view with widgets), Day By Day view, Kanban trips view, souvenir tracking, jet lag calculator, OIDC/SSO, AI link suggestions and journal summaries, airport search. See IMPLEMENTATION_STATUS.md
 - **2026-05-15**: Marked Custom Trip Types (#15) and Markdown Support (#24) as completed; rewrote Booking Integrations (#69) to reflect PDF + AI import (email parsing was removed)
 - **2026-01-16**: Consolidated from FEATURE_IDEAS.md and FEATURE_IDEAS_EXTENDED.md, organized by priority
 - **Previous**: Multiple separate feature idea documents maintained

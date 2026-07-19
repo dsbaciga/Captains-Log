@@ -524,7 +524,7 @@ export default function ImmichBrowser({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
-              <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+              <p className="text-gray-600 dark:text-gray-400">Loading</p>
             </div>
           ) : view === "albums" ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
@@ -587,7 +587,7 @@ export default function ImmichBrowser({
                         type="button"
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isLoadingAll ? "Loading..." : "Select All Photos"}
+                        {isLoadingAll ? "Loading" : "Select All Photos"}
                       </button>
                       {selectedAssetsMap.size > 0 && (
                         <button
@@ -665,7 +665,7 @@ export default function ImmichBrowser({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-700">
-                          <div className="text-gray-400">Loading...</div>
+                          <div className="text-gray-400">Loading</div>
                         </div>
                       )}
                       {asset.type === "VIDEO" && (

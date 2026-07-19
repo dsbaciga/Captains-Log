@@ -38,7 +38,7 @@ const colorClasses = {
  * <LoadingSpinner.FullPage message="Loading your data..." />
  * ```
  */
-const LoadingSpinner = memo(function LoadingSpinner({
+const LoadingSpinnerBase = memo(function LoadingSpinner({
   size = 'md',
   color = 'primary',
   className = '',
@@ -59,13 +59,10 @@ const LoadingSpinner = memo(function LoadingSpinner({
           {label}
         </p>
       )}
-      <span className="sr-only">{label || 'Loading...'}</span>
+      <span className="sr-only">{label || 'Loading'}</span>
     </div>
   );
-}) as React.MemoExoticComponent<React.FC<LoadingSpinnerProps>> & {
-  FullPage: React.FC<FullPageProps>;
-  Inline: React.FC<InlineProps>;
-};
+});
 
 interface FullPageProps {
   message?: string;
@@ -74,13 +71,13 @@ interface FullPageProps {
 /**
  * Full page loading spinner with centered content
  */
-LoadingSpinner.FullPage = function FullPageSpinner({ message = 'Loading...' }: FullPageProps) {
+function FullPageSpinner({ message = 'Loading' }: FullPageProps) {
   return (
     <div className="flex items-center justify-center min-h-[400px] py-12">
-      <LoadingSpinner size="lg" label={message} />
+      <LoadingSpinnerBase size="lg" label={message} />
     </div>
   );
-};
+}
 
 interface InlineProps {
   className?: string;
@@ -89,7 +86,7 @@ interface InlineProps {
 /**
  * Inline loading spinner for buttons and small areas
  */
-LoadingSpinner.Inline = function InlineSpinner({ className = '' }: InlineProps) {
+function InlineSpinner({ className = '' }: InlineProps) {
   return (
     <div
       className={`inline-flex items-center ${className}`}
@@ -100,9 +97,14 @@ LoadingSpinner.Inline = function InlineSpinner({ className = '' }: InlineProps) 
         className="animate-spin h-4 w-4 border-2 rounded-full border-current border-b-transparent"
         aria-hidden="true"
       />
-      <span className="sr-only">Loading...</span>
+      <span className="sr-only">Loading</span>
     </div>
   );
-};
+}
+
+const LoadingSpinner = Object.assign(LoadingSpinnerBase, {
+  FullPage: FullPageSpinner,
+  Inline: InlineSpinner,
+});
 
 export default LoadingSpinner;
