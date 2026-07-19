@@ -39,6 +39,7 @@ import userInvitationRoutes from './routes/userInvitation.routes';
 import tripSeriesRoutes from './routes/tripSeries.routes';
 import aiRoutes from './routes/ai.routes';
 import pdfImportRoutes from './routes/pdfImport.routes';
+import pushRoutes from './routes/push.routes';
 import { pdfImportService } from './services/pdfImport.service';
 
 // Read version from package.json
@@ -286,6 +287,7 @@ app.use('/api/user-invitations', userInvitationRoutes);
 app.use('/api/trip-series', tripSeriesRoutes);
 app.use('/api/trips/:tripId/ai', aiRoutes);
 app.use('/api/pdf-imports', pdfImportRoutes);
+app.use('/api/push', pushRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

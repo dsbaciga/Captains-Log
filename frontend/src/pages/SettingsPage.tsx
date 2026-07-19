@@ -28,6 +28,7 @@ const SmtpSettings = lazy(() => import("../components/SmtpSettings"));
 const TravelDocumentManager = lazy(() => import("../components/TravelDocumentManager"));
 const InviteUsersSection = lazy(() => import("../components/InviteUsersSection"));
 const TravelPartnerSettings = lazy(() => import("../components/TravelPartnerSettings"));
+const PushNotificationSettings = lazy(() => import("../components/PushNotificationSettings"));
 
 const TAB_VALUES = ["account", "tags-categories", "documents", "integrations", "invites", "backup"] as const;
 type TabType = typeof TAB_VALUES[number];
@@ -1709,6 +1710,9 @@ export default function SettingsPage() {
 
             {/* LLM (AI) Settings */}
             <LlmSettings />
+
+            {/* Push Notification Settings */}
+            <PushNotificationSettings />
 
           </div>
           </Suspense>

@@ -4,6 +4,7 @@ import config from '../config';
 import axios, { AxiosRequestConfig } from 'axios';
 import { verifyTripAccess } from '../services/_shared/serviceHelpers';
 import { isAxiosError } from '../types/prisma-helpers';
+import pushNotificationService from './pushNotification.service';
 
 /**
  * AviationStack API Response Types
@@ -206,10 +207,32 @@ class AviationstackService {
       }
 
       // Update or create flight tracking record
+      const previousStatus = transportation.flightTracking?.status ?? null;
       const flightTracking = await this.upsertFlightTracking(
         transportationId,
         flightData
       );
+
+      // Notify the trip owner when a tracked flight's status changes
+      // (fire-and-forget; no-op when web push is not configured)
+      if (
+        previousStatus !== null &&
+        flightTracking.status !== null &&
+        flightTracking.status !== previousStatus
+      ) {
+        const flightLabel =
+          flightTracking.flightNumber || this.extractFlightNumber(transportation) || 'Flight';
+        pushNotificationService
+          .sendToUser(transportation.trip.userId, {
+            title: `Flight ${flightLabel} status update`,
+            body: `Status changed from ${previousStatus} to ${flightTracking.status}.`,
+            url: `/trips/${transportation.tripId}`,
+            tag: `flight-status-${transportationId}`,
+          })
+          .catch((err) =>
+            console.error('Failed to send flight status push notification:', err)
+          );
+      }
 
       return this.mapFlightTrackingToResult(flightTracking);
     } catch (error) {
