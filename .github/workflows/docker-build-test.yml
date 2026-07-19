@@ -39,6 +39,12 @@ jobs:
             VITE_UPLOAD_URL=http://localhost:5000/uploads
 
       - name: Test development build
+        env:
+          # Dummy secrets so `docker compose config` passes the required-variable
+          # checks in docker-compose.yml. These are throwaway values used only to
+          # validate the compose file in CI, never for a real deployment.
+          JWT_SECRET: ci-build-test-dummy-jwt-secret
+          JWT_REFRESH_SECRET: ci-build-test-dummy-jwt-refresh-secret
         run: |
           docker compose build
           docker compose config
