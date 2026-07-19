@@ -41,6 +41,7 @@ export const oidcController = {
       data: {
         enabled: config.oidc.enabled,
         buttonText: config.oidc.buttonText,
+        passwordLoginDisabled: config.auth.passwordLoginDisabled && config.oidc.enabled,
       },
     });
   }),

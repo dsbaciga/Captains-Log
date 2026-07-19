@@ -47,6 +47,7 @@ export default function LoginPage() {
   const oidcLoginUrl = `${API_URL}/auth/oidc/login${
     redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''
   }`;
+  const ssoOnly = oidcConfig?.enabled === true && oidcConfig.passwordLoginDisabled;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +101,15 @@ export default function LoginPage() {
               Welcome Back
             </h2>
 
+            {/* SSO-only mode: the password form is hidden, but errors (e.g.
+                from a failed SSO attempt) must still be visible */}
+            {ssoOnly && error && (
+              <div className="error-message bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-6">
+                {error}
+              </div>
+            )}
+
+            {!ssoOnly && (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <label htmlFor="email" className="label">
@@ -145,26 +155,30 @@ export default function LoginPage() {
                 {isLoading ? 'Logging in...' : 'Begin Your Journey'}
               </button>
             </form>
+            )}
 
             {oidcConfig?.enabled && (
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                    <div className="w-full border-t border-primary-100 dark:border-navy-700"></div>
+              <div className={ssoOnly ? '' : 'mt-6'}>
+                {!ssoOnly && (
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t border-primary-100 dark:border-navy-700"></div>
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="px-3 bg-white/90 dark:bg-navy-800/90 text-sm text-slate dark:text-warm-gray font-body">
+                        or
+                      </span>
+                    </div>
                   </div>
-                  <div className="relative flex justify-center">
-                    <span className="px-3 bg-white/90 dark:bg-navy-800/90 text-sm text-slate dark:text-warm-gray font-body">
-                      or
-                    </span>
-                  </div>
-                </div>
+                )}
 
-                <a href={oidcLoginUrl} className="btn-secondary w-full block text-center mt-6">
+                <a href={oidcLoginUrl} className={ssoOnly ? 'btn-primary w-full block text-center' : 'btn-secondary w-full block text-center mt-6'}>
                   {oidcConfig.buttonText}
                 </a>
               </div>
             )}
 
+            {!ssoOnly && (
             <div className="mt-6 pt-6 border-t border-primary-100 dark:border-navy-700">
               <p className="text-center text-sm text-slate dark:text-warm-gray font-body">
                 Don't have an account?{' '}
@@ -176,6 +190,7 @@ export default function LoginPage() {
                 </Link>
               </p>
             </div>
+            )}
           </div>
         </div>
       </div>

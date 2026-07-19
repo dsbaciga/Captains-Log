@@ -127,6 +127,13 @@ export const config = {
     };
   })(),
 
+  // SSO-only mode: refuse password login/registration. Callers must combine
+  // this with oidc.enabled — the flag is ignored while OIDC is off so a stray
+  // env var can never lock out every way of signing in.
+  auth: {
+    passwordLoginDisabled: process.env.DISABLE_PASSWORD_LOGIN === 'true',
+  },
+
   // Web Push (VAPID) - push notifications are disabled gracefully when unset
   vapid: {
     publicKey: process.env.VAPID_PUBLIC_KEY || '',

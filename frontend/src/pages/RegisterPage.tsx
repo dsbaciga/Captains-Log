@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import authService from '../services/auth.service';
 import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
@@ -10,6 +11,23 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const { register, isLoading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
+
+  // SSO-only mode: registration happens at the identity provider, and the
+  // backend refuses password registration anyway — send visitors to login.
+  useEffect(() => {
+    authService
+      .getOidcConfig()
+      .then((oidcConfig) => {
+        if (oidcConfig.enabled && oidcConfig.passwordLoginDisabled) {
+          toast('Account registration is handled by single sign-on.');
+          navigate('/login', { replace: true });
+        }
+      })
+      .catch(() => {
+        // Config endpoint unavailable — leave the form usable; the backend
+        // still enforces the restriction on submit.
+      });
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -31,4 +31,5 @@ export type LoginInput = {
 export type OidcConfig = {
   enabled: boolean;
   buttonText: string;
+  passwordLoginDisabled: boolean;
 }

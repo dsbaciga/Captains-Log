@@ -7,7 +7,12 @@ import { requireUserId } from '../auth/controllerHelpers';
 import { setRefreshTokenCookie, clearRefreshTokenCookie, getRefreshTokenFromCookie } from '../http/cookies';
 import { generateCsrfToken, setCsrfCookie, clearCsrfCookie } from '../security/csrf';
 import { AppError } from '../middleware/errorHandler';
+import { config } from '../config';
 import logger from '../config/logger';
+
+/** SSO-only mode is only honored while OIDC is enabled (lockout guard). */
+const passwordAuthDisabled = (): boolean =>
+  config.auth.passwordLoginDisabled && config.oidc.enabled;
 import { blacklistToken, isBlacklisted } from '../services/tokenBlacklist.service';
 
 /**
@@ -40,6 +45,9 @@ const getRemainingTtlMs = (token: string): number | null => {
 
 export const authController = {
   register: asyncHandler(async (req: Request, res: Response) => {
+    if (passwordAuthDisabled()) {
+      throw new AppError('Password registration is disabled; use single sign-on', 403);
+    }
     const validatedData = registerSchema.parse(req.body);
     const result = await authService.register(validatedData);
 
@@ -63,6 +71,9 @@ export const authController = {
   }),
 
   login: asyncHandler(async (req: Request, res: Response) => {
+    if (passwordAuthDisabled()) {
+      throw new AppError('Password login is disabled; use single sign-on', 403);
+    }
     const validatedData = loginSchema.parse(req.body);
     const result = await authService.login(validatedData);
 
