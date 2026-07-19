@@ -43,6 +43,7 @@ import calendarRoutes from './routes/calendar.routes';
 import memoriesRoutes from './routes/memories.routes';
 import publicShareRoutes from './routes/share.routes';
 import { generalRateLimiter } from './middleware/rateLimit';
+import expenseRoutes, { budgetSummaryRouter } from './routes/expense.routes';
 import { pdfImportService } from './services/pdfImport.service';
 
 // Read version from package.json
@@ -281,6 +282,8 @@ app.use('/api/airports', airportRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/trips/:tripId/links', entityLinkRoutes);
+app.use('/api/trips/:tripId/expenses', expenseRoutes);
+app.use('/api/trips/:tripId', budgetSummaryRouter);
 app.use('/api', collaborationRoutes);
 app.use('/api', flightTrackingRoutes);
 app.use('/api', packingSuggestionRoutes);

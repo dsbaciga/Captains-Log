@@ -105,6 +105,8 @@ export const updateTripSchema = z.object({
   seriesId: z.number().nullable().optional(),
   tripType: z.string().nullable().optional(),
   tripTypeEmoji: z.string().nullable().optional(),
+  budget: z.number().min(0).nullable().optional(),
+  budgetCurrency: z.string().length(3).nullable().optional(),
 });
 
 export const getTripQuerySchema = z.object({
@@ -144,6 +146,8 @@ export interface TripResponse {
   seriesId: number | null;
   seriesOrder: number | null;
   series: { id: number; name: string } | null;
+  budget: number | null;
+  budgetCurrency: string | null;
   createdAt: string;
   updatedAt: string;
 }
