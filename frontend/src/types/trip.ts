@@ -28,6 +28,9 @@ export type Trip = {
   tripType: string | null;
   tripTypeEmoji: string | null;
   privacyLevel: PrivacyLevelType;
+  /** Secret share-link token — only returned to the trip owner. */
+  shareToken?: string | null;
+  shareEnabled?: boolean;
   addToPlacesVisited: boolean;
   excludeFromAutoShare: boolean;
   coverPhotoId: number | null;

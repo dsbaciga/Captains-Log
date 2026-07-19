@@ -7,6 +7,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const RegisterPage = React.lazy(() => import('./pages/RegisterPage'));
 const AcceptInvitePage = React.lazy(() => import('./pages/AcceptInvitePage'));
+const PublicTripPage = React.lazy(() => import('./pages/PublicTripPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const TripsPage = React.lazy(() => import('./pages/TripsPage'));
 const TripFormPage = React.lazy(() => import('./pages/TripFormPage'));
@@ -160,6 +161,7 @@ function App() {
               <Route path="/login" element={<ErrorBoundary><LoginPage /></ErrorBoundary>} />
               <Route path="/register" element={<ErrorBoundary><RegisterPage /></ErrorBoundary>} />
               <Route path="/accept-invite" element={<ErrorBoundary><AcceptInvitePage /></ErrorBoundary>} />
+              <Route path="/share/:token" element={<ErrorBoundary><PublicTripPage /></ErrorBoundary>} />
               <Route
                 path="/dashboard"
                 element={

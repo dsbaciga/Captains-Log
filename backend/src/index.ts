@@ -41,6 +41,8 @@ import aiRoutes from './routes/ai.routes';
 import pdfImportRoutes from './routes/pdfImport.routes';
 import calendarRoutes from './routes/calendar.routes';
 import memoriesRoutes from './routes/memories.routes';
+import publicShareRoutes from './routes/share.routes';
+import { generalRateLimiter } from './middleware/rateLimit';
 import { pdfImportService } from './services/pdfImport.service';
 
 // Read version from package.json
@@ -291,6 +293,9 @@ app.use('/api/pdf-imports', pdfImportRoutes);
 // Unauthenticated iCal subscription feed — the secret token in the URL is the credential
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/memories', memoriesRoutes);
+// Public share routes — unauthenticated by design (access controlled by the
+// unguessable share token); rate limited per IP to deter token guessing
+app.use('/api/public', generalRateLimiter, publicShareRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
