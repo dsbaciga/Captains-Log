@@ -39,6 +39,8 @@ import userInvitationRoutes from './routes/userInvitation.routes';
 import tripSeriesRoutes from './routes/tripSeries.routes';
 import aiRoutes from './routes/ai.routes';
 import pdfImportRoutes from './routes/pdfImport.routes';
+import publicShareRoutes from './routes/share.routes';
+import { generalRateLimiter } from './middleware/rateLimit';
 import { pdfImportService } from './services/pdfImport.service';
 
 // Read version from package.json
@@ -286,6 +288,9 @@ app.use('/api/user-invitations', userInvitationRoutes);
 app.use('/api/trip-series', tripSeriesRoutes);
 app.use('/api/trips/:tripId/ai', aiRoutes);
 app.use('/api/pdf-imports', pdfImportRoutes);
+// Public share routes — unauthenticated by design (access controlled by the
+// unguessable share token); rate limited per IP to deter token guessing
+app.use('/api/public', generalRateLimiter, publicShareRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { tripController } from '../controllers/trip.controller';
+import { shareController } from '../controllers/share.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -112,5 +113,10 @@ router.post('/:id/validation/restore', tripController.restoreValidationIssue);
 
 // Trip duplication route
 router.post('/:id/duplicate', tripController.duplicateTrip);
+
+// Public share link management (owner only; enforced in share.service)
+router.post('/:id/share', shareController.enableShare);
+router.post('/:id/share/rotate', shareController.rotateShareToken);
+router.delete('/:id/share', shareController.disableShare);
 
 export default router;

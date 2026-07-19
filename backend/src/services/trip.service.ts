@@ -463,6 +463,12 @@ export class TripService {
       throw new AppError('Trip not found', 404);
     }
 
+    // The share token is a secret capability — only the owner may see it.
+    // Collaborators and viewers of Public-privacy trips get null.
+    if (trip.userId !== userId) {
+      trip.shareToken = null;
+    }
+
     return convertDecimals(trip);
   }
 

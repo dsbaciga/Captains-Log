@@ -81,6 +81,8 @@ model Trip {
   tripType            String?  @map("trip_type") @db.VarChar(100)
   tripTypeEmoji       String?  @map("trip_type_emoji") @db.VarChar(50)
   privacyLevel        String   @default("private") @map("privacy_level") @db.VarChar(50) // Private, Shared, Public
+  shareToken          String?  @unique @map("share_token") @db.VarChar(64)
+  shareEnabled        Boolean  @default(false) @map("share_enabled")
   coverPhotoId        Int?     @map("cover_photo_id")
   bannerPhotoId       Int?     @map("banner_photo_id")
   addToPlacesVisited  Boolean  @default(false) @map("add_to_places_visited")

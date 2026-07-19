@@ -3,12 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import tripService from '../services/trip.service';
 import userService from '../services/user.service';
+import shareService from '../services/share.service';
+import type { ShareInfo } from '../services/share.service';
 import { TripStatus, PrivacyLevel } from '../types/trip';
 import type { TripStatusType, PrivacyLevelType } from '../types/trip';
 import type { TravelPartnerSettings, TripTypeCategory } from '../types/user';
 import toast from 'react-hot-toast';
 import { useConfetti } from '../hooks/useConfetti';
 import { useScrollStore } from '../store/scrollStore';
+import { useAuthStore } from '../store/authStore';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { useNavigationBlock } from '../hooks/useNavigationBlock';
 
@@ -24,6 +27,7 @@ export default function TripFormPage() {
   const isEdit = !!id;
   const { triggerConfetti } = useConfetti();
   const { setSkipNextScrollToTop } = useScrollStore();
+  const currentUser = useAuthStore((state) => state.user);
   const originalStatusRef = useRef<TripStatusType | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -40,6 +44,9 @@ export default function TripFormPage() {
   const [userTripTypes, setUserTripTypes] = useState<TripTypeCategory[]>([]);
   const [travelPartnerSettings, setTravelPartnerSettings] = useState<TravelPartnerSettings | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [shareInfo, setShareInfo] = useState<ShareInfo>({ shareEnabled: false, shareToken: null, sharePath: null });
+  const [shareLoading, setShareLoading] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Track initial form values for dirty state detection
   const initialValuesRef = useRef({ title: '', description: '', startDate: '', endDate: '', timezone: '', status: TripStatus.PLANNING as string, privacyLevel: PrivacyLevel.PRIVATE as string, tripType: '', excludeFromAutoShare: false });
@@ -120,6 +127,14 @@ export default function TripFormPage() {
       setTripTypeEmoji(trip.tripTypeEmoji || '');
       originalStatusRef.current = trip.status;
 
+      // Share link state (the backend only returns shareToken to the owner)
+      setIsOwner(currentUser?.id === trip.userId);
+      setShareInfo({
+        shareEnabled: trip.shareEnabled ?? false,
+        shareToken: trip.shareToken ?? null,
+        sharePath: trip.shareToken ? `/share/${trip.shareToken}` : null,
+      });
+
       // Store initial values for dirty tracking
       initialValuesRef.current = {
         title: trip.title,
@@ -138,7 +153,61 @@ export default function TripFormPage() {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, currentUser]);
+
+  // ---- Share link management (owner only) ----
+
+  const shareUrl = shareInfo.shareToken
+    ? `${window.location.origin}/share/${shareInfo.shareToken}`
+    : null;
+
+  const runShareAction = async (
+    action: () => Promise<ShareInfo>,
+    successMessage: string,
+    errorMessage: string
+  ) => {
+    try {
+      setShareLoading(true);
+      const info = await action();
+      setShareInfo(info);
+      toast.success(successMessage);
+    } catch {
+      toast.error(errorMessage);
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleEnableShare = () =>
+    runShareAction(
+      () => shareService.enableShare(parseInt(id as string)),
+      'Sharing enabled',
+      'Failed to enable sharing'
+    );
+
+  const handleRotateShare = () =>
+    runShareAction(
+      () => shareService.rotateShareToken(parseInt(id as string)),
+      'New share link generated — the old link no longer works',
+      'Failed to regenerate share link'
+    );
+
+  const handleDisableShare = () =>
+    runShareAction(
+      () => shareService.disableShare(parseInt(id as string)),
+      'Sharing disabled',
+      'Failed to disable sharing'
+    );
+
+  const handleCopyShareUrl = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Share link copied to clipboard');
+    } catch {
+      toast.error('Failed to copy link');
+    }
+  };
 
   useEffect(() => {
     if (isEdit && id) {
@@ -480,6 +549,76 @@ export default function TripFormPage() {
                 ))}
               </select>
             </div>
+
+            {/* Public share link (owner only, edit mode only) */}
+            {isEdit && isOwner && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5" />
+                      </svg>
+                      Public share link
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Anyone with the link can view a read-only version of this trip — no account needed.
+                      Costs, confirmation numbers, and booking details are never shown.
+                    </p>
+                  </div>
+                </div>
+
+                {shareInfo.shareEnabled && shareUrl ? (
+                  <>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={shareUrl}
+                        onFocus={(e) => e.target.select()}
+                        className="input flex-1 font-mono text-sm"
+                        aria-label="Share link"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCopyShareUrl}
+                        disabled={shareLoading}
+                        className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      >
+                        Copy link
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={handleRotateShare}
+                        disabled={shareLoading}
+                        className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                      >
+                        Regenerate link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisableShare}
+                        disabled={shareLoading}
+                        className="px-4 py-2 text-sm font-medium rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                      >
+                        Disable sharing
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleEnableShare}
+                    disabled={shareLoading}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {shareLoading ? 'Enabling…' : 'Enable sharing'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Travel Partner Auto-Share Toggle - only show for new trips when partner is set */}
             {!isEdit && travelPartnerSettings?.travelPartner && (
