@@ -211,6 +211,8 @@ Good enhancements that improve the experience.
 - Notes on why it's a favorite
 - Quick add to new trips
 
+**Status**: ✅ Completed 2026-07-19 — star toggle on locations, `GET /api/locations/favorites`, Favorites filter on Places Visited
+
 ### 13. Multi-City Trip Planner
 
 **Category**: Planning
@@ -330,8 +332,9 @@ Good enhancements that improve the experience.
 
 **Description**: Set trip timezone automatically based on first location.
 
-**Current State**: Manual timezone selection
-**Implementation**: Geocoding service lookup → timezone API
+**Implementation**: `tz-lookup` from the first location's coordinates when the trip has no timezone.
+
+**Status**: ✅ Completed 2026-07-19
 
 ### 22. Recently Viewed Trips
 
@@ -379,7 +382,9 @@ Good enhancements that improve the experience.
 
 **Description**: Hide old trips from main list without deleting.
 
-**Implementation**: Add `archived` boolean field, filter in queries.
+**Implementation**: `Trip.archived` field, excluded from lists by default, Archived filter + card action.
+
+**Status**: ✅ Completed 2026-07-19
 
 ### 26. Best Times to Visit
 
@@ -550,6 +555,8 @@ Good enhancements that improve the experience.
 - Daily notification with past photos
 - "Memories" page showing historical photos
 - Share memories on social media
+
+**Status**: ✅ Completed 2026-07-19 (in-app) — On This Day dashboard widget backed by `/api/memories/on-this-day`; social sharing not included
 
 ### 38. Collage Generator
 
@@ -816,6 +823,8 @@ Good enhancements that improve the experience.
 - Statistics summary
 - Shareable graphic
 
+**Status**: ✅ Completed 2026-07-19 — `YearInReviewPage` at `/year-in-review` with yearly stats, highlight photos, and trip list
+
 ### 56. Carbon Footprint
 
 **Category**: Analytics
@@ -988,6 +997,8 @@ Good enhancements that improve the experience.
 - Collaboration notifications
 - Photo memories
 
+**Status**: ✅ Completed 2026-07-19 — web push (VAPID) with subscribe/test UI in Settings; "trip starts tomorrow" reminders shipped, other triggers can reuse `pushNotification.service`
+
 ---
 
 ## 🔌 Integration Features
@@ -1005,6 +1016,8 @@ Good enhancements that improve the experience.
 - Sync updates
 - Handle conflicts
 - Multiple calendar support
+
+**Status**: ✅ Partially completed 2026-07-19 — read-only iCal subscription feed (`/api/calendar/:token.ics`) covers trips/transportation/lodging in any calendar app; two-way sync not planned
 
 ### 69. Booking Integrations
 
@@ -1288,6 +1301,8 @@ Good enhancements that improve the experience.
 - Custom URL slugs
 - Social media previews
 
+**Status**: ✅ Completed 2026-07-19 — token-based `/share/:token` public page with sanitized data (token URLs instead of custom slugs)
+
 ### 88. Print-Optimized Styles
 
 **Category**: Print
@@ -1528,6 +1543,7 @@ Good enhancements that improve the experience.
 
 ## Update Log
 
+- **2026-07-19 (evening)**: Feature batch shipped — Budget & expense tracking (`TripExpense` + Budget tab + dashboard widget), Public trip sharing (#87), On This Day memories (#37, app-internal) + Year in Review (#55), iCal feed (one-way subscription form of Calendar Sync #68), Push notifications (#67, completing PWA #64), Trip Archive (#25), Favorite Places (#12, location starring), Default Timezone (#21), plus Immich regression tests
 - **2026-07-19**: Code audit — marked as completed: Trip Cover Images (#31, via `bannerPhotoId`), Offline Maps (#42), Trip Collaboration UI (#46), PWA (#64, all but push notifications), Flight Tracking (#71), Weather Integration (#72). Also now in the app but never tracked here: trip dashboard ("today" view with widgets), Day By Day view, Kanban trips view, souvenir tracking, jet lag calculator, OIDC/SSO, AI link suggestions and journal summaries, airport search. See IMPLEMENTATION_STATUS.md
 - **2026-05-15**: Marked Custom Trip Types (#15) and Markdown Support (#24) as completed; rewrote Booking Integrations (#69) to reflect PDF + AI import (email parsing was removed)
 - **2026-01-16**: Consolidated from FEATURE_IDEAS.md and FEATURE_IDEAS_EXTENDED.md, organized by priority

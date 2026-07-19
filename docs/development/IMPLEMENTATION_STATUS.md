@@ -311,7 +311,7 @@ Version: v5.4.1
 - [x] Flight status widget (live AviationStack data)
 - [x] Local time widget (trip timezone vs home timezone)
 - [x] Map preview, quick actions bar, recent activity, checklists, and companions widgets
-- [ ] Budget summary widget — component exists (`BudgetSummaryWidget.tsx`) but is **not wired up**: `TripDetailPage` never passes `budgetData`, there is no `budget` tab, and no budget/expense fields exist in the schema
+- [x] Budget summary widget — now fully wired: `TripDetailPage` fetches the budget summary and passes `budgetData`; navigates to the Budget tab
 
 ### Day By Day View
 
@@ -330,7 +330,7 @@ Version: v5.4.1
 - [x] Storage management UI (usage bar, quota warnings, storage estimate)
 - [x] Sync with conflict resolution UI (`useSyncConflicts`, `ConflictResolutionModal`, `ConflictFieldDiff`)
 - [x] Network/offline status indicators and data freshness indicator
-- [ ] Push notifications (not started)
+- [x] Push notifications — web push via VAPID (see Push Notifications section)
 
 ### Trip Navigation & Views
 
@@ -362,6 +362,46 @@ Version: v5.4.1
 - [x] Airport lookup endpoints (`airport.routes.ts`, `airport.service.ts`)
 - [x] Airport autocomplete input for transportation forms (`AirportSearchInput.tsx`)
 
+### Budget & Expense Tracking (2026-07-19)
+
+- [x] `Trip.budget` / `Trip.budgetCurrency` fields and `TripExpense` model (`trip_expenses`, migration `20260719010000`)
+- [x] Expense CRUD under `/api/trips/:tripId/expenses` + `GET /api/trips/:tripId/budget-summary` (combines entity costs with logged expenses by category)
+- [x] Budget tab (`BudgetManager.tsx`) under the Plan tab group: budget editing, expense list, category totals, remaining-budget indicator
+- [x] `BudgetSummaryWidget` on the trip dashboard now receives live data
+
+### Public Trip Sharing (2026-07-19)
+
+- [x] `Trip.shareToken` / `Trip.shareEnabled` (migration `20260719020000`); generate/rotate/disable endpoints (owner only)
+- [x] Unauthenticated, rate-limited `GET /api/public/trips/:token` returning a field-by-field sanitized payload (no confirmation numbers, costs, or Immich assets)
+- [x] Standalone public page at `/share/:token` (`PublicTripPage.tsx`); share controls in `TripFormPage` next to privacy level
+
+### Memories & Year in Review (2026-07-19)
+
+- [x] `GET /api/memories/on-this-day` and `GET /api/memories/year-in-review/:year` (read-only, no schema changes)
+- [x] `OnThisDayWidget` on the main dashboard (hidden when there are no memories)
+- [x] `YearInReviewPage` at `/year-in-review` with yearly stats, highlight photos, and trip list; linked from the navbar
+
+### iCal Calendar Feed (2026-07-19)
+
+- [x] `User.calendarToken` (migration `20260719040000`); generate/rotate/revoke endpoints
+- [x] Unauthenticated `GET /api/calendar/:token.ics` — hand-rolled RFC 5545 output (trips all-day, transportation timed with timezone→UTC conversion, lodging spans), no new dependencies, 21 unit tests
+- [x] `CalendarFeedSettings` section on the Settings page with copyable subscription URL
+
+### Push Notifications (2026-07-19)
+
+- [x] `PushSubscription` model (migration `20260719050000`); `web-push` with VAPID keys via `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` env vars (feature disables gracefully when unset)
+- [x] Subscribe/unsubscribe/test endpoints under `/api/push`; dead subscriptions pruned on 404/410
+- [x] "Trip starts tomorrow" reminder job wired into the cron config
+- [x] Service worker migrated from generateSW to **injectManifest** (`frontend/src/sw.ts`) with push + notificationclick handlers; original runtime caches (`api-cache`, `photo-thumbnails`, `map-tiles`) preserved with identical names and expiration
+- [x] `PushNotificationSettings` section on the Settings page
+
+### Archiving, Favorites & Auto-Timezone (2026-07-19)
+
+- [x] `Trip.archived` and `Location.isFavorite` (migration `20260719060000`)
+- [x] Trip list excludes archived trips by default; Archived filter on TripsPage; archive/unarchive on TripCard
+- [x] Favorite star on locations; `GET /api/locations/favorites`; Favorites filter on Places Visited page
+- [x] Trip timezone auto-set from the first location's coordinates via `tz-lookup` when unset
+
 ## 🚧 Known Issues
 
 _No known issues at this time._
@@ -379,16 +419,16 @@ These are non-critical improvements identified during code reviews that would en
 
 - [ ] **Include form validation state** - Enhance draft storage to include form validation state for complete state restoration, not just field values
 
-### Trip Dashboard
+### Budget Tracking
 
-- [ ] **Wire up or remove `BudgetSummaryWidget`** - The widget is fully built but dead code: no caller passes `budgetData`, there is no `budget` tab, and the schema has no trip budget or expense model. Either implement budget/expense tracking to feed it, or remove it
+- [ ] **Multi-currency expense conversion** - Budget summary sums amounts without FX conversion; mixed-currency trips show totals in the dominant currency only
 
 ## 📋 Remaining Work
 
 ### Phase 2: Advanced Trip Features
 
 - [x] Trip collaboration (multiple users with permissions) ✅ Completed
-- [ ] Trip sharing (public links) - Privacy levels exist, need shareable link UI
+- [x] Trip sharing (public links) ✅ Share tokens + public `/share/:token` page (2026-07-19)
 - [ ] Trip cover photo selection UI on trips list
 
 ### Phase 3: Enhanced Features
