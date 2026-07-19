@@ -1,0 +1,500 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/src/services/tripValidator.service.ts",
+      "type": "file",
+      "name": "tripValidator.service.ts",
+      "filePath": "backend/src/services/tripValidator.service.ts",
+      "summary": "Implements the Trip Health Check engine that scans a trip for issues such as timeline conflicts, missing lodging/transportation, empty days, expiring passports, and unmet visa requirements, and manages dismissing/restoring individual issues.",
+      "tags": ["service", "validation", "business-logic", "trip-management"],
+      "complexity": "complex",
+      "languageNotes": "Uses a rule-based validation engine pattern: validateTrip() aggregates results from a series of independent checkXxx() methods, each returning typed issue objects that are then grouped by category and filtered against a dismissed-issues set."
+    },
+    {
+      "id": "class:backend/src/services/tripValidator.service.ts:TripValidatorService",
+      "type": "class",
+      "name": "TripValidatorService",
+      "filePath": "backend/src/services/tripValidator.service.ts",
+      "lineRange": [123, 911],
+      "summary": "Singleton service exposing validateTrip, dismissIssue, restoreIssue, and getQuickStatus plus a battery of private checkXxx() rules that detect trip-planning problems (timeline conflicts, missing lodging/transportation, empty days, travel-time alerts, passport/visa issues).",
+      "tags": ["service", "validation", "singleton", "business-logic"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/tripValidator.service.ts:getValidationContext",
+      "type": "function",
+      "name": "getValidationContext",
+      "filePath": "backend/src/services/tripValidator.service.ts",
+      "lineRange": [65, 117],
+      "summary": "Builds the set of validation rules and thresholds to apply based on the trip's current status (e.g. planning vs. in-progress vs. completed).",
+      "tags": ["utility", "validation", "configuration"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/user.service.ts",
+      "type": "file",
+      "name": "user.service.ts",
+      "filePath": "backend/src/services/user.service.ts",
+      "summary": "Manages user profile and preference settings, including per-integration credentials (Immich, weather, Aviationstack, OpenRouteService, LLM, SMTP), password updates, trip-type/category customization, and travel-partner linking.",
+      "tags": ["service", "user-management", "settings", "api-integration"],
+      "complexity": "complex",
+      "languageNotes": "Follows a repeated get/update pair pattern per third-party integration (each with its own settings getter and setter), and uses row-locking (lockAndFetchUser) with deterministic ID ordering to avoid deadlocks when linking travel partners."
+    },
+    {
+      "id": "class:backend/src/services/user.service.ts:UserService",
+      "type": "class",
+      "name": "UserService",
+      "filePath": "backend/src/services/user.service.ts",
+      "lineRange": [9, 811],
+      "summary": "Singleton service providing user profile, settings, and account management operations: integration credential CRUD, password changes, username updates, custom trip-type/category renaming and deletion, user search, and travel-partner pairing via transactional row locks.",
+      "tags": ["service", "singleton", "user-management", "settings"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/services/userInvitation.service.ts",
+      "type": "file",
+      "name": "userInvitation.service.ts",
+      "filePath": "backend/src/services/userInvitation.service.ts",
+      "summary": "Handles the full user invitation lifecycle: generating and emailing invitation tokens, validating and accepting/declining invitations (creating the new user plus a reciprocal travel-companion link), listing sent invitations, and resending/cancelling pending ones.",
+      "tags": ["service", "invitations", "email", "user-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/services/visaRequirement.service.ts",
+      "type": "file",
+      "name": "visaRequirement.service.ts",
+      "filePath": "backend/src/services/visaRequirement.service.ts",
+      "summary": "Loads a static passport/destination-country visa requirement dataset from disk and exposes lookups for visa type, required actions, and per-trip visa checks across multiple destinations, including country-name normalization and alias resolution.",
+      "tags": ["service", "visa", "reference-data", "singleton"],
+      "complexity": "complex",
+      "languageNotes": "Lazy-loads and caches a JSON reference dataset on first use (ensureLoaded/loadPromise pattern) and normalizes free-text country names via an alias map so location addresses can be matched against known passport/destination countries."
+    },
+    {
+      "id": "class:backend/src/services/visaRequirement.service.ts:VisaRequirementService",
+      "type": "class",
+      "name": "VisaRequirementService",
+      "filePath": "backend/src/services/visaRequirement.service.ts",
+      "lineRange": [70, 399],
+      "summary": "Singleton that loads visa-requirement reference data, normalizes and resolves country name aliases, and answers whether a given passport/destination pair requires a visa and what action (e.g. e-visa, ETA) is needed.",
+      "tags": ["service", "visa", "singleton", "reference-data"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/services/weather.service.ts",
+      "type": "file",
+      "name": "weather.service.ts",
+      "filePath": "backend/src/services/weather.service.ts",
+      "summary": "Fetches and caches per-day weather (forecast or historical) for a trip's locations from OpenWeatherMap, resolving trip/day coordinates from linked locations, lodging, or activities, with retry-with-backoff and bounded-concurrency batch fetching.",
+      "tags": ["service", "weather-api", "external-integration", "caching"],
+      "complexity": "complex",
+      "languageNotes": "Chooses between forecast and historical OpenWeatherMap endpoints based on how far the target date is from today, retries failed requests with exponential backoff (fetchWithRetry), and throttles parallel day-by-day fetches with a custom mapWithConcurrency helper."
+    },
+    {
+      "id": "class:backend/src/services/weather.service.ts:WeatherService",
+      "type": "class",
+      "name": "WeatherService",
+      "filePath": "backend/src/services/weather.service.ts",
+      "lineRange": [78, 894],
+      "summary": "Singleton service that resolves trip/day coordinates, fetches forecast or historical weather from OpenWeatherMap with retry logic, caches results in the database, and exposes refresh operations for a single day or an entire trip.",
+      "tags": ["service", "singleton", "weather-api", "caching"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/weather.service.ts:mapWithConcurrency",
+      "type": "function",
+      "name": "mapWithConcurrency",
+      "filePath": "backend/src/services/weather.service.ts",
+      "lineRange": [54, 76],
+      "summary": "Generic async map helper that runs an async function over a list of items with a bounded number of concurrent in-flight operations, used to throttle parallel weather API calls.",
+      "tags": ["utility", "concurrency", "async"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/activity.types.ts",
+      "type": "file",
+      "name": "activity.types.ts",
+      "filePath": "backend/src/types/activity.types.ts",
+      "summary": "Zod validation schemas for creating, updating, and bulk-deleting/updating trip activities.",
+      "tags": ["validation", "zod-schema", "type-definition", "activity"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/auth.types.ts",
+      "type": "file",
+      "name": "auth.types.ts",
+      "filePath": "backend/src/types/auth.types.ts",
+      "summary": "Zod validation schemas for user registration, login, and refresh-token requests.",
+      "tags": ["validation", "zod-schema", "authentication", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/backup.types.ts",
+      "type": "file",
+      "name": "backup.types.ts",
+      "filePath": "backend/src/types/backup.types.ts",
+      "summary": "Defines the current backup format version and the exhaustive Zod schemas describing a full data backup payload, the backup-info API response, and restore options.",
+      "tags": ["validation", "zod-schema", "backup-restore", "type-definition"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/types/checklist.types.ts",
+      "type": "file",
+      "name": "checklist.types.ts",
+      "filePath": "backend/src/types/checklist.types.ts",
+      "summary": "Zod validation schemas for checklist items, checklist creation/updates, bulk item updates, and selective (per-item) checklist operations.",
+      "tags": ["validation", "zod-schema", "checklist", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/companion.types.ts",
+      "type": "file",
+      "name": "companion.types.ts",
+      "filePath": "backend/src/types/companion.types.ts",
+      "summary": "Zod validation schemas for creating and updating travel companions and linking a companion to a trip.",
+      "tags": ["validation", "zod-schema", "companion", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/entityLink.types.ts",
+      "type": "file",
+      "name": "entityLink.types.ts",
+      "filePath": "backend/src/types/entityLink.types.ts",
+      "summary": "Defines the EntityType/LinkRelationship enums and Zod schemas for creating, bulk-creating, querying, updating, and deleting entity links, plus photo-to-entity linking schemas used by the Entity Linking feature.",
+      "tags": ["validation", "zod-schema", "entity-linking", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/flightTracking.types.ts",
+      "type": "file",
+      "name": "flightTracking.types.ts",
+      "filePath": "backend/src/types/flightTracking.types.ts",
+      "summary": "Zod validation schema for updating flight-tracking data on a transportation record.",
+      "tags": ["validation", "zod-schema", "flight-tracking", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/journalEntry.types.ts",
+      "type": "file",
+      "name": "journalEntry.types.ts",
+      "filePath": "backend/src/types/journalEntry.types.ts",
+      "summary": "Zod validation schemas for creating and updating trip journal entries.",
+      "tags": ["validation", "zod-schema", "journal", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/location.types.ts",
+      "type": "file",
+      "name": "location.types.ts",
+      "filePath": "backend/src/types/location.types.ts",
+      "summary": "Zod validation schemas for creating/updating locations and location categories, plus bulk delete/update operations on locations.",
+      "tags": ["validation", "zod-schema", "location", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/lodging.types.ts",
+      "type": "file",
+      "name": "lodging.types.ts",
+      "filePath": "backend/src/types/lodging.types.ts",
+      "summary": "Defines the LodgingType enum and Zod schemas for creating/updating lodging records and bulk delete/update operations on lodging.",
+      "tags": ["validation", "zod-schema", "lodging", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/packingSuggestion.types.ts",
+      "type": "file",
+      "name": "packingSuggestion.types.ts",
+      "filePath": "backend/src/types/packingSuggestion.types.ts",
+      "summary": "Defines the packing suggestion category and priority enums used by the AI-driven packing suggestion feature.",
+      "tags": ["validation", "zod-schema", "packing-suggestions", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/pdfImport.types.ts",
+      "type": "file",
+      "name": "pdfImport.types.ts",
+      "filePath": "backend/src/types/pdfImport.types.ts",
+      "summary": "Defines status/entity-type enums and Zod schemas for the PDF/AI import workflow: accepting or updating a pending imported entity and querying import/pending-entity lists.",
+      "tags": ["validation", "zod-schema", "pdf-import", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/photo.types.ts",
+      "type": "file",
+      "name": "photo.types.ts",
+      "filePath": "backend/src/types/photo.types.ts",
+      "summary": "Defines PhotoSource/MediaType enums and Zod schemas for uploading photos, linking single/batch Immich photos, updating photos, managing albums, accepting album suggestions, and sorting photo lists.",
+      "tags": ["validation", "zod-schema", "photo", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/prisma-helpers.ts",
+      "type": "file",
+      "name": "prisma-helpers.ts",
+      "filePath": "backend/src/types/prisma-helpers.ts",
+      "summary": "Shared TypeScript types and runtime type-guard utilities for working with Prisma results and error objects across services: converting Decimal coordinate fields to numbers, narrowing Prisma/Axios errors, and extracting human-readable error messages and HTTP status codes.",
+      "tags": ["utility", "type-definition", "error-handling", "prisma"],
+      "complexity": "complex",
+      "languageNotes": "Provides TypeScript type-guard (predicate) functions such as isPrismaError and isAxiosError that narrow `unknown` error values so calling code can safely access provider-specific fields without using `any`."
+    },
+    {
+      "id": "function:backend/src/types/prisma-helpers.ts:convertDecimalCoordinates",
+      "type": "function",
+      "name": "convertDecimalCoordinates",
+      "filePath": "backend/src/types/prisma-helpers.ts",
+      "lineRange": [172, 180],
+      "summary": "Converts a Prisma record's Decimal-typed latitude/longitude fields into plain JavaScript numbers for API responses.",
+      "tags": ["utility", "prisma", "geospatial"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/types/prisma-helpers.ts:isPrismaError",
+      "type": "function",
+      "name": "isPrismaError",
+      "filePath": "backend/src/types/prisma-helpers.ts",
+      "lineRange": [197, 201],
+      "summary": "Type guard that checks whether an unknown value is a recognizable Prisma error object with a `code` property.",
+      "tags": ["utility", "type-guard", "error-handling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/types/prisma-helpers.ts:isPrismaUnknownError",
+      "type": "function",
+      "name": "isPrismaUnknownError",
+      "filePath": "backend/src/types/prisma-helpers.ts",
+      "lineRange": [206, 210],
+      "summary": "Type guard that identifies Prisma's generic 'unknown request error' shape, distinct from known Prisma error codes.",
+      "tags": ["utility", "type-guard", "error-handling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/types/prisma-helpers.ts:isAxiosError",
+      "type": "function",
+      "name": "isAxiosError",
+      "filePath": "backend/src/types/prisma-helpers.ts",
+      "lineRange": [215, 222],
+      "summary": "Type guard that determines whether a caught error originated from an Axios HTTP request, used across services calling external APIs (weather, aviation, routing, Immich).",
+      "tags": ["utility", "type-guard", "error-handling", "http"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/types/prisma-helpers.ts:getErrorMessage",
+      "type": "function",
+      "name": "getErrorMessage",
+      "filePath": "backend/src/types/prisma-helpers.ts",
+      "lineRange": [227, 235],
+      "summary": "Extracts a human-readable message string from an unknown error value, falling back to a generic message when the shape is unrecognized.",
+      "tags": ["utility", "error-handling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/types/prisma-helpers.ts:getErrorStatusCode",
+      "type": "function",
+      "name": "getErrorStatusCode",
+      "filePath": "backend/src/types/prisma-helpers.ts",
+      "lineRange": [240, 253],
+      "summary": "Derives an HTTP-style status code from an unknown error, using the Axios response status when available and otherwise falling back to a caller-supplied default.",
+      "tags": ["utility", "error-handling", "http"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/tag.types.ts",
+      "type": "file",
+      "name": "tag.types.ts",
+      "filePath": "backend/src/types/tag.types.ts",
+      "summary": "Zod validation schemas for creating/updating tags and linking a tag to a trip.",
+      "tags": ["validation", "zod-schema", "tag", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/transportation.types.ts",
+      "type": "file",
+      "name": "transportation.types.ts",
+      "filePath": "backend/src/types/transportation.types.ts",
+      "summary": "Defines the TransportationType enum and Zod schemas for creating/updating transportation records and bulk delete/update operations.",
+      "tags": ["validation", "zod-schema", "transportation", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/travelDocument.types.ts",
+      "type": "file",
+      "name": "travelDocument.types.ts",
+      "filePath": "backend/src/types/travelDocument.types.ts",
+      "summary": "Defines supported document types, a document-number masking helper for display purposes, and Zod schemas for creating/updating travel documents (passports, visas, IDs).",
+      "tags": ["validation", "zod-schema", "travel-document", "security"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/types/travelDocument.types.ts:maskDocumentNumber",
+      "type": "function",
+      "name": "maskDocumentNumber",
+      "filePath": "backend/src/types/travelDocument.types.ts",
+      "lineRange": [26, 37],
+      "summary": "Masks all but the last few characters of a sensitive travel document number before it is returned in API responses or displayed in the UI.",
+      "tags": ["utility", "security", "formatting"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/trip.types.ts",
+      "type": "file",
+      "name": "trip.types.ts",
+      "filePath": "backend/src/types/trip.types.ts",
+      "summary": "Defines the TripStatus and PrivacyLevel enums and Zod schemas for creating/updating trips, querying trips, and duplicating an existing trip.",
+      "tags": ["validation", "zod-schema", "trip-management", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/tripSeries.types.ts",
+      "type": "file",
+      "name": "tripSeries.types.ts",
+      "filePath": "backend/src/types/tripSeries.types.ts",
+      "summary": "Zod validation schemas for creating/updating a trip series, adding a trip to a series, and reordering trips within a series.",
+      "tags": ["validation", "zod-schema", "trip-series", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/userInvitation.types.ts",
+      "type": "file",
+      "name": "userInvitation.types.ts",
+      "filePath": "backend/src/types/userInvitation.types.ts",
+      "summary": "Defines the user invitation status values and Zod schemas for sending an invitation and accepting it (new-user signup payload).",
+      "tags": ["validation", "zod-schema", "invitations", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/userSettings.types.ts",
+      "type": "file",
+      "name": "userSettings.types.ts",
+      "filePath": "backend/src/types/userSettings.types.ts",
+      "summary": "Zod validation schemas for custom activity categories, trip types, and general user settings updates.",
+      "tags": ["validation", "zod-schema", "user-settings", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/types/weather.types.ts",
+      "type": "file",
+      "name": "weather.types.ts",
+      "filePath": "backend/src/types/weather.types.ts",
+      "summary": "Zod validation schemas describing a weather data record and the request payload for refreshing weather on a trip.",
+      "tags": ["validation", "zod-schema", "weather", "type-definition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/validation/zodHelpers.ts",
+      "type": "file",
+      "name": "zodHelpers.ts",
+      "filePath": "backend/src/validation/zodHelpers.ts",
+      "summary": "Library of reusable Zod schema-builder functions (trimmed/required/optional strings, numeric IDs, lat/lng, currency codes, timezones, datetimes, notes, booleans) used to keep validation rules consistent across all entity type-schema files.",
+      "tags": ["utility", "validation", "zod-schema", "shared-helpers"],
+      "complexity": "moderate",
+      "languageNotes": "Each export is a small factory function returning a preconfigured Zod schema (e.g. optionalStringWithMax, requiredStringWithMax), which the various *.types.ts files compose to avoid repeating the same `.trim().max().optional().nullable()` chains."
+    },
+    {
+      "id": "file:backend/test-db.ts",
+      "type": "file",
+      "name": "test-db.ts",
+      "filePath": "backend/test-db.ts",
+      "summary": "Standalone diagnostic script that opens a Prisma connection, runs a trivial raw query to confirm database connectivity, and exits with a status code reflecting success or failure.",
+      "tags": ["script", "diagnostics", "database"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/test-db.ts:testConnection",
+      "type": "function",
+      "name": "testConnection",
+      "filePath": "backend/test-db.ts",
+      "lineRange": [3, 14],
+      "summary": "Runs a `SELECT 1`-style raw Prisma query to verify the database connection is reachable, logging success or failure and exiting the process accordingly.",
+      "tags": ["diagnostics", "database", "script"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "file:backend/src/config/database.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "file:backend/src/errors/errors.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "file:backend/src/services/travelDocument.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "file:backend/src/services/travelTime.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "file:backend/src/services/visaRequirement.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "file:backend/src/types/prisma-helpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/services/user.service.ts", "target": "file:backend/src/config/database.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/user.service.ts", "target": "file:backend/src/errors/errors.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/user.service.ts", "target": "file:backend/src/middleware/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/user.service.ts", "target": "file:backend/src/services/_shared/serviceHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/user.service.ts", "target": "file:backend/src/services/companion.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/user.service.ts", "target": "file:backend/src/types/userSettings.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/config/database.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/config/index.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/config/logger.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/errors/errors.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/services/email.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/services/user.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/types/userInvitation.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/services/weather.service.ts", "target": "file:backend/src/config/database.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "file:backend/src/config/index.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "file:backend/src/errors/errors.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "file:backend/src/services/_shared/serviceHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "file:backend/src/types/prisma-helpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "file:backend/src/types/weather.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/types/activity.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/checklist.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/companion.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/entityLink.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/journalEntry.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/location.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/lodging.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/photo.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/transportation.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/travelDocument.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/types/trip.types.ts", "target": "file:backend/src/validation/zodHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/test-db.ts", "target": "file:backend/src/config/database.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "class:backend/src/services/tripValidator.service.ts:TripValidatorService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "function:backend/src/services/tripValidator.service.ts:getValidationContext", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/services/user.service.ts", "target": "class:backend/src/services/user.service.ts:UserService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/services/visaRequirement.service.ts", "target": "class:backend/src/services/visaRequirement.service.ts:VisaRequirementService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "class:backend/src/services/weather.service.ts:WeatherService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "function:backend/src/services/weather.service.ts:mapWithConcurrency", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:convertDecimalCoordinates", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:isPrismaError", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:isPrismaUnknownError", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:isAxiosError", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:getErrorMessage", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:getErrorStatusCode", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/types/travelDocument.types.ts", "target": "function:backend/src/types/travelDocument.types.ts:maskDocumentNumber", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/test-db.ts", "target": "function:backend/test-db.ts:testConnection", "type": "contains", "direction": "forward", "weight": 1.0 },
+
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "class:backend/src/services/tripValidator.service.ts:TripValidatorService", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/services/user.service.ts", "target": "class:backend/src/services/user.service.ts:UserService", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/services/visaRequirement.service.ts", "target": "class:backend/src/services/visaRequirement.service.ts:VisaRequirementService", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "class:backend/src/services/weather.service.ts:WeatherService", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:convertDecimalCoordinates", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:isPrismaError", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:isPrismaUnknownError", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:isAxiosError", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:getErrorMessage", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/types/prisma-helpers.ts", "target": "function:backend/src/types/prisma-helpers.ts:getErrorStatusCode", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/types/travelDocument.types.ts", "target": "function:backend/src/types/travelDocument.types.ts:maskDocumentNumber", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "class:backend/src/services/tripValidator.service.ts:TripValidatorService", "target": "class:backend/src/services/visaRequirement.service.ts:VisaRequirementService", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "class:backend/src/services/tripValidator.service.ts:TripValidatorService", "target": "file:backend/src/services/travelDocument.service.ts", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "class:backend/src/services/tripValidator.service.ts:TripValidatorService", "target": "file:backend/src/services/travelTime.service.ts", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "class:backend/src/services/user.service.ts:UserService", "target": "file:backend/src/services/companion.service.ts", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "class:backend/src/services/user.service.ts:UserService", "target": "function:backend/src/middleware/auth.ts:invalidatePasswordVersionCache", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "class:backend/src/services/user.service.ts:UserService", "target": "function:backend/src/services/_shared/serviceHelpers.ts:buildConditionalUpdateData", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "class:backend/src/services/weather.service.ts:WeatherService", "target": "function:backend/src/services/_shared/serviceHelpers.ts:verifyTripAccess", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "class:backend/src/services/weather.service.ts:WeatherService", "target": "function:backend/src/services/_shared/serviceHelpers.ts:convertDecimals", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "class:backend/src/services/weather.service.ts:WeatherService", "target": "function:backend/src/types/prisma-helpers.ts:isAxiosError", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "class:backend/src/services/user.service.ts:UserService", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/services/email.service.ts", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:backend/src/types/prisma-helpers.ts:getErrorStatusCode", "target": "function:backend/src/types/prisma-helpers.ts:isAxiosError", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:backend/src/services/tripValidator.service.ts", "target": "file:backend/src/services/__tests__/tripValidator.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/services/user.service.ts", "target": "file:backend/src/services/__tests__/user.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/services/userInvitation.service.ts", "target": "file:backend/src/services/__tests__/userInvitation.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/services/weather.service.ts", "target": "file:backend/src/services/__tests__/weather.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 }
+  ]
+}

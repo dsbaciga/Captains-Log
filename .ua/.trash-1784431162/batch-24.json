@@ -1,0 +1,26 @@
+{
+  "nodes": [
+    {
+      "id": "service:frontend/.dockerignore",
+      "type": "service",
+      "name": ".dockerignore",
+      "filePath": "frontend/.dockerignore",
+      "summary": "Excludes files and directories (node_modules, dist, local env files, etc.) from the Docker build context for the frontend image.",
+      "tags": ["containerization", "infrastructure", "build-config"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:frontend/Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "frontend/Dockerfile",
+      "summary": "Docker build for the frontend Vite/React app: installs dependencies, copies source, creates a non-root user, exposes port 3000, and runs the Vite dev server bound to all interfaces.",
+      "tags": ["containerization", "infrastructure", "deployment", "vite"],
+      "complexity": "simple",
+      "languageNotes": "Single-stage build tailored for development (runs `npm run dev -- --host 0.0.0.0 --port 3000`) rather than a production static build."
+    }
+  ],
+  "edges": [
+    {"source": "service:frontend/Dockerfile", "target": "service:frontend/.dockerignore", "type": "related", "direction": "forward", "weight": 0.5}
+  ]
+}

@@ -326,13 +326,13 @@ export default function LocationManager({
   };
 
   // Bulk edit handler
-  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+  const handleBulkEdit = async (updates: { categoryId?: number; notes?: string }) => {
     const selectedIds = bulkSelection.getSelectedIds();
     if (selectedIds.length === 0) return;
 
     setIsBulkEditing(true);
     try {
-      await locationService.bulkUpdateLocations(tripId, selectedIds, updates as { categoryId?: number; notes?: string });
+      await locationService.bulkUpdateLocations(tripId, selectedIds, updates);
       toast.success(`Updated ${selectedIds.length} locations`);
       setShowBulkEditModal(false);
       bulkSelection.exitSelectionMode();
@@ -844,7 +844,7 @@ export default function LocationManager({
       )}
 
       {/* Bulk Edit Modal */}
-      <BulkEditModal
+      <BulkEditModal<{ categoryId?: number; notes?: string }>
         isOpen={showBulkEditModal}
         onClose={() => setShowBulkEditModal(false)}
         entityType="location"

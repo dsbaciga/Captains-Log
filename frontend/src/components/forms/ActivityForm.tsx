@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, forwardRef } from "react";
 import type { Activity } from "../../types/activity";
 import type { Location } from "../../types/location";
 import type { ActivityCategory } from "../../types/user";
@@ -103,7 +103,7 @@ const getInitialFormState = (
   };
 };
 
-export default function ActivityForm({
+const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function ActivityForm({
   formId,
   tripId,
   locations,
@@ -118,7 +118,7 @@ export default function ActivityForm({
   defaultUnscheduled = false,
   showMoreOptionsDefault = false,
   onDirtyChange,
-}: ActivityFormProps) {
+}: ActivityFormProps, ref) {
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(showMoreOptionsDefault);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
@@ -133,6 +133,7 @@ export default function ActivityForm({
   const fieldErrors = useFieldErrors({
     name: { validate: (v) => v.trim() ? null : 'Activity name is required' },
   });
+  const { resetErrors } = fieldErrors;
 
   // Track unsaved changes for browser close/refresh warning
   const { captureInitialValues, isDirty: isFormDirty, markSaved } = useUnsavedChangesWarning(values, true);
@@ -265,14 +266,12 @@ export default function ActivityForm({
     } else {
       // Reset form for new activity
       reset();
-      fieldErrors.resetErrors();
+      resetErrors();
       if (defaultUnscheduled) {
         handleChange("unscheduled", true);
       }
     }
-    // Note: handleChange and reset are stable functions from useFormFields hook
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingActivity, editingLocationId, tripTimezone, defaultUnscheduled]);
+  }, [editingActivity, editingLocationId, tripTimezone, defaultUnscheduled, handleChange, reset, resetErrors]);
 
   // Capture initial values for dirty tracking after form populates.
   // Uses a microtask to ensure all handleChange calls from the populate effect have settled.
@@ -304,9 +303,11 @@ export default function ActivityForm({
         if (!values.endDate) handleChange("endDate", endDate);
       }
     }
-    // Note: handleChange is a stable function from useFormFields hook
+    // Intentionally excludes values.endDate/values.endTime: including them would
+    // re-run this effect when the user manually clears the end time, immediately
+    // overwriting their clear with the auto-computed value.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.startDate, values.startTime, values.allDay, values.unscheduled, editingActivity]);
+  }, [values.startDate, values.startTime, values.allDay, values.unscheduled, editingActivity, handleChange]);
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
     const newLocation: Location = {
@@ -409,7 +410,7 @@ export default function ActivityForm({
   );
 
   return (
-    <form id={formId} onSubmit={handleFormSubmit} className="space-y-6">
+    <form id={formId} ref={ref} onSubmit={handleFormSubmit} className="space-y-6">
       {/* Draft Restore Prompt */}
       <DraftRestorePrompt
         isOpen={showDraftPrompt && !isEditMode}
@@ -842,4 +843,6 @@ export default function ActivityForm({
       </CollapsibleSection>
     </form>
   );
-}
+});
+
+export default ActivityForm;

@@ -1,0 +1,185 @@
+{
+  "nodes": [
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-cache-storage.md",
+      "type": "document",
+      "name": "js-cache-storage.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-cache-storage.md",
+      "summary": "Best-practice rule card advising caching the results of repeated or expensive Storage/API calls (e.g. localStorage reads) instead of re-invoking them on every access.",
+      "tags": ["documentation", "performance", "caching", "javascript", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-combine-iterations.md",
+      "type": "document",
+      "name": "js-combine-iterations.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-combine-iterations.md",
+      "summary": "Best-practice rule card recommending combining multiple sequential array iterations (map/filter/forEach chains) into a single pass to reduce redundant traversal overhead.",
+      "tags": ["documentation", "performance", "javascript", "arrays", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-early-exit.md",
+      "type": "document",
+      "name": "js-early-exit.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-early-exit.md",
+      "summary": "Best-practice rule card promoting early returns / guard clauses in functions to avoid deep nesting and unnecessary computation.",
+      "tags": ["documentation", "javascript", "code-quality", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-hoist-regexp.md",
+      "type": "document",
+      "name": "js-hoist-regexp.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-hoist-regexp.md",
+      "summary": "Best-practice rule card advising that RegExp literals be hoisted out of hot loops or render functions instead of being recreated on every call.",
+      "tags": ["documentation", "performance", "javascript", "regexp", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-index-maps.md",
+      "type": "document",
+      "name": "js-index-maps.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-index-maps.md",
+      "summary": "Best-practice rule card recommending building a Map/object index for repeated lookups instead of scanning arrays with find()/indexOf() each time.",
+      "tags": ["documentation", "performance", "javascript", "data-structures", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-length-check-first.md",
+      "type": "document",
+      "name": "js-length-check-first.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-length-check-first.md",
+      "summary": "Best-practice rule card advising an early array-length comparison before element-by-element equality checks to short-circuit obviously unequal arrays.",
+      "tags": ["documentation", "performance", "javascript", "arrays", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-min-max-loop.md",
+      "type": "document",
+      "name": "js-min-max-loop.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-min-max-loop.md",
+      "summary": "Best-practice rule card recommending a single linear-scan loop to find min/max values instead of sorting the entire array, reducing complexity from O(n log n) to O(n).",
+      "tags": ["documentation", "performance", "javascript", "algorithms", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-set-map-lookups.md",
+      "type": "document",
+      "name": "js-set-map-lookups.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-set-map-lookups.md",
+      "summary": "Best-practice rule card advising the use of Set/Map for O(1) membership lookups instead of Array.includes()/indexOf(), which are O(n).",
+      "tags": ["documentation", "performance", "javascript", "data-structures", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-tosorted-immutable.md",
+      "type": "document",
+      "name": "js-tosorted-immutable.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-tosorted-immutable.md",
+      "summary": "Best-practice rule card recommending the immutable toSorted() array method over the mutating sort() to avoid unintended side effects on shared array references.",
+      "tags": ["documentation", "javascript", "immutability", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-activity.md",
+      "type": "document",
+      "name": "rendering-activity.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-activity.md",
+      "summary": "Best-practice rule card recommending React's Activity component to show/hide subtrees while preserving component state, instead of unmounting and remounting.",
+      "tags": ["documentation", "react", "rendering", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-animate-svg-wrapper.md",
+      "type": "document",
+      "name": "rendering-animate-svg-wrapper.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-animate-svg-wrapper.md",
+      "summary": "Best-practice rule card advising that animations target a wrapping element's transform rather than animating SVG element attributes directly, for smoother rendering performance.",
+      "tags": ["documentation", "react", "svg", "animation", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-conditional-render.md",
+      "type": "document",
+      "name": "rendering-conditional-render.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-conditional-render.md",
+      "summary": "Best-practice rule card recommending explicit ternary/boolean conditional rendering in JSX instead of `&&` short-circuiting, which can accidentally render falsy values like 0.",
+      "tags": ["documentation", "react", "jsx", "rendering", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-content-visibility.md",
+      "type": "document",
+      "name": "rendering-content-visibility.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-content-visibility.md",
+      "summary": "Best-practice rule card recommending the CSS content-visibility property to skip rendering work for off-screen items in long lists.",
+      "tags": ["documentation", "css", "performance", "rendering", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-hoist-jsx.md",
+      "type": "document",
+      "name": "rendering-hoist-jsx.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-hoist-jsx.md",
+      "summary": "Best-practice rule card advising that static JSX elements not dependent on props or state be hoisted outside the component function to avoid recreation on every render.",
+      "tags": ["documentation", "react", "jsx", "rendering", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-hydration-no-flicker.md",
+      "type": "document",
+      "name": "rendering-hydration-no-flicker.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-hydration-no-flicker.md",
+      "summary": "Best-practice rule card describing a technique for handling client/server hydration mismatches without a visible flicker after hydration completes.",
+      "tags": ["documentation", "react", "ssr", "hydration", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-hydration-suppress-warning.md",
+      "type": "document",
+      "name": "rendering-hydration-suppress-warning.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-hydration-suppress-warning.md",
+      "summary": "Best-practice rule card recommending suppressHydrationWarning for intentionally expected server/client rendering mismatches, such as timestamps.",
+      "tags": ["documentation", "react", "ssr", "hydration", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-svg-precision.md",
+      "type": "document",
+      "name": "rendering-svg-precision.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-svg-precision.md",
+      "summary": "Best-practice rule card recommending reduced decimal precision in SVG path and attribute values to shrink markup size and improve rendering efficiency.",
+      "tags": ["documentation", "svg", "performance", "optimization", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rendering-usetransition-loading.md",
+      "type": "document",
+      "name": "rendering-usetransition-loading.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rendering-usetransition-loading.md",
+      "summary": "Best-practice rule card recommending React's useTransition hook over manually managed isLoading state for smoother, non-blocking UI updates.",
+      "tags": ["documentation", "react", "hooks", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-defer-reads.md",
+      "type": "document",
+      "name": "rerender-defer-reads.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-defer-reads.md",
+      "summary": "Best-practice rule card advising that state or context reads be deferred to the point of usage rather than destructured early, to limit unnecessary re-render scope.",
+      "tags": ["documentation", "react", "rerender", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-dependencies.md",
+      "type": "document",
+      "name": "rerender-dependencies.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-dependencies.md",
+      "summary": "Best-practice rule card recommending narrow, precise dependency arrays for useEffect/useMemo/useCallback to avoid unnecessary re-executions.",
+      "tags": ["documentation", "react", "hooks", "rerender", "best-practices"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

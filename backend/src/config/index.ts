@@ -102,6 +102,25 @@ export const config = {
   // Frontend URL (for email links)
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 
+  // OAuth / OIDC single sign-on (enabled when issuer + client credentials are set)
+  oidc: (() => {
+    const issuerUrl = (process.env.OIDC_ISSUER_URL || '').replace(/\/+$/, '');
+    const clientId = process.env.OIDC_CLIENT_ID || '';
+    const clientSecret = process.env.OIDC_CLIENT_SECRET || '';
+    return {
+      enabled: Boolean(issuerUrl && clientId && clientSecret),
+      issuerUrl,
+      clientId,
+      clientSecret,
+      redirectUrl:
+        process.env.OIDC_REDIRECT_URL ||
+        `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/oidc/callback`,
+      scopes: process.env.OIDC_SCOPES || 'openid profile email',
+      buttonText: process.env.OIDC_BUTTON_TEXT || 'Sign in with SSO',
+      autoProvision: process.env.OIDC_AUTO_PROVISION !== 'false',
+    };
+  })(),
+
   // AI / LLM
   llm: {
     enabled: process.env.AI_ENABLED !== 'false',

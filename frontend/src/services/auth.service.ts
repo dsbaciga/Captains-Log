@@ -1,5 +1,5 @@
 import axios from '../lib/axios';
-import type { AuthResponse, LoginInput, RegisterInput, User } from '../types/auth';
+import type { AuthResponse, LoginInput, OidcConfig, RegisterInput, User } from '../types/auth';
 
 class AuthService {
   async register(data: RegisterInput): Promise<AuthResponse> {
@@ -42,6 +42,14 @@ class AuthService {
    */
   async refreshToken(): Promise<{ accessToken: string }> {
     const response = await axios.post('/auth/refresh');
+    return response.data;
+  }
+
+  /**
+   * Public OIDC single sign-on config - tells the login page whether to show the SSO button.
+   */
+  async getOidcConfig(): Promise<OidcConfig> {
+    const response = await axios.get<OidcConfig>('/auth/oidc/config');
     return response.data;
   }
 }

@@ -1,0 +1,1641 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/daily-view/utils.ts",
+      "type": "file",
+      "name": "utils.ts",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "summary": "Shared formatting and styling helpers (date/time/currency formatting, type colors, icons, mood emoji, type guards) used across the daily-view card components.",
+      "tags": [
+        "utility",
+        "formatting",
+        "daily-view"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:formatTime",
+      "type": "function",
+      "name": "formatTime",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        9,
+        17
+      ],
+      "summary": "Formats a time value for display in the daily view.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:formatDate",
+      "type": "function",
+      "name": "formatDate",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        22,
+        31
+      ],
+      "summary": "Formats a date value for display in the daily view.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:formatDuration",
+      "type": "function",
+      "name": "formatDuration",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        36,
+        46
+      ],
+      "summary": "Formats a duration in minutes as a human-readable string.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:formatCurrency",
+      "type": "function",
+      "name": "formatCurrency",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        51,
+        58
+      ],
+      "summary": "Formats a monetary amount with its currency code for display.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:getTimezoneAbbr",
+      "type": "function",
+      "name": "getTimezoneAbbr",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        63,
+        76
+      ],
+      "summary": "Derives a short timezone abbreviation string for a given IANA timezone.",
+      "tags": [
+        "utility",
+        "timezone"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:getTypeColors",
+      "type": "function",
+      "name": "getTypeColors",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        81,
+        141
+      ],
+      "summary": "Returns Tailwind color classes for a given entity/timeline item type used for card styling.",
+      "tags": [
+        "utility",
+        "styling"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:getTransportationIcon",
+      "type": "function",
+      "name": "getTransportationIcon",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        146,
+        165
+      ],
+      "summary": "Returns the icon identifier/emoji for a given transportation type.",
+      "tags": [
+        "utility",
+        "icon"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:getLodgingIcon",
+      "type": "function",
+      "name": "getLodgingIcon",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        170,
+        195
+      ],
+      "summary": "Returns the icon identifier/emoji for a given lodging type.",
+      "tags": [
+        "utility",
+        "icon"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:getActivityIcon",
+      "type": "function",
+      "name": "getActivityIcon",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        200,
+        233
+      ],
+      "summary": "Returns the icon identifier/emoji for a given activity category.",
+      "tags": [
+        "utility",
+        "icon"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/utils.ts:getMoodEmoji",
+      "type": "function",
+      "name": "getMoodEmoji",
+      "filePath": "frontend/src/components/daily-view/utils.ts",
+      "lineRange": [
+        238,
+        269
+      ],
+      "summary": "Returns the emoji representing a given journal entry mood.",
+      "tags": [
+        "utility",
+        "icon"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pwa/OfflineDownloadButton.tsx",
+      "type": "file",
+      "name": "OfflineDownloadButton.tsx",
+      "filePath": "frontend/src/components/pwa/OfflineDownloadButton.tsx",
+      "summary": "Button that triggers and shows progress for downloading a trip's data/photos for offline PWA use, opening the OfflineDownloadModal.",
+      "tags": [
+        "component",
+        "pwa",
+        "offline",
+        "button"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pwa/OfflineDownloadButton.tsx:OfflineDownloadButton",
+      "type": "function",
+      "name": "OfflineDownloadButton",
+      "filePath": "frontend/src/components/pwa/OfflineDownloadButton.tsx",
+      "lineRange": [
+        44,
+        404
+      ],
+      "summary": "Renders a button that opens the offline download modal and reflects current download progress/state.",
+      "tags": [
+        "component",
+        "pwa",
+        "offline"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pwa/OfflineDownloadModal.tsx",
+      "type": "file",
+      "name": "OfflineDownloadModal.tsx",
+      "filePath": "frontend/src/components/pwa/OfflineDownloadModal.tsx",
+      "summary": "Modal that walks the user through selecting content and downloading a trip for offline access, tracking progress via the offline download service.",
+      "tags": [
+        "modal",
+        "pwa",
+        "offline",
+        "component"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pwa/OfflineDownloadModal.tsx:OfflineDownloadModal",
+      "type": "function",
+      "name": "OfflineDownloadModal",
+      "filePath": "frontend/src/components/pwa/OfflineDownloadModal.tsx",
+      "lineRange": [
+        67,
+        556
+      ],
+      "summary": "Guides the user through selecting trip content and downloading it for offline use, tracking and displaying progress from the offline download service.",
+      "tags": [
+        "modal",
+        "pwa",
+        "offline"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pwa/OfflineStatusBadge.tsx",
+      "type": "file",
+      "name": "OfflineStatusBadge.tsx",
+      "filePath": "frontend/src/components/pwa/OfflineStatusBadge.tsx",
+      "summary": "Badge indicating whether a trip is available offline, its download progress, and staleness, backed by the offline download service.",
+      "tags": [
+        "component",
+        "pwa",
+        "offline",
+        "badge"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pwa/OfflineStatusBadge.tsx:OfflineStatusBadge",
+      "type": "function",
+      "name": "OfflineStatusBadge",
+      "filePath": "frontend/src/components/pwa/OfflineStatusBadge.tsx",
+      "lineRange": [
+        48,
+        188
+      ],
+      "summary": "Shows whether a trip is downloaded for offline use, its freshness/staleness, and current sync/download progress.",
+      "tags": [
+        "component",
+        "pwa",
+        "offline",
+        "badge"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "type": "file",
+      "name": "DayHeader.tsx",
+      "filePath": "frontend/src/components/timeline/DayHeader.tsx",
+      "summary": "Renders the header for a day section in the timeline, including date, weather badge, and sunrise/sunset badge.",
+      "tags": [
+        "component",
+        "timeline",
+        "header",
+        "weather"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/DayHeader.tsx:WeatherBadge",
+      "type": "function",
+      "name": "WeatherBadge",
+      "filePath": "frontend/src/components/timeline/DayHeader.tsx",
+      "lineRange": [
+        10,
+        29
+      ],
+      "summary": "Renders a compact badge summarizing the day's weather icon and temperature.",
+      "tags": [
+        "component",
+        "weather",
+        "badge"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/DayHeader.tsx:formatTimeInTimezone",
+      "type": "function",
+      "name": "formatTimeInTimezone",
+      "filePath": "frontend/src/components/timeline/DayHeader.tsx",
+      "lineRange": [
+        41,
+        60
+      ],
+      "summary": "Formats a time value for display in a specified IANA timezone.",
+      "tags": [
+        "utility",
+        "formatting",
+        "timezone"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/DayHeader.tsx:SunriseSunsetBadge",
+      "type": "function",
+      "name": "SunriseSunsetBadge",
+      "filePath": "frontend/src/components/timeline/DayHeader.tsx",
+      "lineRange": [
+        62,
+        94
+      ],
+      "summary": "Renders a badge showing sunrise and sunset times for the day.",
+      "tags": [
+        "component",
+        "weather",
+        "badge"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/DayHeader.tsx:DayHeader",
+      "type": "function",
+      "name": "DayHeader",
+      "filePath": "frontend/src/components/timeline/DayHeader.tsx",
+      "lineRange": [
+        96,
+        191
+      ],
+      "summary": "Renders the timeline day-section header combining the date, weather badge and sunrise/sunset badge.",
+      "tags": [
+        "component",
+        "timeline",
+        "header"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/MobileTimezoneToggle.tsx",
+      "type": "file",
+      "name": "MobileTimezoneToggle.tsx",
+      "filePath": "frontend/src/components/timeline/MobileTimezoneToggle.tsx",
+      "summary": "Small mobile-only toggle switching the timeline display between the trip's timezone and the user's local timezone.",
+      "tags": [
+        "component",
+        "timeline",
+        "mobile",
+        "toggle"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/MobileTimezoneToggle.tsx:MobileTimezoneToggle",
+      "type": "function",
+      "name": "MobileTimezoneToggle",
+      "filePath": "frontend/src/components/timeline/MobileTimezoneToggle.tsx",
+      "lineRange": [
+        4,
+        43
+      ],
+      "summary": "Renders a mobile-only toggle switching timeline display between trip and local timezones.",
+      "tags": [
+        "component",
+        "mobile",
+        "timeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/PrintMiniMap.tsx",
+      "type": "file",
+      "name": "PrintMiniMap.tsx",
+      "filePath": "frontend/src/components/timeline/PrintMiniMap.tsx",
+      "summary": "Renders a small static map or route map for print output within the printable itinerary.",
+      "tags": [
+        "component",
+        "map",
+        "print",
+        "timeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintMiniMap.tsx:PrintMiniMap",
+      "type": "function",
+      "name": "PrintMiniMap",
+      "filePath": "frontend/src/components/timeline/PrintMiniMap.tsx",
+      "lineRange": [
+        17,
+        58
+      ],
+      "summary": "Renders a small static map centered on a single location for print output.",
+      "tags": [
+        "component",
+        "map",
+        "print"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintMiniMap.tsx:PrintRouteMap",
+      "type": "function",
+      "name": "PrintRouteMap",
+      "filePath": "frontend/src/components/timeline/PrintMiniMap.tsx",
+      "lineRange": [
+        72,
+        135
+      ],
+      "summary": "Renders a small static route map showing a path between multiple points for print output.",
+      "tags": [
+        "component",
+        "map",
+        "print"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "type": "file",
+      "name": "PrintableItinerary.tsx",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "summary": "Print-optimized rendering of the full trip itinerary across all days, including activities, transportation, lodging, journal and unscheduled items, for PDF/print export.",
+      "tags": [
+        "component",
+        "print",
+        "itinerary",
+        "timeline"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:formatTime",
+      "type": "function",
+      "name": "formatTime",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        28,
+        47
+      ],
+      "summary": "Formats a time-of-day string for the printable itinerary.",
+      "tags": [
+        "utility",
+        "formatting",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:formatDateHeader",
+      "type": "function",
+      "name": "formatDateHeader",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        50,
+        62
+      ],
+      "summary": "Formats a date as a section header string for the printable itinerary.",
+      "tags": [
+        "utility",
+        "formatting",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:formatCost",
+      "type": "function",
+      "name": "formatCost",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        65,
+        76
+      ],
+      "summary": "Formats a monetary amount with currency for the printable itinerary.",
+      "tags": [
+        "utility",
+        "formatting",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:getTransportTypeName",
+      "type": "function",
+      "name": "getTransportTypeName",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        79,
+        91
+      ],
+      "summary": "Maps a transportation type code to a human-readable label for print output.",
+      "tags": [
+        "utility",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:getLodgingTypeName",
+      "type": "function",
+      "name": "getLodgingTypeName",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        94,
+        109
+      ],
+      "summary": "Maps a lodging type code to a human-readable label for print output.",
+      "tags": [
+        "utility",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:ActivityItem",
+      "type": "function",
+      "name": "ActivityItem",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        112,
+        153
+      ],
+      "summary": "Renders a single activity row in the printable full-trip itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "activity"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:TransportationItem",
+      "type": "function",
+      "name": "TransportationItem",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        156,
+        212
+      ],
+      "summary": "Renders a single transportation-leg row in the printable full-trip itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "transportation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:LodgingItem",
+      "type": "function",
+      "name": "LodgingItem",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        215,
+        251
+      ],
+      "summary": "Renders a single lodging row in the printable full-trip itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "lodging"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:JournalItem",
+      "type": "function",
+      "name": "JournalItem",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        254,
+        266
+      ],
+      "summary": "Renders a single journal-entry row in the printable full-trip itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "journal"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:TimelineItemRow",
+      "type": "function",
+      "name": "TimelineItemRow",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        269,
+        282
+      ],
+      "summary": "Dispatches to the type-specific print item renderer based on the timeline item's type.",
+      "tags": [
+        "component",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:UnscheduledActivityItem",
+      "type": "function",
+      "name": "UnscheduledActivityItem",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        285,
+        301
+      ],
+      "summary": "Renders an unscheduled activity row in the printable full-trip itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "activity"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:UnscheduledTransportationItem",
+      "type": "function",
+      "name": "UnscheduledTransportationItem",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        304,
+        327
+      ],
+      "summary": "Renders an unscheduled transportation row in the printable full-trip itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "transportation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PrintableItinerary.tsx:UnscheduledLodgingItem",
+      "type": "function",
+      "name": "UnscheduledLodgingItem",
+      "filePath": "frontend/src/components/timeline/PrintableItinerary.tsx",
+      "lineRange": [
+        330,
+        349
+      ],
+      "summary": "Renders an unscheduled lodging row in the printable full-trip itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "lodging"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "type": "file",
+      "name": "TimelineDaySection.tsx",
+      "filePath": "frontend/src/components/timeline/TimelineDaySection.tsx",
+      "summary": "Renders one day's section within the chronological timeline view, including header, event cards, mini-map, and unscheduled activities.",
+      "tags": [
+        "component",
+        "timeline",
+        "day-section"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/TimelineDaySection.tsx:mapTimelineTypeToEntityType",
+      "type": "function",
+      "name": "mapTimelineTypeToEntityType",
+      "filePath": "frontend/src/components/timeline/TimelineDaySection.tsx",
+      "lineRange": [
+        28,
+        41
+      ],
+      "summary": "Converts a timeline item's type into the corresponding entity-link entity type.",
+      "tags": [
+        "utility",
+        "mapping"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/TimelineDaySection.tsx:TimelineDaySection",
+      "type": "function",
+      "name": "TimelineDaySection",
+      "filePath": "frontend/src/components/timeline/TimelineDaySection.tsx",
+      "lineRange": [
+        43,
+        257
+      ],
+      "summary": "Renders one day's header, mini-map, event cards and unscheduled activities within the chronological timeline view.",
+      "tags": [
+        "component",
+        "timeline",
+        "day-section"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "type": "file",
+      "name": "TimelineEventCard.tsx",
+      "filePath": "frontend/src/components/timeline/TimelineEventCard.tsx",
+      "summary": "Renders an individual timeline event (activity, transportation, lodging, journal) card with linked entities, photo preview, edit/delete/link actions, and nested child-activity rendering.",
+      "tags": [
+        "component",
+        "timeline",
+        "card",
+        "event"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/TimelineEventCard.tsx:TimelineEventCard",
+      "type": "function",
+      "name": "TimelineEventCard",
+      "filePath": "frontend/src/components/timeline/TimelineEventCard.tsx",
+      "lineRange": [
+        21,
+        490
+      ],
+      "summary": "Renders a single timeline event card with icon, details, linked entities, photo preview, and edit/delete/link actions.",
+      "tags": [
+        "component",
+        "timeline",
+        "card"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/TimelineEventCard.tsx:renderChildActivities",
+      "type": "function",
+      "name": "renderChildActivities",
+      "filePath": "frontend/src/components/timeline/TimelineEventCard.tsx",
+      "lineRange": [
+        493,
+        552
+      ],
+      "summary": "Renders nested child activity rows beneath a parent activity's timeline event card.",
+      "tags": [
+        "component",
+        "timeline",
+        "activity"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/TimelineFilters.tsx",
+      "type": "file",
+      "name": "TimelineFilters.tsx",
+      "filePath": "frontend/src/components/timeline/TimelineFilters.tsx",
+      "summary": "Filter controls (type toggles, view-mode switch, print dropdown) for the timeline view.",
+      "tags": [
+        "component",
+        "timeline",
+        "filters"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/TimelineFilters.tsx:TimelineFilters",
+      "type": "function",
+      "name": "TimelineFilters",
+      "filePath": "frontend/src/components/timeline/TimelineFilters.tsx",
+      "lineRange": [
+        45,
+        180
+      ],
+      "summary": "Renders type-visibility toggles and a view-mode switch controlling which timeline items are shown.",
+      "tags": [
+        "component",
+        "timeline",
+        "filters"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/TimelineFilters.tsx:PrintDropdown",
+      "type": "function",
+      "name": "PrintDropdown",
+      "filePath": "frontend/src/components/timeline/TimelineFilters.tsx",
+      "lineRange": [
+        183,
+        249
+      ],
+      "summary": "Renders a dropdown menu offering print options (full itinerary vs. current day) for the timeline.",
+      "tags": [
+        "component",
+        "print",
+        "dropdown"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/UnscheduledActivityCard.tsx",
+      "type": "file",
+      "name": "UnscheduledActivityCard.tsx",
+      "filePath": "frontend/src/components/timeline/UnscheduledActivityCard.tsx",
+      "summary": "Compact card rendering an activity without a fixed date/time in the unscheduled-activities section of the timeline.",
+      "tags": [
+        "component",
+        "timeline",
+        "card",
+        "activity"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/UnscheduledActivityCard.tsx:UnscheduledActivityCard",
+      "type": "function",
+      "name": "UnscheduledActivityCard",
+      "filePath": "frontend/src/components/timeline/UnscheduledActivityCard.tsx",
+      "lineRange": [
+        9,
+        93
+      ],
+      "summary": "Renders a compact card for an activity that has no fixed date/time.",
+      "tags": [
+        "component",
+        "timeline",
+        "activity"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/icons.tsx",
+      "type": "file",
+      "name": "icons.tsx",
+      "filePath": "frontend/src/components/timeline/icons.tsx",
+      "summary": "Library of small inline SVG icon components (activity, journal, lodging, transport modes, edit/delete/link, chevrons, status icons) used throughout the timeline UI.",
+      "tags": [
+        "component",
+        "icon-library",
+        "timeline",
+        "ui"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Each icon is a tiny stateless functional component wrapping inline SVG markup; modeled as a single cohesive icon set rather than as individual function nodes."
+    },
+    {
+      "id": "file:frontend/src/components/timeline/index.ts",
+      "type": "file",
+      "name": "index.ts",
+      "filePath": "frontend/src/components/timeline/index.ts",
+      "summary": "Barrel file re-exporting the public timeline components (day section, header, event card, filters, printable itinerary, etc.) for simpler imports elsewhere in the app.",
+      "tags": [
+        "barrel",
+        "entry-point",
+        "timeline"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "frontend/src/components/timeline/types.ts",
+      "summary": "Shared TypeScript type definitions for timeline items, combining activity, lodging, transportation, journal and weather types into a unified timeline item shape.",
+      "tags": [
+        "type-definition",
+        "timeline"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "file:frontend/src/types/activity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "file:frontend/src/types/journalEntry.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "file:frontend/src/types/lodging.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "file:frontend/src/types/transportation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineDownloadButton.tsx",
+      "target": "file:frontend/src/components/pwa/OfflineDownloadModal.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineDownloadButton.tsx",
+      "target": "file:frontend/src/services/offlineDownload.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineDownloadModal.tsx",
+      "target": "file:frontend/src/components/Modal.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineDownloadModal.tsx",
+      "target": "file:frontend/src/services/offlineDownload.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineStatusBadge.tsx",
+      "target": "file:frontend/src/services/offlineDownload.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "file:frontend/src/components/timeline/icons.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "file:frontend/src/components/timeline/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "file:frontend/src/types/weather.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/MobileTimezoneToggle.tsx",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/MobileTimezoneToggle.tsx",
+      "target": "file:frontend/src/components/timeline/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "file:frontend/src/components/MarkdownRenderer.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "file:frontend/src/components/timeline/PrintMiniMap.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "file:frontend/src/types/activity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "file:frontend/src/types/lodging.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "file:frontend/src/types/transportation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "file:frontend/src/components/DayMiniMap.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "file:frontend/src/components/timeline/UnscheduledActivityCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "file:frontend/src/components/timeline/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/components/LinkButton.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/components/LinkedEntitiesDisplay.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/components/timeline/icons.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/components/timeline/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/types/activity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineFilters.tsx",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/UnscheduledActivityCard.tsx",
+      "target": "file:frontend/src/components/timeline/icons.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/UnscheduledActivityCard.tsx",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/icons.tsx",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/types.ts",
+      "target": "file:frontend/src/types/activity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/types.ts",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/types.ts",
+      "target": "file:frontend/src/types/journalEntry.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/types.ts",
+      "target": "file:frontend/src/types/lodging.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/types.ts",
+      "target": "file:frontend/src/types/transportation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/types.ts",
+      "target": "file:frontend/src/types/weather.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:formatTime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:formatDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:formatDuration",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:formatCurrency",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getTimezoneAbbr",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getTypeColors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getTransportationIcon",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getLodgingIcon",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getActivityIcon",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getMoodEmoji",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineDownloadButton.tsx",
+      "target": "function:frontend/src/components/pwa/OfflineDownloadButton.tsx:OfflineDownloadButton",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineDownloadModal.tsx",
+      "target": "function:frontend/src/components/pwa/OfflineDownloadModal.tsx:OfflineDownloadModal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineStatusBadge.tsx",
+      "target": "function:frontend/src/components/pwa/OfflineStatusBadge.tsx:OfflineStatusBadge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "function:frontend/src/components/timeline/DayHeader.tsx:WeatherBadge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "function:frontend/src/components/timeline/DayHeader.tsx:formatTimeInTimezone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "function:frontend/src/components/timeline/DayHeader.tsx:SunriseSunsetBadge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "function:frontend/src/components/timeline/DayHeader.tsx:DayHeader",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/MobileTimezoneToggle.tsx",
+      "target": "function:frontend/src/components/timeline/MobileTimezoneToggle.tsx:MobileTimezoneToggle",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintMiniMap.tsx",
+      "target": "function:frontend/src/components/timeline/PrintMiniMap.tsx:PrintMiniMap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintMiniMap.tsx",
+      "target": "function:frontend/src/components/timeline/PrintMiniMap.tsx:PrintRouteMap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:formatTime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:formatDateHeader",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:formatCost",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:getTransportTypeName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:getLodgingTypeName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:ActivityItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:TransportationItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:LodgingItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:JournalItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:TimelineItemRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:UnscheduledActivityItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:UnscheduledTransportationItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintableItinerary.tsx",
+      "target": "function:frontend/src/components/timeline/PrintableItinerary.tsx:UnscheduledLodgingItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineDaySection.tsx:mapTimelineTypeToEntityType",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineDaySection.tsx:TimelineDaySection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineEventCard.tsx:TimelineEventCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineEventCard.tsx:renderChildActivities",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineFilters.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineFilters.tsx:TimelineFilters",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineFilters.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineFilters.tsx:PrintDropdown",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/UnscheduledActivityCard.tsx",
+      "target": "function:frontend/src/components/timeline/UnscheduledActivityCard.tsx:UnscheduledActivityCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:formatTime",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:formatDate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:formatDuration",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:formatCurrency",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getTimezoneAbbr",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getTypeColors",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getTransportationIcon",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getLodgingIcon",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getActivityIcon",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/utils.ts",
+      "target": "function:frontend/src/components/daily-view/utils.ts:getMoodEmoji",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineDownloadButton.tsx",
+      "target": "function:frontend/src/components/pwa/OfflineDownloadButton.tsx:OfflineDownloadButton",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineDownloadModal.tsx",
+      "target": "function:frontend/src/components/pwa/OfflineDownloadModal.tsx:OfflineDownloadModal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pwa/OfflineStatusBadge.tsx",
+      "target": "function:frontend/src/components/pwa/OfflineStatusBadge.tsx:OfflineStatusBadge",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/DayHeader.tsx",
+      "target": "function:frontend/src/components/timeline/DayHeader.tsx:DayHeader",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/MobileTimezoneToggle.tsx",
+      "target": "function:frontend/src/components/timeline/MobileTimezoneToggle.tsx:MobileTimezoneToggle",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintMiniMap.tsx",
+      "target": "function:frontend/src/components/timeline/PrintMiniMap.tsx:PrintMiniMap",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PrintMiniMap.tsx",
+      "target": "function:frontend/src/components/timeline/PrintMiniMap.tsx:PrintRouteMap",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineDaySection.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineDaySection.tsx:TimelineDaySection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineEventCard.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineEventCard.tsx:TimelineEventCard",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/TimelineFilters.tsx",
+      "target": "function:frontend/src/components/timeline/TimelineFilters.tsx:TimelineFilters",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/UnscheduledActivityCard.tsx",
+      "target": "function:frontend/src/components/timeline/UnscheduledActivityCard.tsx:UnscheduledActivityCard",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

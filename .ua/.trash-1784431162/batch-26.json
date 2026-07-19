@@ -1,0 +1,43 @@
+{
+  "nodes": [
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/AGENTS.md",
+      "summary": "Comprehensive React composition patterns reference (16 sections) covering component architecture, state management, implementation patterns, and React 19 API changes, compiled from the individual rule files in this skill.",
+      "tags": ["documentation", "react", "composition-patterns", "best-practices"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/README.md",
+      "summary": "Overview of the vercel-composition-patterns skill's structure, rule categories, core principles, and instructions for creating new rules.",
+      "tags": ["documentation", "overview", "react", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/SKILL.md",
+      "type": "document",
+      "name": "SKILL.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/SKILL.md",
+      "summary": "Skill definition describing when to apply React composition pattern rules, categorized by priority, with a quick-reference table and pointer to the full compiled AGENTS.md document.",
+      "tags": ["documentation", "skill-definition", "react", "best-practices"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "document:.agent/skills/vercel-composition-patterns/README.md", "target": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/SKILL.md", "target": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "target": "document:.agent/skills/vercel-composition-patterns/rules/architecture-avoid-boolean-props.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "target": "document:.agent/skills/vercel-composition-patterns/rules/architecture-compound-components.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "target": "document:.agent/skills/vercel-composition-patterns/rules/state-decouple-implementation.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "target": "document:.agent/skills/vercel-composition-patterns/rules/state-context-interface.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "target": "document:.agent/skills/vercel-composition-patterns/rules/state-lift-state.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "target": "document:.agent/skills/vercel-composition-patterns/rules/patterns-explicit-variants.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "target": "document:.agent/skills/vercel-composition-patterns/rules/patterns-children-over-render-props.md", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-composition-patterns/AGENTS.md", "target": "document:.agent/skills/vercel-composition-patterns/rules/react19-no-forwardref.md", "type": "related", "direction": "forward", "weight": 0.5}
+  ]
+}

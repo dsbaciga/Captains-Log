@@ -1,14 +1,50 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import authService from '../services/auth.service';
+import type { OidcConfig } from '../types/auth';
 import toast from 'react-hot-toast';
+
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+const OIDC_ERROR_MESSAGES: Record<string, string> = {
+  oidc_denied: 'Single sign-on was cancelled.',
+  oidc_invalid: 'Single sign-on session expired. Please try again.',
+  oidc_failed: 'Single sign-on failed. Please try again.',
+  oidc_disabled: 'Single sign-on is not enabled.',
+  oidc_not_allowed: 'No account exists for this sign-in. Contact your administrator.',
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [oidcConfig, setOidcConfig] = useState<OidcConfig | null>(null);
   const { login, isLoading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    authService
+      .getOidcConfig()
+      .then(setOidcConfig)
+      .catch(() => setOidcConfig(null)); // SSO button simply stays hidden
+  }, []);
+
+  // Surface errors from the OIDC callback redirect (?error=oidc_*)
+  useEffect(() => {
+    const errorCode = searchParams.get('error');
+    if (errorCode && errorCode.startsWith('oidc')) {
+      toast.error(OIDC_ERROR_MESSAGES[errorCode] || 'Single sign-on failed.', { id: 'oidc-error' });
+      const next = new URLSearchParams(searchParams);
+      next.delete('error');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const redirectParam = searchParams.get('redirect');
+  const oidcLoginUrl = `${API_URL}/auth/oidc/login${
+    redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''
+  }`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +143,25 @@ export default function LoginPage() {
                 {isLoading ? 'Logging in...' : 'Begin Your Journey'}
               </button>
             </form>
+
+            {oidcConfig?.enabled && (
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-primary-100 dark:border-navy-700"></div>
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="px-3 bg-white/90 dark:bg-navy-800/90 text-sm text-slate dark:text-warm-gray font-body">
+                      or
+                    </span>
+                  </div>
+                </div>
+
+                <a href={oidcLoginUrl} className="btn-secondary w-full block text-center mt-6">
+                  {oidcConfig.buttonText}
+                </a>
+              </div>
+            )}
 
             <div className="mt-6 pt-6 border-t border-primary-100 dark:border-navy-700">
               <p className="text-center text-sm text-slate dark:text-warm-gray font-body">

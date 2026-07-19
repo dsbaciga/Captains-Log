@@ -76,7 +76,8 @@
       "Bash(git -C /c/Users/dsbac/travel-life diff HEAD~5 HEAD -- \"backend/src/services\")",
       "Bash(python3 -c ':*)",
       "Skill(code-review)",
-      "Skill(code-review:*)"
+      "Skill(code-review:*)",
+      "Bash(npx prisma *)"
     ],
     "deny": [],
     "ask": []

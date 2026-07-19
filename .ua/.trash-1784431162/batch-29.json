@@ -1,0 +1,186 @@
+{
+  "nodes": [
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/advanced-event-handler-refs.md",
+      "type": "document",
+      "name": "advanced-event-handler-refs.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/advanced-event-handler-refs.md",
+      "summary": "React best-practice rule recommending storing event handler callbacks in refs so effects don't re-subscribe when the handler prop changes, including a useEffectEvent-based alternative.",
+      "tags": ["documentation", "react-hooks", "refs", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/advanced-init-once.md",
+      "type": "document",
+      "name": "advanced-init-once.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/advanced-init-once.md",
+      "summary": "Best-practice rule for ensuring app-wide initialization logic (e.g. SDK setup) runs exactly once rather than being re-triggered on every component mount via useEffect.",
+      "tags": ["documentation", "react-hooks", "initialization", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/advanced-use-latest.md",
+      "type": "document",
+      "name": "advanced-use-latest.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/advanced-use-latest.md",
+      "summary": "Documents using React's useEffectEvent hook to create stable callback references that always call the latest handler without re-running effects.",
+      "tags": ["documentation", "react-hooks", "useeffectevent", "refs"],
+      "complexity": "simple",
+      "languageNotes": "useEffectEvent is a newer React API for extracting non-reactive logic from effects without adding it to the dependency array."
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/async-api-routes.md",
+      "type": "document",
+      "name": "async-api-routes.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/async-api-routes.md",
+      "summary": "Critical-impact rule warning against sequential await waterfalls in API routes and server actions, recommending parallelizing independent async calls.",
+      "tags": ["documentation", "async", "api-routes", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/async-defer-await.md",
+      "type": "document",
+      "name": "async-defer-await.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/async-defer-await.md",
+      "summary": "Explains deferring await calls until their result is actually needed instead of awaiting eagerly, avoiding unnecessary blocking.",
+      "tags": ["documentation", "async", "await", "performance", "best-practices"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/async-dependencies.md",
+      "type": "document",
+      "name": "async-dependencies.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/async-dependencies.md",
+      "summary": "Describes structuring async operations by their actual data dependencies so independent calls run in parallel instead of serially.",
+      "tags": ["documentation", "async", "parallelization", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/async-parallel.md",
+      "type": "document",
+      "name": "async-parallel.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/async-parallel.md",
+      "summary": "Critical-impact rule recommending Promise.all() to run independent async operations concurrently instead of sequentially awaiting each one.",
+      "tags": ["documentation", "async", "promises", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/async-suspense-boundaries.md",
+      "type": "document",
+      "name": "async-suspense-boundaries.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/async-suspense-boundaries.md",
+      "summary": "Guidance on placing React Suspense boundaries strategically to enable streaming and avoid layout shift while data loads.",
+      "tags": ["documentation", "react", "suspense", "streaming", "performance"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/bundle-barrel-imports.md",
+      "type": "document",
+      "name": "bundle-barrel-imports.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/bundle-barrel-imports.md",
+      "summary": "Critical-impact rule warning that importing from barrel (index) files defeats tree-shaking and bloats bundle size, recommending direct module imports instead.",
+      "tags": ["documentation", "bundling", "tree-shaking", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/bundle-conditional.md",
+      "type": "document",
+      "name": "bundle-conditional.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/bundle-conditional.md",
+      "summary": "Recommends conditionally loading modules only when needed rather than including them in the main bundle unconditionally.",
+      "tags": ["documentation", "bundling", "lazy-loading", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/bundle-defer-third-party.md",
+      "type": "document",
+      "name": "bundle-defer-third-party.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/bundle-defer-third-party.md",
+      "summary": "Advises deferring the loading of non-critical third-party scripts, such as analytics, until after the main content has rendered.",
+      "tags": ["documentation", "bundling", "third-party", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/bundle-dynamic-imports.md",
+      "type": "document",
+      "name": "bundle-dynamic-imports.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/bundle-dynamic-imports.md",
+      "summary": "Critical-impact rule recommending dynamic import() or next/dynamic for heavy components to enable code-splitting and reduce initial bundle size.",
+      "tags": ["documentation", "bundling", "code-splitting", "dynamic-import", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/bundle-preload.md",
+      "type": "document",
+      "name": "bundle-preload.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/bundle-preload.md",
+      "summary": "Describes preloading resources based on anticipated user intent, such as on hover, to reduce perceived latency for likely next navigations.",
+      "tags": ["documentation", "bundling", "preload", "performance", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/client-event-listeners.md",
+      "type": "document",
+      "name": "client-event-listeners.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/client-event-listeners.md",
+      "summary": "Recommends deduplicating global event listener subscriptions, similar to SWR-style patterns, to avoid redundant window/document listeners across components.",
+      "tags": ["documentation", "event-listeners", "deduplication", "performance"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/client-localstorage-schema.md",
+      "type": "document",
+      "name": "client-localstorage-schema.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/client-localstorage-schema.md",
+      "summary": "Guidance on versioning localStorage schemas and minimizing stored data to avoid stale or bloated client-side state.",
+      "tags": ["documentation", "localstorage", "versioning", "client-state", "best-practices"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/client-passive-event-listeners.md",
+      "type": "document",
+      "name": "client-passive-event-listeners.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/client-passive-event-listeners.md",
+      "summary": "Recommends marking scroll, touch, and wheel event listeners as passive to improve scrolling performance by avoiding main-thread blocking.",
+      "tags": ["documentation", "event-listeners", "scrolling", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/client-swr-dedup.md",
+      "type": "document",
+      "name": "client-swr-dedup.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/client-swr-dedup.md",
+      "summary": "Documents using SWR for automatic request deduplication and caching of client-side data fetches.",
+      "tags": ["documentation", "swr", "data-fetching", "deduplication", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-batch-dom-css.md",
+      "type": "document",
+      "name": "js-batch-dom-css.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-batch-dom-css.md",
+      "summary": "Explains avoiding layout thrashing by batching DOM reads and writes together instead of interleaving them, which forces repeated synchronous reflows.",
+      "tags": ["documentation", "dom", "css", "performance", "best-practices"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-cache-function-results.md",
+      "type": "document",
+      "name": "js-cache-function-results.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-cache-function-results.md",
+      "summary": "Recommends caching or memoizing the results of repeated function calls with identical inputs to avoid redundant computation.",
+      "tags": ["documentation", "javascript", "memoization", "caching", "performance"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/js-cache-property-access.md",
+      "type": "document",
+      "name": "js-cache-property-access.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/js-cache-property-access.md",
+      "summary": "Advises caching repeated property accesses inside loops into a local variable to avoid redundant lookups on each iteration.",
+      "tags": ["documentation", "javascript", "loops", "optimization", "performance"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

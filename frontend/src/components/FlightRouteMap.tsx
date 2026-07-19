@@ -1,18 +1,18 @@
 import { MapContainer, TileLayer, Polyline, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { TransportationRoute } from "../types/transportation";
+import type { TransportationRoute, TransportationType } from "../types/transportation";
 import { useMapTiles } from "../hooks/useMapTiles";
 
 interface FlightRouteMapProps {
   route: TransportationRoute;
   height?: string;
   showLabels?: boolean;
-  transportationType?: "flight" | "train" | "bus" | "car" | "ferry" | "bicycle" | "walk" | "other";
+  transportationType?: TransportationType;
 }
 
 // Get icon based on transportation type
-const getTransportationIcon = (type?: string) => {
+const getTransportationIcon = (type?: TransportationType) => {
   let emoji = "✈️"; // Default to airplane
 
   switch (type) {

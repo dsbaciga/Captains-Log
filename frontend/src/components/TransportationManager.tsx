@@ -178,7 +178,7 @@ function TransportationItem({
           <FlightRouteMap
             route={transportation.route}
             height="200px"
-            transportationType={transportation.type as "flight" | "train" | "bus" | "car" | "ferry" | "bicycle" | "walk" | "other"}
+            transportationType={transportation.type}
           />
         </div>
       )}
@@ -569,15 +569,13 @@ export default function TransportationManager({
     if (values.fromLocationId && !values.startTimezone && tripTimezone) {
       handleChange("startTimezone", tripTimezone);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.fromLocationId, tripTimezone]);
+  }, [values.fromLocationId, values.startTimezone, tripTimezone, handleChange]);
 
   useEffect(() => {
     if (values.toLocationId && !values.endTimezone && tripTimezone) {
       handleChange("endTimezone", tripTimezone);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.toLocationId, tripTimezone]);
+  }, [values.toLocationId, values.endTimezone, tripTimezone, handleChange]);
 
   // Sync localLocations with locations prop
   useEffect(() => {
@@ -865,13 +863,13 @@ export default function TransportationManager({
   };
 
   // Bulk edit handler
-  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+  const handleBulkEdit = async (updates: { type?: string; carrier?: string; notes?: string }) => {
     const selectedIds = bulkSelection.getSelectedIds();
     if (selectedIds.length === 0) return;
 
     setIsBulkEditing(true);
     try {
-      await transportationService.bulkUpdateTransportation(tripId, selectedIds, updates as { type?: string; carrier?: string; notes?: string });
+      await transportationService.bulkUpdateTransportation(tripId, selectedIds, updates);
       toast.success(`Updated ${selectedIds.length} transportation items`);
       setShowBulkEditModal(false);
       bulkSelection.exitSelectionMode();
@@ -1632,7 +1630,7 @@ export default function TransportationManager({
       )}
 
       {/* Bulk Edit Modal */}
-      <BulkEditModal
+      <BulkEditModal<{ type?: string; carrier?: string; notes?: string }>
         isOpen={showBulkEditModal}
         onClose={() => setShowBulkEditModal(false)}
         entityType="transportation"

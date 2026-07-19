@@ -1,0 +1,35 @@
+{
+  "nodes": [
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/AGENTS.md",
+      "summary": "Comprehensive React/Next.js performance best-practices reference (69 sections) covering eliminating waterfalls, bundle size optimization, server-side performance, client-side data fetching, re-render optimization, rendering performance, JavaScript performance, and advanced patterns.",
+      "tags": ["documentation", "react", "nextjs", "performance", "best-practices"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/README.md",
+      "summary": "Overview of the vercel-react-best-practices skill describing its structure, getting-started instructions, and how to create new performance rules.",
+      "tags": ["documentation", "overview", "react", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/SKILL.md",
+      "type": "document",
+      "name": "SKILL.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/SKILL.md",
+      "summary": "Skill definition describing when to apply React/Next.js performance rules, organized by priority category, with a quick-reference table pointing to the full compiled AGENTS.md document.",
+      "tags": ["documentation", "skill-definition", "react", "performance"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {"source": "document:.agent/skills/vercel-react-best-practices/README.md", "target": "document:.agent/skills/vercel-react-best-practices/AGENTS.md", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-react-best-practices/SKILL.md", "target": "document:.agent/skills/vercel-react-best-practices/AGENTS.md", "type": "documents", "direction": "forward", "weight": 0.5}
+  ]
+}

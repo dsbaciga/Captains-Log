@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "document:docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md",
+      "type": "document",
+      "name": "GOOGLE_MAPS_INTEGRATION_PLAN.md",
+      "filePath": "docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md",
+      "summary": "Nine-phase implementation plan for adding Google Maps as an alternative provider — database storage for user API keys, a geocoding/routing provider abstraction layer, frontend settings UI, map component abstraction, API key encryption/validation, and fallback/error handling.",
+      "tags": ["documentation", "planning", "google-maps", "integration"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md",
+      "type": "document",
+      "name": "GOOGLE_PHOTOS_INTEGRATION_PLAN.md",
+      "filePath": "docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md",
+      "summary": "Fifteen-phase plan for integrating Google Photos via OAuth and the Picker API, covering database schema changes, backend OAuth flow and photo linking, frontend browsing/selection UI, thumbnail caching strategy, security considerations, and a phased rollout.",
+      "tags": ["documentation", "planning", "google-photos", "oauth", "integration"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/plans/OAUTH_SUPPORT_PLAN.md",
+      "type": "document",
+      "name": "OAUTH_SUPPORT_PLAN.md",
+      "filePath": "docs/plans/OAUTH_SUPPORT_PLAN.md",
+      "summary": "Detailed plan for adding OpenID Connect (OAuth) login support (Authelia/Pocket ID) alongside existing password auth — a new OAuthIdentity model, backend OIDC service and routes, frontend login/callback/account-linking UI, Docker configuration, and a migration/rollback strategy.",
+      "tags": ["documentation", "planning", "oauth", "authentication", "security"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/plans/PHOTO_MAP_VIEW_PLAN.md",
+      "type": "document",
+      "name": "PHOTO_MAP_VIEW_PLAN.md",
+      "filePath": "docs/plans/PHOTO_MAP_VIEW_PLAN.md",
+      "summary": "Implementation plan for a map view of trip photos, covering a photo-location resolver hook, an optional bulk location-fetch backend endpoint, map UI updates with source differentiation, and a follow-up review section that resolves several data-shape issues found during design.",
+      "tags": ["documentation", "planning", "photos", "maps", "frontend"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/plans/PWA_IMPLEMENTATION_PLAN.md",
+      "type": "document",
+      "name": "PWA_IMPLEMENTATION_PLAN.md",
+      "filePath": "docs/plans/PWA_IMPLEMENTATION_PLAN.md",
+      "summary": "Extremely detailed, multi-week Progressive Web App implementation plan covering service worker caching, an IndexedDB offline data layer, background sync and conflict resolution, offline authentication, offline trip preparation/downloads, iOS/Safari limitations, offline search, map tile pre-caching, storage management, and edge-case handling. The largest planning document in the project.",
+      "tags": ["documentation", "planning", "pwa", "offline", "service-worker"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/plans/TEST_COVERAGE_PLAN.md",
+      "type": "document",
+      "name": "TEST_COVERAGE_PLAN.md",
+      "filePath": "docs/plans/TEST_COVERAGE_PLAN.md",
+      "summary": "Phased plan to raise backend and frontend test coverage, prioritizing controllers and services first, followed by middleware/utils, route integration tests, frontend services/hooks, and components/pages, with a recommended execution order and target coverage goals.",
+      "tags": ["documentation", "planning", "testing", "coverage"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/plans/UI_IMPROVEMENTS.md",
+      "type": "document",
+      "name": "UI_IMPROVEMENTS.md",
+      "filePath": "docs/plans/UI_IMPROVEMENTS.md",
+      "summary": "Ongoing UI improvement tracker with a dated progress log plus two detailed planned features (a compact trip list view and custom map tile styling), each broken into implementation phases with file-change lists and testing checklists.",
+      "tags": ["documentation", "planning", "ui-ux", "frontend"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md",
+      "target": "document:docs/guides/ROUTING_SETUP.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md",
+      "target": "document:docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/plans/UI_IMPROVEMENTS.md",
+      "target": "document:docs/development/UI_UX_IMPROVEMENT_PLAN.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "id": "pipeline:.github/workflows/docker-build-test.yml",
+      "type": "pipeline",
+      "name": "docker-build-test.yml",
+      "filePath": ".github/workflows/docker-build-test.yml",
+      "summary": "GitHub Actions workflow that builds and tests the backend and frontend Docker images on pushes/pull requests, validating the containerization setup before merge.",
+      "tags": ["ci-cd", "deployment", "containerization", "github-actions"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "pipeline:.github/workflows/release.yml",
+      "type": "pipeline",
+      "name": "release.yml",
+      "filePath": ".github/workflows/release.yml",
+      "summary": "GitHub Actions workflow that automates the release process, building and publishing versioned backend/frontend Docker images and tagging the release.",
+      "tags": ["ci-cd", "deployment", "release-management", "github-actions"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {"source": "pipeline:.github/workflows/docker-build-test.yml", "target": "service:backend/Dockerfile", "type": "triggers", "direction": "forward", "weight": 0.6},
+    {"source": "pipeline:.github/workflows/docker-build-test.yml", "target": "service:frontend/Dockerfile", "type": "triggers", "direction": "forward", "weight": 0.6},
+    {"source": "pipeline:.github/workflows/release.yml", "target": "service:backend/Dockerfile", "type": "triggers", "direction": "forward", "weight": 0.6},
+    {"source": "pipeline:.github/workflows/release.yml", "target": "service:frontend/Dockerfile", "type": "triggers", "direction": "forward", "weight": 0.6}
+  ]
+}

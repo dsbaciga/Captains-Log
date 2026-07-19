@@ -1,0 +1,741 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/pwa/StorageUsageBar.tsx",
+      "type": "file",
+      "name": "StorageUsageBar.tsx",
+      "filePath": "frontend/src/components/pwa/StorageUsageBar.tsx",
+      "summary": "React component rendering a segmented bar chart of offline/PWA storage usage by category, with hover tooltips and an optional legend, backed by the storageManager service.",
+      "tags": ["component", "pwa", "storage", "visualization", "offline"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/hooks/usePdfImportPolling.ts",
+      "type": "file",
+      "name": "usePdfImportPolling.ts",
+      "filePath": "frontend/src/hooks/usePdfImportPolling.ts",
+      "summary": "Hook that polls the PDF import status endpoint at an interval until the import reaches a terminal state or times out.",
+      "tags": ["hook", "polling", "pdf-import", "ai"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/hooks/useSyncConflicts.ts",
+      "type": "file",
+      "name": "useSyncConflicts.ts",
+      "filePath": "frontend/src/hooks/useSyncConflicts.ts",
+      "summary": "Hook managing offline-sync conflict state, persisting unresolved and resolved conflicts to localStorage and exposing add/resolve/dismiss actions for the conflict resolution UI.",
+      "tags": ["hook", "offline-sync", "conflict-resolution", "local-storage"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/pages/ChecklistDetailPage.tsx",
+      "type": "file",
+      "name": "ChecklistDetailPage.tsx",
+      "filePath": "frontend/src/pages/ChecklistDetailPage.tsx",
+      "summary": "Page component for viewing and editing a single checklist, including adding/checking/removing items and managing default checklist items.",
+      "tags": ["page", "checklist", "crud", "component"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/pages/ChecklistsPage.tsx",
+      "type": "file",
+      "name": "ChecklistsPage.tsx",
+      "filePath": "frontend/src/pages/ChecklistsPage.tsx",
+      "summary": "Page component listing a user's checklists (global and per-trip), supporting creation, deletion, and navigation to checklist detail views.",
+      "tags": ["page", "checklist", "list-view", "component"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/pages/TripSeriesListPage.tsx",
+      "type": "file",
+      "name": "TripSeriesListPage.tsx",
+      "filePath": "frontend/src/pages/TripSeriesListPage.tsx",
+      "summary": "Page component listing a user's trip series (grouped multi-trip journeys) with creation via modal and computed date ranges per series.",
+      "tags": ["page", "trip-series", "list-view", "component"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/pages/TripSeriesPage.tsx",
+      "type": "file",
+      "name": "TripSeriesPage.tsx",
+      "filePath": "frontend/src/pages/TripSeriesPage.tsx",
+      "summary": "Page component for a single trip series showing its member trips, allowing trips to be added, removed, and reordered within the series.",
+      "tags": ["page", "trip-series", "detail-view", "component"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/services/airport.service.ts",
+      "type": "file",
+      "name": "airport.service.ts",
+      "filePath": "frontend/src/services/airport.service.ts",
+      "summary": "API client service for searching airports by IATA/ICAO code or name, used to power airport autocomplete inputs.",
+      "tags": ["service", "api-client", "airport", "singleton"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/services/checklist.service.ts",
+      "type": "file",
+      "name": "checklist.service.ts",
+      "filePath": "frontend/src/services/checklist.service.ts",
+      "summary": "API client service for CRUD operations on checklists and checklist items, including default-checklist management (initialize, remove, restore, auto-check from trip data).",
+      "tags": ["service", "api-client", "checklist", "singleton"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/services/languagePhrase.service.ts",
+      "type": "file",
+      "name": "languagePhrase.service.ts",
+      "filePath": "frontend/src/services/languagePhrase.service.ts",
+      "summary": "API client service for the trip language phrasebook feature: listing available languages/phrases/categories and managing which languages are associated with a trip.",
+      "tags": ["service", "api-client", "language", "singleton"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/services/packingSuggestion.service.ts",
+      "type": "file",
+      "name": "packingSuggestion.service.ts",
+      "filePath": "frontend/src/services/packingSuggestion.service.ts",
+      "summary": "Minimal API client service that fetches weather-based packing suggestions for a trip.",
+      "tags": ["service", "api-client", "packing", "singleton"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/services/pdfImport.service.ts",
+      "type": "file",
+      "name": "pdfImport.service.ts",
+      "filePath": "frontend/src/services/pdfImport.service.ts",
+      "summary": "API client service for the AI-powered PDF import feature: uploading PDFs, polling import status, and reviewing/accepting/rejecting AI-extracted pending entities.",
+      "tags": ["service", "api-client", "pdf-import", "ai", "singleton"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/services/storageManager.service.ts",
+      "type": "file",
+      "name": "storageManager.service.ts",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "summary": "Client-side offline storage manager for the PWA: measures Cache Storage and IndexedDB usage, computes a category breakdown, lists cached trips, and clears stale or per-trip offline data, exposed as a default-exported singleton.",
+      "tags": ["service", "storage", "offline", "pwa", "indexeddb"],
+      "complexity": "complex",
+      "languageNotes": "Uses the browser Cache Storage and IndexedDB APIs directly (via idb-style promise wrapping) rather than a dedicated storage library; most functions are aggregated into a single default-exported object rather than named exports."
+    },
+    {
+      "id": "file:frontend/src/services/travelDocument.service.ts",
+      "type": "file",
+      "name": "travelDocument.service.ts",
+      "filePath": "frontend/src/services/travelDocument.service.ts",
+      "summary": "API client service for managing travel documents (passports, visas, etc.) and their expiration alerts, exported as a plain singleton object.",
+      "tags": ["service", "api-client", "travel-document", "singleton"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/services/tripSeries.service.ts",
+      "type": "file",
+      "name": "tripSeries.service.ts",
+      "filePath": "frontend/src/services/tripSeries.service.ts",
+      "summary": "API client service for CRUD on trip series and for adding, removing, and reordering trips within a series.",
+      "tags": ["service", "api-client", "trip-series", "singleton"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/checklist.ts",
+      "type": "file",
+      "name": "checklist.ts",
+      "filePath": "frontend/src/types/checklist.ts",
+      "summary": "TypeScript interfaces for checklists and checklist items, including DTOs for create/update operations and stats/progress fields.",
+      "tags": ["type-definition", "checklist"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/types/languagePhrase.ts",
+      "type": "file",
+      "name": "languagePhrase.ts",
+      "filePath": "frontend/src/types/languagePhrase.ts",
+      "summary": "TypeScript interfaces for language phrases and trip-language associations, plus a CATEGORY_INFO lookup used by the phrasebook UI.",
+      "tags": ["type-definition", "language", "phrasebook"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/types/packingSuggestion.ts",
+      "type": "file",
+      "name": "packingSuggestion.ts",
+      "filePath": "frontend/src/types/packingSuggestion.ts",
+      "summary": "TypeScript interfaces for weather-based packing suggestions, including category/priority unions and the weather-conditions summary used to generate them.",
+      "tags": ["type-definition", "packing", "weather"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/pdfImport.ts",
+      "type": "file",
+      "name": "pdfImport.ts",
+      "filePath": "frontend/src/types/pdfImport.ts",
+      "summary": "TypeScript interfaces for PDF import records and AI-extracted pending entities, including their status/type unions.",
+      "tags": ["type-definition", "pdf-import", "ai"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/sync.types.ts",
+      "type": "file",
+      "name": "sync.types.ts",
+      "filePath": "frontend/src/types/sync.types.ts",
+      "summary": "Type definitions and helper functions for the offline-sync conflict resolution UI: entity/resolution labels and icons, field-level diffing, value formatting, and merged-data construction.",
+      "tags": ["type-definition", "offline-sync", "conflict-resolution", "utility"],
+      "complexity": "complex",
+      "languageNotes": "Combines pure type declarations with a substantial set of exported helper functions (field diffing, formatting, merge logic), unusual for a *.types.ts file."
+    },
+    {
+      "id": "file:frontend/src/types/travelDocument.ts",
+      "type": "file",
+      "name": "travelDocument.ts",
+      "filePath": "frontend/src/types/travelDocument.ts",
+      "summary": "TypeScript interfaces for travel documents and document alerts, plus helper functions computing expiration status styling/labels and a document-type icon.",
+      "tags": ["type-definition", "travel-document", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/types/tripSeries.ts",
+      "type": "file",
+      "name": "tripSeries.ts",
+      "filePath": "frontend/src/types/tripSeries.ts",
+      "summary": "TypeScript interfaces for trip series and their member trips, plus create/update input DTOs.",
+      "tags": ["type-definition", "trip-series"],
+      "complexity": "simple"
+    },
+
+    {
+      "id": "function:frontend/src/components/pwa/StorageUsageBar.tsx:StorageUsageBar",
+      "type": "function",
+      "name": "StorageUsageBar",
+      "filePath": "frontend/src/components/pwa/StorageUsageBar.tsx",
+      "lineRange": [143, 394],
+      "summary": "Default-exported component that loads storage usage/breakdown data on mount, renders a segmented usage bar with per-category hover tooltips, and optionally a legend.",
+      "tags": ["component", "pwa", "storage"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/hooks/usePdfImportPolling.ts:usePdfImportPolling",
+      "type": "function",
+      "name": "usePdfImportPolling",
+      "filePath": "frontend/src/hooks/usePdfImportPolling.ts",
+      "lineRange": [13, 46],
+      "summary": "Hook that runs a TanStack Query polling loop against pdfImportService.getPdfImportById, stopping once the import reaches a terminal status or a timeout elapses.",
+      "tags": ["hook", "polling", "pdf-import"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/hooks/useSyncConflicts.ts:useSyncConflicts",
+      "type": "function",
+      "name": "useSyncConflicts",
+      "filePath": "frontend/src/hooks/useSyncConflicts.ts",
+      "lineRange": [104, 358],
+      "summary": "Hook exposing conflict list state and add/resolve/dismiss/clear-history actions, persisting active and resolved conflicts to localStorage across sessions.",
+      "tags": ["hook", "offline-sync", "conflict-resolution"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/pages/ChecklistDetailPage.tsx:ChecklistDetailPage",
+      "type": "function",
+      "name": "ChecklistDetailPage",
+      "filePath": "frontend/src/pages/ChecklistDetailPage.tsx",
+      "lineRange": [9, 408],
+      "summary": "Default-exported page rendering a single checklist's items with toggling, adding, editing, and deleting, plus default-checklist restore/remove controls.",
+      "tags": ["page", "checklist", "crud"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/pages/ChecklistsPage.tsx:ChecklistsPage",
+      "type": "function",
+      "name": "ChecklistsPage",
+      "filePath": "frontend/src/pages/ChecklistsPage.tsx",
+      "lineRange": [15, 404],
+      "summary": "Default-exported page listing all checklists for the user, grouped by trip, with create/delete actions and empty-state handling.",
+      "tags": ["page", "checklist", "list-view"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/pages/TripSeriesListPage.tsx:getSeriesDateRange",
+      "type": "function",
+      "name": "getSeriesDateRange",
+      "filePath": "frontend/src/pages/TripSeriesListPage.tsx",
+      "lineRange": [15, 34],
+      "summary": "Helper that derives the earliest start date and latest end date across a trip series' member trips for display in the list.",
+      "tags": ["utility", "trip-series", "date"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/pages/TripSeriesListPage.tsx:TripSeriesListPage",
+      "type": "function",
+      "name": "TripSeriesListPage",
+      "filePath": "frontend/src/pages/TripSeriesListPage.tsx",
+      "lineRange": [36, 227],
+      "summary": "Default-exported page listing the user's trip series with a modal for creating new series and empty-state handling.",
+      "tags": ["page", "trip-series", "list-view"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/pages/TripSeriesPage.tsx:formatDate",
+      "type": "function",
+      "name": "formatDate",
+      "filePath": "frontend/src/pages/TripSeriesPage.tsx",
+      "lineRange": [13, 24],
+      "summary": "Local helper formatting an ISO date string for display on the trip series page.",
+      "tags": ["utility", "date", "formatting"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/pages/TripSeriesPage.tsx:getStatusColor",
+      "type": "function",
+      "name": "getStatusColor",
+      "filePath": "frontend/src/pages/TripSeriesPage.tsx",
+      "lineRange": [27, 37],
+      "summary": "Local helper mapping a trip status value to a Tailwind color class for the trip-series trip list.",
+      "tags": ["utility", "styling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/pages/TripSeriesPage.tsx:TripSeriesPage",
+      "type": "function",
+      "name": "TripSeriesPage",
+      "filePath": "frontend/src/pages/TripSeriesPage.tsx",
+      "lineRange": [39, 498],
+      "summary": "Default-exported page for a single trip series, showing member trips with add/remove/reorder actions and per-trip status/date display.",
+      "tags": ["page", "trip-series", "detail-view"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:frontend/src/services/airport.service.ts:AirportService",
+      "type": "class",
+      "name": "AirportService",
+      "filePath": "frontend/src/services/airport.service.ts",
+      "lineRange": [14, 33],
+      "summary": "Service class with a single searchAirports method querying the backend airport-search endpoint, instantiated and default-exported as a singleton.",
+      "tags": ["service", "api-client", "airport"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:frontend/src/services/checklist.service.ts:ChecklistService",
+      "type": "class",
+      "name": "ChecklistService",
+      "filePath": "frontend/src/services/checklist.service.ts",
+      "lineRange": [13, 142],
+      "summary": "Service class wrapping all checklist and checklist-item CRUD endpoints plus default-checklist management (initialize, restore, remove, auto-check), default-exported as a singleton.",
+      "tags": ["service", "api-client", "checklist"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:frontend/src/services/languagePhrase.service.ts:LanguagePhraseService",
+      "type": "class",
+      "name": "LanguagePhraseService",
+      "filePath": "frontend/src/services/languagePhrase.service.ts",
+      "lineRange": [10, 90],
+      "summary": "Service class wrapping phrasebook endpoints (languages, phrases, categories) and trip-language association management, default-exported as a singleton.",
+      "tags": ["service", "api-client", "language"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:frontend/src/services/packingSuggestion.service.ts:PackingSuggestionService",
+      "type": "class",
+      "name": "PackingSuggestionService",
+      "filePath": "frontend/src/services/packingSuggestion.service.ts",
+      "lineRange": [4, 12],
+      "summary": "Minimal service class with a single getSuggestions method fetching weather-based packing suggestions, default-exported as a singleton.",
+      "tags": ["service", "api-client", "packing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:frontend/src/services/pdfImport.service.ts:PdfImportService",
+      "type": "class",
+      "name": "PdfImportService",
+      "filePath": "frontend/src/services/pdfImport.service.ts",
+      "lineRange": [4, 72],
+      "summary": "Service class wrapping the PDF-upload, import-status, and pending-entity review (accept/reject/update/reparse) endpoints, default-exported as a singleton.",
+      "tags": ["service", "api-client", "pdf-import", "ai"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:frontend/src/services/tripSeries.service.ts:TripSeriesService",
+      "type": "class",
+      "name": "TripSeriesService",
+      "filePath": "frontend/src/services/tripSeries.service.ts",
+      "lineRange": [4, 40],
+      "summary": "Service class wrapping trip-series CRUD plus add/remove/reorder-trip endpoints, default-exported as a singleton.",
+      "tags": ["service", "api-client", "trip-series"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:formatBytes",
+      "type": "function",
+      "name": "formatBytes",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [110, 120],
+      "summary": "Named-exported helper formatting a byte count into a human-readable string (KB/MB/GB).",
+      "tags": ["utility", "formatting", "storage"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:getCacheSize",
+      "type": "function",
+      "name": "getCacheSize",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [133, 152],
+      "summary": "Computes the total byte size of a named Cache Storage cache by summing its response body sizes.",
+      "tags": ["storage", "cache-storage", "pwa"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:getIndexedDBStoreSize",
+      "type": "function",
+      "name": "getIndexedDBStoreSize",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [157, 183],
+      "summary": "Estimates the byte size of an IndexedDB object store by iterating its records and summing serialized sizes.",
+      "tags": ["storage", "indexeddb", "pwa"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:openDatabase",
+      "type": "function",
+      "name": "openDatabase",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [188, 204],
+      "summary": "Opens (or creates) the app's IndexedDB database, wrapped in a Promise for use by the other storage-measurement functions.",
+      "tags": ["storage", "indexeddb"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:getStorageUsage",
+      "type": "function",
+      "name": "getStorageUsage",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [213, 235],
+      "summary": "Aggregates total and per-source (Cache Storage vs IndexedDB) storage usage using the Storage Manager API where available.",
+      "tags": ["storage", "pwa", "quota"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:getStorageBreakdown",
+      "type": "function",
+      "name": "getStorageBreakdown",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [240, 326],
+      "summary": "Computes a per-category (photos, trips, documents, etc.) breakdown of offline storage usage across caches and IndexedDB stores, consumed by StorageUsageBar.",
+      "tags": ["storage", "pwa", "aggregation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:getCachedTrips",
+      "type": "function",
+      "name": "getCachedTrips",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [331, 406],
+      "summary": "Lists trips currently cached for offline access along with metadata such as cached size and last-updated timestamp.",
+      "tags": ["storage", "offline", "trip"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:clearCategory",
+      "type": "function",
+      "name": "clearCategory",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [411, 528],
+      "summary": "Clears all cached data belonging to a single storage category (e.g. photos, documents) across relevant caches and IndexedDB stores.",
+      "tags": ["storage", "cleanup", "offline"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:clearAllOfflineData",
+      "type": "function",
+      "name": "clearAllOfflineData",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [533, 553],
+      "summary": "Clears every offline cache and IndexedDB store used by the PWA, effectively resetting local storage.",
+      "tags": ["storage", "cleanup", "pwa"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:clearOldData",
+      "type": "function",
+      "name": "clearOldData",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [558, 647],
+      "summary": "Removes cached data older than a given age threshold across storage sources, supporting the auto-cleanup feature.",
+      "tags": ["storage", "cleanup", "auto-cleanup"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:getOldestData",
+      "type": "function",
+      "name": "getOldestData",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [652, 741],
+      "summary": "Returns the oldest cached items up to a limit, used to preview what would be removed by cleanup operations.",
+      "tags": ["storage", "cleanup", "offline"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:getAutoCleanupSettings",
+      "type": "function",
+      "name": "getAutoCleanupSettings",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [758, 768],
+      "summary": "Reads the user's auto-cleanup preferences (enabled flag, max age) from localStorage with defaults.",
+      "tags": ["storage", "settings", "auto-cleanup"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/services/storageManager.service.ts:clearTripData",
+      "type": "function",
+      "name": "clearTripData",
+      "filePath": "frontend/src/services/storageManager.service.ts",
+      "lineRange": [782, 839],
+      "summary": "Clears all cached data (photos, details, documents) associated with a single trip ID from offline storage.",
+      "tags": ["storage", "cleanup", "trip"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/types/sync.types.ts:getFieldLabel",
+      "type": "function",
+      "name": "getFieldLabel",
+      "filePath": "frontend/src/types/sync.types.ts",
+      "lineRange": [258, 260],
+      "summary": "Exported helper returning a human-readable label for an entity field name, used by the conflict-diff UI.",
+      "tags": ["utility", "conflict-resolution", "formatting"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/types/sync.types.ts:formatFieldName",
+      "type": "function",
+      "name": "formatFieldName",
+      "filePath": "frontend/src/types/sync.types.ts",
+      "lineRange": [265, 276],
+      "summary": "Exported helper converting a camelCase field name into a display-friendly label when no explicit FIELD_LABELS entry exists.",
+      "tags": ["utility", "conflict-resolution", "formatting"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/types/sync.types.ts:formatValueForDisplay",
+      "type": "function",
+      "name": "formatValueForDisplay",
+      "filePath": "frontend/src/types/sync.types.ts",
+      "lineRange": [281, 330],
+      "summary": "Exported helper formatting a conflict field's raw value (dates, booleans, nulls, objects) into a readable string for the diff view.",
+      "tags": ["utility", "conflict-resolution", "formatting"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/types/sync.types.ts:valuesAreDifferent",
+      "type": "function",
+      "name": "valuesAreDifferent",
+      "filePath": "frontend/src/types/sync.types.ts",
+      "lineRange": [335, 346],
+      "summary": "Exported helper performing a value-aware equality check (handling nulls and type coercion) to decide whether two conflicting field values actually differ.",
+      "tags": ["utility", "conflict-resolution"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/types/sync.types.ts:getFieldDiffs",
+      "type": "function",
+      "name": "getFieldDiffs",
+      "filePath": "frontend/src/types/sync.types.ts",
+      "lineRange": [351, 378],
+      "summary": "Exported helper that compares local and server versions of an entity and returns the list of fields that differ, excluding fields marked in EXCLUDED_DIFF_FIELDS.",
+      "tags": ["utility", "conflict-resolution", "diffing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/types/sync.types.ts:createMergedData",
+      "type": "function",
+      "name": "createMergedData",
+      "filePath": "frontend/src/types/sync.types.ts",
+      "lineRange": [383, 415],
+      "summary": "Exported helper that builds a merged entity object from local and server versions based on per-field resolution choices.",
+      "tags": ["utility", "conflict-resolution", "merge"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/types/travelDocument.ts:getExpirationStatusClasses",
+      "type": "function",
+      "name": "getExpirationStatusClasses",
+      "filePath": "frontend/src/types/travelDocument.ts",
+      "lineRange": [99, 113],
+      "summary": "Exported helper mapping a travel document's expiration status to Tailwind CSS classes for alert styling.",
+      "tags": ["utility", "travel-document", "styling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/types/travelDocument.ts:getExpirationStatusLabel",
+      "type": "function",
+      "name": "getExpirationStatusLabel",
+      "filePath": "frontend/src/types/travelDocument.ts",
+      "lineRange": [116, 134],
+      "summary": "Exported helper producing a human-readable label describing a travel document's expiration status (e.g. days remaining, expired).",
+      "tags": ["utility", "travel-document", "formatting"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/types/travelDocument.ts:getDocumentTypeIcon",
+      "type": "function",
+      "name": "getDocumentTypeIcon",
+      "filePath": "frontend/src/types/travelDocument.ts",
+      "lineRange": [137, 152],
+      "summary": "Exported helper returning an emoji/icon representing a travel document type (passport, visa, etc.).",
+      "tags": ["utility", "travel-document"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    { "source": "file:frontend/src/components/pwa/StorageUsageBar.tsx", "target": "file:frontend/src/services/storageManager.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/hooks/usePdfImportPolling.ts", "target": "file:frontend/src/services/pdfImport.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/hooks/usePdfImportPolling.ts", "target": "file:frontend/src/types/pdfImport.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/hooks/useSyncConflicts.ts", "target": "file:frontend/src/types/sync.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/pages/ChecklistDetailPage.tsx", "target": "file:frontend/src/components/AirportSearchInput.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistDetailPage.tsx", "target": "file:frontend/src/components/Breadcrumbs.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistDetailPage.tsx", "target": "file:frontend/src/hooks/useConfirmDialog.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistDetailPage.tsx", "target": "file:frontend/src/services/checklist.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistDetailPage.tsx", "target": "file:frontend/src/types/checklist.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/components/ChecklistSelectorModal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/components/EmptyState.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/components/LoadingSpinner.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/components/PageHeader.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/hooks/useConfirmDialog.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/services/checklist.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/services/trip.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/types/checklist.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "file:frontend/src/types/trip.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "file:frontend/src/components/Breadcrumbs.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "file:frontend/src/components/EmptyState.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "file:frontend/src/components/LoadingSpinner.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "file:frontend/src/components/Modal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "file:frontend/src/services/tripSeries.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "file:frontend/src/types/tripSeries.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "file:frontend/src/components/Breadcrumbs.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "file:frontend/src/components/LoadingSpinner.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "file:frontend/src/hooks/useConfirmDialog.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "file:frontend/src/services/trip.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "file:frontend/src/services/tripSeries.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "file:frontend/src/types/tripSeries.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/airport.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/checklist.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/checklist.service.ts", "target": "file:frontend/src/types/checklist.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/languagePhrase.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/languagePhrase.service.ts", "target": "file:frontend/src/types/languagePhrase.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/packingSuggestion.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/packingSuggestion.service.ts", "target": "file:frontend/src/types/packingSuggestion.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/pdfImport.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/pdfImport.service.ts", "target": "file:frontend/src/types/pdfImport.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/travelDocument.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/travelDocument.service.ts", "target": "file:frontend/src/types/travelDocument.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/tripSeries.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/tripSeries.service.ts", "target": "file:frontend/src/types/tripSeries.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/pwa/StorageUsageBar.tsx", "target": "function:frontend/src/components/pwa/StorageUsageBar.tsx:StorageUsageBar", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pwa/StorageUsageBar.tsx", "target": "function:frontend/src/components/pwa/StorageUsageBar.tsx:StorageUsageBar", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/hooks/usePdfImportPolling.ts", "target": "function:frontend/src/hooks/usePdfImportPolling.ts:usePdfImportPolling", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/hooks/usePdfImportPolling.ts", "target": "function:frontend/src/hooks/usePdfImportPolling.ts:usePdfImportPolling", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/hooks/useSyncConflicts.ts", "target": "function:frontend/src/hooks/useSyncConflicts.ts:useSyncConflicts", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/hooks/useSyncConflicts.ts", "target": "function:frontend/src/hooks/useSyncConflicts.ts:useSyncConflicts", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/pages/ChecklistDetailPage.tsx", "target": "function:frontend/src/pages/ChecklistDetailPage.tsx:ChecklistDetailPage", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/pages/ChecklistDetailPage.tsx", "target": "function:frontend/src/pages/ChecklistDetailPage.tsx:ChecklistDetailPage", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "function:frontend/src/pages/ChecklistsPage.tsx:ChecklistsPage", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/pages/ChecklistsPage.tsx", "target": "function:frontend/src/pages/ChecklistsPage.tsx:ChecklistsPage", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "function:frontend/src/pages/TripSeriesListPage.tsx:getSeriesDateRange", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "function:frontend/src/pages/TripSeriesListPage.tsx:TripSeriesListPage", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/pages/TripSeriesListPage.tsx", "target": "function:frontend/src/pages/TripSeriesListPage.tsx:TripSeriesListPage", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/pages/TripSeriesListPage.tsx:TripSeriesListPage", "target": "function:frontend/src/pages/TripSeriesListPage.tsx:getSeriesDateRange", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "function:frontend/src/pages/TripSeriesPage.tsx:formatDate", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "function:frontend/src/pages/TripSeriesPage.tsx:getStatusColor", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "function:frontend/src/pages/TripSeriesPage.tsx:TripSeriesPage", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/pages/TripSeriesPage.tsx", "target": "function:frontend/src/pages/TripSeriesPage.tsx:TripSeriesPage", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/pages/TripSeriesPage.tsx:TripSeriesPage", "target": "function:frontend/src/pages/TripSeriesPage.tsx:formatDate", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/pages/TripSeriesPage.tsx:TripSeriesPage", "target": "function:frontend/src/pages/TripSeriesPage.tsx:getStatusColor", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/services/airport.service.ts", "target": "class:frontend/src/services/airport.service.ts:AirportService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/airport.service.ts", "target": "class:frontend/src/services/airport.service.ts:AirportService", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/services/checklist.service.ts", "target": "class:frontend/src/services/checklist.service.ts:ChecklistService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/checklist.service.ts", "target": "class:frontend/src/services/checklist.service.ts:ChecklistService", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/services/languagePhrase.service.ts", "target": "class:frontend/src/services/languagePhrase.service.ts:LanguagePhraseService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/languagePhrase.service.ts", "target": "class:frontend/src/services/languagePhrase.service.ts:LanguagePhraseService", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/services/packingSuggestion.service.ts", "target": "class:frontend/src/services/packingSuggestion.service.ts:PackingSuggestionService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/packingSuggestion.service.ts", "target": "class:frontend/src/services/packingSuggestion.service.ts:PackingSuggestionService", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/services/pdfImport.service.ts", "target": "class:frontend/src/services/pdfImport.service.ts:PdfImportService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/pdfImport.service.ts", "target": "class:frontend/src/services/pdfImport.service.ts:PdfImportService", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/services/tripSeries.service.ts", "target": "class:frontend/src/services/tripSeries.service.ts:TripSeriesService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/tripSeries.service.ts", "target": "class:frontend/src/services/tripSeries.service.ts:TripSeriesService", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:formatBytes", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:formatBytes", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:getCacheSize", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:getIndexedDBStoreSize", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:openDatabase", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:getStorageUsage", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:getStorageBreakdown", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:getCachedTrips", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:clearCategory", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:clearAllOfflineData", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:clearOldData", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:getOldestData", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:getAutoCleanupSettings", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/storageManager.service.ts", "target": "function:frontend/src/services/storageManager.service.ts:clearTripData", "type": "contains", "direction": "forward", "weight": 1.0 },
+
+    { "source": "function:frontend/src/services/storageManager.service.ts:getStorageBreakdown", "target": "function:frontend/src/services/storageManager.service.ts:getCacheSize", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/services/storageManager.service.ts:getStorageBreakdown", "target": "function:frontend/src/services/storageManager.service.ts:getIndexedDBStoreSize", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/services/storageManager.service.ts:getStorageBreakdown", "target": "function:frontend/src/services/storageManager.service.ts:openDatabase", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "function:frontend/src/components/pwa/StorageUsageBar.tsx:StorageUsageBar", "target": "function:frontend/src/services/storageManager.service.ts:getStorageUsage", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pwa/StorageUsageBar.tsx:StorageUsageBar", "target": "function:frontend/src/services/storageManager.service.ts:getStorageBreakdown", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "function:frontend/src/hooks/usePdfImportPolling.ts:usePdfImportPolling", "target": "class:frontend/src/services/pdfImport.service.ts:PdfImportService", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "function:frontend/src/pages/ChecklistDetailPage.tsx:ChecklistDetailPage", "target": "class:frontend/src/services/checklist.service.ts:ChecklistService", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/pages/ChecklistsPage.tsx:ChecklistsPage", "target": "class:frontend/src/services/checklist.service.ts:ChecklistService", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/pages/TripSeriesListPage.tsx:TripSeriesListPage", "target": "class:frontend/src/services/tripSeries.service.ts:TripSeriesService", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/pages/TripSeriesPage.tsx:TripSeriesPage", "target": "class:frontend/src/services/tripSeries.service.ts:TripSeriesService", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:getFieldLabel", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:getFieldLabel", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:formatFieldName", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:formatFieldName", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:formatValueForDisplay", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:formatValueForDisplay", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:valuesAreDifferent", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:valuesAreDifferent", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:getFieldDiffs", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:getFieldDiffs", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:createMergedData", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/sync.types.ts", "target": "function:frontend/src/types/sync.types.ts:createMergedData", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "function:frontend/src/types/sync.types.ts:getFieldDiffs", "target": "function:frontend/src/types/sync.types.ts:valuesAreDifferent", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/types/sync.types.ts:formatFieldName", "target": "function:frontend/src/types/sync.types.ts:getFieldLabel", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/hooks/useSyncConflicts.ts:useSyncConflicts", "target": "function:frontend/src/types/sync.types.ts:getFieldDiffs", "type": "depends_on", "direction": "forward", "weight": 0.6 },
+
+    { "source": "file:frontend/src/types/travelDocument.ts", "target": "function:frontend/src/types/travelDocument.ts:getExpirationStatusClasses", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/travelDocument.ts", "target": "function:frontend/src/types/travelDocument.ts:getExpirationStatusClasses", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/travelDocument.ts", "target": "function:frontend/src/types/travelDocument.ts:getExpirationStatusLabel", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/travelDocument.ts", "target": "function:frontend/src/types/travelDocument.ts:getExpirationStatusLabel", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/travelDocument.ts", "target": "function:frontend/src/types/travelDocument.ts:getDocumentTypeIcon", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/travelDocument.ts", "target": "function:frontend/src/types/travelDocument.ts:getDocumentTypeIcon", "type": "exports", "direction": "forward", "weight": 0.8 }
+  ]
+}

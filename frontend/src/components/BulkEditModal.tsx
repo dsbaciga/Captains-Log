@@ -4,11 +4,13 @@ import FormSection from './FormSection';
 import type { BulkEntityType } from './BulkActionBar';
 
 /**
- * Field configuration for bulk edit
+ * Field configuration for bulk edit.
+ * `key` is constrained to the keys of the caller's update type `T`, so a
+ * typo'd or stale field key is caught at compile time.
  */
-interface BulkEditField {
+interface BulkEditField<T> {
   /** Unique field key */
-  key: string;
+  key: keyof T & string;
   /** Display label */
   label: string;
   /** Field type */
@@ -19,7 +21,7 @@ interface BulkEditField {
   placeholder?: string;
 }
 
-interface BulkEditModalProps {
+interface BulkEditModalProps<T extends Record<string, unknown>> {
   /** Whether the modal is open */
   isOpen: boolean;
   /** Callback to close the modal */
@@ -29,9 +31,9 @@ interface BulkEditModalProps {
   /** Number of items being edited */
   selectedCount: number;
   /** Available fields for bulk edit */
-  fields: BulkEditField[];
+  fields: BulkEditField<T>[];
   /** Callback when edit is submitted */
-  onSubmit: (updates: Record<string, unknown>) => Promise<void>;
+  onSubmit: (updates: T) => Promise<void>;
   /** Whether submission is in progress */
   isSubmitting?: boolean;
 }
@@ -48,7 +50,7 @@ interface BulkEditModalProps {
  *
  * @example
  * ```tsx
- * <BulkEditModal
+ * <BulkEditModal<{ category?: string; notes?: string }>
  *   isOpen={showBulkEdit}
  *   onClose={() => setShowBulkEdit(false)}
  *   entityType="activity"
@@ -62,7 +64,7 @@ interface BulkEditModalProps {
  * />
  * ```
  */
-export default function BulkEditModal({
+export default function BulkEditModal<T extends Record<string, unknown>>({
   isOpen,
   onClose,
   entityType,
@@ -70,7 +72,7 @@ export default function BulkEditModal({
   fields,
   onSubmit,
   isSubmitting = false,
-}: BulkEditModalProps) {
+}: BulkEditModalProps<T>) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -112,7 +114,10 @@ export default function BulkEditModal({
       return;
     }
 
-    await onSubmit(updates);
+    // Safe: `fields` is typed as BulkEditField<T>[], so every key inserted
+    // above is a key of T. This is the single point that bridges the
+    // dynamically-built form values into the caller's static update type.
+    await onSubmit(updates as T);
   };
 
   const handleClose = () => {
@@ -125,7 +130,7 @@ export default function BulkEditModal({
   const entityLabel = entityType.charAt(0).toUpperCase() + entityType.slice(1);
   const pluralLabel = selectedCount === 1 ? entityLabel : `${entityLabel}s`;
 
-  const renderField = (field: BulkEditField) => {
+  const renderField = (field: BulkEditField<T>) => {
     const value = values[field.key] || '';
 
     switch (field.type) {

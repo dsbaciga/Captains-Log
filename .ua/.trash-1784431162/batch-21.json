@@ -1,0 +1,82 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/src/data/language-phrases-extended.ts",
+      "type": "file",
+      "name": "language-phrases-extended.ts",
+      "filePath": "backend/src/data/language-phrases-extended.ts",
+      "summary": "Static dataset of extended offline travel phrase translations, extending the base phrase library with additional languages and phrase categories.",
+      "tags": ["data-model", "static-data", "i18n", "language-phrases"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/data/language-phrases-more.ts",
+      "type": "file",
+      "name": "language-phrases-more.ts",
+      "filePath": "backend/src/data/language-phrases-more.ts",
+      "summary": "Additional static dataset of travel phrase translations supplementing the core and extended phrase libraries.",
+      "tags": ["data-model", "static-data", "i18n", "language-phrases"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/data/language-phrases.ts",
+      "type": "file",
+      "name": "language-phrases.ts",
+      "filePath": "backend/src/data/language-phrases.ts",
+      "summary": "Core static dataset of common travel phrases translated across supported languages, forming the base phrase library for the language phrase feature.",
+      "tags": ["data-model", "static-data", "i18n", "language-phrases"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/__tests__/languagePhrase.service.test.ts",
+      "type": "file",
+      "name": "languagePhrase.service.test.ts",
+      "filePath": "backend/src/services/__tests__/languagePhrase.service.test.ts",
+      "summary": "Unit tests for LanguagePhraseService covering language listing, phrase retrieval by language/category, trip-scoped phrase aggregation, and search functionality.",
+      "tags": ["test", "unit-test", "language-phrases"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/languagePhrase.service.ts",
+      "type": "file",
+      "name": "languagePhrase.service.ts",
+      "filePath": "backend/src/services/languagePhrase.service.ts",
+      "summary": "Backend service that aggregates the static phrase datasets and exposes lookup, filtering, per-trip phrase retrieval, and search operations for travel language phrases.",
+      "tags": ["service", "data-model", "language-phrases", "search"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/src/services/languagePhrase.service.ts:LanguagePhraseService",
+      "type": "class",
+      "name": "LanguagePhraseService",
+      "filePath": "backend/src/services/languagePhrase.service.ts",
+      "lineRange": [24, 142],
+      "summary": "Encapsulates language phrase business logic including language listing, category filtering, trip-scoped phrase aggregation, and full-text search across the static phrase datasets.",
+      "tags": ["service", "data-model", "language-phrases"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/languagePhrase.types.ts",
+      "type": "file",
+      "name": "languagePhrase.types.ts",
+      "filePath": "backend/src/types/languagePhrase.types.ts",
+      "summary": "Zod validation schemas and TypeScript types for language codes, phrase categories, and trip-language association requests used by the language phrase feature.",
+      "tags": ["type-definition", "validation", "zod-schema", "language-phrases"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/src/data/language-phrases-extended.ts", "target": "file:backend/src/types/languagePhrase.types.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/data/language-phrases-more.ts", "target": "file:backend/src/types/languagePhrase.types.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/data/language-phrases.ts", "target": "file:backend/src/types/languagePhrase.types.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/__tests__/languagePhrase.service.test.ts", "target": "file:backend/src/services/languagePhrase.service.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/languagePhrase.service.ts", "target": "file:backend/src/config/database.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/languagePhrase.service.ts", "target": "file:backend/src/data/language-phrases-extended.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/languagePhrase.service.ts", "target": "file:backend/src/data/language-phrases-more.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/languagePhrase.service.ts", "target": "file:backend/src/data/language-phrases.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/languagePhrase.service.ts", "target": "file:backend/src/middleware/errorHandler.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/languagePhrase.service.ts", "target": "file:backend/src/types/languagePhrase.types.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/languagePhrase.service.ts", "target": "class:backend/src/services/languagePhrase.service.ts:LanguagePhraseService", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/languagePhrase.service.ts", "target": "file:backend/src/services/__tests__/languagePhrase.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5}
+  ]
+}

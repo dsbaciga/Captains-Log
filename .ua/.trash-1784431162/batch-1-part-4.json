@@ -1,0 +1,386 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/timeline/utils.ts",
+      "type": "file",
+      "name": "utils.ts",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "summary": "Shared formatting, timezone-string, styling, and connection-info helpers used across timeline components.",
+      "tags": [
+        "utility",
+        "formatting",
+        "timeline"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:getDateStringInTimezone",
+      "type": "function",
+      "name": "getDateStringInTimezone",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        6,
+        25
+      ],
+      "summary": "Computes the calendar-date string (YYYY-MM-DD) for a given instant in a specified timezone.",
+      "tags": [
+        "utility",
+        "timezone"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:formatTime",
+      "type": "function",
+      "name": "formatTime",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        30,
+        44
+      ],
+      "summary": "Formats a time value for display in the timeline.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:getTimezoneAbbr",
+      "type": "function",
+      "name": "getTimezoneAbbr",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        50,
+        116
+      ],
+      "summary": "Derives a short timezone abbreviation string for a given IANA timezone.",
+      "tags": [
+        "utility",
+        "timezone"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:formatDuration",
+      "type": "function",
+      "name": "formatDuration",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        121,
+        128
+      ],
+      "summary": "Formats a duration in minutes as a human-readable string.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:formatDistance",
+      "type": "function",
+      "name": "formatDistance",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        133,
+        139
+      ],
+      "summary": "Formats a distance value with unit for display.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:getDayNumber",
+      "type": "function",
+      "name": "getDayNumber",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        144,
+        165
+      ],
+      "summary": "Computes the ordinal day number of a timeline item relative to the trip's start date.",
+      "tags": [
+        "utility",
+        "date"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:formatDateDisplay",
+      "type": "function",
+      "name": "formatDateDisplay",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        170,
+        180
+      ],
+      "summary": "Formats a date for display as a timeline section heading.",
+      "tags": [
+        "utility",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:getTypeColor",
+      "type": "function",
+      "name": "getTypeColor",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        185,
+        198
+      ],
+      "summary": "Returns the background color class for a given timeline item type.",
+      "tags": [
+        "utility",
+        "styling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:getTypeBorderColor",
+      "type": "function",
+      "name": "getTypeBorderColor",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        203,
+        216
+      ],
+      "summary": "Returns the border color class for a given timeline item type.",
+      "tags": [
+        "utility",
+        "styling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:getTypeTextColor",
+      "type": "function",
+      "name": "getTypeTextColor",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        221,
+        234
+      ],
+      "summary": "Returns the text color class for a given timeline item type.",
+      "tags": [
+        "utility",
+        "styling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:getConnectionInfo",
+      "type": "function",
+      "name": "getConnectionInfo",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        239,
+        264
+      ],
+      "summary": "Computes travel-connection details (gap/overlap) between two consecutive timeline items.",
+      "tags": [
+        "utility",
+        "timeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/utils.ts:mapTimelineTypeToEntityType",
+      "type": "function",
+      "name": "mapTimelineTypeToEntityType",
+      "filePath": "frontend/src/components/timeline/utils.ts",
+      "lineRange": [
+        269,
+        282
+      ],
+      "summary": "Converts a timeline item's type into the corresponding entity-link entity type.",
+      "tags": [
+        "utility",
+        "mapping"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "file:frontend/src/components/timeline/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getDateStringInTimezone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:formatTime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getTimezoneAbbr",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:formatDuration",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:formatDistance",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getDayNumber",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:formatDateDisplay",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getTypeColor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getTypeBorderColor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getTypeTextColor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getConnectionInfo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:mapTimelineTypeToEntityType",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getDateStringInTimezone",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:formatTime",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getTimezoneAbbr",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:formatDuration",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:formatDistance",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getDayNumber",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:formatDateDisplay",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getTypeColor",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getTypeBorderColor",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getTypeTextColor",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:getConnectionInfo",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/utils.ts",
+      "target": "function:frontend/src/components/timeline/utils.ts:mapTimelineTypeToEntityType",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

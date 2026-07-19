@@ -1,0 +1,241 @@
+/**
+ * OIDC Service Tests
+ *
+ * Test cases:
+ * - OIDC-001: sanitizeUsername cleans IdP-provided names
+ * - OIDC-002: Authorization request includes PKCE and state
+ * - OIDC-003: Callback logs in an existing user by OIDC subject
+ * - OIDC-004: Callback links an existing account by email
+ * - OIDC-005: Callback auto-provisions a new user with a unique username
+ * - OIDC-006: Callback rejects first-time sign-in when auto-provisioning is disabled
+ * - OIDC-007: Callback rejects unverified email addresses
+ */
+
+import jwt from 'jsonwebtoken';
+
+jest.mock('../../middleware/errorHandler', () => ({
+  AppError: class AppError extends Error {
+    statusCode: number;
+    isOperational: boolean;
+    constructor(message: string, statusCode: number) {
+      super(message);
+      this.statusCode = statusCode;
+      this.isOperational = true;
+    }
+  },
+}));
+
+const mockOidcConfig = {
+  enabled: true,
+  issuerUrl: 'https://idp.example.com',
+  clientId: 'test-client',
+  clientSecret: 'test-secret',
+  redirectUrl: 'http://localhost:5000/api/auth/oidc/callback',
+  scopes: 'openid profile email',
+  buttonText: 'Sign in with SSO',
+  autoProvision: true,
+};
+
+jest.mock('../../config', () => ({
+  config: {
+    oidc: mockOidcConfig,
+  },
+}));
+
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    create: jest.fn(),
+  },
+};
+
+jest.mock('../../config/database', () => ({
+  __esModule: true,
+  default: mockPrisma,
+}));
+
+jest.mock('../../auth/password', () => ({
+  hashPassword: jest.fn().mockResolvedValue('random-hash'),
+}));
+
+jest.mock('../../auth/jwt', () => ({
+  generateAccessToken: jest.fn().mockReturnValue('access-token'),
+  generateRefreshToken: jest.fn().mockReturnValue('refresh-token'),
+}));
+
+jest.mock('../companion.service', () => ({
+  companionService: {
+    createMyselfCompanion: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+const mockAxios = {
+  get: jest.fn(),
+  post: jest.fn(),
+};
+
+jest.mock('axios', () => ({
+  __esModule: true,
+  default: {
+    get: (...args: unknown[]) => mockAxios.get(...args),
+    post: (...args: unknown[]) => mockAxios.post(...args),
+  },
+}));
+
+import { OidcService, sanitizeUsername } from '../oidc.service';
+import { AppError } from '../../middleware/errorHandler';
+
+const discoveryDocument = {
+  issuer: 'https://idp.example.com',
+  authorization_endpoint: 'https://idp.example.com/authorize',
+  token_endpoint: 'https://idp.example.com/token',
+  userinfo_endpoint: 'https://idp.example.com/userinfo',
+};
+
+/** Builds a decodable (unverified) ID token like the one a real IdP returns. */
+const buildIdToken = (claims: Record<string, unknown>): string =>
+  jwt.sign(claims, 'irrelevant-signing-key');
+
+const existingUser = {
+  id: 1,
+  username: 'traveler',
+  email: 'traveler@example.com',
+  avatarUrl: null,
+  passwordVersion: 0,
+};
+
+describe('OidcService', () => {
+  let service: OidcService;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockOidcConfig.autoProvision = true;
+    service = new OidcService();
+    mockAxios.get.mockResolvedValue({ data: discoveryDocument });
+  });
+
+  describe('sanitizeUsername (OIDC-001)', () => {
+    it('lowercases and strips disallowed characters', () => {
+      expect(sanitizeUsername('Jane Doe!')).toBe('janedoe');
+      expect(sanitizeUsername('user.name-42')).toBe('user.name-42');
+    });
+
+    it('pads names that become too short', () => {
+      expect(sanitizeUsername('A')).toBe('usera');
+      expect(sanitizeUsername('株式会社')).toBe('user');
+    });
+  });
+
+  describe('createAuthorizationRequest (OIDC-002)', () => {
+    it('builds an authorization URL with PKCE challenge and state', async () => {
+      const { url, state, codeVerifier } = await service.createAuthorizationRequest();
+
+      const parsed = new URL(url);
+      expect(url.startsWith('https://idp.example.com/authorize?')).toBe(true);
+      expect(parsed.searchParams.get('response_type')).toBe('code');
+      expect(parsed.searchParams.get('client_id')).toBe('test-client');
+      expect(parsed.searchParams.get('state')).toBe(state);
+      expect(parsed.searchParams.get('code_challenge_method')).toBe('S256');
+      expect(parsed.searchParams.get('code_challenge')).toBeTruthy();
+      expect(codeVerifier.length).toBeGreaterThanOrEqual(43);
+    });
+  });
+
+  describe('handleCallback', () => {
+    const idToken = buildIdToken({
+      sub: 'subject-123',
+      email: 'traveler@example.com',
+      email_verified: true,
+      preferred_username: 'Traveler',
+    });
+
+    beforeEach(() => {
+      mockAxios.post.mockResolvedValue({ data: { id_token: idToken, access_token: 'idp-access' } });
+    });
+
+    it('logs in an existing user matched by OIDC subject (OIDC-003)', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(existingUser);
+
+      const result = await service.handleCallback('auth-code', 'verifier');
+
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { oidcSubject: 'https://idp.example.com|subject-123' },
+      });
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+      expect(result.user).toEqual({
+        id: 1,
+        username: 'traveler',
+        email: 'traveler@example.com',
+        avatarUrl: null,
+      });
+      expect(result.accessToken).toBe('access-token');
+      expect(result.refreshToken).toBe('refresh-token');
+    });
+
+    it('links an existing account by email on first OIDC sign-in (OIDC-004)', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null) // no user with this subject
+        .mockResolvedValueOnce(existingUser); // but email matches
+      mockPrisma.user.update.mockResolvedValueOnce({
+        ...existingUser,
+        oidcSubject: 'https://idp.example.com|subject-123',
+      });
+
+      const result = await service.handleCallback('auth-code', 'verifier');
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { oidcSubject: 'https://idp.example.com|subject-123' },
+      });
+      expect(result.user.id).toBe(1);
+    });
+
+    it('auto-provisions a new user with a unique username (OIDC-005)', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null) // subject lookup
+        .mockResolvedValueOnce(null) // email lookup
+        .mockResolvedValueOnce({ id: 99 }) // username "traveler" taken
+        .mockResolvedValueOnce(null); // username "traveler2" free
+      mockPrisma.user.create.mockResolvedValueOnce({
+        ...existingUser,
+        id: 2,
+        username: 'traveler2',
+      });
+
+      const result = await service.handleCallback('auth-code', 'verifier');
+
+      expect(mockPrisma.user.create).toHaveBeenCalledWith({
+        data: {
+          username: 'traveler2',
+          email: 'traveler@example.com',
+          passwordHash: 'random-hash',
+          oidcSubject: 'https://idp.example.com|subject-123',
+        },
+      });
+      expect(result.user.id).toBe(2);
+    });
+
+    it('rejects first-time sign-ins when auto-provisioning is disabled (OIDC-006)', async () => {
+      mockOidcConfig.autoProvision = false;
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toMatchObject({
+        statusCode: 403,
+      });
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects unverified email addresses (OIDC-007)', async () => {
+      const unverifiedToken = buildIdToken({
+        sub: 'subject-456',
+        email: 'sketchy@example.com',
+        email_verified: false,
+      });
+      mockAxios.post.mockResolvedValue({ data: { id_token: unverifiedToken } });
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toBeInstanceOf(AppError);
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    });
+  });
+});

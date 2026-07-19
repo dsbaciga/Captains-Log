@@ -1,0 +1,243 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/services/__tests__/location.service.test.ts",
+      "type": "file",
+      "name": "location.service.test.ts",
+      "filePath": "frontend/src/services/__tests__/location.service.test.ts",
+      "summary": "Unit tests covering location.service.ts API calls (CRUD operations and geocoding-related endpoints) using a mocked Axios instance.",
+      "tags": ["test", "location", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/services/__tests__/photo.service.test.ts",
+      "type": "file",
+      "name": "photo.service.test.ts",
+      "filePath": "frontend/src/services/__tests__/photo.service.test.ts",
+      "summary": "Unit tests covering photo.service.ts, verifying upload, Immich linking, album CRUD, and photo-query API calls against a mocked Axios instance.",
+      "tags": ["test", "photo", "service"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/services/__tests__/search.service.test.ts",
+      "type": "file",
+      "name": "search.service.test.ts",
+      "filePath": "frontend/src/services/__tests__/search.service.test.ts",
+      "summary": "Unit tests for search.service.ts verifying the global search API call and query-parameter handling.",
+      "tags": ["test", "search", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/services/entityLink.service.ts",
+      "type": "file",
+      "name": "entityLink.service.ts",
+      "filePath": "frontend/src/services/entityLink.service.ts",
+      "summary": "API client for the entity-linking system: creates/deletes/updates links between trip entities (locations, activities, photos, etc.) and fetches link summaries and enriched link lists.",
+      "tags": ["service", "api-handler", "entity-linking"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/services/flightTracking.service.ts",
+      "type": "file",
+      "name": "flightTracking.service.ts",
+      "filePath": "frontend/src/services/flightTracking.service.ts",
+      "summary": "API client for fetching and refreshing live flight status/tracking data for transportation records.",
+      "tags": ["service", "api-handler", "flight-tracking"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:frontend/src/services/flightTracking.service.ts:FlightTrackingService",
+      "type": "class",
+      "name": "FlightTrackingService",
+      "filePath": "frontend/src/services/flightTracking.service.ts",
+      "lineRange": [13, 48],
+      "summary": "Singleton service class exposing methods to get flight status, manually update tracking fields, and bulk-refresh flight statuses for a trip.",
+      "tags": ["service", "api-handler", "flight-tracking"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/services/photo.service.ts",
+      "type": "file",
+      "name": "photo.service.ts",
+      "filePath": "frontend/src/services/photo.service.ts",
+      "summary": "API client for all photo and album operations: uploads, Immich asset linking, album CRUD, photo/date groupings, and AI album suggestions.",
+      "tags": ["service", "api-handler", "photo"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:frontend/src/services/photo.service.ts:PhotoService",
+      "type": "class",
+      "name": "PhotoService",
+      "filePath": "frontend/src/services/photo.service.ts",
+      "lineRange": [15, 193],
+      "summary": "Central service class with 21 methods covering photo upload, Immich linking, album management, date groupings, and album-suggestion acceptance, all backed by the shared Axios API client.",
+      "tags": ["service", "api-handler", "photo", "album"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/services/search.service.ts",
+      "type": "file",
+      "name": "search.service.ts",
+      "filePath": "frontend/src/services/search.service.ts",
+      "summary": "Minimal API client wrapping the global search endpoint used by the app's search bar.",
+      "tags": ["service", "api-handler", "search"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/store/navigationStore.ts",
+      "type": "file",
+      "name": "navigationStore.ts",
+      "filePath": "frontend/src/store/navigationStore.ts",
+      "summary": "Zustand store persisting the user's preferred navigation layout (sidebar vs. top nav) and sidebar-collapsed state, with convenience selector hooks.",
+      "tags": ["state-management", "zustand", "navigation", "persistence"],
+      "complexity": "simple",
+      "languageNotes": "Uses Zustand's persist middleware to keep the layout preference across sessions."
+    },
+    {
+      "id": "file:frontend/src/test/mocks/services.ts",
+      "type": "file",
+      "name": "services.ts",
+      "filePath": "frontend/src/test/mocks/services.ts",
+      "summary": "Central Vitest mock factory for all frontend services (activity, location, trip, photo, user, entity-link, geocoding, auth), plus helpers to reset/clear mocks and seed them with fixture data between tests.",
+      "tags": ["test", "mocking", "fixture", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/test/mocks/services.ts:resetAllMocks",
+      "type": "function",
+      "name": "resetAllMocks",
+      "filePath": "frontend/src/test/mocks/services.ts",
+      "lineRange": [149, 158],
+      "summary": "Resets all mocked service function call histories and implementations between test cases.",
+      "tags": ["test", "mocking"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/test/mocks/services.ts:clearAllMocks",
+      "type": "function",
+      "name": "clearAllMocks",
+      "filePath": "frontend/src/test/mocks/services.ts",
+      "lineRange": [163, 172],
+      "summary": "Clears mock call data for all mocked services without resetting their implementations.",
+      "tags": ["test", "mocking"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/test/mocks/services.ts:setupDefaultMocks",
+      "type": "function",
+      "name": "setupDefaultMocks",
+      "filePath": "frontend/src/test/mocks/services.ts",
+      "lineRange": [177, 197],
+      "summary": "Configures default resolved-value implementations for all mocked services using provided test fixtures.",
+      "tags": ["test", "mocking", "fixture"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/entityLink.ts",
+      "type": "file",
+      "name": "entityLink.ts",
+      "filePath": "frontend/src/types/entityLink.ts",
+      "summary": "TypeScript types and helpers for the entity-linking system: link/relationship types, entity-key encoding/decoding, and API input/response shapes.",
+      "tags": ["type-definition", "entity-linking"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/types/entityLink.ts:getEntityKey",
+      "type": "function",
+      "name": "getEntityKey",
+      "filePath": "frontend/src/types/entityLink.ts",
+      "lineRange": [121, 123],
+      "summary": "Builds a composite string key from an entity type and ID, used to index entities in maps.",
+      "tags": ["utility", "entity-linking"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/types/entityLink.ts:parseEntityKey",
+      "type": "function",
+      "name": "parseEntityKey",
+      "filePath": "frontend/src/types/entityLink.ts",
+      "lineRange": [142, 159],
+      "summary": "Parses a composite entity key string back into its entity type and numeric ID, validating the type against known entity types.",
+      "tags": ["utility", "entity-linking", "validation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/photo.ts",
+      "type": "file",
+      "name": "photo.ts",
+      "filePath": "frontend/src/types/photo.ts",
+      "summary": "TypeScript type definitions for photos and photo albums, including source/media-type enums and API input/response shapes for upload, linking, and album management.",
+      "tags": ["type-definition", "photo"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/utils/csrf.ts",
+      "type": "file",
+      "name": "csrf.ts",
+      "filePath": "frontend/src/utils/csrf.ts",
+      "summary": "Tiny helper that reads the CSRF token from the browser's cookies for inclusion in state-changing API requests.",
+      "tags": ["utility", "security", "csrf"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/utils/csrf.ts:getCsrfToken",
+      "type": "function",
+      "name": "getCsrfToken",
+      "filePath": "frontend/src/utils/csrf.ts",
+      "lineRange": [7, 10],
+      "summary": "Extracts the CSRF token value from document.cookie via regex matching.",
+      "tags": ["utility", "security"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    { "source": "file:frontend/src/services/__tests__/location.service.test.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/__tests__/location.service.test.ts", "target": "file:frontend/src/services/location.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/__tests__/photo.service.test.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/__tests__/photo.service.test.ts", "target": "file:frontend/src/services/photo.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/__tests__/search.service.test.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/__tests__/search.service.test.ts", "target": "file:frontend/src/services/search.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/entityLink.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/entityLink.service.ts", "target": "file:frontend/src/types/entityLink.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/entityLink.service.ts", "target": "file:frontend/src/types/photo.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/flightTracking.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/flightTracking.service.ts", "target": "file:frontend/src/types/transportation.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/photo.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/services/photo.service.ts", "target": "file:frontend/src/types/photo.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/search.service.ts", "target": "file:frontend/src/lib/axios.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "file:frontend/src/services/geocoding.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "file:frontend/src/types/activity.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "file:frontend/src/types/entityLink.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "file:frontend/src/types/location.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "file:frontend/src/types/photo.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "file:frontend/src/types/trip.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "file:frontend/src/types/user.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/services/flightTracking.service.ts", "target": "class:frontend/src/services/flightTracking.service.ts:FlightTrackingService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/services/photo.service.ts", "target": "class:frontend/src/services/photo.service.ts:PhotoService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "function:frontend/src/test/mocks/services.ts:resetAllMocks", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "function:frontend/src/test/mocks/services.ts:clearAllMocks", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "function:frontend/src/test/mocks/services.ts:setupDefaultMocks", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/entityLink.ts", "target": "function:frontend/src/types/entityLink.ts:getEntityKey", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/types/entityLink.ts", "target": "function:frontend/src/types/entityLink.ts:parseEntityKey", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/utils/csrf.ts", "target": "function:frontend/src/utils/csrf.ts:getCsrfToken", "type": "contains", "direction": "forward", "weight": 1.0 },
+
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "function:frontend/src/test/mocks/services.ts:resetAllMocks", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "function:frontend/src/test/mocks/services.ts:clearAllMocks", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/test/mocks/services.ts", "target": "function:frontend/src/test/mocks/services.ts:setupDefaultMocks", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/entityLink.ts", "target": "function:frontend/src/types/entityLink.ts:getEntityKey", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/types/entityLink.ts", "target": "function:frontend/src/types/entityLink.ts:parseEntityKey", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/utils/csrf.ts", "target": "function:frontend/src/utils/csrf.ts:getCsrfToken", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/services/location.service.ts", "target": "file:frontend/src/services/__tests__/location.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:frontend/src/services/photo.service.ts", "target": "file:frontend/src/services/__tests__/photo.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:frontend/src/services/search.service.ts", "target": "file:frontend/src/services/__tests__/search.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 }
+  ]
+}

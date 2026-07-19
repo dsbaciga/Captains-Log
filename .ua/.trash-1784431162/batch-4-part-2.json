@@ -1,0 +1,986 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/src/controllers/__tests__/location.controller.test.ts",
+      "type": "file",
+      "name": "location.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/location.controller.test.ts",
+      "summary": "Extensive unit test suite for the location controller covering CRUD, geospatial validation, and trip-scoped access rules.",
+      "tags": [
+        "test",
+        "location",
+        "controller"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/travelDocument.controller.test.ts",
+      "type": "file",
+      "name": "travelDocument.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/travelDocument.controller.test.ts",
+      "summary": "Unit tests for the travel document controller's create/read/update/delete endpoints.",
+      "tags": [
+        "test",
+        "travel-document",
+        "controller"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/tripSeries.controller.test.ts",
+      "type": "file",
+      "name": "tripSeries.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/tripSeries.controller.test.ts",
+      "summary": "Unit tests for the trip series controller, verifying grouping and management of related trips.",
+      "tags": [
+        "test",
+        "trip-series",
+        "controller"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/userInvitation.controller.test.ts",
+      "type": "file",
+      "name": "userInvitation.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/userInvitation.controller.test.ts",
+      "summary": "Unit tests for the user invitation controller covering trip collaboration invite flows.",
+      "tags": [
+        "test",
+        "invitation",
+        "controller",
+        "collaboration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/weather.controller.test.ts",
+      "type": "file",
+      "name": "weather.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/weather.controller.test.ts",
+      "summary": "Unit tests for the weather controller's endpoints for retrieving and caching trip weather data.",
+      "tags": [
+        "test",
+        "weather",
+        "controller"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/activity.controller.ts",
+      "type": "file",
+      "name": "activity.controller.ts",
+      "filePath": "backend/src/controllers/activity.controller.ts",
+      "summary": "Express controller exposing CRUD and bulk operations for trip activities, built on the shared CRUD controller factory.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "activity",
+        "crud"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/controllers/ai.controller.ts",
+      "type": "file",
+      "name": "ai.controller.ts",
+      "filePath": "backend/src/controllers/ai.controller.ts",
+      "summary": "Controller exposing AI-powered suggestion and journal-entry-assist endpoints, validating the requested AI strategy.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "ai",
+        "journal"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/controllers/airport.controller.ts",
+      "type": "file",
+      "name": "airport.controller.ts",
+      "filePath": "backend/src/controllers/airport.controller.ts",
+      "summary": "Minimal controller exposing an airport search endpoint backed by the airport service.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "airport",
+        "search"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/controllers/auth.controller.ts",
+      "type": "file",
+      "name": "auth.controller.ts",
+      "filePath": "backend/src/controllers/auth.controller.ts",
+      "summary": "Handles authentication endpoints (register, login, refresh, logout) including cookie-based refresh tokens, CSRF protection, and token blacklisting.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "auth",
+        "security"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/backup.controller.ts",
+      "type": "file",
+      "name": "backup.controller.ts",
+      "filePath": "backend/src/controllers/backup.controller.ts",
+      "summary": "Controller for creating and restoring encrypted trip data backups, with HMAC integrity verification.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "backup",
+        "security"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/checklist.controller.ts",
+      "type": "file",
+      "name": "checklist.controller.ts",
+      "filePath": "backend/src/controllers/checklist.controller.ts",
+      "summary": "Controller exposing checklist CRUD and bulk-item-update endpoints for trip packing/task lists.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "checklist",
+        "crud"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/companion.controller.ts",
+      "type": "file",
+      "name": "companion.controller.ts",
+      "filePath": "backend/src/controllers/companion.controller.ts",
+      "summary": "Controller managing travel companions and their linkage to trips.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "companion",
+        "crud"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/entityLink.controller.ts",
+      "type": "file",
+      "name": "entityLink.controller.ts",
+      "filePath": "backend/src/controllers/entityLink.controller.ts",
+      "summary": "Controller for creating, querying, and deleting entity links that connect trip entities (locations, photos, activities, etc.) to each other.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "entity-linking"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/flightTracking.controller.ts",
+      "type": "file",
+      "name": "flightTracking.controller.ts",
+      "filePath": "backend/src/controllers/flightTracking.controller.ts",
+      "summary": "Controller exposing flight tracking endpoints backed by the AviationStack integration service.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "flight-tracking"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/controllers/immich.controller.ts",
+      "type": "file",
+      "name": "immich.controller.ts",
+      "filePath": "backend/src/controllers/immich.controller.ts",
+      "summary": "Controller integrating with a user's self-hosted Immich instance to browse albums/assets and generate authenticated thumbnail and file URLs.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "immich",
+        "photos"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/journalEntry.controller.ts",
+      "type": "file",
+      "name": "journalEntry.controller.ts",
+      "filePath": "backend/src/controllers/journalEntry.controller.ts",
+      "summary": "Controller exposing CRUD endpoints for trip journal entries.",
+      "tags": [
+        "api-handler",
+        "controller",
+        "journal"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/controllers/backup.controller.ts:createBackup",
+      "type": "function",
+      "name": "createBackup",
+      "filePath": "backend/src/controllers/backup.controller.ts",
+      "lineRange": [
+        26,
+        56
+      ],
+      "summary": "Express handler that builds a full encrypted backup of a user's trip data and computes an HMAC signature for integrity verification.",
+      "tags": [
+        "backup",
+        "api-handler",
+        "security"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/controllers/backup.controller.ts:restoreFromBackup",
+      "type": "function",
+      "name": "restoreFromBackup",
+      "filePath": "backend/src/controllers/backup.controller.ts",
+      "lineRange": [
+        57,
+        104
+      ],
+      "summary": "Express handler that validates an uploaded backup file's HMAC and restores trip data from it.",
+      "tags": [
+        "backup",
+        "restore",
+        "api-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/controllers/backup.controller.ts:getBackupInfo",
+      "type": "function",
+      "name": "getBackupInfo",
+      "filePath": "backend/src/controllers/backup.controller.ts",
+      "lineRange": [
+        105,
+        121
+      ],
+      "summary": "Express handler returning metadata about a trip's available backup without performing a full restore.",
+      "tags": [
+        "backup",
+        "api-handler"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/controllers/immich.controller.ts:getUserImmichSettings",
+      "type": "function",
+      "name": "getUserImmichSettings",
+      "filePath": "backend/src/controllers/immich.controller.ts",
+      "lineRange": [
+        23,
+        39
+      ],
+      "summary": "Looks up a user's configured Immich API URL and API key needed to talk to their self-hosted Immich instance.",
+      "tags": [
+        "immich",
+        "photos",
+        "settings"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/controllers/immich.controller.ts:addAssetUrls",
+      "type": "function",
+      "name": "addAssetUrls",
+      "filePath": "backend/src/controllers/immich.controller.ts",
+      "lineRange": [
+        42,
+        52
+      ],
+      "summary": "Enriches a list of Immich assets with authenticated thumbnail and file URLs for client display.",
+      "tags": [
+        "immich",
+        "photos",
+        "url-generation"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/src/controllers/__tests__/location.controller.test.ts",
+      "target": "file:backend/src/__tests__/fixtures/users.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/location.controller.test.ts",
+      "target": "file:backend/src/__tests__/helpers/requests.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/location.controller.test.ts",
+      "target": "file:backend/src/controllers/location.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/location.controller.test.ts",
+      "target": "file:backend/src/services/location.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/travelDocument.controller.test.ts",
+      "target": "file:backend/src/__tests__/fixtures/users.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/travelDocument.controller.test.ts",
+      "target": "file:backend/src/__tests__/helpers/requests.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/travelDocument.controller.test.ts",
+      "target": "file:backend/src/controllers/travelDocument.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/travelDocument.controller.test.ts",
+      "target": "file:backend/src/services/travelDocument.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/tripSeries.controller.test.ts",
+      "target": "file:backend/src/__tests__/fixtures/users.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/tripSeries.controller.test.ts",
+      "target": "file:backend/src/__tests__/helpers/requests.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/tripSeries.controller.test.ts",
+      "target": "file:backend/src/controllers/tripSeries.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/tripSeries.controller.test.ts",
+      "target": "file:backend/src/services/tripSeries.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/userInvitation.controller.test.ts",
+      "target": "file:backend/src/__tests__/fixtures/users.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/userInvitation.controller.test.ts",
+      "target": "file:backend/src/__tests__/helpers/requests.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/userInvitation.controller.test.ts",
+      "target": "file:backend/src/controllers/userInvitation.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/userInvitation.controller.test.ts",
+      "target": "file:backend/src/services/userInvitation.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/weather.controller.test.ts",
+      "target": "file:backend/src/__tests__/fixtures/users.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/weather.controller.test.ts",
+      "target": "file:backend/src/__tests__/helpers/requests.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/weather.controller.test.ts",
+      "target": "file:backend/src/controllers/weather.controller.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/weather.controller.test.ts",
+      "target": "file:backend/src/services/weather.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/activity.controller.ts",
+      "target": "file:backend/src/http/parseId.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/activity.controller.ts",
+      "target": "file:backend/src/prisma/crudHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/activity.controller.ts",
+      "target": "file:backend/src/services/activity.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/activity.controller.ts",
+      "target": "file:backend/src/types/activity.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/ai.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/ai.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/ai.controller.ts",
+      "target": "file:backend/src/http/parseId.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/ai.controller.ts",
+      "target": "file:backend/src/services/aiSuggestion.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/ai.controller.ts",
+      "target": "file:backend/src/services/journalEntryAi.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/airport.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/airport.controller.ts",
+      "target": "file:backend/src/services/airport.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/config/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/http/cookies.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/middleware/errorHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/security/csrf.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/services/auth.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/services/tokenBlacklist.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/auth.controller.ts",
+      "target": "file:backend/src/types/auth.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/config/index.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/config/logger.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/errors/errors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/services/backup.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/services/restore.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/types/backup.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/checklist.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/checklist.controller.ts",
+      "target": "file:backend/src/errors/errors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/checklist.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/checklist.controller.ts",
+      "target": "file:backend/src/http/parseId.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/checklist.controller.ts",
+      "target": "file:backend/src/services/checklist.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/checklist.controller.ts",
+      "target": "file:backend/src/types/checklist.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/companion.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/companion.controller.ts",
+      "target": "file:backend/src/errors/errors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/companion.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/companion.controller.ts",
+      "target": "file:backend/src/http/parseId.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/companion.controller.ts",
+      "target": "file:backend/src/services/companion.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/companion.controller.ts",
+      "target": "file:backend/src/types/companion.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/entityLink.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/entityLink.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/entityLink.controller.ts",
+      "target": "file:backend/src/http/parseId.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/entityLink.controller.ts",
+      "target": "file:backend/src/services/_shared/serviceHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/entityLink.controller.ts",
+      "target": "file:backend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/entityLink.controller.ts",
+      "target": "file:backend/src/types/entityLink.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/flightTracking.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/flightTracking.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/flightTracking.controller.ts",
+      "target": "file:backend/src/http/parseId.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/flightTracking.controller.ts",
+      "target": "file:backend/src/services/aviationstack.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/flightTracking.controller.ts",
+      "target": "file:backend/src/types/flightTracking.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/immich.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/immich.controller.ts",
+      "target": "file:backend/src/config/database.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/immich.controller.ts",
+      "target": "file:backend/src/errors/errors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/immich.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/immich.controller.ts",
+      "target": "file:backend/src/services/immich.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/journalEntry.controller.ts",
+      "target": "file:backend/src/auth/controllerHelpers.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/journalEntry.controller.ts",
+      "target": "file:backend/src/http/asyncHandler.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/journalEntry.controller.ts",
+      "target": "file:backend/src/http/parseId.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/journalEntry.controller.ts",
+      "target": "file:backend/src/services/journalEntry.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/journalEntry.controller.ts",
+      "target": "file:backend/src/types/journalEntry.types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "function:backend/src/controllers/backup.controller.ts:createBackup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "function:backend/src/controllers/backup.controller.ts:createBackup",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "function:backend/src/controllers/backup.controller.ts:restoreFromBackup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "function:backend/src/controllers/backup.controller.ts:restoreFromBackup",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "function:backend/src/controllers/backup.controller.ts:getBackupInfo",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "function:backend/src/controllers/backup.controller.ts:getBackupInfo",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/src/controllers/immich.controller.ts",
+      "target": "function:backend/src/controllers/immich.controller.ts:getUserImmichSettings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/src/controllers/immich.controller.ts",
+      "target": "function:backend/src/controllers/immich.controller.ts:addAssetUrls",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:backend/src/controllers/backup.controller.ts",
+      "target": "file:backend/src/controllers/__tests__/backup.controller.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/src/controllers/checklist.controller.ts",
+      "target": "file:backend/src/controllers/__tests__/checklist.controller.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/src/controllers/immich.controller.ts",
+      "target": "file:backend/src/controllers/__tests__/immich.controller.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/location.controller.test.ts",
+      "target": "file:backend/src/controllers/location.controller.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/travelDocument.controller.test.ts",
+      "target": "file:backend/src/controllers/travelDocument.controller.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/tripSeries.controller.test.ts",
+      "target": "file:backend/src/controllers/tripSeries.controller.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/userInvitation.controller.test.ts",
+      "target": "file:backend/src/controllers/userInvitation.controller.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/src/controllers/__tests__/weather.controller.test.ts",
+      "target": "file:backend/src/controllers/weather.controller.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

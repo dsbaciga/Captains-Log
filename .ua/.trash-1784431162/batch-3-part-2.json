@@ -1,0 +1,277 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/src/controllers/__tests__/packingSuggestion.controller.test.ts",
+      "type": "file",
+      "name": "packingSuggestion.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/packingSuggestion.controller.test.ts",
+      "summary": "Unit tests for the packing suggestion controller, verifying suggested packing list generation against a mocked packing suggestion service.",
+      "tags": ["test", "controller", "packing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/photo.controller.test.ts",
+      "type": "file",
+      "name": "photo.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/photo.controller.test.ts",
+      "summary": "Unit tests for the photo controller covering upload, Immich linking, update, and album suggestion endpoints against mocked photo and album suggestion services.",
+      "tags": ["test", "controller", "photos"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/photoAlbum.controller.test.ts",
+      "type": "file",
+      "name": "photoAlbum.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/photoAlbum.controller.test.ts",
+      "summary": "Unit tests for the photo album controller covering album CRUD and photo-assignment handler behavior against a mocked photo album service.",
+      "tags": ["test", "controller", "photo-album"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/search.controller.test.ts",
+      "type": "file",
+      "name": "search.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/search.controller.test.ts",
+      "summary": "Unit tests for the global search controller, verifying query handling and result shaping against a mocked search service.",
+      "tags": ["test", "controller", "search"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/tag.controller.test.ts",
+      "type": "file",
+      "name": "tag.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/tag.controller.test.ts",
+      "summary": "Unit tests for the tag controller covering tag CRUD handler behavior and validation/error paths.",
+      "tags": ["test", "controller", "tags"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/transportation.controller.test.ts",
+      "type": "file",
+      "name": "transportation.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/transportation.controller.test.ts",
+      "summary": "Unit tests for the transportation controller covering CRUD handler behavior and validation/error paths for trip transportation records.",
+      "tags": ["test", "controller", "transportation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/trip.controller.test.ts",
+      "type": "file",
+      "name": "trip.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/trip.controller.test.ts",
+      "summary": "Unit tests for the trip controller, the largest controller test suite in the backend, covering trip CRUD, status transitions, and ownership/authorization edge cases.",
+      "tags": ["test", "controller", "trips"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/controllers/__tests__/user.controller.test.ts",
+      "type": "file",
+      "name": "user.controller.test.ts",
+      "filePath": "backend/src/controllers/__tests__/user.controller.test.ts",
+      "summary": "Unit tests for the user controller covering profile retrieval/update, settings, and account management handler behavior.",
+      "tags": ["test", "controller", "users"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/controllers/collaboration.controller.ts",
+      "type": "file",
+      "name": "collaboration.controller.ts",
+      "filePath": "backend/src/controllers/collaboration.controller.ts",
+      "summary": "Express controller exposing trip collaboration endpoints (send/accept/decline invitations, list collaborators, update/remove collaborator permissions) backed by the collaboration service.",
+      "tags": ["api-handler", "collaboration", "express"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/controllers/search.controller.ts",
+      "type": "file",
+      "name": "search.controller.ts",
+      "filePath": "backend/src/controllers/search.controller.ts",
+      "summary": "Thin Express controller exposing the global search endpoint, delegating query execution to the search service.",
+      "tags": ["api-handler", "search", "express"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/prisma/__tests__/crudHelpers.test.ts",
+      "type": "file",
+      "name": "crudHelpers.test.ts",
+      "filePath": "backend/src/prisma/__tests__/crudHelpers.test.ts",
+      "summary": "Unit tests for the generic Prisma CRUD helper factory (createCrudController, deleteEntity, bulkDeleteEntities, bulkUpdateEntities), verifying generated controller handlers behave correctly across mocked services.",
+      "tags": ["test", "prisma", "crud-helpers", "database"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/services/__tests__/collaboration.service.test.ts",
+      "type": "file",
+      "name": "collaboration.service.test.ts",
+      "filePath": "backend/src/services/__tests__/collaboration.service.test.ts",
+      "summary": "Unit tests for the collaboration service covering invitation lifecycle (send, accept, decline, resend, cancel), collaborator permission updates, and authorization checks against a mocked Prisma client.",
+      "tags": ["test", "service", "collaboration"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/services/__tests__/search.service.test.ts",
+      "type": "file",
+      "name": "search.service.test.ts",
+      "filePath": "backend/src/services/__tests__/search.service.test.ts",
+      "summary": "Unit tests for the global search service, verifying multi-entity query aggregation, pagination, and result sorting against a mocked Prisma client.",
+      "tags": ["test", "service", "search"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/services/collaboration.service.ts",
+      "type": "file",
+      "name": "collaboration.service.ts",
+      "filePath": "backend/src/services/collaboration.service.ts",
+      "summary": "Business logic for trip collaboration: sending/accepting/declining/resending/canceling invitations, managing collaborator permission levels, and listing trips shared with a user.",
+      "tags": ["service", "collaboration", "invitations", "authorization"],
+      "complexity": "complex",
+      "languageNotes": "Uses a Prisma $transaction to atomically create a TripCollaborator record and mark the invitation accepted."
+    },
+    {
+      "id": "file:backend/src/services/search.service.ts",
+      "type": "file",
+      "name": "search.service.ts",
+      "filePath": "backend/src/services/search.service.ts",
+      "summary": "Global search service that queries trips, locations, journal entries, photos, and trip series in parallel by keyword, merges and sorts results by recency, and paginates the combined result set.",
+      "tags": ["service", "search", "database"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/collaboration.types.ts",
+      "type": "file",
+      "name": "collaboration.types.ts",
+      "filePath": "backend/src/types/collaboration.types.ts",
+      "summary": "Shared TypeScript types and Zod validation schemas for trip collaboration: permission levels, invitation status, and request payload schemas (send/respond/update/add collaborator).",
+      "tags": ["type-definition", "validation", "collaboration"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/types/search.types.ts",
+      "type": "file",
+      "name": "search.types.ts",
+      "filePath": "backend/src/types/search.types.ts",
+      "summary": "Zod validation schema for the global search query endpoint's request parameters.",
+      "tags": ["type-definition", "validation", "search"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/prisma/__tests__/crudHelpers.test.ts:createMockService",
+      "type": "function",
+      "name": "createMockService",
+      "filePath": "backend/src/prisma/__tests__/crudHelpers.test.ts",
+      "lineRange": [82, 92],
+      "summary": "Builds a mocked service object exposing jest.fn() stubs for the standard CRUD operations used to test the generic crudHelpers factory.",
+      "tags": ["test", "mock", "crud-helpers"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/prisma/__tests__/crudHelpers.test.ts:callHandler",
+      "type": "function",
+      "name": "callHandler",
+      "filePath": "backend/src/prisma/__tests__/crudHelpers.test.ts",
+      "lineRange": [95, 104],
+      "summary": "Test helper that invokes a generated Express handler with mock req/res/next and waits for pending microtasks to resolve before assertions run.",
+      "tags": ["test", "utility", "http"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/src/services/search.service.ts:SearchService",
+      "type": "class",
+      "name": "SearchService",
+      "filePath": "backend/src/services/search.service.ts",
+      "lineRange": [5, 174],
+      "summary": "Service class implementing globalSearch(), which fans out parallel Prisma queries across trips, locations, journal entries, photos, and trip series, then merges, sorts, and paginates the results.",
+      "tags": ["service", "search", "database"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    { "source": "file:backend/src/controllers/__tests__/packingSuggestion.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/packingSuggestion.controller.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/packingSuggestion.controller.test.ts", "target": "file:backend/src/controllers/packingSuggestion.controller.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/packingSuggestion.controller.test.ts", "target": "file:backend/src/services/packingSuggestion.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/__tests__/photo.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/photo.controller.test.ts", "target": "file:backend/src/__tests__/helpers/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/photo.controller.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/photo.controller.test.ts", "target": "file:backend/src/controllers/photo.controller.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/photo.controller.test.ts", "target": "file:backend/src/services/albumSuggestion.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/photo.controller.test.ts", "target": "file:backend/src/services/photo.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/__tests__/photoAlbum.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/photoAlbum.controller.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/photoAlbum.controller.test.ts", "target": "file:backend/src/controllers/photoAlbum.controller.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/photoAlbum.controller.test.ts", "target": "file:backend/src/services/photoAlbum.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/__tests__/search.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/search.controller.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/search.controller.test.ts", "target": "file:backend/src/controllers/search.controller.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/search.controller.test.ts", "target": "file:backend/src/services/search.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/__tests__/tag.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/tag.controller.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/tag.controller.test.ts", "target": "file:backend/src/controllers/tag.controller.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/__tests__/transportation.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/transportation.controller.test.ts", "target": "file:backend/src/__tests__/helpers/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/transportation.controller.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/transportation.controller.test.ts", "target": "file:backend/src/__tests__/mocks/prisma.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/transportation.controller.test.ts", "target": "file:backend/src/controllers/transportation.controller.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/__tests__/trip.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/trips.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/trip.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/trip.controller.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/trip.controller.test.ts", "target": "file:backend/src/controllers/trip.controller.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/trip.controller.test.ts", "target": "file:backend/src/errors/errors.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/__tests__/user.controller.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/user.controller.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/__tests__/user.controller.test.ts", "target": "file:backend/src/controllers/user.controller.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/collaboration.controller.ts", "target": "file:backend/src/auth/controllerHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/collaboration.controller.ts", "target": "file:backend/src/http/asyncHandler.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/collaboration.controller.ts", "target": "file:backend/src/http/parseId.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/collaboration.controller.ts", "target": "file:backend/src/services/collaboration.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/collaboration.controller.ts", "target": "file:backend/src/types/collaboration.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/controllers/search.controller.ts", "target": "file:backend/src/auth/controllerHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/search.controller.ts", "target": "file:backend/src/http/asyncHandler.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/search.controller.ts", "target": "file:backend/src/services/search.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/controllers/search.controller.ts", "target": "file:backend/src/types/search.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/prisma/__tests__/crudHelpers.test.ts", "target": "file:backend/src/__tests__/fixtures/users.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/prisma/__tests__/crudHelpers.test.ts", "target": "file:backend/src/__tests__/helpers/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/prisma/__tests__/crudHelpers.test.ts", "target": "file:backend/src/__tests__/helpers/requests.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/prisma/__tests__/crudHelpers.test.ts", "target": "file:backend/src/__tests__/mocks/prisma.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/prisma/__tests__/crudHelpers.test.ts", "target": "file:backend/src/errors/errors.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/prisma/__tests__/crudHelpers.test.ts", "target": "file:backend/src/prisma/crudHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/services/__tests__/collaboration.service.test.ts", "target": "file:backend/src/services/collaboration.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/__tests__/search.service.test.ts", "target": "file:backend/src/services/search.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/services/collaboration.service.ts", "target": "file:backend/src/config/database.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/collaboration.service.ts", "target": "file:backend/src/errors/errors.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/collaboration.service.ts", "target": "file:backend/src/types/collaboration.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/services/search.service.ts", "target": "file:backend/src/config/database.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/search.service.ts", "target": "file:backend/src/services/_shared/serviceHelpers.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:backend/src/services/search.service.ts", "target": "file:backend/src/types/search.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:backend/src/prisma/__tests__/crudHelpers.test.ts", "target": "function:backend/src/prisma/__tests__/crudHelpers.test.ts:createMockService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/prisma/__tests__/crudHelpers.test.ts", "target": "function:backend/src/prisma/__tests__/crudHelpers.test.ts:callHandler", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/services/search.service.ts", "target": "class:backend/src/services/search.service.ts:SearchService", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:backend/src/services/search.service.ts", "target": "class:backend/src/services/search.service.ts:SearchService", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:backend/src/services/collaboration.service.ts", "target": "file:backend/src/services/__tests__/collaboration.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/services/search.service.ts", "target": "file:backend/src/services/__tests__/search.service.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/collaboration.controller.ts", "target": "file:backend/src/controllers/__tests__/collaboration.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/search.controller.ts", "target": "file:backend/src/controllers/__tests__/search.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/packingSuggestion.controller.ts", "target": "file:backend/src/controllers/__tests__/packingSuggestion.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/photo.controller.ts", "target": "file:backend/src/controllers/__tests__/photo.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/photoAlbum.controller.ts", "target": "file:backend/src/controllers/__tests__/photoAlbum.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/tag.controller.ts", "target": "file:backend/src/controllers/__tests__/tag.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/transportation.controller.ts", "target": "file:backend/src/controllers/__tests__/transportation.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/trip.controller.ts", "target": "file:backend/src/controllers/__tests__/trip.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 },
+    { "source": "file:backend/src/controllers/user.controller.ts", "target": "file:backend/src/controllers/__tests__/user.controller.test.ts", "type": "tested_by", "direction": "forward", "weight": 0.5 }
+  ]
+}

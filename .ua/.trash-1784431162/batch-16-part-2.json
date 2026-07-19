@@ -1,0 +1,1297 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/PhotoGallery.tsx",
+      "type": "file",
+      "name": "PhotoGallery.tsx",
+      "filePath": "frontend/src/components/PhotoGallery.tsx",
+      "summary": "Large, feature-rich photo grid/list component supporting virtualized scrolling for big collections, batch selection, album management, entity linking, cover-photo designation, and Immich thumbnail retry logic with exponential backoff.",
+      "tags": [
+        "component",
+        "photo-management",
+        "core-feature",
+        "virtualization"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses @tanstack/react-virtual to virtualize the grid above a configurable photo-count threshold, and implements custom exponential-backoff retry fetching for Immich thumbnail rate limiting."
+    },
+    {
+      "id": "function:frontend/src/components/PhotoGallery.tsx:delay",
+      "type": "function",
+      "name": "delay",
+      "filePath": "frontend/src/components/PhotoGallery.tsx",
+      "lineRange": [
+        103,
+        103
+      ],
+      "summary": "Promise-based delay helper used by the thumbnail retry backoff logic.",
+      "tags": [
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/PhotoGallery.tsx:fetchWithRetry",
+      "type": "function",
+      "name": "fetchWithRetry",
+      "filePath": "frontend/src/components/PhotoGallery.tsx",
+      "lineRange": [
+        118,
+        150
+      ],
+      "summary": "Fetches a resource with exponential-backoff retries, specifically to gracefully handle Immich API 429 rate-limit responses when loading thumbnails.",
+      "tags": [
+        "utility",
+        "retry-logic",
+        "networking"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/PhotoGallery.tsx:PhotoGridItem",
+      "type": "function",
+      "name": "PhotoGridItem",
+      "filePath": "frontend/src/components/PhotoGallery.tsx",
+      "lineRange": [
+        156,
+        296
+      ],
+      "summary": "Renders a single photo/video tile within the gallery grid, including selection checkbox, cover badge, and duration overlay for videos.",
+      "tags": [
+        "component",
+        "photo-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/PhotoGallery.tsx:PhotoGallery",
+      "type": "function",
+      "name": "PhotoGallery",
+      "filePath": "frontend/src/components/PhotoGallery.tsx",
+      "lineRange": [
+        298,
+        1489
+      ],
+      "summary": "Default-exported top-level gallery component orchestrating grid/list rendering, virtualization, sorting, batch selection state, album operations, and the lightbox/entity-picker modals.",
+      "tags": [
+        "component",
+        "photo-management",
+        "core-feature"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/PhotoLightbox.tsx",
+      "type": "file",
+      "name": "PhotoLightbox.tsx",
+      "filePath": "frontend/src/components/PhotoLightbox.tsx",
+      "summary": "Full-screen photo/video lightbox viewer with next/prev navigation, caption and date editing, linked-entities display, and a details panel showing photo metadata.",
+      "tags": [
+        "component",
+        "modal",
+        "photo-management",
+        "core-feature"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/PhotoLightbox.tsx:PhotoLightbox",
+      "type": "function",
+      "name": "PhotoLightbox",
+      "filePath": "frontend/src/components/PhotoLightbox.tsx",
+      "lineRange": [
+        30,
+        750
+      ],
+      "summary": "Default-exported component rendering the full-screen lightbox, including navigation between photos, edit mode for caption/date, and integration with the linked-entities and photo-details panels.",
+      "tags": [
+        "component",
+        "photo-management",
+        "core-feature"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/PhotoTimeline.tsx",
+      "type": "file",
+      "name": "PhotoTimeline.tsx",
+      "filePath": "frontend/src/components/PhotoTimeline.tsx",
+      "summary": "Chronological timeline view of a trip's photos grouped by day, using Immich thumbnail caching and opening the PhotoLightbox on selection.",
+      "tags": [
+        "component",
+        "photo-management",
+        "timeline"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/PhotoTimeline.tsx:PhotoTimeline",
+      "type": "function",
+      "name": "PhotoTimeline",
+      "filePath": "frontend/src/components/PhotoTimeline.tsx",
+      "lineRange": [
+        34,
+        540
+      ],
+      "summary": "Default-exported component that groups a trip's photos by date, renders them in a scrollable timeline, and opens PhotoLightbox for full-size viewing.",
+      "tags": [
+        "component",
+        "timeline",
+        "photo-management"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/PhotosMapView.tsx",
+      "type": "file",
+      "name": "PhotosMapView.tsx",
+      "filePath": "frontend/src/components/PhotosMapView.tsx",
+      "summary": "Leaflet-based map view plotting a trip's geotagged photos with marker clustering, resolving photo locations from multiple sources (EXIF, linked location, etc.) and showing a legend for location-source confidence.",
+      "tags": [
+        "component",
+        "map",
+        "photo-management",
+        "geospatial"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses react-leaflet with @changey/react-leaflet-markercluster for clustering and encodes photo URLs safely for CSS custom marker icons."
+    },
+    {
+      "id": "function:frontend/src/components/PhotosMapView.tsx:safeUrlForCss",
+      "type": "function",
+      "name": "safeUrlForCss",
+      "filePath": "frontend/src/components/PhotosMapView.tsx",
+      "lineRange": [
+        24,
+        27
+      ],
+      "summary": "Escapes a URL for safe embedding inside a CSS url() value used by custom Leaflet marker icons.",
+      "tags": [
+        "utility",
+        "css"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/PhotosMapView.tsx:MapBoundsHandler",
+      "type": "function",
+      "name": "MapBoundsHandler",
+      "filePath": "frontend/src/components/PhotosMapView.tsx",
+      "lineRange": [
+        46,
+        64
+      ],
+      "summary": "Leaflet helper component that adjusts the map's viewport bounds to fit the current set of photo markers.",
+      "tags": [
+        "component",
+        "map"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/PhotosMapView.tsx:LocationSourceLegend",
+      "type": "function",
+      "name": "LocationSourceLegend",
+      "filePath": "frontend/src/components/PhotosMapView.tsx",
+      "lineRange": [
+        67,
+        108
+      ],
+      "summary": "Renders a legend explaining marker ring colors for different photo location resolution sources.",
+      "tags": [
+        "component",
+        "map",
+        "legend"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/PhotosMapView.tsx:LocationSourceIndicator",
+      "type": "function",
+      "name": "LocationSourceIndicator",
+      "filePath": "frontend/src/components/PhotosMapView.tsx",
+      "lineRange": [
+        111,
+        160
+      ],
+      "summary": "Displays a small badge/icon indicating how a photo's map location was resolved (e.g. EXIF GPS vs linked location).",
+      "tags": [
+        "component",
+        "map"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/PhotosMapView.tsx:PhotosMapView",
+      "type": "function",
+      "name": "PhotosMapView",
+      "filePath": "frontend/src/components/PhotosMapView.tsx",
+      "lineRange": [
+        162,
+        466
+      ],
+      "summary": "Default-exported map component that plots clustered photo markers with popups and a location-source legend for a trip.",
+      "tags": [
+        "component",
+        "map",
+        "photo-management"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/ProgressiveImage.tsx",
+      "type": "file",
+      "name": "ProgressiveImage.tsx",
+      "filePath": "frontend/src/components/ProgressiveImage.tsx",
+      "summary": "Image component that progressively loads a low-res placeholder then the full-resolution image, with WebP support detection and srcset generation for responsive images.",
+      "tags": [
+        "component",
+        "utility",
+        "performance",
+        "image-loading"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ProgressiveImage.tsx:ProgressiveImage",
+      "type": "function",
+      "name": "ProgressiveImage",
+      "filePath": "frontend/src/components/ProgressiveImage.tsx",
+      "lineRange": [
+        52,
+        211
+      ],
+      "summary": "Default-exported component rendering an image with a blurred placeholder transitioning to the full image once loaded.",
+      "tags": [
+        "component",
+        "image-loading"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ProgressiveImage.tsx:useWebPSupport",
+      "type": "function",
+      "name": "useWebPSupport",
+      "filePath": "frontend/src/components/ProgressiveImage.tsx",
+      "lineRange": [
+        218,
+        229
+      ],
+      "summary": "Hook detecting whether the browser supports the WebP image format.",
+      "tags": [
+        "hook",
+        "feature-detection"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/ProgressiveImage.tsx:getImageSource",
+      "type": "function",
+      "name": "getImageSource",
+      "filePath": "frontend/src/components/ProgressiveImage.tsx",
+      "lineRange": [
+        235,
+        245
+      ],
+      "summary": "Resolves the best available image source URL based on WebP support and provided source variants.",
+      "tags": [
+        "utility",
+        "image-loading"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/ProgressiveImage.tsx:generateSrcSet",
+      "type": "function",
+      "name": "generateSrcSet",
+      "filePath": "frontend/src/components/ProgressiveImage.tsx",
+      "lineRange": [
+        253,
+        264
+      ],
+      "summary": "Builds a responsive `srcset` attribute string from a set of image size variants.",
+      "tags": [
+        "utility",
+        "image-loading"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/TabGroup.tsx",
+      "type": "file",
+      "name": "TabGroup.tsx",
+      "filePath": "frontend/src/components/TabGroup.tsx",
+      "summary": "Reusable tabbed navigation UI component used to switch between content sections (e.g. within TripDetailPage).",
+      "tags": [
+        "component",
+        "navigation",
+        "tabs",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/TabGroup.tsx:TabGroup",
+      "type": "function",
+      "name": "TabGroup",
+      "filePath": "frontend/src/components/TabGroup.tsx",
+      "lineRange": [
+        25,
+        209
+      ],
+      "summary": "Default-exported component rendering a set of tab buttons and managing active-tab state/styling.",
+      "tags": [
+        "component",
+        "tabs"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/TripSeriesBadge.tsx",
+      "type": "file",
+      "name": "TripSeriesBadge.tsx",
+      "filePath": "frontend/src/components/TripSeriesBadge.tsx",
+      "summary": "Small badge component indicating a trip belongs to a multi-leg trip series, shown on trip detail pages.",
+      "tags": [
+        "component",
+        "badge",
+        "trip"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/TripSeriesBadge.tsx:TripSeriesBadge",
+      "type": "function",
+      "name": "TripSeriesBadge",
+      "filePath": "frontend/src/components/TripSeriesBadge.tsx",
+      "lineRange": [
+        16,
+        61
+      ],
+      "summary": "Default-exported badge component rendering trip series metadata (e.g. leg number of total).",
+      "tags": [
+        "component",
+        "badge"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/TripSidebar.tsx",
+      "type": "file",
+      "name": "TripSidebar.tsx",
+      "filePath": "frontend/src/components/TripSidebar.tsx",
+      "summary": "Sidebar navigation component for the trip detail page, listing section tabs (locations, photos, journal, etc.) and respecting the user's navigation layout preference.",
+      "tags": [
+        "component",
+        "sidebar",
+        "navigation",
+        "trip"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/TripSidebar.tsx:TripSidebar",
+      "type": "function",
+      "name": "TripSidebar",
+      "filePath": "frontend/src/components/TripSidebar.tsx",
+      "lineRange": [
+        19,
+        223
+      ],
+      "summary": "Default-exported sidebar component rendering trip section navigation links and toggling collapsed/expanded state via navigationStore.",
+      "tags": [
+        "component",
+        "sidebar",
+        "navigation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/__tests__/PhotoGallery.test.tsx",
+      "type": "file",
+      "name": "PhotoGallery.test.tsx",
+      "filePath": "frontend/src/components/__tests__/PhotoGallery.test.tsx",
+      "summary": "Vitest test suite for PhotoGallery, mocking IntersectionObserver and photo types to verify grid rendering behavior.",
+      "tags": [
+        "test",
+        "photo-management"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:frontend/src/components/__tests__/PhotoGallery.test.tsx:MockIntersectionObserver",
+      "type": "class",
+      "name": "MockIntersectionObserver",
+      "filePath": "frontend/src/components/__tests__/PhotoGallery.test.tsx",
+      "lineRange": [
+        8,
+        12
+      ],
+      "summary": "Minimal mock implementation of the browser IntersectionObserver API used to satisfy PhotoGallery's dependency during tests.",
+      "tags": [
+        "test",
+        "mock"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "type": "file",
+      "name": "EntityLinkTooltip.tsx",
+      "filePath": "frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "summary": "Tooltip component shown on timeline events that lists linked entities (with type-specific icons/colors) for quick reference without opening the full LinkPanel.",
+      "tags": [
+        "component",
+        "tooltip",
+        "entity-linking",
+        "timeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/EntityLinkTooltip.tsx:getEntityDisplayName",
+      "type": "function",
+      "name": "getEntityDisplayName",
+      "filePath": "frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "lineRange": [
+        16,
+        18
+      ],
+      "summary": "Resolves a human-readable display name for a linked entity within the tooltip.",
+      "tags": [
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/EntityLinkTooltip.tsx:EntityLinkTooltip",
+      "type": "function",
+      "name": "EntityLinkTooltip",
+      "filePath": "frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "lineRange": [
+        20,
+        129
+      ],
+      "summary": "Default-exported tooltip component rendering a compact list of an entity's linked entities with icons and labels.",
+      "tags": [
+        "component",
+        "tooltip",
+        "entity-linking"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "type": "file",
+      "name": "PhotoPreviewPopover.tsx",
+      "filePath": "frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "summary": "Popover shown on hover/click of a timeline photo thumbnail, previewing the image with authenticated fetch and positioning logic to avoid viewport overflow.",
+      "tags": [
+        "component",
+        "popover",
+        "timeline",
+        "photo-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/timeline/PhotoPreviewPopover.tsx:PhotoPreviewPopover",
+      "type": "function",
+      "name": "PhotoPreviewPopover",
+      "filePath": "frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "lineRange": [
+        25,
+        254
+      ],
+      "summary": "Default-exported popover component that fetches an authenticated photo thumbnail and positions itself relative to the trigger element using useDropdownPosition.",
+      "tags": [
+        "component",
+        "popover",
+        "photo-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "type": "file",
+      "name": "RecentPhotosWidget.tsx",
+      "filePath": "frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "summary": "Dashboard widget showing a user's most recently uploaded photos across trips, with skeleton loading state and links back to the source trip.",
+      "tags": [
+        "component",
+        "widget",
+        "dashboard",
+        "photo-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/widgets/RecentPhotosWidget.tsx:RecentPhotosWidget",
+      "type": "function",
+      "name": "RecentPhotosWidget",
+      "filePath": "frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "lineRange": [
+        14,
+        322
+      ],
+      "summary": "Default-exported widget component that fetches and displays recent photos with loading skeletons and trip navigation links.",
+      "tags": [
+        "component",
+        "widget",
+        "dashboard"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "function:frontend/src/components/PhotoGallery.tsx:delay",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "function:frontend/src/components/PhotoGallery.tsx:fetchWithRetry",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "function:frontend/src/components/PhotoGallery.tsx:PhotoGridItem",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "function:frontend/src/components/PhotoGallery.tsx:PhotoGallery",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "function:frontend/src/components/PhotoGallery.tsx:PhotoGallery",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/components/BatchPhotoToolbar.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/components/EmptyState.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/components/EntityPickerModal.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/components/PhotoLightbox.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/components/ProgressiveImage.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/hooks/useConfirmDialog.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/services/photo.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/utils/duration.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoGallery.tsx",
+      "target": "file:frontend/src/utils/stripMarkdown.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/PhotoGallery.tsx:PhotoGallery",
+      "target": "function:frontend/src/components/PhotoGallery.tsx:PhotoGridItem",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotoGallery.tsx:PhotoGallery",
+      "target": "function:frontend/src/components/PhotoGallery.tsx:fetchWithRetry",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotoGallery.tsx:fetchWithRetry",
+      "target": "function:frontend/src/components/PhotoGallery.tsx:delay",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotoGallery.tsx:PhotoGallery",
+      "target": "function:frontend/src/components/PhotoLightbox.tsx:PhotoLightbox",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotoGallery.tsx:PhotoGallery",
+      "target": "function:frontend/src/components/EntityPickerModal.tsx:EntityPickerModal",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotoGallery.tsx:PhotoGallery",
+      "target": "function:frontend/src/components/BatchPhotoToolbar.tsx:BatchPhotoToolbar",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/__tests__/PhotoGallery.test.tsx",
+      "target": "file:frontend/src/components/PhotoGallery.tsx",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:frontend/src/components/PhotoLightbox.tsx",
+      "target": "function:frontend/src/components/PhotoLightbox.tsx:PhotoLightbox",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotoLightbox.tsx",
+      "target": "function:frontend/src/components/PhotoLightbox.tsx:PhotoLightbox",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/PhotoLightbox.tsx",
+      "target": "file:frontend/src/components/LinkButton.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoLightbox.tsx",
+      "target": "file:frontend/src/components/LinkedEntitiesDisplay.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoLightbox.tsx",
+      "target": "file:frontend/src/components/PhotoDetailsPanel.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoLightbox.tsx",
+      "target": "file:frontend/src/hooks/useTripLinkSummary.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoLightbox.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/PhotoLightbox.tsx:PhotoLightbox",
+      "target": "function:frontend/src/components/LinkButton.tsx:LinkButton",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotoLightbox.tsx:PhotoLightbox",
+      "target": "function:frontend/src/hooks/useTripLinkSummary.ts:useTripLinkSummary",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "function:frontend/src/components/PhotoTimeline.tsx:PhotoTimeline",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "function:frontend/src/components/PhotoTimeline.tsx:PhotoTimeline",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "file:frontend/src/components/EmptyState.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "file:frontend/src/components/PhotoLightbox.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "file:frontend/src/components/timeline/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "file:frontend/src/hooks/useImmichThumbnail.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "file:frontend/src/services/photo.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotoTimeline.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/PhotoTimeline.tsx:PhotoTimeline",
+      "target": "function:frontend/src/components/PhotoLightbox.tsx:PhotoLightbox",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotoTimeline.tsx:PhotoTimeline",
+      "target": "function:frontend/src/hooks/useImmichThumbnail.ts:useImmichThumbnail",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "function:frontend/src/components/PhotosMapView.tsx:safeUrlForCss",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "function:frontend/src/components/PhotosMapView.tsx:MapBoundsHandler",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "function:frontend/src/components/PhotosMapView.tsx:LocationSourceLegend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "function:frontend/src/components/PhotosMapView.tsx:LocationSourceIndicator",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "function:frontend/src/components/PhotosMapView.tsx:PhotosMapView",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "function:frontend/src/components/PhotosMapView.tsx:PhotosMapView",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "file:frontend/src/hooks/usePhotoLocations.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "file:frontend/src/services/photo.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/PhotosMapView.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/PhotosMapView.tsx:PhotosMapView",
+      "target": "function:frontend/src/hooks/usePhotoLocations.ts:usePhotoLocations",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotosMapView.tsx:PhotosMapView",
+      "target": "function:frontend/src/components/PhotosMapView.tsx:LocationSourceLegend",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/PhotosMapView.tsx:PhotosMapView",
+      "target": "function:frontend/src/components/PhotosMapView.tsx:MapBoundsHandler",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/ProgressiveImage.tsx",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:ProgressiveImage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/ProgressiveImage.tsx",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:useWebPSupport",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/ProgressiveImage.tsx",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:getImageSource",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/ProgressiveImage.tsx",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:generateSrcSet",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/ProgressiveImage.tsx",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:ProgressiveImage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/ProgressiveImage.tsx",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:useWebPSupport",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/ProgressiveImage.tsx",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:getImageSource",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/ProgressiveImage.tsx",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:generateSrcSet",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/ProgressiveImage.tsx:ProgressiveImage",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:useWebPSupport",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/ProgressiveImage.tsx:ProgressiveImage",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:getImageSource",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/ProgressiveImage.tsx:ProgressiveImage",
+      "target": "function:frontend/src/components/ProgressiveImage.tsx:generateSrcSet",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/TabGroup.tsx",
+      "target": "function:frontend/src/components/TabGroup.tsx:TabGroup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/TabGroup.tsx",
+      "target": "function:frontend/src/components/TabGroup.tsx:TabGroup",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/TripSeriesBadge.tsx",
+      "target": "function:frontend/src/components/TripSeriesBadge.tsx:TripSeriesBadge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/TripSeriesBadge.tsx",
+      "target": "function:frontend/src/components/TripSeriesBadge.tsx:TripSeriesBadge",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/TripSidebar.tsx",
+      "target": "function:frontend/src/components/TripSidebar.tsx:TripSidebar",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/TripSidebar.tsx",
+      "target": "function:frontend/src/components/TripSidebar.tsx:TripSidebar",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/TripSidebar.tsx",
+      "target": "file:frontend/src/components/TabGroup.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/TripSidebar.tsx",
+      "target": "file:frontend/src/store/navigationStore.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/TripSidebar.tsx:TripSidebar",
+      "target": "function:frontend/src/components/TabGroup.tsx:TabGroup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/TripSidebar.tsx:TripSidebar",
+      "target": "function:frontend/src/store/navigationStore.ts:useNavigationStore",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/__tests__/PhotoGallery.test.tsx",
+      "target": "class:frontend/src/components/__tests__/PhotoGallery.test.tsx:MockIntersectionObserver",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/__tests__/PhotoGallery.test.tsx",
+      "target": "file:frontend/src/components/PhotoGallery.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/__tests__/PhotoGallery.test.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "target": "function:frontend/src/components/timeline/EntityLinkTooltip.tsx:getEntityDisplayName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "target": "function:frontend/src/components/timeline/EntityLinkTooltip.tsx:EntityLinkTooltip",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "target": "function:frontend/src/components/timeline/EntityLinkTooltip.tsx:EntityLinkTooltip",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "target": "file:frontend/src/lib/entityConfig.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "target": "file:frontend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/EntityLinkTooltip.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/timeline/EntityLinkTooltip.tsx:EntityLinkTooltip",
+      "target": "function:frontend/src/components/timeline/EntityLinkTooltip.tsx:getEntityDisplayName",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "target": "function:frontend/src/components/timeline/PhotoPreviewPopover.tsx:PhotoPreviewPopover",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "target": "function:frontend/src/components/timeline/PhotoPreviewPopover.tsx:PhotoPreviewPopover",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "target": "file:frontend/src/hooks/useDropdownPosition.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "target": "file:frontend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/timeline/PhotoPreviewPopover.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/timeline/PhotoPreviewPopover.tsx:PhotoPreviewPopover",
+      "target": "function:frontend/src/hooks/useDropdownPosition.ts:useDropdownPosition",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "target": "function:frontend/src/components/widgets/RecentPhotosWidget.tsx:RecentPhotosWidget",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "target": "function:frontend/src/components/widgets/RecentPhotosWidget.tsx:RecentPhotosWidget",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "target": "file:frontend/src/components/Skeleton.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "target": "file:frontend/src/services/photo.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "target": "file:frontend/src/services/trip.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/widgets/RecentPhotosWidget.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/widgets/RecentPhotosWidget.tsx:RecentPhotosWidget",
+      "target": "function:frontend/src/services/photo.service.ts:photoService",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

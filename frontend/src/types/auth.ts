@@ -27,3 +27,8 @@ export type LoginInput = {
   email: string;
   password: string;
 }
+
+export type OidcConfig = {
+  enabled: boolean;
+  buttonText: string;
+}

@@ -1,0 +1,81 @@
+{
+  "nodes": [
+    {
+      "id": "document:docs/guides/BUILD_AND_PUSH.md",
+      "type": "document",
+      "name": "BUILD_AND_PUSH.md",
+      "filePath": "docs/guides/BUILD_AND_PUSH.md",
+      "summary": "Mandatory release checklist for building and pushing Docker images — covers the automated release script, manual pre-release steps, version bumping, Docker build/push, git tagging, and troubleshooting common release issues. CLAUDE.md requires this document be followed exactly for any deployment request.",
+      "tags": ["documentation", "release", "deployment", "ci-cd"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/guides/DEBUGGING_AND_OPTIMIZATION.md",
+      "type": "document",
+      "name": "DEBUGGING_AND_OPTIMIZATION.md",
+      "filePath": "docs/guides/DEBUGGING_AND_OPTIMIZATION.md",
+      "summary": "Quick-reference guide for when and how to invoke the Debugger and Code Optimizer subagents, including common debugging tips (validation/type errors, stale data) and optimization principles (Rule of Three).",
+      "tags": ["documentation", "debugging", "optimization", "agents"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:docs/guides/DEVELOPMENT_WORKFLOWS.md",
+      "type": "document",
+      "name": "DEVELOPMENT_WORKFLOWS.md",
+      "filePath": "docs/guides/DEVELOPMENT_WORKFLOWS.md",
+      "summary": "Step-by-step workflow guide covering how to add a new full-stack feature, work with UI components, make database changes, and implement authentication, entity linking, timeline/printable itinerary, album pagination, checklists, trip health check, backup/restore, trip collaboration, global search, batch operations, and auto-save drafts.",
+      "tags": ["documentation", "development", "workflows", "how-to"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/guides/HTTPS_SETUP.md",
+      "type": "document",
+      "name": "HTTPS_SETUP.md",
+      "filePath": "docs/guides/HTTPS_SETUP.md",
+      "summary": "Guide for enabling HTTPS/TLS in production via an Nginx reverse proxy with Let's Encrypt or via Traefik, plus cookie-security settings and setup verification steps.",
+      "tags": ["documentation", "https", "infrastructure", "security"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/guides/ROUTING_SETUP.md",
+      "type": "document",
+      "name": "ROUTING_SETUP.md",
+      "filePath": "docs/guides/ROUTING_SETUP.md",
+      "summary": "Setup guide for the OpenRouteService integration that enables accurate road-distance calculations, covering API key configuration for dev/production/TrueNAS, routing profiles, caching, straight-line fallback behavior, troubleshooting, and self-hosting.",
+      "tags": ["documentation", "routing", "geospatial", "configuration"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/guides/TESTING_GUIDE.md",
+      "type": "document",
+      "name": "TESTING_GUIDE.md",
+      "filePath": "docs/guides/TESTING_GUIDE.md",
+      "summary": "Testing strategy and setup guide covering Vitest frontend tests, Jest backend tests, and Playwright/Cypress E2E tests, with example test code, coverage goals, and CI/CD integration notes.",
+      "tags": ["documentation", "testing", "vitest", "jest"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:docs/guides/BUILD_AND_PUSH.md",
+      "target": "file:release.sh",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/guides/TESTING_GUIDE.md",
+      "target": "document:docs/plans/TEST_COVERAGE_PLAN.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/guides/DEVELOPMENT_WORKFLOWS.md",
+      "target": "document:docs/architecture/BACKEND_ARCHITECTURE.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

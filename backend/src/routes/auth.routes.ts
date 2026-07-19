@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authController } from '../controllers/auth.controller';
+import { oidcController } from '../controllers/oidc.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -145,5 +146,52 @@ router.get('/me', authenticate, authController.getCurrentUser);
  *         description: Logout successful
  */
 router.post('/logout', authController.logout);
+
+/**
+ * @openapi
+ * /api/auth/oidc/config:
+ *   get:
+ *     summary: Get public OIDC single sign-on configuration
+ *     tags: [Authentication]
+ *     description: Tells the login page whether SSO is enabled and what the button should say. Contains no secrets.
+ *     responses:
+ *       200:
+ *         description: OIDC configuration
+ */
+router.get('/oidc/config', oidcController.getConfig);
+
+/**
+ * @openapi
+ * /api/auth/oidc/login:
+ *   get:
+ *     summary: Start OIDC single sign-on
+ *     tags: [Authentication]
+ *     description: Full-page redirect to the configured identity provider (authorization code flow with PKCE).
+ *     parameters:
+ *       - in: query
+ *         name: redirect
+ *         schema:
+ *           type: string
+ *         description: Same-origin path to return to after login (defaults to /dashboard)
+ *     responses:
+ *       302:
+ *         description: Redirect to the identity provider
+ *       404:
+ *         description: OIDC is not configured
+ */
+router.get('/oidc/login', oidcController.login);
+
+/**
+ * @openapi
+ * /api/auth/oidc/callback:
+ *   get:
+ *     summary: OIDC callback endpoint
+ *     tags: [Authentication]
+ *     description: The identity provider redirects here. On success, sets auth cookies and redirects to the frontend; on failure, redirects to the login page with an error code.
+ *     responses:
+ *       302:
+ *         description: Redirect to the frontend
+ */
+router.get('/oidc/callback', oidcController.callback);
 
 export default router;

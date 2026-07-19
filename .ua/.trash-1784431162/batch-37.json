@@ -1,0 +1,117 @@
+{
+  "nodes": [
+    {
+      "id": "config:backend/.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": "backend/.env.example",
+      "summary": "Template environment file enumerating all backend configuration variables — database connection, JWT secrets, upload settings, third-party API keys (Immich, OpenWeatherMap, AviationStack, OpenRouteService), Nominatim geocoding, SMTP, and the frontend URL — for local setup.",
+      "tags": ["configuration", "environment-variables", "secrets-template", "backend"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:backend/Dockerfile.prod",
+      "type": "service",
+      "name": "Dockerfile.prod",
+      "filePath": "backend/Dockerfile.prod",
+      "summary": "Multi-stage production Dockerfile for the backend: compiles the TypeScript app and generates the Prisma client in a builder stage, then produces a minimal Node.js 20 Alpine runtime image running as a non-root user with a health check and a migration-aware entrypoint script.",
+      "tags": ["containerization", "infrastructure", "deployment", "docker", "production"],
+      "complexity": "moderate",
+      "languageNotes": "Uses the multi-stage build pattern to keep dev dependencies and build tooling out of the final runtime image, copying only the compiled dist/ output and production node_modules forward."
+    },
+    {
+      "id": "document:backend/cUsersdsbactsc_output.txt",
+      "type": "document",
+      "name": "cUsersdsbactsc_output.txt",
+      "filePath": "backend/cUsersdsbactsc_output.txt",
+      "summary": "Stray captured text output (its mangled filename suggests a Windows `tsc` compiler run redirected to a file) rather than an intentional part of the application source; not present on disk at analysis time.",
+      "tags": ["build-artifact", "log", "misc"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/docker-entrypoint.sh",
+      "type": "file",
+      "name": "docker-entrypoint.sh",
+      "filePath": "backend/docker-entrypoint.sh",
+      "summary": "Docker container entrypoint script that waits for the database to become available, detects and auto-resolves failed Prisma migrations (rollback retries, schema-push fallback, stale migration-record cleanup), then execs the container's main startup command.",
+      "tags": ["entrypoint", "deployment", "database", "migration", "docker"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/docker-entrypoint.sh:resolve_migration",
+      "type": "function",
+      "name": "resolve_migration",
+      "filePath": "backend/docker-entrypoint.sh",
+      "lineRange": [20, 32],
+      "summary": "Marks a specific named Prisma migration as rolled back via `prisma migrate resolve --rolled-back` so it will be re-applied on the next deployment attempt.",
+      "tags": ["migration", "database", "error-recovery"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "backend/package.json",
+      "summary": "Backend npm package manifest defining scripts (dev, build, build:strict, test, prisma:generate/migrate/studio) and the full set of runtime and dev dependencies for the Express + TypeScript + Prisma backend.",
+      "tags": ["configuration", "npm", "dependencies", "backend", "build-system"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:backend/tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "backend/tsconfig.json",
+      "summary": "Base TypeScript compiler configuration for the backend, defining module resolution, output directory, and include/exclude patterns used by the default dev and build scripts.",
+      "tags": ["configuration", "typescript", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/tsconfig.prod.json",
+      "type": "config",
+      "name": "tsconfig.prod.json",
+      "filePath": "backend/tsconfig.prod.json",
+      "summary": "Relaxed production TypeScript configuration, extending the base tsconfig, used by `npm run build` so that non-blocking type errors don't fail the production build.",
+      "tags": ["configuration", "typescript", "build-system", "production"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/tsconfig.test.json",
+      "type": "config",
+      "name": "tsconfig.test.json",
+      "filePath": "backend/tsconfig.test.json",
+      "summary": "Minimal TypeScript configuration, extending the base tsconfig, that scopes compilation to test files for Jest test runs.",
+      "tags": ["configuration", "typescript", "testing"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/docker-entrypoint.sh",
+      "target": "function:backend/docker-entrypoint.sh:resolve_migration",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "config:backend/tsconfig.prod.json",
+      "target": "config:backend/tsconfig.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:backend/tsconfig.test.json",
+      "target": "config:backend/tsconfig.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:backend/Dockerfile.prod",
+      "target": "config:backend/package.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

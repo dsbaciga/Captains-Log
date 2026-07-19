@@ -1,0 +1,77 @@
+{
+  "nodes": [
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/rules/architecture-avoid-boolean-props.md",
+      "type": "document",
+      "name": "architecture-avoid-boolean-props.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/rules/architecture-avoid-boolean-props.md",
+      "summary": "Rule guidance on avoiding boolean prop proliferation in React components, recommending variant/enum-based APIs instead of multiple boolean flags.",
+      "tags": ["documentation", "react", "best-practices", "component-api"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/rules/architecture-compound-components.md",
+      "type": "document",
+      "name": "architecture-compound-components.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/rules/architecture-compound-components.md",
+      "summary": "Rule guidance on using the compound components pattern to build flexible, composable React component APIs instead of monolithic components with many props.",
+      "tags": ["documentation", "react", "best-practices", "compound-components"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/rules/patterns-children-over-render-props.md",
+      "type": "document",
+      "name": "patterns-children-over-render-props.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/rules/patterns-children-over-render-props.md",
+      "summary": "Rule guidance recommending the use of children composition over render props for passing rendering logic into React components.",
+      "tags": ["documentation", "react", "best-practices", "composition"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/rules/patterns-explicit-variants.md",
+      "type": "document",
+      "name": "patterns-explicit-variants.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/rules/patterns-explicit-variants.md",
+      "summary": "Rule guidance on creating explicit, named component variants rather than overloading a single component with conditional prop-driven behavior.",
+      "tags": ["documentation", "react", "best-practices", "component-variants"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/rules/react19-no-forwardref.md",
+      "type": "document",
+      "name": "react19-no-forwardref.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/rules/react19-no-forwardref.md",
+      "summary": "Rule guidance on React 19 API changes, specifically that `ref` can now be passed as a regular prop, removing the need for `forwardRef`.",
+      "tags": ["documentation", "react", "react-19", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/rules/state-context-interface.md",
+      "type": "document",
+      "name": "state-context-interface.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/rules/state-context-interface.md",
+      "summary": "Rule guidance on defining generic, dependency-injectable Context interfaces in React to decouple consumers from concrete state implementations.",
+      "tags": ["documentation", "react", "best-practices", "context-api", "state-management"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/rules/state-decouple-implementation.md",
+      "type": "document",
+      "name": "state-decouple-implementation.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/rules/state-decouple-implementation.md",
+      "summary": "Rule guidance on decoupling state management logic from UI components to improve reusability and testability.",
+      "tags": ["documentation", "react", "best-practices", "state-management"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-composition-patterns/rules/state-lift-state.md",
+      "type": "document",
+      "name": "state-lift-state.md",
+      "filePath": ".agent/skills/vercel-composition-patterns/rules/state-lift-state.md",
+      "summary": "Rule guidance on lifting shared state into provider components to avoid prop drilling and centralize state ownership.",
+      "tags": ["documentation", "react", "best-practices", "state-management", "provider-pattern"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

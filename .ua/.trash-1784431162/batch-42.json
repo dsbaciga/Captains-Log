@@ -1,0 +1,288 @@
+{
+  "nodes": [
+    {
+      "id": "config:frontend/.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": "frontend/.env.example",
+      "summary": "Example environment file listing the two public Vite build-time variables (VITE_API_URL, VITE_UPLOAD_URL) that developers copy into a local .env to point the frontend at the backend API and upload server.",
+      "tags": ["configuration", "environment-variables", "vite", "frontend"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:frontend/Dockerfile.prod",
+      "type": "service",
+      "name": "Dockerfile.prod",
+      "filePath": "frontend/Dockerfile.prod",
+      "summary": "Multi-stage production Docker build that compiles the Vite/React frontend in a Node 20 Alpine builder stage, then serves the static bundle from an nginx Alpine image with a healthcheck and a runtime env-injection entrypoint script for VITE_API_URL/VITE_UPLOAD_URL.",
+      "tags": ["containerization", "infrastructure", "deployment", "nginx"],
+      "complexity": "moderate",
+      "languageNotes": "Uses a runtime env-injection entrypoint script that writes window.ENV into env-config.js, letting the same built image be reconfigured per-deployment without a rebuild."
+    },
+    {
+      "id": "service:frontend/Dockerfile.prod:builder",
+      "type": "service",
+      "name": "builder",
+      "filePath": "frontend/Dockerfile.prod",
+      "summary": "Node 20 Alpine build stage that installs dependencies with npm ci and runs the Vite production build using VITE_API_URL/VITE_UPLOAD_URL build args.",
+      "tags": ["build-stage", "docker", "node"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:frontend/Dockerfile.prod:nginx",
+      "type": "service",
+      "name": "nginx",
+      "filePath": "frontend/Dockerfile.prod",
+      "summary": "Nginx Alpine runtime stage that serves the static assets produced by the builder stage on port 80, with an HTTP healthcheck and env-injection entrypoint.",
+      "tags": ["runtime-stage", "nginx", "docker"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:frontend/Dockerfile.prod.truenas",
+      "type": "service",
+      "name": "Dockerfile.prod.truenas",
+      "filePath": "frontend/Dockerfile.prod.truenas",
+      "summary": "TrueNAS-specific production Docker build that builds the frontend with relative /api and /uploads URLs and uses an nginx config template with envsubst to inject BACKEND_HOST/BACKEND_PORT at container startup, avoiding hardcoded backend URLs.",
+      "tags": ["containerization", "infrastructure", "deployment", "truenas"],
+      "complexity": "moderate",
+      "languageNotes": "Uses gettext's envsubst against an nginx config template so the backend host/port can be set purely via container env vars rather than baked into the image."
+    },
+    {
+      "id": "service:frontend/Dockerfile.truenas",
+      "type": "service",
+      "name": "Dockerfile.truenas",
+      "filePath": "frontend/Dockerfile.truenas",
+      "summary": "Alternate TrueNAS frontend Dockerfile that builds with relative /api and /uploads URLs and copies a static TrueNAS nginx proxy config directly (no envsubst), including a wget-based healthcheck against /health.",
+      "tags": ["containerization", "infrastructure", "deployment", "truenas"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:frontend/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "frontend/README.md",
+      "summary": "Boilerplate Vite + React + TypeScript template README covering HMR plugin choices (Babel vs SWC) and guidance for enabling stricter, type-aware ESLint configuration.",
+      "tags": ["documentation", "vite", "eslint", "boilerplate"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "frontend/index.html",
+      "summary": "HTML entry point for the Vite-built SPA; sets PWA meta tags and theme color, preloads Google Fonts, links the manifest and favicons, and mounts the React app via /src/main.tsx into the #root div.",
+      "tags": ["entry-point", "html", "pwa", "markup"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "frontend/package.json",
+      "summary": "npm manifest for the travel-life-frontend app defining dev/build/test scripts (Vite, Vitest, ESLint) and the full dependency set including React 19, TanStack Query, Zustand, Leaflet mapping, dnd-kit, and PWA tooling.",
+      "tags": ["configuration", "npm", "build-system", "dependencies"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:frontend/tsconfig.app.json",
+      "type": "config",
+      "name": "tsconfig.app.json",
+      "filePath": "frontend/tsconfig.app.json",
+      "summary": "TypeScript compiler configuration for the app's src/ source code, targeting ES2022 with bundler module resolution, strict type-checking, and React JSX support.",
+      "tags": ["configuration", "typescript", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "frontend/tsconfig.json",
+      "summary": "Root TypeScript solution file that references the app and node tsconfig project files for composite builds.",
+      "tags": ["configuration", "typescript", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.node.json",
+      "type": "config",
+      "name": "tsconfig.node.json",
+      "filePath": "frontend/tsconfig.node.json",
+      "summary": "TypeScript compiler configuration for Node-context tooling files such as vite.config.ts, targeting ES2023 with strict checks.",
+      "tags": ["configuration", "typescript", "build-system", "tooling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.prod.app.json",
+      "type": "config",
+      "name": "tsconfig.prod.app.json",
+      "filePath": "frontend/tsconfig.prod.app.json",
+      "summary": "Production variant of the app TypeScript config that extends tsconfig.app.json but relaxes strict/unused-code checks and excludes test files, used by the non-strict `build` npm script so TypeScript warnings don't block production builds.",
+      "tags": ["configuration", "typescript", "build-system", "production"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.prod.json",
+      "type": "config",
+      "name": "tsconfig.prod.json",
+      "filePath": "frontend/tsconfig.prod.json",
+      "summary": "Production TypeScript solution file referencing the relaxed prod app config and node config; keeps strict/casing checks at the root while the app config relaxes unused-code rules for production builds.",
+      "tags": ["configuration", "typescript", "build-system", "production"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "config:frontend/tsconfig.json",
+      "target": "config:frontend/tsconfig.app.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.json",
+      "target": "config:frontend/tsconfig.node.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.prod.json",
+      "target": "config:frontend/tsconfig.prod.app.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.prod.json",
+      "target": "config:frontend/tsconfig.node.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.prod.app.json",
+      "target": "config:frontend/tsconfig.app.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.app.json",
+      "target": "file:frontend/index.html",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/package.json",
+      "target": "file:frontend/index.html",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:frontend/README.md",
+      "target": "file:frontend/index.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "service:frontend/Dockerfile.prod",
+      "target": "file:frontend/index.html",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:frontend/Dockerfile.prod",
+      "target": "config:frontend/package.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/.env.example",
+      "target": "service:frontend/Dockerfile.prod",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/.env.example",
+      "target": "service:frontend/Dockerfile.truenas",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:frontend/Dockerfile.prod",
+      "target": "service:frontend/Dockerfile.prod:builder",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "service:frontend/Dockerfile.prod",
+      "target": "service:frontend/Dockerfile.prod:nginx",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "service:frontend/Dockerfile.prod:nginx",
+      "target": "service:frontend/Dockerfile.prod:builder",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:frontend/Dockerfile.prod.truenas",
+      "target": "file:frontend/index.html",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:frontend/Dockerfile.prod.truenas",
+      "target": "config:frontend/package.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:frontend/Dockerfile.truenas",
+      "target": "file:frontend/index.html",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:frontend/Dockerfile.truenas",
+      "target": "config:frontend/package.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:frontend/Dockerfile.truenas",
+      "target": "service:frontend/Dockerfile.prod.truenas",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:frontend/package.json",
+      "target": "config:frontend/tsconfig.prod.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/package.json",
+      "target": "config:frontend/tsconfig.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

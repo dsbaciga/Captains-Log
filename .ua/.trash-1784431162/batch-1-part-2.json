@@ -1,0 +1,1154 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "type": "file",
+      "name": "DailyView.tsx",
+      "filePath": "frontend/src/components/daily-view/DailyView.tsx",
+      "summary": "Top-level daily itinerary view that loads all entity types for a trip, groups them by day, and renders navigable day cards (activities, lodging, transportation, journal, weather) with printable itinerary support.",
+      "tags": [
+        "component",
+        "daily-view",
+        "entry-point",
+        "data-aggregation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/DailyView.tsx:DailyView",
+      "type": "function",
+      "name": "DailyView",
+      "filePath": "frontend/src/components/daily-view/DailyView.tsx",
+      "lineRange": [
+        76,
+        915
+      ],
+      "summary": "Loads activities, transportation, lodging, journal entries, photos and weather for a trip, groups them by day, and renders the navigable daily-view UI.",
+      "tags": [
+        "component",
+        "daily-view",
+        "entry-point",
+        "data-aggregation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/daily-view/DayNavigator.tsx",
+      "type": "file",
+      "name": "DayNavigator.tsx",
+      "filePath": "frontend/src/components/daily-view/DayNavigator.tsx",
+      "summary": "Dropdown navigation control for jumping between days of a trip in the daily view, showing per-day summaries and weather badges.",
+      "tags": [
+        "component",
+        "navigation",
+        "dropdown",
+        "daily-view"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/DayNavigator.tsx:DayNavigator",
+      "type": "function",
+      "name": "DayNavigator",
+      "filePath": "frontend/src/components/daily-view/DayNavigator.tsx",
+      "lineRange": [
+        17,
+        351
+      ],
+      "summary": "Renders a dropdown for navigating between trip days, positioned via useDropdownPosition and showing weather summaries per day.",
+      "tags": [
+        "component",
+        "navigation",
+        "dropdown"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "type": "file",
+      "name": "EmbeddedAlbumCard.tsx",
+      "filePath": "frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "summary": "Renders a compact preview of a photo album embedded within an activity, lodging, or journal card in the daily view.",
+      "tags": [
+        "component",
+        "card",
+        "photo",
+        "daily-view"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx:EmbeddedAlbumCard",
+      "type": "function",
+      "name": "EmbeddedAlbumCard",
+      "filePath": "frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "lineRange": [
+        15,
+        162
+      ],
+      "summary": "Renders a compact photo-album preview embedded inside another daily-view card.",
+      "tags": [
+        "component",
+        "photo",
+        "card"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "type": "file",
+      "name": "EmbeddedLocationCard.tsx",
+      "filePath": "frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "summary": "Renders a compact preview of a linked location embedded within activity, lodging, or journal cards in the daily view.",
+      "tags": [
+        "component",
+        "card",
+        "location",
+        "daily-view"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/EmbeddedLocationCard.tsx:EmbeddedLocationCard",
+      "type": "function",
+      "name": "EmbeddedLocationCard",
+      "filePath": "frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "lineRange": [
+        23,
+        146
+      ],
+      "summary": "Renders a compact linked-location preview embedded inside another daily-view card.",
+      "tags": [
+        "component",
+        "location",
+        "card"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/daily-view/EmptyDayPlaceholder.tsx",
+      "type": "file",
+      "name": "EmptyDayPlaceholder.tsx",
+      "filePath": "frontend/src/components/daily-view/EmptyDayPlaceholder.tsx",
+      "summary": "Placeholder shown for days in a trip with no scheduled items, prompting the user to add activities.",
+      "tags": [
+        "component",
+        "empty-state",
+        "daily-view"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/EmptyDayPlaceholder.tsx:EmptyDayPlaceholder",
+      "type": "function",
+      "name": "EmptyDayPlaceholder",
+      "filePath": "frontend/src/components/daily-view/EmptyDayPlaceholder.tsx",
+      "lineRange": [
+        8,
+        125
+      ],
+      "summary": "Renders a friendly empty-state prompting the user to add items to a day with no scheduled content.",
+      "tags": [
+        "component",
+        "empty-state"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "type": "file",
+      "name": "JournalCard.tsx",
+      "filePath": "frontend/src/components/daily-view/JournalCard.tsx",
+      "summary": "Card rendering a journal entry (mood, content, linked entities, embedded photos/locations) within the daily view.",
+      "tags": [
+        "component",
+        "card",
+        "journal",
+        "daily-view"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/JournalCard.tsx:JournalCard",
+      "type": "function",
+      "name": "JournalCard",
+      "filePath": "frontend/src/components/daily-view/JournalCard.tsx",
+      "lineRange": [
+        23,
+        197
+      ],
+      "summary": "Renders a journal entry's mood, markdown content, linked entities and embedded photo/location previews.",
+      "tags": [
+        "component",
+        "journal",
+        "card"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "type": "file",
+      "name": "LodgingCard.tsx",
+      "filePath": "frontend/src/components/daily-view/LodgingCard.tsx",
+      "summary": "Card rendering lodging check-in/check-out details, linked location, and embedded photos within the daily view.",
+      "tags": [
+        "component",
+        "card",
+        "lodging",
+        "daily-view"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/LodgingCard.tsx:LodgingCard",
+      "type": "function",
+      "name": "LodgingCard",
+      "filePath": "frontend/src/components/daily-view/LodgingCard.tsx",
+      "lineRange": [
+        32,
+        340
+      ],
+      "summary": "Renders lodging check-in/check-out details, linked location and embedded photos in the daily view.",
+      "tags": [
+        "component",
+        "lodging",
+        "card"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "type": "file",
+      "name": "PrintableDayItinerary.tsx",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "summary": "Print-optimized rendering of a single day's itinerary (activities, transportation, lodging, journal, unscheduled items) for PDF/print output.",
+      "tags": [
+        "component",
+        "print",
+        "daily-view",
+        "itinerary"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:formatTime",
+      "type": "function",
+      "name": "formatTime",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        38,
+        57
+      ],
+      "summary": "Formats a time-of-day string for the printable day itinerary.",
+      "tags": [
+        "utility",
+        "formatting",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:formatCost",
+      "type": "function",
+      "name": "formatCost",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        60,
+        71
+      ],
+      "summary": "Formats a monetary amount with currency for the printable day itinerary.",
+      "tags": [
+        "utility",
+        "formatting",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:getTransportTypeName",
+      "type": "function",
+      "name": "getTransportTypeName",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        74,
+        86
+      ],
+      "summary": "Maps a transportation type code to a human-readable label for print output.",
+      "tags": [
+        "utility",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:getLodgingTypeName",
+      "type": "function",
+      "name": "getLodgingTypeName",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        89,
+        104
+      ],
+      "summary": "Maps a lodging type code to a human-readable label for print output.",
+      "tags": [
+        "utility",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:ActivityItemPrint",
+      "type": "function",
+      "name": "ActivityItemPrint",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        107,
+        131
+      ],
+      "summary": "Renders a single activity row in the printable day itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "activity"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:TransportationItemPrint",
+      "type": "function",
+      "name": "TransportationItemPrint",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        134,
+        177
+      ],
+      "summary": "Renders a single transportation-leg row in the printable day itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "transportation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:LodgingItemPrint",
+      "type": "function",
+      "name": "LodgingItemPrint",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        180,
+        213
+      ],
+      "summary": "Renders a single lodging row in the printable day itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "lodging"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:JournalItemPrint",
+      "type": "function",
+      "name": "JournalItemPrint",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        216,
+        228
+      ],
+      "summary": "Renders a single journal-entry row in the printable day itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "journal"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:LocationItemPrint",
+      "type": "function",
+      "name": "LocationItemPrint",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        231,
+        247
+      ],
+      "summary": "Renders a single location row in the printable day itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "location"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:DayItemRow",
+      "type": "function",
+      "name": "DayItemRow",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        250,
+        265
+      ],
+      "summary": "Dispatches to the type-specific print item renderer based on the timeline item's type.",
+      "tags": [
+        "component",
+        "print"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:UnscheduledActivityItemPrint",
+      "type": "function",
+      "name": "UnscheduledActivityItemPrint",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        268,
+        289
+      ],
+      "summary": "Renders an unscheduled activity row in the printable day itinerary.",
+      "tags": [
+        "component",
+        "print",
+        "activity"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:PrintableDayItinerary",
+      "type": "function",
+      "name": "PrintableDayItinerary",
+      "filePath": "frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "lineRange": [
+        291,
+        370
+      ],
+      "summary": "Assembles and renders the full print layout for a single day's itinerary items.",
+      "tags": [
+        "component",
+        "print",
+        "entry-point"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "type": "file",
+      "name": "TransportationCard.tsx",
+      "filePath": "frontend/src/components/daily-view/TransportationCard.tsx",
+      "summary": "Card rendering a transportation leg's details (departure/arrival, flight status, linked entities and photos) within the daily view.",
+      "tags": [
+        "component",
+        "card",
+        "transportation",
+        "daily-view"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/daily-view/TransportationCard.tsx:TransportationCard",
+      "type": "function",
+      "name": "TransportationCard",
+      "filePath": "frontend/src/components/daily-view/TransportationCard.tsx",
+      "lineRange": [
+        28,
+        326
+      ],
+      "summary": "Renders a transportation leg's departure/arrival details, flight status badge, linked entities and photos in the daily view.",
+      "tags": [
+        "component",
+        "transportation",
+        "card"
+      ],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/components/daily-view/ActivityCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/components/daily-view/DayNavigator.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/components/daily-view/EmptyDayPlaceholder.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/services/activity.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/services/journalEntry.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/services/location.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/services/lodging.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/services/photo.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/services/transportation.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/services/weather.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/types/activity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/types/journalEntry.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/types/location.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/types/lodging.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/types/transportation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/types/weather.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/utils/timezone.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "file:frontend/src/utils/weatherIcons.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DayNavigator.tsx",
+      "target": "file:frontend/src/components/daily-view/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DayNavigator.tsx",
+      "target": "file:frontend/src/hooks/useDropdownPosition.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DayNavigator.tsx",
+      "target": "file:frontend/src/types/weather.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "target": "file:frontend/src/components/daily-view/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "target": "file:frontend/src/utils/stripMarkdown.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "target": "file:frontend/src/components/daily-view/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "target": "file:frontend/src/types/location.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/components/daily-view/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/components/LinkedEntitiesDisplay.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/components/MarkdownRenderer.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/types/journalEntry.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/types/location.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "file:frontend/src/utils/stripMarkdown.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "file:frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "file:frontend/src/components/daily-view/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "file:frontend/src/components/LinkedEntitiesDisplay.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "file:frontend/src/types/location.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "file:frontend/src/types/lodging.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "file:frontend/src/components/MarkdownRenderer.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "file:frontend/src/types/activity.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "file:frontend/src/types/journalEntry.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "file:frontend/src/types/location.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "file:frontend/src/types/lodging.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "file:frontend/src/types/transportation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "file:frontend/src/types/weather.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "file:frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "file:frontend/src/components/daily-view/utils.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "file:frontend/src/components/FlightStatusBadge.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "file:frontend/src/components/LinkedEntitiesDisplay.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "file:frontend/src/types/location.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "file:frontend/src/types/transportation.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "function:frontend/src/components/daily-view/DailyView.tsx:DailyView",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DayNavigator.tsx",
+      "target": "function:frontend/src/components/daily-view/DayNavigator.tsx:DayNavigator",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "target": "function:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx:EmbeddedAlbumCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "target": "function:frontend/src/components/daily-view/EmbeddedLocationCard.tsx:EmbeddedLocationCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmptyDayPlaceholder.tsx",
+      "target": "function:frontend/src/components/daily-view/EmptyDayPlaceholder.tsx:EmptyDayPlaceholder",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "function:frontend/src/components/daily-view/JournalCard.tsx:JournalCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "function:frontend/src/components/daily-view/LodgingCard.tsx:LodgingCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:formatTime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:formatCost",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:getTransportTypeName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:getLodgingTypeName",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:ActivityItemPrint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:TransportationItemPrint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:LodgingItemPrint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:JournalItemPrint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:LocationItemPrint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:DayItemRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:UnscheduledActivityItemPrint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:PrintableDayItinerary",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "function:frontend/src/components/daily-view/TransportationCard.tsx:TransportationCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DailyView.tsx",
+      "target": "function:frontend/src/components/daily-view/DailyView.tsx:DailyView",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/DayNavigator.tsx",
+      "target": "function:frontend/src/components/daily-view/DayNavigator.tsx:DayNavigator",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx",
+      "target": "function:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx:EmbeddedAlbumCard",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmbeddedLocationCard.tsx",
+      "target": "function:frontend/src/components/daily-view/EmbeddedLocationCard.tsx:EmbeddedLocationCard",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/EmptyDayPlaceholder.tsx",
+      "target": "function:frontend/src/components/daily-view/EmptyDayPlaceholder.tsx:EmptyDayPlaceholder",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/JournalCard.tsx",
+      "target": "function:frontend/src/components/daily-view/JournalCard.tsx:JournalCard",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/LodgingCard.tsx",
+      "target": "function:frontend/src/components/daily-view/LodgingCard.tsx:LodgingCard",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/PrintableDayItinerary.tsx",
+      "target": "function:frontend/src/components/daily-view/PrintableDayItinerary.tsx:PrintableDayItinerary",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/daily-view/TransportationCard.tsx",
+      "target": "function:frontend/src/components/daily-view/TransportationCard.tsx:TransportationCard",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/daily-view/DayNavigator.tsx:DayNavigator",
+      "target": "function:frontend/src/hooks/useDropdownPosition.ts:useDropdownPosition",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/daily-view/JournalCard.tsx:JournalCard",
+      "target": "function:frontend/src/utils/stripMarkdown.ts:stripMarkdown",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/daily-view/EmbeddedAlbumCard.tsx:EmbeddedAlbumCard",
+      "target": "function:frontend/src/utils/stripMarkdown.ts:stripMarkdown",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

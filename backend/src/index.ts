@@ -130,6 +130,11 @@ const authLimiter = rateLimit({
   message: 'Too many authentication attempts from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  // These read-only routes are hit on every login page load and have their own
+  // (more lenient) limiter; without this skip both limiters would count them.
+  skip: (req) =>
+    req.originalUrl.startsWith('/api/auth/silent-refresh') ||
+    req.originalUrl.startsWith('/api/auth/oidc/config'),
 });
 
 // Separate rate limiter for silent-refresh (more lenient as it's called on every page load)
@@ -150,6 +155,8 @@ const limiter = rateLimit({
 
 // Apply silent-refresh rate limiter before auth limiter (more specific route first)
 app.use('/api/auth/silent-refresh', silentRefreshLimiter);
+// OIDC config is fetched on every login page load - use the lenient limiter
+app.use('/api/auth/oidc/config', silentRefreshLimiter);
 // Apply stricter rate limiting to other auth routes
 app.use('/api/auth', authLimiter);
 app.use('/api', limiter);

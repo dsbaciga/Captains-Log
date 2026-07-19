@@ -1,0 +1,1017 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "type": "file",
+      "name": "AddPhotosToAlbumModal.tsx",
+      "filePath": "frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "summary": "Modal that lists a trip's unselected photos so the user can pick and add them to an existing album, handling authenticated thumbnail loading with retry-safe blob URL caching.",
+      "tags": [
+        "component",
+        "modal",
+        "photo-management",
+        "album"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/AddPhotosToAlbumModal.tsx:AddPhotosToAlbumModal",
+      "type": "function",
+      "name": "AddPhotosToAlbumModal",
+      "filePath": "frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "lineRange": [
+        21,
+        412
+      ],
+      "summary": "Default-exported modal component that fetches a trip's photos not yet in the target album, supports shift-click range selection, and submits chosen photo IDs to add them to the album.",
+      "tags": [
+        "component",
+        "modal",
+        "photo-selection"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/AlbumModal.tsx",
+      "type": "file",
+      "name": "AlbumModal.tsx",
+      "filePath": "frontend/src/components/AlbumModal.tsx",
+      "summary": "Modal form for creating or editing a photo album, with a Markdown-enabled description field, focus trap for accessibility, and a link-summary button for entity linking.",
+      "tags": [
+        "component",
+        "modal",
+        "album",
+        "form"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/AlbumModal.tsx:AlbumModal",
+      "type": "function",
+      "name": "AlbumModal",
+      "filePath": "frontend/src/components/AlbumModal.tsx",
+      "lineRange": [
+        21,
+        227
+      ],
+      "summary": "Default-exported modal that renders an album name/description form, manages keyboard focus trapping, and calls onSave/onUpdate on submit.",
+      "tags": [
+        "component",
+        "form",
+        "album"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/AlbumSuggestions.tsx",
+      "type": "file",
+      "name": "AlbumSuggestions.tsx",
+      "filePath": "frontend/src/components/AlbumSuggestions.tsx",
+      "summary": "Displays AI/heuristic-generated album suggestions for a trip, letting the user accept a suggestion to auto-create an album or dismiss suggestions (persisted in localStorage).",
+      "tags": [
+        "component",
+        "album",
+        "suggestion",
+        "localstorage"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/AlbumSuggestions.tsx:getSuggestionKey",
+      "type": "function",
+      "name": "getSuggestionKey",
+      "filePath": "frontend/src/components/AlbumSuggestions.tsx",
+      "lineRange": [
+        11,
+        13
+      ],
+      "summary": "Builds a stable string key for an album suggestion used to track dismissal state.",
+      "tags": [
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/AlbumSuggestions.tsx:getDismissedSuggestions",
+      "type": "function",
+      "name": "getDismissedSuggestions",
+      "filePath": "frontend/src/components/AlbumSuggestions.tsx",
+      "lineRange": [
+        16,
+        24
+      ],
+      "summary": "Reads the set of dismissed suggestion keys for a trip from localStorage.",
+      "tags": [
+        "utility",
+        "localstorage"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/AlbumSuggestions.tsx:saveDismissedSuggestion",
+      "type": "function",
+      "name": "saveDismissedSuggestion",
+      "filePath": "frontend/src/components/AlbumSuggestions.tsx",
+      "lineRange": [
+        27,
+        36
+      ],
+      "summary": "Persists a newly dismissed suggestion key to localStorage for a given trip.",
+      "tags": [
+        "utility",
+        "localstorage"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/AlbumSuggestions.tsx:dismissAllSuggestions",
+      "type": "function",
+      "name": "dismissAllSuggestions",
+      "filePath": "frontend/src/components/AlbumSuggestions.tsx",
+      "lineRange": [
+        39,
+        48
+      ],
+      "summary": "Persists dismissal keys for every currently displayed suggestion at once.",
+      "tags": [
+        "utility",
+        "localstorage"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/AlbumSuggestions.tsx:AlbumSuggestions",
+      "type": "function",
+      "name": "AlbumSuggestions",
+      "filePath": "frontend/src/components/AlbumSuggestions.tsx",
+      "lineRange": [
+        50,
+        215
+      ],
+      "summary": "Default-exported component that loads album suggestions from the photo service, filters out dismissed ones, and renders accept/dismiss controls.",
+      "tags": [
+        "component",
+        "album",
+        "suggestion"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/AlbumsSidebar.tsx",
+      "type": "file",
+      "name": "AlbumsSidebar.tsx",
+      "filePath": "frontend/src/components/AlbumsSidebar.tsx",
+      "summary": "Sidebar listing a trip's photo albums with thumbnail previews (loaded via authenticated blob URLs), photo counts, and edit/delete actions; supports a mobile drawer layout.",
+      "tags": [
+        "component",
+        "sidebar",
+        "album",
+        "navigation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/AlbumsSidebar.tsx:AlbumsSidebar",
+      "type": "function",
+      "name": "AlbumsSidebar",
+      "filePath": "frontend/src/components/AlbumsSidebar.tsx",
+      "lineRange": [
+        20,
+        291
+      ],
+      "summary": "Default-exported sidebar component that renders album entries, fetches authenticated thumbnails, and handles select/edit/delete callbacks for each album.",
+      "tags": [
+        "component",
+        "sidebar",
+        "album"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/BatchPhotoToolbar.tsx",
+      "type": "file",
+      "name": "BatchPhotoToolbar.tsx",
+      "filePath": "frontend/src/components/BatchPhotoToolbar.tsx",
+      "summary": "Floating toolbar shown during multi-photo selection mode, exposing select-all, deselect, add-to-album, link-to-entity, remove-from-album, and delete actions with an animated show/hide transition.",
+      "tags": [
+        "component",
+        "toolbar",
+        "batch-operations",
+        "photo-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/BatchPhotoToolbar.tsx:BatchPhotoToolbar",
+      "type": "function",
+      "name": "BatchPhotoToolbar",
+      "filePath": "frontend/src/components/BatchPhotoToolbar.tsx",
+      "lineRange": [
+        18,
+        217
+      ],
+      "summary": "Default-exported toolbar component that animates in/out and exposes batch selection action buttons for the photo gallery.",
+      "tags": [
+        "component",
+        "toolbar",
+        "batch-operations"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/EntityPickerModal.tsx",
+      "type": "file",
+      "name": "EntityPickerModal.tsx",
+      "filePath": "frontend/src/components/EntityPickerModal.tsx",
+      "summary": "Modal for bulk-linking a set of selected photos to a chosen entity type and instance (e.g. a location or activity), using the shared entity fetcher hooks and entity link service.",
+      "tags": [
+        "component",
+        "modal",
+        "entity-linking",
+        "photo-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/EntityPickerModal.tsx:EntityPickerModal",
+      "type": "function",
+      "name": "EntityPickerModal",
+      "filePath": "frontend/src/components/EntityPickerModal.tsx",
+      "lineRange": [
+        23,
+        191
+      ],
+      "summary": "Default-exported modal that lets the user choose an entity type, search/filter matching entities, and bulk-link the selected photos to a chosen entity.",
+      "tags": [
+        "component",
+        "entity-linking"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "type": "file",
+      "name": "GeneralEntityPickerModal.tsx",
+      "filePath": "frontend/src/components/GeneralEntityPickerModal.tsx",
+      "summary": "Generic entity picker modal used across the entity-linking system, letting a user browse any linkable entity type, single- or multi-select entities (excluding already-linked ones), and create links back to a source entity.",
+      "tags": [
+        "component",
+        "modal",
+        "entity-linking",
+        "generic"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/GeneralEntityPickerModal.tsx:GeneralEntityPickerModal",
+      "type": "function",
+      "name": "GeneralEntityPickerModal",
+      "filePath": "frontend/src/components/GeneralEntityPickerModal.tsx",
+      "lineRange": [
+        25,
+        522
+      ],
+      "summary": "Default-exported modal component handling entity type selection, search/filter, single and bulk link creation, authenticated thumbnail loading, and accessible focus trapping.",
+      "tags": [
+        "component",
+        "entity-linking",
+        "modal"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/LinkButton.tsx",
+      "type": "file",
+      "name": "LinkButton.tsx",
+      "filePath": "frontend/src/components/LinkButton.tsx",
+      "summary": "Small button showing a link-count badge and tooltip summary for an entity's cross-links, opening a LinkPanel popover when clicked.",
+      "tags": [
+        "component",
+        "entity-linking",
+        "button"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/LinkButton.tsx:LinkButton",
+      "type": "function",
+      "name": "LinkButton",
+      "filePath": "frontend/src/components/LinkButton.tsx",
+      "lineRange": [
+        16,
+        114
+      ],
+      "summary": "Default-exported button component that toggles a LinkPanel overlay and renders a badge/tooltip summarizing linked entities.",
+      "tags": [
+        "component",
+        "button",
+        "entity-linking"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/LinkEditModal.tsx",
+      "type": "file",
+      "name": "LinkEditModal.tsx",
+      "filePath": "frontend/src/components/LinkEditModal.tsx",
+      "summary": "Modal for editing an existing entity link's relationship type and notes, using a TanStack Query mutation against the entity link service.",
+      "tags": [
+        "component",
+        "modal",
+        "entity-linking",
+        "form"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/LinkEditModal.tsx:LinkEditModal",
+      "type": "function",
+      "name": "LinkEditModal",
+      "filePath": "frontend/src/components/LinkEditModal.tsx",
+      "lineRange": [
+        23,
+        217
+      ],
+      "summary": "Default-exported modal that lets the user change a link's relationship type/notes and persists the update via updateLink mutation.",
+      "tags": [
+        "component",
+        "modal",
+        "form"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/LinkPanel.tsx",
+      "type": "file",
+      "name": "LinkPanel.tsx",
+      "filePath": "frontend/src/components/LinkPanel.tsx",
+      "summary": "Modal panel for viewing and managing all entity links (both directions) for a given entity, with grouped display by entity type, authenticated photo thumbnails, navigation to linked entities, and add/edit/delete link actions.",
+      "tags": [
+        "component",
+        "modal",
+        "entity-linking",
+        "core-feature"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Combines useQuery for fetching links with useMutation for deletes, plus manual focus-trap accessibility logic shared with the other entity-link modals."
+    },
+    {
+      "id": "function:frontend/src/components/LinkPanel.tsx:LinkPanel",
+      "type": "function",
+      "name": "LinkPanel",
+      "filePath": "frontend/src/components/LinkPanel.tsx",
+      "lineRange": [
+        65,
+        552
+      ],
+      "summary": "Default-exported component that fetches all links for an entity, groups them by linked entity type, and renders navigation, edit, and delete controls for each link.",
+      "tags": [
+        "component",
+        "entity-linking",
+        "core-feature"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/NavigationLayoutToggle.tsx",
+      "type": "file",
+      "name": "NavigationLayoutToggle.tsx",
+      "filePath": "frontend/src/components/NavigationLayoutToggle.tsx",
+      "summary": "Small toggle control that switches the app's navigation layout mode (e.g. sidebar vs top-nav) via the navigation Zustand store.",
+      "tags": [
+        "component",
+        "navigation",
+        "toggle"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/NavigationLayoutToggle.tsx:NavigationLayoutToggle",
+      "type": "function",
+      "name": "NavigationLayoutToggle",
+      "filePath": "frontend/src/components/NavigationLayoutToggle.tsx",
+      "lineRange": [
+        14,
+        57
+      ],
+      "summary": "Default-exported toggle button component that reads and updates the navigation layout preference from navigationStore.",
+      "tags": [
+        "component",
+        "navigation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/Pagination.tsx",
+      "type": "file",
+      "name": "Pagination.tsx",
+      "filePath": "frontend/src/components/Pagination.tsx",
+      "summary": "Reusable pagination control rendering page number buttons and next/previous navigation, used by album and photo listing pages.",
+      "tags": [
+        "component",
+        "pagination",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/Pagination.tsx:Pagination",
+      "type": "function",
+      "name": "Pagination",
+      "filePath": "frontend/src/components/Pagination.tsx",
+      "lineRange": [
+        17,
+        105
+      ],
+      "summary": "Default-exported pagination UI component that renders page buttons and triggers a page-change callback.",
+      "tags": [
+        "component",
+        "pagination"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "target": "function:frontend/src/components/AddPhotosToAlbumModal.tsx:AddPhotosToAlbumModal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "target": "function:frontend/src/components/AddPhotosToAlbumModal.tsx:AddPhotosToAlbumModal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "target": "file:frontend/src/components/ProgressiveImage.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "target": "file:frontend/src/services/photo.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AddPhotosToAlbumModal.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/AddPhotosToAlbumModal.tsx:AddPhotosToAlbumModal",
+      "target": "function:frontend/src/services/photo.service.ts:photoService",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/AlbumModal.tsx",
+      "target": "function:frontend/src/components/AlbumModal.tsx:AlbumModal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/AlbumModal.tsx",
+      "target": "function:frontend/src/components/AlbumModal.tsx:AlbumModal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/AlbumModal.tsx",
+      "target": "file:frontend/src/components/LinkButton.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AlbumModal.tsx",
+      "target": "file:frontend/src/components/MarkdownEditor.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AlbumModal.tsx",
+      "target": "file:frontend/src/hooks/useTripLinkSummary.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AlbumModal.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/AlbumModal.tsx:AlbumModal",
+      "target": "function:frontend/src/hooks/useTripLinkSummary.ts:useTripLinkSummary",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/AlbumModal.tsx:AlbumModal",
+      "target": "function:frontend/src/components/LinkButton.tsx:LinkButton",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/AlbumSuggestions.tsx",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:getSuggestionKey",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/AlbumSuggestions.tsx",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:getDismissedSuggestions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/AlbumSuggestions.tsx",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:saveDismissedSuggestion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/AlbumSuggestions.tsx",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:dismissAllSuggestions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/AlbumSuggestions.tsx",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:AlbumSuggestions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/AlbumSuggestions.tsx",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:AlbumSuggestions",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/AlbumSuggestions.tsx",
+      "target": "file:frontend/src/services/photo.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/AlbumSuggestions.tsx:saveDismissedSuggestion",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:getDismissedSuggestions",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/AlbumSuggestions.tsx:dismissAllSuggestions",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:getDismissedSuggestions",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/AlbumSuggestions.tsx:dismissAllSuggestions",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:getSuggestionKey",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/AlbumSuggestions.tsx:AlbumSuggestions",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:getDismissedSuggestions",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/AlbumSuggestions.tsx:AlbumSuggestions",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:getSuggestionKey",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/AlbumSuggestions.tsx:AlbumSuggestions",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:saveDismissedSuggestion",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/AlbumSuggestions.tsx:AlbumSuggestions",
+      "target": "function:frontend/src/components/AlbumSuggestions.tsx:dismissAllSuggestions",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/AlbumSuggestions.tsx:AlbumSuggestions",
+      "target": "function:frontend/src/services/photo.service.ts:photoService",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/AlbumsSidebar.tsx",
+      "target": "function:frontend/src/components/AlbumsSidebar.tsx:AlbumsSidebar",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/AlbumsSidebar.tsx",
+      "target": "function:frontend/src/components/AlbumsSidebar.tsx:AlbumsSidebar",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/AlbumsSidebar.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AlbumsSidebar.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/AlbumsSidebar.tsx",
+      "target": "file:frontend/src/types/photo.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/BatchPhotoToolbar.tsx",
+      "target": "function:frontend/src/components/BatchPhotoToolbar.tsx:BatchPhotoToolbar",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/BatchPhotoToolbar.tsx",
+      "target": "function:frontend/src/components/BatchPhotoToolbar.tsx:BatchPhotoToolbar",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/EntityPickerModal.tsx",
+      "target": "function:frontend/src/components/EntityPickerModal.tsx:EntityPickerModal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/EntityPickerModal.tsx",
+      "target": "function:frontend/src/components/EntityPickerModal.tsx:EntityPickerModal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/EntityPickerModal.tsx",
+      "target": "file:frontend/src/hooks/useEntityFetcher.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/EntityPickerModal.tsx",
+      "target": "file:frontend/src/lib/entityConfig.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/EntityPickerModal.tsx",
+      "target": "file:frontend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/EntityPickerModal.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/EntityPickerModal.tsx:EntityPickerModal",
+      "target": "function:frontend/src/hooks/useEntityFetcher.ts:useEntityFetcher",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/EntityPickerModal.tsx:EntityPickerModal",
+      "target": "function:frontend/src/hooks/useEntityFetcher.ts:useEntityFilter",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "target": "function:frontend/src/components/GeneralEntityPickerModal.tsx:GeneralEntityPickerModal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "target": "function:frontend/src/components/GeneralEntityPickerModal.tsx:GeneralEntityPickerModal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "target": "file:frontend/src/hooks/useEntityFetcher.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "target": "file:frontend/src/lib/entityConfig.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "target": "file:frontend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/GeneralEntityPickerModal.tsx:GeneralEntityPickerModal",
+      "target": "function:frontend/src/hooks/useEntityFetcher.ts:useEntityFetcher",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/LinkButton.tsx",
+      "target": "function:frontend/src/components/LinkButton.tsx:LinkButton",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/LinkButton.tsx",
+      "target": "function:frontend/src/components/LinkButton.tsx:LinkButton",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/LinkButton.tsx",
+      "target": "file:frontend/src/components/LinkPanel.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkButton.tsx",
+      "target": "file:frontend/src/lib/entityConfig.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkButton.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/LinkButton.tsx:LinkButton",
+      "target": "function:frontend/src/components/LinkPanel.tsx:LinkPanel",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/LinkEditModal.tsx",
+      "target": "function:frontend/src/components/LinkEditModal.tsx:LinkEditModal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/LinkEditModal.tsx",
+      "target": "function:frontend/src/components/LinkEditModal.tsx:LinkEditModal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/LinkEditModal.tsx",
+      "target": "file:frontend/src/lib/entityConfig.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkEditModal.tsx",
+      "target": "file:frontend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkEditModal.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "function:frontend/src/components/LinkPanel.tsx:LinkPanel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "function:frontend/src/components/LinkPanel.tsx:LinkPanel",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "file:frontend/src/components/GeneralEntityPickerModal.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "file:frontend/src/components/LinkEditModal.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "file:frontend/src/lib/config.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "file:frontend/src/lib/entityConfig.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "file:frontend/src/services/entityLink.service.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/LinkPanel.tsx",
+      "target": "file:frontend/src/types/entityLink.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/LinkPanel.tsx:LinkPanel",
+      "target": "function:frontend/src/components/GeneralEntityPickerModal.tsx:GeneralEntityPickerModal",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/components/LinkPanel.tsx:LinkPanel",
+      "target": "function:frontend/src/components/LinkEditModal.tsx:LinkEditModal",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/NavigationLayoutToggle.tsx",
+      "target": "function:frontend/src/components/NavigationLayoutToggle.tsx:NavigationLayoutToggle",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/NavigationLayoutToggle.tsx",
+      "target": "function:frontend/src/components/NavigationLayoutToggle.tsx:NavigationLayoutToggle",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/NavigationLayoutToggle.tsx",
+      "target": "file:frontend/src/store/navigationStore.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/NavigationLayoutToggle.tsx:NavigationLayoutToggle",
+      "target": "function:frontend/src/store/navigationStore.ts:useNavigationStore",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/Pagination.tsx",
+      "target": "function:frontend/src/components/Pagination.tsx:Pagination",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/components/Pagination.tsx",
+      "target": "function:frontend/src/components/Pagination.tsx:Pagination",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

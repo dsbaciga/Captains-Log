@@ -44,3 +44,34 @@ export const clearRefreshTokenCookie = (res: Response): void => {
 export const getRefreshTokenFromCookie = (cookies: Record<string, string>): string | undefined => {
   return cookies[REFRESH_TOKEN_COOKIE_NAME];
 };
+
+const OIDC_STATE_COOKIE_NAME = 'oidcState';
+
+// SameSite must be 'lax' (not the configured default, which may be 'strict'):
+// the callback arrives as a top-level redirect from the identity provider, and
+// browsers do not send 'strict' cookies on cross-site navigations.
+const oidcStateCookieOptions = {
+  httpOnly: true,
+  secure: config.cookie.secure,
+  sameSite: 'lax' as const,
+  domain: config.cookie.domain,
+  path: '/api/auth/oidc',
+};
+
+/**
+ * Stores the OIDC state + PKCE verifier for the duration of the login redirect.
+ */
+export const setOidcStateCookie = (res: Response, value: string): void => {
+  res.cookie(OIDC_STATE_COOKIE_NAME, value, {
+    ...oidcStateCookieOptions,
+    maxAge: 10 * 60 * 1000, // 10 minutes - just long enough to complete the IdP round trip
+  });
+};
+
+export const getOidcStateCookie = (cookies: Record<string, string>): string | undefined => {
+  return cookies[OIDC_STATE_COOKIE_NAME];
+};
+
+export const clearOidcStateCookie = (res: Response): void => {
+  res.clearCookie(OIDC_STATE_COOKIE_NAME, oidcStateCookieOptions);
+};

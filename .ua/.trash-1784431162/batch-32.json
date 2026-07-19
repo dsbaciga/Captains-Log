@@ -1,0 +1,35 @@
+{
+  "nodes": [
+    {
+      "id": "document:.agent/skills/vercel-react-native-skills/AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": ".agent/skills/vercel-react-native-skills/AGENTS.md",
+      "summary": "Comprehensive React Native/Expo performance best-practices reference (54 sections) covering core rendering, list performance, animation, scroll performance, navigation, state management, React Compiler patterns, UI patterns, design system, monorepo, and third-party dependency guidance.",
+      "tags": ["documentation", "react-native", "expo", "performance", "best-practices"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-native-skills/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": ".agent/skills/vercel-react-native-skills/README.md",
+      "summary": "Overview of the vercel-react-native-skills skill describing its structure and the rule categories it covers, from core rendering to fonts.",
+      "tags": ["documentation", "overview", "react-native", "best-practices"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-native-skills/SKILL.md",
+      "type": "document",
+      "name": "SKILL.md",
+      "filePath": ".agent/skills/vercel-react-native-skills/SKILL.md",
+      "summary": "Skill definition describing when to apply React Native performance rules, organized by priority, with a quick-reference table pointing to the full compiled AGENTS.md document.",
+      "tags": ["documentation", "skill-definition", "react-native", "performance"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {"source": "document:.agent/skills/vercel-react-native-skills/README.md", "target": "document:.agent/skills/vercel-react-native-skills/AGENTS.md", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:.agent/skills/vercel-react-native-skills/SKILL.md", "target": "document:.agent/skills/vercel-react-native-skills/AGENTS.md", "type": "documents", "direction": "forward", "weight": 0.5}
+  ]
+}

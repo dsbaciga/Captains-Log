@@ -1,0 +1,17 @@
+{
+  "fixedSectionOk": true,
+  "nodesRecovered": 4,
+  "edgesRestored": 8,
+  "crossBatchEdgesAdded": 0,
+  "typesRemapped": 0,
+  "complexityRemapped": 0,
+  "notes": [
+    "Fixed section (13 tested_by corrections + 2 linker-produced edges + 88 tagged nodes) is tiny relative to the 1836-node/3932-edge input (<1%) and shows no dominant unknown-value skew — no upstream concern.",
+    "No 'no id' nodes, unknown node types, or unknown complexity values were reported in this run's Could-not-fix section; only 8 dropped dangling edges needed review.",
+    "7 of the 8 dropped edges targeted real exported symbols that the file-analysis batches simply never emitted fine-grained nodes for: zustand store hooks (useNavigationStore, useAuthStore) and const singleton/re-export exports (photoService, getAccessToken). Confirmed via source reads (authStore.ts:27, navigationStore.ts:21, photo.service.ts:224, tokenManager.ts:11 re-exported at axios.ts:6) and cross-checked that no node existed anywhere else in the graph under any alias. Recreated as function: nodes (consistent with the existing pattern for other zustand hooks, e.g. useTheme/useIsDarkMode/useToggleTheme in themeStore.ts) with real summaries derived from source/docstrings, then restored the 8 calls edges (3 of them share the photoService target: AddPhotosToAlbumModal, AlbumSuggestions, RecentPhotosWidget; 2 share useNavigationStore: NavigationLayoutToggle, TripSidebar).",
+    "getAccessToken's edge target file (axios.ts) is technically a re-export point, not the definition site (real implementation is in tokenManager.ts, which also lacks a function-level node) -- kept the node at axios.ts to match the caller's actual import path and the edge as originally emitted by the batch.",
+    "The 8th dropped edge (release.sh -> backend/package.json, depends_on) was a genuine ID-prefix mismatch rather than a missing node: package.json files are modeled as config: nodes throughout the graph (config:package.json, config:backend/package.json, config:frontend/package.json), but the edge's target used the file: prefix. Retargeted to the existing config:backend/package.json node and restored the edge instead of creating a duplicate node.",
+    "Cross-batch import verification: every one of the 862 importMap entries (459 files with resolvable internal imports, 1832 import relationships) already has a matching imports edge in the assembled graph -- 0 gaps found, confirming the merge script's own 'Recovered 0 imports edges' result. No speculative edges added.",
+    "Post-fix integrity check: 1840 nodes / 3930 edges, zero dangling edges, zero duplicate node IDs."
+  ]
+}

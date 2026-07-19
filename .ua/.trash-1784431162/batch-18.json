@@ -1,0 +1,602 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/AirportSearchInput.tsx",
+      "type": "file",
+      "name": "AirportSearchInput.tsx",
+      "filePath": "frontend/src/components/AirportSearchInput.tsx",
+      "summary": "Searchable airport lookup input that queries airports by name/code, geocodes the selection when needed, and adds it as a new item on a trip checklist.",
+      "tags": ["component", "search", "form", "geocoding"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/AirportSearchInput.tsx:resolveCoordinates",
+      "type": "function",
+      "name": "resolveCoordinates",
+      "filePath": "frontend/src/components/AirportSearchInput.tsx",
+      "lineRange": [27, 50],
+      "summary": "Resolves latitude/longitude for a selected airport, falling back to a geocoding search when coordinates are missing or out of valid range.",
+      "tags": ["utility", "geocoding", "validation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/AirportSearchInput.tsx:AirportSearchInput",
+      "type": "function",
+      "name": "AirportSearchInput",
+      "filePath": "frontend/src/components/AirportSearchInput.tsx",
+      "lineRange": [57, 226],
+      "summary": "Debounced airport search input that shows live results and lets the user add a selected airport as a checklist item, avoiding duplicate codes.",
+      "tags": ["component", "search", "debounce", "checklist-integration"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/Breadcrumbs.tsx",
+      "type": "file",
+      "name": "Breadcrumbs.tsx",
+      "filePath": "frontend/src/components/Breadcrumbs.tsx",
+      "summary": "Reusable breadcrumb navigation trail component plus a hook for building trip-scoped breadcrumb item arrays.",
+      "tags": ["component", "navigation", "hook"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/Breadcrumbs.tsx:Breadcrumbs",
+      "type": "function",
+      "name": "Breadcrumbs",
+      "filePath": "frontend/src/components/Breadcrumbs.tsx",
+      "lineRange": [29, 85],
+      "summary": "Renders a breadcrumb navigation trail with links for prior items and plain text for the current page.",
+      "tags": ["component", "navigation", "ui"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/Breadcrumbs.tsx:useTripBreadcrumbs",
+      "type": "function",
+      "name": "useTripBreadcrumbs",
+      "filePath": "frontend/src/components/Breadcrumbs.tsx",
+      "lineRange": [90, 100],
+      "summary": "Hook that builds a standard breadcrumb item array scoped to a given trip, with optional trailing items appended.",
+      "tags": ["hook", "utility", "navigation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ChecklistSelectorModal.tsx",
+      "type": "file",
+      "name": "ChecklistSelectorModal.tsx",
+      "filePath": "frontend/src/components/ChecklistSelectorModal.tsx",
+      "summary": "Modal dialog for selecting which checklist types to include in a bulk action such as copying or exporting checklists.",
+      "tags": ["component", "modal", "checklist", "selection"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ChecklistSelectorModal.tsx:ChecklistSelectorModal",
+      "type": "function",
+      "name": "ChecklistSelectorModal",
+      "filePath": "frontend/src/components/ChecklistSelectorModal.tsx",
+      "lineRange": [13, 207],
+      "summary": "Modal component that lets users select one or more checklist types via checkboxes, with select-all/deselect-all helpers, before confirming an action.",
+      "tags": ["component", "modal", "form", "checklist"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/ConfirmDialog.tsx",
+      "type": "file",
+      "name": "ConfirmDialog.tsx",
+      "filePath": "frontend/src/components/ConfirmDialog.tsx",
+      "summary": "Accessible confirmation dialog component with focus trapping and keyboard handling, used to confirm destructive actions across the app.",
+      "tags": ["component", "modal", "accessibility", "confirmation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ConfirmDialog.tsx:ConfirmDialog",
+      "type": "function",
+      "name": "ConfirmDialog",
+      "filePath": "frontend/src/components/ConfirmDialog.tsx",
+      "lineRange": [16, 191],
+      "summary": "Confirm/cancel dialog rendered via a portal, with focus trapping, escape-to-close, and a configurable danger/other variant.",
+      "tags": ["component", "modal", "accessibility", "focus-management"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/DocumentAlerts.tsx",
+      "type": "file",
+      "name": "DocumentAlerts.tsx",
+      "filePath": "frontend/src/components/DocumentAlerts.tsx",
+      "summary": "Displays upcoming travel document expiration alerts (passports, visas, etc.) as a compact, dismissible widget.",
+      "tags": ["component", "notifications", "travel-documents"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/DocumentAlerts.tsx:DocumentAlerts",
+      "type": "function",
+      "name": "DocumentAlerts",
+      "filePath": "frontend/src/components/DocumentAlerts.tsx",
+      "lineRange": [22, 151],
+      "summary": "Fetches and renders a summary of expiring/expired travel document alerts, with per-alert dismiss and an optional 'view all' link.",
+      "tags": ["component", "alerts", "data-fetching"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/LoadingSpinner.tsx",
+      "type": "file",
+      "name": "LoadingSpinner.tsx",
+      "filePath": "frontend/src/components/LoadingSpinner.tsx",
+      "summary": "Reusable loading spinner UI component used throughout the app to indicate pending async operations.",
+      "tags": ["component", "loading-state", "ui", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/Modal.tsx",
+      "type": "file",
+      "name": "Modal.tsx",
+      "filePath": "frontend/src/components/Modal.tsx",
+      "summary": "Generic, accessible base modal component with focus trapping, keyboard handling, and configurable header/footer, used by most feature-specific modals in the app.",
+      "tags": ["component", "modal", "accessibility", "reusable"],
+      "complexity": "complex",
+      "languageNotes": "Implements manual focus-trap logic (querying focusable elements and cycling tab order) rather than relying on a library, and renders via createPortal."
+    },
+    {
+      "id": "function:frontend/src/components/Modal.tsx:Modal",
+      "type": "function",
+      "name": "Modal",
+      "filePath": "frontend/src/components/Modal.tsx",
+      "lineRange": [73, 270],
+      "summary": "Base modal component providing focus management, escape/backdrop close handling, optional form submission wiring, and a portal-rendered dialog shell.",
+      "tags": ["component", "modal", "accessibility", "focus-management"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/PackingSuggestions.tsx",
+      "type": "file",
+      "name": "PackingSuggestions.tsx",
+      "filePath": "frontend/src/components/PackingSuggestions.tsx",
+      "summary": "Displays packing suggestions for a trip grouped by category, with collapsible sections and the ability to add suggested items to a trip checklist.",
+      "tags": ["component", "packing", "checklist-integration", "data-fetching"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/PackingSuggestions.tsx:PackingSuggestions",
+      "type": "function",
+      "name": "PackingSuggestions",
+      "filePath": "frontend/src/components/PackingSuggestions.tsx",
+      "lineRange": [124, 453],
+      "summary": "Fetches packing suggestions for a trip, groups them by category with expandable sections, and adds individual or bulk items to an existing or newly created checklist.",
+      "tags": ["component", "packing", "checklist", "category-grouping"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/PageHeader.tsx",
+      "type": "file",
+      "name": "PageHeader.tsx",
+      "filePath": "frontend/src/components/PageHeader.tsx",
+      "summary": "Reusable page header component providing title, subtitle, primary/secondary actions, and an optional back link for consistent page layouts.",
+      "tags": ["component", "layout", "ui", "reusable"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/PageHeader.tsx:PageHeader",
+      "type": "function",
+      "name": "PageHeader",
+      "filePath": "frontend/src/components/PageHeader.tsx",
+      "lineRange": [69, 135],
+      "summary": "Renders a consistent page header with title, optional subtitle, back link, and primary/secondary action buttons.",
+      "tags": ["component", "layout", "header"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/PdfImportButton.tsx",
+      "type": "file",
+      "name": "PdfImportButton.tsx",
+      "filePath": "frontend/src/components/PdfImportButton.tsx",
+      "summary": "Small trigger button that opens the PDF upload modal to start the AI-assisted PDF import flow for a trip.",
+      "tags": ["component", "button", "pdf-import"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/PdfImportButton.tsx:PdfImportButton",
+      "type": "function",
+      "name": "PdfImportButton",
+      "filePath": "frontend/src/components/PdfImportButton.tsx",
+      "lineRange": [9, 37],
+      "summary": "Button component that opens PdfUploadModal and forwards the completion callback for the PDF trip-import flow.",
+      "tags": ["component", "button", "modal-trigger"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/PdfReviewModal.tsx",
+      "type": "file",
+      "name": "PdfReviewModal.tsx",
+      "filePath": "frontend/src/components/PdfReviewModal.tsx",
+      "summary": "Modal that lets users step through AI-extracted entities from an uploaded PDF, edit fields, and accept/reject each one into a selected trip.",
+      "tags": ["component", "modal", "pdf-import", "ai", "review-flow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/PdfReviewModal.tsx:PdfReviewModal",
+      "type": "function",
+      "name": "PdfReviewModal",
+      "filePath": "frontend/src/components/PdfReviewModal.tsx",
+      "lineRange": [34, 346],
+      "summary": "Polls PDF import status, presents extracted entities one at a time for review/edit, and accepts, rejects, or triggers a reparse before advancing.",
+      "tags": ["component", "modal", "pdf-import", "polling", "form"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/PdfUploadModal.tsx",
+      "type": "file",
+      "name": "PdfUploadModal.tsx",
+      "filePath": "frontend/src/components/PdfUploadModal.tsx",
+      "summary": "Modal for uploading a PDF via drag-and-drop or file picker, selecting a target trip, and starting the AI PDF import job that hands off to the review modal.",
+      "tags": ["component", "modal", "pdf-import", "file-upload"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/PdfUploadModal.tsx:PdfUploadModal",
+      "type": "function",
+      "name": "PdfUploadModal",
+      "filePath": "frontend/src/components/PdfUploadModal.tsx",
+      "lineRange": [17, 151],
+      "summary": "Handles PDF file selection/drag-drop validation, trip selection, and upload submission, then surfaces PdfReviewModal on successful upload.",
+      "tags": ["component", "modal", "file-upload", "drag-and-drop"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/PhraseBank.tsx",
+      "type": "file",
+      "name": "PhraseBank.tsx",
+      "filePath": "frontend/src/components/PhraseBank.tsx",
+      "summary": "Displays a categorized bank of common travel phrases per trip language, with a one-click copy-to-clipboard action.",
+      "tags": ["component", "language", "phrases", "copy-to-clipboard"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/PhraseBank.tsx:PhraseBank",
+      "type": "function",
+      "name": "PhraseBank",
+      "filePath": "frontend/src/components/PhraseBank.tsx",
+      "lineRange": [17, 226],
+      "summary": "Loads trip languages and phrases, then renders a tabbed, category-filtered phrase list with copy-to-clipboard support per phrase.",
+      "tags": ["component", "language", "data-fetching", "tabs"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/SouvenirManager.tsx",
+      "type": "file",
+      "name": "SouvenirManager.tsx",
+      "filePath": "frontend/src/components/SouvenirManager.tsx",
+      "summary": "Manages a trip's souvenir shopping list backed by a dedicated checklist, including budget summaries, currency formatting, and purchased/unpurchased grouping.",
+      "tags": ["component", "checklist", "budget-tracking", "souvenirs"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/SouvenirManager.tsx:parseSouvenirMetadata",
+      "type": "function",
+      "name": "parseSouvenirMetadata",
+      "filePath": "frontend/src/components/SouvenirManager.tsx",
+      "lineRange": [81, 92],
+      "summary": "Parses and validates the JSON metadata stored on a checklist item to reconstruct souvenir-specific fields such as price and currency.",
+      "tags": ["utility", "parsing", "validation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/SouvenirManager.tsx:SouvenirManager",
+      "type": "function",
+      "name": "SouvenirManager",
+      "filePath": "frontend/src/components/SouvenirManager.tsx",
+      "lineRange": [94, 637],
+      "summary": "Loads or creates the trip's souvenir checklist, provides CRUD for souvenir items, computes estimated/actual budget summaries, and separates purchased from unpurchased items in the UI.",
+      "tags": ["component", "checklist", "budget", "crud"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/TravelDocumentManager.tsx",
+      "type": "file",
+      "name": "TravelDocumentManager.tsx",
+      "filePath": "frontend/src/components/TravelDocumentManager.tsx",
+      "summary": "Full CRUD manager for a user's travel documents (passports, visas, etc.), grouped by type with expiration status indicators.",
+      "tags": ["component", "travel-documents", "crud", "expiration-tracking"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/TravelDocumentManager.tsx:TravelDocumentManager",
+      "type": "function",
+      "name": "TravelDocumentManager",
+      "filePath": "frontend/src/components/TravelDocumentManager.tsx",
+      "lineRange": [64, 487],
+      "summary": "Loads, creates, updates, and deletes travel documents, grouping them by document type and rendering expiration status badges with color-coded urgency.",
+      "tags": ["component", "crud", "form", "travel-documents"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/TripLanguageSelector.tsx",
+      "type": "file",
+      "name": "TripLanguageSelector.tsx",
+      "filePath": "frontend/src/components/TripLanguageSelector.tsx",
+      "summary": "Lets users add or remove languages associated with a trip, drawing from a global list of available languages and the trip's currently selected languages.",
+      "tags": ["component", "language", "selection", "trip-settings"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/TripLanguageSelector.tsx:TripLanguageSelector",
+      "type": "function",
+      "name": "TripLanguageSelector",
+      "filePath": "frontend/src/components/TripLanguageSelector.tsx",
+      "lineRange": [12, 179],
+      "summary": "Loads available and trip-specific languages in parallel, then lets users add a new language or remove an existing one from the trip.",
+      "tags": ["component", "language", "crud"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/TripSeriesNav.tsx",
+      "type": "file",
+      "name": "TripSeriesNav.tsx",
+      "filePath": "frontend/src/components/TripSeriesNav.tsx",
+      "summary": "Navigation widget showing previous/next links between trips that belong to the same trip series.",
+      "tags": ["component", "navigation", "trip-series"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/TripSeriesNav.tsx:TripSeriesNav",
+      "type": "function",
+      "name": "TripSeriesNav",
+      "filePath": "frontend/src/components/TripSeriesNav.tsx",
+      "lineRange": [15, 123],
+      "summary": "Fetches a trip series and renders previous/next navigation links between sibling trips ordered chronologically.",
+      "tags": ["component", "navigation", "trip-series", "data-fetching"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/TripSeriesSelector.tsx",
+      "type": "file",
+      "name": "TripSeriesSelector.tsx",
+      "filePath": "frontend/src/components/TripSeriesSelector.tsx",
+      "summary": "Dropdown selector for assigning a trip to an existing trip series or creating a new series inline.",
+      "tags": ["component", "selection", "trip-series", "form"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/TripSeriesSelector.tsx:TripSeriesSelector",
+      "type": "function",
+      "name": "TripSeriesSelector",
+      "filePath": "frontend/src/components/TripSeriesSelector.tsx",
+      "lineRange": [15, 131],
+      "summary": "Select control for choosing an existing trip series, with an inline form to create a new series that invalidates the trip-series query cache on success.",
+      "tags": ["component", "selection", "form", "trip-series"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pwa/ConflictFieldDiff.tsx",
+      "type": "file",
+      "name": "ConflictFieldDiff.tsx",
+      "filePath": "frontend/src/components/pwa/ConflictFieldDiff.tsx",
+      "summary": "Renders a field-by-field diff between local and server versions of an entity during offline sync conflict resolution, with optional per-field selection for merging.",
+      "tags": ["component", "pwa", "offline-sync", "conflict-resolution", "diff"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pwa/ConflictFieldDiff.tsx:ConflictFieldDiff",
+      "type": "function",
+      "name": "ConflictFieldDiff",
+      "filePath": "frontend/src/components/pwa/ConflictFieldDiff.tsx",
+      "lineRange": [41, 195],
+      "summary": "Displays formatted local vs. server values for a single field, visually highlighting differences and, in merge mode, letting the user pick which source wins.",
+      "tags": ["component", "diff", "merge", "pwa"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pwa/ConflictResolutionModal.tsx",
+      "type": "file",
+      "name": "ConflictResolutionModal.tsx",
+      "filePath": "frontend/src/components/pwa/ConflictResolutionModal.tsx",
+      "summary": "Modal for resolving an individual offline-sync conflict by choosing the local version, the server version, or a manually merged combination of an entity's fields.",
+      "tags": ["component", "modal", "pwa", "offline-sync", "conflict-resolution"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pwa/ConflictResolutionModal.tsx:ConflictResolutionModal",
+      "type": "function",
+      "name": "ConflictResolutionModal",
+      "filePath": "frontend/src/components/pwa/ConflictResolutionModal.tsx",
+      "lineRange": [62, 392],
+      "summary": "Computes field-level diffs for a sync conflict, lets the user pick local/server/merge per field or overall, previews the merged JSON, and submits the resolution.",
+      "tags": ["component", "modal", "conflict-resolution", "merge"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pwa/ConflictsList.tsx",
+      "type": "file",
+      "name": "ConflictsList.tsx",
+      "filePath": "frontend/src/components/pwa/ConflictsList.tsx",
+      "summary": "Lists all pending offline-sync conflicts with summary info and relative timestamps, offering actions to resolve individually or resolve all at once.",
+      "tags": ["component", "pwa", "offline-sync", "conflict-resolution", "list"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pwa/ConflictsList.tsx:ConflictsList",
+      "type": "function",
+      "name": "ConflictsList",
+      "filePath": "frontend/src/components/pwa/ConflictsList.tsx",
+      "lineRange": [69, 369],
+      "summary": "Renders a list of sync conflicts with entity names, field diffs, and relative timestamps, opening the resolution modal per conflict or confirming a bulk resolve-all.",
+      "tags": ["component", "list", "conflict-resolution", "pwa"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pwa/StorageManagement.tsx",
+      "type": "file",
+      "name": "StorageManagement.tsx",
+      "filePath": "frontend/src/components/pwa/StorageManagement.tsx",
+      "summary": "Comprehensive offline-storage management panel showing usage breakdown, cached trips, and auto-cleanup settings, with confirm-guarded controls to clear data by category, trip, or entirely.",
+      "tags": ["component", "pwa", "offline-storage", "settings", "data-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pwa/StorageManagement.tsx:StorageManagement",
+      "type": "function",
+      "name": "StorageManagement",
+      "filePath": "frontend/src/components/pwa/StorageManagement.tsx",
+      "lineRange": [155, 721],
+      "summary": "Loads storage usage/breakdown and cached trips, then provides expandable sections and confirm-guarded actions to clear individual categories, a specific trip, old data, or everything, plus auto-cleanup configuration.",
+      "tags": ["component", "pwa", "storage-management", "settings"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pwa/StorageQuotaWarning.tsx",
+      "type": "file",
+      "name": "StorageQuotaWarning.tsx",
+      "filePath": "frontend/src/components/pwa/StorageQuotaWarning.tsx",
+      "summary": "Dismissible warning banner shown when offline storage usage crosses configurable warning/critical thresholds, with quick-clear actions for the largest storage categories.",
+      "tags": ["component", "pwa", "offline-storage", "quota-warning"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pwa/StorageQuotaWarning.tsx:StorageQuotaWarning",
+      "type": "function",
+      "name": "StorageQuotaWarning",
+      "filePath": "frontend/src/components/pwa/StorageQuotaWarning.tsx",
+      "lineRange": [126, 448],
+      "summary": "Monitors storage usage against warning/critical thresholds, persists a timed dismissal in localStorage, and offers quick-clear actions for the largest storage categories.",
+      "tags": ["component", "pwa", "storage-warning", "quota-management"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    { "source": "file:frontend/src/components/AirportSearchInput.tsx", "target": "function:frontend/src/components/AirportSearchInput.tsx:resolveCoordinates", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/AirportSearchInput.tsx", "target": "function:frontend/src/components/AirportSearchInput.tsx:AirportSearchInput", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/AirportSearchInput.tsx", "target": "function:frontend/src/components/AirportSearchInput.tsx:AirportSearchInput", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/AirportSearchInput.tsx", "target": "file:frontend/src/services/airport.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/AirportSearchInput.tsx", "target": "file:frontend/src/services/checklist.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/AirportSearchInput.tsx", "target": "file:frontend/src/services/geocoding.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/AirportSearchInput.tsx", "target": "file:frontend/src/types/checklist.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/Breadcrumbs.tsx", "target": "function:frontend/src/components/Breadcrumbs.tsx:Breadcrumbs", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/Breadcrumbs.tsx", "target": "function:frontend/src/components/Breadcrumbs.tsx:useTripBreadcrumbs", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/Breadcrumbs.tsx", "target": "function:frontend/src/components/Breadcrumbs.tsx:Breadcrumbs", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/Breadcrumbs.tsx", "target": "function:frontend/src/components/Breadcrumbs.tsx:useTripBreadcrumbs", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/ChecklistSelectorModal.tsx", "target": "function:frontend/src/components/ChecklistSelectorModal.tsx:ChecklistSelectorModal", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/ChecklistSelectorModal.tsx", "target": "function:frontend/src/components/ChecklistSelectorModal.tsx:ChecklistSelectorModal", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/ChecklistSelectorModal.tsx", "target": "file:frontend/src/types/checklist.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/ConfirmDialog.tsx", "target": "function:frontend/src/components/ConfirmDialog.tsx:ConfirmDialog", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/ConfirmDialog.tsx", "target": "function:frontend/src/components/ConfirmDialog.tsx:ConfirmDialog", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/DocumentAlerts.tsx", "target": "function:frontend/src/components/DocumentAlerts.tsx:DocumentAlerts", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/DocumentAlerts.tsx", "target": "function:frontend/src/components/DocumentAlerts.tsx:DocumentAlerts", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/DocumentAlerts.tsx", "target": "file:frontend/src/services/travelDocument.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/DocumentAlerts.tsx", "target": "file:frontend/src/types/travelDocument.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/DocumentAlerts.tsx:DocumentAlerts", "target": "function:frontend/src/types/travelDocument.ts:getDocumentTypeIcon", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/Modal.tsx", "target": "function:frontend/src/components/Modal.tsx:Modal", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/Modal.tsx", "target": "function:frontend/src/components/Modal.tsx:Modal", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/Modal.tsx", "target": "file:frontend/src/components/icons/index.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/PackingSuggestions.tsx", "target": "function:frontend/src/components/PackingSuggestions.tsx:PackingSuggestions", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/PackingSuggestions.tsx", "target": "function:frontend/src/components/PackingSuggestions.tsx:PackingSuggestions", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/PackingSuggestions.tsx", "target": "file:frontend/src/services/checklist.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PackingSuggestions.tsx", "target": "file:frontend/src/services/packingSuggestion.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PackingSuggestions.tsx", "target": "file:frontend/src/types/packingSuggestion.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/PageHeader.tsx", "target": "function:frontend/src/components/PageHeader.tsx:PageHeader", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/PageHeader.tsx", "target": "function:frontend/src/components/PageHeader.tsx:PageHeader", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/PdfImportButton.tsx", "target": "function:frontend/src/components/PdfImportButton.tsx:PdfImportButton", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/PdfImportButton.tsx", "target": "function:frontend/src/components/PdfImportButton.tsx:PdfImportButton", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/PdfImportButton.tsx", "target": "file:frontend/src/components/PdfUploadModal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/PdfReviewModal.tsx", "target": "function:frontend/src/components/PdfReviewModal.tsx:PdfReviewModal", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/PdfReviewModal.tsx", "target": "function:frontend/src/components/PdfReviewModal.tsx:PdfReviewModal", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/PdfReviewModal.tsx", "target": "file:frontend/src/components/LoadingSpinner.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfReviewModal.tsx", "target": "file:frontend/src/components/Modal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfReviewModal.tsx", "target": "file:frontend/src/hooks/usePdfImportPolling.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfReviewModal.tsx", "target": "file:frontend/src/services/pdfImport.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfReviewModal.tsx", "target": "file:frontend/src/services/trip.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfReviewModal.tsx", "target": "file:frontend/src/types/pdfImport.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/PdfReviewModal.tsx:PdfReviewModal", "target": "function:frontend/src/hooks/usePdfImportPolling.ts:usePdfImportPolling", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/PdfUploadModal.tsx", "target": "function:frontend/src/components/PdfUploadModal.tsx:PdfUploadModal", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/PdfUploadModal.tsx", "target": "function:frontend/src/components/PdfUploadModal.tsx:PdfUploadModal", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/PdfUploadModal.tsx", "target": "file:frontend/src/components/Modal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfUploadModal.tsx", "target": "file:frontend/src/components/PdfReviewModal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfUploadModal.tsx", "target": "file:frontend/src/services/pdfImport.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfUploadModal.tsx", "target": "file:frontend/src/services/trip.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PdfUploadModal.tsx", "target": "file:frontend/src/types/pdfImport.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/PhraseBank.tsx", "target": "function:frontend/src/components/PhraseBank.tsx:PhraseBank", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/PhraseBank.tsx", "target": "function:frontend/src/components/PhraseBank.tsx:PhraseBank", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/PhraseBank.tsx", "target": "file:frontend/src/components/EmptyState.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PhraseBank.tsx", "target": "file:frontend/src/components/LoadingSpinner.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PhraseBank.tsx", "target": "file:frontend/src/services/languagePhrase.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/PhraseBank.tsx", "target": "file:frontend/src/types/languagePhrase.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/SouvenirManager.tsx", "target": "function:frontend/src/components/SouvenirManager.tsx:parseSouvenirMetadata", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/SouvenirManager.tsx", "target": "function:frontend/src/components/SouvenirManager.tsx:SouvenirManager", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/SouvenirManager.tsx", "target": "function:frontend/src/components/SouvenirManager.tsx:SouvenirManager", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/SouvenirManager.tsx", "target": "file:frontend/src/components/EmptyState.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/SouvenirManager.tsx", "target": "file:frontend/src/components/Modal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/SouvenirManager.tsx", "target": "file:frontend/src/hooks/useConfirmDialog.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/SouvenirManager.tsx", "target": "file:frontend/src/services/checklist.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/SouvenirManager.tsx", "target": "file:frontend/src/types/checklist.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/SouvenirManager.tsx:SouvenirManager", "target": "function:frontend/src/hooks/useConfirmDialog.tsx:useConfirmDialog", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/TravelDocumentManager.tsx", "target": "function:frontend/src/components/TravelDocumentManager.tsx:TravelDocumentManager", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/TravelDocumentManager.tsx", "target": "function:frontend/src/components/TravelDocumentManager.tsx:TravelDocumentManager", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/TravelDocumentManager.tsx", "target": "file:frontend/src/components/EmptyState.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/TravelDocumentManager.tsx", "target": "file:frontend/src/components/Modal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/TravelDocumentManager.tsx", "target": "file:frontend/src/hooks/useConfirmDialog.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/TravelDocumentManager.tsx", "target": "file:frontend/src/hooks/useFormReset.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/TravelDocumentManager.tsx", "target": "file:frontend/src/services/travelDocument.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/TravelDocumentManager.tsx", "target": "file:frontend/src/types/travelDocument.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/TravelDocumentManager.tsx:TravelDocumentManager", "target": "function:frontend/src/hooks/useConfirmDialog.tsx:useConfirmDialog", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/TravelDocumentManager.tsx:TravelDocumentManager", "target": "function:frontend/src/hooks/useFormReset.ts:useFormReset", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/TravelDocumentManager.tsx:TravelDocumentManager", "target": "function:frontend/src/types/travelDocument.ts:getDocumentTypeIcon", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/TravelDocumentManager.tsx:TravelDocumentManager", "target": "function:frontend/src/types/travelDocument.ts:getExpirationStatusClasses", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/TravelDocumentManager.tsx:TravelDocumentManager", "target": "function:frontend/src/types/travelDocument.ts:getExpirationStatusLabel", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/TripLanguageSelector.tsx", "target": "function:frontend/src/components/TripLanguageSelector.tsx:TripLanguageSelector", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/TripLanguageSelector.tsx", "target": "function:frontend/src/components/TripLanguageSelector.tsx:TripLanguageSelector", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/TripLanguageSelector.tsx", "target": "file:frontend/src/components/LoadingSpinner.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/TripLanguageSelector.tsx", "target": "file:frontend/src/services/languagePhrase.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/TripLanguageSelector.tsx", "target": "file:frontend/src/types/languagePhrase.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/TripSeriesNav.tsx", "target": "function:frontend/src/components/TripSeriesNav.tsx:TripSeriesNav", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/TripSeriesNav.tsx", "target": "function:frontend/src/components/TripSeriesNav.tsx:TripSeriesNav", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/TripSeriesNav.tsx", "target": "file:frontend/src/services/tripSeries.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/TripSeriesSelector.tsx", "target": "function:frontend/src/components/TripSeriesSelector.tsx:TripSeriesSelector", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/TripSeriesSelector.tsx", "target": "function:frontend/src/components/TripSeriesSelector.tsx:TripSeriesSelector", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/TripSeriesSelector.tsx", "target": "file:frontend/src/services/tripSeries.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/pwa/ConflictFieldDiff.tsx", "target": "function:frontend/src/components/pwa/ConflictFieldDiff.tsx:ConflictFieldDiff", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pwa/ConflictFieldDiff.tsx", "target": "function:frontend/src/components/pwa/ConflictFieldDiff.tsx:ConflictFieldDiff", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pwa/ConflictFieldDiff.tsx", "target": "file:frontend/src/types/sync.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/pwa/ConflictFieldDiff.tsx:ConflictFieldDiff", "target": "function:frontend/src/types/sync.types.ts:formatValueForDisplay", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/pwa/ConflictResolutionModal.tsx", "target": "function:frontend/src/components/pwa/ConflictResolutionModal.tsx:ConflictResolutionModal", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pwa/ConflictResolutionModal.tsx", "target": "function:frontend/src/components/pwa/ConflictResolutionModal.tsx:ConflictResolutionModal", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pwa/ConflictResolutionModal.tsx", "target": "file:frontend/src/components/Modal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pwa/ConflictResolutionModal.tsx", "target": "file:frontend/src/components/pwa/ConflictFieldDiff.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pwa/ConflictResolutionModal.tsx", "target": "file:frontend/src/types/sync.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/pwa/ConflictResolutionModal.tsx:ConflictResolutionModal", "target": "function:frontend/src/types/sync.types.ts:getFieldDiffs", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pwa/ConflictResolutionModal.tsx:ConflictResolutionModal", "target": "function:frontend/src/types/sync.types.ts:createMergedData", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/pwa/ConflictsList.tsx", "target": "function:frontend/src/components/pwa/ConflictsList.tsx:ConflictsList", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pwa/ConflictsList.tsx", "target": "function:frontend/src/components/pwa/ConflictsList.tsx:ConflictsList", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pwa/ConflictsList.tsx", "target": "file:frontend/src/components/pwa/ConflictResolutionModal.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pwa/ConflictsList.tsx", "target": "file:frontend/src/types/sync.types.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/pwa/ConflictsList.tsx:ConflictsList", "target": "function:frontend/src/types/sync.types.ts:getFieldDiffs", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/pwa/StorageManagement.tsx", "target": "function:frontend/src/components/pwa/StorageManagement.tsx:StorageManagement", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pwa/StorageManagement.tsx", "target": "function:frontend/src/components/pwa/StorageManagement.tsx:StorageManagement", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pwa/StorageManagement.tsx", "target": "file:frontend/src/components/ConfirmDialog.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pwa/StorageManagement.tsx", "target": "file:frontend/src/components/LoadingSpinner.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pwa/StorageManagement.tsx", "target": "file:frontend/src/components/pwa/StorageUsageBar.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pwa/StorageManagement.tsx", "target": "file:frontend/src/services/storageManager.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/pwa/StorageManagement.tsx:StorageManagement", "target": "function:frontend/src/services/storageManager.service.ts:formatBytes", "type": "calls", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/pwa/StorageQuotaWarning.tsx", "target": "function:frontend/src/components/pwa/StorageQuotaWarning.tsx:StorageQuotaWarning", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pwa/StorageQuotaWarning.tsx", "target": "function:frontend/src/components/pwa/StorageQuotaWarning.tsx:StorageQuotaWarning", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pwa/StorageQuotaWarning.tsx", "target": "file:frontend/src/components/LoadingSpinner.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pwa/StorageQuotaWarning.tsx", "target": "file:frontend/src/services/storageManager.service.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "function:frontend/src/components/pwa/StorageQuotaWarning.tsx:StorageQuotaWarning", "target": "function:frontend/src/services/storageManager.service.ts:formatBytes", "type": "calls", "direction": "forward", "weight": 0.8 }
+  ]
+}

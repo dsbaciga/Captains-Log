@@ -1,0 +1,826 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/services/user.service.ts",
+      "type": "file",
+      "name": "user.service.ts",
+      "filePath": "frontend/src/services/user.service.ts",
+      "summary": "Service wrapping user account and settings endpoints: profile retrieval, username/password updates, weather/flight/LLM/SMTP integration settings, category and trip-type management, user search, and travel partner settings.",
+      "tags": [
+        "service",
+        "user-settings",
+        "api-handler",
+        "integration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/types/backup.ts",
+      "type": "file",
+      "name": "backup.ts",
+      "filePath": "frontend/src/types/backup.ts",
+      "summary": "TypeScript type definitions for backup data structures, backup metadata, restore options, and restore results/statistics.",
+      "tags": [
+        "type-definition",
+        "backup-restore"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/companion.ts",
+      "type": "file",
+      "name": "companion.ts",
+      "filePath": "frontend/src/types/companion.ts",
+      "summary": "TypeScript type definitions for the Companion entity and its create/update input shapes.",
+      "tags": [
+        "type-definition",
+        "companions"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/immich.ts",
+      "type": "file",
+      "name": "immich.ts",
+      "filePath": "frontend/src/types/immich.ts",
+      "summary": "TypeScript type definitions for Immich integration: assets, albums, settings, and search parameters used by the Immich service and photo browsing components.",
+      "tags": [
+        "type-definition",
+        "immich",
+        "integration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/tag.ts",
+      "type": "file",
+      "name": "tag.ts",
+      "filePath": "frontend/src/types/tag.ts",
+      "summary": "TypeScript type definitions for Tag and TripTag entities and their create/update input shapes.",
+      "tags": [
+        "type-definition",
+        "tags"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/trip.ts",
+      "type": "file",
+      "name": "trip.ts",
+      "filePath": "frontend/src/types/trip.ts",
+      "summary": "Core TypeScript type definitions for the Trip entity, including status/privacy enums, create/update input shapes, list responses, and trip health validation result types.",
+      "tags": [
+        "type-definition",
+        "trip-management",
+        "data-model"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses const-object-plus-derived-union-type pattern (TripStatus/TripStatusType) instead of TypeScript enums, keeping the values usable as plain strings at runtime."
+    },
+    {
+      "id": "file:frontend/src/types/user.ts",
+      "type": "file",
+      "name": "user.ts",
+      "filePath": "frontend/src/types/user.ts",
+      "summary": "TypeScript type definitions for the User entity, settings update inputs, user search results, and travel partner settings.",
+      "tags": [
+        "type-definition",
+        "user-settings"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/utils/__tests__/dateFormat.test.ts",
+      "type": "file",
+      "name": "dateFormat.test.ts",
+      "filePath": "frontend/src/utils/__tests__/dateFormat.test.ts",
+      "summary": "Extensive unit test suite covering every date formatting helper in dateFormat.ts, including edge cases for relative time, date ranges, timezone handling, and trip duration calculations.",
+      "tags": [
+        "test",
+        "date",
+        "formatting"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/utils/__tests__/statusColors.test.ts",
+      "type": "file",
+      "name": "statusColors.test.ts",
+      "filePath": "frontend/src/utils/__tests__/statusColors.test.ts",
+      "summary": "Unit tests verifying trip status color and badge class mappings return correct Tailwind classes for each trip status value.",
+      "tags": [
+        "test",
+        "status-colors",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/utils/dateFormat.ts",
+      "type": "file",
+      "name": "dateFormat.ts",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "summary": "Central date/time formatting utility library used throughout the app: formats single dates and date ranges, computes relative time descriptions, trip date status, and trip duration in human-readable form.",
+      "tags": [
+        "utility",
+        "date",
+        "formatting"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Widely imported leaf utility module with zero internal project dependencies, making it a stable low-level building block for date display across pages and components."
+    },
+    {
+      "id": "file:frontend/src/utils/duration.ts",
+      "type": "file",
+      "name": "duration.ts",
+      "filePath": "frontend/src/utils/duration.ts",
+      "summary": "Utility functions for parsing Immich's HH:MM:SS(.sss) duration strings (or raw seconds) into numeric seconds, and formatting seconds back into a human-readable duration string for video display.",
+      "tags": [
+        "utility",
+        "duration",
+        "immich",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/utils/jetlag.ts",
+      "type": "file",
+      "name": "jetlag.ts",
+      "filePath": "frontend/src/utils/jetlag.ts",
+      "summary": "Utility library that calculates jet lag severity and direction between a home and destination timezone, and generates personalized recovery recommendations based on time difference.",
+      "tags": [
+        "utility",
+        "jetlag",
+        "timezone",
+        "calculation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/utils/statusColors.ts",
+      "type": "file",
+      "name": "statusColors.ts",
+      "filePath": "frontend/src/utils/statusColors.ts",
+      "summary": "Color mapping utility providing Tailwind CSS class lookups for trip status, generic entity status, flight status, and flight delay indicators, used to keep status visuals consistent across the UI.",
+      "tags": [
+        "utility",
+        "status-colors",
+        "ui",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/utils/tagColors.ts",
+      "type": "file",
+      "name": "tagColors.ts",
+      "filePath": "frontend/src/utils/tagColors.ts",
+      "summary": "Defines the default palette of tag colors and a helper to pick a random color/text-color pair when creating a new tag.",
+      "tags": [
+        "utility",
+        "tags",
+        "ui",
+        "color"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:formatDate",
+      "type": "function",
+      "name": "formatDate",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        32,
+        81
+      ],
+      "summary": "Formats a date value into one of several display styles (short, long, numeric, etc.), with a configurable fallback for invalid/missing dates.",
+      "tags": [
+        "date",
+        "formatting",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:formatDateRange",
+      "type": "function",
+      "name": "formatDateRange",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        95,
+        121
+      ],
+      "summary": "Formats a start/end date pair into a compact human-readable range string, collapsing shared month/year where appropriate.",
+      "tags": [
+        "date",
+        "formatting",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:getRelativeTime",
+      "type": "function",
+      "name": "getRelativeTime",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        129,
+        175
+      ],
+      "summary": "Computes a human-readable relative time description (e.g. '2 days ago', 'in 3 hours') for a given date relative to now.",
+      "tags": [
+        "date",
+        "relative-time",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:formatTime",
+      "type": "function",
+      "name": "formatTime",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        184,
+        196
+      ],
+      "summary": "Formats a datetime value as a time-of-day string, supporting both 12-hour and 24-hour display formats.",
+      "tags": [
+        "date",
+        "time",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:parseDateToComponents",
+      "type": "function",
+      "name": "parseDateToComponents",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        201,
+        229
+      ],
+      "summary": "Internal helper that parses a date value into its year/month/day (and time) numeric components for use by other formatting functions.",
+      "tags": [
+        "date",
+        "parsing",
+        "internal"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:formatTripDates",
+      "type": "function",
+      "name": "formatTripDates",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        249,
+        285
+      ],
+      "summary": "Formats a trip's start and end dates together into a single display string tailored for trip cards and headers.",
+      "tags": [
+        "date",
+        "trip-management",
+        "formatting"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:getRelativeDateDescription",
+      "type": "function",
+      "name": "getRelativeDateDescription",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        303,
+        345
+      ],
+      "summary": "Produces a friendly relative description of a date (e.g. 'Today', 'Tomorrow', 'In 5 days') used in upcoming trip and event displays.",
+      "tags": [
+        "date",
+        "relative-time",
+        "formatting"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:formatTripDatesWithRelative",
+      "type": "function",
+      "name": "formatTripDatesWithRelative",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        365,
+        395
+      ],
+      "summary": "Combines absolute trip date range formatting with a relative time qualifier for richer trip date display.",
+      "tags": [
+        "date",
+        "trip-management",
+        "formatting"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:getTripDateStatus",
+      "type": "function",
+      "name": "getTripDateStatus",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        411,
+        450
+      ],
+      "summary": "Determines a trip's temporal status (upcoming, in-progress, completed) by comparing its start/end dates to the current date.",
+      "tags": [
+        "date",
+        "trip-management",
+        "status"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:formatSingleDate",
+      "type": "function",
+      "name": "formatSingleDate",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        461,
+        470
+      ],
+      "summary": "Formats a single date value using a standard short display format.",
+      "tags": [
+        "date",
+        "formatting",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:getTripDurationDays",
+      "type": "function",
+      "name": "getTripDurationDays",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        479,
+        490
+      ],
+      "summary": "Computes the number of days between a trip's start and end dates.",
+      "tags": [
+        "date",
+        "trip-management",
+        "calculation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/utils/dateFormat.ts:formatTripDuration",
+      "type": "function",
+      "name": "formatTripDuration",
+      "filePath": "frontend/src/utils/dateFormat.ts",
+      "lineRange": [
+        503,
+        513
+      ],
+      "summary": "Formats a trip's duration in days into a human-readable string (e.g. '5 days', '1 day').",
+      "tags": [
+        "date",
+        "trip-management",
+        "formatting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/utils/jetlag.ts:getTimezoneOffsetHours",
+      "type": "function",
+      "name": "getTimezoneOffsetHours",
+      "filePath": "frontend/src/utils/jetlag.ts",
+      "lineRange": [
+        30,
+        69
+      ],
+      "summary": "Computes a timezone's UTC offset in hours for a given IANA timezone string, used as the basis for jet lag calculations.",
+      "tags": [
+        "timezone",
+        "calculation",
+        "internal"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/utils/jetlag.ts:calculateJetLag",
+      "type": "function",
+      "name": "calculateJetLag",
+      "filePath": "frontend/src/utils/jetlag.ts",
+      "lineRange": [
+        77,
+        152
+      ],
+      "summary": "Calculates jet lag direction and severity between a home and destination timezone based on the hour difference, returning a structured jet lag assessment.",
+      "tags": [
+        "jetlag",
+        "timezone",
+        "calculation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/utils/jetlag.ts:generateRecommendations",
+      "type": "function",
+      "name": "generateRecommendations",
+      "filePath": "frontend/src/utils/jetlag.ts",
+      "lineRange": [
+        157,
+        224
+      ],
+      "summary": "Generates a list of personalized jet lag recovery recommendations based on travel direction, severity, and hours of time difference.",
+      "tags": [
+        "jetlag",
+        "recommendations",
+        "internal"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/utils/jetlag.ts:formatTimeDifference",
+      "type": "function",
+      "name": "formatTimeDifference",
+      "filePath": "frontend/src/utils/jetlag.ts",
+      "lineRange": [
+        232,
+        244
+      ],
+      "summary": "Formats the numeric hour difference and travel direction into a human-readable time difference string.",
+      "tags": [
+        "jetlag",
+        "formatting",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/utils/duration.ts:parseDuration",
+      "type": "function",
+      "name": "parseDuration",
+      "filePath": "frontend/src/utils/duration.ts",
+      "lineRange": [
+        8,
+        21
+      ],
+      "summary": "Parses a duration value that may arrive as an 'HH:MM:SS' string or a raw number of seconds (per Immich's inconsistent API) into a normalized number of seconds.",
+      "tags": [
+        "duration",
+        "parsing",
+        "immich"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/utils/duration.ts:formatDuration",
+      "type": "function",
+      "name": "formatDuration",
+      "filePath": "frontend/src/utils/duration.ts",
+      "lineRange": [
+        27,
+        36
+      ],
+      "summary": "Formats a duration in seconds into HH:MM:SS or MM:SS display format for video playback UI.",
+      "tags": [
+        "duration",
+        "formatting",
+        "utility"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/services/user.service.ts",
+      "target": "file:frontend/src/lib/axios.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/services/user.service.ts",
+      "target": "file:frontend/src/types/user.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/utils/__tests__/dateFormat.test.ts",
+      "target": "file:frontend/src/utils/dateFormat.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "file:frontend/src/utils/__tests__/dateFormat.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:frontend/src/utils/__tests__/statusColors.test.ts",
+      "target": "file:frontend/src/types/trip.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/utils/__tests__/statusColors.test.ts",
+      "target": "file:frontend/src/utils/statusColors.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/utils/statusColors.ts",
+      "target": "file:frontend/src/utils/__tests__/statusColors.test.ts",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatDateRange",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:getRelativeTime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTime",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:parseDateToComponents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTripDates",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:getRelativeDateDescription",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTripDatesWithRelative",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:getTripDateStatus",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatSingleDate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:getTripDurationDays",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTripDuration",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatDate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatDateRange",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:getRelativeTime",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTime",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTripDates",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:getRelativeDateDescription",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTripDatesWithRelative",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:getTripDateStatus",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatSingleDate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:getTripDurationDays",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/dateFormat.ts",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTripDuration",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/utils/dateFormat.ts:formatTripDates",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatDate",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/utils/dateFormat.ts:formatTripDatesWithRelative",
+      "target": "function:frontend/src/utils/dateFormat.ts:formatTripDates",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/utils/dateFormat.ts:formatTripDatesWithRelative",
+      "target": "function:frontend/src/utils/dateFormat.ts:getRelativeDateDescription",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/utils/dateFormat.ts:formatTripDuration",
+      "target": "function:frontend/src/utils/dateFormat.ts:getTripDurationDays",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/duration.ts",
+      "target": "function:frontend/src/utils/duration.ts:parseDuration",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/duration.ts",
+      "target": "function:frontend/src/utils/duration.ts:formatDuration",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/duration.ts",
+      "target": "function:frontend/src/utils/duration.ts:parseDuration",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/duration.ts",
+      "target": "function:frontend/src/utils/duration.ts:formatDuration",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/jetlag.ts",
+      "target": "function:frontend/src/utils/jetlag.ts:getTimezoneOffsetHours",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/jetlag.ts",
+      "target": "function:frontend/src/utils/jetlag.ts:calculateJetLag",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/jetlag.ts",
+      "target": "function:frontend/src/utils/jetlag.ts:generateRecommendations",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/jetlag.ts",
+      "target": "function:frontend/src/utils/jetlag.ts:formatTimeDifference",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/utils/jetlag.ts",
+      "target": "function:frontend/src/utils/jetlag.ts:calculateJetLag",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/jetlag.ts",
+      "target": "function:frontend/src/utils/jetlag.ts:formatTimeDifference",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/utils/jetlag.ts:calculateJetLag",
+      "target": "function:frontend/src/utils/jetlag.ts:getTimezoneOffsetHours",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/utils/jetlag.ts:calculateJetLag",
+      "target": "function:frontend/src/utils/jetlag.ts:generateRecommendations",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/utils/statusColors.ts",
+      "target": "file:frontend/src/types/trip.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ]
+}

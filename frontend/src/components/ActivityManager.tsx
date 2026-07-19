@@ -17,6 +17,7 @@ import {
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useFormReset } from "../hooks/useFormReset";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useEntityLinkSync } from "../hooks/useEntityLinkSync";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useBulkSelection } from "../hooks/useBulkSelection";
@@ -93,6 +94,7 @@ export default function ActivityManager({
 
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const { getLinkSummary, invalidate: invalidateLinkSummary } = useTripLinkSummary(tripId);
+  const { syncLocationLinkOnUpdate, syncLocationLinkOnCreate } = useEntityLinkSync();
 
   // Bulk selection state
   const bulkSelection = useBulkSelection<Activity>();
@@ -113,6 +115,7 @@ export default function ActivityManager({
   const [userDietaryPreferences, setUserDietaryPreferences] = useState<string[]>([]);
   // Track dirty state from child ActivityForm for modal close confirmation
   const activityFormDirtyRef = useRef(false);
+  const activityFormRef = useRef<HTMLFormElement>(null);
 
   // Create wrappers for useFormReset hook
   // ActivityManager uses editingActivity instead of form fields, so we adapt the pattern
@@ -188,8 +191,8 @@ export default function ActivityManager({
   const loadUserSettings = async () => {
     try {
       const user = await userService.getMe();
-      setActivityCategories(user.activityCategories || []);
-      setUserDietaryPreferences(user.dietaryPreferences || []);
+      setActivityCategories(user.activityCategories);
+      setUserDietaryPreferences(user.dietaryPreferences);
     } catch {
       console.error("Failed to load user settings");
     }
@@ -251,31 +254,15 @@ export default function ActivityManager({
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
         // Handle location link changes via entity linking
-        const locationChanged = newLocationId !== originalLocationId;
-        if (locationChanged) {
-          try {
-            if (originalLocationId) {
-              await entityLinkService.deleteLink(tripId, {
-                sourceType: 'ACTIVITY',
-                sourceId: manager.editingId,
-                targetType: 'LOCATION',
-                targetId: originalLocationId,
-              });
-            }
-            if (newLocationId) {
-              await entityLinkService.createLink(tripId, {
-                sourceType: 'ACTIVITY',
-                sourceId: manager.editingId,
-                targetType: 'LOCATION',
-                targetId: newLocationId,
-              });
-            }
-            invalidateLinkSummary();
-          } catch (error) {
-            console.error('Failed to update location link:', error);
-            toast.error('Activity saved but failed to update location link');
-          }
-        }
+        await syncLocationLinkOnUpdate({
+          tripId,
+          sourceType: 'ACTIVITY',
+          sourceId: manager.editingId,
+          newLocationId,
+          originalLocationId,
+          entityLabel: 'Activity',
+          invalidateLinkSummary,
+        });
         resetForm();
         manager.closeForm();
       }
@@ -304,20 +291,15 @@ export default function ActivityManager({
         toast.success('Activity added successfully');
 
         // Create location link if a location was selected
-        if (newLocationId) {
-          try {
-            await entityLinkService.createLink(tripId, {
-              sourceType: 'ACTIVITY',
-              sourceId: createdActivity.id,
-              targetType: 'LOCATION',
-              targetId: newLocationId,
-            });
-            invalidateLinkSummary();
-          } catch (linkError) {
-            console.error('Failed to create location link:', linkError);
-            toast.error('Activity created but failed to link location');
-          }
-        }
+        await syncLocationLinkOnCreate({
+          tripId,
+          sourceType: 'ACTIVITY',
+          sourceId: createdActivity.id,
+          newLocationId,
+          originalLocationId: null,
+          entityLabel: 'Activity',
+          invalidateLinkSummary,
+        });
 
         await manager.loadItems();
         onUpdate?.();
@@ -428,13 +410,13 @@ export default function ActivityManager({
   };
 
   // Bulk edit handler
-  const handleBulkEdit = async (updates: Record<string, unknown>) => {
+  const handleBulkEdit = async (updates: { category?: string; notes?: string; timezone?: string }) => {
     const selectedIds = bulkSelection.getSelectedIds();
     if (selectedIds.length === 0) return;
 
     setIsBulkEditing(true);
     try {
-      await activityService.bulkUpdateActivities(tripId, selectedIds, updates as { category?: string; notes?: string; timezone?: string });
+      await activityService.bulkUpdateActivities(tripId, selectedIds, updates);
       toast.success(`Updated ${selectedIds.length} activities`);
       setShowBulkEditModal(false);
       bulkSelection.exitSelectionMode();
@@ -507,9 +489,10 @@ export default function ActivityManager({
               <input
                 type="checkbox"
                 checked={isSelected}
-                onChange={(e) => {
+                onChange={() => {}}
+                onClick={(e) => {
                   e.stopPropagation();
-                  bulkSelection.toggleItemSelection(activity.id, index, (e.nativeEvent as MouseEvent).shiftKey ?? false, topLevelActivities);
+                  bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, topLevelActivities);
                 }}
                 className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
               />
@@ -735,7 +718,7 @@ export default function ActivityManager({
                 disabled={isSubmitting}
                 onClick={() => {
                   setKeepFormOpenAfterSave(true);
-                  (document.getElementById('activity-form') as HTMLFormElement)?.requestSubmit();
+                  activityFormRef.current?.requestSubmit();
                 }}
                 className="btn btn-secondary text-sm whitespace-nowrap"
               >
@@ -755,6 +738,7 @@ export default function ActivityManager({
         }
       >
         <ActivityForm
+          ref={activityFormRef}
           key={formKey}
           formId="activity-form"
           tripId={tripId}
@@ -907,7 +891,7 @@ export default function ActivityManager({
       )}
 
       {/* Bulk Edit Modal */}
-      <BulkEditModal
+      <BulkEditModal<{ category?: string; notes?: string; timezone?: string }>
         isOpen={showBulkEditModal}
         onClose={() => setShowBulkEditModal(false)}
         entityType="activity"

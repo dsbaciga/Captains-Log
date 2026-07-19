@@ -1,0 +1,194 @@
+{
+  "nodes": [
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-derived-state-no-effect.md",
+      "type": "document",
+      "name": "rerender-derived-state-no-effect.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-derived-state-no-effect.md",
+      "summary": "React best-practices rule advising that values computable from current props/state be derived during render rather than stored in state and synced via useEffect, avoiding redundant renders and state drift.",
+      "tags": ["documentation", "react-patterns", "useeffect", "derived-state", "rerender-optimization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-derived-state.md",
+      "type": "document",
+      "name": "rerender-derived-state.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-derived-state.md",
+      "summary": "React best-practices rule recommending subscribing to derived boolean state (e.g. via a media-query hook) instead of continuous values to reduce re-render frequency.",
+      "tags": ["documentation", "react-patterns", "derived-state", "media-query", "rerender-optimization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-functional-setstate.md",
+      "type": "document",
+      "name": "rerender-functional-setstate.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-functional-setstate.md",
+      "summary": "React best-practices rule covering the functional updater form of setState, explaining how it prevents stale closures and unnecessary useCallback recreations when updates depend on prior state.",
+      "tags": ["documentation", "react-patterns", "usestate", "usecallback", "closures"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-lazy-state-init.md",
+      "type": "document",
+      "name": "rerender-lazy-state-init.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-lazy-state-init.md",
+      "summary": "React best-practices rule instructing use of the lazy initializer function form of useState for expensive initial values (e.g. building indexes, parsing localStorage) to avoid recomputation on every render.",
+      "tags": ["documentation", "react-patterns", "usestate", "performance", "initialization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-memo-with-default-value.md",
+      "type": "document",
+      "name": "rerender-memo-with-default-value.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-memo-with-default-value.md",
+      "summary": "React best-practices rule explaining that non-primitive default parameter values (arrays, functions, objects) on memoized components break memo() equality checks, and recommending extracting the default into a stable module-level constant.",
+      "tags": ["documentation", "react-patterns", "memo", "rerender-optimization", "default-values"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-memo.md",
+      "type": "document",
+      "name": "rerender-memo.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-memo.md",
+      "summary": "React best-practices rule recommending extraction of expensive computations into memoized child components so parent-level early returns (e.g. loading states) can skip the work entirely.",
+      "tags": ["documentation", "react-patterns", "memo", "usememo", "rerender-optimization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-move-effect-to-event.md",
+      "type": "document",
+      "name": "rerender-move-effect-to-event.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-move-effect-to-event.md",
+      "summary": "React best-practices rule advising that side effects triggered by a specific user interaction be placed directly in the event handler rather than modeled as state plus a useEffect, to avoid unnecessary effect re-runs and duplicated actions.",
+      "tags": ["documentation", "react-patterns", "useeffect", "event-handlers", "side-effects"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-simple-expression-in-memo.md",
+      "type": "document",
+      "name": "rerender-simple-expression-in-memo.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-simple-expression-in-memo.md",
+      "summary": "React best-practices rule warning against wrapping cheap primitive-result expressions in useMemo, since the hook's dependency-comparison overhead can exceed the cost of the expression itself.",
+      "tags": ["documentation", "react-patterns", "usememo", "rerender-optimization", "micro-optimization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-transitions.md",
+      "type": "document",
+      "name": "rerender-transitions.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-transitions.md",
+      "summary": "React best-practices rule recommending startTransition for frequent, non-urgent state updates (like scroll position tracking) to keep the UI responsive by deprioritizing the resulting render.",
+      "tags": ["documentation", "react-patterns", "starttransition", "concurrent-rendering", "performance"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/rerender-use-ref-transient-values.md",
+      "type": "document",
+      "name": "rerender-use-ref-transient-values.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/rerender-use-ref-transient-values.md",
+      "summary": "React best-practices rule recommending useRef for frequently changing, transient values (mouse position, interval flags) that don't need to trigger a re-render, applying DOM updates imperatively instead.",
+      "tags": ["documentation", "react-patterns", "useref", "rerender-optimization", "transient-state"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/server-after-nonblocking.md",
+      "type": "document",
+      "name": "server-after-nonblocking.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/server-after-nonblocking.md",
+      "summary": "React/Next.js best-practices rule describing Next.js's after() API for scheduling non-critical work (logging, analytics, notifications) to run after the response is sent, so it doesn't block response latency.",
+      "tags": ["documentation", "nextjs", "server", "after-api", "performance"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/server-auth-actions.md",
+      "type": "document",
+      "name": "server-auth-actions.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/server-auth-actions.md",
+      "summary": "Critical-impact security best-practices rule mandating that Next.js Server Actions perform authentication and authorization checks internally, since they are publicly invocable endpoints like API routes and cannot rely solely on middleware or page guards.",
+      "tags": ["documentation", "nextjs", "server-actions", "authentication", "security"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/server-cache-lru.md",
+      "type": "document",
+      "name": "server-cache-lru.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/server-cache-lru.md",
+      "summary": "High-impact best-practices rule describing use of an LRU cache to persist data across sequential requests (beyond the single-request scope of React.cache()), noting particular effectiveness with Vercel Fluid Compute.",
+      "tags": ["documentation", "server", "caching", "lru-cache", "fluid-compute"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/server-cache-react.md",
+      "type": "document",
+      "name": "server-cache-react.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/server-cache-react.md",
+      "summary": "Best-practices rule on using React.cache() for per-request server-side deduplication of database queries and auth checks, warning that inline object arguments defeat the shallow-equality cache-hit check.",
+      "tags": ["documentation", "server", "react-cache", "deduplication", "database"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/server-dedup-props.md",
+      "type": "document",
+      "name": "server-dedup-props.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/server-dedup-props.md",
+      "summary": "Low-impact best-practices rule explaining that RSC-to-client serialization deduplicates by object reference, so transformed copies (sorted/filtered arrays) passed alongside the original duplicate payload; recommends doing such transforms client-side instead.",
+      "tags": ["documentation", "rsc", "serialization", "server-client-boundary", "payload-size"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/server-parallel-fetching.md",
+      "type": "document",
+      "name": "server-parallel-fetching.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/server-parallel-fetching.md",
+      "summary": "Critical-impact best-practices rule showing how to restructure React Server Components with composition (siblings or children props) so independent data fetches run in parallel instead of creating sequential server-side waterfalls.",
+      "tags": ["documentation", "rsc", "parallel-fetching", "composition", "performance"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:.agent/skills/vercel-react-best-practices/rules/server-serialization.md",
+      "type": "document",
+      "name": "server-serialization.md",
+      "filePath": ".agent/skills/vercel-react-best-practices/rules/server-serialization.md",
+      "summary": "High-impact best-practices rule recommending that Server Components pass only the specific fields a Client Component needs (rather than whole objects), since the RSC boundary serializes all passed properties into the response.",
+      "tags": ["documentation", "rsc", "serialization", "server-client-boundary", "payload-size"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:.agent/skills/vercel-react-best-practices/rules/rerender-derived-state.md",
+      "target": "document:.agent/skills/vercel-react-best-practices/rules/rerender-derived-state-no-effect.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.agent/skills/vercel-react-best-practices/rules/rerender-memo.md",
+      "target": "document:.agent/skills/vercel-react-best-practices/rules/rerender-memo-with-default-value.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.agent/skills/vercel-react-best-practices/rules/rerender-memo.md",
+      "target": "document:.agent/skills/vercel-react-best-practices/rules/rerender-simple-expression-in-memo.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.agent/skills/vercel-react-best-practices/rules/server-cache-react.md",
+      "target": "document:.agent/skills/vercel-react-best-practices/rules/server-cache-lru.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.agent/skills/vercel-react-best-practices/rules/server-dedup-props.md",
+      "target": "document:.agent/skills/vercel-react-best-practices/rules/server-serialization.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}
