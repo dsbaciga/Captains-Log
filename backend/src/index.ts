@@ -44,6 +44,7 @@ import memoriesRoutes from './routes/memories.routes';
 import publicShareRoutes from './routes/share.routes';
 import { generalRateLimiter } from './middleware/rateLimit';
 import expenseRoutes, { budgetSummaryRouter } from './routes/expense.routes';
+import pushRoutes from './routes/push.routes';
 import { pdfImportService } from './services/pdfImport.service';
 
 // Read version from package.json
@@ -299,6 +300,7 @@ app.use('/api/memories', memoriesRoutes);
 // Public share routes — unauthenticated by design (access controlled by the
 // unguessable share token); rate limited per IP to deter token guessing
 app.use('/api/public', generalRateLimiter, publicShareRoutes);
+app.use('/api/push', pushRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

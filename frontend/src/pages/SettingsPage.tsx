@@ -29,6 +29,7 @@ const CalendarFeedSettings = lazy(() => import("../components/CalendarFeedSettin
 const TravelDocumentManager = lazy(() => import("../components/TravelDocumentManager"));
 const InviteUsersSection = lazy(() => import("../components/InviteUsersSection"));
 const TravelPartnerSettings = lazy(() => import("../components/TravelPartnerSettings"));
+const PushNotificationSettings = lazy(() => import("../components/PushNotificationSettings"));
 
 const TAB_VALUES = ["account", "tags-categories", "documents", "integrations", "invites", "backup"] as const;
 type TabType = typeof TAB_VALUES[number];
@@ -1713,6 +1714,9 @@ export default function SettingsPage() {
 
             {/* Calendar Feed (iCal subscription) */}
             <CalendarFeedSettings />
+
+            {/* Push Notification Settings */}
+            <PushNotificationSettings />
 
           </div>
           </Suspense>

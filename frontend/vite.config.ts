@@ -16,6 +16,12 @@ export default defineConfig({
     react(),
     ...(process.env.ANALYZE ? [visualizer({ open: true, filename: 'dist/stats.html', gzipSize: true, brotliSize: true })] : []),
     VitePWA({
+      // Custom service worker (src/sw.ts) so we can handle Web Push events.
+      // The SW re-creates the previous generateSW behavior (navigation fallback
+      // + runtime caching with identical cache names) - see src/sw.ts.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate', // Automatically activate new service worker versions
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt'],
       manifest: {
@@ -94,119 +100,8 @@ export default defineConfig({
           }
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // SPA navigate fallback - serve index.html for all navigation requests
-        // so React Router handles client-side routing correctly
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/offline\.html$/],
-        runtimeCaching: [
-          // API responses - Network first, fallback to cache
-          {
-            urlPattern: /^.*\/api\/(trips|locations|activities|transportation|lodging|journals|photos|albums)/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              networkTimeoutSeconds: 10,
-            },
-          },
-          // Photo thumbnails - Cache first for fast loading
-          {
-            urlPattern: /^.*\/uploads\/.*\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'photo-thumbnails',
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          // Map tiles - Cache first with long expiration
-          {
-            urlPattern: /^https:\/\/.*tile.*\.(openstreetmap|osm|maptiler|mapbox|stamen).*\.(png|jpg|jpeg|webp)$/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'map-tiles',
-              expiration: {
-                maxEntries: 1000,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          // Alternative pattern for map tiles (covers more tile servers)
-          {
-            urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'map-tiles',
-              expiration: {
-                maxEntries: 1000,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          // Nominatim geocoding - Cache first since location data rarely changes
-          {
-            urlPattern: /^.*nominatim.*\/(search|reverse)/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'geocoding-cache',
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 90, // 90 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          // Google Fonts - Cache first
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: {
-                maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-        ],
       },
       devOptions: {
         enabled: false, // Disable in development to avoid confusion

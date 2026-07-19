@@ -121,6 +121,13 @@ export const config = {
     };
   })(),
 
+  // Web Push (VAPID) - push notifications are disabled gracefully when unset
+  vapid: {
+    publicKey: process.env.VAPID_PUBLIC_KEY || '',
+    privateKey: process.env.VAPID_PRIVATE_KEY || '',
+    subject: process.env.VAPID_SUBJECT || '', // e.g. mailto:admin@example.com
+  },
+
   // AI / LLM
   llm: {
     enabled: process.env.AI_ENABLED !== 'false',

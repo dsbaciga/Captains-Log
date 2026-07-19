@@ -61,6 +61,7 @@ model User {
   userInvitationsAccepted UserInvitation[] @relation("UserInvitationsAccepted")
   pdfImports              PdfImport[]
   pendingEntities         PendingEntity[]
+  pushSubscriptions       PushSubscription[]
 
   // Self-relation for travel partner
   travelPartner      User?   @relation("TravelPartner", fields: [travelPartnerId], references: [id], onDelete: SetNull)
@@ -885,3 +886,18 @@ model UserInvitation {
   @@map("user_invitations")
 }
 
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  endpoint  String   @unique @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.Text
+  userAgent String?  @map("user_agent") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}

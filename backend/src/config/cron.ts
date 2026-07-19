@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import tripService from '../services/trip.service';
+import pushNotificationService from '../services/pushNotification.service';
 import logger from './logger';
 
 /**
@@ -14,6 +15,19 @@ export function initCronJobs(): void {
       logger.info(`Successfully auto-updated status for ${updatedCount} trips.`);
     } catch (error) {
       logger.error('Error during trip status auto-update cron job:', error);
+    }
+  });
+
+  // Hourly "trip starts tomorrow" push notification reminders.
+  // No-op when web push (VAPID env vars) is not configured.
+  cron.schedule('0 * * * *', async () => {
+    try {
+      const notified = await pushNotificationService.sendTripStartReminders();
+      if (notified > 0) {
+        logger.info(`Sent trip-start push reminders for ${notified} trip(s).`);
+      }
+    } catch (error) {
+      logger.error('Error during trip-start push reminder cron job:', error);
     }
   });
 
