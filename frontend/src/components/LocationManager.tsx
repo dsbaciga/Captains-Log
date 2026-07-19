@@ -281,6 +281,22 @@ export default function LocationManager({
     }
   };
 
+  // Optimistically toggle a location's favorite star, reverting on failure
+  const handleToggleFavorite = async (location: Location) => {
+    const newValue = !location.isFavorite;
+    manager.setItems((prev) =>
+      prev.map((l) => (l.id === location.id ? { ...l, isFavorite: newValue } : l))
+    );
+    try {
+      await locationService.updateLocation(location.id, { isFavorite: newValue });
+    } catch {
+      manager.setItems((prev) =>
+        prev.map((l) => (l.id === location.id ? { ...l, isFavorite: !newValue } : l))
+      );
+      toast.error("Failed to update favorite");
+    }
+  };
+
   const handleDelete = async (id: number) => {
     const location = manager.items.find(l => l.id === id);
     const hasChildren = manager.items.some(l => l.parentId === id);
@@ -469,6 +485,40 @@ export default function LocationManager({
 
             {/* Action buttons - own row on mobile, inline on larger screens */}
             <div className="flex gap-2 items-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-primary-100/50 dark:border-gold/10">
+              {/* Favorite star toggle */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleFavorite(location);
+                }}
+                aria-pressed={location.isFavorite}
+                aria-label={
+                  location.isFavorite
+                    ? `Remove ${location.name} from favorites`
+                    : `Add ${location.name} to favorites`
+                }
+                title={location.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                className={`p-1 rounded transition-colors ${
+                  location.isFavorite
+                    ? "text-amber-500 dark:text-gold hover:text-amber-600 dark:hover:text-gold/80"
+                    : "text-gray-400 dark:text-gray-500 hover:text-amber-500 dark:hover:text-gold"
+                }`}
+              >
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill={location.isFavorite ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth={location.isFavorite ? 0 : 2}
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                  />
+                </svg>
+              </button>
               {/* Photo preview badge with popover */}
               {(() => {
                 const linkSummary = getLinkSummary("LOCATION", location.id);

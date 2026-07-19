@@ -64,6 +64,21 @@ router.get('/visited', locationController.getAllVisitedLocations);
 
 /**
  * @openapi
+ * /api/locations/favorites:
+ *   get:
+ *     summary: Get all locations the user marked as favorite across all trips
+ *     tags: [Locations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of favorite locations (includes trip id/title for navigation)
+ */
+// NOTE: must be registered BEFORE the /:id routes below
+router.get('/favorites', locationController.getFavoriteLocations);
+
+/**
+ * @openapi
  * /api/locations/trip/{tripId}:
  *   get:
  *     summary: Get all locations for a specific trip

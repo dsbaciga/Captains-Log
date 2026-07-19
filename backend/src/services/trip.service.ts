@@ -220,6 +220,13 @@ export class TripService {
 
     const where: Prisma.TripWhereInput = { userId };
 
+    // Filter by archived state (excluded by default; 'true' shows only archived, 'all' shows both)
+    if (query.archived === 'true') {
+      where.archived = true;
+    } else if (query.archived !== 'all') {
+      where.archived = false;
+    }
+
     // Filter by status (supports comma-separated multiple values)
     if (query.status) {
       const statuses = query.status.split(',').map(s => s.trim()).filter(Boolean);

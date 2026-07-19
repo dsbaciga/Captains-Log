@@ -22,10 +22,44 @@ export default function PlacesVisitedPage() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null
   );
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favorites, setFavorites] = useState<Location[] | null>(null);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
 
   useEffect(() => {
     loadVisitedLocations();
   }, []);
+
+  // Lazily load favorites the first time the filter is enabled
+  useEffect(() => {
+    if (!showFavoritesOnly || favorites !== null) return;
+    let cancelled = false;
+    setFavoritesLoading(true);
+    locationService
+      .getFavoriteLocations()
+      .then((data) => {
+        if (!cancelled) setFavorites(data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          toast.error("Failed to load favorite locations");
+          setShowFavoritesOnly(false);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setFavoritesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showFavoritesOnly, favorites]);
+
+  // When filtering to favorites, only locations with coordinates can be mapped
+  const displayedLocations = showFavoritesOnly
+    ? (favorites ?? []).filter(
+        (loc) => loc.latitude != null && loc.longitude != null
+      )
+    : locations;
 
   const loadVisitedLocations = async () => {
     try {
@@ -79,16 +113,51 @@ export default function PlacesVisitedPage() {
                 Places Visited
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {locations.length}{" "}
-                {locations.length === 1 ? "location" : "locations"} from your
-                travels
+                {displayedLocations.length}{" "}
+                {displayedLocations.length === 1 ? "location" : "locations"}{" "}
+                {showFavoritesOnly
+                  ? "marked as favorites"
+                  : "from your travels"}
               </p>
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              <span className="inline-flex items-center gap-2">
-                <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
-                Click markers to view details
-              </span>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setShowFavoritesOnly((prev) => !prev)}
+                aria-pressed={showFavoritesOnly}
+                title={
+                  showFavoritesOnly
+                    ? "Show all visited places"
+                    : "Show only favorite locations"
+                }
+                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
+                  showFavoritesOnly
+                    ? "bg-amber-500 dark:bg-gold text-white dark:text-navy-900"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-amber-100 dark:hover:bg-gray-600"
+                }`}
+              >
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill={showFavoritesOnly ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth={showFavoritesOnly ? 0 : 2}
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                  />
+                </svg>
+                {favoritesLoading ? "Loading…" : "Favorites"}
+              </button>
+              <div className="hidden sm:block text-sm text-gray-600 dark:text-gray-400">
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                  Click markers to view details
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -98,7 +167,20 @@ export default function PlacesVisitedPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Map */}
         <div className="flex-1 relative z-0">
-          <PlacesVisitedMapContainer locations={locations} transportation={transportation} />
+          {showFavoritesOnly && !favoritesLoading && displayedLocations.length === 0 ? (
+            <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+              <EmptyState
+                icon="⭐"
+                message="No favorite locations yet"
+                subMessage="Star locations from a trip's Locations tab to see them here"
+              />
+            </div>
+          ) : (
+            <PlacesVisitedMapContainer
+              locations={displayedLocations}
+              transportation={showFavoritesOnly ? [] : transportation}
+            />
+          )}
         </div>
 
         {/* Sidebar - Selected Location Details */}

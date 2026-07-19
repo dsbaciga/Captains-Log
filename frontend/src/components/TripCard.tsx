@@ -23,6 +23,8 @@ interface TripCardProps {
   trip: Trip;
   coverPhotoUrl?: string;
   onDelete?: (id: number) => void;
+  /** Callback to archive/unarchive the trip */
+  onArchiveToggle?: (trip: Trip) => void;
   showActions?: boolean;
   /** Callback before navigating away (e.g., to save scroll position) */
   onNavigateAway?: () => void;
@@ -39,12 +41,12 @@ function TransportIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
-const TripCard = memo(function TripCard({ trip, coverPhotoUrl, onDelete, showActions = true, onNavigateAway }: TripCardProps) {
+const TripCard = memo(function TripCard({ trip, coverPhotoUrl, onDelete, onArchiveToggle, showActions = true, onNavigateAway }: TripCardProps) {
   const counts = trip._count;
   const hasStats = counts && (counts.locations > 0 || counts.photos > 0 || counts.transportation > 0);
 
   return (
-    <div className="group relative rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-primary-500/10 dark:border-gold/20 hover:border-primary-500/30 dark:hover:border-gold/40 bg-white dark:bg-navy-800 flex flex-col transform hover:-translate-y-1 dark:hover:shadow-[0_0_25px_rgba(251,191,36,0.15),0_20px_40px_-15px_rgba(0,0,0,0.3)]">
+    <div className={`group relative rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-primary-500/10 dark:border-gold/20 hover:border-primary-500/30 dark:hover:border-gold/40 bg-white dark:bg-navy-800 flex flex-col transform hover:-translate-y-1 dark:hover:shadow-[0_0_25px_rgba(251,191,36,0.15),0_20px_40px_-15px_rgba(0,0,0,0.3)] ${trip.archived ? 'opacity-60 saturate-50 hover:opacity-90' : ''}`}>
       {/* Clickable area covering the entire card for navigation */}
       <Link
         to={`/trips/${trip.id}`}
@@ -85,6 +87,11 @@ const TripCard = memo(function TripCard({ trip, coverPhotoUrl, onDelete, showAct
           <div className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg shadow-md ${getTripStatusRibbonColor(trip.status)}`}>
             {trip.status}
           </div>
+          {trip.archived && (
+            <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg shadow-md bg-slate/90 dark:bg-navy-900/90 text-white dark:text-warm-gray backdrop-blur-sm">
+              Archived
+            </div>
+          )}
           {trip.tripType && (
             <div className="px-2.5 py-1.5 text-xs font-medium rounded-lg shadow-md bg-white/90 dark:bg-navy-800/90 text-charcoal dark:text-warm-gray backdrop-blur-sm">
               {trip.tripTypeEmoji && <span className="mr-1">{trip.tripTypeEmoji}</span>}
@@ -211,6 +218,20 @@ const TripCard = memo(function TripCard({ trip, coverPhotoUrl, onDelete, showAct
             >
               Edit
             </Link>
+            {onArchiveToggle && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onArchiveToggle(trip);
+                }}
+                className="btn btn-secondary px-4 text-sm py-2"
+                aria-label={trip.archived ? `Unarchive ${trip.title}` : `Archive ${trip.title}`}
+                title={trip.archived ? 'Unarchive this trip' : 'Archive this trip'}
+              >
+                {trip.archived ? 'Unarchive' : 'Archive'}
+              </button>
+            )}
             {onDelete && (
               <button
                 onClick={(e) => {

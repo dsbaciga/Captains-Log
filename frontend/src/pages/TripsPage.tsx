@@ -36,6 +36,7 @@ interface TripsPageState {
   selectedTags: number[];
   sortOption: SortOption;
   showAdvancedFilters: boolean;
+  showArchived: boolean;
   viewMode: ViewMode;
   sortColumn: string;
   sortDirection: 'asc' | 'desc';
@@ -50,6 +51,7 @@ const DEFAULT_STATE: TripsPageState = {
   selectedTags: [],
   sortOption: 'startDate-desc',
   showAdvancedFilters: false,
+  showArchived: false,
   viewMode: 'grid',
   sortColumn: 'startDate',
   sortDirection: 'desc',
@@ -76,6 +78,7 @@ export default function TripsPage() {
   const [selectedTags, setSelectedTags] = useState<number[]>(savedState?.selectedTags ?? DEFAULT_STATE.selectedTags);
   const [sortOption, setSortOption] = useState<SortOption>(savedState?.sortOption ?? DEFAULT_STATE.sortOption);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(savedState?.showAdvancedFilters ?? DEFAULT_STATE.showAdvancedFilters);
+  const [showArchived, setShowArchived] = useState(savedState?.showArchived ?? DEFAULT_STATE.showArchived);
   const [coverPhotoUrls, setCoverPhotoUrls] = useState<{ [key: number]: string }>({});
   const [currentPage, setCurrentPage] = useState(savedPage);
   const [viewMode, setViewMode] = useState<ViewMode>(savedState?.viewMode ?? DEFAULT_STATE.viewMode);
@@ -106,6 +109,8 @@ export default function TripsPage() {
     startDateTo,
     tags: selectedTags.join(','),
     sort: sortOption,
+    // Archived trips are excluded by default; toggle shows only archived trips
+    archived: showArchived ? 'true' : '',
   };
 
   const queryParams = Object.fromEntries(
@@ -171,11 +176,12 @@ export default function TripsPage() {
       selectedTags,
       sortOption,
       showAdvancedFilters,
+      showArchived,
       viewMode,
       sortColumn,
       sortDirection,
     });
-  }, [searchQuery, statusFilter, tripTypeFilter, startDateFrom, startDateTo, selectedTags, sortOption, showAdvancedFilters, viewMode, sortColumn, sortDirection, savePageState]);
+  }, [searchQuery, statusFilter, tripTypeFilter, startDateFrom, startDateTo, selectedTags, sortOption, showAdvancedFilters, showArchived, viewMode, sortColumn, sortDirection, savePageState]);
 
   // Save scroll position, page number, and filters before navigating away
   const handleNavigateAway = useCallback(() => {
@@ -263,6 +269,27 @@ export default function TripsPage() {
   // Handler for Kanban status change
   const handleStatusChange = async (tripId: number, newStatus: TripStatusType) => {
     await updateTripStatusMutation.mutateAsync({ tripId, status: newStatus });
+  };
+
+  // Mutation for archiving/unarchiving a trip
+  const archiveTripMutation = useMutation({
+    mutationFn: async ({ tripId, archived }: { tripId: number; archived: boolean }) => {
+      return tripService.updateTrip(tripId, { archived });
+    },
+    onError: () => {
+      toast.error('Failed to update trip.');
+    },
+    onSuccess: (data, { archived }) => {
+      toast.success(archived ? 'Trip archived.' : 'Trip unarchived.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+    },
+  });
+
+  // Handler for the Archive/Unarchive card action
+  const handleArchiveToggle = (trip: Trip) => {
+    archiveTripMutation.mutate({ tripId: trip.id, archived: !trip.archived });
   };
 
   // Load tags and trip types once on mount
@@ -376,6 +403,7 @@ export default function TripsPage() {
     setSelectedTags([]);
     setStatusFilter([]);
     setTripTypeFilter([]);
+    setShowArchived(false);
     setSortOption('startDate-desc');
     setCurrentPage(1);
   };
@@ -388,6 +416,11 @@ export default function TripsPage() {
 
   const handleTripTypeFilterChange = (values: string[]) => {
     setTripTypeFilter(values);
+    setCurrentPage(1);
+  };
+
+  const handleShowArchivedToggle = () => {
+    setShowArchived(prev => !prev);
     setCurrentPage(1);
   };
 
@@ -442,7 +475,7 @@ export default function TripsPage() {
     [allTripTypes]
   );
 
-  const hasActiveFilters = searchQuery || startDateFrom || startDateTo || selectedTags.length > 0 || statusFilter.length > 0 || tripTypeFilter.length > 0;
+  const hasActiveFilters = searchQuery || startDateFrom || startDateTo || selectedTags.length > 0 || statusFilter.length > 0 || tripTypeFilter.length > 0 || showArchived;
 
   // Render pagination controls (used at both top and bottom)
   const renderPaginationControls = (position: 'top' | 'bottom') => {
@@ -639,6 +672,24 @@ export default function TripsPage() {
                 placeholder="All Types"
               />
             )}
+
+            {/* Archived Toggle */}
+            <button
+              type="button"
+              onClick={handleShowArchivedToggle}
+              aria-pressed={showArchived}
+              title={showArchived ? 'Showing archived trips' : 'Show archived trips'}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
+                showArchived
+                  ? 'bg-primary-600 dark:bg-sky text-white dark:text-navy-900'
+                  : 'bg-parchment dark:bg-navy-700 text-slate dark:text-warm-gray hover:bg-primary-50 dark:hover:bg-navy-600'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+              Archived
+            </button>
           </div>
 
           {/* Advanced Filters Panel */}
@@ -779,6 +830,7 @@ export default function TripsPage() {
                 trip={trip}
                 coverPhotoUrl={coverPhotoUrls[trip.id]}
                 onDelete={handleDelete}
+                onArchiveToggle={handleArchiveToggle}
                 showActions={true}
                 onNavigateAway={handleNavigateAway}
               />

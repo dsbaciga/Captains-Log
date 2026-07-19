@@ -13,6 +13,7 @@ class TripService {
     page?: number;
     limit?: number;
     tripType?: string;
+    archived?: 'true' | 'false' | 'all';
   }): Promise<TripListResponse> {
     const response = await axios.get('/trips', { params });
     return response.data;

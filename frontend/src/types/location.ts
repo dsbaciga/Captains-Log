@@ -10,6 +10,7 @@ export type Location = {
   visitDatetime: string | null;
   visitDurationMinutes: number | null;
   notes: string | null;
+  isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
   category?: LocationCategory | null;
@@ -67,4 +68,5 @@ export type CreateLocationInput = {
 export type UpdateLocationInput = Omit<Partial<CreateLocationInput>, 'tripId' | 'parentId' | 'categoryId'> & {
   parentId?: number | null;
   categoryId?: number | null;
+  isFavorite?: boolean;
 };

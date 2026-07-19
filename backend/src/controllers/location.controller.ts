@@ -109,6 +109,15 @@ export const locationController = {
     });
   }),
 
+  getFavoriteLocations: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const locations = await locationService.getFavoriteLocations(userId);
+    res.json({
+      status: 'success',
+      data: locations,
+    });
+  }),
+
   getAllVisitedLocations: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const page = Math.max(1, parseInt(req.query.page as string) || 1);

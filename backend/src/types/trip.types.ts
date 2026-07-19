@@ -102,6 +102,7 @@ export const updateTripSchema = z.object({
   ]).optional(),
   addToPlacesVisited: z.boolean().optional(),
   excludeFromAutoShare: z.boolean().optional(),
+  archived: z.boolean().optional(),
   seriesId: z.number().nullable().optional(),
   tripType: z.string().nullable().optional(),
   tripTypeEmoji: z.string().nullable().optional(),
@@ -111,6 +112,7 @@ export const updateTripSchema = z.object({
 
 export const getTripQuerySchema = z.object({
   status: z.string().optional(), // Single status or comma-separated statuses
+  archived: z.enum(['true', 'false', 'all']).optional(), // Default (omitted/'false') excludes archived trips
   search: z.string().optional(),
   page: z.string().optional(),
   limit: z.string().optional(),
@@ -141,6 +143,7 @@ export interface TripResponse {
   privacyLevel: string;
   addToPlacesVisited: boolean;
   excludeFromAutoShare: boolean;
+  archived: boolean;
   coverPhotoId: number | null;
   bannerPhotoId: number | null;
   seriesId: number | null;

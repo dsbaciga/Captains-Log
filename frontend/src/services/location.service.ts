@@ -19,6 +19,11 @@ class LocationService {
     return Array.isArray(data) ? data : data.locations;
   }
 
+  async getFavoriteLocations(): Promise<Location[]> {
+    const response = await axios.get<Location[]>('/locations/favorites');
+    return response.data;
+  }
+
   async getLocationById(id: number): Promise<Location> {
     const response = await axios.get(`/locations/${id}`);
     return response.data;
