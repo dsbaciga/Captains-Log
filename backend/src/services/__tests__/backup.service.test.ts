@@ -172,7 +172,7 @@ describe('BackupService', () => {
     it('BKP-001: generates correct JSON structure with version and exportDate', async () => {
       const result = await createBackup(1);
 
-      expect(result.version).toBe('1.3.0');
+      expect(result.version).toBe('1.4.0');
       expect(result.exportDate).toBeDefined();
       expect(new Date(result.exportDate).getTime()).not.toBeNaN();
     });

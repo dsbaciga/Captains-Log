@@ -40,6 +40,10 @@ model User {
   passwordVersion    Int      @default(0) @map("password_version")
   oidcSubject        String?  @unique @map("oidc_subject") @db.VarChar(500) // "issuer|sub" identity from OIDC single sign-on
   calendarToken      String?  @unique @map("calendar_token") @db.VarChar(64) // Secret token for the read-only iCal feed URL
+  // Extra From addresses trusted to forward links to the ingest mailbox, on top
+  // of this user's own `email`. Per-user rather than a global env list, because
+  // a global list cannot say which user an address belongs to.
+  linkIngestSenders  Json     @default("[]") @map("link_ingest_senders")
   useCustomMapStyle  Boolean  @default(true) @map("use_custom_map_style")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
@@ -62,6 +66,8 @@ model User {
   pdfImports              PdfImport[]
   pendingEntities         PendingEntity[]
   pushSubscriptions       PushSubscription[]
+  savedLinks              SavedLink[]
+  emailIngests            EmailIngest[]
 
   // Self-relation for travel partner
   travelPartner      User?   @relation("TravelPartner", fields: [travelPartnerId], references: [id], onDelete: SetNull)
@@ -87,6 +93,11 @@ model Trip {
   shareEnabled        Boolean  @default(false) @map("share_enabled")
   archived            Boolean  @default(false)
   coverPhotoId        Int?     @map("cover_photo_id")
+  // Standalone uploaded cover image, independent of the trip's photo library.
+  // Lets a trip that has no photos yet (planning/upcoming) still have a cover.
+  // Mutually exclusive with coverPhotoId — setting one clears the other.
+  coverImagePath      String?  @map("cover_image_path") @db.VarChar(500)
+  coverImageThumbnailPath String? @map("cover_image_thumbnail_path") @db.VarChar(500)
   bannerPhotoId       Int?     @map("banner_photo_id")
   addToPlacesVisited  Boolean  @default(false) @map("add_to_places_visited")
   excludeFromAutoShare Boolean @default(false) @map("exclude_from_auto_share")
@@ -119,6 +130,7 @@ model Trip {
   languages          TripLanguage[]
   pendingEntities    PendingEntity[]
   expenses           TripExpense[]
+  savedLinks         SavedLink[]
 
   @@index([userId, status])
   @@index([startDate, endDate])
@@ -609,6 +621,7 @@ enum EntityType {
   JOURNAL_ENTRY
   PHOTO_ALBUM
   PDF_IMPORT
+  SAVED_LINK
 }
 
 // =============================================================================
@@ -900,4 +913,109 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// =============================================================================
+// SAVED LINKS
+// =============================================================================
+// Reference URLs (restaurant writeups, trail guides, timetables) kept alongside
+// a trip. Distinct from the `bookingUrl` fields on Activity/Transportation/
+// Lodging, which mean "the booking" rather than "a reference".
+
+enum SavedLinkSource {
+  MANUAL
+  EMAIL
+}
+
+enum LinkMetadataStatus {
+  PENDING
+  FETCHED
+  FAILED
+  SKIPPED
+}
+
+model SavedLink {
+  id     Int  @id @default(autoincrement())
+  userId Int  @map("user_id")
+  // Nullable by design: a link exists in the inbox before it belongs to a trip.
+  tripId Int? @map("trip_id")
+
+  // Text rather than VarChar(500): real URLs with tracking params exceed 500 chars.
+  url         String  @db.Text
+  title       String? @db.VarChar(1000)
+  description String? @db.Text
+  siteName    String? @map("site_name") @db.VarChar(255)
+  imageUrl    String? @map("image_url") @db.Text
+  notes       String? @db.Text
+
+  source            SavedLinkSource    @default(MANUAL)
+  metadataStatus    LinkMetadataStatus @default(PENDING) @map("metadata_status")
+  metadataFetchedAt DateTime?          @map("metadata_fetched_at")
+
+  // Provenance for links captured from a forwarded email.
+  emailIngestId Int? @map("email_ingest_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // SetNull, not Cascade: deleting a trip returns its links to the inbox
+  // rather than destroying them.
+  trip Trip? @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  // SetNull so pruning ingest history never destroys the links it produced.
+  emailIngest EmailIngest? @relation(fields: [emailIngestId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, tripId])
+  @@index([tripId])
+  @@index([emailIngestId])
+  @@map("saved_links")
+}
+
+// =============================================================================
+// EMAIL INGEST
+// =============================================================================
+// Polls a dedicated IMAP mailbox and turns forwarded messages into SavedLinks.
+// Deterministic: extracts hrefs and scrapes Open Graph tags. No LLM involved —
+// unlike the email-import system removed in v5.4.0, which failed on LLM parsing
+// of booking emails into structured entities.
+
+enum EmailIngestStatus {
+  PROCESSING // Claimed and mid-flight
+  PROCESSED // Links created
+  NO_LINKS // Nothing usable survived filtering
+  REJECTED_SENDER // From address not recognised
+  FAILED // Parse or transport error
+}
+
+model EmailIngest {
+  id Int @id @default(autoincrement())
+  // The RFC 5322 Message-ID. Unique, and doubles as the processing claim:
+  // a re-delivered message is recognised and archived rather than reprocessed.
+  messageId String @unique @map("message_id") @db.VarChar(1000)
+  // Nullable: a REJECTED_SENDER message belongs to no user.
+  userId Int? @map("user_id")
+
+  fromAddress String? @map("from_address") @db.VarChar(500)
+  // Captured for plus-address routing later (travellifecc+trip@...), which is
+  // otherwise a schema migration rather than a parsing change.
+  toAddress   String? @map("to_address") @db.VarChar(500)
+  subject     String? @db.VarChar(1000)
+  receivedAt  DateTime? @map("received_at")
+
+  status       EmailIngestStatus @default(PROCESSING)
+  linkCount    Int               @default(0) @map("link_count")
+  errorMessage String?           @map("error_message") @db.Text
+  processedAt  DateTime?         @map("processed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  savedLinks SavedLink[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([status])
+  @@map("email_ingests")
 }

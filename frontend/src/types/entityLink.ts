@@ -1,4 +1,7 @@
-// Entity types that can be linked
+// Entity types that can be linked.
+// MUST stay in sync with the Prisma EntityType enum: LinkPanel and
+// LinkedEntitiesDisplay index a Record keyed by this union, so a value present
+// in the database but missing here is a runtime TypeError, not a type error.
 export type EntityType =
   | 'PHOTO'
   | 'LOCATION'
@@ -6,7 +9,9 @@ export type EntityType =
   | 'LODGING'
   | 'TRANSPORTATION'
   | 'JOURNAL_ENTRY'
-  | 'PHOTO_ALBUM';
+  | 'PHOTO_ALBUM'
+  | 'PDF_IMPORT'
+  | 'SAVED_LINK';
 
 // Relationship types
 export type LinkRelationship =
@@ -122,8 +127,11 @@ export function getEntityKey(entityType: EntityType, entityId: number): string {
   return `${entityType}:${entityId}`;
 }
 
-// Valid entity types for validation
-const VALID_ENTITY_TYPES: EntityType[] = [
+// Valid entity types for validation.
+// `satisfies` checks every entry is a real EntityType without widening the
+// literals, so a typo here is a compile error rather than a silently
+// unmatchable string.
+const VALID_ENTITY_TYPES = [
   'PHOTO',
   'LOCATION',
   'ACTIVITY',
@@ -131,11 +139,16 @@ const VALID_ENTITY_TYPES: EntityType[] = [
   'TRANSPORTATION',
   'JOURNAL_ENTRY',
   'PHOTO_ALBUM',
-];
+  'PDF_IMPORT',
+  'SAVED_LINK',
+] as const satisfies readonly EntityType[];
+
+// Widened to string on read so membership can be tested without an assertion.
+const VALID_ENTITY_TYPE_SET: ReadonlySet<string> = new Set(VALID_ENTITY_TYPES);
 
 // Helper to validate entity type
 function isValidEntityType(value: string): value is EntityType {
-  return VALID_ENTITY_TYPES.includes(value as EntityType);
+  return VALID_ENTITY_TYPE_SET.has(value);
 }
 
 // Helper to parse entity key

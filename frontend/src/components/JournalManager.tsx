@@ -429,7 +429,7 @@ export default function JournalManager({
                 value={formValues.content}
                 onChange={(val) => setField('content', val)}
                 rows={12}
-                placeholder="Write your journal entry here\u2026"
+                placeholder="Write your journal entry here…"
                 label="Content"
                 required={true}
               />

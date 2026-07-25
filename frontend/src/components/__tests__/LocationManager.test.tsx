@@ -802,7 +802,7 @@ describe("LocationManager", () => {
 
       // Check for category badge - use custom text matcher to handle text nodes split by emoji
       await waitFor(() => {
-        const badge = screen.getByText((content, element) => {
+        const badge = screen.getByText((_content, element) => {
           return element?.tagName.toLowerCase() === "span" &&
                  element?.textContent?.includes("Restaurant") === true;
         });

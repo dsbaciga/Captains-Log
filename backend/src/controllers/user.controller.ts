@@ -60,6 +60,12 @@ const travelPartnerSettingsSchema = z.object({
   defaultPartnerPermission: z.enum(['view', 'edit', 'admin']).optional(),
 });
 
+const linkIngestSettingsSchema = z.object({
+  // Extra addresses trusted to forward links. Capped so the list stays a
+  // hand-maintained allowlist rather than an import of someone's contacts.
+  linkIngestSenders: z.array(z.string().trim().email()).max(20),
+});
+
 export const userController = {
   getMe: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
@@ -222,6 +228,22 @@ export const userController = {
   getLlmSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const settings = await userService.getLlmSettings(userId);
+    res.json({ status: 'success', data: settings });
+  }),
+
+  getLinkIngestSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const settings = await userService.getLinkIngestSettings(userId);
+    res.json({ status: 'success', data: settings });
+  }),
+
+  updateLinkIngestSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const data = linkIngestSettingsSchema.parse(req.body);
+    const settings = await userService.updateLinkIngestSettings(
+      userId,
+      data.linkIngestSenders
+    );
     res.json({ status: 'success', data: settings });
   }),
 

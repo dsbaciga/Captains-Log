@@ -7,7 +7,7 @@ import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
 import type { PhotoAlbum } from '../../types/photo';
 import type { WeatherData, WeatherDisplay } from '../../types/weather';
-import type { EntityType } from '../../types/entityLink';
+import type { EntityType, TripLinkSummary } from '../../types/entityLink';
 import activityService from '../../services/activity.service';
 import transportationService from '../../services/transportation.service';
 import lodgingService from '../../services/lodging.service';
@@ -181,7 +181,7 @@ export default function DailyView({
           journalService.getJournalEntriesByTrip(tripId),
           locationService.getLocationsByTrip(tripId),
           photoService.getAlbumsByTrip(tripId).catch(() => ({ albums: [] as PhotoAlbum[] })),
-          entityLinkService.getTripLinkSummary(tripId).catch(() => ({})),
+          entityLinkService.getTripLinkSummary(tripId).catch((): TripLinkSummary => ({})),
           weatherService.getWeatherForTrip(tripId).catch(() => [] as WeatherData[]),
           entityLinkService.getLinksByTargetType(tripId, 'LOCATION').catch(() => []),
         ]);

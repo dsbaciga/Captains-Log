@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  optionalNullable,
   optionalNumericId,
   requiredStringWithMax,
   optionalStringWithMax,
@@ -35,7 +34,8 @@ export const createActivitySchema = z.object({
 // Note: Location association is handled via EntityLink system, not direct FK
 export const updateActivitySchema = z.object({
   parentId: optionalNumericId(),
-  name: optionalNullable(requiredStringWithMax(500)),
+  // name is NOT NULL in the database, so it may be omitted but never cleared
+  name: requiredStringWithMax(500).optional(),
   description: optionalNotes(),
   category: optionalStringWithMax(100),
   allDay: optionalBoolean(),

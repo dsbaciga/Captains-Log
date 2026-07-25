@@ -22,6 +22,7 @@ interface RestoreStats {
   companionsImported: number;
   travelDocumentsImported: number;
   tripLanguagesImported: number;
+  savedLinksImported: number;
 }
 
 /**
@@ -30,8 +31,9 @@ interface RestoreStats {
  * v1.1.0 - Added travelDocuments and tripLanguages
  * v1.2.0 - Added tripTypes and tripSeries
  * v1.3.0 - Removed plaintext secrets (API keys, SMTP password) from exports
+ * v1.4.0 - Added savedLinks
  */
-const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0', '1.2.0', '1.3.0'];
+const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0'];
 
 /**
  * Restore user data from a backup
@@ -61,6 +63,7 @@ export async function restoreFromBackup(
     companionsImported: 0,
     travelDocumentsImported: 0,
     tripLanguagesImported: 0,
+    savedLinksImported: 0,
   };
 
   try {
@@ -305,6 +308,8 @@ export async function restoreFromBackup(
               tripType: tripData.tripType || null,
               tripTypeEmoji: tripData.tripTypeEmoji || null,
               privacyLevel: tripData.privacyLevel,
+              coverImagePath: tripData.coverImagePath ?? null,
+              coverImageThumbnailPath: tripData.coverImageThumbnailPath ?? null,
               addToPlacesVisited: tripData.addToPlacesVisited,
               seriesId: mappedSeriesId,
               seriesOrder: mappedSeriesId ? (tripData.seriesOrder || null) : null,
@@ -632,8 +637,34 @@ export async function restoreFromBackup(
             });
           }
 
+          // Import saved links (added in v1.4.0).
+          // Must run before EntityLinks so SAVED_LINK references can be remapped.
+          const savedLinkMap = new Map<number, number>(); // old ID -> new ID
+          for (const linkData of tripData.savedLinks || []) {
+            const savedLink = await tx.savedLink.create({
+              data: {
+                userId,
+                tripId: trip.id,
+                url: linkData.url,
+                title: linkData.title,
+                description: linkData.description,
+                siteName: linkData.siteName,
+                imageUrl: linkData.imageUrl,
+                notes: linkData.notes,
+                source: linkData.source === 'EMAIL' ? 'EMAIL' : 'MANUAL',
+                metadataStatus:
+                  linkData.metadataStatus === 'FETCHED' ? 'FETCHED' : 'PENDING',
+              },
+            });
+            if (linkData.id != null) savedLinkMap.set(linkData.id, savedLink.id);
+            stats.savedLinksImported++;
+          }
+
           // Import EntityLinks (relationships between entities)
           // Helper function to map old IDs to new IDs based on entity type
+          //
+          // Note: JOURNAL_ENTRY is absent because the backup format does not
+          // carry journal entry IDs, so there is nothing to remap from.
           const getNewEntityId = (entityType: string, oldId: number): number | null => {
             switch (entityType) {
               case 'LOCATION':
@@ -648,6 +679,8 @@ export async function restoreFromBackup(
                 return lodgingMap.get(oldId) || null;
               case 'PHOTO_ALBUM':
                 return albumMap.get(oldId) || null;
+              case 'SAVED_LINK':
+                return savedLinkMap.get(oldId) || null;
               default:
                 return null;
             }
@@ -750,6 +783,13 @@ async function clearUserData(userId: number, tx: TransactionClient) {
 
   // Delete travel documents (added in v1.1.0)
   await tx.travelDocument.deleteMany({
+    where: { userId },
+  });
+
+  // Delete saved links (added in v1.4.0).
+  // Explicit: SavedLink.tripId is SetNull, not Cascade, so deleting trips above
+  // leaves links behind in the inbox rather than removing them.
+  await tx.savedLink.deleteMany({
     where: { userId },
   });
 }

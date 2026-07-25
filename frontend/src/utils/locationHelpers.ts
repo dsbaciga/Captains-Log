@@ -45,6 +45,7 @@ export function createLocationStub(
     visitDatetime: null,
     visitDurationMinutes: null,
     notes: null,
+    isFavorite: false,
     createdAt: now,
     updatedAt: now,
   };

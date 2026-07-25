@@ -81,44 +81,52 @@ Contact maintainers for Helm charts and K8s manifests.
 git clone https://github.com/dsbaciga/travel-life.git
 cd travel-life
 
-# Create production environment file from the backend template
-cp backend/.env.example .env.production
+# Create the production environment file from the template
+cp .env.production.example .env.production
 ```
 
-Then adapt `.env.production` to the production deployment variables shown in
-[Step 2](#step-2-configure-environment) (database credentials, JWT secrets,
-`VITE_*` URLs, ports, and optional integrations).
+`.env.production.example` is the authoritative list of every variable
+`docker-compose.prod.yml` consumes, with inline notes. Fill it in following
+[Step 2](#step-2-configure-environment).
 
 ### Step 2: Configure Environment
 
-Edit `.env.production`:
+At minimum, set these in `.env.production`:
 
 ```bash
-# Database Configuration
+# Database (the db service is not published to the host)
 DB_USER=travel_life_user
 DB_PASSWORD=<generate-strong-password>
 DB_NAME=travel_life
-DB_PORT=5432
 
-# JWT Secrets (generate with: openssl rand -base64 64)
-JWT_SECRET=<64-char-random-string>
-JWT_REFRESH_SECRET=<64-char-random-string>
+# JWT secrets - generate each with: openssl rand -base64 48
+# The stack refuses to start without them, and they must differ from each other.
+JWT_SECRET=<random-string>
+JWT_REFRESH_SECRET=<different-random-string>
 
-# Application URLs
-VITE_API_URL=https://your-domain.com/api
-VITE_UPLOAD_URL=https://your-domain.com/uploads
+# Public URLs - used for OIDC redirects, invitation links, and SSO returns.
+# Must be externally reachable, not localhost.
+BASE_URL=https://your-domain.com
+FRONTEND_URL=https://your-domain.com
 
-# Ports
+# Host ports - point your reverse proxy at FRONTEND_PORT
 BACKEND_PORT=5000
 FRONTEND_PORT=80
 
-# Optional: External Services
-IMMICH_API_URL=http://immich-server:2283/api
-IMMICH_API_KEY=your-immich-api-key
-OPENWEATHERMAP_API_KEY=your-owm-key
-AVIATIONSTACK_API_KEY=your-aviationstack-key
-OPENROUTESERVICE_API_KEY=your-ors-key
+# Frontend API paths. The bundled nginx proxies /api and /uploads to the
+# backend, so these relative defaults work behind any domain and avoid CORS.
+# NOTE: build-time only - see the warning below.
+VITE_API_URL=/api
+VITE_UPLOAD_URL=/uploads
 ```
+
+> **`VITE_*` variables are baked into the frontend bundle at image build time.**
+> Changing them has no effect on a running container — you must rebuild:
+> `docker-compose -f docker-compose.prod.yml --env-file .env.production build frontend`
+
+Optional integrations (weather, flights, Immich, AI, SSO, push, email ingest)
+are all listed in [Environment Configuration](#environment-configuration) below
+and in the template. Each is inert until configured.
 
 ### Step 3: Build and Start
 
@@ -179,26 +187,135 @@ docker-compose -f docker-compose.truenas.yml up -d
 
 ## Environment Configuration
 
-### Required Variables
+Every variable below is read by `docker-compose.prod.yml` from the file you pass
+via `--env-file`. `.env.production.example` carries the same list with inline
+notes.
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DB_USER` | Database username | `travel_life_user` |
-| `DB_PASSWORD` | Database password | `secure_password` |
-| `JWT_SECRET` | Access token secret | 64+ random chars |
-| `JWT_REFRESH_SECRET` | Refresh token secret | 64+ random chars |
-| `VITE_API_URL` | Backend API URL | `https://api.example.com` |
-| `VITE_UPLOAD_URL` | Upload files URL | `https://api.example.com/uploads` |
+### Required
+
+The stack fails to start if any of these are missing.
+
+| Variable | Description |
+| ---------- | ------------- |
+| `DB_PASSWORD` | PostgreSQL password |
+| `JWT_SECRET` | Access token secret — `openssl rand -base64 48` |
+| `JWT_REFRESH_SECRET` | Refresh token secret — must differ from `JWT_SECRET` |
+
+`DB_USER` defaults to `travel_life_user` and `DB_NAME` to `travel_life`. The
+database container is not published to the host.
+
+### URLs and Ports
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `FRONTEND_PORT` | `80` | Host port for the frontend — the reverse proxy target |
+| `BACKEND_PORT` | `5000` | Host port for the API |
+| `BASE_URL` | `http://localhost:5000` | Public backend URL. Used to build OIDC redirect URLs |
+| `FRONTEND_URL` | `http://localhost:3000` | Public app URL. Used for invitation links and post-SSO redirects |
+| `CORS_ORIGIN` | localhost origins | Comma-separated allowed browser origins. Only needed when the frontend and API are on different origins |
+| `VITE_API_URL` | `/api` | Build-time only — requires an image rebuild |
+| `VITE_UPLOAD_URL` | `/uploads` | Build-time only — requires an image rebuild |
+
+### Geocoding (Nominatim)
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `NOMINATIM_URL` | `http://nominatim:8080` | Where the backend reaches Nominatim |
+| `NOMINATIM_PORT` | `8080` | Host port for the Nominatim container |
+| `NOMINATIM_PBF_URL` | US extract | [Geofabrik](https://download.geofabrik.de/) OSM extract to import |
+| `NOMINATIM_REPLICATION_URL` | US updates | Matching update feed |
 
 ### Optional Integrations
 
 | Variable | Description |
-|----------|-------------|
-| `IMMICH_API_URL` | Immich server API URL |
-| `IMMICH_API_KEY` | Immich API key |
-| `OPENWEATHERMAP_API_KEY` | Weather data API key |
-| `AVIATIONSTACK_API_KEY` | Flight tracking API key |
-| `OPENROUTESERVICE_API_KEY` | Road distance calculations |
+| ---------- | ------------- |
+| `OPENROUTESERVICE_API_KEY` | **Recommended.** Road distances for car/bike/walking; falls back to straight-line math without it |
+| `OPENROUTESERVICE_URL` | Only for a self-hosted ORS instance |
+| `OPENWEATHERMAP_API_KEY` | Weather data |
+| `AVIATIONSTACK_API_KEY` | Flight status, gate, terminal, baggage |
+| `IMMICH_API_URL`, `IMMICH_API_KEY` | Immich photo library |
+
+### AI Features
+
+Powers PDF import and packing/activity suggestions. Users may also supply their
+own key in Settings; these are the instance-wide defaults.
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `AI_ENABLED` | enabled | `false` disables the AI features entirely |
+| `LLM_API_KEY` | — | Provider API key |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` | Any OpenAI-compatible endpoint |
+| `LLM_MODEL` | `gpt-4o-mini` | Model name |
+| `LLM_MAX_TOKENS` | `2048` | Max tokens per request |
+
+### Single Sign-On (OIDC)
+
+Enabled when `OIDC_ISSUER_URL` and `OIDC_CLIENT_ID` are both set. PKCE (S256) is
+always used. Register `<BASE_URL>/api/auth/oidc/callback` with your provider.
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `OIDC_ISSUER_URL` | — | Provider issuer URL |
+| `OIDC_CLIENT_ID` | — | Client ID |
+| `OIDC_CLIENT_SECRET` | — | Omit for public clients (PKCE only) |
+| `OIDC_REDIRECT_URL` | `<BASE_URL>/api/auth/oidc/callback` | Override the callback URL |
+| `OIDC_SCOPES` | `openid profile email` | Scopes to request |
+| `OIDC_BUTTON_TEXT` | `Sign in with SSO` | Login button label |
+| `OIDC_AUTO_PROVISION` | enabled | `false` requires the account to already exist |
+| `OIDC_TRUST_EMAIL` | `false` | `true` links by email when the IdP omits `email_verified`. Only enable if you control the IdP |
+| `DISABLE_PASSWORD_LOGIN` | `false` | `true` enables SSO-only mode. Ignored unless OIDC is enabled |
+
+### Push Notifications
+
+Generate a key pair with `npx web-push generate-vapid-keys`. Push degrades
+gracefully when unset.
+
+| Variable | Description |
+| ---------- | ------------- |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | VAPID key pair |
+| `VAPID_SUBJECT` | Contact URI, e.g. `mailto:admin@your-domain.com` |
+
+### Saved-Link Email Ingest (IMAP)
+
+Inert unless `IMAP_USER` and `IMAP_PASSWORD` are both set.
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `IMAP_USER` | — | Ingest mailbox address |
+| `IMAP_PASSWORD` | — | Gmail requires an App Password, not the account password |
+| `IMAP_HOST` | `imap.gmail.com` | IMAP server |
+| `IMAP_PORT` | `993` | IMAP port (TLS) |
+| `IMAP_ARCHIVE_FOLDER` | `[Gmail]/All Mail` | Processed mail is moved here, not deleted |
+| `IMAP_POLL_CRON` | `*/5 * * * *` | Poll schedule |
+| `IMAP_MAX_LINKS` | `20` | Max links captured per message |
+
+Messages are only accepted from a user's account email or a trusted address
+(Settings → Link Ingest). A `From` header is forgeable — treat the mailbox
+address itself as a secret.
+
+### Outbound Email (SMTP)
+
+Instance-wide fallback for invitation mail; users can override it per-account in
+Settings. Invitations still work when unset — the inviter shares the link manually.
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` | — | All three required to enable email |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_SECURE` | `false` | `true` for port 465 |
+| `SMTP_FROM` | `Travel Life <noreply@example.com>` | From header |
+
+### Tuning
+
+| Variable | Default | Description |
+| ---------- | --------- | ------------- |
+| `JWT_EXPIRES_IN` | `15m` | Access token lifetime |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token lifetime |
+| `COOKIE_SAME_SITE` | `strict` | `strict`, `lax`, or `none`. `none` requires HTTPS |
+| `COOKIE_DOMAIN` | — | e.g. `.example.com` to share the refresh cookie across subdomains |
+| `MAX_FILE_SIZE` | `52428800` | Max upload bytes (50MB). nginx caps bodies at 100M |
+| `AI_RATE_LIMIT_MAX` / `AI_RATE_LIMIT_WINDOW_MS` | `20` / `3600000` | Per-user AI limit |
+| `BACKUP_RATE_LIMIT_MAX` / `BACKUP_RATE_LIMIT_WINDOW_MS` | `5` / `3600000` | Per-user backup limit |
 
 ## Database Management
 
@@ -230,6 +347,23 @@ docker exec -i travel-life-db psql -U $DB_USER $DB_NAME < backup.sql
 ```
 
 ## Reverse Proxy Setup
+
+The frontend container runs nginx on plain HTTP (port 80) and already proxies
+`/api` and `/uploads` to the backend over the compose network. Do **not** add TLS
+directives to `frontend/nginx.conf` — terminate TLS at the reverse proxy in front
+of it.
+
+That means the simplest correct config is a single route to `FRONTEND_PORT`:
+
+```caddyfile
+your-domain.com {
+    reverse_proxy localhost:80
+}
+```
+
+The split configs below route `/api` and `/uploads` straight to the backend
+instead, bypassing the container nginx. Use them only if you have a reason to —
+for example exposing the API on its own hostname.
 
 ### Nginx Configuration
 
@@ -406,24 +540,25 @@ docker pull ghcr.io/dsbaciga/travel-life-frontend:vX.Y.Z
 
 ### Pre-Deployment
 
-- [ ] Generate strong, unique passwords for database
-- [ ] Generate 64+ character random JWT secrets
-- [ ] Review and restrict CORS settings
-- [ ] Disable debug mode in production
+- [ ] Strong, unique `DB_PASSWORD`
+- [ ] `JWT_SECRET` and `JWT_REFRESH_SECRET` generated separately (`openssl rand -base64 48`)
+- [ ] `BASE_URL` and `FRONTEND_URL` set to the real public URLs
+- [ ] `.env.production` excluded from version control (already in `.gitignore`)
 
 ### Network Security
 
 - [ ] Configure firewall (only expose 80/443)
-- [ ] Enable SSL/TLS
-- [ ] Set up rate limiting
-- [ ] Configure CORS for your domain only
+- [ ] Terminate TLS at the reverse proxy
+- [ ] `CORS_ORIGIN` set to your domain only if the frontend and API are on different origins — leave unset when using the bundled nginx proxy
+- [ ] Nominatim (`NOMINATIM_PORT`) not exposed publicly
 
 ### Application Security
 
-- [ ] Enable HTTPS-only cookies
-- [ ] Set secure headers (CSP, HSTS, etc.)
-- [ ] Review file upload limits
-- [ ] Enable audit logging
+- [ ] Refresh cookies are httpOnly and `secure` automatically when `NODE_ENV=production`
+- [ ] `COOKIE_SAME_SITE` left at `strict` unless a cross-domain setup requires otherwise
+- [ ] Review `MAX_FILE_SIZE` against your nginx body limit (100M)
+- [ ] Rate limits reviewed (`AI_RATE_LIMIT_*`, `BACKUP_RATE_LIMIT_*`)
+- [ ] If SSO-only, confirm `DISABLE_PASSWORD_LOGIN=true` **and** OIDC is working before locking yourself out
 
 ### Operational Security
 

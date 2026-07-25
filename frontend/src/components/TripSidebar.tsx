@@ -32,10 +32,13 @@ export default function TripSidebar({
         tab.id === activeTab ||
         tab.subTabs?.some((sub) => sub.id === activeTab)
     );
-    if (activeGroup && !expandedGroups.has(activeGroup.id)) {
-      setExpandedGroups((prev) => new Set([...prev, activeGroup.id]));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!activeGroup) return;
+    // Check membership inside the updater so the effect doesn't read
+    // `expandedGroups` and can declare a complete dependency list. Returning
+    // `prev` unchanged when already expanded avoids a redundant re-render.
+    setExpandedGroups((prev) =>
+      prev.has(activeGroup.id) ? prev : new Set([...prev, activeGroup.id])
+    );
   }, [activeTab, tabs]);
 
   const toggleGroup = (groupId: string) => {
@@ -60,7 +63,10 @@ export default function TripSidebar({
   const getGroupCount = (tab: TabGroupItem): number => {
     if (tab.count !== undefined) return tab.count;
     if (tab.subTabs) {
-      return tab.subTabs.reduce((sum, sub) => sum + (sub.count || 0), 0);
+      return tab.subTabs.reduce(
+        (sum, sub) => (sub.excludeFromGroupCount ? sum : sum + (sub.count || 0)),
+        0
+      );
     }
     return 0;
   };
@@ -120,7 +126,8 @@ export default function TripSidebar({
           const isActive = isTabActive(tab);
           const isExpanded = expandedGroups.has(tab.id);
           const count = getGroupCount(tab);
-          const hasSubTabs = tab.subTabs && tab.subTabs.length > 0;
+          const subTabs = tab.subTabs ?? [];
+          const hasSubTabs = subTabs.length > 0;
 
           return (
             <div key={tab.id}>
@@ -178,7 +185,7 @@ export default function TripSidebar({
               {/* Sub-tabs (only show when expanded and not collapsed) */}
               {hasSubTabs && isExpanded && !sidebarCollapsed && (
                 <div className="ml-8 border-l border-gray-200 dark:border-gray-700">
-                  {tab.subTabs!.map((subTab) => {
+                  {subTabs.map((subTab) => {
                     const isSubActive = subTab.id === activeTab;
 
                     return (

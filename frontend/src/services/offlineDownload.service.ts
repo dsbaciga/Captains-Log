@@ -902,7 +902,7 @@ class OfflineDownloadService {
   }
 
   private async cacheMapTilesForTrip(
-    tripId: number,
+    _tripId: number,
     locations: Location[],
     onProgress: (current: number, total: number, locationName: string) => void
   ): Promise<number> {

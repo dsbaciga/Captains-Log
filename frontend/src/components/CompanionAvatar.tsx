@@ -94,7 +94,10 @@ export default function CompanionAvatar({
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target;
+      const clickedInside =
+        target instanceof Node && menuRef.current?.contains(target);
+      if (menuRef.current && !clickedInside) {
         setShowMenu(false);
       }
     };
@@ -155,6 +158,11 @@ export default function CompanionAvatar({
   };
 
   const getInitials = () => {
+    // The "Myself" companion is stored as `Myself (username)`, which would
+    // otherwise initialise to "M(".
+    if (companion.isMyself) {
+      return "Me";
+    }
     const parts = companion.name.split(" ");
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -176,7 +184,7 @@ export default function CompanionAvatar({
           : "text-gray-600 dark:text-gray-400"
       }
     >
-      {companion.isMyself ? "🧑" : getInitials()}
+      {getInitials()}
     </span>
   );
 

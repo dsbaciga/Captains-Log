@@ -18,6 +18,7 @@ const CompanionsPage = React.lazy(() => import('./pages/CompanionsPage'));
 const PlacesVisitedPage = React.lazy(() => import('./pages/PlacesVisitedPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const ChecklistsPage = React.lazy(() => import('./pages/ChecklistsPage'));
+const SavedLinksInboxPage = React.lazy(() => import('./pages/SavedLinksInboxPage'));
 const YearInReviewPage = React.lazy(() => import('./pages/YearInReviewPage'));
 const ChecklistDetailPage = React.lazy(() => import('./pages/ChecklistDetailPage'));
 const TripSeriesListPage = React.lazy(() =>
@@ -116,7 +117,7 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-cream-50 dark:bg-navy-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-navy-600 dark:text-cream-200">Loading\u2026</p>
+          <p className="mt-4 text-navy-600 dark:text-cream-200">Loading…</p>
         </div>
       </div>
     );
@@ -155,7 +156,7 @@ function App() {
           </a>
           <Navbar />
           <main id="main-content" className="pt-16 sm:pt-20 pb-16 md:pb-0" tabIndex={-1}>
-            <Suspense fallback={<LoadingSpinner.FullPage message="Loading page\u2026" />}>
+            <Suspense fallback={<LoadingSpinner.FullPage message="Loading page…" />}>
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<ErrorBoundary><LoginPage /></ErrorBoundary>} />
@@ -268,6 +269,16 @@ function App() {
                   <ProtectedRoute>
                     <ErrorBoundary>
                       <ChecklistsPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/saved-links"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <SavedLinksInboxPage />
                     </ErrorBoundary>
                   </ProtectedRoute>
                 }

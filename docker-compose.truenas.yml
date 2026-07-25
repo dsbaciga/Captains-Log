@@ -27,17 +27,17 @@ services:
     image: postgis/postgis:16-3.4
     container_name: travel-life-db
     environment:
-      POSTGRES_USER: travel_life_user
-      POSTGRES_PASSWORD: pgBasco1988!
-      POSTGRES_DB: travel_life
+      POSTGRES_USER: ${DB_USER:-travel_life_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD environment variable is required}
+      POSTGRES_DB: ${DB_NAME:-travel_life}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "30603:5432"
+      - "${DB_PORT:-30603}:5432"
     volumes:
-      # IMPORTANT: Update this path to match your TrueNAS dataset
-      - /mnt/main_pool/travel-life/postgres:/var/lib/postgresql/data
+      # IMPORTANT: Update TRUENAS_DATA_PATH to match your TrueNAS dataset
+      - ${TRUENAS_DATA_PATH:-/mnt/main_pool/travel-life}/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U travel_life_user -d travel_life"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-travel_life_user} -d ${DB_NAME:-travel_life}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,25 +61,38 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://travel_life_user:pgBasco1988!@db:5432/travel_life?schema=public
-      JWT_SECRET: happyhorseteacups
-      JWT_REFRESH_SECRET: touchymoosesister
-      NOMINATIM_URL: http://nominatim:8080
+      # NOTE: if DB_PASSWORD contains URL-reserved characters (@ : / ? # etc.)
+      # it must be percent-encoded here, since this is a URL.
+      DATABASE_URL: postgresql://${DB_USER:-travel_life_user}:${DB_PASSWORD:?DB_PASSWORD environment variable is required}@db:5432/${DB_NAME:-travel_life}?schema=public
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET environment variable is required - generate with: openssl rand -base64 48}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET environment variable is required - generate with: openssl rand -base64 48}"
+      NOMINATIM_URL: ${NOMINATIM_URL:-http://nominatim:8080}
       # Optional Integrations
-      IMMICH_API_URL: http://10.0.0.10:30041
-      IMMICH_API_KEY: YErFLN6C6OFqZvOLuCT0ITBvcukZVs9IczErMV5E
-      OPENWEATHERMAP_API_KEY: 2e96a9284968ea5aff9850c03d2e9de4
-      AVIATIONSTACK_API_KEY: _
+      IMMICH_API_URL: ${IMMICH_API_URL:-}
+      IMMICH_API_KEY: ${IMMICH_API_KEY:-}
+      OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY:-}
+      AVIATIONSTACK_API_KEY: ${AVIATIONSTACK_API_KEY:-}
       OPENROUTESERVICE_API_KEY: ${OPENROUTESERVICE_API_KEY:-}
       # REQUIRED: Set this to your frontend's public URL (the domain you access the app from)
       # Without this, browser requests from your domain will be blocked by CORS
-      CORS_ORIGIN: https://dev.travellife.bacigalupo.us
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      BASE_URL: ${BASE_URL:-}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      # Saved-link email ingest. Inert unless IMAP_USER and IMAP_PASSWORD are set.
+      # IMAP_PASSWORD must be a Gmail App Password, not the account password.
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_PORT: ${IMAP_PORT:-}
+      IMAP_USER: ${IMAP_USER:-}
+      IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+      IMAP_ARCHIVE_FOLDER: ${IMAP_ARCHIVE_FOLDER:-}
+      IMAP_POLL_CRON: ${IMAP_POLL_CRON:-}
+      IMAP_MAX_LINKS: ${IMAP_MAX_LINKS:-}
     ports:
-      - "30601:5000"
+      - "${BACKEND_PORT:-30601}:5000"
     volumes:
-      # IMPORTANT: Update this path to match your TrueNAS dataset
-      - /mnt/main_pool/travel-life/uploads:/app/uploads
-      - /mnt/main_pool/travel-life/logs:/app/logs
+      # IMPORTANT: Update TRUENAS_DATA_PATH to match your TrueNAS dataset
+      - ${TRUENAS_DATA_PATH:-/mnt/main_pool/travel-life}/uploads:/app/uploads
+      - ${TRUENAS_DATA_PATH:-/mnt/main_pool/travel-life}/logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -118,7 +131,7 @@ services:
       BACKEND_HOST: backend
       BACKEND_PORT: 5000
     ports:
-      - "30600:80"
+      - "${FRONTEND_PORT:-30600}:80"
     depends_on:
       - backend
     restart: unless-stopped
@@ -163,10 +176,10 @@ services:
       IMPORT_GB_POSTCODES: "false"
       THREADS: "4"
     ports:
-      - "30602:8080"
+      - "${NOMINATIM_PORT:-30602}:8080"
     volumes:
-      # IMPORTANT: Update this path to match your TrueNAS dataset
-      - /mnt/main_pool/travel-life/nominatim:/var/lib/postgresql/14/main
+      # IMPORTANT: Update TRUENAS_DATA_PATH to match your TrueNAS dataset
+      - ${TRUENAS_DATA_PATH:-/mnt/main_pool/travel-life}/nominatim:/var/lib/postgresql/14/main
     shm_size: 2gb
     restart: unless-stopped
     deploy:

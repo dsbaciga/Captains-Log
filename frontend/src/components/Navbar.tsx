@@ -5,6 +5,7 @@ import { useUser, useLogout } from "../store/authStore";
 import { useClearPosition } from "../store/scrollStore";
 import GlobalSearch from "./GlobalSearch";
 import pdfImportService from "../services/pdfImport.service";
+import savedLinkService from "../services/savedLink.service";
 
 // Hoisted outside Navbar to maintain stable component identity across renders
 function NavLink({
@@ -14,6 +15,7 @@ function NavLink({
   onClick,
   isActive,
   onCloseMobileMenu,
+  badge,
 }: {
   path: string;
   label: string;
@@ -21,6 +23,8 @@ function NavLink({
   onClick?: () => void;
   isActive: boolean;
   onCloseMobileMenu?: () => void;
+  /** Optional count pill, e.g. unassigned saved links. Hidden when 0. */
+  badge?: number;
 }) {
   return (
     <Link
@@ -37,7 +41,17 @@ function NavLink({
         if (mobile) onCloseMobileMenu?.();
       }}
     >
-      <span className="relative z-10">{label}</span>
+      <span className="relative z-10">
+        {label}
+        {badge !== undefined && badge > 0 && (
+          <span
+            className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full bg-primary-500 dark:bg-gold text-white dark:text-navy-900"
+            aria-label={`${badge} unassigned`}
+          >
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
+      </span>
       {!mobile && (
         <div
           className={`absolute inset-x-2 bottom-1 h-0.5 bg-gradient-to-r from-primary-500 to-accent-400 dark:from-gold dark:to-accent-400 transition-transform origin-left ${
@@ -67,6 +81,14 @@ const Navbar = memo(function Navbar() {
     enabled: !!user,
   });
   const pendingCount = pendingCountData?.count ?? 0;
+
+  const { data: savedLinksInboxData } = useQuery({
+    queryKey: ['savedLinksInboxCount'],
+    queryFn: () => savedLinkService.getInboxCount(),
+    refetchInterval: 60_000,
+    enabled: !!user,
+  });
+  const savedLinksInboxCount = savedLinksInboxData?.count ?? 0;
 
   const handleLogout = () => {
     logout();
@@ -135,6 +157,7 @@ const Navbar = memo(function Navbar() {
     { path: "/year-in-review", label: "Year in Review" },
     { path: "/checklists", label: "Checklists" },
     { path: "/trip-series", label: "Series" },
+    { path: "/saved-links", label: "Links", badge: savedLinksInboxCount },
   ];
 
   return (
@@ -170,7 +193,7 @@ const Navbar = memo(function Navbar() {
           {/* Desktop Navigation Links */}
           <div className="hidden lg:flex items-center space-x-1 ml-8">
             {navLinks.map((link) => (
-              <NavLink key={link.path} path={link.path} label={link.label} onClick={link.onClick} isActive={isActivePath(link.path)} />
+              <NavLink key={link.path} path={link.path} label={link.label} onClick={link.onClick} isActive={isActivePath(link.path)} badge={link.badge} />
             ))}
           </div>
 
@@ -342,6 +365,7 @@ const Navbar = memo(function Navbar() {
                 onClick={link.onClick}
                 isActive={isActivePath(link.path)}
                 onCloseMobileMenu={closeMobileMenu}
+                badge={link.badge}
                 mobile
               />
             ))}

@@ -1,0 +1,72 @@
+export const SAVED_LINK_SOURCES = ['MANUAL', 'EMAIL'] as const;
+export type SavedLinkSource = (typeof SAVED_LINK_SOURCES)[number];
+
+export const LINK_METADATA_STATUSES = [
+  'PENDING',
+  'FETCHED',
+  'FAILED',
+  'SKIPPED',
+] as const;
+export type LinkMetadataStatus = (typeof LINK_METADATA_STATUSES)[number];
+
+export const SAVED_LINK_SOURCE_LABELS: Record<SavedLinkSource, string> = {
+  MANUAL: 'Added manually',
+  EMAIL: 'From email',
+};
+
+export const LINK_METADATA_STATUS_LABELS: Record<LinkMetadataStatus, string> = {
+  PENDING: 'Loading preview…',
+  FETCHED: 'Preview loaded',
+  FAILED: 'No preview available',
+  SKIPPED: 'Preview skipped',
+};
+
+export interface SavedLink {
+  id: number;
+  userId: number;
+  /** Null while the link sits in the unassigned inbox. */
+  tripId: number | null;
+  url: string;
+  title: string | null;
+  description: string | null;
+  siteName: string | null;
+  imageUrl: string | null;
+  notes: string | null;
+  source: SavedLinkSource;
+  metadataStatus: LinkMetadataStatus;
+  metadataFetchedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSavedLinkInput {
+  url: string;
+  tripId?: number | null;
+  title?: string | null;
+  notes?: string;
+}
+
+export interface UpdateSavedLinkInput {
+  url?: string;
+  tripId?: number | null;
+  title?: string | null;
+  notes?: string | null;
+}
+
+export interface InboxCountResponse {
+  count: number;
+}
+
+/** Best available display name for a link. */
+export function savedLinkDisplayTitle(link: SavedLink): string {
+  return link.title?.trim() || link.siteName?.trim() || link.url;
+}
+
+/** Hostname for display, falling back to the raw URL if unparseable. */
+export function savedLinkHostname(link: SavedLink): string {
+  try {
+    return new URL(link.url).hostname.replace(/^www\./, '');
+  } catch {
+    return link.url;
+  }
+}

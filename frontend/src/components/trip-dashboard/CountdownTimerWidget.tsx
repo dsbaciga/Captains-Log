@@ -126,14 +126,25 @@ function calculateTripProgress(startDate: Date, endDate: Date): TripProgress {
   return { currentDay, totalDays, percentComplete };
 }
 
+type Urgency = 'low' | 'medium' | 'high' | 'imminent';
+
+interface ExcitementMessage {
+  message: string;
+  subMessage: string;
+  urgency: Urgency;
+}
+
+/** Shown while the countdown is still resolving, so there is nothing to be excited about yet. */
+const NO_EXCITEMENT: ExcitementMessage = {
+  message: '',
+  subMessage: '',
+  urgency: 'low',
+};
+
 /**
  * Get excitement message based on time remaining
  */
-function getExcitementMessage(timeRemaining: TimeRemaining): {
-  message: string;
-  subMessage: string;
-  urgency: 'low' | 'medium' | 'high' | 'imminent';
-} {
+function getExcitementMessage(timeRemaining: TimeRemaining): ExcitementMessage {
   const { days, hours, totalMilliseconds } = timeRemaining;
 
   if (totalMilliseconds <= 0) {
@@ -203,6 +214,16 @@ function getExcitementMessage(timeRemaining: TimeRemaining): {
 }
 
 /**
+ * Approximate a day count as a rounded number of weeks or months, e.g. "2 months".
+ * Rounds to nearest rather than truncating so 55 days reads as "2 months", not "1".
+ */
+function formatApproximateDuration(days: number): string {
+  const [amount, unit] =
+    days >= 30 ? [Math.round(days / 30), 'month'] : [Math.round(days / 7), 'week'];
+  return `${amount} ${unit}${amount !== 1 ? 's' : ''}`;
+}
+
+/**
  * Individual countdown unit display
  */
 function CountdownUnit({
@@ -212,7 +233,7 @@ function CountdownUnit({
 }: {
   value: number;
   label: string;
-  urgency: 'low' | 'medium' | 'high' | 'imminent';
+  urgency: Urgency;
 }) {
   const getUrgencyClasses = () => {
     switch (urgency) {
@@ -251,7 +272,7 @@ function CountdownUnit({
 /**
  * Separator between countdown units
  */
-function CountdownSeparator({ urgency }: { urgency: 'low' | 'medium' | 'high' | 'imminent' }) {
+function CountdownSeparator({ urgency }: { urgency: Urgency }) {
   const colorClass =
     urgency === 'imminent' || urgency === 'high'
       ? 'text-primary-500 dark:text-gold'
@@ -407,7 +428,16 @@ export default function CountdownTimerWidget({
 
         // Format a test date in trip timezone to calculate offset
         const parts = formatter.formatToParts(localTime);
-        const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
+        // A missing part would build a nonsense date string ("0-0-0T0:0:0") and
+        // silently yield an Invalid Date. Throw instead so the catch below falls
+        // back to plain local-date parsing.
+        const getPart = (type: string) => {
+          const part = parts.find(p => p.type === type);
+          if (!part) {
+            throw new Error(`Missing "${type}" when formatting a date in ${tripTimezone}`);
+          }
+          return part.value;
+        };
         const tripTimeStr = `${getPart('year')}-${getPart('month')}-${getPart('day')}T${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
         const tripTimeAsLocal = new Date(tripTimeStr);
         const tripOffset = (localTime.getTime() - tripTimeAsLocal.getTime()) / 60000;
@@ -522,9 +552,7 @@ export default function CountdownTimerWidget({
   }
 
   // Get excitement message for countdown mode
-  const excitement = timeRemaining
-    ? getExcitementMessage(timeRemaining)
-    : { message: '', subMessage: '', urgency: 'low' as const };
+  const excitement = timeRemaining ? getExcitementMessage(timeRemaining) : NO_EXCITEMENT;
 
   return (
     <div className={`card animate-fade-in ${className}`}>
@@ -601,11 +629,7 @@ export default function CountdownTimerWidget({
           {/* Additional context for longer countdowns */}
           {timeRemaining.days > 7 && (
             <p className="mt-6 text-sm text-slate dark:text-warm-gray/60">
-              That&apos;s about{' '}
-              {timeRemaining.days >= 30
-                ? `${Math.floor(timeRemaining.days / 30)} month${Math.floor(timeRemaining.days / 30) !== 1 ? 's' : ''}`
-                : `${Math.ceil(timeRemaining.days / 7)} week${Math.ceil(timeRemaining.days / 7) !== 1 ? 's' : ''}`}{' '}
-              away
+              That&apos;s about {formatApproximateDuration(timeRemaining.days)} away
             </p>
           )}
         </div>

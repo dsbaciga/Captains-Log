@@ -67,6 +67,30 @@ function getDateInTimezone(date: Date, timezone?: string): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Whether a journal entry belongs to the date currently being displayed.
+ *
+ * Lives at module scope (taking currentDate/timezone as arguments) rather than
+ * inside the component, so it has a stable identity and the grouping memo's
+ * dependency array can be honest about what it actually depends on.
+ */
+function journalMatchesCurrentDate(
+  journalDate: string | undefined,
+  currentDate: Date | undefined,
+  timezone: string | undefined,
+): boolean {
+  // If no currentDate filter is provided, show all journal entries
+  if (!currentDate) return true;
+  // If journal has no date, show it (shouldn't happen but be safe)
+  if (!journalDate) return true;
+
+  // For journal dates (which are date-only in the database), extract the date portion
+  // directly from the string to avoid UTC timezone shift issues.
+  // The database stores dates like "2025-01-15" which JavaScript parses as midnight UTC.
+  // This would shift to the wrong day when converted to timezones west of UTC.
+  return getDateInTimezone(currentDate, timezone) === extractDatePortion(journalDate);
+}
+
 export default function LinkedEntitiesDisplay({
   tripId,
   entityType,
@@ -101,30 +125,14 @@ export default function LinkedEntitiesDisplay({
     queryFn: () => entityLinkService.getAllLinksForEntity(tripId, entityType, entityId),
   });
 
-  // Helper to check if a journal entry matches the current date
-  const journalMatchesCurrentDate = (journalDate: string | undefined): boolean => {
-    // If no currentDate filter is provided, show all journal entries
-    if (!currentDate) return true;
-    // If journal has no date, show it (shouldn't happen but be safe)
-    if (!journalDate) return true;
-
-    // Get the current date string in the timezone
-    const currentDateStr = getDateInTimezone(currentDate, timezone);
-
-    // For journal dates (which are date-only in the database), extract the date portion
-    // directly from the string to avoid UTC timezone shift issues.
-    // The database stores dates like "2025-01-15" which JavaScript parses as midnight UTC.
-    // This would shift to the wrong day when converted to timezones west of UTC.
-    const journalDateStr = extractDatePortion(journalDate);
-
-    return currentDateStr === journalDateStr;
-  };
-
   // Group links by entity type
   const groupedLinks = useMemo(() => {
-    if (!linksData) return {};
-
-    const groups: Record<EntityType, GroupedLink[]> = {
+    // Listed explicitly so the Record<EntityType, …> annotation makes TypeScript
+    // enforce completeness: adding a backend EntityType fails the build here
+    // instead of silently leaving a key undefined at runtime. Returning this
+    // (rather than a bare `{}`) when there is no data keeps the memo's type a
+    // full Record, so callers can index it by EntityType.
+    const emptyGroups = (): Record<EntityType, GroupedLink[]> => ({
       PHOTO: [],
       LOCATION: [],
       ACTIVITY: [],
@@ -132,6 +140,16 @@ export default function LinkedEntitiesDisplay({
       TRANSPORTATION: [],
       JOURNAL_ENTRY: [],
       PHOTO_ALBUM: [],
+      SAVED_LINK: [],
+      PDF_IMPORT: [],
+    });
+
+    if (!linksData) return emptyGroups();
+
+    const groups = emptyGroups();
+
+    const addToGroup = (type: EntityType, item: GroupedLink) => {
+      groups[type].push(item);
     };
 
     // Links FROM this entity (this entity is the source)
@@ -139,11 +157,11 @@ export default function LinkedEntitiesDisplay({
       if (!excludeTypes.includes(link.targetType)) {
         // Filter journal entries by date when currentDate is provided
         if (link.targetType === 'JOURNAL_ENTRY' && currentDate) {
-          if (!journalMatchesCurrentDate(link.targetEntity?.date)) {
+          if (!journalMatchesCurrentDate(link.targetEntity?.date, currentDate, timezone)) {
             continue;
           }
         }
-        groups[link.targetType].push({
+        addToGroup(link.targetType, {
           link,
           linkedEntityType: link.targetType,
           linkedEntityId: link.targetId,
@@ -158,11 +176,11 @@ export default function LinkedEntitiesDisplay({
       if (!excludeTypes.includes(link.sourceType)) {
         // Filter journal entries by date when currentDate is provided
         if (link.sourceType === 'JOURNAL_ENTRY' && currentDate) {
-          if (!journalMatchesCurrentDate(link.sourceEntity?.date)) {
+          if (!journalMatchesCurrentDate(link.sourceEntity?.date, currentDate, timezone)) {
             continue;
           }
         }
-        groups[link.sourceType].push({
+        addToGroup(link.sourceType, {
           link,
           linkedEntityType: link.sourceType,
           linkedEntityId: link.sourceId,
@@ -173,7 +191,6 @@ export default function LinkedEntitiesDisplay({
     }
 
     return groups;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linksData, excludeTypes, currentDate, timezone]);
 
   // Get entity types that have links (in standard display order)

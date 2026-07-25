@@ -128,6 +128,23 @@ const ENTITY_CONFIG: Record<EntityType, {
       return pdf ? { id: pdf.id, name: pdf.originalName } : null;
     },
   },
+  SAVED_LINK: {
+    // SavedLink is user-scoped with a nullable tripId, so check BOTH: the link
+    // must belong to this user AND already be assigned to this trip. Stricter
+    // than PDF_IMPORT above, which ignores tripId entirely.
+    findInTrip: async (tripId, entityId, userId) => {
+      if (userId === undefined) return null;
+      return prisma.savedLink.findFirst({ where: { id: entityId, userId, tripId } });
+    },
+    getDetails: async (entityId) => {
+      const link = await prisma.savedLink.findUnique({
+        where: { id: entityId },
+        select: { id: true, title: true, url: true },
+      });
+      // Fall back to the raw URL when metadata hasn't landed (or failed).
+      return link ? { id: link.id, name: link.title ?? link.url } : null;
+    },
+  },
 };
 
 /**
@@ -215,6 +232,14 @@ async function batchVerifyEntitiesInTrip(
           throw new AppError('PDF_IMPORT entity reference requires authenticated user context', 400);
         }
         foundCount = await prisma.pdfImport.count({ where: { id: { in: uniqueIds }, userId } });
+        break;
+      case 'SAVED_LINK':
+        // User-scoped with a nullable tripId — require both so a user cannot
+        // link to another user's links, nor to links not on this trip.
+        if (userId === undefined) {
+          throw new AppError('SAVED_LINK entity reference requires authenticated user context', 400);
+        }
+        foundCount = await prisma.savedLink.count({ where: { id: { in: uniqueIds }, userId, tripId } });
         break;
       default:
         throw new AppError(`Unknown entity type: ${entityType}`, 400);
@@ -343,6 +368,16 @@ async function batchGetEntityDetails(
         });
         for (const pdf of pdfs) {
           result.set(`PDF_IMPORT:${pdf.id}`, { id: pdf.id, name: pdf.originalName });
+        }
+        break;
+      }
+      case 'SAVED_LINK': {
+        const links = await prisma.savedLink.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, title: true, url: true },
+        });
+        for (const link of links) {
+          result.set(`SAVED_LINK:${link.id}`, { id: link.id, name: link.title ?? link.url });
         }
         break;
       }
@@ -1009,6 +1044,14 @@ export async function cleanupOrphanedEntityLinks(tripId: number): Promise<number
       case 'PDF_IMPORT':
         foundIds = (await prisma.pdfImport.findMany({
           where: { id: { in: idArray } },
+          select: { id: true },
+        })).map(e => e.id);
+        break;
+      case 'SAVED_LINK':
+        // Only links still assigned to this trip count as present: unassigning
+        // a link back to the inbox orphans its entity links by design.
+        foundIds = (await prisma.savedLink.findMany({
+          where: { id: { in: idArray }, tripId },
           select: { id: true },
         })).map(e => e.id);
         break;

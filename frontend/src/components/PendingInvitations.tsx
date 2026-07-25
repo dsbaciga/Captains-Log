@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import collaborationService from '../services/collaboration.service';
 import type { TripInvitation, PermissionLevel } from '../types/collaboration';
+import { getFullAssetUrl } from '../lib/config';
+import { getApiErrorMessage } from '../lib/errors';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -45,8 +47,7 @@ export default function PendingInvitations({ onUpdate }: PendingInvitationsProps
       // Navigate to the trip
       navigate(`/trips/${collaborator.tripId}`);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to accept invitation');
+      toast.error(getApiErrorMessage(err, 'Failed to accept invitation'));
     } finally {
       setProcessingId(null);
     }
@@ -59,9 +60,9 @@ export default function PendingInvitations({ onUpdate }: PendingInvitationsProps
       toast.success('Invitation declined');
       setInvitations((prev) => prev.filter((i) => i.id !== invitation.id));
       onUpdate?.();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to decline invitation:', err);
-      toast.error('Failed to decline invitation');
+      toast.error(getApiErrorMessage(err, 'Failed to decline invitation'));
     } finally {
       setProcessingId(null);
     }
@@ -111,9 +112,15 @@ export default function PendingInvitations({ onUpdate }: PendingInvitationsProps
             <div className="flex items-start gap-4 mb-4">
               {/* Trip Thumbnail */}
               <div className="w-16 h-16 rounded-lg bg-gray-200 dark:bg-navy-700 flex-shrink-0 overflow-hidden">
-                {invitation.trip.coverPhoto?.thumbnailPath ? (
+                {invitation.trip.coverImageThumbnailPath || invitation.trip.coverPhoto?.thumbnailPath ? (
+                  /* getFullAssetUrl returns string | null; React types src as
+                     string | undefined, so null has to be bridged to undefined */
                   <img
-                    src={`${import.meta.env.VITE_UPLOAD_URL}${invitation.trip.coverPhoto.thumbnailPath}`}
+                    src={
+                      getFullAssetUrl(
+                        invitation.trip.coverImageThumbnailPath || invitation.trip.coverPhoto?.thumbnailPath
+                      ) ?? undefined
+                    }
                     alt={invitation.trip.title}
                     className="w-full h-full object-cover"
                   />

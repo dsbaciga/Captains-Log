@@ -1,4 +1,4 @@
-import { useEffect, useState, useId, Suspense, lazy } from "react";
+import { useEffect, useState, useId, useRef, Suspense, lazy } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import userService from "../services/user.service";
@@ -24,6 +24,7 @@ const WeatherSettings = lazy(() => import("../components/WeatherSettings"));
 const AviationstackSettings = lazy(() => import("../components/AviationstackSettings"));
 const OpenRouteServiceSettings = lazy(() => import("../components/OpenRouteServiceSettings"));
 const LlmSettings = lazy(() => import("../components/LlmSettings"));
+const LinkIngestSettings = lazy(() => import("../components/LinkIngestSettings"));
 const SmtpSettings = lazy(() => import("../components/SmtpSettings"));
 const CalendarFeedSettings = lazy(() => import("../components/CalendarFeedSettings"));
 const TravelDocumentManager = lazy(() => import("../components/TravelDocumentManager"));
@@ -85,6 +86,13 @@ export default function SettingsPage() {
   const [editingTripTypeNewName, setEditingTripTypeNewName] = useState("");
   const [editingTagName, setEditingTagName] = useState<number | null>(null);
   const [editingTagNewName, setEditingTagNewName] = useState("");
+  // Categories and trip types are edited locally and only persisted by the
+  // section's Save button. Rename/delete hit the server immediately (they also
+  // rewrite the activities/trips using the old name), so we track which names
+  // the server actually knows about — calling those endpoints for a name that
+  // was only added locally would be a no-op that discards the local addition.
+  const persistedCategoryNames = useRef<Set<string>>(new Set());
+  const persistedTripTypeNames = useRef<Set<string>>(new Set());
   const [timezone, setTimezone] = useState("UTC");
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
@@ -137,6 +145,12 @@ export default function SettingsPage() {
       const user = await userService.getMe();
       setCategories(user.activityCategories || []);
       setTripTypes(user.tripTypes || []);
+      persistedCategoryNames.current = new Set(
+        (user.activityCategories || []).map((c) => c.name),
+      );
+      persistedTripTypeNames.current = new Set(
+        (user.tripTypes || []).map((t) => t.name),
+      );
       setTimezone(user.timezone || "UTC");
       setDietaryPreferences(user.dietaryPreferences || []);
       setUseCustomMapStyle(user.useCustomMapStyle ?? true);
@@ -324,8 +338,11 @@ export default function SettingsPage() {
     if (!confirmed) return;
 
     try {
-      const result = await userService.deleteCategory(categoryName);
-      setCategories(result.categories);
+      if (persistedCategoryNames.current.has(categoryName)) {
+        await userService.deleteCategory(categoryName);
+        persistedCategoryNames.current.delete(categoryName);
+      }
+      setCategories((prev) => prev.filter((c) => c.name !== categoryName));
       toast.success("Category deleted");
     } catch {
       toast.error("Failed to delete category");
@@ -354,8 +371,18 @@ export default function SettingsPage() {
     }
 
     try {
-      const result = await userService.renameCategory(oldName, newName);
-      setCategories(result.categories);
+      // Only categories the server knows about need the rename endpoint (it
+      // also re-labels the activities using them). Applying the rename to local
+      // state rather than adopting the server's list keeps unsaved additions,
+      // reorders and emoji edits intact.
+      if (persistedCategoryNames.current.has(oldName)) {
+        await userService.renameCategory(oldName, newName);
+        persistedCategoryNames.current.delete(oldName);
+        persistedCategoryNames.current.add(newName);
+      }
+      setCategories((prev) =>
+        prev.map((c) => (c.name === oldName ? { ...c, name: newName } : c)),
+      );
       setEditingCategoryName(null);
       setEditingCategoryNewName("");
       toast.success("Category renamed");
@@ -417,8 +444,11 @@ export default function SettingsPage() {
     if (!confirmed) return;
 
     try {
-      const result = await userService.deleteTripType(typeName);
-      setTripTypes(result.tripTypes);
+      if (persistedTripTypeNames.current.has(typeName)) {
+        await userService.deleteTripType(typeName);
+        persistedTripTypeNames.current.delete(typeName);
+      }
+      setTripTypes((prev) => prev.filter((t) => t.name !== typeName));
       toast.success("Trip type deleted");
     } catch {
       toast.error("Failed to delete trip type");
@@ -458,8 +488,14 @@ export default function SettingsPage() {
     }
 
     try {
-      const result = await userService.renameTripType(oldName, newName);
-      setTripTypes(result.tripTypes);
+      if (persistedTripTypeNames.current.has(oldName)) {
+        await userService.renameTripType(oldName, newName);
+        persistedTripTypeNames.current.delete(oldName);
+        persistedTripTypeNames.current.add(newName);
+      }
+      setTripTypes((prev) =>
+        prev.map((t) => (t.name === oldName ? { ...t, name: newName } : t)),
+      );
       setEditingTripTypeName(null);
       setEditingTripTypeNewName("");
       toast.success("Trip type renamed");
@@ -487,6 +523,7 @@ export default function SettingsPage() {
       await userService.updateSettings({
         tripTypes: tripTypes,
       });
+      persistedTripTypeNames.current = new Set(tripTypes.map((t) => t.name));
       toast.success("Trip types saved");
     } catch {
       toast.error("Failed to save trip types");
@@ -500,6 +537,7 @@ export default function SettingsPage() {
         timezone: timezone,
         dietaryPreferences: dietaryPreferences,
       });
+      persistedCategoryNames.current = new Set(categories.map((c) => c.name));
       toast.success("Settings saved");
     } catch {
       toast.error("Failed to save settings");
@@ -1711,6 +1749,9 @@ export default function SettingsPage() {
 
             {/* LLM (AI) Settings */}
             <LlmSettings />
+
+            {/* Saved-link email ingest */}
+            <LinkIngestSettings />
 
             {/* Calendar Feed (iCal subscription) */}
             <CalendarFeedSettings />

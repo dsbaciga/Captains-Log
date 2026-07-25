@@ -55,7 +55,15 @@ const Icons = {
 /**
  * Storage category configuration with colors and icons
  */
-const CATEGORY_CONFIG: Record<string, {
+/**
+ * The breakdown's per-category keys. Derived from StorageBreakdown rather than
+ * from CATEGORY_CONFIG so the config below must cover every category the storage
+ * model reports — adding one there fails the build here until it gets a config
+ * entry — and so `breakdown[key]` type-checks.
+ */
+type CategoryKey = Exclude<keyof StorageBreakdown, 'total'>;
+
+const CATEGORY_CONFIG: Record<CategoryKey, {
   label: string;
   color: string;
   textColor: string;
@@ -104,8 +112,6 @@ const CATEGORY_CONFIG: Record<string, {
     icon: Icons.Folder,
   },
 };
-
-type CategoryKey = keyof typeof CATEGORY_CONFIG;
 
 export interface StorageUsageBarProps {
   /** Whether to show detailed legend */

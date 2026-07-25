@@ -8,8 +8,7 @@ import type { TripTag } from '../types/tag';
 import type { TripTypeCategory } from '../types/user';
 import { TripStatus } from '../types/trip';
 import toast from 'react-hot-toast';
-import { getFullAssetUrl } from '../lib/config';
-import { getAccessToken } from '../lib/axios';
+import { resolveTripCoverUrl } from '../lib/tripCover';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useScrollStore } from '../store/scrollStore';
@@ -213,13 +212,13 @@ export default function TripsPage() {
 
       return { previousTripsData };
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       if (context?.previousTripsData) {
         queryClient.setQueryData(['trips', queryParams], context.previousTripsData);
       }
       toast.error('Failed to delete trip. Please try again.');
     },
-    onSuccess: (data, deletedTripId) => {
+    onSuccess: (_data, deletedTripId) => {
       toast.success('Trip deleted.', {
         id: `delete-trip-${deletedTripId}`,
       });
@@ -250,7 +249,7 @@ export default function TripsPage() {
 
       return { previousTripsData };
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       if (context?.previousTripsData) {
         queryClient.setQueryData(['trips', queryParams], context.previousTripsData);
       }
@@ -259,7 +258,7 @@ export default function TripsPage() {
     onSuccess: () => {
       toast.success('Trip status updated.');
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       // Also invalidate the individual trip query so TripDetailPage gets updated
       queryClient.invalidateQueries({ queryKey: ['trip', variables.tripId] });
@@ -279,7 +278,7 @@ export default function TripsPage() {
     onError: () => {
       toast.error('Failed to update trip.');
     },
-    onSuccess: (data, { archived }) => {
+    onSuccess: (_data, { archived }) => {
       toast.success(archived ? 'Trip archived.' : 'Trip unarchived.');
     },
     onSettled: () => {
@@ -314,44 +313,18 @@ export default function TripsPage() {
     loadTripTypes();
   }, []);
 
-  // Load cover photos with authentication for Immich photos
+  // Load cover images (uploaded covers, local photos, or authenticated Immich fetches)
   useEffect(() => {
     const loadCoverPhotos = async () => {
-      const token = getAccessToken();
-      if (!token) return;
-
       const urls: { [key: number]: string } = {};
       const newBlobUrls: string[] = [];
 
       for (const trip of trips) {
-        if (!trip.coverPhoto) continue;
+        const { url, blobUrl } = await resolveTripCoverUrl(trip, { preferThumbnail: true });
+        if (!url) continue;
 
-        const photo = trip.coverPhoto;
-
-        // Local photo - use direct URL
-        if (photo.source === 'local' && photo.thumbnailPath) {
-          urls[trip.id] = getFullAssetUrl(photo.thumbnailPath) || "";
-        }
-        // Immich photo - fetch with auth
-        else if (photo.source === 'immich' && photo.thumbnailPath) {
-          try {
-            const fullUrl = getFullAssetUrl(photo.thumbnailPath);
-            if (!fullUrl) continue;
-
-            const response = await fetch(fullUrl, {
-              headers: { 'Authorization': `Bearer ${token}` },
-            });
-
-            if (response.ok) {
-              const blob = await response.blob();
-              const blobUrl = URL.createObjectURL(blob);
-              urls[trip.id] = blobUrl;
-              newBlobUrls.push(blobUrl);
-            }
-          } catch (error) {
-            console.error(`Failed to load cover photo for trip ${trip.id}:`, error);
-          }
-        }
+        urls[trip.id] = url;
+        if (blobUrl) newBlobUrls.push(blobUrl);
       }
 
       // Store blob URLs in ref for cleanup

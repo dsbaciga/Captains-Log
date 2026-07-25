@@ -4,7 +4,7 @@
  */
 
 import type { Trip } from '../../types/trip';
-import type { User, ActivityCategory } from '../../types/user';
+import type { User, ActivityCategory, TripTypeCategory } from '../../types/user';
 import type { Activity, CreateActivityInput, UpdateActivityInput } from '../../types/activity';
 import type { Location, LocationCategory, CreateLocationInput, UpdateLocationInput } from '../../types/location';
 import type { Photo, PhotoAlbum } from '../../types/photo';
@@ -22,6 +22,11 @@ export const mockActivityCategories: ActivityCategory[] = [
   { name: 'Relaxation', emoji: '🧘' },
 ];
 
+export const mockTripTypes: TripTypeCategory[] = [
+  { name: 'Vacation', emoji: '🏖️' },
+  { name: 'Business', emoji: '💼' },
+];
+
 export const mockUser: User = {
   id: 1,
   username: 'testuser',
@@ -29,6 +34,9 @@ export const mockUser: User = {
   avatarUrl: null,
   timezone: 'America/New_York',
   activityCategories: mockActivityCategories,
+  tripTypes: mockTripTypes,
+  dietaryPreferences: [],
+  useCustomMapStyle: true,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
 };
@@ -46,10 +54,19 @@ export const mockTrip: Trip = {
   endDate: '2024-06-10',
   timezone: 'Europe/Paris',
   status: 'Planning',
+  tripType: null,
+  tripTypeEmoji: null,
   privacyLevel: 'Private',
   addToPlacesVisited: true,
+  excludeFromAutoShare: false,
+  archived: false,
   coverPhotoId: null,
+  coverImagePath: null,
+  coverImageThumbnailPath: null,
   bannerPhotoId: null,
+  seriesId: null,
+  seriesOrder: null,
+  series: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
   _count: {
@@ -106,6 +123,7 @@ export const mockLocation: Location = {
   visitDatetime: null,
   visitDurationMinutes: null,
   notes: 'Must visit at night for the light show',
+  isFavorite: false,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
   category: mockLocationCategories[4],
@@ -123,6 +141,7 @@ export const mockLocationParent: Location = {
   visitDatetime: null,
   visitDurationMinutes: null,
   notes: 'Capital of France',
+  isFavorite: false,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
   category: null,
@@ -204,6 +223,7 @@ export const mockActivity: Activity = {
   bookingUrl: 'https://www.toureiffel.paris/en',
   bookingReference: 'EIFFEL-12345',
   notes: 'Arrive early to avoid crowds',
+  dietaryTags: null,
   manualOrder: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
@@ -225,6 +245,7 @@ export const mockActivityUnscheduled: Activity = {
   bookingUrl: null,
   bookingReference: null,
   notes: 'Ask locals for recommendations',
+  dietaryTags: null,
   manualOrder: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
@@ -246,6 +267,7 @@ export const mockActivityAllDay: Activity = {
   bookingUrl: 'https://www.chateauversailles.fr/',
   bookingReference: 'VER-67890',
   notes: 'Includes gardens and Trianon',
+  dietaryTags: null,
   manualOrder: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
@@ -267,6 +289,7 @@ export const mockActivityWithChildren: Activity = {
   bookingUrl: null,
   bookingReference: null,
   notes: null,
+  dietaryTags: null,
   manualOrder: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
@@ -316,6 +339,7 @@ export const mockActivityChild: Activity = {
   bookingUrl: null,
   bookingReference: 'LOUVRE-001',
   notes: 'See Mona Lisa first',
+  dietaryTags: null,
   manualOrder: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',

@@ -4,7 +4,8 @@ import { z } from 'zod';
 // v1.1.0 - Added travelDocuments and tripLanguages
 // v1.2.0 - Added tripTypes and tripSeries
 // v1.3.0 - Removed plaintext secrets (API keys, SMTP password) from exports
-export const BACKUP_VERSION = '1.3.0';
+// v1.4.0 - Added savedLinks; ENTITY_TYPES gained PDF_IMPORT and SAVED_LINK
+export const BACKUP_VERSION = '1.4.0';
 
 // =============================================================================
 // Shared/Reusable Schemas
@@ -131,6 +132,20 @@ const BackupLocationSchema: z.ZodType<BackupLocation> = BackupLocationBaseSchema
   children: z.lazy(() => z.array(BackupLocationSchema)).optional(),
 });
 
+/**
+ * Structural type guard for anything Decimal-like (Prisma's Decimal, decimal.js).
+ * Narrows without a type assertion: after `'toNumber' in val`, TypeScript types
+ * `val.toNumber` as `unknown`, which the typeof check then refines.
+ */
+function hasToNumber(val: unknown): val is { toNumber(): number } {
+  return (
+    typeof val === 'object' &&
+    val !== null &&
+    'toNumber' in val &&
+    typeof val.toNumber === 'function'
+  );
+}
+
 // Flexible coordinate type (accepts Decimal from Prisma or number)
 // Prisma Decimal has a toNumber() method, regular numbers work directly
 const FlexibleCoordinateSchema = z.preprocess(
@@ -138,8 +153,8 @@ const FlexibleCoordinateSchema = z.preprocess(
     if (val === null || val === undefined) return val;
     if (typeof val === 'number') return val;
     // Prisma Decimal has toNumber() method
-    if (typeof val === 'object' && val !== null && 'toNumber' in val && typeof (val as Record<string, unknown>).toNumber === 'function') {
-      return (val as { toNumber(): number }).toNumber();
+    if (hasToNumber(val)) {
+      return val.toNumber();
     }
     // Try parsing string representation
     if (typeof val === 'string') {
@@ -278,8 +293,10 @@ const BackupWeatherDataSchema = z.object({
   windSpeed: z.number().nullable().optional(),
 });
 
-// Entity link types
-const ENTITY_TYPES = ['PHOTO', 'LOCATION', 'ACTIVITY', 'LODGING', 'TRANSPORTATION', 'JOURNAL_ENTRY', 'PHOTO_ALBUM'] as const;
+// Entity link types. Must stay in sync with the Prisma EntityType enum —
+// a value missing here causes links of that type to be silently dropped on
+// backup restore.
+const ENTITY_TYPES = ['PHOTO', 'LOCATION', 'ACTIVITY', 'LODGING', 'TRANSPORTATION', 'JOURNAL_ENTRY', 'PHOTO_ALBUM', 'PDF_IMPORT', 'SAVED_LINK'] as const;
 const LINK_RELATIONSHIPS = ['RELATED', 'TAKEN_AT', 'OCCURRED_AT', 'PART_OF', 'DOCUMENTS', 'FEATURED_IN'] as const;
 
 // Entity link schema within a trip
@@ -297,6 +314,19 @@ const BackupEntityLinkSchema = z.object({
 const BackupTripLanguageSchema = z.object({
   languageCode: z.string(),
   language: z.string(),
+});
+
+// Saved link schema (added in v1.4.0)
+const BackupSavedLinkSchema = z.object({
+  id: z.number().optional(), // For EntityLink mapping
+  url: z.string(),
+  title: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  siteName: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  source: z.string().optional(),
+  metadataStatus: z.string().optional(),
 });
 
 // Trip checklist schema (trip-specific checklists with items)
@@ -320,6 +350,9 @@ const BackupTripSchema = z.object({
   status: z.string(),
   privacyLevel: z.string(),
   coverPhotoId: z.number().nullable().optional(),
+  // Uploaded cover image paths (added in v1.3.0) — file paths only, like photos
+  coverImagePath: z.string().nullable().optional(),
+  coverImageThumbnailPath: z.string().nullable().optional(),
   bannerPhotoId: z.number().nullable().optional(),
   addToPlacesVisited: z.boolean().optional(),
   // Trip type (added in v1.2.0)
@@ -351,6 +384,9 @@ const BackupTripSchema = z.object({
 
   // Trip languages (added in v1.1.0)
   tripLanguages: z.array(BackupTripLanguageSchema).optional(),
+
+  // Saved links (added in v1.4.0)
+  savedLinks: z.array(BackupSavedLinkSchema).optional(),
 });
 
 // =============================================================================
@@ -418,6 +454,7 @@ export type BackupPhotoAlbum = z.infer<typeof BackupPhotoAlbumSchema>;
 export type BackupWeatherData = z.infer<typeof BackupWeatherDataSchema>;
 export type BackupEntityLink = z.infer<typeof BackupEntityLinkSchema>;
 export type BackupTripLanguage = z.infer<typeof BackupTripLanguageSchema>;
+export type BackupSavedLink = z.infer<typeof BackupSavedLinkSchema>;
 
 // Response types
 export const BackupInfoResponseSchema = z.object({

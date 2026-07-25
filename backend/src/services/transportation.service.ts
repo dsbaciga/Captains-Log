@@ -420,7 +420,7 @@ class TransportationService {
     const updatedTransportation = await prisma.transportation.update({
       where: { id: transportationId },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
-      data: updateData as any,
+      data: updateData,
       include: {
         startLocation: {
           select: locationWithAddressSelect,

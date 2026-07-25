@@ -7,6 +7,12 @@ import type { Transportation } from '../types/transportation';
 import type { Photo } from '../types/photo';
 import type { JournalEntry } from '../types/journalEntry';
 import type { PhotoAlbum } from '../types/photo';
+import type { SavedLink } from '../types/savedLink';
+import {
+  savedLinkDisplayTitle,
+  savedLinkHostname,
+} from '../types/savedLink';
+import savedLinkService from '../services/savedLink.service';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
 import lodgingService from '../services/lodging.service';
@@ -136,6 +142,16 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
               id: album.id,
               name: album.name,
               subtitle: album.description || undefined,
+            }));
+            break;
+          }
+
+          case 'SAVED_LINK': {
+            const links = await savedLinkService.getSavedLinksByTrip(tripId);
+            items = links.map((link: SavedLink) => ({
+              id: link.id,
+              name: savedLinkDisplayTitle(link),
+              subtitle: savedLinkHostname(link),
             }));
             break;
           }

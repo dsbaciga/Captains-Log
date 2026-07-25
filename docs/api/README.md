@@ -371,6 +371,42 @@ Upload travel documents (PDFs) and let AI extract trip data into pending entitie
 | POST | `/:id/reparse` | Re-run AI parsing on an existing import | Yes |
 | DELETE | `/:id` | Delete a PDF import | Yes |
 
+### Saved Links (`/api/saved-links`)
+
+Reference URLs kept alongside a trip. Links are user-scoped and may exist with no
+trip (the "inbox"), which is why these routes are not nested under `/api/trips`.
+Open Graph metadata is fetched in the background after creation, so a new link is
+returned immediately with `metadataStatus: "PENDING"`.
+
+Tracking parameters (`utm_*`, `fbclid`, `gclid`, and similar) are stripped from
+the URL before it is stored. URLs resolving to internal or private addresses are
+rejected with a 400.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/` | Save a link, optionally assigning it to a trip | Yes |
+| GET | `/` | List saved links; `?tripId=<id>` or `?tripId=none` for the inbox | Yes |
+| GET | `/inbox-count` | Count of links not yet assigned to a trip | Yes |
+| GET | `/:id` | Get a saved link by ID | Yes |
+| PATCH | `/:id` | Update a link; `tripId: null` returns it to the inbox | Yes |
+| DELETE | `/:id` | Delete a link and any entity links pointing at it | Yes |
+| POST | `/:id/refresh-metadata` | Re-scrape Open Graph metadata | Yes |
+| GET | `/api/trips/:tripId/saved-links` | List a trip's links (visible to collaborators) | Yes |
+
+Saved links participate in the entity-linking system as `SAVED_LINK`, so they can
+be attached to activities, lodging, locations, and the rest via
+`/api/trips/:tripId/links`.
+
+Links also arrive by email. A background job polls a configured IMAP mailbox, and
+messages from a recognised sender have their URLs captured as saved links with
+`source: "EMAIL"` and no trip, landing in the inbox. There is no endpoint for
+this — it is cron-driven — but the trusted-sender list is managed here:
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/users/link-ingest` | Get the ingest mailbox and trusted sender list | Yes |
+| PUT | `/api/users/link-ingest` | Replace the trusted sender list (max 20) | Yes |
+
 ### Flight Tracking
 
 Flight tracking endpoints are mounted under `/api` and scoped to transportation or trips. They use the AviationStack API.

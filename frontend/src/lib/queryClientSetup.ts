@@ -7,7 +7,7 @@
  * - Graceful degradation when offline
  */
 
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, keepPreviousData } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createIDBPersister } from './queryPersister';
 
@@ -54,7 +54,7 @@ export function createQueryClient(): QueryClient {
 
         // Use cached data while fetching in background
         // If we have cached data, show it immediately
-        placeholderData: (previousData) => previousData,
+        placeholderData: keepPreviousData,
 
         // Network mode: pause requests when offline
         // This prevents failed requests from clearing cached data
@@ -127,6 +127,7 @@ export const PERSISTABLE_QUERY_KEYS = [
   'tags',
   'checklists',
   'checklist',
+  'savedLinks',
   'user',
   'settings',
 ] as const;

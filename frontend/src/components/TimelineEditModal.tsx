@@ -7,6 +7,7 @@ import type {
 import type { Lodging, LodgingType } from "../types/lodging";
 import type { JournalEntry } from "../types/journalEntry";
 import type { Location } from "../types/location";
+import { createLocationStub } from "../utils/locationHelpers";
 import type { ActivityCategory } from "../types/user";
 import activityService from "../services/activity.service";
 import transportationService from "../services/transportation.service";
@@ -321,21 +322,7 @@ export default function TimelineEditModal({
   };
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
-    const newLocation: Location = {
-      id: locationId,
-      name: locationName,
-      tripId,
-      parentId: null,
-      address: null,
-      latitude: null,
-      longitude: null,
-      categoryId: null,
-      visitDatetime: null,
-      visitDurationMinutes: null,
-      notes: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const newLocation = createLocationStub(locationId, locationName, tripId);
     setLocalLocations([...localLocations, newLocation]);
 
     if (itemType === "activity") {

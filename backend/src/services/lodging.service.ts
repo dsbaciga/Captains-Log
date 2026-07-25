@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import {
   CreateLodgingInput,
   UpdateLodgingInput,
@@ -79,7 +80,7 @@ class LodgingService {
       val ? new Date(val) : undefined;
 
     // Note: Location association is handled via EntityLink system, not direct FK
-    const updateData = buildConditionalUpdateData(data, {
+    const updateData: Prisma.LodgingUncheckedUpdateInput = buildConditionalUpdateData(data, {
       transformers: {
         checkInDate: dateTransformer,
         checkOutDate: dateTransformer,
@@ -89,7 +90,7 @@ class LodgingService {
     const updatedLodging = await prisma.lodging.update({
       where: { id: lodgingId },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
-      data: updateData as any,
+      data: updateData,
     });
 
     return convertDecimals(updatedLodging);

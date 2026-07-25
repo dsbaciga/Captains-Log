@@ -5,6 +5,7 @@
 
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor, within } from '@testing-library/react';
+import { vi } from 'vitest';
 
 // ============================================================================
 // User Event Setup
@@ -20,9 +21,11 @@ export function setupUserEvent() {
     delay: null, // Set to null for faster tests, or a number for realistic delays
     // Automatically advance timers if using fake timers
     advanceTimers: (delay) => {
-      // This works with vi.useFakeTimers()
-      if (typeof jest !== 'undefined') {
-        jest.advanceTimersByTime(delay);
+      // Left over from Jest: `typeof jest !== 'undefined'` was never true here, so
+      // fake timers never advanced. Guard on Vitest's own check instead, since
+      // advanceTimersByTime throws when timers aren't mocked.
+      if (vi.isFakeTimers()) {
+        vi.advanceTimersByTime(delay);
       }
     },
   });

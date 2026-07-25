@@ -17,11 +17,11 @@ import type { GeocodingResult } from '../../services/geocoding.service';
 // ============================================================================
 
 export const mockActivityService = {
-  createActivity: vi.fn<[CreateActivityInput], Promise<Activity>>(),
-  getActivitiesByTrip: vi.fn<[number], Promise<Activity[]>>(),
-  getActivityById: vi.fn<[number], Promise<Activity>>(),
-  updateActivity: vi.fn<[number, UpdateActivityInput], Promise<Activity>>(),
-  deleteActivity: vi.fn<[number], Promise<void>>(),
+  createActivity: vi.fn<(arg1: CreateActivityInput) => Promise<Activity>>(),
+  getActivitiesByTrip: vi.fn<(arg1: number) => Promise<Activity[]>>(),
+  getActivityById: vi.fn<(arg1: number) => Promise<Activity>>(),
+  updateActivity: vi.fn<(arg1: number, arg2: UpdateActivityInput) => Promise<Activity>>(),
+  deleteActivity: vi.fn<(arg1: number) => Promise<void>>(),
 };
 
 // ============================================================================
@@ -29,14 +29,14 @@ export const mockActivityService = {
 // ============================================================================
 
 export const mockLocationService = {
-  createLocation: vi.fn<[CreateLocationInput], Promise<Location>>(),
-  getLocationsByTrip: vi.fn<[number], Promise<Location[]>>(),
-  getAllVisitedLocations: vi.fn<[], Promise<Location[]>>(),
-  getLocationById: vi.fn<[number], Promise<Location>>(),
-  updateLocation: vi.fn<[number, UpdateLocationInput], Promise<Location>>(),
-  deleteLocation: vi.fn<[number], Promise<void>>(),
-  getCategories: vi.fn<[], Promise<LocationCategory[]>>(),
-  createCategory: vi.fn<[{ name: string; icon?: string; color?: string }], Promise<LocationCategory>>(),
+  createLocation: vi.fn<(arg1: CreateLocationInput) => Promise<Location>>(),
+  getLocationsByTrip: vi.fn<(arg1: number) => Promise<Location[]>>(),
+  getAllVisitedLocations: vi.fn<() => Promise<Location[]>>(),
+  getLocationById: vi.fn<(arg1: number) => Promise<Location>>(),
+  updateLocation: vi.fn<(arg1: number, arg2: UpdateLocationInput) => Promise<Location>>(),
+  deleteLocation: vi.fn<(arg1: number) => Promise<void>>(),
+  getCategories: vi.fn<() => Promise<LocationCategory[]>>(),
+  createCategory: vi.fn<(arg1: { name: string; icon?: string; color?: string }) => Promise<LocationCategory>>(),
 };
 
 // ============================================================================
@@ -44,14 +44,14 @@ export const mockLocationService = {
 // ============================================================================
 
 export const mockTripService = {
-  createTrip: vi.fn<[CreateTripInput], Promise<Trip>>(),
-  getTrips: vi.fn<[{ status?: string; search?: string; page?: number; limit?: number }?], Promise<TripListResponse>>(),
-  getTripById: vi.fn<[number], Promise<Trip>>(),
-  updateTrip: vi.fn<[number, UpdateTripInput], Promise<Trip>>(),
-  deleteTrip: vi.fn<[number], Promise<void>>(),
-  updateCoverPhoto: vi.fn<[number, number | null], Promise<Trip>>(),
-  validateTrip: vi.fn<[number], Promise<ValidationResult>>(),
-  duplicateTrip: vi.fn<[number, DuplicateTripInput], Promise<Trip>>(),
+  createTrip: vi.fn<(arg1: CreateTripInput) => Promise<Trip>>(),
+  getTrips: vi.fn<(arg1?: { status?: string; search?: string; page?: number; limit?: number }) => Promise<TripListResponse>>(),
+  getTripById: vi.fn<(arg1: number) => Promise<Trip>>(),
+  updateTrip: vi.fn<(arg1: number, arg2: UpdateTripInput) => Promise<Trip>>(),
+  deleteTrip: vi.fn<(arg1: number) => Promise<void>>(),
+  updateCoverPhoto: vi.fn<(arg1: number, arg2: number | null) => Promise<Trip>>(),
+  validateTrip: vi.fn<(arg1: number) => Promise<ValidationResult>>(),
+  duplicateTrip: vi.fn<(arg1: number, arg2: DuplicateTripInput) => Promise<Trip>>(),
 };
 
 // ============================================================================
@@ -59,27 +59,27 @@ export const mockTripService = {
 // ============================================================================
 
 export const mockPhotoService = {
-  uploadPhoto: vi.fn<[File, UploadPhotoInput], Promise<Photo>>(),
-  linkImmichPhoto: vi.fn<[LinkImmichPhotoInput], Promise<Photo>>(),
-  linkImmichPhotosBatch: vi.fn<[{ tripId: number; assets: Array<{ immichAssetId: string; mediaType?: 'image' | 'video'; duration?: number; caption?: string; takenAt?: string | null; latitude?: number | null; longitude?: number | null }> }], Promise<{ total: number; successful: number; failed: number; errors: string[]; photoIds: number[] }>>(),
-  getPhotosByTrip: vi.fn<[number, { skip?: number; take?: number; sortBy?: string; sortOrder?: string }?], Promise<{ photos: Photo[]; total: number; hasMore: boolean }>>(),
-  getUnsortedPhotosByTrip: vi.fn<[number, { skip?: number; take?: number; sortBy?: string; sortOrder?: string }?], Promise<{ photos: Photo[]; total: number; hasMore: boolean }>>(),
-  getImmichAssetIdsByTrip: vi.fn<[number], Promise<string[]>>(),
-  getPhotoById: vi.fn<[number], Promise<Photo>>(),
-  updatePhoto: vi.fn<[number, UpdatePhotoInput], Promise<Photo>>(),
-  deletePhoto: vi.fn<[number], Promise<void>>(),
-  getAllAlbums: vi.fn<[{ skip?: number; take?: number; tagIds?: number[] }?], Promise<AllAlbumsResponse>>(),
-  createAlbum: vi.fn<[CreateAlbumInput], Promise<PhotoAlbum>>(),
-  getAlbumsByTrip: vi.fn<[number, { skip?: number; take?: number }?], Promise<{ albums: PhotoAlbum[]; totalAlbums: number; hasMore: boolean; unsortedCount: number; totalCount: number }>>(),
-  getAlbumById: vi.fn<[number, { skip?: number; take?: number; sortBy?: string; sortOrder?: string }?], Promise<AlbumWithPhotos>>(),
-  updateAlbum: vi.fn<[number, UpdateAlbumInput], Promise<PhotoAlbum>>(),
-  deleteAlbum: vi.fn<[number], Promise<void>>(),
-  addPhotosToAlbum: vi.fn<[number, AddPhotosToAlbumInput], Promise<{ success: boolean; addedCount: number }>>(),
-  removePhotoFromAlbum: vi.fn<[number, number], Promise<void>>(),
-  getPhotoDateGroupings: vi.fn<[number, string?], Promise<{ groupings: Array<{ date: string; count: number }>; totalWithDates: number; totalWithoutDates: number }>>(),
-  getPhotosByDate: vi.fn<[number, string, string?], Promise<{ photos: Photo[]; date: string; count: number }>>(),
-  getAlbumSuggestions: vi.fn<[number], Promise<Array<{ name: string; photoIds: number[]; type: 'date' | 'location'; confidence: number; metadata: { date?: string; locationName?: string; locationId?: number } }>>>(),
-  acceptAlbumSuggestion: vi.fn<[number, { name: string; photoIds: number[] }], Promise<{ albumId: number }>>(),
+  uploadPhoto: vi.fn<(arg1: File, arg2: UploadPhotoInput) => Promise<Photo>>(),
+  linkImmichPhoto: vi.fn<(arg1: LinkImmichPhotoInput) => Promise<Photo>>(),
+  linkImmichPhotosBatch: vi.fn<(arg1: { tripId: number; assets: Array<{ immichAssetId: string; mediaType?: 'image' | 'video'; duration?: number; caption?: string; takenAt?: string | null; latitude?: number | null; longitude?: number | null }> }) => Promise<{ total: number; successful: number; failed: number; errors: string[]; photoIds: number[] }>>(),
+  getPhotosByTrip: vi.fn<(arg1: number, arg2?: { skip?: number; take?: number; sortBy?: string; sortOrder?: string }) => Promise<{ photos: Photo[]; total: number; hasMore: boolean }>>(),
+  getUnsortedPhotosByTrip: vi.fn<(arg1: number, arg2?: { skip?: number; take?: number; sortBy?: string; sortOrder?: string }) => Promise<{ photos: Photo[]; total: number; hasMore: boolean }>>(),
+  getImmichAssetIdsByTrip: vi.fn<(arg1: number) => Promise<string[]>>(),
+  getPhotoById: vi.fn<(arg1: number) => Promise<Photo>>(),
+  updatePhoto: vi.fn<(arg1: number, arg2: UpdatePhotoInput) => Promise<Photo>>(),
+  deletePhoto: vi.fn<(arg1: number) => Promise<void>>(),
+  getAllAlbums: vi.fn<(arg1?: { skip?: number; take?: number; tagIds?: number[] }) => Promise<AllAlbumsResponse>>(),
+  createAlbum: vi.fn<(arg1: CreateAlbumInput) => Promise<PhotoAlbum>>(),
+  getAlbumsByTrip: vi.fn<(arg1: number, arg2?: { skip?: number; take?: number }) => Promise<{ albums: PhotoAlbum[]; totalAlbums: number; hasMore: boolean; unsortedCount: number; totalCount: number }>>(),
+  getAlbumById: vi.fn<(arg1: number, arg2?: { skip?: number; take?: number; sortBy?: string; sortOrder?: string }) => Promise<AlbumWithPhotos>>(),
+  updateAlbum: vi.fn<(arg1: number, arg2: UpdateAlbumInput) => Promise<PhotoAlbum>>(),
+  deleteAlbum: vi.fn<(arg1: number) => Promise<void>>(),
+  addPhotosToAlbum: vi.fn<(arg1: number, arg2: AddPhotosToAlbumInput) => Promise<{ success: boolean; addedCount: number }>>(),
+  removePhotoFromAlbum: vi.fn<(arg1: number, arg2: number) => Promise<void>>(),
+  getPhotoDateGroupings: vi.fn<(arg1: number, arg2?: string) => Promise<{ groupings: Array<{ date: string; count: number }>; totalWithDates: number; totalWithoutDates: number }>>(),
+  getPhotosByDate: vi.fn<(arg1: number, arg2: string, arg3?: string) => Promise<{ photos: Photo[]; date: string; count: number }>>(),
+  getAlbumSuggestions: vi.fn<(arg1: number) => Promise<Array<{ name: string; photoIds: number[]; type: 'date' | 'location'; confidence: number; metadata: { date?: string; locationName?: string; locationId?: number } }>>>(),
+  acceptAlbumSuggestion: vi.fn<(arg1: number, arg2: { name: string; photoIds: number[] }) => Promise<{ albumId: number }>>(),
 };
 
 // ============================================================================
@@ -87,16 +87,16 @@ export const mockPhotoService = {
 // ============================================================================
 
 export const mockUserService = {
-  getMe: vi.fn<[], Promise<User>>(),
-  updateSettings: vi.fn<[UpdateUserSettingsInput], Promise<User>>(),
-  updateUsername: vi.fn<[string], Promise<{ success: boolean; message: string; username: string }>>(),
-  updatePassword: vi.fn<[string, string], Promise<{ success: boolean; message: string }>>(),
-  getWeatherSettings: vi.fn<[], Promise<{ weatherApiKeySet: boolean }>>(),
-  updateWeatherSettings: vi.fn<[{ weatherApiKey: string | null }], Promise<{ success: boolean; message: string; weatherApiKeySet: boolean }>>(),
-  getAviationstackSettings: vi.fn<[], Promise<{ aviationstackApiKeySet: boolean }>>(),
-  updateAviationstackSettings: vi.fn<[{ aviationstackApiKey: string | null }], Promise<{ success: boolean; message: string; aviationstackApiKeySet: boolean }>>(),
-  getOpenrouteserviceSettings: vi.fn<[], Promise<{ openrouteserviceApiKeySet: boolean }>>(),
-  updateOpenrouteserviceSettings: vi.fn<[{ openrouteserviceApiKey: string | null }], Promise<{ success: boolean; message: string; openrouteserviceApiKeySet: boolean }>>(),
+  getMe: vi.fn<() => Promise<User>>(),
+  updateSettings: vi.fn<(arg1: UpdateUserSettingsInput) => Promise<User>>(),
+  updateUsername: vi.fn<(arg1: string) => Promise<{ success: boolean; message: string; username: string }>>(),
+  updatePassword: vi.fn<(arg1: string, arg2: string) => Promise<{ success: boolean; message: string }>>(),
+  getWeatherSettings: vi.fn<() => Promise<{ weatherApiKeySet: boolean }>>(),
+  updateWeatherSettings: vi.fn<(arg1: { weatherApiKey: string | null }) => Promise<{ success: boolean; message: string; weatherApiKeySet: boolean }>>(),
+  getAviationstackSettings: vi.fn<() => Promise<{ aviationstackApiKeySet: boolean }>>(),
+  updateAviationstackSettings: vi.fn<(arg1: { aviationstackApiKey: string | null }) => Promise<{ success: boolean; message: string; aviationstackApiKeySet: boolean }>>(),
+  getOpenrouteserviceSettings: vi.fn<() => Promise<{ openrouteserviceApiKeySet: boolean }>>(),
+  updateOpenrouteserviceSettings: vi.fn<(arg1: { openrouteserviceApiKey: string | null }) => Promise<{ success: boolean; message: string; openrouteserviceApiKeySet: boolean }>>(),
 };
 
 // ============================================================================
@@ -104,19 +104,19 @@ export const mockUserService = {
 // ============================================================================
 
 export const mockEntityLinkService = {
-  createLink: vi.fn<[number, CreateEntityLinkInput], Promise<EntityLink>>(),
-  bulkCreateLinks: vi.fn<[number, BulkCreateEntityLinksInput], Promise<BulkLinkResult>>(),
-  bulkLinkPhotos: vi.fn<[number, BulkLinkPhotosInput], Promise<BulkLinkResult>>(),
-  getLinksFrom: vi.fn<[number, EntityType, number, EntityType?], Promise<EnrichedEntityLink[]>>(),
-  getLinksTo: vi.fn<[number, EntityType, number, EntityType?], Promise<EnrichedEntityLink[]>>(),
-  getAllLinksForEntity: vi.fn<[number, EntityType, number], Promise<EntityLinksResponse>>(),
-  getPhotosForEntity: vi.fn<[number, EntityType, number], Promise<Photo[]>>(),
-  getTripLinkSummary: vi.fn<[number], Promise<TripLinkSummary>>(),
-  getLinksByTargetType: vi.fn<[number, EntityType], Promise<Array<{ sourceType: EntityType; sourceId: number; targetId: number }>>>(),
-  deleteLink: vi.fn<[number, DeleteEntityLinkInput], Promise<void>>(),
-  deleteLinkById: vi.fn<[number, number], Promise<void>>(),
-  updateLink: vi.fn<[number, number, UpdateEntityLinkInput], Promise<EntityLink>>(),
-  deleteAllLinksForEntity: vi.fn<[number, EntityType, number], Promise<{ deleted: number }>>(),
+  createLink: vi.fn<(arg1: number, arg2: CreateEntityLinkInput) => Promise<EntityLink>>(),
+  bulkCreateLinks: vi.fn<(arg1: number, arg2: BulkCreateEntityLinksInput) => Promise<BulkLinkResult>>(),
+  bulkLinkPhotos: vi.fn<(arg1: number, arg2: BulkLinkPhotosInput) => Promise<BulkLinkResult>>(),
+  getLinksFrom: vi.fn<(arg1: number, arg2: EntityType, arg3: number, arg4?: EntityType) => Promise<EnrichedEntityLink[]>>(),
+  getLinksTo: vi.fn<(arg1: number, arg2: EntityType, arg3: number, arg4?: EntityType) => Promise<EnrichedEntityLink[]>>(),
+  getAllLinksForEntity: vi.fn<(arg1: number, arg2: EntityType, arg3: number) => Promise<EntityLinksResponse>>(),
+  getPhotosForEntity: vi.fn<(arg1: number, arg2: EntityType, arg3: number) => Promise<Photo[]>>(),
+  getTripLinkSummary: vi.fn<(arg1: number) => Promise<TripLinkSummary>>(),
+  getLinksByTargetType: vi.fn<(arg1: number, arg2: EntityType) => Promise<Array<{ sourceType: EntityType; sourceId: number; targetId: number }>>>(),
+  deleteLink: vi.fn<(arg1: number, arg2: DeleteEntityLinkInput) => Promise<void>>(),
+  deleteLinkById: vi.fn<(arg1: number, arg2: number) => Promise<void>>(),
+  updateLink: vi.fn<(arg1: number, arg2: number, arg3: UpdateEntityLinkInput) => Promise<EntityLink>>(),
+  deleteAllLinksForEntity: vi.fn<(arg1: number, arg2: EntityType, arg3: number) => Promise<{ deleted: number }>>(),
 };
 
 // ============================================================================
@@ -124,8 +124,8 @@ export const mockEntityLinkService = {
 // ============================================================================
 
 export const mockGeocodingService = {
-  searchPlaces: vi.fn<[string], Promise<GeocodingResult[]>>(),
-  reverseGeocode: vi.fn<[number, number], Promise<GeocodingResult | null>>(),
+  searchPlaces: vi.fn<(arg1: string) => Promise<GeocodingResult[]>>(),
+  reverseGeocode: vi.fn<(arg1: number, arg2: number) => Promise<GeocodingResult | null>>(),
 };
 
 // ============================================================================
@@ -133,10 +133,10 @@ export const mockGeocodingService = {
 // ============================================================================
 
 export const mockAuthService = {
-  login: vi.fn<[{ email: string; password: string }], Promise<{ user: User; accessToken: string }>>(),
-  register: vi.fn<[{ username: string; email: string; password: string }], Promise<{ user: User; accessToken: string }>>(),
-  logout: vi.fn<[], Promise<void>>(),
-  silentRefresh: vi.fn<[], Promise<{ user: User; accessToken: string } | null>>(),
+  login: vi.fn<(arg1: { email: string; password: string }) => Promise<{ user: User; accessToken: string }>>(),
+  register: vi.fn<(arg1: { username: string; email: string; password: string }) => Promise<{ user: User; accessToken: string }>>(),
+  logout: vi.fn<() => Promise<void>>(),
+  silentRefresh: vi.fn<() => Promise<{ user: User; accessToken: string } | null>>(),
 };
 
 // ============================================================================

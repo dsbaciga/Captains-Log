@@ -231,7 +231,7 @@ export default function TagManager({ tripId }: TagManagerProps) {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="input"
-              placeholder="Adventure, Beach, Food\u2026"
+              placeholder="Adventure, Beach, Food…"
               maxLength={50}
               required
             />

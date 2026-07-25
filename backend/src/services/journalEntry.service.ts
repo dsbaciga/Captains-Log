@@ -114,7 +114,7 @@ class JournalEntryService {
       { title, content, date: entryDate },
       {
         transformers: {
-          title: (val) => val || null,
+          title: (val: string | null) => val || null,
           date: entryDateTransformer,
         },
       }

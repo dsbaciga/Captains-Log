@@ -197,7 +197,7 @@ export default function TimelineDaySection({
                       linkSummary={getLinkSummary(item)}
                       viewMode={viewMode}
                       connectionInfo={connectionInfo || undefined}
-                      showConnectionLine={showConnectionLine}
+                      showConnectionLine={showConnectionLine ?? undefined}
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onLinkUpdate={onLinkUpdate}

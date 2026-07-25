@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import config from '../config';
 import { AppError } from '../errors/errors';
 import { UpdateUserSettingsInput } from '../types/userSettings.types';
 import bcrypt from 'bcrypt';
@@ -256,6 +257,55 @@ class UserService {
       // Configured if user set a base URL (local no-auth) or an API key
       llmConfigured: !!(user.llmApiKey || user.llmBaseUrl),
     };
+  }
+
+  /**
+   * Extra From addresses trusted to forward links to the ingest mailbox.
+   * The user's own `email` is always accepted and is returned here for display,
+   * but is not part of the editable list.
+   */
+  async getLinkIngestSettings(userId: number) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, linkIngestSenders: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    const senders = Array.isArray(user.linkIngestSenders)
+      ? user.linkIngestSenders.filter(
+          (entry): entry is string => typeof entry === 'string'
+        )
+      : [];
+
+    return {
+      // Always accepted, shown read-only so the UI can explain the rule.
+      accountEmail: user.email,
+      linkIngestSenders: senders,
+      // The mailbox links are forwarded TO. Server-level config, not per-user.
+      ingestMailbox: config.imap.user || null,
+      ingestEnabled: Boolean(config.imap.user && config.imap.password),
+    };
+  }
+
+  async updateLinkIngestSettings(userId: number, senders: string[]) {
+    // Normalise so matching in emailIngest.service is a plain comparison.
+    const normalized = Array.from(
+      new Set(
+        senders
+          .map((entry) => entry.trim().toLowerCase())
+          .filter((entry) => entry.length > 0)
+      )
+    );
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { linkIngestSenders: normalized },
+    });
+
+    return this.getLinkIngestSettings(userId);
   }
 
   async getSmtpSettings(userId: number) {

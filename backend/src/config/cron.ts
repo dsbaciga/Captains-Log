@@ -1,6 +1,8 @@
 import cron from 'node-cron';
 import tripService from '../services/trip.service';
 import pushNotificationService from '../services/pushNotification.service';
+import emailIngestService from '../services/emailIngest.service';
+import config from './index';
 import logger from './logger';
 
 /**
@@ -30,6 +32,24 @@ export function initCronJobs(): void {
       logger.error('Error during trip-start push reminder cron job:', error);
     }
   });
+
+  // Poll the saved-link ingest mailbox.
+  // No-op when IMAP_USER / IMAP_PASSWORD are not configured.
+  if (emailIngestService.isConfigured()) {
+    cron.schedule(config.imap.pollCron, async () => {
+      try {
+        const handled = await emailIngestService.pollOnce();
+        if (handled > 0) {
+          logger.info(`Processed ${handled} message(s) from the link ingest mailbox.`);
+        }
+      } catch (error) {
+        logger.error('Error during email ingest cron job:', error);
+      }
+    });
+    logger.info(`Email link ingest enabled (schedule: ${config.imap.pollCron}).`);
+  } else {
+    logger.info('Email link ingest disabled (IMAP not configured).');
+  }
 
   // Run once on startup to ensure data is fresh
   logger.info('Performing initial trip status update on startup...');

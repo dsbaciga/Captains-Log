@@ -285,7 +285,7 @@ export default function GlobalSearch({ compact = false, onClose }: GlobalSearchP
           }}
           onFocus={() => setShowResults(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search trips, locations, photos\u2026"
+          placeholder="Search trips, locations, photos…"
           aria-label="Search trips, locations, photos"
           className={`
             w-full pl-10 pr-12 py-3

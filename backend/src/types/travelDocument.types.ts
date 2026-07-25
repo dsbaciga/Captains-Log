@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  optionalNullable,
   requiredStringWithMax,
   optionalStringWithMax,
   optionalBoolean,
@@ -52,14 +51,17 @@ export const createTravelDocumentSchema = z.object({
 // Update schema
 export const updateTravelDocumentSchema = z.object({
   type: z.enum(DOCUMENT_TYPES).optional(),
-  issuingCountry: optionalNullable(requiredStringWithMax(100)),
+  // issuingCountry and name are NOT NULL in the database: omit to leave unchanged,
+  // but they can never be cleared
+  issuingCountry: requiredStringWithMax(100).optional(),
   documentNumber: optionalStringWithMax(255),
   issueDate: z.string().optional().nullable(),
   expiryDate: z.string().optional().nullable(),
-  name: optionalNullable(requiredStringWithMax(500)),
+  name: requiredStringWithMax(500).optional(),
   notes: optionalNotes(),
   isPrimary: optionalBoolean(),
-  alertDaysBefore: z.number().int().min(0).max(365).optional().nullable(),
+  // NOT NULL with a DB default, so it can be omitted but not cleared
+  alertDaysBefore: z.number().int().min(0).max(365).optional(),
 });
 
 export type CreateTravelDocumentInput = z.infer<typeof createTravelDocumentSchema>;

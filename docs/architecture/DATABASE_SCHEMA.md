@@ -2,7 +2,7 @@
 
 Travel Life uses PostgreSQL with PostGIS extension for geospatial data. The schema is managed via Prisma ORM.
 
-The schema defines **32 models** (mapped to **32 tables**) and **8 enums**.
+The schema defines **36 models** (mapped to **36 tables**) and **11 enums**.
 
 ## Schema Location
 
@@ -575,6 +575,94 @@ A candidate entity extracted from a `PdfImport` by the AI parser, awaiting user 
 | createdEntityType | PendingEntityType? | Type of the created entity |
 | reviewedAt | DateTime? | When the user reviewed the candidate |
 
+## Saved Links
+
+Reference URLs kept alongside a trip — restaurant writeups, trail guides,
+timetables. Distinct from the `bookingUrl` field on Activity, Transportation and
+Lodging, which means "the booking" rather than "a reference".
+
+### SavedLink
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | Int | Primary key |
+| userId | Int | Owner (Cascade on delete) |
+| tripId | Int? | **Nullable** — null means the link sits in the unassigned inbox |
+| url | String (Text) | Text, not VarChar(500): real URLs with query strings exceed 500 chars |
+| title | String? | User-supplied title, else the scraped `og:title` |
+| description | String? | Scraped `og:description` |
+| siteName | String? | Scraped `og:site_name`, falling back to the hostname |
+| imageUrl | String? (Text) | Scraped `og:image`, stored as a remote URL (not proxied) |
+| notes | String? | Free-text user notes |
+| source | SavedLinkSource | MANUAL or EMAIL |
+| metadataStatus | LinkMetadataStatus | PENDING, FETCHED, FAILED, SKIPPED |
+| metadataFetchedAt | DateTime? | When metadata was last scraped |
+
+Two behaviours worth knowing:
+
+- **`tripId` uses `SetNull`, not `Cascade`.** Deleting a trip returns its links to
+  the inbox rather than destroying them. As a consequence `clearUserData` in
+  `restore.service.ts` must delete saved links explicitly — the trip cascade won't.
+- **Assigning, reassigning, or unassigning a trip drops the link's `EntityLink`
+  rows**, because those are hard-bound to a single trip.
+
+URLs are normalised on write: `stripTrackingParams` in `linkMetadata.service.ts`
+removes `utm_*`, `pk_*`, `mtm_*` and a denylist of known click-ids (`fbclid`,
+`gclid`, `msclkid`, …) before storage. Ambiguous params such as bare `ref` and
+`cid` are deliberately left alone.
+
+Metadata scraping fetches user-supplied URLs server-side, so it is SSRF-guarded:
+every request — **including every redirect hop** — passes through
+`validateUrlNotInternal`, with `maxRedirects: 0` and manual redirect following.
+The URL is then replaced with where it actually landed, so click-wrappers and
+shorteners resolve to the real page.
+
+### EmailIngest
+
+One row per message pulled from the ingest mailbox. Deterministic capture —
+extract `href`s, scrape Open Graph tags. **No LLM is involved**, unlike the
+email-import system removed in v5.4.0, which failed trying to make an LLM parse
+booking emails into structured entities.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | Int | Primary key |
+| messageId | String | **Unique.** The RFC 5322 Message-ID, and the processing claim |
+| userId | Int? | Null for `REJECTED_SENDER` — the message belongs to no one |
+| fromAddress | String? | Used for sender verification |
+| toAddress | String? | Captured for plus-address routing later |
+| subject | String? | |
+| receivedAt | DateTime? | From the message `Date` header |
+| status | EmailIngestStatus | See below |
+| linkCount | Int | Links successfully created |
+| errorMessage | String? | Populated on `FAILED` |
+
+`SavedLink.emailIngestId` points back here (`SetNull`, so pruning ingest history
+never destroys the links it produced).
+
+Three behaviours worth knowing:
+
+- **Archiving is what marks a message done**, which makes INBOX the work queue —
+  anything sitting there is by definition unprocessed. Archiving uses an explicit
+  `messageMove`, never `\Deleted` + expunge: Gmail's handling of `\Deleted`
+  depends on a per-account Auto-Expunge preference, so the same code can archive
+  on one account and *trash* on another.
+- **A re-delivered message is archived without reprocessing.** That is what makes
+  a crash between "links created" and "archived" idempotent.
+- **Sender verification** matches `From` against a user's `email` or their
+  `linkIngestSenders`. `From` is spoofable; the mailbox address is the real
+  secret.
+
+### EmailIngestStatus Enum
+
+| Value | Meaning |
+|-------|---------|
+| PROCESSING | Claimed and mid-flight; reset to FAILED by the startup sweeper if stale |
+| PROCESSED | Links created |
+| NO_LINKS | Nothing usable survived filtering |
+| REJECTED_SENDER | From address not recognised |
+| FAILED | Parse or transport error |
+
 ## Entity Linking System
 
 The `EntityLink` model provides a polymorphic linking system for connecting any entity to any other entity within a trip.
@@ -595,11 +683,18 @@ The `EntityLink` model provides a polymorphic linking system for connecting any 
 
 ### EntityType Enum
 
-8 values:
+9 values:
 
 ```text
-PHOTO, LOCATION, ACTIVITY, LODGING, TRANSPORTATION, JOURNAL_ENTRY, PHOTO_ALBUM, PDF_IMPORT
+PHOTO, LOCATION, ACTIVITY, LODGING, TRANSPORTATION, JOURNAL_ENTRY, PHOTO_ALBUM, PDF_IMPORT, SAVED_LINK
 ```
+
+Adding a value here fans out to roughly ten call sites. Four are compiler-enforced
+(`ENTITY_CONFIG` in `entityLink.service.ts`, plus `ENTITY_TYPE_CONFIG` and
+`ENTITY_TYPE_TO_TAB` in the frontend `entityConfig.ts`); the rest fail silently or at
+runtime. In particular, `ENTITY_TYPE_DISPLAY_ORDER` controls whether the type renders
+at all, and `backup.types.ts` `ENTITY_TYPES` controls whether its links survive a
+backup restore.
 
 ### LinkRelationship Enum
 
@@ -657,6 +752,26 @@ Review state of a `PendingEntity`.
 | PENDING | Awaiting user review |
 | ACCEPTED | Approved and committed to a trip |
 | REJECTED | Discarded by the user |
+
+### SavedLinkSource
+
+How a `SavedLink` entered the system.
+
+| Value | Meaning |
+|-------|---------|
+| MANUAL | Pasted into the app by the user |
+| EMAIL | Extracted from a forwarded email |
+
+### LinkMetadataStatus
+
+Open Graph scraping state of a `SavedLink`.
+
+| Value | Meaning |
+|-------|---------|
+| PENDING | Queued, or currently being fetched |
+| FETCHED | Metadata retrieved successfully |
+| FAILED | Page unreachable or unparseable — the link row is still kept |
+| SKIPPED | Scraping deliberately not attempted |
 
 ### ValidationIssueCategory
 

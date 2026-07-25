@@ -25,7 +25,10 @@ import { ListItemSkeleton } from "./SkeletonLoader";
 import LocationSearchMap from "./LocationSearchMap";
 import TripLocationsMap from "./TripLocationsMap";
 import BulkActionBar from "./BulkActionBar";
-import BulkEditModal from "./BulkEditModal";
+import BulkEditModal, { type BulkEditField } from "./BulkEditModal";
+
+/** Fields editable via bulk edit; shared by the field list and the modal generic. */
+type LocationBulkEdit = { categoryId?: number; notes?: string };
 import MarkdownRenderer from "./MarkdownRenderer";
 import MarkdownEditor from "./MarkdownEditor";
 import { stripMarkdown } from "../utils/stripMarkdown";
@@ -363,7 +366,7 @@ export default function LocationManager({
   };
 
   // Build bulk edit field options
-  const bulkEditFields = useMemo(() => [
+  const bulkEditFields = useMemo<BulkEditField<LocationBulkEdit>[]>(() => [
     {
       key: "categoryId",
       label: "Category",
@@ -831,7 +834,7 @@ export default function LocationManager({
               value={values.notes}
               onChange={(val) => handleChange("notes", val)}
               rows={2}
-              placeholder="Additional notes\u2026"
+              placeholder="Additional notes…"
               label="Notes"
               compact
             />
@@ -894,7 +897,7 @@ export default function LocationManager({
       )}
 
       {/* Bulk Edit Modal */}
-      <BulkEditModal<{ categoryId?: number; notes?: string }>
+      <BulkEditModal<LocationBulkEdit>
         isOpen={showBulkEditModal}
         onClose={() => setShowBulkEditModal(false)}
         entityType="location"

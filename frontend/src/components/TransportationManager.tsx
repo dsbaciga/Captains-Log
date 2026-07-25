@@ -7,6 +7,7 @@ import type {
   UpdateTransportationInput,
 } from "../types/transportation";
 import type { Location } from "../types/location";
+import { createLocationStub } from "../utils/locationHelpers";
 import type { EntityType, EntityLinkSummary } from "../types/entityLink";
 import transportationService from "../services/transportation.service";
 import LinkButton from "./LinkButton";
@@ -32,7 +33,10 @@ import FlightRouteMap from "./FlightRouteMap";
 import TransportationStats from "./TransportationStats";
 import LocationQuickAdd from "./LocationQuickAdd";
 import BulkActionBar from "./BulkActionBar";
-import BulkEditModal from "./BulkEditModal";
+import BulkEditModal, { type BulkEditField } from "./BulkEditModal";
+
+/** Fields editable via bulk edit; shared by the field list and the modal generic. */
+type TransportationBulkEdit = { type?: string; carrier?: string; notes?: string };
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../utils/currencyStorage";
 import { useUnsavedChangesWarning } from "../hooks/useUnsavedChangesWarning";
 import MarkdownRenderer from "./MarkdownRenderer";
@@ -696,21 +700,7 @@ export default function TransportationManager({
 
   const handleFromLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
-    const newLocation: Location = {
-      id: locationId,
-      name: locationName,
-      tripId,
-      parentId: null,
-      address: null,
-      latitude: null,
-      longitude: null,
-      categoryId: null,
-      visitDatetime: null,
-      visitDurationMinutes: null,
-      notes: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const newLocation = createLocationStub(locationId, locationName, tripId);
     setLocalLocations([...localLocations, newLocation]);
     handleChange("fromLocationId", locationId);
     setShowFromLocationQuickAdd(false);
@@ -718,21 +708,7 @@ export default function TransportationManager({
 
   const handleToLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
-    const newLocation: Location = {
-      id: locationId,
-      name: locationName,
-      tripId,
-      parentId: null,
-      address: null,
-      latitude: null,
-      longitude: null,
-      categoryId: null,
-      visitDatetime: null,
-      visitDurationMinutes: null,
-      notes: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const newLocation = createLocationStub(locationId, locationName, tripId);
     setLocalLocations([...localLocations, newLocation]);
     handleChange("toLocationId", locationId);
     setShowToLocationQuickAdd(false);
@@ -884,7 +860,7 @@ export default function TransportationManager({
   };
 
   // Build bulk edit field options
-  const bulkEditFields = useMemo(() => [
+  const bulkEditFields = useMemo<BulkEditField<TransportationBulkEdit>[]>(() => [
     {
       key: "type",
       label: "Type",
@@ -1515,7 +1491,7 @@ export default function TransportationManager({
               value={values.notes}
               onChange={(val) => handleChange("notes", val)}
               rows={3}
-              placeholder="Additional notes\u2026"
+              placeholder="Additional notes…"
               label="Notes"
               compact
             />
@@ -1630,7 +1606,7 @@ export default function TransportationManager({
       )}
 
       {/* Bulk Edit Modal */}
-      <BulkEditModal<{ type?: string; carrier?: string; notes?: string }>
+      <BulkEditModal<TransportationBulkEdit>
         isOpen={showBulkEditModal}
         onClose={() => setShowBulkEditModal(false)}
         entityType="transportation"

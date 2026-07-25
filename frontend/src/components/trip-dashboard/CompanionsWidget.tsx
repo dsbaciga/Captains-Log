@@ -78,10 +78,15 @@ function getColorIndex(name: string): number {
 }
 
 /**
- * Get initials from a companion's name (first letter of first and last name)
+ * Get initials from a companion's name (first letter of first and last name).
+ * The "Myself" companion is stored as `Myself (username)`, which would otherwise
+ * initialise to "M(", so it always renders as "Me".
  */
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
+function getInitials(companion: Companion): string {
+  if (companion.isMyself) {
+    return 'Me';
+  }
+  const parts = companion.name.trim().split(/\s+/);
   if (parts.length === 1) {
     return parts[0].charAt(0).toUpperCase();
   }
@@ -104,7 +109,7 @@ function CompanionAvatar({
   showBorder = false,
   className = '',
 }: CompanionAvatarProps) {
-  const initials = getInitials(companion.name);
+  const initials = getInitials(companion);
   const colorIndex = getColorIndex(companion.name);
   const color = AVATAR_COLORS[colorIndex];
 

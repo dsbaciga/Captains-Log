@@ -494,4 +494,51 @@ router.get('/search', sensitiveEndpointRateLimiter, userController.searchUsers);
 router.get('/travel-partner', userController.getTravelPartnerSettings);
 router.put('/travel-partner', sensitiveEndpointRateLimiter, userController.updateTravelPartnerSettings);
 
+/**
+ * @openapi
+ * /api/users/link-ingest:
+ *   get:
+ *     summary: Get saved-link email ingest settings
+ *     description: >
+ *       Returns the addresses trusted to forward links for this user, plus the
+ *       server-configured ingest mailbox. The account's own email is always
+ *       accepted and is returned for display but is not part of the editable list.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Link ingest settings
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     summary: Replace the list of trusted forwarding addresses
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [linkIngestSenders]
+ *             properties:
+ *               linkIngestSenders:
+ *                 type: array
+ *                 maxItems: 20
+ *                 items:
+ *                   type: string
+ *                   format: email
+ *     responses:
+ *       200:
+ *         description: Updated settings
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/link-ingest', userController.getLinkIngestSettings);
+router.put('/link-ingest', userController.updateLinkIngestSettings);
+
 export default router;

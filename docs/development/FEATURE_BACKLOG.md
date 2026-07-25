@@ -1407,6 +1407,37 @@ Good enhancements that improve the experience.
 
 ---
 
+## 🧹 Technical Debt
+
+### 95. Type `transformTripToBackupFormat` Properly
+
+**Category**: Technical Debt
+**Effort**: Medium
+**Impact**: Medium
+
+**Description**: `backup.service.ts` declares `fetchTripWithRelatedData(): Promise<Record<string, unknown> | null>`,
+throwing away the precise type Prisma already infers. `transformTripToBackupFormat` then re-establishes
+the shape with **73 `as` assertions**. Flagged by automatic code review 2026-07-25; deferred because
+another change was in flight on the same file at the time.
+
+Some of those assertions hide genuine mismatches rather than merely restating a known type — e.g.
+`trip.startDate as string | null` where Prisma returns `Date | null`. These currently "work" only
+because `JSON.stringify` serialises `Date` to a string on the way out, so the in-memory type is a lie.
+
+**Approach**:
+
+- Extract the 169-line `include` object to a named const (`tripBackupInclude`)
+- Derive `type TripWithRelations = Prisma.TripGetPayload<{ include: typeof tripBackupInclude }> & { photos: BackupPhoto[] }`
+- Change both signatures to use it, then delete the now-redundant assertions
+
+**Notes**: A spike confirmed the type resolves cleanly once the const is extracted — the only blocker
+was the missing named include. The unknown is how many `Date`→`string` / `Decimal`→`number` mismatches
+surface as real errors; resolving those means correcting `BackupTrip`'s field types. `FlexibleDateSchema`
+in `backup.types.ts` is existing precedent for accepting both. Touches the backup/restore round-trip,
+so pair it with a full backup → wipe → restore test.
+
+---
+
 ## Quick Reference
 
 ### By Implementation Effort

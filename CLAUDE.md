@@ -21,67 +21,30 @@ All documentation is organized in the `docs/` folder. Start with the [Documentat
 | **Debug issues** | [Debugging & Optimization](docs/guides/DEBUGGING_AND_OPTIMIZATION.md), [Debugger Agent](.agents/DEBUGGER.md) |
 | **Optimize code** | [Debugging & Optimization](docs/guides/DEBUGGING_AND_OPTIMIZATION.md), [Code Optimizer Agent](.agents/CODE_OPTIMIZER.md) |
 
-## Documentation Index
-
-- **Architecture**: [Backend](docs/architecture/BACKEND_ARCHITECTURE.md), [Frontend](docs/architecture/FRONTEND_ARCHITECTURE.md), [Database Schema](docs/architecture/DATABASE_SCHEMA.md), [Style Guide](docs/architecture/STYLE_GUIDE.md), [Optimization Plan](docs/architecture/BACKEND_OPTIMIZATION_PLAN.md)
-- **API**: [Complete API Reference](docs/api/README.md)
-- **Development**: [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md), [Feature Backlog](docs/development/FEATURE_BACKLOG.md), [UI/UX Plan](docs/development/UI_UX_IMPROVEMENT_PLAN.md), [Bugs](docs/development/BUGS.md)
-- **Guides**: [Build & Push](docs/guides/BUILD_AND_PUSH.md), [Development Workflows](docs/guides/DEVELOPMENT_WORKFLOWS.md), [Debugging & Optimization](docs/guides/DEBUGGING_AND_OPTIMIZATION.md), [Testing](docs/guides/TESTING_GUIDE.md), [Routing Setup](docs/guides/ROUTING_SETUP.md)
-- **Plans**: [Google Maps](docs/plans/GOOGLE_MAPS_INTEGRATION_PLAN.md), [Google Photos](docs/plans/GOOGLE_PHOTOS_INTEGRATION_PLAN.md), [UI Improvements](docs/plans/UI_IMPROVEMENTS.md)
-- **User Guide**: [End-user documentation](docs/user-guide/README.md)
-- **Agents**: [Debugger](.agents/DEBUGGER.md), [Code Optimizer](.agents/CODE_OPTIMIZER.md)
-- **Root**: [Deployment](DEPLOYMENT.md), [Quick Start Production](QUICK_START_PRODUCTION.md), [Release Checklist](RELEASE_CHECKLIST.md), [README](README.md)
-
 ## Project Overview
 
 Travel Life is a full-stack travel documentation application built with a React frontend and Express backend. The application enables users to track trips with rich features including locations, photos, transportation, lodging, journal entries, and more.
 
-### Current Implementation Status
-
-**The application is production-ready for personal use.** See [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md) for detailed progress and [Feature Backlog](docs/development/FEATURE_BACKLOG.md) for future enhancements.
-
-**Core Features (100% Complete)**: Authentication, Trip Management, Locations, Photos (local + Immich), Transportation, Lodging, Activities, Journal Entries, Tags & Companions, Entity Linking, Timeline View, User Settings, Dark Mode, Checklists, Trip Health Check, Trip Collaboration, Backup & Restore, Advanced Dashboard, Global Search, Places Visited Map, Calendar View, Batch Operations, Auto-Save Drafts, Weather Integration, Flight Tracking, PDF + AI Import.
-
-**Still in Progress**: Public trip sharing, Google Photos integration, PDF export, Offline support / PWA, Mobile app.
-
-## Tech Stack
-
-**Backend**: Node.js + Express + TypeScript + PostgreSQL (PostGIS) + Prisma ORM + JWT Authentication
-**Frontend**: React + TypeScript + Vite + Tailwind CSS + TanStack Query + Zustand + Leaflet
-**Infrastructure**: Docker Compose with self-hosted Nominatim for geocoding
+**The application is production-ready for personal use.** See [Implementation Status](docs/development/IMPLEMENTATION_STATUS.md) for feature-by-feature progress and [Feature Backlog](docs/development/FEATURE_BACKLOG.md) for what's planned.
 
 ## Development Commands
 
+Standard scripts (`dev`, `build`, `test`, `lint`, `preview`, `prisma:*`) are in each `package.json`. The non-obvious ones:
+
 ### Backend (run from `backend/` directory)
 
-- `npm run dev` - Start development server with hot reload (tsx watch)
-- `npm run build` - Compile TypeScript to JavaScript
 - `npm run build:strict` - Compile with full strict type-checking (`build` uses relaxed `tsconfig.prod.json`)
-- `npm start` - Run production build
-- `npm test` - Run Jest tests
-- `npm run prisma:generate` - Generate Prisma Client after schema changes
-- `npm run prisma:migrate` - Create and run a new migration
-- `npm run prisma:studio` - Open Prisma Studio GUI at `http://localhost:5555`
 
 ### Frontend (run from `frontend/` directory)
 
-- `npm run dev` - Start Vite dev server (typically runs on port 5173 locally, 3000 in Docker)
-- `npm run build` - Build production bundle (⚠️ TypeScript errors are NON-blocking)
+- `npm run build` - ⚠️ TypeScript errors are NON-blocking
 - `npm run build:strict` - Build with strict type-checking (TypeScript errors DO fail the build)
-- `npm run lint` - Run ESLint
-- `npm test` - Run Vitest tests (`test:ui`, `test:coverage` also available)
-- `npm run preview` - Preview production build
 - `npm run analyze` - Build with bundle analyzer (`analyze:win` on Windows)
 
 ### Docker Commands (run from project root)
 
 **Development:**
 
-- `docker-compose up -d` - Start all services (db, backend, frontend, nominatim)
-- `docker-compose down` - Stop all services
-- `docker ps` - Check running containers
-- `docker logs travel-life-backend` - View backend logs
-- `docker logs travel-life-frontend` - View frontend logs
 - `docker exec -it travel-life-backend npx prisma migrate dev` - Run migrations in container
 
 **Production:**
@@ -145,21 +108,11 @@ The backend follows a layered architecture: **Routes -> Controllers -> Services 
 - [Frontend Architecture](docs/architecture/FRONTEND_ARCHITECTURE.md) - Components, hooks, state management, API communication, routing
 - [Database Schema](docs/architecture/DATABASE_SCHEMA.md) - 32 models, relationships, entity linking, design patterns
 
-Cross-cutting backend code lives in dedicated `src/` subdirectories: `src/auth/` (auth helpers), `src/errors/` (the `AppError` class), `src/http/` (HTTP helpers), `src/prisma/` (Prisma client), `src/security/` (security utilities), `src/validation/` (Zod schemas), and `src/services/_shared/` (shared service helpers). There is no `src/utils/` directory.
+Cross-cutting backend code lives in dedicated `src/` subdirectories. **There is no `src/utils/` directory** — put shared helpers in the existing topical directory, don't create one.
 
 ## Development Workflows
 
-For step-by-step guides on working with specific features, see [Development Workflows](docs/guides/DEVELOPMENT_WORKFLOWS.md). Covers:
-
-- Adding a new feature (full stack)
-- Working with UI Components and the Style Guide
-- Database changes and migrations
-- Authentication (backend routes + frontend state)
-- Entity Linking (backend API + frontend components)
-- Timeline and Printable Itinerary
-- Album Pagination (paged, not infinite scroll)
-- Checklists, Trip Health Check, Backup & Restore
-- Trip Collaboration, Global Search, Batch Operations, Auto-Save Drafts
+For step-by-step guides on working with specific features, see [Development Workflows](docs/guides/DEVELOPMENT_WORKFLOWS.md).
 
 ## Debugging and Optimization
 
@@ -173,48 +126,8 @@ For debugging issues and code optimization guidance, see [Debugging & Optimizati
 
 ## Environment Setup
 
-### Required Environment Variables
-
-**Backend** (`.env` file in `backend/`):
-
-```bash
-DATABASE_URL=postgresql://user:password@localhost:5432/travel_life?schema=public
-JWT_SECRET=<strong-secret>
-JWT_REFRESH_SECRET=<strong-secret>
-NOMINATIM_URL=http://localhost:8080
-```
-
-**Recommended Backend Variables**:
-
-- `OPENROUTESERVICE_API_KEY` - **For accurate road distance calculations (car/bike/walking)**. Without this, distances fall back to straight-line (Haversine) calculations. See [ROUTING_SETUP.md](docs/guides/ROUTING_SETUP.md)
-
-**Optional Backend Variables**:
-
-- `IMMICH_API_URL` and `IMMICH_API_KEY` - For Immich integration
-- `OPENWEATHERMAP_API_KEY` - For weather data
-- `AVIATIONSTACK_API_KEY` - For flight tracking
-- `AI_ENABLED` - Enables AI features such as PDF import and AI suggestions (set to `false` to disable; defaults to enabled)
-- `LLM_API_KEY` - API key for the LLM provider (powers PDF import and AI suggestions)
-- `LLM_BASE_URL` - LLM API base URL (defaults to `https://api.openai.com/v1`)
-- `LLM_MODEL` - LLM model name (defaults to `gpt-4o-mini`)
-- `LLM_MAX_TOKENS` - Maximum tokens per LLM request (defaults to `2048`)
-- `AI_RATE_LIMIT_MAX` - Maximum AI requests per window (defaults to `20`)
-- `AI_RATE_LIMIT_WINDOW_MS` - AI rate limit window in milliseconds (defaults to `3600000`)
-- `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID` - Enable OAuth/OIDC single sign-on (works with Google, Authentik, Keycloak, or any OIDC provider). Register `<BASE_URL>/api/auth/oidc/callback` as the redirect URI with the provider. PKCE (S256) is always used
-- `OIDC_CLIENT_SECRET` - Client secret for confidential clients; omit for public clients (PKCE-only)
-- `OIDC_REDIRECT_URL` - Override the OIDC callback URL (defaults to `<BASE_URL>/api/auth/oidc/callback`)
-- `OIDC_SCOPES` - OIDC scopes to request (defaults to `openid profile email`)
-- `OIDC_BUTTON_TEXT` - Label for the SSO button on the login page (defaults to `Sign in with SSO`)
-- `OIDC_AUTO_PROVISION` - Create accounts automatically on first SSO sign-in (defaults to enabled; set to `false` to require an existing account). `FRONTEND_URL` must point at the app for post-login redirects
-- `OIDC_TRUST_EMAIL` - Set to `true` to allow linking to an existing account by email when the IdP omits the `email_verified` claim entirely (e.g. some self-hosted providers). An explicit `email_verified: false` is always rejected. Only enable when you fully control the IdP
-- `DISABLE_PASSWORD_LOGIN` - Set to `true` for SSO-only mode: password login and registration are refused and hidden from the login page. Ignored unless OIDC is enabled (lockout guard)
-
-**Frontend** (`.env` file in `frontend/`):
-
-```bash
-VITE_API_URL=http://localhost:5000/api
-VITE_UPLOAD_URL=http://localhost:5000/uploads
-```
+Environment variables are documented where they apply, and load automatically when you work in that
+directory: [`backend/CLAUDE.md`](backend/CLAUDE.md) and [`frontend/CLAUDE.md`](frontend/CLAUDE.md).
 
 ### Port Configuration
 

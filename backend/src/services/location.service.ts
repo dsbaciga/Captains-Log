@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import tzlookup from 'tz-lookup';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../config/logger';
@@ -298,16 +299,16 @@ export class LocationService {
       }
     }
 
-    const updateData = buildConditionalUpdateData(data, {
+    const updateData: Prisma.LocationUncheckedUpdateInput = buildConditionalUpdateData(data, {
       transformers: {
-        visitDatetime: (val) => val ? new Date(val as string | number | Date) : null,
+        visitDatetime: (val: string | null) => (val ? new Date(val) : null),
       },
     });
 
     const updatedLocation = await prisma.location.update({
       where: { id: locationId },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
-      data: updateData as any,
+      data: updateData,
       include: {
         category: true,
         parent: {

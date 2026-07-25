@@ -44,8 +44,10 @@ import memoriesRoutes from './routes/memories.routes';
 import publicShareRoutes from './routes/share.routes';
 import { generalRateLimiter } from './middleware/rateLimit';
 import expenseRoutes, { budgetSummaryRouter } from './routes/expense.routes';
+import savedLinkRoutes, { tripSavedLinksRouter } from './routes/savedLink.routes';
 import pushRoutes from './routes/push.routes';
 import { pdfImportService } from './services/pdfImport.service';
+import emailIngestService from './services/emailIngest.service';
 
 // Read version from package.json
 let packageJson: { version: string; name: string };
@@ -285,6 +287,8 @@ app.use('/api/backup', backupRoutes);
 app.use('/api/trips/:tripId/links', entityLinkRoutes);
 app.use('/api/trips/:tripId/expenses', expenseRoutes);
 app.use('/api/trips/:tripId', budgetSummaryRouter);
+app.use('/api/saved-links', savedLinkRoutes);
+app.use('/api/trips/:tripId/saved-links', tripSavedLinksRouter);
 app.use('/api', collaborationRoutes);
 app.use('/api', flightTrackingRoutes);
 app.use('/api', packingSuggestionRoutes);
@@ -322,6 +326,9 @@ const startServer = async () => {
 
     // Reset any PDF imports stuck in PARSING from a previous server crash
     await pdfImportService.resetStaleParsing();
+
+    // Same for email ingests stuck mid-flight
+    await emailIngestService.resetStaleProcessing();
 
     app.listen(PORT, () => {
       logger.info(`Server running in ${config.nodeEnv} mode on port ${PORT}`);

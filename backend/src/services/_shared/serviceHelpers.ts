@@ -402,29 +402,61 @@ export function buildUpdateData<T extends Record<string, unknown>>(
  * });
  * ```
  */
-export function buildConditionalUpdateData<T extends Record<string, unknown>>(
+/**
+ * Transformers keyed by field name. `undefined` values are skipped before any transformer
+ * runs (an absent field must leave the column unchanged), so a transformer is only ever
+ * called with a defined value — `Exclude` encodes that rather than making every
+ * transformer re-handle a case it cannot receive.
+ */
+export type UpdateTransformers<T> = {
+  [K in keyof T]?: (value: Exclude<T[K], undefined>) => unknown;
+};
+
+/**
+ * Result of applying `transformers` to `T`: transformed keys take their transformer's
+ * return type, everything else is unchanged. This is what lets callers assign the result
+ * straight to a Prisma update input without a cast, even when a transformer changes the
+ * runtime type (e.g. a date string becoming a Date).
+ */
+export type TransformedUpdateData<T, TR> = {
+  [K in keyof T]: K extends keyof TR
+    ? TR[K] extends (value: never) => infer R
+      ? R
+      : T[K]
+    : T[K];
+};
+
+export function buildConditionalUpdateData<
+  T extends Record<string, unknown>,
+  TR extends UpdateTransformers<T> = Record<never, never>,
+>(
   data: Partial<T>,
   options: {
     emptyStringToNull?: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Transformers accept various input types
-    transformers?: Record<string, (value: any) => any>;
+    transformers?: TR;
   } = {}
-): Partial<T> {
-  const { emptyStringToNull = true, transformers = {} } = options;
-  const updateData: Partial<T> = {};
+): Partial<TransformedUpdateData<T, TR>> {
+  const { emptyStringToNull = true, transformers = {} as UpdateTransformers<T> } = options;
+  const updateData: Record<string, unknown> = {};
 
   for (const key in data) {
     const value = data[key];
 
     // Only include defined values (skip undefined to preserve existing values)
     if (value !== undefined) {
+      // The check above guarantees `value` is defined, which is exactly what
+      // UpdateTransformers promises a transformer receives — but TypeScript cannot narrow
+      // a generic indexed access, so the call is widened here. Callers still get the
+      // precise parameter type from UpdateTransformers.
+      const transform = transformers[key] as ((value: unknown) => unknown) | undefined;
+
       // Apply custom transformer if exists
-      if (transformers[key]) {
-        updateData[key] = transformers[key](value) as T[Extract<keyof T, string>];
+      if (transform) {
+        updateData[key] = transform(value);
       }
       // Convert empty strings to null
       else if (emptyStringToNull && value === '') {
-        updateData[key] = null as T[Extract<keyof T, string>];
+        updateData[key] = null;
       }
       // Include as-is
       else {
@@ -433,7 +465,11 @@ export function buildConditionalUpdateData<T extends Record<string, unknown>>(
     }
   }
 
-  return updateData;
+  // The object is built key-by-key from a dynamic loop, which TypeScript cannot relate to
+  // the mapped return type. This single assertion is the one place that gap is bridged —
+  // it replaces the per-call-site casts (several of them `as any`) that callers previously
+  // needed, so mistakes now surface at the call site instead of being silently swallowed.
+  return updateData as Partial<TransformedUpdateData<T, TR>>;
 }
 
 /**

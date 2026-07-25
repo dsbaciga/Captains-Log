@@ -6,13 +6,15 @@ import userService from '../services/user.service';
 import shareService from '../services/share.service';
 import type { ShareInfo } from '../services/share.service';
 import { TripStatus, PrivacyLevel } from '../types/trip';
-import type { TripStatusType, PrivacyLevelType } from '../types/trip';
+import type { Trip, TripStatusType, PrivacyLevelType } from '../types/trip';
+import type { TripCoverSource } from '../lib/tripCover';
 import type { TravelPartnerSettings, TripTypeCategory } from '../types/user';
 import toast from 'react-hot-toast';
 import { useConfetti } from '../hooks/useConfetti';
 import { useScrollStore } from '../store/scrollStore';
 import { useAuthStore } from '../store/authStore';
 import MarkdownEditor from '../components/MarkdownEditor';
+import TripCoverImageField from '../components/TripCoverImageField';
 import { useNavigationBlock } from '../hooks/useNavigationBlock';
 
 interface FormErrors {
@@ -45,6 +47,7 @@ export default function TripFormPage() {
   const [travelPartnerSettings, setTravelPartnerSettings] = useState<TravelPartnerSettings | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [shareInfo, setShareInfo] = useState<ShareInfo>({ shareEnabled: false, shareToken: null, sharePath: null });
+  const [cover, setCover] = useState<TripCoverSource>({});
   const [shareLoading, setShareLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
 
@@ -126,6 +129,11 @@ export default function TripFormPage() {
       setTripType(loadedTripType);
       setTripTypeEmoji(trip.tripTypeEmoji || '');
       originalStatusRef.current = trip.status;
+      setCover({
+        coverImagePath: trip.coverImagePath,
+        coverImageThumbnailPath: trip.coverImageThumbnailPath,
+        coverPhoto: trip.coverPhoto,
+      });
 
       // Share link state (the backend only returns shareToken to the owner)
       setIsOwner(currentUser?.id === trip.userId);
@@ -206,6 +214,22 @@ export default function TripFormPage() {
       toast.success('Share link copied to clipboard');
     } catch {
       toast.error('Failed to copy link');
+    }
+  };
+
+  /**
+   * Cover changes are saved immediately by their own endpoints (like the share link
+   * controls), so they bypass the form's submit handler and dirty tracking.
+   */
+  const handleCoverChange = (updatedTrip: Trip) => {
+    setCover({
+      coverImagePath: updatedTrip.coverImagePath,
+      coverImageThumbnailPath: updatedTrip.coverImageThumbnailPath,
+      coverPhoto: updatedTrip.coverPhoto,
+    });
+    queryClient.invalidateQueries({ queryKey: ['trips'] });
+    if (id) {
+      queryClient.invalidateQueries({ queryKey: ['trip', parseInt(id)] });
     }
   };
 
@@ -417,6 +441,15 @@ export default function TripFormPage() {
                 label="Description"
               />
             </div>
+
+            {/* Cover photo needs an existing trip to attach the upload to */}
+            {isEdit && id && (
+              <TripCoverImageField
+                tripId={parseInt(id)}
+                cover={cover}
+                onChange={handleCoverChange}
+              />
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

@@ -276,7 +276,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="input"
               rows={3}
-              placeholder="Additional information\u2026"
+              placeholder="Additional information…"
               maxLength={1000}
             />
           </div>
@@ -412,7 +412,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search companions by name\u2026"
+              placeholder="Search companions by name…"
               aria-label="Search companions"
               className="input w-full"
             />

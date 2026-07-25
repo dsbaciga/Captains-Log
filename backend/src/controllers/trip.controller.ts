@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import tripService from '../services/trip.service';
 import tripValidatorService from '../services/tripValidator.service';
+import tripCoverImageService from '../services/tripCoverImage.service';
 import {
   createTripSchema,
   updateTripSchema,
@@ -8,6 +9,7 @@ import {
   duplicateTripSchema,
 } from '../types/trip.types';
 import { z } from 'zod';
+import { AppError } from '../errors/errors';
 import logger from '../config/logger';
 import { parseId } from '../http/parseId';
 import { asyncHandler } from '../http/asyncHandler';
@@ -84,6 +86,38 @@ export const tripController = {
     const trip = await tripService.updateCoverPhoto(userId, tripId, photoId);
 
     logger.info(`Cover photo updated for trip ${tripId} by user ${userId}`);
+
+    res.status(200).json({
+      status: 'success',
+      data: trip,
+    });
+  }),
+
+  uploadCoverImage: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.id, 'tripId');
+
+    if (!req.file) {
+      throw new AppError('No image provided', 400);
+    }
+
+    const trip = await tripCoverImageService.uploadCoverImage(userId, tripId, req.file);
+
+    logger.info(`Cover image uploaded for trip ${tripId} by user ${userId}`);
+
+    res.status(200).json({
+      status: 'success',
+      data: trip,
+    });
+  }),
+
+  deleteCoverImage: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const tripId = parseId(req.params.id, 'tripId');
+
+    const trip = await tripCoverImageService.deleteCoverImage(userId, tripId);
+
+    logger.info(`Cover image removed for trip ${tripId} by user ${userId}`);
 
     res.status(200).json({
       status: 'success',

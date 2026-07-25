@@ -8,10 +8,9 @@ import {
   DocumentValidityIssue,
   DocumentAlert,
   maskDocumentNumber,
-  DocumentType,
 } from '../types/travelDocument.types';
 import { buildConditionalUpdateData, tripDateTransformer } from '../services/_shared/serviceHelpers';
-import { TravelDocument } from '@prisma/client';
+import { Prisma, TravelDocument } from '@prisma/client';
 
 /**
  * Calculates the expiration status based on days until expiry
@@ -58,7 +57,7 @@ function toResponse(doc: TravelDocument): TravelDocumentResponse {
   return {
     id: doc.id,
     userId: doc.userId,
-    type: doc.type as DocumentType,
+    type: doc.type,
     issuingCountry: doc.issuingCountry,
     documentNumber: maskDocumentNumber(doc.documentNumber),
     issueDate: doc.issueDate ? doc.issueDate.toISOString().split('T')[0] : null,
@@ -94,11 +93,17 @@ class TravelDocumentService {
           userId,
           type: data.type,
           issuingCountry: data.issuingCountry,
+          // `||` rather than `??` is deliberate: an empty string is stored as NULL so a
+          // cleared field reads back as absent. This matches the update path, where
+          // buildConditionalUpdateData's emptyStringToNull does the same conversion.
           documentNumber: data.documentNumber || null,
           issueDate: data.issueDate ? tripDateTransformer(data.issueDate) : null,
           expiryDate: data.expiryDate ? tripDateTransformer(data.expiryDate) : null,
           name: data.name,
           notes: data.notes || null,
+          // Both fields are optional on the API but NOT NULL in the database; these
+          // mirror the schema defaults (isPrimary false, alertDaysBefore 180) so an
+          // omitted field is stored the same way whichever path creates the row.
           isPrimary: data.isPrimary ?? false,
           alertDaysBefore: data.alertDaysBefore ?? 180,
         },
@@ -171,16 +176,16 @@ class TravelDocumentService {
         });
       }
 
-      const updateData = buildConditionalUpdateData(data, {
+      const updateData: Prisma.TravelDocumentUncheckedUpdateInput = buildConditionalUpdateData(data, {
         transformers: {
-          issueDate: (val) => tripDateTransformer(val as string | null),
-          expiryDate: (val) => tripDateTransformer(val as string | null),
+          issueDate: (val: string | null) => tripDateTransformer(val),
+          expiryDate: (val: string | null) => tripDateTransformer(val),
         },
       });
 
       return tx.travelDocument.update({
         where: { id: documentId },
-        data: updateData as Parameters<typeof prisma.travelDocument.update>[0]['data'],
+        data: updateData,
       });
     });
 
@@ -292,7 +297,7 @@ class TravelDocumentService {
       if (!doc.expiryDate) {
         issues.push({
           documentId: doc.id,
-          documentType: doc.type as DocumentType,
+          documentType: doc.type,
           documentName: doc.name,
           issue: 'no_expiry_date',
           expiryDate: null,
@@ -312,7 +317,7 @@ class TravelDocumentService {
       if (daysUntilExpiry !== null && daysUntilExpiry <= 0) {
         issues.push({
           documentId: doc.id,
-          documentType: doc.type as DocumentType,
+          documentType: doc.type,
           documentName: doc.name,
           issue: 'expired',
           expiryDate: expiry.toISOString().split('T')[0],
@@ -326,7 +331,7 @@ class TravelDocumentService {
       if (trip.endDate && expiry <= trip.endDate) {
         issues.push({
           documentId: doc.id,
-          documentType: doc.type as DocumentType,
+          documentType: doc.type,
           documentName: doc.name,
           issue: 'expires_during_trip',
           expiryDate: expiry.toISOString().split('T')[0],
@@ -344,7 +349,7 @@ class TravelDocumentService {
         if (expiry < sixMonthsAfterTrip && doc.type === 'PASSPORT') {
           issues.push({
             documentId: doc.id,
-            documentType: doc.type as DocumentType,
+            documentType: doc.type,
             documentName: doc.name,
             issue: 'expires_soon',
             expiryDate: expiry.toISOString().split('T')[0],

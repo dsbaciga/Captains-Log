@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  optionalNullable,
   optionalNumericId,
   requiredStringWithMax,
   optionalStringWithMax,
@@ -28,7 +27,8 @@ export const createLocationSchema = z.object({
 
 export const updateLocationSchema = z.object({
   parentId: optionalNumericId(),
-  name: optionalNullable(requiredStringWithMax(500)),
+  // name is NOT NULL in the database, so it may be omitted but never cleared
+  name: requiredStringWithMax(500).optional(),
   address: optionalNotes(), // String, optional, nullable
   latitude: optionalLatitude(),
   longitude: optionalLongitude(),
@@ -46,7 +46,8 @@ export const createLocationCategorySchema = z.object({
 });
 
 export const updateLocationCategorySchema = z.object({
-  name: optionalNullable(requiredStringWithMax(255)),
+  // name is NOT NULL in the database, so it may be omitted but never cleared
+  name: requiredStringWithMax(255).optional(),
   icon: optionalStringWithMax(100),
   color: optionalStringWithMax(7),
 });

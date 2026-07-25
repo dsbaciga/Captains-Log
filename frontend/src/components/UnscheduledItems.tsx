@@ -499,8 +499,8 @@ export default function UnscheduledItems({
       if (isCreating) {
         await transportationService.createTransportation({ ...updateData, tripId });
         toast.success("Transportation created");
-      } else {
-        await transportationService.updateTransportation(editingId!, updateData);
+      } else if (editingId !== null) {
+        await transportationService.updateTransportation(editingId, updateData);
         toast.success("Transportation updated");
       }
 
@@ -545,8 +545,23 @@ export default function UnscheduledItems({
       const newLocationId = lodgingForm.values.locationId || null;
 
       if (isCreating) {
-        // Create the lodging first
-        const createdLodging = await lodgingService.createLodging({ ...updateData, tripId });
+        // createLodgingSchema declares its optional fields `.optional()` without
+        // `.nullable()`, so an explicit null is rejected — omit empty fields
+        // instead. Update keeps the nulls, where they mean "clear this field".
+        const createdLodging = await lodgingService.createLodging({
+          tripId,
+          type: updateData.type,
+          name: updateData.name,
+          address: updateData.address ?? undefined,
+          checkInDate: updateData.checkInDate ?? undefined,
+          checkOutDate: updateData.checkOutDate ?? undefined,
+          timezone: updateData.timezone ?? undefined,
+          confirmationNumber: updateData.confirmationNumber ?? undefined,
+          cost: updateData.cost ?? undefined,
+          currency: updateData.currency ?? undefined,
+          bookingUrl: updateData.bookingUrl ?? undefined,
+          notes: updateData.notes ?? undefined,
+        });
         toast.success("Lodging created");
 
         // Then create location link if a location was selected
@@ -563,9 +578,9 @@ export default function UnscheduledItems({
             toast.error('Lodging created but failed to link location');
           }
         }
-      } else {
+      } else if (editingId !== null) {
         // Update existing lodging
-        await lodgingService.updateLodging(editingId!, updateData);
+        await lodgingService.updateLodging(editingId, updateData);
         toast.success("Lodging updated");
 
         // Handle location link changes via entity linking
@@ -577,7 +592,7 @@ export default function UnscheduledItems({
             if (originalLodgingLocationId) {
               await entityLinkService.deleteLink(tripId, {
                 sourceType: 'LODGING',
-                sourceId: editingId!,
+                sourceId: editingId,
                 targetType: 'LOCATION',
                 targetId: originalLodgingLocationId,
               });
@@ -586,7 +601,7 @@ export default function UnscheduledItems({
             if (newLocationId) {
               await entityLinkService.createLink(tripId, {
                 sourceType: 'LODGING',
-                sourceId: editingId!,
+                sourceId: editingId,
                 targetType: 'LOCATION',
                 targetId: newLocationId,
               });

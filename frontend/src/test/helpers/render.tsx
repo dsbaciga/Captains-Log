@@ -3,7 +3,7 @@
  * for testing React components in the Travel Life application.
  */
 
-import React, { type ReactElement, type ReactNode } from 'react';
+import { type ReactElement, type ReactNode } from 'react';
 import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -195,7 +195,7 @@ export async function waitForLoadingToComplete(
   const loading = container.querySelector(loadingSelector);
   if (loading) {
     await new Promise((resolve) => {
-      const observer = new MutationObserver((mutations, obs) => {
+      const observer = new MutationObserver((_mutations, obs) => {
         if (!container.querySelector(loadingSelector)) {
           obs.disconnect();
           resolve(undefined);

@@ -105,11 +105,17 @@ function saveSyncStatus(tripId: string, status: Partial<SyncStatus>): void {
     const stored = localStorage.getItem(SYNC_STATUS_KEY);
     const statuses: Record<string, SyncStatus> = stored ? JSON.parse(stored) : {};
 
-    statuses[tripId] = {
+    // Defaults go in their own object so they read as a base layer rather than
+    // as properties that the following spreads silently overwrite.
+    const defaults: SyncStatus = {
       tripId,
       isSyncing: false,
       lastError: null,
       lastErrorAt: null,
+    };
+
+    statuses[tripId] = {
+      ...defaults,
       ...statuses[tripId],
       ...status,
     };

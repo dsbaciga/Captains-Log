@@ -8,7 +8,7 @@ import type { BulkEntityType } from './BulkActionBar';
  * `key` is constrained to the keys of the caller's update type `T`, so a
  * typo'd or stale field key is caught at compile time.
  */
-interface BulkEditField<T> {
+export interface BulkEditField<T> {
   /** Unique field key */
   key: keyof T & string;
   /** Display label */

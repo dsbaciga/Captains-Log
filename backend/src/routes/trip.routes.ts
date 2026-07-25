@@ -1,9 +1,52 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import crypto from 'crypto';
+import fs from 'fs';
 import { tripController } from '../controllers/trip.controller';
 import { shareController } from '../controllers/share.controller';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
+
+// Temp directory for uploaded cover images before processing
+const TEMP_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'temp');
+
+// Ensure temp directory exists (bind mounts on NAS systems may deny writes — don't
+// crash the server; the upload route will surface the error instead)
+if (!fs.existsSync(TEMP_UPLOAD_DIR)) {
+  try {
+    fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
+  } catch (err) {
+    console.warn(`⚠ Cannot create temp upload directory: ${(err as Error).message}`);
+    console.warn('  Trip cover image uploads will be unavailable until directory permissions are fixed.');
+  }
+}
+
+// Cover images are uploaded to disk first, then re-encoded by the service layer.
+// Content is validated with magic bytes there — the mimetype check here is preliminary.
+const uploadCoverImage = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, TEMP_UPLOAD_DIR);
+    },
+    filename: (_req, file, cb) => {
+      const random = crypto.randomBytes(8).toString('hex');
+      const ext = path.extname(file.originalname);
+      cb(null, `temp-cover-${Date.now()}-${random}${ext}`);
+    },
+  }),
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB — covers are single stills, not videos
+  },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
 
 // All trip routes require authentication
 router.use(authenticate);
@@ -102,8 +145,12 @@ router.get('/:id', tripController.getTripById);
 router.put('/:id', tripController.updateTrip);
 router.delete('/:id', tripController.deleteTrip);
 
-// Cover photo route
+// Cover photo routes
+// PUT /cover-photo picks an existing trip photo; POST /cover-image uploads a standalone
+// image that never enters the trip's photo library. Setting either one clears the other.
 router.put('/:id/cover-photo', tripController.updateCoverPhoto);
+router.post('/:id/cover-image', uploadCoverImage.single('image'), tripController.uploadCoverImage);
+router.delete('/:id/cover-image', tripController.deleteCoverImage);
 
 // Trip validation routes
 router.get('/:id/validate', tripController.validateTrip);

@@ -57,8 +57,8 @@ describe('backupService', () => {
       const mockUrl = 'blob:http://localhost/mock-url';
       const mockCreateObjectURL = vi.fn(() => mockUrl);
       const mockRevokeObjectURL = vi.fn();
-      global.URL.createObjectURL = mockCreateObjectURL;
-      global.URL.revokeObjectURL = mockRevokeObjectURL;
+      globalThis.URL.createObjectURL = mockCreateObjectURL;
+      globalThis.URL.revokeObjectURL = mockRevokeObjectURL;
 
       const mockClick = vi.fn();
       const mockAppendChild = vi.fn();

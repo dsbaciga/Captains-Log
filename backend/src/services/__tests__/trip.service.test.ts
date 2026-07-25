@@ -63,6 +63,10 @@ jest.mock('@prisma/client', () => {
   return {
     Prisma: {
       Decimal: MockDecimal,
+      // Sentinel Prisma uses to write SQL NULL into a nullable Json column. It must be
+      // a distinct object so tests can tell it apart from a plain null/undefined.
+      DbNull: { __prismaSentinel: 'DbNull' },
+      JsonNull: { __prismaSentinel: 'JsonNull' },
     },
   };
 });
@@ -96,6 +100,7 @@ const mockPrisma = {
   photo: {
     findFirst: jest.fn(),
     findMany: jest.fn(),
+    create: jest.fn(),
     createMany: jest.fn(),
   },
   location: {
@@ -143,6 +148,10 @@ const mockPrisma = {
     findMany: jest.fn(),
     createMany: jest.fn(),
   },
+  savedLink: {
+    findMany: jest.fn(),
+    create: jest.fn(),
+  },
   tripCollaborator: {
     create: jest.fn(),
   },
@@ -155,6 +164,7 @@ jest.mock('../../config/database', () => ({
 }));
 
 // Import after mocks are set up
+import { Prisma } from '@prisma/client';
 import { TripService } from '../trip.service';
 import { TripStatus, PrivacyLevel } from '../../types/trip.types';
 import { companionService } from '../companion.service';
@@ -214,9 +224,11 @@ describe('Trip Service', () => {
     tripService = new TripService();
 
     // Default mock implementations
-    (companionService.getMyselfCompanion as jest.Mock).mockResolvedValue(mockMyselfCompanion);
+    jest.mocked(companionService.getMyselfCompanion).mockResolvedValue(mockMyselfCompanion);
     mockPrisma.user.findUnique.mockResolvedValue({ id: mockUserId, timezone: 'UTC' });
     mockPrisma.tripCompanion.create.mockResolvedValue({ id: 1, tripId: mockTripId, companionId: 10 });
+    // Trips have no saved links by default; duplicateTrip queries these.
+    mockPrisma.savedLink.findMany.mockResolvedValue([]);
 
     // Mock $transaction to execute the callback with a tx client that mirrors mockPrisma
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
@@ -1083,24 +1095,25 @@ describe('Trip Service', () => {
 
     it('should create new trip with duplicated title', async () => {
       mockPrisma.trip.findFirst.mockResolvedValue(sourceTripWithEntities);
+      // Spread first: mockTrip carries the *source* trip's id, so it must not
+      // overwrite the new trip's id
       mockPrisma.trip.create.mockResolvedValue({
-        id: 200,
         ...mockTrip,
+        id: 200,
         title: 'Copy of Test Trip',
         status: TripStatus.DREAM,
       });
-      mockPrisma.location.createMany.mockResolvedValue({ count: 1 });
-      mockPrisma.location.findMany.mockResolvedValue([{ id: 10, name: 'Paris', latitude: 48.8566, longitude: 2.3522 }]);
-      mockPrisma.photo.createMany.mockResolvedValue({ count: 1 });
-      mockPrisma.photo.findMany.mockResolvedValue([{ id: 20, localPath: '/photos/1.jpg', immichAssetId: null }]);
-      mockPrisma.activity.createMany.mockResolvedValue({ count: 1 });
-      mockPrisma.activity.findMany.mockResolvedValue([{ id: 30, name: 'Museum Visit', cost: 25, manualOrder: 1 }]);
+      // Entities are created one at a time so each new ID can be mapped back to its
+      // source ID; the mocks must therefore return a row per create() call
+      mockPrisma.location.create.mockResolvedValue({ id: 10 });
+      mockPrisma.photo.create.mockResolvedValue({ id: 20 });
+      mockPrisma.activity.create.mockResolvedValue({ id: 30 });
       mockPrisma.tripTagAssignment.createMany.mockResolvedValue({ count: 1 });
       mockPrisma.tripCompanion.createMany.mockResolvedValue({ count: 1 });
       mockPrisma.entityLink.findMany.mockResolvedValue([]);
       mockPrisma.trip.findUnique.mockResolvedValue({
-        id: 200,
         ...mockTrip,
+        id: 200,
         title: 'Copy of Test Trip',
         coverPhoto: null,
         bannerPhoto: null,
@@ -1120,9 +1133,22 @@ describe('Trip Service', () => {
       });
 
       expect(result.title).toBe('Copy of Test Trip');
-      expect(mockPrisma.location.createMany).toHaveBeenCalled();
-      expect(mockPrisma.photo.createMany).toHaveBeenCalled();
-      expect(mockPrisma.activity.createMany).toHaveBeenCalled();
+
+      // Each source entity is copied onto the new trip, not the source trip
+      expect(mockPrisma.location.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.location.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ tripId: 200, name: 'Paris' }),
+      });
+
+      expect(mockPrisma.photo.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.photo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ tripId: 200, localPath: '/photos/1.jpg' }),
+      });
+
+      expect(mockPrisma.activity.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.activity.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ tripId: 200, name: 'Museum Visit' }),
+      });
     });
 
     it('should copy tags when specified', async () => {
@@ -1151,11 +1177,11 @@ describe('Trip Service', () => {
 
     it('should add Myself companion when not copying companions', async () => {
       mockPrisma.trip.findFirst.mockResolvedValue({ ...mockTrip });
-      mockPrisma.trip.create.mockResolvedValue({ id: 200, ...mockTrip });
+      mockPrisma.trip.create.mockResolvedValue({ ...mockTrip, id: 200 });
       mockPrisma.entityLink.findMany.mockResolvedValue([]);
       mockPrisma.trip.findUnique.mockResolvedValue({
-        id: 200,
         ...mockTrip,
+        id: 200,
         coverPhoto: null,
         bannerPhoto: null,
         tagAssignments: [],
@@ -1168,7 +1194,128 @@ describe('Trip Service', () => {
       });
 
       expect(companionService.getMyselfCompanion).toHaveBeenCalledWith(mockUserId);
-      expect(mockPrisma.tripCompanion.create).toHaveBeenCalled();
+      // Myself must be attached to the duplicate, not the source trip
+      expect(mockPrisma.tripCompanion.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tripId: 200,
+          companionId: mockMyselfCompanion.id,
+        }),
+      });
+    });
+
+    it('should copy albums with their photo assignments', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue({
+        ...mockTrip,
+        photos: [
+          {
+            id: 1,
+            source: 'local',
+            immichAssetId: null,
+            localPath: '/photos/1.jpg',
+            thumbnailPath: '/thumbs/1.jpg',
+            caption: null,
+            latitude: null,
+            longitude: null,
+            takenAt: null,
+          },
+        ],
+      });
+      mockPrisma.trip.create.mockResolvedValue({ ...mockTrip, id: 200 });
+      mockPrisma.photo.create.mockResolvedValue({ id: 20 });
+
+      // First call loads the source albums (with nested assignments); the second is the
+      // query-back that maps old album IDs to new ones
+      mockPrisma.photoAlbum.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 60,
+            name: 'Day 1',
+            description: null,
+            coverPhotoId: null,
+            photoAssignments: [{ photoId: 1, sortOrder: 0 }],
+          },
+        ])
+        .mockResolvedValue([{ id: 61, name: 'Day 1', description: null }]);
+      mockPrisma.photoAlbum.createMany.mockResolvedValue({ count: 1 });
+      mockPrisma.photoAlbumAssignment.createMany.mockResolvedValue({ count: 1 });
+      mockPrisma.entityLink.findMany.mockResolvedValue([]);
+      mockPrisma.trip.findUnique.mockResolvedValue({
+        ...mockTrip,
+        id: 200,
+        coverPhoto: null,
+        bannerPhoto: null,
+        tagAssignments: [],
+        companionAssignments: [],
+      });
+
+      await tripService.duplicateTrip(mockUserId, mockTripId, {
+        title: 'Copied Trip',
+        copyEntities: { photos: true, photoAlbums: true },
+      });
+
+      // Albums are loaded by a dedicated query so photoAssignments stays typed
+      expect(mockPrisma.photoAlbum.findMany).toHaveBeenNthCalledWith(1, {
+        where: { tripId: mockTripId },
+        include: { photoAssignments: true },
+      });
+
+      // The assignment is remapped onto the new album and the new photo
+      expect(mockPrisma.photoAlbumAssignment.createMany).toHaveBeenCalledWith({
+        data: [{ albumId: 61, photoId: 20, sortOrder: 0 }],
+      });
+    });
+
+    it('writes SQL NULL for checklist item metadata that is unset', async () => {
+      const sourceChecklist = {
+        id: 70,
+        name: 'Packing',
+        description: null,
+        type: 'packing',
+        isDefault: false,
+        sortOrder: 1,
+        items: [
+          { name: 'Passport', description: null, isChecked: true, isDefault: false, sortOrder: 0, metadata: null },
+          { name: 'Camera', description: null, isChecked: false, isDefault: false, sortOrder: 1, metadata: { brand: 'Fuji' } },
+        ],
+      };
+
+      mockPrisma.trip.findFirst.mockResolvedValue({ ...mockTrip });
+      mockPrisma.trip.create.mockResolvedValue({ ...mockTrip, id: 200 });
+      // Source load, then the query-back keyed on name|type|description
+      mockPrisma.checklist.findMany
+        .mockResolvedValueOnce([sourceChecklist])
+        .mockResolvedValue([{ id: 71, name: 'Packing', description: null, type: 'packing' }]);
+      mockPrisma.checklist.createMany.mockResolvedValue({ count: 1 });
+      mockPrisma.checklistItem.createMany.mockResolvedValue({ count: 2 });
+      mockPrisma.entityLink.findMany.mockResolvedValue([]);
+      mockPrisma.trip.findUnique.mockResolvedValue({
+        ...mockTrip,
+        id: 200,
+        coverPhoto: null,
+        bannerPhoto: null,
+        tagAssignments: [],
+        companionAssignments: [],
+      });
+
+      await tripService.duplicateTrip(mockUserId, mockTripId, {
+        title: 'Copied Trip',
+        copyEntities: { checklists: true },
+      });
+
+      expect(mockPrisma.checklist.findMany).toHaveBeenNthCalledWith(1, {
+        where: { tripId: mockTripId },
+        include: { items: true },
+      });
+
+      // Prisma rejects a bare null for a nullable Json column; it must be DbNull.
+      // Items that do have metadata must pass through untouched.
+      const [itemArgs] = mockPrisma.checklistItem.createMany.mock.calls[0] as [
+        { data: Array<{ name: string; checklistId: number; metadata: unknown }> },
+      ];
+      expect(itemArgs.data).toHaveLength(2);
+      expect(itemArgs.data.every((i) => i.checklistId === 71)).toBe(true);
+      expect(itemArgs.data.find((i) => i.name === 'Passport')?.metadata).toBe(Prisma.DbNull);
+      expect(itemArgs.data.find((i) => i.name === 'Camera')?.metadata).toEqual({ brand: 'Fuji' });
     });
   });
 
@@ -1268,9 +1415,11 @@ describe('Trip Service', () => {
 
       const result = await tripService.updateCoverPhoto(mockUserId, mockTripId, photoId);
 
+      // Picking a gallery photo also clears any uploaded cover image — the two sources
+      // are mutually exclusive
       expect(mockPrisma.trip.update).toHaveBeenCalledWith({
         where: { id: mockTripId },
-        data: { coverPhotoId: photoId },
+        data: { coverPhotoId: photoId, coverImagePath: null, coverImageThumbnailPath: null },
         include: { coverPhoto: true },
       });
       expect(result.coverPhotoId).toBe(photoId);

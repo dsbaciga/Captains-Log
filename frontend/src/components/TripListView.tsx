@@ -29,8 +29,8 @@ const TripListView: React.FC<TripListViewProps> = ({
   trips,
   coverPhotoUrls,
   onDelete,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onStatusChange,
+  // onStatusChange is accepted for API parity with the other trip views but is
+  // unused here — the list view has no inline status control.
   onNavigateAway,
   sortColumn,
   sortDirection,

@@ -111,10 +111,10 @@ describe("ActivityManager", () => {
     vi.mocked(activityService.getActivitiesByTrip).mockResolvedValue([]);
     vi.mocked(userService.getMe).mockResolvedValue(mockUser);
     vi.mocked(entityLinkService.getLinksFrom).mockResolvedValue([]);
-    vi.mocked(entityLinkService.getTripLinkSummary).mockResolvedValue({
-      tripId,
-      entities: {},
-    });
+    // TripLinkSummary is a Record keyed by `${EntityType}:${id}`; an empty object
+    // is the correct "no links" value. (The old { tripId, entities } shape
+    // predates that type.)
+    vi.mocked(entityLinkService.getTripLinkSummary).mockResolvedValue({});
   });
 
   afterEach(() => {

@@ -49,7 +49,8 @@ export const config = {
   cookie: {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     sameSite: ((): 'strict' | 'lax' | 'none' => {
-      const val = process.env.COOKIE_SAME_SITE ?? 'strict';
+      // Empty counts as unset — compose passes through blank vars as ''.
+      const val = process.env.COOKIE_SAME_SITE || 'strict';
       if (val === 'strict' || val === 'lax' || val === 'none') {
         return val; // narrowed to 'strict' | 'lax' | 'none' by the equality checks
       }
@@ -148,6 +149,20 @@ export const config = {
     apiKey: process.env.LLM_API_KEY || '',
     model: process.env.LLM_MODEL || 'gpt-4o-mini',
     maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '2048', 10),
+  },
+
+  // Saved-link email ingest (IMAP).
+  // Inert unless user + password are set — see emailIngest.service.isConfigured().
+  imap: {
+    host: process.env.IMAP_HOST || 'imap.gmail.com',
+    port: parseInt(process.env.IMAP_PORT || '993', 10),
+    user: process.env.IMAP_USER || '',
+    // Gmail requires an App Password here; the account password will not work.
+    password: process.env.IMAP_PASSWORD || '',
+    // Gmail exposes "archive" as this folder. Processed mail is MOVED here.
+    archiveFolder: process.env.IMAP_ARCHIVE_FOLDER || '[Gmail]/All Mail',
+    pollCron: process.env.IMAP_POLL_CRON || '*/5 * * * *',
+    maxLinksPerMessage: parseInt(process.env.IMAP_MAX_LINKS || '20', 10),
   },
 };
 

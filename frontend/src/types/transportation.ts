@@ -86,23 +86,26 @@ export type FlightTracking = {
   createdAt: string;
 };
 
+// Optional fields mirror createTransportationSchema on the backend, which
+// declares them `.nullable().optional()` — an explicit null is accepted and
+// stored as null, so the frontend may send either null or omit the field.
 export type CreateTransportationInput = {
   tripId: number;
   type: TransportationType;
-  fromLocationId?: number;
-  toLocationId?: number;
-  fromLocationName?: string;
-  toLocationName?: string;
-  departureTime?: string;
-  arrivalTime?: string;
-  startTimezone?: string;
-  endTimezone?: string;
-  carrier?: string;
-  vehicleNumber?: string;
-  confirmationNumber?: string;
-  cost?: number;
-  currency?: string;
-  notes?: string;
+  fromLocationId?: number | null;
+  toLocationId?: number | null;
+  fromLocationName?: string | null;
+  toLocationName?: string | null;
+  departureTime?: string | null;
+  arrivalTime?: string | null;
+  startTimezone?: string | null;
+  endTimezone?: string | null;
+  carrier?: string | null;
+  vehicleNumber?: string | null;
+  confirmationNumber?: string | null;
+  cost?: number | null;
+  currency?: string | null;
+  notes?: string | null;
 };
 
 export type UpdateTransportationInput = {

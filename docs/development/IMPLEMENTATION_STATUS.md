@@ -283,6 +283,21 @@ Version: v5.4.1
 - [x] PDF import button, upload modal, and review modal UI (`PdfImportButton.tsx`, `PdfUploadModal.tsx`, `PdfReviewModal.tsx`)
 - [x] Replaces the previous email-import feature (removed in v5.4.0)
 
+### Saved Links
+
+- [x] `SavedLink` model with a nullable `tripId` (an unassigned "inbox")
+- [x] CRUD endpoints (`savedLink.controller.ts`, `savedLink.service.ts`)
+- [x] Open Graph metadata scraping with SSRF guards on every redirect hop (`linkMetadata.service.ts`)
+- [x] Tracking-parameter stripping (`utm_*`, `fbclid`, `gclid`, …) on write
+- [x] Attachable to any trip entity via the `SAVED_LINK` entity type
+- [x] Trip "Links" tab and inbox triage page (`SavedLinksManager.tsx`, `SavedLinksInboxPage.tsx`)
+- [x] Backup/restore and trip-duplication coverage (backup format v1.4.0)
+- [x] **Email ingest** — IMAP polling of a dedicated mailbox captures forwarded links
+- [x] Sender verification against the account email plus per-user trusted aliases
+- [x] Tracker/unsubscribe/CDN denylist with a per-message link cap
+- [x] Processed mail archived (not deleted); re-delivery is deduped on Message-ID
+- [ ] Plus-address routing (`mailbox+trip-slug@`) straight to a trip (planned)
+
 ### LLM Settings / AI Integration
 
 - [x] LLM service for AI-powered features (`llm.service.ts`)
@@ -492,6 +507,7 @@ These are non-critical improvements identified during code reviews that would en
 | Packing Suggestions    | 100%       |
 | PDF + AI Import         | 100%       |
 | LLM / AI Integration   | 100%       |
+| Saved Links            | 90%        |
 | UI/UX Polish           | 98%        |
 | Advanced Features      | 90%        |
 | External Integrations  | 80%        |

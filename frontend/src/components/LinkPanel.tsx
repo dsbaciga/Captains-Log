@@ -122,9 +122,12 @@ export default function LinkPanel({
 
   // Group links by entity type
   const groupedLinks = useMemo(() => {
-    if (!linksData) return {};
-
-    const groups: Record<EntityType, EnrichedEntityLink[]> = {
+    // Listed explicitly so the Record<EntityType, …> annotation makes TypeScript
+    // enforce completeness: adding a backend EntityType fails the build here
+    // instead of silently leaving a key undefined at runtime. Returning this
+    // (rather than a bare `{}`) when there is no data keeps the memo's type a
+    // full Record, so callers can index it by EntityType.
+    const emptyGroups = (): Record<EntityType, EnrichedEntityLink[]> => ({
       PHOTO: [],
       LOCATION: [],
       ACTIVITY: [],
@@ -132,16 +135,26 @@ export default function LinkPanel({
       TRANSPORTATION: [],
       JOURNAL_ENTRY: [],
       PHOTO_ALBUM: [],
+      SAVED_LINK: [],
+      PDF_IMPORT: [],
+    });
+
+    if (!linksData) return emptyGroups();
+
+    const groups = emptyGroups();
+
+    const addToGroup = (type: EntityType, link: EnrichedEntityLink) => {
+      groups[type].push(link);
     };
 
     // Links FROM this entity (this entity is the source)
     for (const link of linksData.linksFrom) {
-      groups[link.targetType].push(link);
+      addToGroup(link.targetType, link);
     }
 
     // Links TO this entity (this entity is the target)
     for (const link of linksData.linksTo) {
-      groups[link.sourceType].push(link);
+      addToGroup(link.sourceType, link);
     }
 
     return groups;
@@ -250,7 +263,10 @@ export default function LinkPanel({
   // Focus management and keyboard handling
   useEffect(() => {
     // Store the currently focused element to restore later
-    triggerElementRef.current = document.activeElement as HTMLElement;
+    // activeElement is Element | null and can be an SVGElement, so narrow rather
+    // than assert — restoring focus is only meaningful on an HTMLElement.
+    triggerElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     // Focus the first focusable element (Add Link button)
     setTimeout(() => {
@@ -275,17 +291,20 @@ export default function LinkPanel({
     const linksByType = new Map<EntityType, Set<number>>();
     if (!linksData) return linksByType;
 
-    for (const link of linksData.linksFrom) {
-      if (!linksByType.has(link.targetType)) {
-        linksByType.set(link.targetType, new Set());
+    const idsFor = (type: EntityType) => {
+      let ids = linksByType.get(type);
+      if (!ids) {
+        ids = new Set();
+        linksByType.set(type, ids);
       }
-      linksByType.get(link.targetType)!.add(link.targetId);
+      return ids;
+    };
+
+    for (const link of linksData.linksFrom) {
+      idsFor(link.targetType).add(link.targetId);
     }
     for (const link of linksData.linksTo) {
-      if (!linksByType.has(link.sourceType)) {
-        linksByType.set(link.sourceType, new Set());
-      }
-      linksByType.get(link.sourceType)!.add(link.sourceId);
+      idsFor(link.sourceType).add(link.sourceId);
     }
     return linksByType;
   }, [linksData]);
@@ -391,6 +410,10 @@ export default function LinkPanel({
                         const displayName = getEntityDisplayName(linkedEntity, linkedEntityId);
                         const isPhoto = linkedEntityType === 'PHOTO';
                         const thumbnailUrl = linkedEntity?.thumbnailPath;
+                        // Null when no asset URL can be built. Rendering src="" would
+                        // make the browser re-request the current page and show a
+                        // broken image, so fall through to the placeholder instead.
+                        const localPhotoUrl = thumbnailUrl ? getFullAssetUrl(thumbnailUrl) : null;
 
                         return (
                           <div
@@ -416,16 +439,16 @@ export default function LinkPanel({
                                     alt={displayName}
                                     className="w-12 h-12 object-cover rounded flex-shrink-0"
                                   />
-                                ) : thumbnailUrl.includes('/api/immich/') ? (
-                                  // Immich photo loading placeholder
-                                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0 animate-pulse" />
-                                ) : (
+                                ) : localPhotoUrl && !thumbnailUrl.includes('/api/immich/') ? (
                                   // Local photo - use direct URL
                                   <img
-                                    src={getFullAssetUrl(thumbnailUrl) || ''}
+                                    src={localPhotoUrl}
                                     alt={displayName}
                                     className="w-12 h-12 object-cover rounded flex-shrink-0"
                                   />
+                                ) : (
+                                  // Immich photo still loading, or no resolvable URL
+                                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0 animate-pulse" />
                                 )
                               ) : (
                                 <span className="text-lg flex-shrink-0">

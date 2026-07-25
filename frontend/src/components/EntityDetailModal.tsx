@@ -11,6 +11,9 @@ import lodgingService from '../services/lodging.service';
 import transportationService from '../services/transportation.service';
 import journalEntryService from '../services/journalEntry.service';
 import photoService from '../services/photo.service';
+import savedLinkService from '../services/savedLink.service';
+import type { SavedLink } from '../types/savedLink';
+import { savedLinkDisplayTitle } from '../types/savedLink';
 import type { Location } from '../types/location';
 import type { Activity } from '../types/activity';
 import type { Lodging } from '../types/lodging';
@@ -36,6 +39,8 @@ const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
   TRANSPORTATION: 'transportation',
   JOURNAL_ENTRY: 'journal',
   PHOTO_ALBUM: null, // Albums have their own route
+  SAVED_LINK: 'links',
+  PDF_IMPORT: null, // Imports are managed outside the trip page
 };
 
 // Format date for display
@@ -124,6 +129,33 @@ function DetailRow({ label, value, className = '' }: { label: string; value: Rea
 }
 
 // Entity-specific detail components
+function SavedLinkDetails({ entity }: { entity: SavedLink }) {
+  return (
+    <dl className="divide-y divide-gray-200 dark:divide-gray-700">
+      <DetailRow label="Title" value={savedLinkDisplayTitle(entity)} />
+      <DetailRow
+        label="URL"
+        value={
+          <a
+            href={entity.url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="text-blue-600 hover:underline dark:text-blue-400 break-all"
+          >
+            {entity.url}
+          </a>
+        }
+      />
+      <DetailRow label="Site" value={entity.siteName} />
+      <DetailRow label="Description" value={entity.description} />
+      <DetailRow
+        label="Notes"
+        value={entity.notes ? <MarkdownRenderer content={entity.notes} compact /> : null}
+      />
+    </dl>
+  );
+}
+
 function LocationDetails({ entity }: { entity: Location }) {
   return (
     <dl className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -429,7 +461,7 @@ function AlbumDetails({ entity }: { entity: AlbumWithPhotos }) {
 async function fetchEntityData(
   entityType: EntityType,
   entityId: number
-): Promise<Location | Activity | Lodging | Transportation | JournalEntry | Photo | AlbumWithPhotos> {
+): Promise<Location | Activity | Lodging | Transportation | JournalEntry | Photo | AlbumWithPhotos | SavedLink> {
   switch (entityType) {
     case 'LOCATION':
       return locationService.getLocationById(entityId);
@@ -445,6 +477,8 @@ async function fetchEntityData(
       return photoService.getPhotoById(entityId);
     case 'PHOTO_ALBUM':
       return photoService.getAlbumById(entityId);
+    case 'SAVED_LINK':
+      return savedLinkService.getSavedLinkById(entityId);
     default:
       throw new Error(`Unknown entity type: ${entityType}`);
   }
@@ -565,6 +599,8 @@ export default function EntityDetailModal({
         return <PhotoDetails entity={entity as Photo} />;
       case 'PHOTO_ALBUM':
         return <AlbumDetails entity={entity as AlbumWithPhotos} />;
+      case 'SAVED_LINK':
+        return <SavedLinkDetails entity={entity as SavedLink} />;
       default:
         return <p>Unknown entity type</p>;
     }

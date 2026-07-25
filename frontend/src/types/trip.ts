@@ -35,6 +35,12 @@ export type Trip = {
   excludeFromAutoShare: boolean;
   archived: boolean;
   coverPhotoId: number | null;
+  /**
+   * Standalone uploaded cover image, not part of the trip's photo library.
+   * Mutually exclusive with coverPhotoId — setting one clears the other.
+   */
+  coverImagePath: string | null;
+  coverImageThumbnailPath: string | null;
   bannerPhotoId: number | null;
   seriesId: number | null;
   seriesOrder: number | null;

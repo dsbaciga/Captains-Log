@@ -14,6 +14,8 @@ class TripService {
     limit?: number;
     tripType?: string;
     archived?: 'true' | 'false' | 'all';
+    /** Mirrors the backend's sort enum in trip.types.ts. */
+    sort?: 'startDate-desc' | 'startDate-asc' | 'title-asc' | 'title-desc' | 'status';
   }): Promise<TripListResponse> {
     const response = await axios.get('/trips', { params });
     return response.data;
@@ -35,6 +37,24 @@ class TripService {
 
   async updateCoverPhoto(tripId: number, photoId: number | null): Promise<Trip> {
     const response = await axios.put(`/trips/${tripId}/cover-photo`, { photoId });
+    return response.data;
+  }
+
+  /**
+   * Upload a standalone cover image. The image is stored outside the trip's photo
+   * library, so it never appears in photos or memories. Replaces any existing cover.
+   */
+  async uploadCoverImage(tripId: number, file: File): Promise<Trip> {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await axios.post(`/trips/${tripId}/cover-image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  async deleteCoverImage(tripId: number): Promise<Trip> {
+    const response = await axios.delete(`/trips/${tripId}/cover-image`);
     return response.data;
   }
 

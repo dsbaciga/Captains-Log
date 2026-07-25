@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../errors/errors';
 import { CreateActivityInput, UpdateActivityInput, BulkDeleteActivitiesInput, BulkUpdateActivitiesInput } from '../types/activity.types';
 import {
@@ -155,17 +156,19 @@ class ActivityService {
     }
 
     // Note: Location association is handled via EntityLink system, not direct FK
-    const updateData = buildConditionalUpdateData(data, {
+    const updateData: Prisma.ActivityUncheckedUpdateInput = buildConditionalUpdateData(data, {
       transformers: {
-        startTime: (val) => (val ? new Date(val as string) : null),
-        endTime: (val) => (val ? new Date(val as string) : null),
+        startTime: (val: string | null) => (val ? new Date(val) : null),
+        endTime: (val: string | null) => (val ? new Date(val) : null),
+        // dietaryTags is a nullable Json column: Prisma needs DbNull to write SQL NULL
+        dietaryTags: (val: string[] | null) => val ?? Prisma.DbNull,
       },
     });
 
     const updatedActivity = await prisma.activity.update({
       where: { id: activityId },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- buildConditionalUpdateData returns Partial which is incompatible with Prisma's Exact type
-      data: updateData as any,
+      data: updateData,
       include: {
         parent: {
           select: {

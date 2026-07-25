@@ -11,6 +11,7 @@ import photoService from "../services/photo.service";
 import activityService from "../services/activity.service";
 import transportationService from "../services/transportation.service";
 import lodgingService from "../services/lodging.service";
+import savedLinkService from "../services/savedLink.service";
 import journalService from "../services/journalEntry.service";
 import tagService from "../services/tag.service";
 import companionService from "../services/companion.service";
@@ -43,12 +44,12 @@ const CompanionManager = lazy(() => import("../components/CompanionManager"));
 const LocationManager = lazy(() => import("../components/LocationManager"));
 const CollaboratorsManager = lazy(() => import("../components/CollaboratorsManager"));
 const BudgetManager = lazy(() => import("../components/BudgetManager"));
+const SavedLinksManager = lazy(() => import("../components/SavedLinksManager"));
 import Modal from "../components/Modal";
 import collaborationService from "../services/collaboration.service";
 import type { UserPermission } from "../types/collaboration";
 import ErrorBoundary from "../components/ErrorBoundary";
-import { getFullAssetUrl } from "../lib/config";
-import { getAccessToken } from "../lib/axios";
+import { resolveTripCoverUrl } from "../lib/tripCover";
 const TagsModal = lazy(() => import("../components/TagsModal"));
 import AlbumsSidebar from "../components/AlbumsSidebar";
 import AlbumModal from "../components/AlbumModal";
@@ -92,10 +93,11 @@ type TabId =
   | "transportation"
   | "lodging"
   | "budget"
+  | "links"
   | "unscheduled"
   | "companions";
 
-const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "budget", "unscheduled", "companions"]);
+const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "budget", "links", "unscheduled", "companions"]);
 
 function isTabId(value: string | null | undefined): value is TabId {
   return value != null && VALID_TAB_IDS.has(value);
@@ -201,6 +203,12 @@ export default function TripDetailPage() {
     enabled: !!tripId,
   });
 
+  const { data: savedLinksData } = useQuery({
+    queryKey: ['savedLinks', tripId],
+    queryFn: () => savedLinkService.getSavedLinksByTrip(tripId),
+    enabled: !!tripId,
+  });
+
   const { data: journalData, isLoading: isJournalLoading } = useQuery({
     queryKey: ['journal', tripId],
     queryFn: () => journalService.getJournalEntriesByTrip(tripId),
@@ -255,6 +263,7 @@ export default function TripDetailPage() {
   const transportationCount = useMemo(() => transportationData?.length ?? 0, [transportationData]);
   const unscheduledTransportationCount = useMemo(() => transportationData?.filter(t => !t.departureTime).length ?? 0, [transportationData]);
   const lodgingCount = useMemo(() => lodgingData?.length ?? 0, [lodgingData]);
+  const savedLinksCount = useMemo(() => savedLinksData?.length ?? 0, [savedLinksData]);
   const unscheduledLodgingCount = useMemo(() => lodgingData?.filter(l => !l.checkInDate).length ?? 0, [lodgingData]);
   const unscheduledCount = useMemo(() => unscheduledActivitiesCount + unscheduledTransportationCount + unscheduledLodgingCount, [unscheduledActivitiesCount, unscheduledTransportationCount, unscheduledLodgingCount]);
   const journalCount = useMemo(() => journalData?.length ?? 0, [journalData]);
@@ -537,9 +546,27 @@ export default function TripDetailPage() {
             ),
           },
           {
+            id: "links",
+            label: "Links",
+            count: savedLinksCount,
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m4.5-4.5l1.5-1.5a4 4 0 115.656 5.656l-3 3a4 4 0 01-5.656 0"
+                />
+              </svg>
+            ),
+          },
+          {
             id: "unscheduled",
             label: "Unscheduled",
             count: unscheduledCount,
+            // A filtered view of Activities/Transport/Lodging, so its items are
+            // already counted by those sub-tabs.
+            excludeFromGroupCount: true,
             icon: (
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -668,6 +695,7 @@ export default function TripDetailPage() {
       activitiesCount,
       transportationCount,
       lodgingCount,
+      savedLinksCount,
       unscheduledCount,
       totalPhotosCount,
       journalCount,
@@ -681,6 +709,9 @@ export default function TripDetailPage() {
     if (trip) {
       photosPagination.loadInitial();
     }
+    // `photosPagination` is intentionally omitted: its `loadFunction` is an
+    // inline arrow and `loadPage` depends on `currentPage`, so `loadInitial`
+    // gets a new identity every render. Including it would refetch in a loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip?.id]);
 
@@ -708,6 +739,8 @@ export default function TripDetailPage() {
       unsortedPagination.clear();
       albumPhotosPagination.loadInitial();
     }
+    // The three pagination objects are intentionally omitted for the same
+    // reason as the effect above: unstable identities would refetch in a loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAlbumId, trip?.id]);
 
@@ -727,76 +760,48 @@ export default function TripDetailPage() {
     albumPhotosPagination.items,
   ]);
 
-  // Load cover photo with authentication if needed
+  // Load the cover image — an uploaded cover, a local photo, or an authenticated
+  // Immich fetch, depending on which source the trip uses
+  const coverPhoto = trip?.coverPhoto;
+  const coverImagePath = trip?.coverImagePath;
+  const coverImageThumbnailPath = trip?.coverImageThumbnailPath;
+
   useEffect(() => {
+    let cancelled = false;
+
     const loadCoverPhoto = async () => {
-      if (!trip?.coverPhoto) {
-        // Revoke previous blob URL if any
-        if (coverBlobUrlRef.current) {
-          URL.revokeObjectURL(coverBlobUrlRef.current);
-          coverBlobUrlRef.current = null;
-        }
-        setCoverPhotoUrl(null);
+      const { url, blobUrl } = await resolveTripCoverUrl(
+        { coverPhoto, coverImagePath, coverImageThumbnailPath },
+        { preferThumbnail: false }
+      );
+
+      // A newer run has taken over; don't leak the blob it will never display
+      if (cancelled) {
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
         return;
       }
 
-      const photo = trip.coverPhoto;
-
-      // If it's a local photo, use direct URL
-      if (photo.source === "local" && photo.localPath) {
-        // Revoke previous blob URL if switching from Immich to local
-        if (coverBlobUrlRef.current) {
-          URL.revokeObjectURL(coverBlobUrlRef.current);
-          coverBlobUrlRef.current = null;
-        }
-        setCoverPhotoUrl(getFullAssetUrl(photo.localPath));
-        return;
+      // Revoke the previous blob URL before swapping in the new source
+      if (coverBlobUrlRef.current) {
+        URL.revokeObjectURL(coverBlobUrlRef.current);
+        coverBlobUrlRef.current = null;
       }
 
-      // If it's an Immich photo, fetch with authentication
-      if (photo.source === "immich" && photo.thumbnailPath) {
-        try {
-          const token = getAccessToken();
-          if (!token) return;
-
-          const fullUrl = getFullAssetUrl(photo.thumbnailPath);
-          if (!fullUrl) return;
-
-          const response = await fetch(fullUrl, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (!response.ok) {
-            console.error("Failed to fetch cover photo:", response.status);
-            return;
-          }
-
-          const blob = await response.blob();
-          // Revoke previous blob URL before creating a new one
-          if (coverBlobUrlRef.current) {
-            URL.revokeObjectURL(coverBlobUrlRef.current);
-          }
-          const newBlobUrl = URL.createObjectURL(blob);
-          coverBlobUrlRef.current = newBlobUrl;
-          setCoverPhotoUrl(newBlobUrl);
-        } catch (error) {
-          console.error("Error loading cover photo:", error);
-        }
-      }
+      coverBlobUrlRef.current = blobUrl;
+      setCoverPhotoUrl(url);
     };
 
     loadCoverPhoto();
 
     // Cleanup blob URL when component unmounts or trip changes
     return () => {
+      cancelled = true;
       if (coverBlobUrlRef.current) {
         URL.revokeObjectURL(coverBlobUrlRef.current);
         coverBlobUrlRef.current = null;
       }
     };
-  }, [trip?.coverPhoto]);
+  }, [coverPhoto, coverImagePath, coverImageThumbnailPath]);
 
 
   const handleSelectAlbum = async (albumId: number | null) => {
@@ -1468,7 +1473,7 @@ export default function TripDetailPage() {
                 <ErrorBoundary>
                 <Suspense fallback={<LoadingSpinner.FullPage message="Loading timeline..." />}>
                 <Timeline
-                  tripId={parseInt(id!)}
+                  tripId={tripId}
                   tripTitle={trip.title}
                   tripTimezone={trip.timezone || undefined}
                   userTimezone={userTimezone || undefined}
@@ -1493,7 +1498,7 @@ export default function TripDetailPage() {
                 <ErrorBoundary>
                 <Suspense fallback={<LoadingSpinner.FullPage message="Loading daily view..." />}>
                 <DailyView
-                  tripId={parseInt(id!)}
+                  tripId={tripId}
                   tripTitle={trip.title}
                   tripTimezone={trip.timezone || undefined}
                   userTimezone={userTimezone || undefined}
@@ -2016,6 +2021,22 @@ export default function TripDetailPage() {
               onUpdate={() => {
                 queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
                 queryClient.invalidateQueries({ queryKey: ['budget-summary', tripId] });
+              }}
+            />
+            </Suspense>
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {/* Links Tab */}
+        {activeTab === "links" && (
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
+            <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner.FullPage message="Loading links..." />}>
+            <SavedLinksManager
+              tripId={trip.id}
+              onUpdate={() => {
+                queryClient.invalidateQueries({ queryKey: ['savedLinks', tripId] });
               }}
             />
             </Suspense>

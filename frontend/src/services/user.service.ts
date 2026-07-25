@@ -25,6 +25,17 @@ export interface UpdateLlmSettingsInput {
   llmModel?: string | null;
 }
 
+export interface LinkIngestSettingsResponse {
+  /** Always trusted; shown read-only, not part of the editable list. */
+  accountEmail: string;
+  /** Extra addresses trusted to forward links for this user. */
+  linkIngestSenders: string[];
+  /** The mailbox links are forwarded TO. Server config, null when unset. */
+  ingestMailbox: string | null;
+  /** False when the server has no IMAP credentials configured. */
+  ingestEnabled: boolean;
+}
+
 export interface UpdateSmtpSettingsInput {
   smtpProvider?: string | null;
   smtpHost?: string | null;
@@ -93,6 +104,18 @@ const userService = {
 
   async updateLlmSettings(data: UpdateLlmSettingsInput): Promise<LlmSettingsResponse & { message: string }> {
     const response = await axios.put('/users/llm-settings', data);
+    return response.data;
+  },
+
+  async getLinkIngestSettings(): Promise<LinkIngestSettingsResponse> {
+    const response = await axios.get('/users/link-ingest');
+    return response.data;
+  },
+
+  async updateLinkIngestSettings(
+    linkIngestSenders: string[]
+  ): Promise<LinkIngestSettingsResponse> {
+    const response = await axios.put('/users/link-ingest', { linkIngestSenders });
     return response.data;
   },
 

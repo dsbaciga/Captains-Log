@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Activity, CreateActivityInput, UpdateActivityInput } from "../types/activity";
 import type { Location } from "../types/location";
+import { createLocationStub } from "../utils/locationHelpers";
 import type { ActivityCategory } from "../types/user";
 import activityService from "../services/activity.service";
 import entityLinkService from "../services/entityLink.service";
@@ -24,7 +25,10 @@ import { useBulkSelection } from "../hooks/useBulkSelection";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
 import BulkActionBar from "./BulkActionBar";
-import BulkEditModal from "./BulkEditModal";
+import BulkEditModal, { type BulkEditField } from "./BulkEditModal";
+
+/** Fields editable via bulk edit; shared by the field list and the modal generic. */
+type ActivityBulkEdit = { category?: string; notes?: string; timezone?: string };
 import DietaryBadges from "./DietaryBadges";
 import { DIETARY_TAGS } from "../constants/dietaryTags";
 import MarkdownRenderer from "./MarkdownRenderer";
@@ -199,21 +203,7 @@ export default function ActivityManager({
   };
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
-    const newLocation: Location = {
-      id: locationId,
-      name: locationName,
-      tripId,
-      parentId: null,
-      address: null,
-      latitude: null,
-      longitude: null,
-      categoryId: null,
-      visitDatetime: null,
-      visitDurationMinutes: null,
-      notes: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const newLocation = createLocationStub(locationId, locationName, tripId);
     setLocalLocations([...localLocations, newLocation]);
   };
 
@@ -431,7 +421,7 @@ export default function ActivityManager({
   };
 
   // Build bulk edit field options
-  const bulkEditFields = useMemo(() => [
+  const bulkEditFields = useMemo<BulkEditField<ActivityBulkEdit>[]>(() => [
     {
       key: "category",
       label: "Category",
@@ -891,7 +881,7 @@ export default function ActivityManager({
       )}
 
       {/* Bulk Edit Modal */}
-      <BulkEditModal<{ category?: string; notes?: string; timezone?: string }>
+      <BulkEditModal<ActivityBulkEdit>
         isOpen={showBulkEditModal}
         onClose={() => setShowBulkEditModal(false)}
         entityType="activity"

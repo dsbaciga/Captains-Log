@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  optionalNullable,
   requiredStringWithMax,
   optionalStringWithMax,
   optionalDatetime,
@@ -81,7 +80,8 @@ export const createLodgingSchema = z.object({
 // Note: Location association is handled via EntityLink system, not direct FK
 export const updateLodgingSchema = z.object({
   type: lodgingTypeEnum.optional(),
-  name: optionalNullable(requiredStringWithMax(500)),
+  // name is NOT NULL in the database, so it may be omitted but never cleared
+  name: requiredStringWithMax(500).optional(),
   address: optionalStringWithMax(1000),
   checkInDate: optionalDatetime(),
   checkOutDate: optionalDatetime(),

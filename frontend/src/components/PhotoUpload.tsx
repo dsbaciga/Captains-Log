@@ -523,7 +523,7 @@ export default function PhotoUpload({
                 onChange={(e) => setCaption(e.target.value)}
                 rows={2}
                 className="input"
-                placeholder="Add a caption\u2026"
+                placeholder="Add a caption…"
                 disabled={isUploading}
               />
             </div>

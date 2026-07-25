@@ -5,6 +5,13 @@ export interface SubTab {
   label: string;
   count?: number;
   icon?: React.ReactNode;
+  /**
+   * Omit this sub-tab's count from its parent group's total. Set it on sub-tabs
+   * that re-present items already counted by a sibling — e.g. "Unscheduled",
+   * which is a filtered view of Activities/Transport/Lodging — so the group
+   * badge doesn't count the same item twice.
+   */
+  excludeFromGroupCount?: boolean;
 }
 
 export interface TabGroupItem {
@@ -39,7 +46,10 @@ export default function TabGroup({
   const getGroupCount = (tab: TabGroupItem): number => {
     if (tab.count !== undefined) return tab.count;
     if (tab.subTabs) {
-      return tab.subTabs.reduce((sum, sub) => sum + (sub.count || 0), 0);
+      return tab.subTabs.reduce(
+        (sum, sub) => (sub.excludeFromGroupCount ? sum : sum + (sub.count || 0)),
+        0
+      );
     }
     return 0;
   };

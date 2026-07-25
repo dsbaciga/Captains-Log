@@ -47,6 +47,8 @@ function transformTripToBackupFormat(trip: Record<string, unknown>): BackupTrip 
     status: trip.status as string,
     privacyLevel: trip.privacyLevel as string,
     coverPhotoId: trip.coverPhotoId as number | null,
+    coverImagePath: trip.coverImagePath as string | null,
+    coverImageThumbnailPath: trip.coverImageThumbnailPath as string | null,
     bannerPhotoId: trip.bannerPhotoId as number | null,
     addToPlacesVisited: trip.addToPlacesVisited as boolean | undefined,
     tripType: trip.tripType as string | null,
@@ -124,6 +126,8 @@ function transformTripToBackupFormat(trip: Record<string, unknown>): BackupTrip 
       languageCode: tl.languageCode,
       language: tl.language,
     })),
+    // Saved reference links attached to this trip
+    savedLinks: trip.savedLinks as BackupTrip['savedLinks'],
   };
 }
 
@@ -328,6 +332,19 @@ async function fetchTripWithRelatedData(tripId: number): Promise<Record<string, 
         select: {
           languageCode: true,
           language: true,
+        },
+      },
+      savedLinks: {
+        select: {
+          id: true, // For EntityLink mapping on restore
+          url: true,
+          title: true,
+          description: true,
+          siteName: true,
+          imageUrl: true,
+          notes: true,
+          source: true,
+          metadataStatus: true,
         },
       },
     },

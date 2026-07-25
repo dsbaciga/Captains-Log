@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, forwardRef } from "react";
 import type { Activity } from "../../types/activity";
 import type { Location } from "../../types/location";
+import { createLocationStub } from "../../utils/locationHelpers";
 import type { ActivityCategory } from "../../types/user";
 import { useFormFields } from "../../hooks/useFormFields";
 import { useFieldErrors } from "../../hooks/useFieldErrors";
@@ -310,21 +311,7 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
   }, [values.startDate, values.startTime, values.allDay, values.unscheduled, editingActivity, handleChange]);
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
-    const newLocation: Location = {
-      id: locationId,
-      name: locationName,
-      tripId,
-      parentId: null,
-      address: null,
-      latitude: null,
-      longitude: null,
-      categoryId: null,
-      visitDatetime: null,
-      visitDurationMinutes: null,
-      notes: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const newLocation = createLocationStub(locationId, locationName, tripId);
     setLocalLocations([...localLocations, newLocation]);
     handleChange("locationId", locationId);
     setShowLocationQuickAdd(false);
@@ -443,7 +430,7 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
               aria-describedby={fieldErrors.errors.name ? "activity-name-error" : undefined}
               required
               disabled={isSubmitting}
-              placeholder="Activity name\u2026"
+              placeholder="Activity name…"
             />
             {fieldErrors.touched.name && fieldErrors.errors.name && (
               <p id="activity-name-error" className="text-red-600 dark:text-red-400 text-xs mt-1">
@@ -835,7 +822,7 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
           value={values.notes}
           onChange={(val) => handleChange("notes", val)}
           rows={3}
-          placeholder="Additional notes\u2026"
+          placeholder="Additional notes…"
           disabled={isSubmitting}
           label="Notes"
           compact

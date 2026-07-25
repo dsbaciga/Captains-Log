@@ -832,7 +832,7 @@ export default function LodgingManager({
               value={values.notes}
               onChange={(val) => handleChange("notes", val)}
               rows={3}
-              placeholder="Additional notes\u2026"
+              placeholder="Additional notes…"
               label="Notes"
               compact
             />

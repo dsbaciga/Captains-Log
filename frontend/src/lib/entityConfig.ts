@@ -28,6 +28,8 @@ export const ENTITY_TYPE_CONFIG: Record<EntityType, EntityTypeConfig> = {
   TRANSPORTATION: { label: 'Transportation', pluralLabel: 'Transportation', emoji: '🚗', color: 'orange' },
   JOURNAL_ENTRY: { label: 'Journal Entry', pluralLabel: 'Journal Entries', emoji: '📝', color: 'yellow' },
   PHOTO_ALBUM: { label: 'Album', pluralLabel: 'Albums', emoji: '📸', color: 'pink' },
+  PDF_IMPORT: { label: 'PDF Import', pluralLabel: 'PDF Imports', emoji: '📄', color: 'gray' },
+  SAVED_LINK: { label: 'Link', pluralLabel: 'Links', emoji: '🔗', color: 'teal' },
 };
 
 // =============================================================================
@@ -46,11 +48,16 @@ export const ENTITY_TYPE_DISPLAY_ORDER: EntityType[] = [
   'PHOTO',
   'PHOTO_ALBUM',
   'JOURNAL_ENTRY',
+  'SAVED_LINK',
+  // PDF_IMPORT is a provenance marker written by the import pipeline, not a
+  // user-facing link. Listed last so it renders after real content.
+  'PDF_IMPORT',
 ];
 
 /**
  * All entity types that can be selected as link targets
  * PHOTO_ALBUM is now included - albums can be linked to other entities
+ * PDF_IMPORT is excluded: it is created by the import pipeline, never chosen
  */
 export const LINKABLE_ENTITY_TYPES: EntityType[] = [
   'LOCATION',
@@ -60,6 +67,7 @@ export const LINKABLE_ENTITY_TYPES: EntityType[] = [
   'PHOTO',
   'PHOTO_ALBUM',
   'JOURNAL_ENTRY',
+  'SAVED_LINK',
 ];
 
 // =============================================================================
@@ -148,6 +156,16 @@ const COLOR_MAP: Record<string, ColorClasses> = {
     ring: 'ring-pink-400',
     focus: 'focus:ring-2 focus:ring-pink-400 focus:ring-offset-1 focus:outline-none',
   },
+  teal: {
+    bg: 'bg-teal-100',
+    bgHover: 'hover:bg-teal-200 dark:hover:bg-teal-800/50',
+    bgDark: 'dark:bg-teal-900/50',
+    text: 'text-teal-800',
+    textDark: 'dark:text-teal-200',
+    border: 'border-teal-300 dark:border-teal-700',
+    ring: 'ring-teal-400',
+    focus: 'focus:ring-2 focus:ring-teal-400 focus:ring-offset-1 focus:outline-none',
+  },
 };
 
 /**
@@ -211,6 +229,8 @@ export const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
   TRANSPORTATION: 'transportation',
   JOURNAL_ENTRY: 'journal',
   PHOTO_ALBUM: 'photos', // Albums are in the photos tab
+  SAVED_LINK: 'links',
+  PDF_IMPORT: null, // No trip tab: imports are managed outside the trip page
 };
 
 // =============================================================================

@@ -38,22 +38,22 @@ describe('PhotoGallery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const localStorageMock = (function () {
-  let store = {};
-  return {
-    getItem(key) {
-      return store[key] || null;
-    },
-    setItem(key, value) {
-      store[key] = value.toString();
-    },
-    clear() {
-      store = {};
-    },
-  };
-})();
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
+      let store: Record<string, string> = {};
+      return {
+        getItem(key: string): string | null {
+          return store[key] ?? null;
+        },
+        setItem(key: string, value: unknown): void {
+          store[key] = String(value);
+        },
+        clear(): void {
+          store = {};
+        },
+      };
+    })();
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+    });
   });
 
   it('should not load all thumbnails at once', async () => {

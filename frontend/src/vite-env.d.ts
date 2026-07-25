@@ -7,8 +7,6 @@ interface Window {
   workbox?: import('workbox-window').Workbox;
 }
 
-declare module 'react' {
-  interface CSSProperties {
-    [key: `--${string}`]: string | number | undefined;
-  }
-}
+// NOTE: keep this file free of top-level imports/exports — it must stay a global
+// script for the declarations above to be global. Module augmentations (e.g. for
+// 'react') belong in their own module file; see ./types/react-css-properties.d.ts.
