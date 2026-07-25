@@ -1,6 +1,6 @@
 # Feature Backlog
 
-**Last Updated**: 2026-05-15
+**Last Updated**: 2026-07-25
 
 This document consolidates all feature ideas and future enhancements for Travel Life. Features are organized by priority and category.
 
