@@ -8,6 +8,7 @@ import { useImmichThumbnailCache, isImmichPhoto } from '../hooks/useImmichThumbn
 import PhotoLightbox from './PhotoLightbox';
 import EmptyState, { EmptyIllustrations } from './EmptyState';
 import toast from 'react-hot-toast';
+import { formatDateOnly } from '../utils/timezone';
 
 interface PhotoTimelineProps {
   tripId: number;
@@ -55,19 +56,15 @@ export default function PhotoTimeline({
 
   // Format date for display using the trip's timezone
   const formatDateForDisplay = useCallback((dateStr: string): string => {
-    // Parse the YYYY-MM-DD date and format it for display
-    // Use noon UTC to avoid timezone edge cases when formatting
-    const date = new Date(dateStr + 'T12:00:00Z');
-
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'UTC', // Use UTC since we're working with date-only values
-    };
-
-    return date.toLocaleDateString('en-US', options);
+    // dateStr is already a YYYY-MM-DD grouping key produced in the viewer's
+    // timezone by the backend, so format the calendar date as-is.
+    return (
+      formatDateOnly(
+        dateStr,
+        { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' },
+        'en-US'
+      ) ?? dateStr
+    );
   }, []);
 
   // Load date groupings (lightweight - just dates and counts)

@@ -8,6 +8,7 @@ import { AppError } from '../errors/errors';
 import { TransportationType, type TransportationTypeEnum } from '../types/transportation.types';
 import { LodgingType, type LodgingTypeEnum } from '../types/lodging.types';
 import { pdfParserService } from './pdfParser.service';
+import { cleanupEntityLinks } from './_shared/entityLinkCleanup';
 import type { UpdatePendingEntityInput } from '../types/pdfImport.types';
 import {
   PdfImportStatus,
@@ -518,12 +519,35 @@ class PdfImportService {
       logger.warn('Could not delete PDF file from disk', { path: absolutePath, err });
     }
 
-    await prisma.pdfImport.delete({ where: { id } });
+    // EntityLink has no FK to pdf_imports (sourceId/targetId are plain Ints), so
+    // the database cannot cascade. Accepting a pending entity creates a
+    // PDF_IMPORT link (see acceptPendingEntity), and one import can have entities
+    // accepted into several trips — clean up every trip that references it, in the
+    // same transaction as the row delete so the two cannot diverge.
+    const linkedTrips = await prisma.entityLink.findMany({
+      where: {
+        OR: [
+          { sourceType: 'PDF_IMPORT', sourceId: id },
+          { targetType: 'PDF_IMPORT', targetId: id },
+        ],
+      },
+      distinct: ['tripId'],
+      select: { tripId: true },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      for (const { tripId } of linkedTrips) {
+        await cleanupEntityLinks(tripId, 'PDF_IMPORT', id, tx);
+      }
+      await tx.pdfImport.delete({ where: { id } });
+    });
   }
 
   /**
    * Reset imports stuck in PARSING for more than 10 minutes.
-   * Must be awaited before server starts listening.
+   * Awaited on startup before the server listens, and re-run hourly by the
+   * cron scheduler (config/cron.ts) so a job that hangs while the process stays
+   * up is not stuck until the next restart.
    */
   async resetStaleParsing(): Promise<void> {
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
@@ -547,7 +571,7 @@ class PdfImportService {
         },
         data: {
           status: PdfImportStatus.PARSE_FAILED,
-          errorMessage: 'Processing timed out and was reset on server restart',
+          errorMessage: 'Processing timed out and was reset',
         },
       });
     }

@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../errors/errors';
 import config from '../config';
 import axios, { AxiosRequestConfig } from 'axios';
-import { verifyTripAccess } from '../services/_shared/serviceHelpers';
+import { verifyTripAccess } from '../services/_shared/tripAccess';
 import { isAxiosError } from '../types/prisma-helpers';
 import pushNotificationService from './pushNotification.service';
 
@@ -78,15 +78,47 @@ interface AviationstackFlight {
   } | null;
 }
 
+/**
+ * AviationStack reports API-level failures (bad key, exhausted quota, …) inside a
+ * `200 OK` body under `error`, NOT via an HTTP status code. Both the legacy shape
+ * (`{ code: 104, type: 'usage_limit_reached', info: '…' }`) and the current one
+ * (`{ code: 'usage_limit_reached', message: '…' }`) are handled.
+ */
+interface AviationstackApiError {
+  code?: string | number;
+  type?: string;
+  message?: string;
+  info?: string;
+}
+
 interface AviationstackResponse {
-  pagination: {
+  pagination?: {
     limit: number;
     offset: number;
     count: number;
     total: number;
   };
-  data: AviationstackFlight[];
+  data?: AviationstackFlight[];
+  error?: AviationstackApiError;
 }
+
+// Identifiers AviationStack uses for an exhausted plan / rate limit. Legacy
+// numeric code 104 is "monthly usage limit reached".
+const USAGE_LIMIT_ERROR_IDS = new Set([
+  '104',
+  'usage_limit_reached',
+  'rate_limit_reached',
+  'too_many_requests',
+  'monthly_limit_reached',
+]);
+
+// Identifiers meaning the access key itself was rejected.
+const INVALID_KEY_ERROR_IDS = new Set([
+  '101',
+  'invalid_access_key',
+  'missing_access_key',
+  'inactive_user',
+]);
 
 interface FlightTrackingResult {
   id: number;
@@ -440,6 +472,10 @@ class AviationstackService {
         params,
       });
 
+      // API-level errors arrive in a 200 OK body — check before treating an
+      // empty `data` array as "flight not found".
+      this.assertNoApiError(response);
+
       if (!response.data || response.data.length === 0) {
         if (process.env.NODE_ENV === 'development') {
           console.log(`[AviationStack] No flight found for ${flightNumber}`);
@@ -472,10 +508,18 @@ class AviationstackService {
         if (error.response?.status === 401) {
           throw new AppError('Invalid AviationStack API key', 401);
         }
-        if (error.response?.status === 104) {
-          // Monthly limit reached
-          console.warn('[AviationStack] API monthly limit reached');
-          return null;
+        if (error.response?.status === 429) {
+          // Provider-side throttling that survived fetchWithRetry's retries
+          console.warn('[AviationStack] Rate limited by provider (HTTP 429)');
+          throw new AppError(
+            'AviationStack rate limit reached. Please try again later.',
+            429
+          );
+        }
+        // Some plans surface quota errors as a non-2xx response with the same
+        // error envelope in the body — run it through the same classifier.
+        if (error.response?.data) {
+          this.assertNoApiError(error.response.data as AviationstackResponse);
         }
         if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
           console.warn('[AviationStack] Request timed out');
@@ -559,6 +603,45 @@ class AviationstackService {
       lastUpdatedAt: flightTracking.lastUpdatedAt,
       createdAt: flightTracking.createdAt,
     };
+  }
+
+  /**
+   * Inspect an AviationStack response envelope for an API-level `error` object.
+   *
+   * AviationStack answers `200 OK` even when the request failed at the API level,
+   * so without this an exhausted quota is indistinguishable from "flight not
+   * found". Known usage-limit and bad-key codes are raised as AppErrors (mirroring
+   * the HTTP 401 branch); anything else is logged and allowed to fall through to
+   * the existing empty-data handling.
+   */
+  private assertNoApiError(response: AviationstackResponse | undefined): void {
+    const apiError = response?.error;
+    if (!apiError) return;
+
+    const identifiers = [apiError.code, apiError.type]
+      .filter((v): v is string | number => v !== undefined && v !== null)
+      .map((v) => String(v).toLowerCase());
+    const detail = apiError.message || apiError.info || 'no detail provided';
+
+    if (identifiers.some((id) => USAGE_LIMIT_ERROR_IDS.has(id))) {
+      console.warn(
+        `[AviationStack] API usage limit reached (code: ${identifiers.join('/') || 'unknown'}): ${detail}. ` +
+          'Flight data will be unavailable until the quota resets.'
+      );
+      throw new AppError(
+        'AviationStack API quota has been exhausted. Flight status cannot be refreshed until the quota resets.',
+        429
+      );
+    }
+
+    if (identifiers.some((id) => INVALID_KEY_ERROR_IDS.has(id))) {
+      console.warn(`[AviationStack] API key rejected (code: ${identifiers.join('/')}): ${detail}`);
+      throw new AppError('Invalid AviationStack API key', 401);
+    }
+
+    console.error(
+      `[AviationStack] API returned an error (code: ${identifiers.join('/') || 'unknown'}): ${detail}`
+    );
   }
 
   /**

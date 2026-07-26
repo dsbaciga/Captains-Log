@@ -27,6 +27,8 @@ export interface AuthResponse {
     username: string;
     email: string;
     avatarUrl: string | null;
+    /** IANA zone the client formats dates in when nothing more specific applies. */
+    timezone: string | null;
   };
   accessToken: string;
   refreshToken: string;

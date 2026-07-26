@@ -4,7 +4,7 @@ import type { TripInvitation, PermissionLevel } from '../types/collaboration';
 import { getFullAssetUrl } from '../lib/config';
 import { getApiErrorMessage } from '../lib/errors';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 const PERMISSION_LABELS: Record<PermissionLevel, string> = {
   view: 'View Only',

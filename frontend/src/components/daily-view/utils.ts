@@ -47,16 +47,11 @@ export function formatDuration(minutes: number): string {
 }
 
 /**
- * Format currency amount
+ * Format currency amount.
+ * Re-exported from the shared guarded helper so an invalid currency code cannot
+ * throw a RangeError mid-render.
  */
-export function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
+export { formatCurrency } from '../../utils/formatCurrency';
 
 /**
  * Get timezone abbreviation

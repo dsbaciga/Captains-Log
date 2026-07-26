@@ -2,7 +2,9 @@ import { useState } from 'react';
 import type { EntityType } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG } from '../lib/entityConfig';
 import { useEntityFetcher, useEntityFilter } from '../hooks/useEntityFetcher';
+import { useInvalidateEntityLinks } from '../hooks/useInvalidateEntityLinks';
 import entityLinkService from '../services/entityLink.service';
+import Modal from './Modal';
 import toast from 'react-hot-toast';
 
 interface EntityPickerModalProps {
@@ -29,6 +31,7 @@ export default function EntityPickerModal({
   const [selectedType, setSelectedType] = useState<EntityType | null>(null);
   const [linking, setLinking] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const invalidateEntityLinks = useInvalidateEntityLinks();
 
   // Use shared hook for entity fetching
   const { entities, loading } = useEntityFetcher(tripId, selectedType);
@@ -52,6 +55,8 @@ export default function EntityPickerModal({
         toast.success(`${result.skipped} already linked`);
       }
 
+      // Refresh both the photos' and the target entity's link caches.
+      invalidateEntityLinks(tripId);
       onSuccess?.();
       onClose();
     } catch (error) {
@@ -63,45 +68,33 @@ export default function EntityPickerModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[80] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Link {photoIds.length} Photo{photoIds.length !== 1 ? 's' : ''} to...
-            </h3>
-            {selectedType && (
-              <button
-                onClick={() => {
-                  setSelectedType(null);
-                  setSearchQuery('');
-                }}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                ← Back to types
-              </button>
-            )}
-          </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Link ${photoIds.length} Photo${photoIds.length !== 1 ? 's' : ''} to...`}
+      maxWidth="lg"
+      footer={
+        <button onClick={onClose} className="btn btn-secondary w-full">
+          Cancel
+        </button>
+      }
+    >
+      <div>
+        {selectedType && (
           <button
-            onClick={onClose}
+            onClick={() => {
+              setSelectedType(null);
+              setSearchQuery('');
+            }}
             type="button"
-            aria-label="Close"
-            className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-3"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            ← Back to types
           </button>
-        </div>
+        )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div>
           {!selectedType ? (
             // Entity Type Selection
             <div className="grid grid-cols-2 gap-3">
@@ -178,14 +171,7 @@ export default function EntityPickerModal({
             </>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <button onClick={onClose} className="btn btn-secondary w-full">
-            Cancel
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

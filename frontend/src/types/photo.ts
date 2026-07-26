@@ -28,10 +28,6 @@ export type Photo = {
       name: string;
     };
   }[];
-  location?: {
-    id: number;
-    name: string;
-  } | null;
 };
 
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs

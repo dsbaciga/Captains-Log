@@ -14,6 +14,14 @@ jest.mock('../../services/userInvitation.service', () => ({
   },
 }));
 
+// getEmailStatus also consults per-user SMTP settings via userService.
+jest.mock('../../services/user.service', () => ({
+  __esModule: true,
+  default: {
+    getEffectiveSmtpConfig: jest.fn(),
+  },
+}));
+
 jest.mock('../../config', () => ({
   config: {
     jwt: {
@@ -33,12 +41,13 @@ jest.mock('../../config', () => ({
 }));
 
 import { userInvitationService } from '../../services/userInvitation.service';
+import userService from '../../services/user.service';
 import { userInvitationController } from '../userInvitation.controller';
 import {
   createAuthenticatedControllerArgs,
   createMockControllerArgs,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 describe('userInvitation.controller', () => {
@@ -47,12 +56,12 @@ describe('userInvitation.controller', () => {
   describe('sendInvitation', () => {
     it('should send an invitation and return 201', async () => {
       const mockInvitation = { id: 1, email: 'newuser@test.com', token: 'abc123' };
-      (userInvitationService.sendInvitation as jest.Mock).mockResolvedValue(mockInvitation as never);
+      jest.mocked(userInvitationService.sendInvitation).mockResolvedValue(mockInvitation);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         body: { email: 'newuser@test.com' },
       });
-      await userInvitationController.sendInvitation(req as any, res as any, next);
+      await userInvitationController.sendInvitation(req, res, next);
 
       if ((next as jest.Mock).mock.calls.length === 0) {
         expect(userInvitationService.sendInvitation).toHaveBeenCalledWith(
@@ -67,7 +76,7 @@ describe('userInvitation.controller', () => {
       const { req, res, next } = createMockControllerArgs({
         body: { email: 'newuser@test.com' },
       });
-      await userInvitationController.sendInvitation(req as any, res as any, next);
+      await userInvitationController.sendInvitation(req, res, next);
 
       expect(next).toHaveBeenCalled();
     });
@@ -76,12 +85,12 @@ describe('userInvitation.controller', () => {
   describe('getInvitationByToken', () => {
     it('should return invitation details by token', async () => {
       const mockInvitation = { id: 1, email: 'newuser@test.com', status: 'pending' };
-      (userInvitationService.getInvitationByToken as jest.Mock).mockResolvedValue(mockInvitation as never);
+      jest.mocked(userInvitationService.getInvitationByToken).mockResolvedValue(mockInvitation);
 
       const { req, res, next } = createMockControllerArgs({
         params: { token: 'abc123' },
       });
-      await userInvitationController.getInvitationByToken(req as any, res as any, next);
+      await userInvitationController.getInvitationByToken(req, res, next);
 
       expect(userInvitationService.getInvitationByToken).toHaveBeenCalledWith('abc123');
       expect(res.json).toHaveBeenCalledWith({ status: 'success', data: mockInvitation });
@@ -89,12 +98,12 @@ describe('userInvitation.controller', () => {
 
     it('should pass errors to next', async () => {
       const error = new Error('Invitation not found');
-      (userInvitationService.getInvitationByToken as jest.Mock).mockRejectedValue(error as never);
+      jest.mocked(userInvitationService.getInvitationByToken).mockRejectedValue(error);
 
       const { req, res, next } = createMockControllerArgs({
         params: { token: 'invalid' },
       });
-      await userInvitationController.getInvitationByToken(req as any, res as any, next);
+      await userInvitationController.getInvitationByToken(req, res, next);
 
       expect(next).toHaveBeenCalledWith(error);
     });
@@ -103,12 +112,12 @@ describe('userInvitation.controller', () => {
   describe('acceptInvitation', () => {
     it('should accept invitation and return user with access token', async () => {
       const mockUser = { id: 10, email: 'newuser@test.com', username: 'newuser' };
-      (userInvitationService.acceptInvitation as jest.Mock).mockResolvedValue(mockUser as never);
+      jest.mocked(userInvitationService.acceptInvitation).mockResolvedValue(mockUser);
 
       const { req, res, next } = createMockControllerArgs({
         body: { token: 'abc123', username: 'newuser', password: 'Password123!' },
       });
-      await userInvitationController.acceptInvitation(req as any, res as any, next);
+      await userInvitationController.acceptInvitation(req, res, next);
 
       if ((next as jest.Mock).mock.calls.length === 0) {
         expect(userInvitationService.acceptInvitation).toHaveBeenCalled();
@@ -130,12 +139,12 @@ describe('userInvitation.controller', () => {
   describe('declineInvitation', () => {
     it('should decline an invitation by token', async () => {
       const mockResult = { declined: true };
-      (userInvitationService.declineInvitation as jest.Mock).mockResolvedValue(mockResult as never);
+      jest.mocked(userInvitationService.declineInvitation).mockResolvedValue(mockResult);
 
       const { req, res, next } = createMockControllerArgs({
         params: { token: 'abc123' },
       });
-      await userInvitationController.declineInvitation(req as any, res as any, next);
+      await userInvitationController.declineInvitation(req, res, next);
 
       expect(userInvitationService.declineInvitation).toHaveBeenCalledWith('abc123');
       expect(res.json).toHaveBeenCalledWith({ status: 'success', data: mockResult });
@@ -145,12 +154,12 @@ describe('userInvitation.controller', () => {
   describe('getSentInvitations', () => {
     it('should return paginated sent invitations', async () => {
       const mockResult = { invitations: [], total: 0, page: 1, limit: 20 };
-      (userInvitationService.getSentInvitations as jest.Mock).mockResolvedValue(mockResult as never);
+      jest.mocked(userInvitationService.getSentInvitations).mockResolvedValue(mockResult);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         query: { page: '1', limit: '20' },
       });
-      await userInvitationController.getSentInvitations(req as any, res as any, next);
+      await userInvitationController.getSentInvitations(req, res, next);
 
       expect(userInvitationService.getSentInvitations).toHaveBeenCalledWith(
         testUsers.user1.id,
@@ -162,10 +171,10 @@ describe('userInvitation.controller', () => {
 
     it('should use default pagination when params not provided', async () => {
       const mockResult = { invitations: [], total: 0 };
-      (userInvitationService.getSentInvitations as jest.Mock).mockResolvedValue(mockResult as never);
+      jest.mocked(userInvitationService.getSentInvitations).mockResolvedValue(mockResult);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
-      await userInvitationController.getSentInvitations(req as any, res as any, next);
+      await userInvitationController.getSentInvitations(req, res, next);
 
       expect(userInvitationService.getSentInvitations).toHaveBeenCalledWith(
         testUsers.user1.id,
@@ -178,12 +187,12 @@ describe('userInvitation.controller', () => {
   describe('cancelInvitation', () => {
     it('should cancel a pending invitation', async () => {
       const mockResult = { cancelled: true };
-      (userInvitationService.cancelInvitation as jest.Mock).mockResolvedValue(mockResult as never);
+      jest.mocked(userInvitationService.cancelInvitation).mockResolvedValue(mockResult);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { invitationId: '10' },
       });
-      await userInvitationController.cancelInvitation(req as any, res as any, next);
+      await userInvitationController.cancelInvitation(req, res, next);
 
       expect(userInvitationService.cancelInvitation).toHaveBeenCalledWith(testUsers.user1.id, 10);
       expect(res.json).toHaveBeenCalledWith({ status: 'success', data: mockResult });
@@ -193,7 +202,7 @@ describe('userInvitation.controller', () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { invitationId: 'abc' },
       });
-      await userInvitationController.cancelInvitation(req as any, res as any, next);
+      await userInvitationController.cancelInvitation(req, res, next);
 
       expect(next).toHaveBeenCalled();
     });
@@ -202,12 +211,12 @@ describe('userInvitation.controller', () => {
   describe('resendInvitation', () => {
     it('should resend an invitation', async () => {
       const mockInvitation = { id: 10, email: 'user@test.com', resent: true };
-      (userInvitationService.resendInvitation as jest.Mock).mockResolvedValue(mockInvitation as never);
+      jest.mocked(userInvitationService.resendInvitation).mockResolvedValue(mockInvitation);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { invitationId: '10' },
       });
-      await userInvitationController.resendInvitation(req as any, res as any, next);
+      await userInvitationController.resendInvitation(req, res, next);
 
       expect(userInvitationService.resendInvitation).toHaveBeenCalledWith(testUsers.user1.id, 10);
       expect(res.json).toHaveBeenCalledWith({ status: 'success', data: mockInvitation });
@@ -217,9 +226,10 @@ describe('userInvitation.controller', () => {
   describe('getEmailStatus', () => {
     it('should return email configuration status', async () => {
       (userInvitationService.isEmailConfigured as jest.Mock).mockReturnValue(true);
+      jest.mocked(userService.getEffectiveSmtpConfig).mockResolvedValue(null);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
-      await userInvitationController.getEmailStatus(req as any, res as any, next);
+      await userInvitationController.getEmailStatus(req, res, next);
 
       expect(userInvitationService.isEmailConfigured).toHaveBeenCalled();
       expect(res.json).toHaveBeenCalledWith({
@@ -228,9 +238,39 @@ describe('userInvitation.controller', () => {
       });
     });
 
+    it('should report configured when only per-user SMTP settings exist', async () => {
+      (userInvitationService.isEmailConfigured as jest.Mock).mockReturnValue(false);
+      jest.mocked(userService.getEffectiveSmtpConfig).mockResolvedValue({
+        host: 'smtp.example.com',
+        port: 587,
+      });
+
+      const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
+      await userInvitationController.getEmailStatus(req, res, next);
+
+      expect(userService.getEffectiveSmtpConfig).toHaveBeenCalledWith(testUsers.user1.id);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        data: { emailConfigured: true },
+      });
+    });
+
+    it('should report not configured when neither global nor per-user SMTP exists', async () => {
+      (userInvitationService.isEmailConfigured as jest.Mock).mockReturnValue(false);
+      jest.mocked(userService.getEffectiveSmtpConfig).mockResolvedValue(null);
+
+      const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
+      await userInvitationController.getEmailStatus(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        data: { emailConfigured: false },
+      });
+    });
+
     it('should call next with error when not authenticated', async () => {
       const { req, res, next } = createMockControllerArgs();
-      await userInvitationController.getEmailStatus(req as any, res as any, next);
+      await userInvitationController.getEmailStatus(req, res, next);
 
       expect(next).toHaveBeenCalled();
     });

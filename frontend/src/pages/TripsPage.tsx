@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Link, useNavigationType } from 'react-router-dom';
+import { Link, useNavigationType } from 'react-router';
 import tripService from '../services/trip.service';
+
+/** Derived from the service so the two can never drift apart. */
+type TripQueryParams = NonNullable<Parameters<typeof tripService.getTrips>[0]>;
 import tagService from '../services/tag.service';
 import userService from '../services/user.service';
 import type { Trip, TripListResponse, TripStatusType } from '../types/trip';
@@ -98,23 +101,23 @@ export default function TripsPage() {
   // Grid/kanban uses 24 (divisible by 2-col and 3-col layouts to avoid partial rows)
   const pageSize = viewMode === 'list' ? 40 : 24;
 
-  const params = {
+  // Built as a typed object rather than via Object.fromEntries: that round-trip
+  // widened the result to Record<string, unknown>, so a rename on either side of
+  // this call silently type-checked. Empty filters are omitted by spreading.
+  const search = debouncedSearchQuery.trim();
+  const queryParams: TripQueryParams = {
     page: currentPage,
     limit: pageSize,
-    status: statusFilter.join(','),
-    tripType: tripTypeFilter.join(','),
-    search: debouncedSearchQuery.trim(),
-    startDateFrom,
-    startDateTo,
-    tags: selectedTags.join(','),
-    sort: sortOption,
+    ...(statusFilter.length > 0 && { status: statusFilter.join(',') }),
+    ...(tripTypeFilter.length > 0 && { tripType: tripTypeFilter.join(',') }),
+    ...(search && { search }),
+    ...(startDateFrom && { startDateFrom }),
+    ...(startDateTo && { startDateTo }),
+    ...(selectedTags.length > 0 && { tags: selectedTags.join(',') }),
+    ...(sortOption && { sort: sortOption }),
     // Archived trips are excluded by default; toggle shows only archived trips
-    archived: showArchived ? 'true' : '',
+    ...(showArchived && { archived: 'true' }),
   };
-
-  const queryParams = Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== '' && value != null)
-  );
 
   const { data: tripsData, isLoading: loading } = useQuery({
     queryKey: ['trips', queryParams],
@@ -796,7 +799,7 @@ export default function TripsPage() {
           />
         ) : (
           /* Grid View */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
             {filteredTrips.map((trip) => (
               <TripCard
                 key={trip.id}

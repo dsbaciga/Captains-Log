@@ -28,6 +28,8 @@ interface DocumentFormData {
   notes: string;
   isPrimary: boolean;
   alertDaysBefore: number;
+  /** Edit-only: explicitly erase the stored document number */
+  clearDocumentNumber: boolean;
 }
 
 const initialFormState: DocumentFormData = {
@@ -40,6 +42,7 @@ const initialFormState: DocumentFormData = {
   notes: '',
   isPrimary: false,
   alertDaysBefore: 180,
+  clearDocumentNumber: false,
 };
 
 // Common countries list for quick selection
@@ -124,7 +127,14 @@ export default function TravelDocumentManager() {
         type: formData.type,
         issuingCountry: formData.issuingCountry,
         name: formData.name,
-        documentNumber: formData.documentNumber || null,
+        // Responses mask the stored number, so the field starts empty on edit.
+        // Only send it when the user typed a replacement, or explicitly asked to
+        // clear it — otherwise omit so the backend leaves the column untouched.
+        documentNumber: formData.clearDocumentNumber
+          ? null
+          : formData.documentNumber
+            ? formData.documentNumber
+            : undefined,
         issueDate: formData.issueDate || null,
         expiryDate: formData.expiryDate || null,
         notes: formData.notes || null,
@@ -168,6 +178,7 @@ export default function TravelDocumentManager() {
       notes: doc.notes || '',
       isPrimary: doc.isPrimary,
       alertDaysBefore: doc.alertDaysBefore,
+      clearDocumentNumber: false,
     });
   };
 
@@ -303,10 +314,30 @@ export default function TravelDocumentManager() {
               className="input"
               placeholder={editingDocumentId ? 'Leave empty to keep existing' : 'e.g., AB1234567'}
               maxLength={255}
+              disabled={formData.clearDocumentNumber}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Only the last 4 characters will be displayed for privacy.
             </p>
+            {editingDocumentId && (
+              <label className="flex items-center mt-2">
+                <input
+                  type="checkbox"
+                  checked={formData.clearDocumentNumber}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      clearDocumentNumber: e.target.checked,
+                      documentNumber: e.target.checked ? '' : formData.documentNumber,
+                    })
+                  }
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-400"
+                />
+                <span className="ml-2 text-xs text-gray-700 dark:text-gray-300">
+                  Remove the saved document number
+                </span>
+              </label>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

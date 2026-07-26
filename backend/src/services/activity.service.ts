@@ -5,10 +5,10 @@ import { CreateActivityInput, UpdateActivityInput, BulkDeleteActivitiesInput, Bu
 import {
   verifyTripAccessWithPermission,
   verifyEntityInTrip,
-  convertDecimals,
-  buildConditionalUpdateData,
   verifyEntityAccessWithPermission,
-} from '../services/_shared/serviceHelpers';
+} from '../services/_shared/tripAccess';
+import { buildConditionalUpdateData } from '../services/_shared/prismaUpdateData';
+import { convertDecimals } from '../services/_shared/decimalConversion';
 import { deleteEntity, bulkDeleteEntities, bulkUpdateEntities } from '../prisma/crudHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK

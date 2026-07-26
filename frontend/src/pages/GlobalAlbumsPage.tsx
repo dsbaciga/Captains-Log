@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useId, useCallback, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import photoService from "../services/photo.service";
 import tripService from "../services/trip.service";
 import type { AlbumWithTrip } from "../types/photo";

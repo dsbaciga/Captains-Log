@@ -119,7 +119,7 @@ describe('TagService', () => {
       const tagWithoutColor = { ...mockTag, color: undefined, textColor: undefined };
       mockPrisma.tripTag.create.mockResolvedValue(tagWithoutColor);
 
-      const result = await tagService.createTag(1, { name: 'Adventure' } as any);
+      const result = await tagService.createTag(1, { name: 'Adventure' });
 
       expect(result.name).toBe('Beach');
     });
@@ -145,7 +145,8 @@ describe('TagService', () => {
             select: { assignments: true },
           },
         },
-        orderBy: { name: 'asc' },
+        // User-defined ordering wins; name is only the tie-breaker.
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       });
       expect(result).toHaveLength(2);
     });
@@ -227,7 +228,12 @@ describe('TagService', () => {
   // ============================================================
   describe('TAG-005: Update a tag', () => {
     it('should update tag name and color', async () => {
-      mockPrisma.tripTag.findFirst.mockResolvedValue(mockTag);
+      // updateTag calls findFirst TWICE: once to load the tag, then again to
+      // check the new name is not already taken. A single mockResolvedValue
+      // answers both and makes the rename look like a duplicate.
+      mockPrisma.tripTag.findFirst
+        .mockResolvedValueOnce(mockTag)
+        .mockResolvedValueOnce(null);
       const updatedTag = { ...mockTag, name: 'Ocean', color: '#0EA5E9' };
       mockPrisma.tripTag.update.mockResolvedValue(updatedTag);
 
@@ -236,6 +242,9 @@ describe('TagService', () => {
         color: '#0EA5E9',
       });
 
+      expect(mockPrisma.tripTag.findFirst).toHaveBeenNthCalledWith(2, {
+        where: { userId: 1, name: 'Ocean', id: { not: 1 } },
+      });
       expect(mockPrisma.tripTag.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { name: 'Ocean', color: '#0EA5E9' },

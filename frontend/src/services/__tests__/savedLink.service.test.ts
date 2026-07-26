@@ -14,6 +14,7 @@ vi.mock('../../lib/axios', () => ({ default: mockAxios }));
 
 import savedLinkService from '../savedLink.service';
 import {
+  hasPendingMetadata,
   savedLinkDisplayTitle,
   savedLinkHostname,
   type SavedLink,
@@ -156,5 +157,26 @@ describe('savedLink display helpers', () => {
 
   it('falls back to the raw value for an unparseable URL', () => {
     expect(savedLinkHostname({ ...mockLink, url: 'not a url' })).toBe('not a url');
+  });
+});
+
+describe('hasPendingMetadata', () => {
+  it('is true while any link is still awaiting its preview', () => {
+    expect(
+      hasPendingMetadata([mockLink, { ...mockLink, id: 2, metadataStatus: 'PENDING' }])
+    ).toBe(true);
+  });
+
+  it('is false once every link has settled, and for no data', () => {
+    // FAILED and SKIPPED are terminal: polling must stop, not spin forever.
+    expect(
+      hasPendingMetadata([
+        { ...mockLink, metadataStatus: 'FETCHED' },
+        { ...mockLink, id: 2, metadataStatus: 'FAILED' },
+        { ...mockLink, id: 3, metadataStatus: 'SKIPPED' },
+      ])
+    ).toBe(false);
+    expect(hasPendingMetadata([])).toBe(false);
+    expect(hasPendingMetadata(undefined)).toBe(false);
   });
 });

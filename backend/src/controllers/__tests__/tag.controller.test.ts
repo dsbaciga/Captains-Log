@@ -38,7 +38,7 @@ jest.mock('../../services/tag.service', () => ({
 }));
 
 import { tagController } from '../tag.controller';
-import { createAuthenticatedControllerArgs } from '../../__tests__/helpers/requests';
+import { createAuthenticatedControllerArgs } from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 import { Request, Response, NextFunction } from 'express';
 

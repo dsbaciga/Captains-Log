@@ -5,11 +5,12 @@
  */
 
 import { useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import memoriesService from '../../services/memories.service';
 import type { MemoryPhoto, OnThisDayYear } from '../../services/memories.service';
 import { useImmichThumbnailCache } from '../../hooks/useImmichThumbnail';
+import { formatDateOnly } from '../../utils/timezone';
 
 function yearsAgoLabel(year: number): string {
   const diff = new Date().getFullYear() - year;
@@ -17,9 +18,10 @@ function yearsAgoLabel(year: number): string {
 }
 
 function formatTripDates(startDate: string | null, endDate: string | null): string {
-  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
-  const start = startDate ? new Date(startDate).toLocaleDateString('en-US', options) : null;
-  const end = endDate ? new Date(endDate).toLocaleDateString('en-US', options) : null;
+  // Trip dates are calendar dates — see formatDateOnly for why these stay UTC.
+  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+  const start = formatDateOnly(startDate, options, 'en-US');
+  const end = formatDateOnly(endDate, options, 'en-US');
   if (start && end) return `${start} – ${end}`;
   return start ?? end ?? '';
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, useCallback } from "react";
+import { useState, useEffect, useId, useCallback, useMemo } from "react";
 import tagService from "../services/tag.service";
 import type { Tag, TripTag } from "../types/tag";
 import toast from "react-hot-toast";
@@ -24,12 +24,14 @@ interface TagManagerProps {
 
 export default function TagManager({ tripId }: TagManagerProps) {
   // Service adapter for trip tags (tags linked to this trip)
-  const tripTagServiceAdapter = {
+  // Memoized to prevent infinite loops: useManagerCRUD's loadItems depends on
+  // the service identity, and a new object each render re-fires its effect.
+  const tripTagServiceAdapter = useMemo(() => ({
     getByTrip: tagService.getTagsByTrip,
     create: async () => { throw new Error("Use handleCreateTag instead"); },
     update: async () => { throw new Error("Use handleUpdateTag instead"); },
     delete: async () => { throw new Error("Use handleDeleteTag instead"); },
-  };
+  }), []);
 
   // Initialize CRUD hook for trip tags
   const manager = useManagerCRUD<TripTag>(tripTagServiceAdapter, tripId, {
@@ -347,8 +349,8 @@ export default function TagManager({ tripId }: TagManagerProps) {
                   </span>
                   {tag._count && (
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      ({tag._count.trips}{" "}
-                      {tag._count.trips === 1 ? "trip" : "trips"})
+                      ({tag._count.assignments}{" "}
+                      {tag._count.assignments === 1 ? "trip" : "trips"})
                     </span>
                   )}
                 </div>

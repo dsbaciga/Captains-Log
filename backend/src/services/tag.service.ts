@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { AppError } from '../errors/errors';
 import type { CreateTagInput, UpdateTagInput, LinkTagToTripInput } from '../types/tag.types';
-import { verifyTripAccess } from '../services/_shared/serviceHelpers';
+import { verifyTripAccess } from '../services/_shared/tripAccess';
 
 export const tagService = {
   // Create a new tag

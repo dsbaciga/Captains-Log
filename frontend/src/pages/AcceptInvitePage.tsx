@@ -1,5 +1,5 @@
 import { useState, useEffect, useId, useCallback } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router';
 import { isAxiosError } from 'axios';
 import userInvitationService from '../services/userInvitation.service';
 import { useAuthStore } from '../store/authStore';

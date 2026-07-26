@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import tripSeriesService from '../services/tripSeries.service';
 import tripService from '../services/trip.service';
@@ -8,20 +8,7 @@ import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
-
-/** Format a trip date for display */
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return 'No date';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
+import { formatDate } from '../utils/dateFormat';
 
 /** Get status badge color classes */
 function getStatusColor(status: string): string {
@@ -380,8 +367,8 @@ export default function TripSeriesPage() {
                         {trip.status}
                       </span>
                       <span className="text-xs text-slate dark:text-warm-gray/60 font-body">
-                        {formatDate(trip.startDate)}
-                        {trip.endDate && ` - ${formatDate(trip.endDate)}`}
+                        {formatDate(trip.startDate, 'medium', 'No date')}
+                        {trip.endDate && ` - ${formatDate(trip.endDate, 'medium', 'No date')}`}
                       </span>
                     </div>
                   </div>

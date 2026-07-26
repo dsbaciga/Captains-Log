@@ -63,6 +63,32 @@ export function clearPasswordVersionCache(): void {
   passwordVersionCache.clear();
 }
 
+/**
+ * Resolve a user's current `passwordVersion`, using the shared short-TTL cache.
+ *
+ * Exported so the `/uploads` file-access path in index.ts can reuse this cache
+ * rather than keeping a second one — two caches meant an invalidation on
+ * password change could clear one and leave the other serving a stale version.
+ *
+ * @returns the current version, or `undefined` if the user no longer exists.
+ */
+export async function resolveCurrentPasswordVersion(
+  userId: number
+): Promise<number | undefined> {
+  const cached = getCachedPasswordVersion(userId);
+  if (cached !== undefined) return cached;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordVersion: true },
+  });
+  if (!user) return undefined;
+
+  const version = user.passwordVersion ?? 0;
+  setCachedPasswordVersion(userId, version);
+  return version;
+}
+
 export const authenticate = async (
   req: Request,
   _res: Response,

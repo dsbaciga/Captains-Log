@@ -41,10 +41,35 @@ const mapsSettingsSchema = z.object({
     .nullable(),
 });
 
+// Standard SMTP submission/relay ports. Allowing arbitrary ports turned the save
+// and test-connection endpoints into an outbound TCP connect primitive against
+// any internal host:port, with success/failure reflected back to the caller.
+const ALLOWED_SMTP_PORTS: number[] = [25, 465, 587, 2525];
+const SMTP_PORT_MESSAGE = 'SMTP port must be one of 25, 465, 587, 2525';
+
+/**
+ * Apply the same internal-address checks the Immich and LLM handlers use to an
+ * SMTP host. Unlike those, there is no local-network exemption: nothing about
+ * the feature requires reaching a private address.
+ */
+async function validateSmtpHost(host: string): Promise<void> {
+  // Hostname or IPv4 literal only — keeps credentials, ports and paths from
+  // being smuggled through the host field into the URL parsed below.
+  if (!/^[A-Za-z0-9._-]+$/.test(host)) {
+    throw new AppError('Invalid SMTP host', 400);
+  }
+  await validateUrlNotInternal(`https://${host}`);
+}
+
 const smtpSettingsSchema = z.object({
   smtpProvider: z.string().min(1).optional().nullable(),
   smtpHost: z.string().min(1).optional().nullable(),
-  smtpPort: z.number().int().min(1).max(65535).optional().nullable(),
+  smtpPort: z
+    .number()
+    .int()
+    .refine((port) => ALLOWED_SMTP_PORTS.includes(port), { message: SMTP_PORT_MESSAGE })
+    .optional()
+    .nullable(),
   smtpSecure: z.boolean().optional().nullable(),
   smtpUser: z.string().min(1).optional().nullable(),
   smtpPassword: z.string().min(1).optional().nullable(),
@@ -110,11 +135,14 @@ export const userController = {
           host: url.hostname,
         });
       }
-    }
 
-    // SSRF validation: ensure the Immich URL doesn't point to internal/private IPs
-    if (data.immichApiUrl) {
-      await validateUrlNotInternal(data.immichApiUrl);
+      // SSRF validation: ensure the Immich URL doesn't point to internal/private IPs.
+      // Skipped for local addresses, which are intentionally reachable — a LAN
+      // self-hosted Immich is the feature's primary deployment pattern, and running
+      // this unconditionally rejected exactly those URLs. Matches updateLlmSettings.
+      if (!isLocal) {
+        await validateUrlNotInternal(data.immichApiUrl);
+      }
     }
 
     const user = await userService.updateImmichSettings(userId, data);
@@ -385,6 +413,11 @@ export const userController = {
   updateSmtpSettings: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const data = smtpSettingsSchema.parse(req.body);
+
+    if (data.smtpHost) {
+      await validateSmtpHost(data.smtpHost);
+    }
+
     const user = await userService.updateSmtpSettings(userId, data);
     res.json({
       status: 'success',
@@ -401,6 +434,16 @@ export const userController = {
 
     // Try user-level SMTP config first, then fall back to global
     const userSmtp = await userService.getEffectiveSmtpConfig(userId);
+
+    // Re-validate the stored settings before opening a connection: rows can
+    // predate the save-time checks or arrive via backup restore.
+    if (userSmtp) {
+      await validateSmtpHost(userSmtp.host);
+      if (!ALLOWED_SMTP_PORTS.includes(userSmtp.port)) {
+        throw new AppError(SMTP_PORT_MESSAGE, 400);
+      }
+    }
+
     const result = await emailService.sendTestEmail(user.email, userSmtp ?? undefined);
 
     if (result) {

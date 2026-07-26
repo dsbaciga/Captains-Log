@@ -57,14 +57,16 @@ export interface CreateTravelDocumentInput {
 // Update input type
 export interface UpdateTravelDocumentInput {
   type?: DocumentType;
-  issuingCountry?: string | null;
+  // issuingCountry / name / alertDaysBefore reject null with a 400 backend-side —
+  // omit them to leave them unchanged.
+  issuingCountry?: string;
   documentNumber?: string | null;
   issueDate?: string | null;
   expiryDate?: string | null;
-  name?: string | null;
+  name?: string;
   notes?: string | null;
   isPrimary?: boolean;
-  alertDaysBefore?: number | null;
+  alertDaysBefore?: number;
 }
 
 // Document validity issue for trip check

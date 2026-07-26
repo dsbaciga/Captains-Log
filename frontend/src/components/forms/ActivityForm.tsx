@@ -17,6 +17,7 @@ import {
   convertISOToDateTimeLocal,
   convertDateTimeLocalToISO,
 } from "../../utils/timezone";
+import { useTimezoneResolver } from "../../hooks/useTimezoneResolver";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../../utils/currencyStorage";
 import DietaryTagSelector from "../DietaryTagSelector";
 import MarkdownEditor from "../MarkdownEditor";
@@ -120,6 +121,7 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
   showMoreOptionsDefault = false,
   onDirtyChange,
 }: ActivityFormProps, ref) {
+  const resolveTz = useTimezoneResolver();
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(showMoreOptionsDefault);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
@@ -216,7 +218,7 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
       }
 
       // Determine effective timezone
-      const effectiveTz = editingActivity.timezone || tripTimezone || "UTC";
+      const effectiveTz = resolveTz(editingActivity.timezone, tripTimezone);
 
       // Handle date/time fields based on allDay flag
       if (editingActivity.allDay) {
@@ -272,7 +274,7 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
         handleChange("unscheduled", true);
       }
     }
-  }, [editingActivity, editingLocationId, tripTimezone, defaultUnscheduled, handleChange, reset, resetErrors]);
+  }, [editingActivity, editingLocationId, tripTimezone, resolveTz, defaultUnscheduled, handleChange, reset, resetErrors]);
 
   // Capture initial values for dirty tracking after form populates.
   // Uses a microtask to ensure all handleChange calls from the populate effect have settled.
@@ -327,7 +329,7 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
 
     setIsSubmitting(true);
     try {
-      const effectiveTz = values.timezone || tripTimezone || "UTC";
+      const effectiveTz = resolveTz(values.timezone, tripTimezone);
 
       let startTimeISO: string | null = null;
       let endTimeISO: string | null = null;

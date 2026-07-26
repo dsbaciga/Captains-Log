@@ -19,7 +19,9 @@ export const updateCompanionSchema = z.object({
   phone: optionalStringWithMax(20),
   notes: optionalStringWithMax(1000),
   relationship: optionalStringWithMax(255),
-  avatarUrl: optionalStringWithMax(500),
+  // avatarUrl is deliberately absent: it is server-managed and written only by
+  // uploadAvatar/setImmichAvatar/deleteAvatar. Accepting it here made the stored
+  // path attacker-controlled, and those handlers unlink whatever it names.
   dietaryPreferences: z.array(z.string()).optional(),
 });
 

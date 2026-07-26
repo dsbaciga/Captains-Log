@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { GlobalSearchQuery, SearchResult } from '../types/search.types';
-import { convertDecimals } from '../services/_shared/serviceHelpers';
+import { convertDecimals } from '../services/_shared/decimalConversion';
 
 export class SearchService {
   async globalSearch(userId: number, query: GlobalSearchQuery) {

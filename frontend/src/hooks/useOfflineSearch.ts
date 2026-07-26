@@ -209,6 +209,12 @@ export function useOfflineSearch(
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Monotonic counter identifying the most recently issued search. Offline
+  // (IndexedDB) searches cannot be aborted at all, and an aborted fetch can
+  // still resolve first on a flaky connection, so every state write is gated
+  // on the request still being the latest one.
+  const searchGenerationRef = useRef(0);
+
   // Determine if we should use offline mode
   const isOfflineMode = !isOnline || opts.preferOffline;
 
@@ -228,9 +234,16 @@ export function useOfflineSearch(
   /**
    * Performs an offline search using IndexedDB.
    */
-  const performOfflineSearch = useCallback(async (searchQuery: string): Promise<void> => {
+  const performOfflineSearch = useCallback(async (
+    searchQuery: string,
+    generation: number
+  ): Promise<void> => {
     try {
       const grouped = await offlineSearchService.searchGrouped(searchQuery, opts.searchOptions);
+
+      // A newer search has been issued since this one started — drop the result.
+      if (generation !== searchGenerationRef.current) return;
+
       const flatResults = grouped.groups.flatMap((g) => g.results);
       const unifiedResults = flatResults.map(convertOfflineResult);
 
@@ -238,6 +251,8 @@ export function useOfflineSearch(
       setGroupedResults(grouped);
       setError(null);
     } catch (err) {
+      if (generation !== searchGenerationRef.current) return;
+
       console.error('[useOfflineSearch] Offline search failed:', err);
       setError('Search failed. Please try again.');
       setResults([]);
@@ -252,19 +267,31 @@ export function useOfflineSearch(
   /**
    * Performs an online search using the API.
    */
-  const performOnlineSearch = useCallback(async (searchQuery: string): Promise<void> => {
+  const performOnlineSearch = useCallback(async (
+    searchQuery: string,
+    generation: number,
+    signal?: AbortSignal
+  ): Promise<void> => {
     try {
-      const response = await searchService.globalSearch(searchQuery);
+      const response = await searchService.globalSearch(searchQuery, 'all', signal);
+
+      // A newer search has been issued since this one started — drop the result.
+      if (generation !== searchGenerationRef.current) return;
+
       const unifiedResults = response.results.map(convertOnlineResult);
       setResults(unifiedResults);
       setGroupedResults(null); // Online search doesn't provide grouped results
       setError(null);
     } catch (err) {
+      // A cancelled or superseded request must neither overwrite fresher
+      // results nor trigger the offline fallback.
+      if (signal?.aborted || generation !== searchGenerationRef.current) return;
+
       console.error('[useOfflineSearch] Online search failed:', err);
 
       // Fall back to offline search
       console.log('[useOfflineSearch] Falling back to offline search');
-      await performOfflineSearchRef.current(searchQuery);
+      await performOfflineSearchRef.current(searchQuery, generation);
     }
   }, []);
 
@@ -279,10 +306,11 @@ export function useOfflineSearch(
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Abort previous search
+    // Abort previous search and invalidate any of its in-flight results
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    const generation = ++searchGenerationRef.current;
 
     // Clear results if query is too short
     if (!searchQuery || searchQuery.length < opts.minQueryLength) {
@@ -299,23 +327,34 @@ export function useOfflineSearch(
 
     // Debounce the actual search
     debounceTimerRef.current = setTimeout(async () => {
-      abortControllerRef.current = new AbortController();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
       try {
         if (isOfflineMode) {
-          await performOfflineSearch(searchQuery);
+          await performOfflineSearch(searchQuery, generation);
         } else {
-          await performOnlineSearch(searchQuery);
+          await performOnlineSearch(searchQuery, generation, controller.signal);
         }
 
-        setLastSearchTime(Date.now());
+        if (generation === searchGenerationRef.current) {
+          setLastSearchTime(Date.now());
+        }
       } catch (err) {
-        // Only set error if not aborted
-        if (err instanceof Error && err.name !== 'AbortError') {
+        // Only set error if not aborted and not superseded
+        if (
+          generation === searchGenerationRef.current &&
+          err instanceof Error &&
+          err.name !== 'AbortError'
+        ) {
           setError('Search failed. Please try again.');
         }
       } finally {
-        setIsSearching(false);
+        // A stale request finishing late must not clear the spinner of the
+        // search that superseded it.
+        if (generation === searchGenerationRef.current) {
+          setIsSearching(false);
+        }
       }
     }, opts.debounceMs);
   }, [isOfflineMode, opts.debounceMs, opts.minQueryLength, performOfflineSearch, performOnlineSearch]);
@@ -331,6 +370,9 @@ export function useOfflineSearch(
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    // Invalidate any in-flight (including uncancellable offline) search so it
+    // cannot repopulate the results we are about to clear.
+    searchGenerationRef.current++;
 
     setQuery('');
     setResults([]);

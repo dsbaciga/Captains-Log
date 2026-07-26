@@ -4,7 +4,7 @@
  * Renders nothing when there is no dated travel to recap.
  */
 
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import memoriesService from '../../services/memories.service';
 import type { YearInReview } from '../../services/memories.service';

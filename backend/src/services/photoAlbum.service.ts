@@ -9,7 +9,12 @@ import {
   PhotoSortBy,
   SortOrder,
 } from '../types/photo.types';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
+import {
+  verifyTripAccessWithPermission,
+  verifyEntityAccessWithPermission,
+} from '../services/_shared/tripAccess';
+import { convertDecimals } from '../services/_shared/decimalConversion';
+import { cleanupEntityLinks } from '../services/_shared/entityLinkCleanup';
 import { WithOptionalCoordinates } from '../types/prisma-helpers';
 
 // Note: Location, Activity, and Lodging associations are handled via EntityLink system, not direct FKs
@@ -50,9 +55,6 @@ function buildAlbumPhotoOrderBy(
       return [{ photo: { takenAt: order } }, { photo: { createdAt: order } }];
     case PhotoSortBy.CAPTION:
       return [{ photo: { caption: order } }, { photo: { takenAt: order } }];
-    case PhotoSortBy.LOCATION:
-      // Fallback to date for now (location sorting requires more complex query)
-      return [{ photo: { takenAt: order } }, { photo: { createdAt: order } }];
     case PhotoSortBy.CREATED:
       return [{ createdAt: order }];
     default:
@@ -451,6 +453,14 @@ class PhotoAlbumService {
   ) {
     // Verify user has edit permission on the album's trip
     await verifyEntityAccessWithPermission('photoAlbum', albumId, userId, 'edit');
+
+    const assignment = await prisma.photoAlbumAssignment.findFirst({
+      where: { albumId, photoId },
+    });
+
+    if (!assignment) {
+      throw new AppError('Photo is not in this album', 404);
+    }
 
     await prisma.photoAlbumAssignment.delete({
       where: {

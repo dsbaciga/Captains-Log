@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import tripService from '../services/trip.service';
-import tripValidatorService from '../services/tripValidator.service';
+import tripValidatorService, { ValidationIssueCategory } from '../services/tripValidator.service';
 import tripCoverImageService from '../services/tripCoverImage.service';
 import {
   createTripSchema,
@@ -14,6 +14,25 @@ import logger from '../config/logger';
 import { parseId } from '../http/parseId';
 import { asyncHandler } from '../http/asyncHandler';
 import { requireUserId } from '../auth/controllerHelpers';
+
+/**
+ * Every ValidationIssueCategory must be listed here. Typing the object as a
+ * Record<ValidationIssueCategory, ...> makes a category added in tripValidator.service.ts a
+ * compile error rather than a silently un-dismissable warning — 'DOCUMENTS' was previously
+ * missing, so passport and visa warnings could never be dismissed.
+ */
+const dismissableIssueCategories: Record<ValidationIssueCategory, true> = {
+  SCHEDULE: true,
+  ACCOMMODATIONS: true,
+  TRANSPORTATION: true,
+  COMPLETENESS: true,
+  DOCUMENTS: true,
+};
+
+// Object.keys() loses the literal key types; the Record above guarantees the cast is exact.
+const validationIssueCategorySchema = z.enum(
+  Object.keys(dismissableIssueCategories) as [ValidationIssueCategory, ...ValidationIssueCategory[]]
+);
 
 export const tripController = {
   createTrip: asyncHandler(async (req: Request, res: Response) => {
@@ -156,7 +175,7 @@ export const tripController = {
     const schema = z.object({
       issueType: z.string().min(1).max(100),
       issueKey: z.string().min(1).max(500),
-      category: z.enum(['SCHEDULE', 'ACCOMMODATIONS', 'TRANSPORTATION', 'COMPLETENESS']),
+      category: validationIssueCategorySchema,
     });
     const { issueType, issueKey, category } = schema.parse(req.body);
 

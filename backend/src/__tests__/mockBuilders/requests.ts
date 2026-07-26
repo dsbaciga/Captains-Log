@@ -6,8 +6,10 @@
  */
 
 import { jest } from '@jest/globals';
+import type { Request, Response, NextFunction } from 'express';
 import { testUsers, TestUser } from '../fixtures/users';
 import { JwtPayload } from '../../types/auth.types';
+import { AppError } from '../../errors/errors';
 import { generateTestAccessToken, createAuthenticatedUser } from './auth';
 
 /**
@@ -15,7 +17,7 @@ import { generateTestAccessToken, createAuthenticatedUser } from './auth';
  */
 export interface AuthenticatedRequest {
   user: JwtPayload;
-  body: Record<string, unknown>;
+  body: unknown;
   params: Record<string, string>;
   query: Record<string, string>;
   headers: Record<string, string>;
@@ -47,9 +49,21 @@ export interface MulterFile {
 }
 
 /**
- * Mock Response type with jest mock functions
+ * A mock Request that is accepted anywhere Express's `Request` is.
+ *
+ * The factories below assert to the real Express types *once*, internally, so
+ * that call sites can pass the result straight to a controller without any
+ * `as any` / `as never` of their own.
  */
-export interface MockResponse {
+export type MockRequest = Request;
+
+/**
+ * Mock Response type with jest mock functions.
+ *
+ * Intersected with Express's `Response` so it satisfies controller signatures
+ * while still exposing the jest surface (`res.json.mock.calls`) to assertions.
+ */
+export type MockResponse = Response & {
   status: jest.Mock;
   json: jest.Mock;
   send: jest.Mock;
@@ -62,19 +76,18 @@ export interface MockResponse {
   download: jest.Mock;
   end: jest.Mock;
   type: jest.Mock;
-  locals: Record<string, unknown>;
-}
+};
 
 /**
  * Mock Next function type
  */
-export type MockNextFunction = jest.Mock;
+export type MockNextFunction = NextFunction & jest.Mock;
 
 /**
  * Create a mock Express request object
  */
 export const createMockRequest = (options: {
-  body?: Record<string, unknown>;
+  body?: unknown;
   params?: Record<string, string>;
   query?: Record<string, string>;
   headers?: Record<string, string>;
@@ -87,7 +100,7 @@ export const createMockRequest = (options: {
   originalUrl?: string;
   ip?: string;
   cookies?: Record<string, string>;
-} = {}): Partial<AuthenticatedRequest> => {
+} = {}): MockRequest => {
   const defaultHeaders: Record<string, string> = {};
 
   // Add authorization header if user is provided
@@ -96,7 +109,7 @@ export const createMockRequest = (options: {
     defaultHeaders.authorization = `Bearer ${token}`;
   }
 
-  return {
+  const req: Partial<AuthenticatedRequest> = {
     body: options.body || {},
     params: options.params || {},
     query: options.query || {},
@@ -113,37 +126,65 @@ export const createMockRequest = (options: {
     get: jest.fn((name: string) => {
       const headers = { ...defaultHeaders, ...options.headers };
       return headers[name.toLowerCase()];
-    }) as unknown as (name: string) => string | undefined,
+    }),
   };
+
+  // DELIBERATE, CONTAINED ASSERTION.
+  //
+  // (a) Why a complete value is not constructible: Express's `Request` extends
+  //     `http.IncomingMessage`, which extends `stream.Readable`. Satisfying it
+  //     structurally means supplying `socket`/`connection` (a real net.Socket),
+  //     `httpVersion`, `rawHeaders`, `aborted`, `complete`, the entire Readable
+  //     surface (`read`, `pipe`, `on`, `destroy`, ...), plus Express's own
+  //     `app`, `res`, `route`, `protocol`, `secure`, `subdomains`, `fresh`,
+  //     `stale`, `xhr`, `accepts()`, `acceptsCharsets()`, `is()`, `range()`.
+  //     None of that is reachable from a controller under test.
+  // (b) The alternative is ~100 `as any` / `as never` casts spread across every
+  //     call site in every controller test -- which is what this file replaced.
+  // (c) So the trade-off is intentional: ONE reviewed assertion here instead of
+  //     a hundred unreviewed ones out there. It is a single-step `as` (not
+  //     `as unknown as`), so TypeScript still requires the two types to overlap.
+  //
+  // Adding a dependency such as `node-mocks-http` would remove it, but is not
+  // worth a new production-adjacent dependency for this.
+  return req as MockRequest;
 };
 
 /**
  * Create a mock Express response object
  */
 export const createMockResponse = (): MockResponse => {
-  const res: MockResponse = {
-    status: jest.fn().mockReturnThis() as jest.Mock,
-    json: jest.fn().mockReturnThis() as jest.Mock,
-    send: jest.fn().mockReturnThis() as jest.Mock,
-    sendStatus: jest.fn().mockReturnThis() as jest.Mock,
-    redirect: jest.fn().mockReturnThis() as jest.Mock,
-    setHeader: jest.fn().mockReturnThis() as jest.Mock,
-    getHeader: jest.fn() as jest.Mock,
-    cookie: jest.fn().mockReturnThis() as jest.Mock,
-    clearCookie: jest.fn().mockReturnThis() as jest.Mock,
-    download: jest.fn() as jest.Mock,
-    end: jest.fn().mockReturnThis() as jest.Mock,
-    type: jest.fn().mockReturnThis() as jest.Mock,
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn().mockReturnThis(),
+    send: jest.fn().mockReturnThis(),
+    sendStatus: jest.fn().mockReturnThis(),
+    redirect: jest.fn().mockReturnThis(),
+    setHeader: jest.fn().mockReturnThis(),
+    getHeader: jest.fn(),
+    cookie: jest.fn().mockReturnThis(),
+    clearCookie: jest.fn().mockReturnThis(),
+    download: jest.fn(),
+    end: jest.fn().mockReturnThis(),
+    type: jest.fn().mockReturnThis(),
     locals: {},
   };
 
-  return res;
+  // Same deliberate trade-off as createMockRequest: `Response` extends
+  // `http.ServerResponse` (writable stream, `socket`, `writeHead`, `flushHeaders`,
+  // `assignSocket`, ...) which a test double cannot meaningfully provide. One
+  // contained assertion here replaces a cast at every call site.
+  return res as MockResponse;
 };
 
 /**
  * Create a mock next function
  */
 export const createMockNext = (): MockNextFunction => {
+  // `jest.fn()`'s call signature is `(...args: unknown[]) => unknown`, which is
+  // not identical to Express's `NextFunction` `(err?: any) => void`, so the
+  // intersection needs one assertion to introduce. Contained here, not at call
+  // sites.
   return jest.fn() as MockNextFunction;
 };
 
@@ -151,7 +192,7 @@ export const createMockNext = (): MockNextFunction => {
  * Create a complete set of mock request, response, and next for controller tests
  */
 export const createMockControllerArgs = (options: {
-  body?: Record<string, unknown>;
+  body?: unknown;
   params?: Record<string, string>;
   query?: Record<string, string>;
   headers?: Record<string, string>;
@@ -172,7 +213,7 @@ export const createMockControllerArgs = (options: {
 export const createAuthenticatedControllerArgs = (
   user: TestUser | { id: number; email: string } = testUsers.user1,
   options: {
-    body?: Record<string, unknown>;
+    body?: unknown;
     params?: Record<string, string>;
     query?: Record<string, string>;
   } = {}
@@ -188,7 +229,7 @@ export const createAuthenticatedControllerArgs = (
  * Create mock request/response for unauthenticated request
  */
 export const createUnauthenticatedControllerArgs = (options: {
-  body?: Record<string, unknown>;
+  body?: unknown;
   params?: Record<string, string>;
   query?: Record<string, string>;
 } = {}) => {
@@ -315,6 +356,41 @@ export const expectErrorResponse = (
 };
 
 /**
+ * Asserts `next()` was called with an AppError and returns it NARROWED, so
+ * assertion sites can read `.statusCode` / `.message` without casting.
+ *
+ * @example
+ * ```typescript
+ * const error = expectAppError(next, { statusCode: 401 });
+ * expect(error.message).toBe('Invalid refresh token');
+ * ```
+ */
+export const expectAppError = (
+  next: MockNextFunction,
+  expected: { message?: string; statusCode?: number } = {}
+): AppError => {
+  expect(next).toHaveBeenCalled();
+  const error: unknown = next.mock.calls[0]?.[0];
+
+  // A throw (rather than only `expect`) is what actually narrows `error` for
+  // the return type, so callers need no assertion.
+  if (!(error instanceof AppError)) {
+    throw new Error(
+      `Expected next() to be called with an AppError, but received: ${String(error)}`
+    );
+  }
+
+  if (expected.message !== undefined) {
+    expect(error.message).toBe(expected.message);
+  }
+  if (expected.statusCode !== undefined) {
+    expect(error.statusCode).toBe(expected.statusCode);
+  }
+
+  return error;
+};
+
+/**
  * Helper to verify next was called with error
  */
 export const expectNextCalledWithError = (
@@ -362,14 +438,14 @@ export const requestScenarios = {
     }),
 
   // POST requests
-  create: (body: Record<string, unknown>, user?: JwtPayload) =>
+  create: (body: unknown, user?: JwtPayload) =>
     createMockControllerArgs({
       body,
       user,
     }),
 
   // PUT/PATCH requests
-  update: (id: string | number, body: Record<string, unknown>, user?: JwtPayload) =>
+  update: (id: string | number, body: unknown, user?: JwtPayload) =>
     createMockControllerArgs({
       params: { id: String(id) },
       body,
@@ -390,7 +466,7 @@ export const requestScenarios = {
       user,
     }),
 
-  createNested: (parentId: string | number, body: Record<string, unknown>, user?: JwtPayload) =>
+  createNested: (parentId: string | number, body: unknown, user?: JwtPayload) =>
     createMockControllerArgs({
       params: { parentId: String(parentId) },
       body,
@@ -404,7 +480,7 @@ export const requestScenarios = {
 export const createTripScopedRequest = (
   tripId: number,
   options: {
-    body?: Record<string, unknown>;
+    body?: unknown;
     params?: Record<string, string>;
     query?: Record<string, string>;
     user?: JwtPayload;

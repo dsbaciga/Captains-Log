@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Checklist, DefaultChecklistStatus, ChecklistType } from '../types/checklist';
 import type { Trip } from '../types/trip';
 import checklistService from '../services/checklist.service';

@@ -1,19 +1,59 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import userService from '../services/user.service';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
-import type { TravelPartnerSettings as TravelPartnerSettingsType, UserSearchResult } from '../types/user';
+import { isPartnerPermission } from '../types/user';
+import type {
+  TravelPartnerSettings as TravelPartnerSettingsType,
+  TravelPartnerRequest,
+  TravelPartnerRequests,
+  PartnerPermission,
+  UserSearchResult,
+} from '../types/user';
 import toast from 'react-hot-toast';
+
+const EMPTY_REQUESTS: TravelPartnerRequests = { incoming: [], outgoing: [] };
+
+const errorMessage = (err: unknown, fallback: string): string => {
+  const error = err as { response?: { data?: { message?: string } } };
+  return error.response?.data?.message || fallback;
+};
+
+/** Avatar or initial-circle for a user, shared by the search list and request rows. */
+function UserAvatar({ user, size = 'md' }: { user: UserSearchResult; size?: 'sm' | 'md' }) {
+  const dimensions = size === 'sm' ? 'w-10 h-10' : 'w-12 h-12';
+  const textSize = size === 'sm' ? '' : 'text-lg';
+
+  if (user.avatarUrl) {
+    return <img src={user.avatarUrl} alt={user.username} className={`${dimensions} rounded-full`} />;
+  }
+
+  return (
+    <div
+      className={`${dimensions} rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold ${textSize}`}
+    >
+      {user.username.charAt(0).toUpperCase()}
+    </div>
+  );
+}
 
 export default function TravelPartnerSettings() {
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
   const [settings, setSettings] = useState<TravelPartnerSettingsType | null>(null);
+  const [requests, setRequests] = useState<TravelPartnerRequests>(EMPTY_REQUESTS);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [pendingRequestId, setPendingRequestId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [permission, setPermission] = useState<'view' | 'edit' | 'admin'>('edit');
+  const [permission, setPermission] = useState<PartnerPermission>('edit');
+  // Opt-in to back-sharing MY existing trips. Tracked separately for the two places
+  // the choice is offered: `shareOnSend` when I ask someone, `shareOnAccept` (keyed by
+  // request id) when I answer someone. Both default to off — retroactive sharing is
+  // never implied.
+  const [shareOnSend, setShareOnSend] = useState(false);
+  const [shareOnAccept, setShareOnAccept] = useState<Record<number, boolean>>({});
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -48,14 +88,26 @@ export default function TravelPartnerSettings() {
 
   const loadSettings = async () => {
     try {
-      const data = await userService.getTravelPartnerSettings();
+      const [data, partnerRequests] = await Promise.all([
+        userService.getTravelPartnerSettings(),
+        userService.getTravelPartnerRequests(),
+      ]);
       setSettings(data);
+      setRequests(partnerRequests);
       setPermission(data.defaultPartnerPermission || 'edit');
     } catch (error) {
       console.error('Failed to load travel partner settings:', error);
       toast.error('Failed to load travel partner settings');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const reloadRequests = async () => {
+    try {
+      setRequests(await userService.getTravelPartnerRequests());
+    } catch (error) {
+      console.error('Failed to load travel partner requests:', error);
     }
   };
 
@@ -111,23 +163,86 @@ export default function TravelPartnerSettings() {
     }, 300);
   };
 
-  const handleSelectPartner = async (user: UserSearchResult) => {
+  /**
+   * Sending a request grants nothing on its own — the partnership only exists once
+   * the other user accepts.
+   */
+  const handleRequestPartner = async (user: UserSearchResult) => {
     setIsSaving(true);
     try {
-      const result = await userService.updateTravelPartnerSettings({
-        travelPartnerId: user.id,
-        defaultPartnerPermission: permission,
+      await userService.sendTravelPartnerRequest({
+        recipientId: user.id,
+        shareExistingTrips: shareOnSend,
       });
-      setSettings(result);
+      await reloadRequests();
       setSearchQuery('');
       setSearchResults([]);
       setShowDropdown(false);
-      toast.success(`${user.username} is now your travel partner!`);
+      toast.success(`Request sent to ${user.username}`);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to set travel partner');
+      toast.error(errorMessage(err, 'Failed to send travel partner request'));
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAcceptRequest = async (request: TravelPartnerRequest) => {
+    setPendingRequestId(request.id);
+    try {
+      const result = await userService.acceptTravelPartnerRequest(request.id, {
+        shareExistingTrips: shareOnAccept[request.id] ?? false,
+      });
+      setSettings({
+        travelPartnerId: result.travelPartnerId,
+        defaultPartnerPermission: result.defaultPartnerPermission,
+        travelPartner: result.travelPartner,
+      });
+      setPermission(result.defaultPartnerPermission || 'edit');
+      await reloadRequests();
+      toast.success(`${request.requester.username} is now your travel partner!`);
+
+      const shared = result.sharedTripCount;
+      const received = result.receivedTripCount;
+      if (shared > 0 || received > 0) {
+        const parts: string[] = [];
+        if (shared > 0) {
+          parts.push(`shared ${shared} of your trips with them`);
+        }
+        if (received > 0) {
+          parts.push(`${received} of their trips shared with you`);
+        }
+        toast.success(`Existing trips: ${parts.join('; ')}`);
+      }
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, 'Failed to accept travel partner request'));
+    } finally {
+      setPendingRequestId(null);
+    }
+  };
+
+  const handleDeclineRequest = async (request: TravelPartnerRequest) => {
+    setPendingRequestId(request.id);
+    try {
+      await userService.declineTravelPartnerRequest(request.id);
+      await reloadRequests();
+      toast.success('Request declined');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, 'Failed to decline travel partner request'));
+    } finally {
+      setPendingRequestId(null);
+    }
+  };
+
+  const handleCancelRequest = async (request: TravelPartnerRequest) => {
+    setPendingRequestId(request.id);
+    try {
+      await userService.cancelTravelPartnerRequest(request.id);
+      await reloadRequests();
+      toast.success('Request cancelled');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, 'Failed to cancel travel partner request'));
+    } finally {
+      setPendingRequestId(null);
     }
   };
 
@@ -136,7 +251,7 @@ export default function TravelPartnerSettings() {
 
     const confirmed = await confirm({
       title: 'Remove Travel Partner',
-      message: `Are you sure you want to remove ${settings.travelPartner.username} as your travel partner? This will also remove you as their travel partner.`,
+      message: `Remove ${settings.travelPartner.username} as your travel partner? Your new trips will no longer be shared with them. They keep their own setting until they remove you too.`,
       confirmLabel: 'Remove',
       variant: 'danger',
     });
@@ -151,14 +266,13 @@ export default function TravelPartnerSettings() {
       setSettings(result);
       toast.success('Travel partner removed');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to remove travel partner');
+      toast.error(errorMessage(err, 'Failed to remove travel partner'));
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleUpdatePermission = async (newPermission: 'view' | 'edit' | 'admin') => {
+  const handleUpdatePermission = async (newPermission: PartnerPermission) => {
     setPermission(newPermission);
 
     // Only update if there's an existing partner
@@ -172,8 +286,7 @@ export default function TravelPartnerSettings() {
       setSettings(result);
       toast.success('Permission level updated');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to update permission');
+      toast.error(errorMessage(err, 'Failed to update permission'));
     } finally {
       setIsSaving(false);
     }
@@ -195,26 +308,92 @@ export default function TravelPartnerSettings() {
 
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
         Set a default travel partner who will automatically be added as a collaborator
-        to all new trips you create. This is a mutual relationship - you'll also be
-        added to their new trips.
+        to all new trips you create. Because it also shares their new trips with you,
+        the other person has to accept your request before the partnership starts.
       </p>
+
+      {/* Incoming requests — shown first, they need a response */}
+      {requests.incoming.length > 0 && (
+        <div className="mb-6 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Requests for you
+          </h3>
+          {requests.incoming.map((request) => (
+            <div
+              key={request.id}
+              className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg"
+            >
+              <div className="flex items-center gap-4">
+                <UserAvatar user={request.requester} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {request.requester.username}
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    wants to be your travel partner
+                  </p>
+                  {request.message && (
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 italic break-words">
+                      “{request.message}”
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleAcceptRequest(request)}
+                    disabled={pendingRequestId === request.id}
+                    className="btn btn-primary text-sm"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleDeclineRequest(request)}
+                    disabled={pendingRequestId === request.id}
+                    className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+
+              {/* Each side controls its own history: this checkbox only gives away
+                  the current user's trips. Whether the requester's trips come the
+                  other way was their choice, shown read-only below. */}
+              <label className="mt-3 flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={shareOnAccept[request.id] ?? false}
+                  onChange={(e) =>
+                    setShareOnAccept((current) => ({
+                      ...current,
+                      [request.id]: e.target.checked,
+                    }))
+                  }
+                  disabled={pendingRequestId === request.id}
+                  className="mt-0.5"
+                />
+                <span>
+                  Also share <strong>my existing trips</strong> with{' '}
+                  {request.requester.username}
+                </span>
+              </label>
+
+              <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">
+                {request.shareExistingTrips
+                  ? `${request.requester.username} chose to share their existing trips with you.`
+                  : `${request.requester.username} is not sharing their existing trips — only new ones.`}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {settings?.travelPartner ? (
         // Partner is set - show current partner
         <div className="space-y-4">
           <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
             <div className="flex items-center gap-4">
-              {settings.travelPartner.avatarUrl ? (
-                <img
-                  src={settings.travelPartner.avatarUrl}
-                  alt={settings.travelPartner.username}
-                  className="w-12 h-12 rounded-full"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-lg">
-                  {settings.travelPartner.username.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <UserAvatar user={settings.travelPartner} />
               <div className="flex-1">
                 <p className="font-medium text-gray-900 dark:text-white">
                   {settings.travelPartner.username}
@@ -240,7 +419,13 @@ export default function TravelPartnerSettings() {
             </label>
             <select
               value={permission}
-              onChange={(e) => handleUpdatePermission(e.target.value as 'view' | 'edit' | 'admin')}
+              onChange={(e) => {
+                // `e.target.value` is a plain string at runtime; ignore anything that
+                // is not one of the three permissions rather than trusting a cast.
+                if (isPartnerPermission(e.target.value)) {
+                  handleUpdatePermission(e.target.value);
+                }
+              }}
               disabled={isSaving}
               className="input w-full max-w-xs"
             >
@@ -280,24 +465,17 @@ export default function TravelPartnerSettings() {
                   searchResults.map((user) => (
                     <button
                       key={user.id}
-                      onClick={() => handleSelectPartner(user)}
+                      onClick={() => handleRequestPartner(user)}
                       disabled={isSaving}
                       className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-left"
                     >
-                      {user.avatarUrl ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt={user.username}
-                          className="w-10 h-10 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                          {user.username.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      <UserAvatar user={user} size="sm" />
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
                           {user.username}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Send a partner request
                         </p>
                       </div>
                     </button>
@@ -314,7 +492,11 @@ export default function TravelPartnerSettings() {
             </label>
             <select
               value={permission}
-              onChange={(e) => setPermission(e.target.value as 'view' | 'edit' | 'admin')}
+              onChange={(e) => {
+                if (isPartnerPermission(e.target.value)) {
+                  setPermission(e.target.value);
+                }
+              }}
               className="input w-full max-w-xs"
             >
               <option value="view">View Only - Can view trip details</option>
@@ -325,6 +507,63 @@ export default function TravelPartnerSettings() {
               This permission level will be applied when trips are automatically shared.
             </p>
           </div>
+
+          {/* Opt-in for the request being sent. Only ever shares the current user's
+              own trips — the other person decides separately about theirs. */}
+          <div>
+            <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={shareOnSend}
+                onChange={(e) => setShareOnSend(e.target.checked)}
+                disabled={isSaving}
+                className="mt-0.5"
+              />
+              <span>
+                Also share <strong>my existing trips</strong> with them if they accept
+              </span>
+            </label>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              This shares your own past and current trips only. It does not give you access
+              to theirs — they choose that for themselves when they accept. Trips you
+              excluded from auto-sharing are skipped.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Outgoing requests awaiting a response */}
+      {requests.outgoing.length > 0 && (
+        <div className="mt-6 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Requests you sent
+          </h3>
+          {requests.outgoing.map((request) => (
+            <div
+              key={request.id}
+              className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 rounded-lg"
+            >
+              <UserAvatar user={request.recipient} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 dark:text-white">
+                  {request.recipient.username}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Waiting for them to accept
+                  {request.shareExistingTrips
+                    ? ' — your existing trips will be shared on acceptance'
+                    : ' — your existing trips will not be shared'}
+                </p>
+              </div>
+              <button
+                onClick={() => handleCancelRequest(request)}
+                disabled={pendingRequestId === request.id}
+                className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 shrink-0"
+              >
+                Cancel
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -334,9 +573,13 @@ export default function TravelPartnerSettings() {
           How Travel Partners Work
         </h3>
         <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-          <li>When you set a travel partner, both of you automatically share new trips with each other</li>
+          <li>Send a request; the partnership only starts once the other person accepts</li>
+          <li>Once accepted, both of you automatically share new trips with each other</li>
           <li>You can still exclude specific trips from auto-sharing when creating them</li>
-          <li>Existing trips are not affected - only new trips will be automatically shared</li>
+          <li>
+            Existing trips are shared only if you explicitly tick the box - and each of you
+            decides that for your own trips, so ticking it never gives you access to theirs
+          </li>
           <li>Either partner can remove the connection at any time</li>
         </ul>
       </div>

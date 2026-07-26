@@ -61,26 +61,29 @@ jest.mock('../../config/database', () => ({
 }));
 
 // Mock config
-jest.mock('../../config', () => ({
-  __esModule: true,
-  default: {
+// config/logger.ts imports the NAMED `config` export, while the service imports
+// the default. Both must be provided or the logger blows up at import time.
+jest.mock('../../config', () => {
+  const cfg = {
+    nodeEnv: 'test',
     aviationStack: {
       apiKey: 'test-aviation-api-key',
     },
-  },
-}));
+  };
+  return { __esModule: true, default: cfg, config: cfg };
+});
 
 // Mock axios
 jest.mock('axios');
 import axios from 'axios';
 const mockAxios = axios as jest.Mocked<typeof axios>;
 
-// Mock serviceHelpers
-jest.mock('../../services/_shared/serviceHelpers', () => ({
+// Mock trip access verification
+jest.mock('../../services/_shared/tripAccess', () => ({
   verifyTripAccess: jest.fn(),
 }));
 
-import { verifyTripAccess } from '../../services/_shared/serviceHelpers';
+import { verifyTripAccess } from '../../services/_shared/tripAccess';
 
 // Import the service after all mocks
 import aviationstackService from '../aviationstack.service';

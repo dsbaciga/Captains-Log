@@ -24,7 +24,7 @@ import { collaborationController } from '../collaboration.controller';
 import {
   createAuthenticatedControllerArgs,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 describe('collaboration.controller', () => {

@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../errors/errors';
 import logger from '../config/logger';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import { hashPassword } from '../auth/password';
 import { config } from '../config';
 import { emailService } from './email.service';
 import userService from './user.service';
@@ -221,8 +221,8 @@ export const userInvitationService = {
       throw new AppError('Unable to create account with the provided information', 400);
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(data.password, 10);
+    // Hash password via the shared helper so the bcrypt cost stays in one place
+    const passwordHash = await hashPassword(data.password);
 
     // Create user and update invitation in a transaction
     const result = await prisma.$transaction(async (tx) => {

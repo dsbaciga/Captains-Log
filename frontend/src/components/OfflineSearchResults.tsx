@@ -11,7 +11,7 @@
  * Designed to work alongside or replace online search results in GlobalSearch.
  */
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { type UnifiedSearchResult } from '../hooks/useOfflineSearch';
 import {
   type GroupedSearchResults,

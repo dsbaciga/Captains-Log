@@ -13,6 +13,7 @@
  */
 
 import { getDb } from '../lib/offlineDb';
+import { getBrowserTimezone } from '../utils/timezone';
 
 /**
  * Encryption algorithm constants
@@ -189,7 +190,9 @@ class OfflineAuthService {
       userId: user.id,
       username: user.username,
       email: user.email,
-      timezone: user.timezone || 'UTC',
+      // Cache the viewer's own zone, not UTC, so offline reads format dates
+      // the same way the online app does.
+      timezone: user.timezone || getBrowserTimezone(),
       sessionToken: encryptedToken,
       createdAt: now,
       expiresAt: now + OFFLINE_SESSION_DURATION_MS,

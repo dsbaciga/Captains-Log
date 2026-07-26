@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import memoriesService from '../services/memories.service';
 import type { YearInReview } from '../services/memories.service';
@@ -17,6 +17,7 @@ import EmptyState from '../components/EmptyState';
 import PlacesVisitedMapContainer from '../components/PlacesVisitedMapContainer';
 import 'leaflet/dist/leaflet.css';
 import '../utils/mapUtils'; // Runs the leaflet icon setup
+import { formatDateOnly } from '../utils/timezone';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -30,9 +31,10 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
 };
 
 function formatTripDates(startDate: string | null, endDate: string | null): string {
-  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', timeZone: 'UTC' };
-  const start = startDate ? new Date(startDate).toLocaleDateString('en-US', options) : null;
-  const end = endDate ? new Date(endDate).toLocaleDateString('en-US', options) : null;
+  // Trip dates are calendar dates — see formatDateOnly for why these stay UTC.
+  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+  const start = formatDateOnly(startDate, options, 'en-US');
+  const end = formatDateOnly(endDate, options, 'en-US');
   if (start && end) return `${start} – ${end}`;
   return start ?? end ?? '';
 }

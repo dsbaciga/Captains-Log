@@ -106,7 +106,7 @@ The backend follows a layered architecture: **Routes -> Controllers -> Services 
 
 - [Backend Architecture](docs/architecture/BACKEND_ARCHITECTURE.md) - Layered architecture, services, middleware, authentication flow, database patterns
 - [Frontend Architecture](docs/architecture/FRONTEND_ARCHITECTURE.md) - Components, hooks, state management, API communication, routing
-- [Database Schema](docs/architecture/DATABASE_SCHEMA.md) - 32 models, relationships, entity linking, design patterns
+- [Database Schema](docs/architecture/DATABASE_SCHEMA.md) - 37 models, relationships, entity linking, design patterns
 
 Cross-cutting backend code lives in dedicated `src/` subdirectories. **There is no `src/utils/` directory** — put shared helpers in the existing topical directory, don't create one.
 
@@ -178,6 +178,47 @@ All backend responses follow this structure:
 - Always validate lat/lng ranges (lat: -90 to 90, lng: -180 to 180)
 - PostGIS extension enables spatial queries (not heavily used yet)
 - Nominatim service for geocoding addresses to coordinates
+
+### Timezones
+
+**Never fall back to UTC for display.** A time with no timezone of its own is shown on the
+viewer's clock, not on Greenwich's. Resolve the zone from most specific to least:
+
+```text
+entity.timezone -> trip.timezone -> user.timezone -> browser timezone -> UTC
+```
+
+UTC is only ever the last resort when nothing else can be determined.
+
+**Frontend** — use the resolver, never a raw `|| 'UTC'`:
+
+```typescript
+const resolveTz = useTimezoneResolver();          // hooks/useTimezoneResolver.ts
+const effectiveTz = resolveTz(activity.timezone, tripTimezone);
+```
+
+The hook appends the signed-in user's timezone and the browser's for you. Outside React, call
+`resolveTimezone(...candidates)` from `utils/timezone.ts` and pass the user's zone explicitly.
+Do not read `Intl.DateTimeFormat().resolvedOptions().timeZone` directly — that skips the
+user's configured setting.
+
+**Backend** — `resolveTimezone(...)` and `getUserTimezone(userId)` live in
+`services/_shared/serviceHelpers.ts`. Any read path that groups or formats dates for a user
+should end its chain with that user's zone:
+
+```typescript
+const tz = resolveTimezone(requestedTimezone, await getUserTimezone(userId));
+```
+
+**The one exception — date-only values.** `@db.Date` columns (trip start/end, expense dates)
+hold a calendar date, not an instant, and are stored at UTC midnight. Formatting those in any
+zone west of UTC renders the previous day. Use `formatDateOnly()` from `utils/timezone.ts`,
+which pins to UTC deliberately. Conversely, to bucket a real timestamp onto a calendar day,
+use `dayKeyInTimezone()` — slicing the ISO string groups by the UTC day and misfiles evening
+events.
+
+The user's timezone rides along in the auth session payload (`types/auth.ts` `User.timezone`),
+so it is available anywhere without an extra fetch.
 
 ### TypeScript Best Practices
 

@@ -91,7 +91,8 @@ import {
   createMockNext,
   createAuthenticatedControllerArgs,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
+  expectAppError,
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 import { testTrips, validCreateTripInput, validUpdateTripInput } from '../../__tests__/fixtures/trips';
 import { AppError } from '../../errors/errors';
@@ -160,10 +161,10 @@ describe('TripController', () => {
       mockTripService.createTrip.mockResolvedValue(mockTrip);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
-        body: validCreateTripInput as unknown as Record<string, unknown>,
+        body: validCreateTripInput,
       });
 
-      tripController.createTrip(req as never, res as never, next);
+      tripController.createTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.createTrip).toHaveBeenCalledWith(
@@ -183,7 +184,7 @@ describe('TripController', () => {
         body: { title: '' }, // title must be min 1 char
       });
 
-      tripController.createTrip(req as never, res as never, next);
+      tripController.createTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.createTrip).not.toHaveBeenCalled();
@@ -195,10 +196,10 @@ describe('TripController', () => {
       mockTripService.createTrip.mockRejectedValue(serviceError);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
-        body: validCreateTripInput as unknown as Record<string, unknown>,
+        body: validCreateTripInput,
       });
 
-      tripController.createTrip(req as never, res as never, next);
+      tripController.createTrip(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -206,17 +207,17 @@ describe('TripController', () => {
 
     it('should throw 401 when user is not authenticated', async () => {
       const req = createMockRequest({
-        body: validCreateTripInput as unknown as Record<string, unknown>,
+        body: validCreateTripInput,
       });
       const res = createMockResponse();
       const next = createMockNext();
 
-      tripController.createTrip(req as never, res as never, next);
+      tripController.createTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.createTrip).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error.message).toBe('Unauthorized');
       expect(error.statusCode).toBe(401);
     });
@@ -228,7 +229,7 @@ describe('TripController', () => {
         body: { title: 'Minimal Trip' },
       });
 
-      tripController.createTrip(req as never, res as never, next);
+      tripController.createTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.createTrip).toHaveBeenCalledWith(
@@ -255,7 +256,7 @@ describe('TripController', () => {
         query: {},
       });
 
-      tripController.getTrips(req as never, res as never, next);
+      tripController.getTrips(req, res, next);
       await flushPromises();
 
       expect(mockTripService.getTrips).toHaveBeenCalledWith(userId, {});
@@ -270,14 +271,16 @@ describe('TripController', () => {
         query: { status: 'Planning', search: 'Italy', page: '2', limit: '5' },
       });
 
-      tripController.getTrips(req as never, res as never, next);
+      tripController.getTrips(req, res, next);
       await flushPromises();
 
+      // Query params arrive as strings; the Zod schema coerces the numeric ones
+      // so the service never has to parse them itself.
       expect(mockTripService.getTrips).toHaveBeenCalledWith(userId, {
         status: 'Planning',
         search: 'Italy',
-        page: '2',
-        limit: '5',
+        page: 2,
+        limit: 5,
       });
       expect(next).not.toHaveBeenCalled();
     });
@@ -288,7 +291,7 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
 
-      tripController.getTrips(req as never, res as never, next);
+      tripController.getTrips(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -299,12 +302,12 @@ describe('TripController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      tripController.getTrips(req as never, res as never, next);
+      tripController.getTrips(req, res, next);
       await flushPromises();
 
       expect(mockTripService.getTrips).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error.statusCode).toBe(401);
     });
   });
@@ -320,7 +323,7 @@ describe('TripController', () => {
         params: { id: '1' },
       });
 
-      tripController.getTripById(req as never, res as never, next);
+      tripController.getTripById(req, res, next);
       await flushPromises();
 
       expect(mockTripService.getTripById).toHaveBeenCalledWith(userId, 1);
@@ -333,12 +336,12 @@ describe('TripController', () => {
         params: { id: 'abc' },
       });
 
-      tripController.getTripById(req as never, res as never, next);
+      tripController.getTripById(req, res, next);
       await flushPromises();
 
       expect(mockTripService.getTripById).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error.statusCode).toBe(400);
     });
 
@@ -350,7 +353,7 @@ describe('TripController', () => {
         params: { id: '999' },
       });
 
-      tripController.getTripById(req as never, res as never, next);
+      tripController.getTripById(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -361,12 +364,12 @@ describe('TripController', () => {
         params: { id: '-1' },
       });
 
-      tripController.getTripById(req as never, res as never, next);
+      tripController.getTripById(req, res, next);
       await flushPromises();
 
       expect(mockTripService.getTripById).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error.statusCode).toBe(400);
     });
   });
@@ -381,10 +384,10 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: '1' },
-        body: validUpdateTripInput as unknown as Record<string, unknown>,
+        body: validUpdateTripInput,
       });
 
-      tripController.updateTrip(req as never, res as never, next);
+      tripController.updateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.updateTrip).toHaveBeenCalledWith(
@@ -402,7 +405,7 @@ describe('TripController', () => {
         body: { status: 'InvalidStatus' },
       });
 
-      tripController.updateTrip(req as never, res as never, next);
+      tripController.updateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.updateTrip).not.toHaveBeenCalled();
@@ -415,10 +418,10 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: '1' },
-        body: validUpdateTripInput as unknown as Record<string, unknown>,
+        body: validUpdateTripInput,
       });
 
-      tripController.updateTrip(req as never, res as never, next);
+      tripController.updateTrip(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -427,10 +430,10 @@ describe('TripController', () => {
     it('should reject invalid id parameter', async () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: 'invalid' },
-        body: validUpdateTripInput as unknown as Record<string, unknown>,
+        body: validUpdateTripInput,
       });
 
-      tripController.updateTrip(req as never, res as never, next);
+      tripController.updateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.updateTrip).not.toHaveBeenCalled();
@@ -449,7 +452,7 @@ describe('TripController', () => {
         params: { id: '1' },
       });
 
-      tripController.deleteTrip(req as never, res as never, next);
+      tripController.deleteTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.deleteTrip).toHaveBeenCalledWith(userId, 1);
@@ -466,7 +469,7 @@ describe('TripController', () => {
         params: { id: '1' },
       });
 
-      tripController.deleteTrip(req as never, res as never, next);
+      tripController.deleteTrip(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -477,12 +480,12 @@ describe('TripController', () => {
         params: { id: 'abc' },
       });
 
-      tripController.deleteTrip(req as never, res as never, next);
+      tripController.deleteTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.deleteTrip).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error.statusCode).toBe(400);
     });
 
@@ -491,12 +494,12 @@ describe('TripController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      tripController.deleteTrip(req as never, res as never, next);
+      tripController.deleteTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.deleteTrip).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error.statusCode).toBe(401);
     });
   });
@@ -514,7 +517,7 @@ describe('TripController', () => {
         body: { photoId: 5 },
       });
 
-      tripController.updateCoverPhoto(req as never, res as never, next);
+      tripController.updateCoverPhoto(req, res, next);
       await flushPromises();
 
       expect(mockTripService.updateCoverPhoto).toHaveBeenCalledWith(userId, 1, 5);
@@ -531,7 +534,7 @@ describe('TripController', () => {
         body: { photoId: null },
       });
 
-      tripController.updateCoverPhoto(req as never, res as never, next);
+      tripController.updateCoverPhoto(req, res, next);
       await flushPromises();
 
       expect(mockTripService.updateCoverPhoto).toHaveBeenCalledWith(userId, 1, null);
@@ -545,7 +548,7 @@ describe('TripController', () => {
         body: {},
       });
 
-      tripController.updateCoverPhoto(req as never, res as never, next);
+      tripController.updateCoverPhoto(req, res, next);
       await flushPromises();
 
       expect(mockTripService.updateCoverPhoto).not.toHaveBeenCalled();
@@ -561,7 +564,7 @@ describe('TripController', () => {
         body: { photoId: 999 },
       });
 
-      tripController.updateCoverPhoto(req as never, res as never, next);
+      tripController.updateCoverPhoto(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -579,7 +582,7 @@ describe('TripController', () => {
         params: { id: '1' },
       });
 
-      tripController.validateTrip(req as never, res as never, next);
+      tripController.validateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.validateTrip).toHaveBeenCalledWith(1, userId);
@@ -595,7 +598,7 @@ describe('TripController', () => {
         params: { id: '999' },
       });
 
-      tripController.validateTrip(req as never, res as never, next);
+      tripController.validateTrip(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -606,7 +609,7 @@ describe('TripController', () => {
         params: { id: 'bad' },
       });
 
-      tripController.validateTrip(req as never, res as never, next);
+      tripController.validateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.validateTrip).not.toHaveBeenCalled();
@@ -625,7 +628,7 @@ describe('TripController', () => {
         params: { id: '1' },
       });
 
-      tripController.getValidationStatus(req as never, res as never, next);
+      tripController.getValidationStatus(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.getQuickStatus).toHaveBeenCalledWith(1, userId);
@@ -641,7 +644,7 @@ describe('TripController', () => {
         params: { id: '999' },
       });
 
-      tripController.getValidationStatus(req as never, res as never, next);
+      tripController.getValidationStatus(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -652,7 +655,7 @@ describe('TripController', () => {
         params: { id: '0' }, // parseId rejects 0 (must be >= 1)
       });
 
-      tripController.getValidationStatus(req as never, res as never, next);
+      tripController.getValidationStatus(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.getQuickStatus).not.toHaveBeenCalled();
@@ -675,10 +678,10 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: '1' },
-        body: validDismissBody as unknown as Record<string, unknown>,
+        body: validDismissBody,
       });
 
-      tripController.dismissValidationIssue(req as never, res as never, next);
+      tripController.dismissValidationIssue(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.dismissIssue).toHaveBeenCalledWith(
@@ -702,7 +705,7 @@ describe('TripController', () => {
         body: { issueType: 'missing_lodging' }, // missing issueKey and category
       });
 
-      tripController.dismissValidationIssue(req as never, res as never, next);
+      tripController.dismissValidationIssue(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.dismissIssue).not.toHaveBeenCalled();
@@ -719,7 +722,7 @@ describe('TripController', () => {
         },
       });
 
-      tripController.dismissValidationIssue(req as never, res as never, next);
+      tripController.dismissValidationIssue(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.dismissIssue).not.toHaveBeenCalled();
@@ -732,10 +735,10 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: '1' },
-        body: validDismissBody as unknown as Record<string, unknown>,
+        body: validDismissBody,
       });
 
-      tripController.dismissValidationIssue(req as never, res as never, next);
+      tripController.dismissValidationIssue(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -756,10 +759,10 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: '1' },
-        body: validRestoreBody as unknown as Record<string, unknown>,
+        body: validRestoreBody,
       });
 
-      tripController.restoreValidationIssue(req as never, res as never, next);
+      tripController.restoreValidationIssue(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.restoreIssue).toHaveBeenCalledWith(
@@ -782,7 +785,7 @@ describe('TripController', () => {
         body: { issueType: 'missing_lodging' }, // missing issueKey
       });
 
-      tripController.restoreValidationIssue(req as never, res as never, next);
+      tripController.restoreValidationIssue(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.restoreIssue).not.toHaveBeenCalled();
@@ -795,10 +798,10 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: '1' },
-        body: validRestoreBody as unknown as Record<string, unknown>,
+        body: validRestoreBody,
       });
 
-      tripController.restoreValidationIssue(req as never, res as never, next);
+      tripController.restoreValidationIssue(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -807,10 +810,10 @@ describe('TripController', () => {
     it('should reject invalid id parameter', async () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: 'abc' },
-        body: validRestoreBody as unknown as Record<string, unknown>,
+        body: validRestoreBody,
       });
 
-      tripController.restoreValidationIssue(req as never, res as never, next);
+      tripController.restoreValidationIssue(req, res, next);
       await flushPromises();
 
       expect(mockTripValidatorService.restoreIssue).not.toHaveBeenCalled();
@@ -842,10 +845,10 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: '1' },
-        body: validDuplicateBody as unknown as Record<string, unknown>,
+        body: validDuplicateBody,
       });
 
-      tripController.duplicateTrip(req as never, res as never, next);
+      tripController.duplicateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.duplicateTrip).toHaveBeenCalledWith(
@@ -867,7 +870,7 @@ describe('TripController', () => {
         body: { title: '' },
       });
 
-      tripController.duplicateTrip(req as never, res as never, next);
+      tripController.duplicateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.duplicateTrip).not.toHaveBeenCalled();
@@ -880,10 +883,10 @@ describe('TripController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { id: '1' },
-        body: validDuplicateBody as unknown as Record<string, unknown>,
+        body: validDuplicateBody,
       });
 
-      tripController.duplicateTrip(req as never, res as never, next);
+      tripController.duplicateTrip(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -895,7 +898,7 @@ describe('TripController', () => {
         body: { copyEntities: { locations: true } },
       });
 
-      tripController.duplicateTrip(req as never, res as never, next);
+      tripController.duplicateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.duplicateTrip).not.toHaveBeenCalled();
@@ -910,7 +913,7 @@ describe('TripController', () => {
         body: { title: 'Duplicated Trip' },
       });
 
-      tripController.duplicateTrip(req as never, res as never, next);
+      tripController.duplicateTrip(req, res, next);
       await flushPromises();
 
       expect(mockTripService.duplicateTrip).toHaveBeenCalledWith(

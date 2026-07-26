@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useId, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link } from "react-router";
 import type { AlbumWithPhotos, Photo } from "../types/photo";
 import type { Trip } from "../types/trip";
 import photoService from "../services/photo.service";

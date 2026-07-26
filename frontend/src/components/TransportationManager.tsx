@@ -17,12 +17,14 @@ import FormSection, { CollapsibleSection } from "./FormSection";
 import DraftIndicator from "./DraftIndicator";
 import DraftRestorePrompt from "./DraftRestorePrompt";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
+import { useTimezoneResolver } from "../hooks/useTimezoneResolver";
 import { useFormFields } from "../hooks/useFormFields";
 import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useCreateFromUrlParam } from "../hooks/useCreateFromUrlParam";
 import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
 import { useBulkSelection } from "../hooks/useBulkSelection";
 import EmptyState, { EmptyIllustrations } from "./EmptyState";
@@ -395,6 +397,7 @@ export default function TransportationManager({
   tripStartDate,
   onUpdate,
 }: TransportationManagerProps) {
+  const resolveTz = useTimezoneResolver();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [sortBy, setSortBy] = useState<SortBy>("date");
 
@@ -519,6 +522,8 @@ export default function TransportationManager({
       const timer = setTimeout(() => captureInitialValues(values), 0);
       return () => clearTimeout(timer);
     }
+    // `values` is read but deliberately not a dependency — see LodgingManager:
+    // re-baselining on every keystroke would leave isDirty permanently false.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.showForm, manager.editingId, captureInitialValues]);
 
@@ -532,8 +537,8 @@ export default function TransportationManager({
     handleChange("toLocationName", transportation.toLocationName || "");
 
     // Convert stored UTC times to local times in their respective timezones
-    const effectiveStartTz = transportation.startTimezone || tripTimezone || 'UTC';
-    const effectiveEndTz = transportation.endTimezone || tripTimezone || 'UTC';
+    const effectiveStartTz = resolveTz(transportation.startTimezone, tripTimezone);
+    const effectiveEndTz = resolveTz(transportation.endTimezone, tripTimezone);
 
     handleChange(
       "departureTime",
@@ -556,7 +561,7 @@ export default function TransportationManager({
     handleChange("currency", transportation.currency || "USD");
     handleChange("notes", transportation.notes || "");
     manager.openEditForm(transportation.id);
-  }, [handleChange, tripTimezone, manager]);
+  }, [handleChange, tripTimezone, resolveTz, manager]);
 
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((transportation: Transportation) => {
@@ -607,7 +612,7 @@ export default function TransportationManager({
 
         // Auto-fill departure time = arrival time + 2 hours (layover buffer)
         if (lastTransport.arrivalTime) {
-          const effectiveTz = lastTransport.endTimezone || tripTimezone || 'UTC';
+          const effectiveTz = resolveTz(lastTransport.endTimezone, tripTimezone);
           const arrivalDateTime = convertISOToDateTimeLocal(lastTransport.arrivalTime, effectiveTz);
 
           // Add 2 hours for connection/layover
@@ -625,6 +630,9 @@ export default function TransportationManager({
         }
       }
     }
+    // Intentionally depends only on the form opening: the connection-chaining
+    // defaults are seeded once. Depending on `values` would re-apply them on
+    // every keystroke and overwrite the user's edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.showForm, manager.editingId]);
 
@@ -675,6 +683,15 @@ export default function TransportationManager({
     return sortItems(unscheduledItems);
   }, [unscheduledItems, sortItems]);
 
+  // Flattened render order. Scheduled items render at index `i`, unscheduled at
+  // `filteredScheduledItems.length + i`, so this array is exactly what those
+  // indices refer to. Shift-click range selection resolves ranges by indexing
+  // the array it is handed, so it MUST be this one and not the raw item list.
+  const orderedItems = useMemo(
+    () => [...filteredScheduledItems, ...sortedUnscheduledItems],
+    [filteredScheduledItems, sortedUnscheduledItems]
+  );
+
   // Calculate counts for tab badges (only scheduled items)
   const counts = useMemo(() => {
     const upcoming = scheduledItems.filter((t) => t.isUpcoming).length;
@@ -698,6 +715,8 @@ export default function TransportationManager({
     setShowMoreOptions(false);
   }, [baseOpenCreateForm]);
 
+  useCreateFromUrlParam(openCreateForm);
+
   const handleFromLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
     const newLocation = createLocationStub(locationId, locationName, tripId);
@@ -718,8 +737,8 @@ export default function TransportationManager({
     e.preventDefault();
 
     // Convert datetime-local values to ISO strings using the specified timezones
-    const effectiveStartTz = values.startTimezone || tripTimezone || 'UTC';
-    const effectiveEndTz = values.endTimezone || tripTimezone || 'UTC';
+    const effectiveStartTz = resolveTz(values.startTimezone, tripTimezone);
+    const effectiveEndTz = resolveTz(values.endTimezone, tripTimezone);
 
     const departureTimeISO = values.departureTime
       ? convertDateTimeLocalToISO(values.departureTime, effectiveStartTz)
@@ -1543,7 +1562,7 @@ export default function TransportationManager({
                       onDelete={handleDelete}
                       selectionMode={bulkSelection.selectionMode}
                       isSelected={bulkSelection.isSelected(transportation.id)}
-                      onToggleSelection={(id, idx, shiftKey) => bulkSelection.toggleItemSelection(id, idx, shiftKey, manager.items)}
+                      onToggleSelection={(id, idx, shiftKey) => bulkSelection.toggleItemSelection(id, idx, shiftKey, orderedItems)}
                       index={index}
                     />
                   ))}
@@ -1579,7 +1598,7 @@ export default function TransportationManager({
                     onDelete={handleDelete}
                     selectionMode={bulkSelection.selectionMode}
                     isSelected={bulkSelection.isSelected(transportation.id)}
-                    onToggleSelection={(id, idx, shiftKey) => bulkSelection.toggleItemSelection(id, idx, shiftKey, manager.items)}
+                    onToggleSelection={(id, idx, shiftKey) => bulkSelection.toggleItemSelection(id, idx, shiftKey, orderedItems)}
                     index={filteredScheduledItems.length + index}
                   />
                 ))}
@@ -1594,8 +1613,8 @@ export default function TransportationManager({
         <BulkActionBar
           entityType="transportation"
           selectedCount={bulkSelection.selectedCount}
-          totalCount={manager.items.length}
-          onSelectAll={() => bulkSelection.selectAll(manager.items)}
+          totalCount={orderedItems.length}
+          onSelectAll={() => bulkSelection.selectAll(orderedItems)}
           onDeselectAll={bulkSelection.deselectAll}
           onExitSelectionMode={bulkSelection.exitSelectionMode}
           onBulkDelete={handleBulkDelete}

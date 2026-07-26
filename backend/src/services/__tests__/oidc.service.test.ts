@@ -14,6 +14,7 @@
  */
 
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 jest.mock('../../middleware/errorHandler', () => ({
   AppError: class AppError extends Error {
@@ -94,14 +95,53 @@ const discoveryDocument = {
   authorization_endpoint: 'https://idp.example.com/authorize',
   token_endpoint: 'https://idp.example.com/token',
   userinfo_endpoint: 'https://idp.example.com/userinfo',
+  jwks_uri: 'https://idp.example.com/jwks',
 };
 
-/** Builds a decodable (unverified) ID token like the one a real IdP returns. */
+// ID tokens are verified against the provider's JWKS, so the fixtures need a
+// real RS256 keypair: the test acts as the IdP, signing with the private key
+// and publishing the public half as a JWK at `jwks_uri`.
+const SIGNING_KID = 'test-signing-key';
+const { privateKey: idpPrivateKey, publicKey: idpPublicKey } = crypto.generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+});
+
+/** The provider's published JWKS, as the service will fetch it. */
+const jwksResponse = {
+  keys: [
+    {
+      ...idpPublicKey.export({ format: 'jwk' }),
+      kid: SIGNING_KID,
+      use: 'sig',
+      alg: 'RS256',
+    },
+  ],
+};
+
+/** Builds a genuinely-signed ID token like the one a real IdP returns. */
 const buildIdToken = (claims: Record<string, unknown>): string =>
-  jwt.sign(
-    { iss: 'https://idp.example.com', aud: 'test-client', ...claims },
-    'irrelevant-signing-key'
-  );
+  jwt.sign({ iss: 'https://idp.example.com', aud: 'test-client', ...claims }, idpPrivateKey, {
+    algorithm: 'RS256',
+    keyid: SIGNING_KID,
+  });
+
+/**
+ * Routes the service's outbound GETs to the right fixture. Tests that need a
+ * custom userinfo response pass a handler for it.
+ */
+const mockIdpEndpoints = (
+  overrides: { userinfo?: unknown } = {}
+): void => {
+  mockAxios.get.mockImplementation((url: unknown) => {
+    if (url === discoveryDocument.jwks_uri) {
+      return Promise.resolve({ data: jwksResponse });
+    }
+    if (url === discoveryDocument.userinfo_endpoint) {
+      return Promise.resolve({ data: overrides.userinfo ?? {} });
+    }
+    return Promise.resolve({ data: discoveryDocument });
+  });
+};
 
 const existingUser = {
   id: 1,
@@ -118,7 +158,7 @@ describe('OidcService', () => {
     jest.clearAllMocks();
     mockOidcConfig.autoProvision = true;
     service = new OidcService();
-    mockAxios.get.mockResolvedValue({ data: discoveryDocument });
+    mockIdpEndpoints();
   });
 
   describe('sanitizeUsername (OIDC-001)', () => {
@@ -244,6 +284,51 @@ describe('OidcService', () => {
       expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     });
 
+    it('rejects an ID token signed by a key outside the provider JWKS (OIDC-010)', async () => {
+      // Signature verification is what makes the iss/aud checks meaningful:
+      // without it, anyone who can substitute the token response can assert any
+      // sub/email they like. This token has perfectly valid claims but is signed
+      // by a key the provider never published.
+      const { privateKey: attackerKey } = crypto.generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+      });
+      const forgedToken = jwt.sign(
+        {
+          iss: 'https://idp.example.com',
+          aud: 'test-client',
+          sub: 'subject-123',
+          email: 'traveler@example.com',
+          email_verified: true,
+        },
+        attackerKey,
+        { algorithm: 'RS256', keyid: SIGNING_KID }
+      );
+      mockAxios.post.mockResolvedValue({ data: { id_token: forgedToken } });
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toBeInstanceOf(AppError);
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unsigned (alg: none) ID token (OIDC-010)', async () => {
+      const unsignedToken = jwt.sign(
+        {
+          iss: 'https://idp.example.com',
+          aud: 'test-client',
+          sub: 'subject-123',
+          email: 'traveler@example.com',
+          email_verified: true,
+        },
+        '',
+        { algorithm: 'none' }
+      );
+      mockAxios.post.mockResolvedValue({ data: { id_token: unsignedToken } });
+
+      await expect(service.handleCallback('auth-code', 'verifier')).rejects.toBeInstanceOf(AppError);
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+    });
+
     it('rejects ID tokens with a mismatched issuer (OIDC-008)', async () => {
       const foreignToken = buildIdToken({
         iss: 'https://evil.example.com',
@@ -298,13 +383,9 @@ describe('OidcService', () => {
       mockAxios.post.mockResolvedValue({
         data: { id_token: noVerifiedClaimToken, access_token: 'idp-access' },
       });
-      mockAxios.get.mockImplementation((url: unknown) =>
-        Promise.resolve(
-          url === discoveryDocument.userinfo_endpoint
-            ? { data: { sub: 'subject-123', email: 'traveler@example.com' } }
-            : { data: discoveryDocument }
-        )
-      );
+      mockIdpEndpoints({
+        userinfo: { sub: 'subject-123', email: 'traveler@example.com' },
+      });
       mockPrisma.user.findUnique
         .mockResolvedValueOnce(null) // no user with this subject
         .mockResolvedValueOnce(existingUser); // but email matches
@@ -323,13 +404,9 @@ describe('OidcService', () => {
       mockAxios.post.mockResolvedValue({
         data: { id_token: noVerifiedClaimToken, access_token: 'idp-access' },
       });
-      mockAxios.get.mockImplementation((url: unknown) =>
-        Promise.resolve(
-          url === discoveryDocument.userinfo_endpoint
-            ? { data: { sub: 'subject-123', email: 'traveler@example.com', email_verified: true } }
-            : { data: discoveryDocument }
-        )
-      );
+      mockIdpEndpoints({
+        userinfo: { sub: 'subject-123', email: 'traveler@example.com', email_verified: true },
+      });
       mockPrisma.user.findUnique
         .mockResolvedValueOnce(null) // no user with this subject
         .mockResolvedValueOnce(existingUser); // but email matches
@@ -360,13 +437,9 @@ describe('OidcService', () => {
         data: { id_token: noVerifiedClaimToken, access_token: 'idp-access' },
       });
       // userinfo also omits email_verified, like IdPs that never emit the claim
-      mockAxios.get.mockImplementation((url: unknown) =>
-        Promise.resolve(
-          url === discoveryDocument.userinfo_endpoint
-            ? { data: { sub: 'subject-123', email: 'traveler@example.com' } }
-            : { data: discoveryDocument }
-        )
-      );
+      mockIdpEndpoints({
+        userinfo: { sub: 'subject-123', email: 'traveler@example.com' },
+      });
     });
 
     afterEach(() => {

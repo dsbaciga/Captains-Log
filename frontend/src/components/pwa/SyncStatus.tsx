@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { useOfflineReady, offlineStorage } from '../../hooks/useOfflineReady';
+import { useOfflineReady, notifyOfflineSyncUpdate } from '../../hooks/useOfflineReady';
+import syncManager from '../../services/syncManager';
 
 /**
  * Sync status states
@@ -76,43 +77,34 @@ export default function SyncStatus({
     setLocalSyncing(true);
     setLocalError(null);
 
-    // Update storage to show syncing state
-    if (tripId) {
-      offlineStorage.setSyncing(tripId, true);
-    }
-
     try {
       if (onSync) {
         await onSync(tripId);
       } else {
-        // Simulate sync if no handler provided
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      }
+        // Default behaviour: drain the real sync queue via syncManager.
+        const result = tripId
+          ? await syncManager.syncTrip(tripId)
+          : await syncManager.syncAll();
 
-      // Clear pending changes on success
-      if (tripId) {
-        offlineStorage.clearPendingChanges(tripId);
-        offlineStorage.setSyncing(tripId, false);
+        if (result.status === 'error') {
+          throw new Error(result.error ?? 'Sync failed');
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sync failed';
       setLocalError(errorMessage);
-
-      if (tripId) {
-        offlineStorage.setSyncError(tripId, errorMessage);
-      }
     } finally {
       setLocalSyncing(false);
+      // The queue lives in IndexedDB, which emits no storage event — tell
+      // mounted status components to re-read it.
+      notifyOfflineSyncUpdate(tripId);
     }
   }, [isOnline, isSyncing, localSyncing, onSync, tripId]);
 
   // Clear error
   const clearError = useCallback(() => {
     setLocalError(null);
-    if (tripId) {
-      offlineStorage.setSyncError(tripId, null);
-    }
-  }, [tripId]);
+  }, []);
 
   // Compact badge mode
   if (compact) {

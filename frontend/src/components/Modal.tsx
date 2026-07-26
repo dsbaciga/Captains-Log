@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef, useId, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CloseIcon } from './icons';
+import { pushModal, popModal, isTopModal } from '../utils/modalStack';
 
 export interface ModalProps {
   /** Whether the modal is open */
@@ -90,12 +91,16 @@ export default function Modal({
   const modalRef = useRef<HTMLDivElement>(null);
   const hasFocusedRef = useRef(false);
   const triggerElementRef = useRef<HTMLElement | null>(null);
+  const modalStackIdRef = useRef<number | null>(null);
   const generatedId = useId();
   const titleId = `modal-title-${generatedId}`;
 
   // Handle keyboard events including focus trap
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // Ignore keyboard events while another modal is stacked above this one
+      if (!isTopModal(modalStackIdRef.current)) return;
+
       // Escape to close
       if (e.key === 'Escape' && closeOnEscape) {
         onClose();
@@ -197,15 +202,28 @@ export default function Modal({
     };
   }, []);
 
-  // Handle keyboard events, body scroll lock
+  // Register in the shared modal stack: ref-counts the body scroll lock and
+  // tracks which modal is topmost. Deps are intentionally only `isOpen` so the
+  // stack order is not churned by unrelated re-renders.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const id = pushModal();
+    modalStackIdRef.current = id;
+
+    return () => {
+      popModal(id);
+      modalStackIdRef.current = null;
+    };
+  }, [isOpen]);
+
+  // Handle keyboard events
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
 
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
-        document.body.style.overflow = '';
       };
     }
   }, [isOpen, handleKeyDown]);
@@ -283,10 +301,14 @@ Modal.Simple = function SimpleModal({
 }: Pick<ModalProps, 'isOpen' | 'onClose' | 'children' | 'maxWidth' | 'className' | 'zIndex'> & { ariaLabel?: string }) {
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
+  const modalStackIdRef = useRef<number | null>(null);
   const prevIsOpenRef = useRef(isOpen);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // Ignore keyboard events while another modal is stacked above this one
+      if (!isTopModal(modalStackIdRef.current)) return;
+
       // Escape to close
       if (e.key === 'Escape') {
         onClose();
@@ -354,15 +376,27 @@ Modal.Simple = function SimpleModal({
     };
   }, []);
 
-  // Handle keyboard events and body scroll lock
+  // Register in the shared modal stack (ref-counted body scroll lock + topmost
+  // tracking). Deps are intentionally only `isOpen`.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const id = pushModal();
+    modalStackIdRef.current = id;
+
+    return () => {
+      popModal(id);
+      modalStackIdRef.current = null;
+    };
+  }, [isOpen]);
+
+  // Handle keyboard events
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
 
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
-        document.body.style.overflow = '';
       };
     }
   }, [isOpen, handleKeyDown]);

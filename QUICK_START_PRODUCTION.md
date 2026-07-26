@@ -72,6 +72,23 @@ docker exec travel-life-backend npx prisma migrate deploy
 | Database | 5432 |
 | Nominatim | 8080 |
 
+## Pinning a Version
+
+Container images are published by CI when a `v*` tag is pushed, and are available as
+`ghcr.io/dsbaciga/travel-life-backend:<version>` (both `5.6.1` and `v5.6.1` forms, plus
+`latest`).
+
+The TrueNAS compose files (`docker-compose.truenas.yml`,
+`docker-compose.truenas.optimized.yml`) deploy a pinned `${APP_VERSION}` rather than
+`:latest`, so a deploy is reproducible:
+
+```bash
+APP_VERSION=v5.6.1 docker-compose -f docker-compose.truenas.yml up -d
+```
+
+Set `APP_VERSION` in your env file to make it stick; change it to the previous tag to roll
+back. See [DEPLOYMENT.md](DEPLOYMENT.md#pinning-the-deployed-version-app_version).
+
 ## Next Steps
 
 - Set up HTTPS with a reverse proxy (nginx, Caddy, Traefik)

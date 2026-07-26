@@ -354,6 +354,15 @@ export default function ActivityManager({
   const sortedScheduledActivities = sortActivities(scheduledActivities);
   const sortedUnscheduledActivities = sortActivities(unscheduledActivities);
 
+  // Flattened render order. Scheduled items render at index `i`, unscheduled at
+  // `sortedScheduledActivities.length + i`, so this array is exactly what those
+  // indices refer to. Shift-click range selection resolves ranges by indexing
+  // the array it is handed, so it MUST be this one and not the raw item list.
+  const orderedActivities = [
+    ...sortedScheduledActivities,
+    ...sortedUnscheduledActivities,
+  ];
+
   // Get children for a parent activity
   const getChildren = (parentId: number) => {
     return manager.items.filter((a) => a.parentId === parentId);
@@ -462,9 +471,9 @@ export default function ActivityManager({
         tabIndex={bulkSelection.selectionMode ? 0 : undefined}
         onClick={bulkSelection.selectionMode ? (e) => {
           e.stopPropagation();
-          bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, topLevelActivities);
+          bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, orderedActivities);
         } : undefined}
-        onKeyDown={bulkSelection.selectionMode ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bulkSelection.toggleItemSelection(activity.id, index, false, topLevelActivities); } } : undefined}
+        onKeyDown={bulkSelection.selectionMode ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bulkSelection.toggleItemSelection(activity.id, index, false, orderedActivities); } } : undefined}
         className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow p-3 sm:p-6 hover:shadow-md transition-shadow ${
           isChild
             ? "ml-4 sm:ml-8 mt-3 border-l-4 border-blue-300 dark:border-blue-700"
@@ -482,7 +491,7 @@ export default function ActivityManager({
                 onChange={() => {}}
                 onClick={(e) => {
                   e.stopPropagation();
-                  bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, topLevelActivities);
+                  bulkSelection.toggleItemSelection(activity.id, index, e.shiftKey, orderedActivities);
                 }}
                 className="w-5 h-5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
               />
@@ -869,8 +878,8 @@ export default function ActivityManager({
         <BulkActionBar
           entityType="activity"
           selectedCount={bulkSelection.selectedCount}
-          totalCount={topLevelActivities.length}
-          onSelectAll={() => bulkSelection.selectAll(topLevelActivities)}
+          totalCount={orderedActivities.length}
+          onSelectAll={() => bulkSelection.selectAll(orderedActivities)}
           onDeselectAll={bulkSelection.deselectAll}
           onExitSelectionMode={bulkSelection.exitSelectionMode}
           onBulkDelete={handleBulkDelete}

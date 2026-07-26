@@ -8,7 +8,7 @@ import tripService from "../../services/trip.service";
 import photoService from "../../services/photo.service";
 import { getFullAssetUrl } from "../../lib/config";
 import { getAccessToken } from "../../lib/axios";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Skeleton } from "../Skeleton";
 
 export default function RecentPhotosWidget() {

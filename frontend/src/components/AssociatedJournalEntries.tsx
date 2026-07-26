@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { stripMarkdown } from '../utils/stripMarkdown';
+import { formatDate } from '../utils/dateFormat';
 
 interface JournalEntryInfo {
   id: number;
@@ -23,15 +24,6 @@ export default function AssociatedJournalEntries({
   if (!journalEntries || journalEntries.length === 0) {
     return null;
   }
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Trip Journal';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
 
   return (
     <div className="mt-4">
@@ -57,7 +49,7 @@ export default function AssociatedJournalEntries({
                 </div>
               </div>
               <div className="ml-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {formatDate(journal.date)}
+                {formatDate(journal.date, 'medium', 'Trip Journal')}
               </div>
             </div>
           </Link>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router';
 import { useAuthStore } from '../store/authStore';
 import authService from '../services/auth.service';
 import type { OidcConfig } from '../types/auth';

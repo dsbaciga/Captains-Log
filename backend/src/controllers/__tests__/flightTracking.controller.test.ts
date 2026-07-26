@@ -14,7 +14,7 @@ import aviationstackService from '../../services/aviationstack.service';
 import { flightTrackingController } from '../flightTracking.controller';
 import {
   createAuthenticatedControllerArgs,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 const flushPromises = () => new Promise(resolve => process.nextTick(resolve));

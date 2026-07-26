@@ -74,8 +74,8 @@ jest.mock('../../config/database', () => ({
   default: mockPrisma,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Prisma } = require('@prisma/client');
+// jest.mock() calls are hoisted above imports, so this picks up the mock.
+import { Prisma } from '@prisma/client';
 
 import activityService from '../activity.service';
 import { AppError } from '../../errors/errors';
@@ -108,7 +108,7 @@ describe('ActivityService', () => {
     startTime: Date | null;
     endTime: Date | null;
     timezone: string | null;
-    cost: number | null;
+    cost: Prisma.Decimal | number | null;
     currency: string | null;
     bookingUrl: string | null;
     bookingReference: string | null;
@@ -402,7 +402,7 @@ describe('ActivityService', () => {
       const mockCreatedActivity = createMockActivity({
         id: 7,
         name: input.name,
-        cost: new Prisma.Decimal(input.cost) as unknown as number,
+        cost: new Prisma.Decimal(input.cost),
         currency: input.currency,
         notes: input.notes,
       });
@@ -439,7 +439,7 @@ describe('ActivityService', () => {
         const mockCreatedActivity = createMockActivity({
           id: Math.random() * 1000,
           name: input.name,
-          cost: new Prisma.Decimal(100) as unknown as number,
+          cost: new Prisma.Decimal(100),
           currency,
         });
 
@@ -464,7 +464,7 @@ describe('ActivityService', () => {
       const mockCreatedActivity = createMockActivity({
         id: 8,
         name: input.name,
-        cost: new Prisma.Decimal(0) as unknown as number,
+        cost: new Prisma.Decimal(0),
         currency: input.currency,
       });
 
@@ -803,14 +803,14 @@ describe('ActivityService', () => {
 
       const mockExistingActivity = createMockActivity({
         id: activityId,
-        cost: new Prisma.Decimal(100) as unknown as number,
+        cost: new Prisma.Decimal(100),
         currency: 'USD',
         trip: { id: 100, userId: 1 },
       });
 
       const mockUpdatedActivity = createMockActivity({
         ...mockExistingActivity,
-        cost: new Prisma.Decimal(updateData.cost) as unknown as number,
+        cost: new Prisma.Decimal(updateData.cost),
         currency: updateData.currency,
       });
 
@@ -881,7 +881,7 @@ describe('ActivityService', () => {
         id: activityId,
         description: 'Some description',
         notes: 'Some notes',
-        cost: new Prisma.Decimal(100) as unknown as number,
+        cost: new Prisma.Decimal(100),
         trip: { id: 100, userId: 1 },
       });
 
@@ -957,10 +957,15 @@ describe('ActivityService', () => {
 
       mockPrisma.activity.findUnique.mockResolvedValue(mockActivity);
       mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip(100, userId));
+      // Deleting an activity first walks its child activities so their links
+      // can be cleaned up as well -- the DB cascade-deletes the children, so
+      // nothing else would. This activity has none.
+      const mockTxActivityFindMany = jest.fn().mockResolvedValue([]);
+
       mockPrisma.$transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
         return callback({
           entityLink: { deleteMany: mockTxEntityLinkDeleteMany },
-          activity: { delete: mockTxActivityDelete },
+          activity: { delete: mockTxActivityDelete, findMany: mockTxActivityFindMany },
         });
       });
 
@@ -970,8 +975,8 @@ describe('ActivityService', () => {
         where: {
           tripId: 100,
           OR: [
-            { sourceType: 'ACTIVITY', sourceId: activityId },
-            { targetType: 'ACTIVITY', targetId: activityId },
+            { sourceType: 'ACTIVITY', sourceId: { in: [activityId] } },
+            { targetType: 'ACTIVITY', targetId: { in: [activityId] } },
           ],
         },
       });
@@ -1022,20 +1027,42 @@ describe('ActivityService', () => {
       });
 
       const mockTxActivityDelete = jest.fn().mockResolvedValue(mockActivity);
+      const mockTxEntityLinkDeleteMany = jest.fn().mockResolvedValue({ count: 0 });
+
+      // Children are cascade-deleted by the database, so their entity links have
+      // to be collected and removed here or they are orphaned. Two levels deep:
+      // activityId -> [201, 202] -> [203].
+      const mockTxActivityFindMany = jest
+        .fn()
+        .mockResolvedValueOnce([{ id: 201 }, { id: 202 }])
+        .mockResolvedValueOnce([{ id: 203 }])
+        .mockResolvedValueOnce([]);
 
       mockPrisma.activity.findUnique.mockResolvedValue(mockActivity);
       mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip(100, userId));
       mockPrisma.$transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
         return callback({
-          entityLink: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          activity: { delete: mockTxActivityDelete },
+          entityLink: { deleteMany: mockTxEntityLinkDeleteMany },
+          activity: { delete: mockTxActivityDelete, findMany: mockTxActivityFindMany },
         });
       });
 
       const result = await activityService.deleteActivity(userId, activityId);
 
+      // Only the root row is deleted explicitly; the DB cascade removes the rest.
       expect(mockTxActivityDelete).toHaveBeenCalledWith({
         where: { id: activityId },
+      });
+
+      // ...but link cleanup must span the whole subtree.
+      expect(mockTxEntityLinkDeleteMany).toHaveBeenCalledWith({
+        where: {
+          tripId: 100,
+          OR: [
+            { sourceType: 'ACTIVITY', sourceId: { in: [activityId, 201, 202, 203] } },
+            { targetType: 'ACTIVITY', targetId: { in: [activityId, 201, 202, 203] } },
+          ],
+        },
       });
       expect(result.success).toBe(true);
     });

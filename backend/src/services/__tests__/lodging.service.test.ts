@@ -61,16 +61,20 @@ jest.mock('../../config/database', () => ({
   default: mockPrisma,
 }));
 
-// Mock service helpers
-jest.mock('../../services/_shared/serviceHelpers', () => {
-  const originalModule = jest.requireActual('../../services/_shared/serviceHelpers');
+// Mock trip access verification
+jest.mock('../../services/_shared/tripAccess', () => {
+  const originalModule = jest.requireActual('../../services/_shared/tripAccess');
   return {
     ...originalModule,
     verifyTripAccessWithPermission: jest.fn(),
     verifyEntityAccessWithPermission: jest.fn(),
-    cleanupEntityLinks: jest.fn(),
   };
 });
+
+// Mock entity link cleanup
+jest.mock('../../services/_shared/entityLinkCleanup', () => ({
+  cleanupEntityLinks: jest.fn(),
+}));
 
 // Mock crudHelpers (deleteEntity uses prisma.$transaction internally)
 jest.mock('../../prisma/crudHelpers', () => ({
@@ -80,7 +84,8 @@ jest.mock('../../prisma/crudHelpers', () => ({
 }));
 
 import lodgingService from '../lodging.service';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../services/_shared/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission } from '../../services/_shared/tripAccess';
+import { cleanupEntityLinks } from '../../services/_shared/entityLinkCleanup';
 import { deleteEntity } from '../../prisma/crudHelpers';
 import { AppError } from '../../errors/errors';
 import { LodgingType } from '../../types/lodging.types';

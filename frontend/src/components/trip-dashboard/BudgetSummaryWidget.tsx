@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { ChevronRightIcon, ChevronDownIcon } from '../icons';
+import { formatCurrency as formatCurrencyValue } from '../../utils/formatCurrency';
 
 interface BudgetSummaryWidgetProps {
   budget: number | null; // Total budget, null if not set
@@ -209,16 +210,13 @@ export default function BudgetSummaryWidget({
 }: BudgetSummaryWidgetProps) {
   const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(false);
 
-  // Format currency using Intl.NumberFormat
-  const formatCurrency = useMemo(() => {
-    const formatter = new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    });
-    return (amount: number) => formatter.format(amount);
-  }, [currency]);
+  // Format currency via the shared guarded helper. Constructing an
+  // Intl.NumberFormat here directly would throw a RangeError during render for
+  // an unrecognised currency code, taking the whole dashboard down.
+  const formatCurrency = useCallback(
+    (amount: number) => formatCurrencyValue(amount, currency),
+    [currency]
+  );
 
   // Calculate budget status
   const percentage = budget && budget > 0 ? Math.round((spent / budget) * 100) : 0;

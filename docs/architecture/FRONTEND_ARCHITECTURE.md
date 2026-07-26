@@ -666,7 +666,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 ### Navigation
 
 ```typescript
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 
 function MyComponent() {
   const navigate = useNavigate();

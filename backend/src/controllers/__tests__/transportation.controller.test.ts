@@ -47,8 +47,8 @@ jest.mock('../../config/database', () => ({
   default: mockPrismaClient,
 }));
 
-// Mock serviceHelpers
-jest.mock('../../services/_shared/serviceHelpers', () => ({
+// Mock trip access verification
+jest.mock('../../services/_shared/tripAccess', () => ({
   verifyTripAccessWithPermission: jest.fn(),
   verifyEntityAccessWithPermission: jest.fn(),
 }));
@@ -77,8 +77,8 @@ import {
   createMockResponse,
   createMockNext,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
-import { createAuthenticatedUser } from '../../__tests__/helpers/auth';
+} from '../../__tests__/mockBuilders/requests';
+import { createAuthenticatedUser } from '../../__tests__/mockBuilders/auth';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 // =============================================================================

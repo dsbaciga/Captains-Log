@@ -66,3 +66,11 @@ gha-creds-*.json
 .mcp.json
 .swarm/
 .ua/
+
+# AI/Agent tooling state (regenerated per machine - do not commit)
+*.rvf
+*.rvf.lock
+skills-lock.json
+
+# Stray local screenshot (untracked; listed so `git add -A` does not re-add it)
+login-page.png

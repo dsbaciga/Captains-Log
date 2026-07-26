@@ -1,5 +1,5 @@
 import { useAuthStore } from '../store/authStore';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useState } from 'react';
 import UpcomingTripsWidget from '../components/widgets/UpcomingTripsWidget';
 import TravelStatsWidget from '../components/widgets/TravelStatsWidget';
@@ -10,10 +10,22 @@ import TripCalendarWidget from '../components/widgets/TripCalendarWidget';
 import YearInReviewWidget from '../components/widgets/YearInReviewWidget';
 import PendingInvitations from '../components/PendingInvitations';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
+import { useActiveTrip, getDayOfTrip, getTripLength } from '../hooks/useActiveTrip';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const [refreshKey, setRefreshKey] = useState(0);
+  const { trip: activeTrip } = useActiveTrip();
+
+  // "Day 3 of 10 · Iceland Ring Road" — the one thing a mid-trip user wants,
+  // in place of the generic greeting. Falls back to null (generic copy) when
+  // no trip is under way.
+  const dayOfTrip = getDayOfTrip(activeTrip);
+  const tripLength = getTripLength(activeTrip);
+  const activeTripLine =
+    activeTrip && dayOfTrip
+      ? `Day ${dayOfTrip}${tripLength ? ` of ${tripLength}` : ''} of ${activeTrip.title}`
+      : null;
 
   const handleRefresh = async () => {
     // Trigger refresh by updating key (causes widgets to reload)
@@ -33,14 +45,17 @@ export default function DashboardPage() {
     >
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
       <main className="max-w-[1600px] mx-auto px-6 py-8 sm:py-12 md:py-16 pt-20 sm:pt-24">
-        {/* Hero Section */}
-        <div className="mb-12 animate-fade-in">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight leading-none mb-4">
-            Welcome back,<br />
+        {/* Hero Section — compact on mobile so the first widget is above the
+            fold; the full-size hero returns at md. The subtitle states where
+            the user is in their active trip rather than a generic greeting. */}
+        <div className="mb-6 md:mb-12 animate-fade-in">
+          <h1 className="text-2xl md:text-5xl lg:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight leading-none mb-1 md:mb-4">
+            <span className="md:hidden">Hi, </span>
+            <span className="hidden md:inline">Welcome back,<br /></span>
             <span className="text-accent-500 dark:text-warm-gray">{user?.username}</span>
           </h1>
-          <p className="text-xl text-slate dark:text-warm-gray font-body max-w-2xl">
-            Your adventures await. Continue documenting your journey.
+          <p className="text-sm md:text-xl text-slate dark:text-warm-gray font-body max-w-2xl">
+            {activeTripLine ?? 'Your adventures await. Continue documenting your journey.'}
           </p>
         </div>
 
@@ -92,8 +107,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Links Section */}
-        <div className="mb-8 animate-fade-in stagger-4">
+        {/* Quick Links Section — desktop only. On mobile every one of these
+            four destinations is already in the bottom nav, so the block was a
+            third route to the same screens costing ~220px of scroll. */}
+        <div className="hidden lg:block mb-8 animate-fade-in stagger-4">
           <h2 className="text-2xl font-display font-bold text-charcoal dark:text-warm-gray mb-4">
             Quick Links
           </h2>

@@ -1,4 +1,5 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import crypto from 'crypto';
 
 // Mock services before importing controller
 jest.mock('../../services/backup.service', () => ({
@@ -15,13 +16,14 @@ jest.mock('../../services/restore.service', () => ({
   },
 }));
 
+import config from '../../config';
 import backupService from '../../services/backup.service';
 import restoreService from '../../services/restore.service';
 import backupController from '../backup.controller';
 import {
   createAuthenticatedControllerArgs,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 const flushPromises = () => new Promise(resolve => process.nextTick(resolve));
@@ -32,10 +34,10 @@ describe('backup.controller', () => {
   describe('createBackup', () => {
     it('should call backupService.createBackup and return backup data', async () => {
       const mockBackupData = { version: '1.0.0', exportedAt: '2024-01-01', trips: [] };
-      (backupService.createBackup as jest.Mock).mockResolvedValue(mockBackupData as never);
+      jest.mocked(backupService.createBackup).mockResolvedValue(mockBackupData);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
-      backupController.createBackup(req as any, res as any, next);
+      backupController.createBackup(req, res, next);
       await flushPromises();
 
       expect(backupService.createBackup).toHaveBeenCalledWith(testUsers.user1.id);
@@ -44,15 +46,43 @@ describe('backup.controller', () => {
         'Content-Disposition',
         expect.stringContaining('attachment; filename="travel-life-backup-')
       );
-      expect(res.json).toHaveBeenCalledWith(mockBackupData);
+      // The response carries an HMAC-SHA256 signature over the backup body so
+      // restore can reject tampered or foreign files.
+      expect(res.json).toHaveBeenCalledWith({
+        ...mockBackupData,
+        integrity: {
+          algorithm: 'hmac-sha256',
+          signature: expect.stringMatching(/^[0-9a-f]{64}$/),
+        },
+      });
+    });
+
+    it('should sign the backup body, not the signed envelope', async () => {
+      const mockBackupData = { version: '1.0.0', exportedAt: '2024-01-01', trips: [] };
+      jest.mocked(backupService.createBackup).mockResolvedValue(mockBackupData);
+
+      const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
+      backupController.createBackup(req, res, next);
+      await flushPromises();
+
+      const body = res.json.mock.calls[0][0] as {
+        integrity: { algorithm: string; signature: string };
+      };
+
+      const expected = crypto
+        .createHmac('sha256', config.jwt.secret)
+        .update(JSON.stringify(mockBackupData))
+        .digest('hex');
+
+      expect(body.integrity.signature).toBe(expected);
     });
 
     it('should pass errors to next via asyncHandler', async () => {
       const error = new Error('Backup failed');
-      (backupService.createBackup as jest.Mock).mockRejectedValue(error as never);
+      jest.mocked(backupService.createBackup).mockRejectedValue(error);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
-      backupController.createBackup(req as any, res as any, next);
+      backupController.createBackup(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(error);
@@ -62,7 +92,7 @@ describe('backup.controller', () => {
   describe('restoreFromBackup', () => {
     it('should validate input and call restoreService', async () => {
       const mockResult = { message: 'Restored successfully', stats: { trips: 2, locations: 5 } };
-      (restoreService.restoreFromBackup as jest.Mock).mockResolvedValue(mockResult as never);
+      jest.mocked(restoreService.restoreFromBackup).mockResolvedValue(mockResult);
 
       const backupData = {
         version: '1.0.0',
@@ -74,7 +104,7 @@ describe('backup.controller', () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         body: { backupData, options: {} },
       });
-      backupController.restoreFromBackup(req as any, res as any, next);
+      backupController.restoreFromBackup(req, res, next);
       await flushPromises();
 
       // If Zod validation fails, next will be called with error; otherwise service is called
@@ -88,7 +118,7 @@ describe('backup.controller', () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         body: { backupData: 'invalid', options: {} },
       });
-      backupController.restoreFromBackup(req as any, res as any, next);
+      backupController.restoreFromBackup(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalled();
@@ -98,7 +128,7 @@ describe('backup.controller', () => {
   describe('getBackupInfo', () => {
     it('should return backup info with version and formats', async () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
-      backupController.getBackupInfo(req as any, res as any, next);
+      backupController.getBackupInfo(req, res, next);
       await flushPromises();
 
       expect(res.json).toHaveBeenCalledWith({

@@ -6,7 +6,13 @@ import { AppError } from '../middleware/errorHandler';
 import logger from '../config/logger';
 import config from '../config';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput, BulkDeleteLocationsInput, BulkUpdateLocationsInput } from '../types/location.types';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
+import {
+  verifyTripAccessWithPermission,
+  verifyEntityAccessWithPermission,
+} from '../services/_shared/tripAccess';
+import { buildConditionalUpdateData } from '../services/_shared/prismaUpdateData';
+import { convertDecimals } from '../services/_shared/decimalConversion';
+import { cleanupEntityLinks } from '../services/_shared/entityLinkCleanup';
 
 /** Provenance of a location's opening hours. Manual entry always wins over the OSM lookup. */
 const OPENING_HOURS_SOURCE_OSM = 'osm';
@@ -169,6 +175,11 @@ export class LocationService {
 
     // Validate lat/lng ranges if provided
     validateLatLng(data.latitude, data.longitude);
+
+    // If a category is provided, verify the caller owns it or it is a default category
+    if (data.categoryId != null) {
+      await this.verifyCategoryAccess(userId, data.categoryId);
+    }
 
     // If parentId is provided, verify it exists and belongs to the same trip
     if (data.parentId) {
@@ -384,6 +395,11 @@ export class LocationService {
     // Validate lat/lng ranges if provided
     validateLatLng(data.latitude, data.longitude);
 
+    // If a category is provided, verify the caller owns it or it is a default category
+    if (data.categoryId !== undefined && data.categoryId !== null) {
+      await this.verifyCategoryAccess(userId, data.categoryId);
+    }
+
     // If updating parentId, verify it exists and belongs to the same trip
     if (data.parentId !== undefined && data.parentId !== null) {
       // Prevent self-referencing
@@ -461,6 +477,24 @@ export class LocationService {
     });
 
     return convertDecimals(updatedLocation);
+  }
+
+  /**
+   * Verify a location category is usable by this user: either owned by them
+   * or one of the system default categories. Mirrors the visibility rule
+   * enforced by getCategories().
+   */
+  private async verifyCategoryAccess(userId: number, categoryId: number): Promise<void> {
+    const category = await prisma.locationCategory.findFirst({
+      where: {
+        id: categoryId,
+        OR: [{ userId }, { isDefault: true }],
+      },
+    });
+
+    if (!category) {
+      throw new AppError('Category not found or access denied', 404);
+    }
   }
 
   // Helper method to get all descendants of a location using recursive CTE

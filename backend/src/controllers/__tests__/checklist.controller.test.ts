@@ -28,7 +28,7 @@ import { checklistController } from '../checklist.controller';
 import {
   createAuthenticatedControllerArgs,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 describe('checklist.controller', () => {

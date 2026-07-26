@@ -21,11 +21,59 @@ import path from 'path';
 import fs from 'fs/promises';
 import axios from 'axios';
 import ffmpeg from 'fluent-ffmpeg';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
+import {
+  verifyTripAccessWithPermission,
+  verifyEntityAccessWithPermission,
+} from '../services/_shared/tripAccess';
+import { convertDecimals } from '../services/_shared/decimalConversion';
+import { resolveTimezone, getUserTimezone } from '../services/_shared/timezoneResolution';
+import { cleanupEntityLinks } from '../services/_shared/entityLinkCleanup';
 
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'photos');
-const THUMBNAIL_DIR = path.join(process.cwd(), 'uploads', 'thumbnails');
-const VIDEO_DIR = path.join(process.cwd(), 'uploads', 'videos');
+const UPLOADS_ROOT = path.resolve(process.cwd(), 'uploads');
+const UPLOAD_DIR = path.join(UPLOADS_ROOT, 'photos');
+const THUMBNAIL_DIR = path.join(UPLOADS_ROOT, 'thumbnails');
+const VIDEO_DIR = path.join(UPLOADS_ROOT, 'videos');
+
+/**
+ * Resolve a stored `/uploads/...` web path to an absolute path confined to the
+ * uploads root. Returns null when the value is not a stored upload path or when
+ * it escapes the root once normalised.
+ *
+ * Stored paths are always server-generated, so anything that fails this check is
+ * tampered data (e.g. a poisoned backup restore) and must never reach fs.unlink().
+ * Mirrors the containment pattern in share.service.getPublicPhotoFilePath().
+ */
+function resolveUploadPath(storedPath: string): string | null {
+  if (!storedPath.startsWith('/uploads/')) return null;
+  const absolute = path.resolve(UPLOADS_ROOT, storedPath.slice('/uploads/'.length));
+  if (!absolute.startsWith(UPLOADS_ROOT + path.sep)) return null;
+  return absolute;
+}
+
+/**
+ * Delete a file referenced by a stored `/uploads/...` path, refusing anything
+ * that resolves outside the uploads directory. Deletion failures are logged and
+ * swallowed — the DB row is the source of truth.
+ */
+async function unlinkStoredUpload(storedPath: string, label: string): Promise<void> {
+  const absolute = resolveUploadPath(storedPath);
+  if (!absolute) {
+    console.error(
+      `[PhotoService] Refusing to delete ${label} outside the uploads directory: ${storedPath}`
+    );
+    return;
+  }
+
+  try {
+    await fs.unlink(absolute);
+  } catch (error) {
+    // Continue even if file deletion fails - log for debugging
+    console.error(
+      `[PhotoService] Failed to delete ${label} ${storedPath}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
+}
 
 // Allowed MIME types for images and videos (validated via magic bytes)
 const ALLOWED_IMAGE_MIMES = new Set([
@@ -202,10 +250,6 @@ function buildPhotoOrderBy(sortBy?: string, sortOrder?: string) {
       return [{ takenAt: order }, { createdAt: order }];
     case PhotoSortBy.CAPTION:
       return [{ caption: order }, { takenAt: order }];
-    case PhotoSortBy.LOCATION:
-      // For location, we need to order by the related location's name
-      // This will require a different approach since it's a nested relation
-      return [{ takenAt: order }, { createdAt: order }]; // Fallback to date for now
     case PhotoSortBy.CREATED:
       return [{ createdAt: order }];
     default:
@@ -766,8 +810,9 @@ class PhotoService {
   async getPhotoDateGroupings(userId: number, tripId: number, timezone?: string) {
     await verifyTripAccessWithPermission(userId, tripId, 'view');
 
-    // Default to UTC if no timezone specified
-    const tz = timezone || 'UTC';
+    // Fall back to the caller's own timezone when the request omits one, so
+    // photos group onto the days they happened on for that user.
+    const tz = resolveTimezone(timezone, await getUserTimezone(userId));
 
     // Validate timezone format to prevent SQL injection
     // Valid timezones contain only alphanumeric, /, _, +, - characters
@@ -817,8 +862,9 @@ class PhotoService {
   ) {
     await verifyTripAccessWithPermission(userId, tripId, 'view');
 
-    // Default to UTC if no timezone specified
-    const tz = timezone || 'UTC';
+    // Same fallback as getPhotoDateGroupings: the day a photo belongs to is
+    // whatever day it was in the viewer's timezone.
+    const tz = resolveTimezone(timezone, await getUserTimezone(userId));
 
     // Validate timezone format to prevent SQL injection
     // Valid timezones contain only alphanumeric, /, _, +, - characters
@@ -907,24 +953,13 @@ class PhotoService {
       thumbnailPath: string | null;
     }>('photo', photoId, userId, 'edit');
 
-    // Delete local files if they exist
+    // Delete local files if they exist. Both paths are containment-checked
+    // against the uploads root before unlinking.
     if (verifiedPhoto.source === PhotoSource.LOCAL && verifiedPhoto.localPath) {
-      try {
-        const filepath = path.join(process.cwd(), verifiedPhoto.localPath);
-        await fs.unlink(filepath);
-      } catch (error) {
-        // Continue even if file deletion fails - log for debugging
-        console.error(`[PhotoService] Failed to delete photo file ${verifiedPhoto.localPath}:`, error instanceof Error ? error.message : error);
-      }
+      await unlinkStoredUpload(verifiedPhoto.localPath, 'photo file');
 
       if (verifiedPhoto.thumbnailPath) {
-        try {
-          const thumbnailPath = path.join(process.cwd(), verifiedPhoto.thumbnailPath);
-          await fs.unlink(thumbnailPath);
-        } catch (error) {
-          // Continue even if thumbnail deletion fails - log for debugging
-          console.error(`[PhotoService] Failed to delete thumbnail ${verifiedPhoto.thumbnailPath}:`, error instanceof Error ? error.message : error);
-        }
+        await unlinkStoredUpload(verifiedPhoto.thumbnailPath, 'thumbnail');
       }
     }
 

@@ -50,7 +50,7 @@ import { companionController } from '../companion.controller';
 import {
   createAuthenticatedControllerArgs,
   createMockFile,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 import { Request, Response, NextFunction } from 'express';
 

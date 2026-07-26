@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import immichService from '../services/immich.service';
-import prisma from '../config/database';
 import { AppError } from '../errors/errors';
 import { asyncHandler } from '../http/asyncHandler';
 import { requireUserId } from '../auth/controllerHelpers';
@@ -19,23 +18,10 @@ interface PaginationOptions {
   take?: number;
 }
 
-// Helper to get user's Immich settings
+// Helper to get user's Immich settings.
+// Delegates to the service layer so the controller does not query Prisma directly.
 async function getUserImmichSettings(userId: number) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { immichApiUrl: true, immichApiKey: true },
-  });
-
-  if (!user?.immichApiUrl || !user?.immichApiKey) {
-    throw new AppError('Immich settings not configured', 400);
-  }
-
-  // Note: We intentionally do NOT validate the stored URL against internal addresses here.
-  // Self-hosted Immich instances typically run on the same LAN (e.g., 192.168.x.x),
-  // which would be blocked by SSRF validation. The URL is validated when saved via
-  // testConnection, and only authenticated users can set their own Immich URL.
-
-  return { apiUrl: user.immichApiUrl, apiKey: user.immichApiKey };
+  return immichService.getUserSettings(userId);
 }
 
 // Helper to add thumbnail and file URLs to assets

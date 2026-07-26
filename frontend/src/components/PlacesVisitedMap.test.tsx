@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { render, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import PlacesVisitedMap from './PlacesVisitedMap';
 import type { Location } from '../types/location';
 import type { Transportation } from '../types/transportation';

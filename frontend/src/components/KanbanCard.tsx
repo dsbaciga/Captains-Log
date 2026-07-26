@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Trip } from '../types/trip';
 import { formatTripDates, getTripDateStatus } from '../utils/dateFormat';
 

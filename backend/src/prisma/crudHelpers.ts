@@ -5,12 +5,12 @@ import prisma from '../config/database';
 import { AppError } from '../errors/errors';
 import { asyncHandler } from '../http/asyncHandler';
 import { requireUserId } from '../auth/controllerHelpers';
-import { PrismaModelDelegate } from '../types/prisma-helpers';
 import {
   verifyTripAccessWithPermission,
   verifyEntityAccessWithPermission,
   VerifiableEntityType,
-} from '../services/_shared/serviceHelpers';
+} from '../services/_shared/tripAccess';
+import { getEntityDelegate } from './modelDelegates';
 
 // =============================================================================
 // CONTROLLER FACTORY
@@ -21,9 +21,11 @@ import {
  * This prevents referencing non-callable properties (e.g., a string field)
  * as a service method in HandlerConfig.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- `any` is necessary here because service methods have specific parameter types that are not assignable to `unknown[]`
+// `never[]` for the parameter list makes this match any function regardless of
+// its parameter types (parameters are contravariant, so `never[]` is assignable
+// to every parameter list), which avoids needing `any` here.
 type FunctionKeys<T> = {
-  [K in keyof T]: T[K] extends (...args: any[]) => any ? K : never;
+  [K in keyof T]: T[K] extends (...args: never[]) => unknown ? K : never;
 }[keyof T];
 
 /**
@@ -149,11 +151,9 @@ export function createCrudController<TService extends object>(
   for (const [handlerName, handlerConfig] of Object.entries(handlers)) {
     const { method, statusCode = 200, bodySchema, buildArgs } = handlerConfig;
 
-    // Access the service method dynamically. The HandlerConfig<TService> constraint
-    // ensures `method` is a key of TService at the type level, but we need a runtime
-    // cast to access it dynamically since TypeScript classes lack index signatures.
-    const serviceRecord = service as Record<string, unknown>;
-    const serviceFn = serviceRecord[method as string];
+    // `method` is constrained to FunctionKeys<TService>, so indexing the service
+    // with it is well-typed and needs no cast.
+    const serviceFn = service[method];
     if (typeof serviceFn !== 'function') {
       throw new Error(
         `Handler "${handlerName}": service method "${String(method)}" is not a function on the provided service`
@@ -215,20 +215,6 @@ const entityTypeToLinkType: Partial<Record<VerifiableEntityType, EntityType>> = 
 };
 
 /**
- * Maps VerifiableEntityType to the Prisma model key for dynamic access.
- */
-const entityTypeToPrismaModel: Record<VerifiableEntityType, keyof typeof prisma> = {
-  activity: 'activity',
-  lodging: 'lodging',
-  transportation: 'transportation',
-  location: 'location',
-  journalEntry: 'journalEntry',
-  photo: 'photo',
-  album: 'photoAlbum',
-  photoAlbum: 'photoAlbum',
-};
-
-/**
  * Human-readable display names for entity types.
  */
 const entityTypeDisplayNames: Record<VerifiableEntityType, string> = {
@@ -241,6 +227,45 @@ const entityTypeDisplayNames: Record<VerifiableEntityType, string> = {
   album: 'albums',
   photoAlbum: 'albums',
 };
+
+/** Prisma transaction client (the argument the `$transaction` callback receives). */
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * Collects every descendant activity ID beneath the given roots.
+ *
+ * `Activity.parentId` cascades at the database level, so deleting a parent silently removes
+ * its whole subtree in Postgres. `EntityLink` is polymorphic with no foreign key to
+ * `activities`, so those descendants' links have to be cleaned up explicitly or they are
+ * orphaned. Walks one level at a time to handle arbitrary nesting depth; the `seen` set also
+ * guarantees termination if the data ever contains a parent cycle.
+ */
+async function collectActivityDescendantIds(
+  tx: TransactionClient,
+  rootIds: number[]
+): Promise<number[]> {
+  const seen = new Set<number>(rootIds);
+  const descendants: number[] = [];
+  let frontier = rootIds;
+
+  while (frontier.length > 0) {
+    const children = await tx.activity.findMany({
+      where: { parentId: { in: frontier } },
+      select: { id: true },
+    });
+
+    const next: number[] = [];
+    for (const child of children) {
+      if (seen.has(child.id)) continue;
+      seen.add(child.id);
+      descendants.push(child.id);
+      next.push(child.id);
+    }
+    frontier = next;
+  }
+
+  return descendants;
+}
 
 /**
  * Generic delete for a single entity with ownership verification and entity link cleanup.
@@ -277,25 +302,30 @@ export async function deleteEntity(
 
   // Wrap link cleanup + delete in a transaction for atomicity
   const linkType = entityTypeToLinkType[entityType];
-  const modelKey = entityTypeToPrismaModel[entityType];
 
   await prisma.$transaction(async (tx) => {
     // Clean up entity links before deleting
     if (linkType) {
+      // Child activities are cascade-deleted by the database, so their links must be
+      // cleaned up here too — nothing else will.
+      const linkedIds =
+        entityType === 'activity'
+          ? [entityId, ...(await collectActivityDescendantIds(tx, [entityId]))]
+          : [entityId];
+
       await tx.entityLink.deleteMany({
         where: {
           tripId: entity.tripId,
           OR: [
-            { sourceType: linkType, sourceId: entityId },
-            { targetType: linkType, targetId: entityId },
+            { sourceType: linkType, sourceId: { in: linkedIds } },
+            { targetType: linkType, targetId: { in: linkedIds } },
           ],
         },
       });
     }
 
     // Delete the entity
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic Prisma model access on transaction client requires type assertion
-    await ((tx as any)[modelKey] as PrismaModelDelegate).delete({
+    await getEntityDelegate(entityType, tx).delete({
       where: { id: entityId },
     });
   });
@@ -334,9 +364,7 @@ export async function bulkDeleteEntities(
   // Verify user has edit permission on the trip
   await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
-  const modelKey = entityTypeToPrismaModel[entityType];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic Prisma model access requires type assertion
-  const model = prisma[modelKey] as PrismaModelDelegate;
+  const model = getEntityDelegate(entityType);
   const displayName = entityTypeDisplayNames[entityType];
 
   // Verify all entities belong to this trip
@@ -358,28 +386,30 @@ export async function bulkDeleteEntities(
   const linkType = entityTypeToLinkType[entityType];
 
   const result = await prisma.$transaction(async (tx) => {
-    // Clean up entity links for all entities
+    // Clean up entity links for all entities (every entity was verified to be in `tripId`
+    // above, so a single deleteMany over the ID set covers them all)
     if (linkType) {
-      await Promise.all(
-        entities.map((entity) =>
-          tx.entityLink.deleteMany({
-            where: {
-              tripId: entity.tripId,
-              OR: [
-                { sourceType: linkType, sourceId: entity.id },
-                { targetType: linkType, targetId: entity.id },
-              ],
-            },
-          })
-        )
-      );
+      const entityIds = entities.map((entity) => entity.id);
+      // Child activities are cascade-deleted by the database, so their links must be
+      // cleaned up here too — nothing else will.
+      const linkedIds =
+        entityType === 'activity'
+          ? [...entityIds, ...(await collectActivityDescendantIds(tx, entityIds))]
+          : entityIds;
+
+      await tx.entityLink.deleteMany({
+        where: {
+          tripId,
+          OR: [
+            { sourceType: linkType, sourceId: { in: linkedIds } },
+            { targetType: linkType, targetId: { in: linkedIds } },
+          ],
+        },
+      });
     }
 
     // Delete all entities
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic Prisma model access on transaction client requires type assertion
-    return ((tx as any)[modelKey] as PrismaModelDelegate & {
-      deleteMany: (args: unknown) => Promise<{ count: number }>;
-    }).deleteMany({
+    return getEntityDelegate(entityType, tx).deleteMany({
       where: {
         id: { in: ids },
         tripId,
@@ -439,9 +469,7 @@ export async function bulkUpdateEntities(
   // Verify user has edit permission on the trip
   await verifyTripAccessWithPermission(userId, tripId, 'edit');
 
-  const modelKey = entityTypeToPrismaModel[entityType];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic Prisma model access requires type assertion
-  const model = prisma[modelKey] as PrismaModelDelegate;
+  const model = getEntityDelegate(entityType);
   const displayName = entityTypeDisplayNames[entityType];
 
   // Verify all entities belong to this trip
@@ -475,9 +503,7 @@ export async function bulkUpdateEntities(
   }
 
   // Update all entities
-  const result = await (model as PrismaModelDelegate & {
-    updateMany: (args: unknown) => Promise<{ count: number }>;
-  }).updateMany({
+  const result = await model.updateMany({
     where: {
       id: { in: ids },
       tripId,

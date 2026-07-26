@@ -208,6 +208,14 @@ describe('PhotoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // Default: run the transaction body against the same mock client so writes
+    // made inside it stay observable on mockPrisma. Batch tests override this
+    // with a bespoke tx stub; without a default, transactional paths such as
+    // deletePhoto would silently never execute their body.
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => unknown) => callback(mockPrisma)
+    );
+
     // Default trip access verification
     mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
 

@@ -3,8 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import savedLinkService from "../services/savedLink.service";
 import {
+  hasPendingMetadata,
   savedLinkDisplayTitle,
   savedLinkHostname,
+  PREVIEW_POLL_INTERVAL_MS,
   type SavedLink,
 } from "../types/savedLink";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -75,6 +77,10 @@ export default function SavedLinksManager({
     queryKey: ["savedLinks", tripId],
     queryFn: () => savedLinkService.getSavedLinksByTrip(tripId),
     enabled: !!tripId,
+    // A freshly saved link renders as PENDING while its preview is scraped in
+    // the background; poll until it lands, then stop.
+    refetchInterval: (query) =>
+      hasPendingMetadata(query.state.data) ? PREVIEW_POLL_INTERVAL_MS : false,
   });
 
   const refreshData = () => {

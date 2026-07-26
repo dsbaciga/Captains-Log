@@ -6,7 +6,12 @@ import {
   BulkDeleteLodgingInput,
   BulkUpdateLodgingInput,
 } from '../types/lodging.types';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, convertDecimals, buildConditionalUpdateData } from '../services/_shared/serviceHelpers';
+import {
+  verifyTripAccessWithPermission,
+  verifyEntityAccessWithPermission,
+} from '../services/_shared/tripAccess';
+import { buildConditionalUpdateData } from '../services/_shared/prismaUpdateData';
+import { convertDecimals } from '../services/_shared/decimalConversion';
 import { deleteEntity, bulkDeleteEntities, bulkUpdateEntities } from '../prisma/crudHelpers';
 
 // Note: Location association is handled via EntityLink system, not direct FK
@@ -27,7 +32,7 @@ class LodgingService {
         checkOutDate: data.checkOutDate ? new Date(data.checkOutDate) : new Date(),
         timezone: data.timezone || null,
         confirmationNumber: data.confirmationNumber || null,
-        cost: data.cost || null,
+        cost: data.cost !== undefined ? data.cost : null,
         currency: data.currency || null,
         bookingUrl: data.bookingUrl || null,
         notes: data.notes || null,

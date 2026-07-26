@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Activity } from "../types/activity";
-import type { Transportation, TransportationType } from "../types/transportation";
-import type { Lodging, LodgingType } from "../types/lodging";
+import type { Transportation } from "../types/transportation";
+import { isTransportationType } from "../types/transportation";
+import type { Lodging } from "../types/lodging";
+import { isLodgingType } from "../types/lodging";
 import type { Location } from "../types/location";
 import type { ActivityCategory } from "../types/user";
 import activityService from "../services/activity.service";
 import transportationService from "../services/transportation.service";
 import lodgingService from "../services/lodging.service";
 import entityLinkService from "../services/entityLink.service";
+import { useInvalidateEntityLinks } from "../hooks/useInvalidateEntityLinks";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import { useFormFields } from "../hooks/useFormFields";
@@ -100,45 +103,6 @@ const initialLodgingFormState: LodgingFormFields = {
   notes: "",
 };
 
-// Runtime copies of the string-literal unions in types/transportation.ts and
-// types/lodging.ts. `satisfies` ties each entry back to its union, so a member
-// that is renamed or removed there fails to compile here instead of silently
-// drifting.
-const TRANSPORTATION_TYPES = [
-  "flight",
-  "train",
-  "bus",
-  "car",
-  "ferry",
-  "bicycle",
-  "walk",
-  "other",
-] as const satisfies readonly TransportationType[];
-
-const LODGING_TYPES = [
-  "hotel",
-  "hostel",
-  "airbnb",
-  "vacation_rental",
-  "camping",
-  "resort",
-  "motel",
-  "bed_and_breakfast",
-  "apartment",
-  "friends_family",
-  "other",
-] as const satisfies readonly LodgingType[];
-
-// The form fields hold the raw `<select>` value as a string, so narrow it
-// before handing it to the API rather than assuming it is a valid member.
-function isTransportationType(value: string): value is TransportationType {
-  return TRANSPORTATION_TYPES.some((type) => type === value);
-}
-
-function isLodgingType(value: string): value is LodgingType {
-  return LODGING_TYPES.some((type) => type === value);
-}
-
 export default function UnscheduledItems({
   tripId,
   locations,
@@ -152,6 +116,7 @@ export default function UnscheduledItems({
   const [lodging, setLodging] = useState<Lodging[]>([]);
   const [activityCategories, setActivityCategories] = useState<ActivityCategory[]>([]);
   const [activeSection, setActiveSection] = useState<EntityType>("activity");
+  const invalidateEntityLinks = useInvalidateEntityLinks();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingType, setEditingType] = useState<EntityType | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -349,6 +314,8 @@ export default function UnscheduledItems({
       }
 
       resetForm();
+      // The linked location renders this activity in its own Linked Items list.
+      invalidateEntityLinks(tripId);
       loadAllData();
       onUpdate?.();
     } catch {
@@ -671,6 +638,7 @@ export default function UnscheduledItems({
       }
 
       resetForm();
+      invalidateEntityLinks(tripId);
       loadAllData();
       onUpdate?.();
     } catch {

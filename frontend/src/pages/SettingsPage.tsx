@@ -1,5 +1,5 @@
 import { useEffect, useState, useId, useRef, Suspense, lazy } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import userService from "../services/user.service";
 import tagService from "../services/tag.service";
@@ -18,6 +18,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getRandomTagColor } from "../utils/tagColors";
 import { CONVERTIBLE_CURRENCIES } from "../constants/currencies";
+import { getBrowserTimezone } from "../utils/timezone";
 
 // Lazy-loaded heavy tab components (only loaded when their tab is active)
 const ImmichSettings = lazy(() => import("../components/ImmichSettings"));
@@ -95,7 +96,9 @@ export default function SettingsPage() {
   // was only added locally would be a no-op that discards the local addition.
   const persistedCategoryNames = useRef<Set<string>>(new Set());
   const persistedTripTypeNames = useRef<Set<string>>(new Set());
-  const [timezone, setTimezone] = useState("UTC");
+  // Seeded from the browser so a user who has never picked one sees their own
+  // zone preselected rather than UTC.
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
   // "" means no home currency chosen — budget totals then fall back to each
   // trip's own budget currency.
   const [baseCurrency, setBaseCurrency] = useState("");
@@ -158,7 +161,7 @@ export default function SettingsPage() {
       persistedTripTypeNames.current = new Set(
         (user.tripTypes || []).map((t) => t.name),
       );
-      setTimezone(user.timezone || "UTC");
+      setTimezone(user.timezone || getBrowserTimezone());
       setBaseCurrency(user.baseCurrency || "");
       setDietaryPreferences(user.dietaryPreferences || []);
       setUseCustomMapStyle(user.useCustomMapStyle ?? true);

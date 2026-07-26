@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,50 +14,53 @@ import type {
 } from '../services/share.service';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { getFullAssetUrl } from '../lib/config';
+import {
+  dayKeyInTimezone,
+  formatDateOnly,
+  resolveTimezone,
+} from '../utils/timezone';
 
 // ---------------------------------------------------------------------------
-// Date helpers — everything is formatted in UTC so the shared page shows the
-// same wall-clock times to every viewer regardless of their local timezone.
+// Date helpers.
+//
+// Times are shown in the zone the event actually happens in — its own, else
+// the trip's — so a 7pm dinner in Tokyo reads as 7pm to every viewer. Only
+// when nothing on the trip names a zone does this fall back to the viewer's
+// own, which for a signed-out visitor is their browser's.
 // ---------------------------------------------------------------------------
 
-const formatDateOnly = (dateStr: string | null): string | null => {
-  if (!dateStr) return null;
-  const date = new Date(`${dateStr.split('T')[0]}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, {
+const formatDayLabel = (dateStr: string | null): string | null =>
+  formatDateOnly(dateStr, {
     weekday: 'short',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'UTC',
   });
-};
 
-const formatTime = (iso: string | null): string | null => {
+const formatTime = (
+  iso: string | null,
+  timezone: string | null | undefined
+): string | null => {
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleTimeString(undefined, {
     hour: 'numeric',
     minute: '2-digit',
-    timeZone: 'UTC',
+    timeZone: resolveTimezone(timezone),
   });
-};
-
-const dayKeyOf = (iso: string | null): string | null => {
-  if (!iso) return null;
-  return iso.split('T')[0] ?? null;
 };
 
 // ---------------------------------------------------------------------------
 // Day-by-day itinerary model
 // ---------------------------------------------------------------------------
 
-type ItineraryEvent =
+type ItineraryEvent = { timezone: string | null } & (
   | { kind: 'activity'; time: string | null; activity: PublicActivity }
   | { kind: 'transportation'; time: string | null; transport: PublicTransportation }
   | { kind: 'lodging-checkin'; time: string | null; lodging: PublicLodging }
-  | { kind: 'lodging-checkout'; time: string | null; lodging: PublicLodging };
+  | { kind: 'lodging-checkout'; time: string | null; lodging: PublicLodging }
+);
 
 interface ItineraryDay {
   key: string;
@@ -78,25 +81,36 @@ function buildItinerary(trip: PublicTrip): ItineraryDay[] {
   };
 
   for (const activity of trip.activities) {
-    push(dayKeyOf(activity.startTime), { kind: 'activity', time: activity.startTime, activity });
+    const timezone = resolveTimezone(activity.timezone, trip.timezone);
+    push(dayKeyInTimezone(activity.startTime, timezone), {
+      kind: 'activity',
+      time: activity.startTime,
+      activity,
+      timezone,
+    });
   }
   for (const transport of trip.transportation) {
-    push(dayKeyOf(transport.scheduledStart), {
+    const timezone = resolveTimezone(transport.startTimezone, trip.timezone);
+    push(dayKeyInTimezone(transport.scheduledStart, timezone), {
       kind: 'transportation',
       time: transport.scheduledStart,
       transport,
+      timezone,
     });
   }
   for (const lodging of trip.lodging) {
-    push(dayKeyOf(lodging.checkInDate), {
+    const timezone = resolveTimezone(lodging.timezone, trip.timezone);
+    push(dayKeyInTimezone(lodging.checkInDate, timezone), {
       kind: 'lodging-checkin',
       time: lodging.checkInDate,
       lodging,
+      timezone,
     });
-    push(dayKeyOf(lodging.checkOutDate), {
+    push(dayKeyInTimezone(lodging.checkOutDate, timezone), {
       kind: 'lodging-checkout',
       time: lodging.checkOutDate,
       lodging,
+      timezone,
     });
   }
 
@@ -115,7 +129,7 @@ function buildItinerary(trip: PublicTrip): ItineraryDay[] {
     });
     return {
       key,
-      label: key === UNSCHEDULED_KEY ? 'Unscheduled' : formatDateOnly(key) ?? key,
+      label: key === UNSCHEDULED_KEY ? 'Unscheduled' : (formatDayLabel(key) ?? key),
       events,
     };
   });
@@ -133,7 +147,7 @@ const EVENT_ICONS: Record<ItineraryEvent['kind'], string> = {
 };
 
 function EventCard({ event }: { event: ItineraryEvent }) {
-  const time = formatTime(event.time);
+  const time = formatTime(event.time, event.timezone);
 
   let title = '';
   let subtitle: string | null = null;

@@ -95,6 +95,33 @@ function isPrivateIPv6(ip: string): boolean {
   const expanded = expandIPv6(normalized);
   if (!expanded) return true; // Treat unparseable as blocked
 
+  // IPv4-mapped (::ffff:0:0/96) and IPv4-compatible (::/96) addresses embed an
+  // IPv4 address in the low 32 bits, and must be judged by that address.
+  //
+  // The dotted-form regex above is not enough on its own: the WHATWG URL parser
+  // rewrites the hostname to hex before this module ever sees it, so
+  // `http://[::ffff:127.0.0.1]/` arrives as `::ffff:7f00:1`. That fell through
+  // to the prefix checks below, whose first word is 0x0000 — matching neither
+  // fc00::/7 nor fe80::/10 — and was wrongly treated as public, allowing
+  // loopback and RFC1918 targets straight through the SSRF guard.
+  if (expanded.substring(0, 20) === '0'.repeat(20)) {
+    const marker = expanded.substring(20, 24);
+
+    if (marker === 'ffff') {
+      const embeddedIPv4 = [
+        parseInt(expanded.substring(24, 26), 16),
+        parseInt(expanded.substring(26, 28), 16),
+        parseInt(expanded.substring(28, 30), 16),
+        parseInt(expanded.substring(30, 32), 16),
+      ].join('.');
+      return isPrivateIPv4(embeddedIPv4);
+    }
+
+    // ::/96 (IPv4-compatible) is deprecated and covers the unspecified range;
+    // nothing legitimate should be fetched through it, so block outright.
+    if (marker === '0000') return true;
+  }
+
   const firstWord = parseInt(expanded.substring(0, 4), 16);
 
   // fc00::/7 - unique local (fc00:: through fdff::)

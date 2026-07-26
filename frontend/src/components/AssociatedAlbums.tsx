@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { stripMarkdown } from '../utils/stripMarkdown';
 
 interface AlbumInfo {

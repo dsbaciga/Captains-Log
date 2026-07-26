@@ -1,3 +1,11 @@
+# This workflow is the SINGLE publisher of Travel Life container images.
+#
+# release.ps1 / release.sh bump the version, verify the builds locally, commit and
+# push the tag - they do NOT push images. Pushing a v* tag triggers this workflow,
+# which builds and publishes to ghcr.io and creates the GitHub Release.
+# Do not add a `docker push` back into the release scripts; two publishers produced
+# the same release under different tag schemes (:vX.Y.Z vs :X.Y.Z).
+# See docs/guides/BUILD_AND_PUSH.md.
 name: Build and Release
 
 on:
@@ -39,6 +47,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
           tags: |
             type=semver,pattern={{version}}
+            type=semver,pattern=v{{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
@@ -50,6 +59,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
           tags: |
             type=semver,pattern={{version}}
+            type=semver,pattern=v{{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
@@ -93,14 +103,33 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      # Never hard-fail the release over release notes: a missing CHANGELOG.md, or a
+      # version with no section in it, falls back to a generic body.
       - name: Extract changelog for this version
         id: changelog
         run: |
-          VERSION=${{ steps.version.outputs.VERSION }}
-          CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
-          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          NOTES=""
+          if [ -f CHANGELOG.md ]; then
+            NOTES=$(awk -v heading="## [$VERSION]" '
+              index($0, heading) == 1 { capture = 1; next }
+              capture && (/^## \[/ || /^---[[:space:]]*$/) { exit }
+              capture { print }
+            ' CHANGELOG.md)
+          else
+            echo "::warning::CHANGELOG.md not found - using a generic release body"
+          fi
+
+          if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "::warning::No changelog section for $VERSION - using a generic release body"
+            NOTES="Release $VERSION. See the commit history for details."
+          fi
+
+          {
+            echo "CHANGELOG<<CHANGELOG_EOF"
+            echo "$NOTES"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1

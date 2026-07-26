@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth';
+import { externalApiLimiter } from '../middleware/rateLimit';
 import { flightTrackingController } from '../controllers/flightTracking.controller';
 
 const router = express.Router();
@@ -157,9 +158,11 @@ router.put(
  *       404:
  *         description: Trip not found
  */
+// Fans out to one AviationStack call per flight in the trip — metered quota.
 router.post(
   '/trips/:tripId/flights/refresh',
   authenticate,
+  externalApiLimiter,
   flightTrackingController.refreshFlightsForTrip
 );
 

@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import logger from '../config/logger';
 import { AppError } from '../errors/errors';
-import { verifyTripAccessWithPermission } from '../services/_shared/serviceHelpers';
+import { verifyTripAccessWithPermission } from '../services/_shared/tripAccess';
 
 // Type for Prisma transaction client
 type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];

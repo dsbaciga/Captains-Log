@@ -164,13 +164,13 @@ curl -I http://localhost:80
 
 **Backend Container:**
 
-- Image: `ghcr.io/dsbaciga/travel-life-backend:latest`
+- Image: `ghcr.io/dsbaciga/travel-life-backend:v5.6.1` (use an explicit version tag, not `latest`)
 - Port: 5000
 - Environment variables: (see above)
 
 **Frontend Container:**
 
-- Image: `ghcr.io/dsbaciga/travel-life-frontend:latest`
+- Image: `ghcr.io/dsbaciga/travel-life-frontend:v5.6.1` (use an explicit version tag, not `latest`)
 - Port: 80
 
 **Database:**
@@ -184,6 +184,32 @@ Use the TrueNAS-specific compose file:
 ```bash
 docker-compose -f docker-compose.truenas.yml up -d
 ```
+
+### Pinning the Deployed Version (`APP_VERSION`)
+
+`docker-compose.truenas.yml` and `docker-compose.truenas.optimized.yml` deploy a pinned
+image version rather than `:latest`, so a deploy is reproducible and a rollback is just a
+matter of naming the previous tag:
+
+```yaml
+image: ghcr.io/dsbaciga/travel-life-backend:${APP_VERSION:-v5.6.1}
+```
+
+Set `APP_VERSION` per deploy, or put it in your env file:
+
+```bash
+# Deploy a specific release
+APP_VERSION=v5.6.1 docker-compose -f docker-compose.truenas.yml pull
+APP_VERSION=v5.6.1 docker-compose -f docker-compose.truenas.yml up -d
+
+# Roll back to the previous release
+APP_VERSION=v5.6.0 docker-compose -f docker-compose.truenas.yml up -d
+```
+
+If `APP_VERSION` is unset, the default baked into the compose file is used. Bump that
+default when a release becomes the new baseline. Images are published by CI when a `v*`
+tag is pushed, so only tagged versions are available — wait for the release workflow to
+go green before deploying a brand-new version.
 
 ## Environment Configuration
 
@@ -505,9 +531,23 @@ node -p "require('./backend/package.json').version"
 # Pull latest changes
 git pull origin main
 
-# Run release script
-./release.sh patch  # or minor/major
+# Run release script (Linux/Mac)
+./release.sh patch     # or minor / major / an explicit version like 5.6.2 or v5.6.2
+
+# Windows
+.\release.ps1 -Version patch
 ```
+
+The release script bumps both `package.json` files, updates `CHANGELOG.md`, verifies the
+builds, commits and creates the tag. **It does not publish images.** Push the tag:
+
+```bash
+git push origin main && git push origin v5.6.2
+```
+
+Pushing the tag triggers `.github/workflows/release.yml`, which is the single publisher of
+`ghcr.io` images and of the GitHub Release. Wait for that workflow to go green, then deploy
+with `APP_VERSION` set to the new tag (see [Pinning the Deployed Version](#pinning-the-deployed-version-app_version)).
 
 ### Manual Update
 
@@ -524,16 +564,26 @@ docker exec travel-life-backend npx prisma migrate deploy
 
 ### Rollback
 
+On the TrueNAS compose files, a rollback is a single variable change (replace vX.Y.Z with
+the version you want to return to):
+
+```bash
+APP_VERSION=vX.Y.Z docker-compose -f docker-compose.truenas.yml pull
+APP_VERSION=vX.Y.Z docker-compose -f docker-compose.truenas.yml up -d
+```
+
+For `docker-compose.prod.yml`:
+
 ```bash
 # Stop current version
 docker-compose -f docker-compose.prod.yml down
 
-# Start previous version
-docker-compose -f docker-compose.prod.yml up -d --no-build
-
-# Or specify version explicitly (replace vX.Y.Z with the target version tag)
+# Pull the target version explicitly (replace vX.Y.Z with the target version tag)
 docker pull ghcr.io/dsbaciga/travel-life-backend:vX.Y.Z
 docker pull ghcr.io/dsbaciga/travel-life-frontend:vX.Y.Z
+
+# Start with that version
+docker-compose -f docker-compose.prod.yml up -d --no-build
 ```
 
 ## Security Checklist

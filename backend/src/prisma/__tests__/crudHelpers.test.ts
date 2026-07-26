@@ -46,11 +46,11 @@ jest.mock('../../config/database', () => ({
   default: mockPrismaClient,
 }));
 
-// Mock serviceHelpers
+// Mock trip access verification
 const mockVerifyTripAccessWithPermission = jest.fn();
 const mockVerifyEntityAccessWithPermission = jest.fn();
 
-jest.mock('../../services/_shared/serviceHelpers', () => ({
+jest.mock('../../services/_shared/tripAccess', () => ({
   verifyTripAccessWithPermission: (...args: unknown[]) =>
     mockVerifyTripAccessWithPermission(...args),
   verifyEntityAccessWithPermission: (...args: unknown[]) =>
@@ -69,9 +69,10 @@ import {
   createMockRequest,
   createMockResponse,
   createMockNext,
+  expectAppError,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
-import { createAuthenticatedUser } from '../../__tests__/helpers/auth';
+} from '../../__tests__/mockBuilders/requests';
+import { createAuthenticatedUser } from '../../__tests__/mockBuilders/auth';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 // =============================================================================
@@ -94,11 +95,11 @@ function createMockService() {
 /** Call a controller handler and wait for async completion */
 async function callHandler(
   handler: (req: Request, res: Response, next: NextFunction) => void,
-  req: Partial<Request>,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  handler(req as Request, res, next);
+  handler(req, res, next);
   // asyncHandler uses Promise.resolve().catch(next), so we need to flush microtasks
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
@@ -134,11 +135,17 @@ describe('createCrudController', () => {
     });
 
     it('throws if service method does not exist on service', () => {
+      // Widening the service to an index signature makes "nonExistentMethod" a
+      // legal key *type* that is simply absent at runtime -- which is precisely
+      // the failure this guard exists to catch. Modelling it this way needs no
+      // cast: the point of the test is the missing method, not a bad type.
+      const serviceWithUnknownMethods: Record<string, unknown> = mockService;
+
       expect(() =>
         createCrudController({
-          service: mockService,
+          service: serviceWithUnknownMethods,
           handlers: {
-            bad: { method: 'nonExistentMethod' as keyof typeof mockService },
+            bad: { method: 'nonExistentMethod' },
           },
         })
       ).toThrow(
@@ -147,11 +154,13 @@ describe('createCrudController', () => {
     });
 
     it('throws if service method is not a function', () => {
+      // `notAFunction` IS a real key of mockService -- it just holds a string
+      // rather than a function, so no cast is needed here at all.
       expect(() =>
         createCrudController({
           service: mockService,
           handlers: {
-            bad: { method: 'notAFunction' as keyof typeof mockService },
+            bad: { method: 'notAFunction' },
           },
         })
       ).toThrow(
@@ -176,7 +185,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.doSomething, req, res as unknown as Response, next);
+      await callHandler(controller.doSomething, req, res, next);
 
       // Should have been called with user1's userId
       expect(mockService.doSomething).toHaveBeenCalledWith(testUsers.user1.id);
@@ -196,11 +205,11 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.doSomething, req, res as unknown as Response, next);
+      await callHandler(controller.doSomething, req, res, next);
 
       // asyncHandler catches errors and passes them to next
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error).toBeInstanceOf(AppError);
       expect(error.statusCode).toBe(401);
     });
@@ -231,7 +240,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.createItem, req, res as unknown as Response, next);
+      await callHandler(controller.createItem, req, res, next);
 
       expect(mockService.createItem).toHaveBeenCalledWith(
         testUsers.user1.id,
@@ -265,7 +274,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.createItem, req, res as unknown as Response, next);
+      await callHandler(controller.createItem, req, res, next);
 
       // Zod error should be passed to next
       expect(next).toHaveBeenCalled();
@@ -293,7 +302,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.createItem, req, res as unknown as Response, next);
+      await callHandler(controller.createItem, req, res, next);
 
       // Default args: [userId, body]
       expect(mockService.createItem).toHaveBeenCalledWith(
@@ -317,7 +326,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.doSomething, req, res as unknown as Response, next);
+      await callHandler(controller.doSomething, req, res, next);
 
       expect(mockService.doSomething).toHaveBeenCalledWith(testUsers.user1.id);
     });
@@ -343,7 +352,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.getItemById, req, res as unknown as Response, next);
+      await callHandler(controller.getItemById, req, res, next);
 
       expect(mockService.getItemById).toHaveBeenCalledWith(testUsers.user1.id, 42);
     });
@@ -372,7 +381,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.updateItem, req, res as unknown as Response, next);
+      await callHandler(controller.updateItem, req, res, next);
 
       expect(mockService.updateItem).toHaveBeenCalledWith(
         testUsers.user1.id,
@@ -400,7 +409,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.createItem, req, res as unknown as Response, next);
+      await callHandler(controller.createItem, req, res, next);
 
       expectSuccessResponse(res, 201, result);
     });
@@ -421,7 +430,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.getItems, req, res as unknown as Response, next);
+      await callHandler(controller.getItems, req, res, next);
 
       expectSuccessResponse(res, 200, result);
     });
@@ -448,7 +457,7 @@ describe('createCrudController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await callHandler(controller.getItemById, req, res as unknown as Response, next);
+      await callHandler(controller.getItemById, req, res, next);
 
       expect(next).toHaveBeenCalledWith(serviceError);
     });
@@ -480,6 +489,9 @@ describe('deleteEntity', () => {
     // entityLink.deleteMany and activity.delete are already mocked via mockPrismaClient
     mockPrismaClient.entityLink.deleteMany.mockResolvedValue({ count: 2 });
     mockPrismaClient.activity.delete.mockResolvedValue({ id: entityId });
+    // Deleting an activity walks its child activities so their links can be
+    // cleaned up too; no children here.
+    mockPrismaClient.activity.findMany.mockResolvedValue([]);
 
     const result = await deleteEntity('activity', entityId, userId);
 
@@ -509,13 +521,51 @@ describe('deleteEntity', () => {
 
     await deleteEntity('lodging', entityId, userId);
 
-    // Verify entityLink.deleteMany was called within the transaction
+    // Verify entityLink.deleteMany was called within the transaction.
+    // Ids are matched with `in` because the activity case can span an entity
+    // and all of its cascade-deleted descendants.
     expect(mockPrismaClient.entityLink.deleteMany).toHaveBeenCalledWith({
       where: {
         tripId,
         OR: [
-          { sourceType: 'LODGING', sourceId: entityId },
-          { targetType: 'LODGING', targetId: entityId },
+          { sourceType: 'LODGING', sourceId: { in: [entityId] } },
+          { targetType: 'LODGING', targetId: { in: [entityId] } },
+        ],
+      },
+    });
+
+    // Only activities have a child hierarchy to walk.
+    expect(mockPrismaClient.activity.findMany).not.toHaveBeenCalled();
+  });
+
+  it('also cleans up links belonging to cascade-deleted child activities', async () => {
+    const entityId = 10;
+    const userId = 1;
+    const tripId = 5;
+
+    mockVerifyEntityAccessWithPermission.mockResolvedValue({
+      entity: { id: entityId, tripId },
+      tripAccess: { trip: { id: tripId, userId }, isOwner: true, permissionLevel: 'admin' },
+    });
+
+    mockPrismaClient.entityLink.deleteMany.mockResolvedValue({ count: 3 });
+    mockPrismaClient.activity.delete.mockResolvedValue({ id: entityId });
+
+    // Two levels of nesting: 10 -> [11, 12] -> [13]. Child activities are
+    // cascade-deleted by the database, so nothing else would clean their links.
+    mockPrismaClient.activity.findMany
+      .mockResolvedValueOnce([{ id: 11 }, { id: 12 }])
+      .mockResolvedValueOnce([{ id: 13 }])
+      .mockResolvedValueOnce([]);
+
+    await deleteEntity('activity', entityId, userId);
+
+    expect(mockPrismaClient.entityLink.deleteMany).toHaveBeenCalledWith({
+      where: {
+        tripId,
+        OR: [
+          { sourceType: 'ACTIVITY', sourceId: { in: [10, 11, 12, 13] } },
+          { targetType: 'ACTIVITY', targetId: { in: [10, 11, 12, 13] } },
         ],
       },
     });

@@ -2,6 +2,20 @@
 
 Comprehensive checklist for releasing new versions of Travel Life.
 
+## How a release is published
+
+**CI is the single publisher of container images.** Pushing a `v*` tag triggers
+`.github/workflows/release.yml`, which builds from a clean checkout of the tagged commit,
+pushes to `ghcr.io`, and creates the GitHub Release from the matching `CHANGELOG.md` section.
+
+`release.ps1` / `release.sh` bump the version, verify the builds, commit, tag and push the
+tag. They build Docker images locally as a last verification but **never push them**. Do not
+push images by hand. See [docs/guides/BUILD_AND_PUSH.md](docs/guides/BUILD_AND_PUSH.md) for
+the reasoning.
+
+The manual steps below are ordered to match what `release.ps1` actually does:
+version bump → build verification → commit → local Docker build → tag → push tag → CI publishes.
+
 ## Pre-Release
 
 ### Code Quality
@@ -52,7 +66,16 @@ Or manually update:
 - [ ] `backend/package.json` - version field
 - [ ] `frontend/package.json` - version field
 
-The version is tracked only in these two `package.json` files; there is no separate `VERSION` file. The `release.ps1` script updates both automatically.
+The version is tracked only in these two `package.json` files; there is no separate `VERSION` file. The `release.ps1` script updates both automatically, and both release scripts read the current version from `backend/package.json`.
+
+- [ ] `CHANGELOG.md` - move the `[Unreleased]` entries under a `## [X.Y.Z] - YYYY-MM-DD`
+      heading (the release scripts insert this heading for you; fill in the entries as you work)
+
+On Linux/Mac the equivalent script is:
+
+```bash
+./release.sh patch          # or minor / major / 5.6.2 / v5.6.2
+```
 
 ## Build Verification
 
@@ -78,7 +101,20 @@ npm run build
 - [ ] No TypeScript errors
 - [ ] Bundle size is reasonable
 
-## Docker Build
+## Git Operations
+
+The version bump is committed **before** the Docker build (this is the order `release.ps1`
+uses — build verification above already passed at this point).
+
+```bash
+# Commit version changes
+git add -A
+git commit -m "Bump version to vX.X.X"
+```
+
+- [ ] Changes committed
+
+## Docker Build (local verification only)
 
 ### Build Images
 
@@ -87,12 +123,12 @@ npm run build
 .\build.truenas.ps1 -Version vX.X.X -Registry ghcr.io/dsbaciga
 
 # Linux/Mac
-./build.sh vX.X.X
+DOCKER_REGISTRY=ghcr.io/dsbaciga ./build.sh vX.X.X
 ```
 
 - [ ] Backend image builds successfully
 - [ ] Frontend image builds successfully
-- [ ] Images tagged with version and latest
+- [ ] Images are **not** pushed (CI publishes them)
 
 ### Test Images Locally
 
@@ -107,44 +143,27 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ## Publish
 
-### Push Docker Images
+### Tag and Push (this is what publishes)
 
 ```bash
-docker push ghcr.io/dsbaciga/travel-life-backend:vX.X.X
-docker push ghcr.io/dsbaciga/travel-life-frontend:vX.X.X
-docker push ghcr.io/dsbaciga/travel-life-backend:latest
-docker push ghcr.io/dsbaciga/travel-life-frontend:latest
-```
-
-- [ ] Backend image pushed
-- [ ] Frontend image pushed
-- [ ] Verify on GitHub Packages
-
-### Git Operations
-
-```bash
-# Commit version changes
-git add -A
-git commit -m "Release vX.X.X"
-
 # Create annotated tag
 git tag -a vX.X.X -m "vX.X.X - Brief description"
 
-# Push to remote
+# Push to remote - pushing the tag triggers the release workflow
 git push origin main
 git push origin vX.X.X
 ```
 
-- [ ] Changes committed
 - [ ] Tag created
 - [ ] Tag pushed to remote
 - [ ] Verify tag on GitHub
 
-### GitHub Release (Optional)
+### Watch CI Publish
 
-- [ ] Create GitHub release from tag
-- [ ] Add release notes
-- [ ] Attach any relevant assets
+- [ ] "Build and Release" workflow is green
+      (<https://github.com/dsbaciga/travel-life/actions>)
+- [ ] Images `X.X.X`, `vX.X.X` and `latest` appear on GitHub Packages
+- [ ] GitHub Release created with the `CHANGELOG.md` notes for this version
 
 ## Post-Release
 
@@ -180,6 +199,15 @@ git push origin vX.X.X
 If issues are discovered post-release:
 
 ### Quick Rollback
+
+The TrueNAS compose files deploy `${APP_VERSION}`, so rolling back is a variable change:
+
+```bash
+APP_VERSION=<previous tag> docker-compose -f docker-compose.truenas.yml pull
+APP_VERSION=<previous tag> docker-compose -f docker-compose.truenas.yml up -d
+```
+
+For `docker-compose.prod.yml`:
 
 ```bash
 # Pull previous version
@@ -238,6 +266,9 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 ### Tag Already Exists
 
+Prefer bumping to the next version. Only delete a tag if it was never published — deleting a
+shipped tag removes it for everyone, and CI has already built images from it.
+
 ```bash
 # Delete and recreate tag
 git tag -d vX.X.X
@@ -245,6 +276,9 @@ git push origin :refs/tags/vX.X.X
 git tag -a vX.X.X -m "Description"
 git push origin vX.X.X
 ```
+
+`release.ps1` prompts before doing this (and skips the prompt only with `-NoConfirm`);
+`release.sh` refuses outright and asks you to pick another version.
 
 ## Related Documentation
 

@@ -19,6 +19,7 @@ import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useCreateFromUrlParam } from "../hooks/useCreateFromUrlParam";
 import { useEntityLinking } from "../hooks/useEntityLinking";
 import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
 import { useBulkSelection } from "../hooks/useBulkSelection";
@@ -210,6 +211,13 @@ export default function LocationManager({
     setShowDraftPrompt(false);
     draft.clearDraft();
   }, [reset, locationFieldErrors, manager, draft]);
+
+  const openCreateForm = useCallback(() => {
+    resetForm();
+    manager.setShowForm(true);
+  }, [resetForm, manager]);
+
+  useCreateFromUrlParam(openCreateForm);
 
   const handleLocationSelect = (data: {
     name: string;
@@ -629,10 +637,7 @@ export default function LocationManager({
           )}
           {!bulkSelection.selectionMode && (
             <button
-              onClick={() => {
-                resetForm();
-                manager.toggleForm();
-              }}
+              onClick={openCreateForm}
               className="btn btn-primary text-sm sm:text-base whitespace-nowrap"
             >
               <span className="sm:hidden">+ Add</span>
@@ -905,10 +910,7 @@ export default function LocationManager({
             message="Pin Your Destinations"
             subMessage="Mark the places that matter - from iconic landmarks and hidden gems to cozy cafes and stunning viewpoints. Build your personal map of memories."
             actionLabel="Add Your First Location"
-            onAction={() => {
-              resetForm();
-              manager.toggleForm();
-            }}
+            onAction={openCreateForm}
           />
         ) : (
           topLevelLocations.map((location, index) => renderLocation(location, false, index))

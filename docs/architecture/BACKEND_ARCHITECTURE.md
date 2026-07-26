@@ -102,7 +102,12 @@ backend/
       photo.service.ts
       ...                        # Business logic layer
       _shared/
-        serviceHelpers.ts        # Shared service authorization/validation helpers
+        tripAccess.ts            # Trip/entity access verification
+        tripPermissions.ts       # Permission levels, hierarchy, validation
+        prismaUpdateData.ts      # Conditional update-data builder + transformers
+        decimalConversion.ts     # Prisma Decimal -> number conversion
+        timezoneResolution.ts    # Server-side timezone resolution
+        entityLinkCleanup.ts     # EntityLink removal on entity delete
     routes/
       auth.routes.ts
       trip.routes.ts
@@ -369,15 +374,15 @@ export default new TripService();
 - Use Prisma's `select` to fetch only needed fields
 - Export singleton instance
 
-### Service Helper Utilities (`src/services/_shared/serviceHelpers.ts`)
+### Shared Service Modules (`src/services/_shared/`)
 
 **Purpose**: Reduce code duplication across services by providing common authorization and validation patterns
 
-The `serviceHelpers.ts` module provides reusable functions for common service patterns, eliminating 40+ instances of duplicated authorization code across the codebase.
+Each module under `_shared/` is named for a single domain concern, eliminating 40+ instances of duplicated authorization code across the codebase. Import from the specific module you depend on — there is no barrel file.
 
 **Available Helpers**:
 
-Authorization and access verification:
+Authorization and access verification (`_shared/tripAccess.ts`):
 
 1. **`verifyEntityInTrip(entityType, entityId, tripId): Promise<void>`**
    - Verifies an entity exists and belongs to a specific trip
@@ -407,25 +412,23 @@ Authorization and access verification:
 7. **`verifyEntityOwnership<T>(findQuery, userId, entityName): Promise<T>`** *(deprecated)*
    - Runs a custom find query then delegates to `verifyEntityAccess`
 
-Permission-level helpers:
+Permission-level helpers (`_shared/tripPermissions.ts`):
 
 8. **`isValidPermissionLevel(value): value is TripPermissionLevel`** — type guard for `'view' | 'edit' | 'admin'`
 9. **`toSafePermissionLevel(value, defaultLevel?)`** — validates a permission level, falling back to a default
 
-Update-data builders:
+Update-data builders (`_shared/prismaUpdateData.ts`):
 
-10. **`buildUpdateData<T>(data): Partial<T>`** *(deprecated — prefer `buildConditionalUpdateData`)*
-    - Builds update data, converting empty strings to null and skipping undefined fields
-
-11. **`buildConditionalUpdateData<T>(data, options?)`**
+10. **`buildConditionalUpdateData<T>(data, options?)`**
     - Builds update data with only defined fields, optional empty-string-to-null conversion and custom transformers
 
-12. **`tripDateTransformer(dateStr)`** — converts a `YYYY-MM-DD` string (or null) to a UTC `Date`
+11. **`tripDateTransformer(dateStr)`** — converts a `YYYY-MM-DD` string (or null) to a UTC `Date`
 
-Other utilities:
+Other modules:
 
-13. **`convertDecimals<T>(obj): T`** — recursively converts Prisma `Decimal` values to plain numbers for JSON responses
-14. **`cleanupEntityLinks(tripId, entityType, entityId, tx?)`** — removes all `EntityLink` rows for an entity before deletion
+12. **`convertDecimals<T>(obj): T`** (`_shared/decimalConversion.ts`) — recursively converts Prisma `Decimal` values to plain numbers for JSON responses
+13. **`cleanupEntityLinks(tripId, entityType, entityId, tx?)`** (`_shared/entityLinkCleanup.ts`) — removes all `EntityLink` rows for an entity before deletion
+14. **`resolveTimezone(...candidates)` / `getUserTimezone(userId)`** (`_shared/timezoneResolution.ts`) — picks the first specified timezone, falling back to `UTC`
 
 **Usage Examples**:
 
@@ -496,7 +499,7 @@ import {
   verifyTripAccess,
   verifyEntityAccessById,
   verifyEntityInTrip,
-} from './_shared/serviceHelpers';
+} from './_shared/tripAccess';
 
 async createActivity(userId: number, data: CreateActivityInput) {
   // Verify user owns the trip
@@ -1559,11 +1562,11 @@ centrally by the error handler middleware, not by individual controllers.
 
 ---
 
-### Service Helpers
+### Shared Service Modules
 
 **Purpose**: Reduce duplication across service files for common operations like authorization, update building, and entity cleanup.
 
-**File**: `src/services/_shared/serviceHelpers.ts`
+**Directory**: `src/services/_shared/` — one module per concern (`tripAccess.ts`, `tripPermissions.ts`, `prismaUpdateData.ts`, `decimalConversion.ts`, `timezoneResolution.ts`, `entityLinkCleanup.ts`)
 
 #### buildConditionalUpdateData
 
@@ -1588,7 +1591,7 @@ export function buildConditionalUpdateData<T>(
 **Usage Examples**:
 
 ```typescript
-import { buildConditionalUpdateData, tripDateTransformer } from './_shared/serviceHelpers';
+import { buildConditionalUpdateData, tripDateTransformer } from './_shared/prismaUpdateData';
 
 // Simple usage (empty strings become null)
 const updateData = buildConditionalUpdateData(data);
@@ -1644,7 +1647,7 @@ export async function cleanupEntityLinks(
 **Usage Example**:
 
 ```typescript
-import { cleanupEntityLinks } from './_shared/serviceHelpers';
+import { cleanupEntityLinks } from './_shared/entityLinkCleanup';
 
 async deleteActivity(userId: number, activityId: number) {
   const activity = await verifyEntityAccessById('activity', activityId, userId);

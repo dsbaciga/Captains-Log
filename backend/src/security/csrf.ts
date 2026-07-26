@@ -4,9 +4,57 @@ import { config } from '../config';
 
 const CSRF_COOKIE_NAME = 'csrf-token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
+const REFRESH_COOKIE_NAME = 'refreshToken';
+
+// Signed double-submit: the cookie carries `<nonce>.<hmac>` where the HMAC binds
+// the nonce to the session (the refresh token this response/request carries).
+// A bare-equality double-submit passes for ANY value present in both cookie and
+// header, so a sibling subdomain able to write cookies under a shared
+// COOKIE_DOMAIN could forge it. The HMAC key is server-side only, so a token
+// minted for one session cannot be replayed against another.
+const SIGNED_TOKEN_PATTERN = /^([a-f0-9]{64})\.([a-f0-9]{64})$/;
+const LEGACY_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
+
+// Derived from JWT_SECRET rather than requiring a new env var. Domain-separated
+// so it can never collide with the token-signing key.
+const CSRF_HMAC_KEY = crypto.createHash('sha256').update(`csrf-token-binding:${config.jwt.secret}`).digest();
+
+/** Stable, non-reversible identifier for the session a CSRF token is bound to. */
+const sessionIdFor = (refreshToken: string | undefined): string =>
+  refreshToken ? crypto.createHash('sha256').update(refreshToken).digest('hex') : 'anonymous';
+
+const signCsrfToken = (nonce: string, sessionId: string): string => {
+  const mac = crypto.createHmac('sha256', CSRF_HMAC_KEY).update(`${nonce}.${sessionId}`).digest('hex');
+  return `${nonce}.${mac}`;
+};
 
 /**
- * Generates a cryptographically secure CSRF token.
+ * Reads the refresh token this response is in the middle of setting.
+ *
+ * Every caller sets the refresh cookie immediately before the CSRF cookie, so
+ * the value is already staged in the pending Set-Cookie header. Doing the
+ * lookup here keeps the `setCsrfCookie(res, token)` signature unchanged for the
+ * controllers that call it.
+ */
+const pendingRefreshToken = (res: Response): string | undefined => {
+  const header = res.getHeader('Set-Cookie');
+  const values = Array.isArray(header) ? header.map(String) : header ? [String(header)] : [];
+  for (const value of values) {
+    const match = new RegExp(`^${REFRESH_COOKIE_NAME}=([^;]*)`).exec(value);
+    if (match && match[1]) {
+      try {
+        return decodeURIComponent(match[1]);
+      } catch {
+        return match[1];
+      }
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Generates a cryptographically secure CSRF nonce.
+ * The session binding is applied by setCsrfCookie, which knows the session.
  */
 export const generateCsrfToken = (): string => {
   return crypto.randomBytes(32).toString('hex');
@@ -15,10 +63,13 @@ export const generateCsrfToken = (): string => {
 /**
  * Sets the CSRF token in a regular (non-httpOnly) cookie.
  * This allows JavaScript to read the token and send it in request headers.
- * The security comes from verifying the header matches the cookie.
+ * The security comes from verifying the header matches the cookie AND that the
+ * token carries a valid server-side HMAC binding it to the current session.
  */
 export const setCsrfCookie = (res: Response, token: string): void => {
-  res.cookie(CSRF_COOKIE_NAME, token, {
+  const nonce = token.split('.')[0];
+  const signedToken = signCsrfToken(nonce, sessionIdFor(pendingRefreshToken(res)));
+  res.cookie(CSRF_COOKIE_NAME, signedToken, {
     httpOnly: false, // Must be readable by JavaScript
     secure: config.cookie.secure,
     sameSite: config.cookie.sameSite,
@@ -104,6 +155,37 @@ export const validateCsrf = (req: Request, res: Response, next: NextFunction): v
   const headerBuffer = Buffer.from(headerToken, 'utf8');
 
   if (cookieBuffer.length !== headerBuffer.length || !crypto.timingSafeEqual(cookieBuffer, headerBuffer)) {
+    res.status(403).json({
+      status: 'error',
+      message: 'Invalid CSRF token',
+    });
+    return;
+  }
+
+  const signed = SIGNED_TOKEN_PATTERN.exec(cookieToken);
+  if (!signed) {
+    // MIGRATION: tokens issued before session binding are 64 hex chars with no
+    // HMAC suffix. Rejecting them would 403 every in-flight logged-in session
+    // until the user cleared cookies, so they are accepted for now — they are
+    // no weaker than the previous bare double-submit. Every login, refresh and
+    // silent-refresh reissues a signed token, so legacy tokens age out within
+    // one access-token lifetime (~15 min) and can be rejected in a later
+    // release by deleting this branch.
+    if (LEGACY_TOKEN_PATTERN.test(cookieToken)) {
+      return next();
+    }
+    res.status(403).json({
+      status: 'error',
+      message: 'Invalid CSRF token',
+    });
+    return;
+  }
+
+  // Verify the HMAC binds this token to the session presenting it.
+  const expected = signCsrfToken(signed[1], sessionIdFor(req.cookies[REFRESH_COOKIE_NAME]));
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+
+  if (expectedBuffer.length !== cookieBuffer.length || !crypto.timingSafeEqual(expectedBuffer, cookieBuffer)) {
     res.status(403).json({
       status: 'error',
       message: 'Invalid CSRF token',

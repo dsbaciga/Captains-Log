@@ -13,12 +13,14 @@ import DraftIndicator from "./DraftIndicator";
 import DraftRestorePrompt from "./DraftRestorePrompt";
 import FormModalFooter from "./shared/FormModalFooter";
 import { createDateTimeFormatter, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
+import { useTimezoneResolver } from "../hooks/useTimezoneResolver";
 import { useFormFields } from "../hooks/useFormFields";
 import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useCreateFromUrlParam } from "../hooks/useCreateFromUrlParam";
 import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
 import { useDraftRestore } from "../hooks/useDraftRestore";
 import { useEntityLinkSync } from "../hooks/useEntityLinkSync";
@@ -118,6 +120,7 @@ export default function LodgingManager({
   tripStartDate,
   onUpdate,
 }: LodgingManagerProps) {
+  const resolveTz = useTimezoneResolver();
   // Compute initial form state with trip start date as default
   const getInitialFormState = useMemo((): LodgingFormFields => {
     // Format as datetime-local (YYYY-MM-DDTHH:mm)
@@ -235,6 +238,10 @@ export default function LodgingManager({
       const timer = setTimeout(() => captureInitialValues(values), 0);
       return () => clearTimeout(timer);
     }
+    // `values` is read but deliberately not a dependency: this captures the
+    // baseline for dirty-tracking when the form opens. Re-running on every
+    // keystroke would re-baseline to what the user just typed, so isDirty
+    // would never become true and the unsaved-changes warning would never fire.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.showForm, manager.editingId, captureInitialValues]);
 
@@ -267,7 +274,7 @@ export default function LodgingManager({
     }
 
     // Convert stored UTC times to local times in the specified timezone
-    const effectiveTz = lodging.timezone || tripTimezone || 'UTC';
+    const effectiveTz = resolveTz(lodging.timezone, tripTimezone);
 
     handleChange(
       "checkInDate",
@@ -288,7 +295,7 @@ export default function LodgingManager({
     handleChange("currency", lodging.currency || "USD");
     handleChange("notes", lodging.notes || "");
     manager.openEditForm(lodging.id);
-  }, [tripId, handleChange, tripTimezone, manager]);
+  }, [tripId, handleChange, tripTimezone, resolveTz, manager]);
 
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((lodging: Lodging) => {
@@ -311,7 +318,7 @@ export default function LodgingManager({
 
       if (sortedLodgings.length > 0) {
         const lastLodging = sortedLodgings[0];
-        const effectiveTz = lastLodging.timezone || tripTimezone || 'UTC';
+        const effectiveTz = resolveTz(lastLodging.timezone, tripTimezone);
 
         // Convert the last lodging's check-out time to datetime-local format
         const checkOutDateTime = convertISOToDateTimeLocal(lastLodging.checkOutDate!, effectiveTz);
@@ -331,6 +338,10 @@ export default function LodgingManager({
         }
       }
     }
+    // Intentionally depends only on the form opening: `values`, `manager.items`
+    // and `handleChange` are read to seed the new entry once. Adding them would
+    // re-apply the inherited check-in/timezone on every keystroke, overwriting
+    // whatever the user typed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.showForm, manager.editingId]);
 
@@ -359,6 +370,8 @@ export default function LodgingManager({
     setOriginalLocationId(null);
   }, [baseOpenCreateForm]);
 
+  useCreateFromUrlParam(openCreateForm);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -376,7 +389,7 @@ export default function LodgingManager({
     }
 
     // Convert datetime-local values to ISO strings using the specified timezone
-    const effectiveTz = values.timezone || tripTimezone || 'UTC';
+    const effectiveTz = resolveTz(values.timezone, tripTimezone);
     const checkInDateISO = convertDateTimeLocalToISO(values.checkInDate, effectiveTz);
     const checkOutDateISO = convertDateTimeLocalToISO(values.checkOutDate, effectiveTz);
 

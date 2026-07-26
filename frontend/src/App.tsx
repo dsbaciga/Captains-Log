@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Toaster } from 'react-hot-toast';
 import React, { useEffect, Suspense } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -42,6 +42,7 @@ import Navbar from './components/Navbar';
 import MobileBottomNav from './components/MobileBottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
+import PwaStatusLayer from './components/pwa/PwaStatusLayer';
 import { debugLogger } from './utils/debugLogger';
 import { migrateFromLocalStorage } from './utils/authMigration';
 import { cleanupExpiredDrafts } from './utils/draftStorage';
@@ -60,7 +61,7 @@ const persister = getQueryPersister();
 const maxAge = getMaxCacheAge();
 
 function App() {
-  const { initializeAuth, isInitialized } = useAuthStore();
+  const { initializeAuth, isInitialized, isAuthenticated } = useAuthStore();
 
   // Initialize auth on app mount (handles page refresh)
   useEffect(() => {
@@ -327,6 +328,14 @@ function App() {
             </Suspense>
           </main>
           <MobileBottomNav />
+          {/* Global offline banner + the only route to sync-conflict
+              resolution. Signed-in only: both read the current user's
+              offline queue. */}
+          {isAuthenticated && (
+            <ErrorBoundary>
+              <PwaStatusLayer />
+            </ErrorBoundary>
+          )}
         </ErrorBoundary>
       </BrowserRouter>
     </PersistQueryClientProvider>

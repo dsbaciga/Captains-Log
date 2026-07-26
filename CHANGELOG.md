@@ -1,0 +1,102 @@
+# Changelog
+
+All notable changes to Travel Life are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## How this file is used
+
+- Version headings must be exactly `## [X.Y.Z] - YYYY-MM-DD` (no `v` prefix). The
+  release workflow (`.github/workflows/release.yml`) extracts the section matching the
+  pushed tag and uses it as the GitHub Release body.
+- Add entries under `## [Unreleased]` as you work. `release.ps1` / `release.sh` promote
+  that section to the new version heading during a release.
+- A missing or empty section is tolerated by CI - the release body falls back to a
+  generic note rather than failing the workflow.
+
+## [Unreleased]
+
+## [6.0.0] - 2026-07-26
+
+### Added
+
+- Travel partner requests: a partnership must now be accepted by the recipient before it
+  takes effect. Accepting is the only operation permitted to write both users' records.
+
+### Security
+
+- Setting a travel partner no longer writes the *other* user's record. Previously
+  `updateTravelPartnerSettings` wrote the link bidirectionally, which let a user grant
+  themselves collaborator access to every trip the other person subsequently created â€”
+  including lodging confirmations, expenses, journal entries and photos. Consent is now
+  required via a travel partner request.
+
+### Migrations â€” action required before deploying
+
+- Adds a baseline migration, `00000000000000_init`, that creates the entire schema from
+  empty. **Every database that already contains data must have it marked as applied once,
+  before the next `prisma migrate deploy`:** `npx prisma migrate resolve --applied
+  00000000000000_init`. Skipping this aborts the deploy on a guard (nothing is damaged,
+  but no later migration is applied). See `backend/prisma/migrations/README.md`.
+- Also adds: a uniqueness constraint on weather data per trip/date, a trip-expense
+  trip/date index, a trip-expense amount check constraint, a PostGIS coordinate backfill,
+  and the travel partner request tables.
+
+### Fixed
+
+- Release pipeline: `release.ps1` now aborts when the backend or frontend verification
+  build fails (previously the failure was silently swallowed and the release continued).
+- `release.sh` is runnable again: it reads the current version from
+  `backend/package.json` instead of a non-existent `VERSION` file, strips a leading `v`
+  from explicit versions (`./release.sh v5.6.1` no longer tags `vv5.6.1`), and no longer
+  aborts mid-bump on a missing changelog.
+- `build.sh` builds correct image references when `DOCKER_REGISTRY` is set (missing `/`
+  separator produced tags like `ghcr.io/dsbagictravel-life-backend`).
+- The release workflow no longer fails when a changelog section is missing.
+- CI runs the backend test suite for real and type-checks both packages instead of
+  swallowing failures.
+- TrueNAS compose files deploy a pinned `${APP_VERSION}` image instead of `:latest`.
+
+### Changed
+
+- CI (`.github/workflows/release.yml`) is now the single publisher of container images.
+  `release.ps1` / `release.sh` build images locally for verification only.
+- Removed the one-off `fix-migration.ps1` / `fix-migration.sh` /
+  `fix-journal-associations-migration.sql` hotfix scripts.
+
+## [5.6.1] - 2026-07-25
+
+### Added
+
+- Bulk actions for saved links.
+- Year in Review widget.
+- Multi-currency budgets.
+- Opening-hours warnings for locations.
+- Transit deep links.
+
+### Fixed
+
+- Opening-hours service failed to compile under the relaxed production build
+  (discriminated-union narrowing without `strictNullChecks`).
+
+## [5.6.0] - 2026-07-25
+
+### Added
+
+- Saved links, with ingest of links sent by email.
+- Trip cover images.
+- OIDC single sign-on: PKCE support for public clients (client secret optional),
+  `DISABLE_PASSWORD_LOGIN` for SSO-only mode with a lockout guard, and `OIDC_TRUST_EMAIL`
+  for identity providers that omit `email_verified`.
+
+### Fixed
+
+- Actionable errors surfaced for OIDC discovery and token-exchange failures.
+- `BASE_URL`, `FRONTEND_URL`, OIDC and VAPID variables are passed through to the backend
+  in the production compose file.
+
+---
+
+Releases before 5.6.0 predate this changelog; see the git history and the
+[tag list](https://github.com/dsbaciga/travel-life/tags).

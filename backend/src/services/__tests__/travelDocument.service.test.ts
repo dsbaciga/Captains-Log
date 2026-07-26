@@ -35,8 +35,8 @@ jest.mock('../../config/database', () => ({
   default: mockPrisma,
 }));
 
-// Mock serviceHelpers to avoid complex import chains
-jest.mock('../../services/_shared/serviceHelpers', () => ({
+// Mock the update-data builder to avoid complex import chains
+jest.mock('../../services/_shared/prismaUpdateData', () => ({
   buildConditionalUpdateData: jest.fn((data: Record<string, unknown>) => {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {

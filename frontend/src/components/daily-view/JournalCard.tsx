@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
 import type { PhotoAlbum } from '../../types/photo';

@@ -105,13 +105,15 @@ jest.mock('axios');
 import axios from 'axios';
 const mockAxios = axios as jest.Mocked<typeof axios>;
 
-// Mock serviceHelpers
-jest.mock('../../services/_shared/serviceHelpers', () => ({
+// Mock trip access verification
+jest.mock('../../services/_shared/tripAccess', () => ({
   verifyTripAccess: jest.fn(),
+}));
+jest.mock('../../services/_shared/decimalConversion', () => ({
   convertDecimals: jest.fn((data: unknown) => data),
 }));
 
-import { verifyTripAccess } from '../../services/_shared/serviceHelpers';
+import { verifyTripAccess } from '../../services/_shared/tripAccess';
 
 // Import the service after all mocks are set up
 import weatherService from '../weather.service';

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import entityLinkService from '../services/entityLink.service';
 import type {
   EntityType,
@@ -14,7 +14,8 @@ import {
   getRelationshipLabel,
   getEntityDisplayName,
 } from '../lib/entityConfig';
-import { extractDatePortion } from '../utils/timezone';
+import { extractDatePortion, resolveTimezone } from '../utils/timezone';
+import { useTimezoneResolver } from '../hooks/useTimezoneResolver';
 import EntityDetailModal from './EntityDetailModal';
 
 interface LinkedEntitiesDisplayProps {
@@ -57,7 +58,9 @@ function getDateInTimezone(date: Date, timezone?: string): string {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    timeZone: timezone || 'UTC',
+    // Callers pass an already-resolved zone; resolve again so a direct caller
+    // that passes nothing still lands on the viewer's zone rather than UTC.
+    timeZone: resolveTimezone(timezone),
   };
   // Format as YYYY-MM-DD
   const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
@@ -103,6 +106,10 @@ export default function LinkedEntitiesDisplay({
   timezone,
 }: LinkedEntitiesDisplayProps) {
   const navigate = useNavigate();
+  const resolveTz = useTimezoneResolver();
+  // Journal entries are bucketed by calendar day, so which day a timestamp
+  // falls on depends on the zone: the trip's when it has one, else the viewer's.
+  const effectiveTimezone = resolveTz(timezone);
   // State for entity detail modal
   const [selectedEntity, setSelectedEntity] = useState<SelectedEntity | null>(null);
 
@@ -157,7 +164,7 @@ export default function LinkedEntitiesDisplay({
       if (!excludeTypes.includes(link.targetType)) {
         // Filter journal entries by date when currentDate is provided
         if (link.targetType === 'JOURNAL_ENTRY' && currentDate) {
-          if (!journalMatchesCurrentDate(link.targetEntity?.date, currentDate, timezone)) {
+          if (!journalMatchesCurrentDate(link.targetEntity?.date, currentDate, effectiveTimezone)) {
             continue;
           }
         }
@@ -176,7 +183,7 @@ export default function LinkedEntitiesDisplay({
       if (!excludeTypes.includes(link.sourceType)) {
         // Filter journal entries by date when currentDate is provided
         if (link.sourceType === 'JOURNAL_ENTRY' && currentDate) {
-          if (!journalMatchesCurrentDate(link.sourceEntity?.date, currentDate, timezone)) {
+          if (!journalMatchesCurrentDate(link.sourceEntity?.date, currentDate, effectiveTimezone)) {
             continue;
           }
         }
@@ -191,7 +198,7 @@ export default function LinkedEntitiesDisplay({
     }
 
     return groups;
-  }, [linksData, excludeTypes, currentDate, timezone]);
+  }, [linksData, excludeTypes, currentDate, effectiveTimezone]);
 
   // Get entity types that have links (in standard display order)
   const linkedEntityTypes = useMemo(() => {

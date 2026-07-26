@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { formatTripDates, getTripDateStatus } from '../utils/dateFormat';
 import type { Trip } from '../types/trip';
 

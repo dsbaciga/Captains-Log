@@ -1,7 +1,7 @@
 # Travel Life - Implementation Status
 
-Last Updated: 2026-07-19
-Version: v5.4.1
+Last Updated: 2026-07-25
+Version: v5.6.1
 
 ## ✅ Completed Features
 
@@ -364,15 +364,15 @@ Version: v5.4.1
 
 ### PWA & Offline Support
 
-- [x] PWA via `vite-plugin-pwa` (manifest, icons, offline.html, install support)
-- [x] iOS install prompt and iOS storage warnings
-- [x] Offline download of trip data (`OfflineDownloadButton`/`OfflineDownloadModal`)
-- [x] Offline map tile caching (`useOfflineMap`, `MapCachePreview`)
-- [x] Offline search (`useOfflineSearch`, `OfflineSearchResults`)
-- [x] Storage management UI (usage bar, quota warnings, storage estimate)
-- [x] Sync with conflict resolution UI (`useSyncConflicts`, `ConflictResolutionModal`, `ConflictFieldDiff`)
-- [x] Network/offline status indicators and data freshness indicator
+- [x] PWA via `vite-plugin-pwa` (`frontend/vite.config.ts`) — manifest, generated icons, and an
+      `injectManifest`-based service worker (`src/sw.ts`) are genuinely built and registered, so the app
+      is installable and gets the browser-level "Add to Home Screen" prompt independent of the app's own
+      React tree.
 - [x] Push notifications — web push via VAPID (see Push Notifications section)
+
+The richer offline UI (install prompts, offline download, map/search caching, storage management, sync
+conflict resolution) is implemented but not reachable by users — see
+"[Built but not yet wired up](#-built-but-not-yet-wired-up)" below.
 
 ### Trip Navigation & Views
 
@@ -444,6 +444,33 @@ Version: v5.4.1
 - [x] Favorite star on locations; `GET /api/locations/favorites`; Favorites filter on Places Visited page
 - [x] Trip timezone auto-set from the first location's coordinates via `tz-lookup` when unset
 
+## 🔌 Built but Not Yet Wired Up
+
+Code exists, is implemented, and (where covered) passes tests, but is not reachable from the running app
+because nothing imports it outside its own module. Verified by grepping `frontend/src` for each name and
+finding matches only inside `components/pwa/` (a barrel — `components/pwa/index.ts` — that nothing else
+imports) or in JSDoc example comments referencing the component by name, not an actual import.
+
+### PWA / Offline UI
+
+- [ ] iOS install prompt and iOS storage warnings (`IOSInstallPrompt`, `IOSStorageWarning`)
+- [ ] Offline download of trip data (`OfflineDownloadButton`, `OfflineDownloadModal`)
+- [ ] Offline map tile caching (`MapCachePreview` — not even exported from `components/pwa/index.ts`)
+- [ ] Offline search UI (`OfflineSearchResults`, which itself is unimported — its `useOfflineMap` /
+      `useOfflineSearch` hooks are therefore also unreachable from the UI)
+- [ ] Storage management UI (`StorageUsageBar`, `StorageQuotaWarning`)
+- [ ] Sync conflict resolution UI (`ConflictResolutionModal`, `ConflictsList`, `ConflictFieldDiff`)
+- [ ] Network/offline status indicator and data freshness indicator (`OfflineIndicator`, `SyncStatus`,
+      `DataFreshnessIndicator`)
+- [ ] Migration notice (`MigrationNotice`)
+
+Fourteen components total (`OfflineDownloadButton`, `OfflineDownloadModal`, `ConflictResolutionModal`,
+`ConflictFieldDiff`, `ConflictsList`, `IOSInstallPrompt`, `IOSStorageWarning`, `StorageUsageBar`,
+`StorageQuotaWarning`, `DataFreshnessIndicator`, `MapCachePreview`, `OfflineIndicator`, `SyncStatus`,
+`MigrationNotice`). Underlying data layer (IndexedDB store, `useSyncConflicts`, `useOfflineReady`, offline
+service worker caching itself) may still function; what's missing is the UI surface that would let a user
+see or act on it.
+
 ## 🚧 Known Issues
 
 _No known issues at this time._
@@ -502,9 +529,10 @@ These are non-critical improvements identified during code reviews that would en
 ### Phase 6: Polish & Optimization
 
 - [x] Performance optimization (lazy loading, pagination)
-- [x] PWA (installable app with offline support, sync queue, and conflict resolution) ✅
+- [x] PWA installability — manifest, icons, and service worker via `vite-plugin-pwa` ✅
 - [ ] Native mobile app (React Native) - not started; PWA covers mobile use
-- [x] Offline support ✅ Offline trip download, map tile caching, offline search, sync conflicts UI
+- [ ] Offline support UI — trip download, map tile caching, offline search, sync conflicts UI are built but
+      not wired into the app (see [Built but not yet wired up](#-built-but-not-yet-wired-up))
 - [ ] Redis caching
 - [ ] CDN for photo delivery
 - [ ] Advanced photo editing

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import type { Activity } from '../../types/activity';
 import type { Location } from '../../types/location';
 import type { PhotoAlbum } from '../../types/photo';

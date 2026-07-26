@@ -1,4 +1,5 @@
 import { formatOpeningHours, summarizeOpeningHours } from "../utils/openingHours";
+import { useTimezoneResolver } from "../hooks/useTimezoneResolver";
 
 /**
  * LocationDisplay - Displays location name with hierarchical city/country info
@@ -47,15 +48,12 @@ function extractSecondaryLocation(address: string): string | null {
  * Name the timezone the hours belong to, but only when it is not the viewer's own —
  * "09:00-17:00 (Europe/Paris)" is useful to someone in New York and noise to someone in Paris.
  */
-function timezoneNote(timezone: string | null | undefined): string | null {
+function timezoneNote(
+  timezone: string | null | undefined,
+  viewerTimezone: string
+): string | null {
   if (!timezone) return null;
-
-  try {
-    if (Intl.DateTimeFormat().resolvedOptions().timeZone === timezone) return null;
-  } catch {
-    // If the browser will not tell us its zone, showing the location's zone is the safer default.
-  }
-
+  if (timezone === viewerTimezone) return null;
   return timezone.replace(/_/g, ' ');
 }
 
@@ -68,6 +66,7 @@ export default function LocationDisplay({
   openingHours,
   timezone,
 }: LocationDisplayProps) {
+  const resolveTz = useTimezoneResolver();
   const secondaryLocation = address ? extractSecondaryLocation(address) : null;
 
   // Check if the name already contains the secondary location info
@@ -76,7 +75,7 @@ export default function LocationDisplay({
     !name.toLowerCase().includes(secondaryLocation.toLowerCase().split(',')[0]);
 
   const hoursLines = formatOpeningHours(openingHours);
-  const localZone = timezoneNote(timezone);
+  const localZone = timezoneNote(timezone, resolveTz());
 
   if (compact) {
     return (

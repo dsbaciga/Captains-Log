@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import travelDocumentService from '../services/travelDocument.service';
 import type { DocumentAlert } from '../types/travelDocument';
 import { getDocumentTypeIcon } from '../types/travelDocument';

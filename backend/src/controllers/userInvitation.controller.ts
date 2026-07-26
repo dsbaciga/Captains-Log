@@ -3,9 +3,17 @@ import { userInvitationService } from '../services/userInvitation.service';
 import userService from '../services/user.service';
 import { sendUserInvitationSchema, acceptInvitationSchema } from '../types/userInvitation.types';
 import { AppError } from '../errors/errors';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import { generateAccessToken, generateRefreshToken } from '../auth/jwt';
+import { setRefreshTokenCookie } from '../http/cookies';
+import { generateCsrfToken, setCsrfCookie } from '../security/csrf';
 import { config } from '../config';
+
+/**
+ * SSO-only mode is only honored while OIDC is enabled (lockout guard).
+ * Mirrors the guard in auth.controller.ts — kept identical on purpose.
+ */
+const passwordAuthDisabled = (): boolean =>
+  config.auth.passwordLoginDisabled && config.oidc.enabled;
 
 export const userInvitationController = {
   /**
@@ -55,44 +63,34 @@ export const userInvitationController = {
    */
   async acceptInvitation(req: Request, res: Response, next: NextFunction) {
     try {
+      // Accepting an invitation creates a password-backed account and hands out
+      // a full session, so it must honor SSO-only mode exactly like
+      // register/login do — otherwise it is a bypass of DISABLE_PASSWORD_LOGIN.
+      if (passwordAuthDisabled()) {
+        throw new AppError('Password registration is disabled; use single sign-on', 403);
+      }
+
       const validatedData = acceptInvitationSchema.parse(req.body);
       const user = await userInvitationService.acceptInvitation(validatedData);
 
-      // Generate tokens for the new user (include passwordVersion for session invalidation support)
-      const tokenPayload = { userId: user.id, email: user.email, passwordVersion: user.passwordVersion ?? 0 };
-      const accessToken = jwt.sign(
-        tokenPayload,
-        config.jwt.secret,
-        { expiresIn: config.jwt.expiresIn } as jwt.SignOptions
-      );
+      // Mint via the canonical helpers so the payload (including the `id` claim)
+      // and signing options cannot drift from auth/jwt.ts.
+      const tokenPayload = {
+        id: user.id,
+        userId: user.id,
+        email: user.email,
+        passwordVersion: user.passwordVersion ?? 0,
+      };
+      const accessToken = generateAccessToken(tokenPayload);
+      const refreshToken = generateRefreshToken(tokenPayload);
 
-      const refreshToken = jwt.sign(
-        tokenPayload,
-        config.jwt.refreshSecret,
-        { expiresIn: config.jwt.refreshExpiresIn } as jwt.SignOptions
-      );
+      // Set refresh token as httpOnly cookie (shared helper keeps options in sync)
+      setRefreshTokenCookie(res, refreshToken);
 
-      // Set refresh token as httpOnly cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: config.cookie.secure,
-        sameSite: config.cookie.sameSite,
-        domain: config.cookie.domain,
-        path: config.cookie.path,
-        maxAge: config.cookie.maxAge,
-      });
-
-      // Set CSRF token as accessible cookie for frontend
-      // IMPORTANT: Must use 'csrf-token' (hyphen) to match CSRF_COOKIE_NAME in security/csrf.ts
-      const csrfToken = crypto.randomBytes(32).toString('hex');
-      res.cookie('csrf-token', csrfToken, {
-        httpOnly: false,
-        secure: config.cookie.secure,
-        sameSite: config.cookie.sameSite,
-        domain: config.cookie.domain,
-        path: config.cookie.path,
-        maxAge: config.cookie.maxAge,
-      });
+      // Set CSRF token as accessible cookie for frontend.
+      // Must go through setCsrfCookie so the token is bound to the session just
+      // established above (see security/csrf.ts).
+      setCsrfCookie(res, generateCsrfToken());
 
       res.status(201).json({
         status: 'success',

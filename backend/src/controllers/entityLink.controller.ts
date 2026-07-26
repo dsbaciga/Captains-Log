@@ -12,7 +12,7 @@ import {
 import { asyncHandler } from '../http/asyncHandler';
 import { parseId } from '../http/parseId';
 import { requireUserId } from '../auth/controllerHelpers';
-import { verifyTripAccessWithPermission } from '../services/_shared/serviceHelpers';
+import { verifyTripAccessWithPermission } from '../services/_shared/tripAccess';
 
 export const entityLinkController = {
   /**

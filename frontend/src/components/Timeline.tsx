@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { createPortal } from 'react-dom';
 import type { WeatherData, WeatherDisplay } from '../types/weather';
 import type { Activity } from '../types/activity';
@@ -28,6 +28,8 @@ import {
 import type { PrintOption } from './timeline/TimelineFilters';
 import type { TimelineItem, TimelineItemType, DayGroup, DayStats, UnscheduledActivityWithLocation } from './timeline/types';
 import { useTripLinkSummary } from '../hooks/useTripLinkSummary';
+import { getEntityKey } from '../types/entityLink';
+import type { TripLinkSummary } from '../types/entityLink';
 import EmptyState from './EmptyState';
 
 /**
@@ -251,7 +253,7 @@ const Timeline = ({
     try {
       logger.log('📡 Fetching timeline data from API...', { operation: 'loadTimelineData.fetch' });
 
-      const [activities, transportation, lodging, journal, weather, locationLinks, locations] = await Promise.all([
+      const [activities, transportation, lodging, journal, weather, locationLinks, locations, linkSummary] = await Promise.all([
         activityService.getActivitiesByTrip(tripId),
         transportationService.getTransportationByTrip(tripId),
         lodgingService.getLodgingByTrip(tripId),
@@ -259,6 +261,7 @@ const Timeline = ({
         weatherService.getWeatherForTrip(tripId).catch(() => []),
         entityLinkService.getLinksByTargetType(tripId, 'LOCATION').catch(() => []),
         locationService.getLocationsByTrip(tripId).catch(() => []),
+        entityLinkService.getTripLinkSummary(tripId).catch(() => ({} as TripLinkSummary)),
       ]);
 
       logger.log('✅ API data received', {
@@ -624,21 +627,19 @@ const Timeline = ({
             return;
           }
           if (entry && entry.date) {
+            // Linkage lives in the unified EntityLink system (the old journal_*
+            // assignment tables were dropped in 20260118_remove_old_journal_linkage_tables),
+            // so read it from the trip link summary rather than from the entry.
+            const journalLinkCounts =
+              linkSummary?.[getEntityKey('JOURNAL_ENTRY', entry.id)]?.linkCounts;
+            const hasActivityLinks = (journalLinkCounts?.ACTIVITY ?? 0) > 0;
+            const hasLodgingLinks = (journalLinkCounts?.LODGING ?? 0) > 0;
+            const hasTransportationLinks = (journalLinkCounts?.TRANSPORTATION ?? 0) > 0;
+
             logger.log(`Processing journal entry ${index}`, {
               operation: 'loadTimelineData.journal.item',
-              data: {
-                hasActivityAssignments: !!entry.activityAssignments,
-                activityAssignmentsIsArray: Array.isArray(entry.activityAssignments),
-                activityAssignmentsLength: Array.isArray(entry.activityAssignments) ? entry.activityAssignments.length : 'N/A',
-                hasLodgingAssignments: !!entry.lodgingAssignments,
-                lodgingAssignmentsIsArray: Array.isArray(entry.lodgingAssignments),
-                hasTransportationAssignments: !!entry.transportationAssignments,
-                transportationAssignmentsIsArray: Array.isArray(entry.transportationAssignments),
-              }
+              data: { hasActivityLinks, hasLodgingLinks, hasTransportationLinks }
             });
-            const hasActivityLinks = Array.isArray(entry.activityAssignments) && entry.activityAssignments.length > 0;
-            const hasLodgingLinks = Array.isArray(entry.lodgingAssignments) && entry.lodgingAssignments.length > 0;
-            const hasTransportationLinks = Array.isArray(entry.transportationAssignments) && entry.transportationAssignments.length > 0;
 
             if (!hasActivityLinks && !hasLodgingLinks && !hasTransportationLinks) {
               const content = (entry.content != null && typeof entry.content === 'string') ? entry.content : '';
@@ -653,7 +654,7 @@ const Timeline = ({
                 title: entry.title || 'Untitled Entry',
                 description:
                   content.substring(0, 150) + (content.length > 150 ? '...' : ''),
-                location: entry.locationAssignments?.[0]?.location?.name,
+                location: locLookup[entityLinksMap[getEntityKey('JOURNAL_ENTRY', entry.id)]?.[0]]?.name,
                 data: entry,
               });
             }

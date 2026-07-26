@@ -59,12 +59,27 @@ export const restoreFromBackup = asyncHandler(async (req: Request, res: Response
 
   const rawBackupData = req.body.backupData;
 
-  // Verify backup integrity if the integrity field is present
+  // The HMAC signature is MANDATORY. A backup file is fully attacker-controlled
+  // input that is written straight into the user's records (including file paths
+  // that later reach fs.unlink()), so an unsigned file must not be trusted.
+  //
+  // ESCAPE HATCH: backups created before HMAC signing was introduced carry no
+  // `integrity` field. Rather than locking users out of their own old backups
+  // permanently, an operator can set ALLOW_UNSIGNED_BACKUP_RESTORE=true to accept
+  // them. This is deliberately an env var and not a request flag — a request flag
+  // would let any caller opt out of the check, which is the bug being fixed here.
+  // Restore the old backup once, then re-export to get a signed file and unset it.
+  const allowUnsigned = process.env.ALLOW_UNSIGNED_BACKUP_RESTORE === 'true';
+
   if (rawBackupData && rawBackupData.integrity) {
     const { integrity, ...dataWithoutIntegrity } = rawBackupData;
 
     if (integrity.algorithm !== 'hmac-sha256') {
       throw new AppError(`Unsupported integrity algorithm: ${integrity.algorithm}`, 400);
+    }
+
+    if (typeof integrity.signature !== 'string' || !/^[0-9a-fA-F]+$/.test(integrity.signature)) {
+      throw new AppError('Backup integrity signature is missing or malformed.', 400);
     }
 
     const expectedSignature = computeBackupHmac(dataWithoutIntegrity);
@@ -74,11 +89,20 @@ export const restoreFromBackup = asyncHandler(async (req: Request, res: Response
     if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
       throw new AppError('Backup integrity check failed. The backup file may have been tampered with.', 400);
     }
+  } else if (allowUnsigned) {
+    logger.warn(
+      'Restoring UNSIGNED backup — ALLOW_UNSIGNED_BACKUP_RESTORE is enabled. ' +
+        'Unset it once legacy backups have been re-exported.',
+      { userId }
+    );
   } else {
-    // Old backups without integrity field - allow but log a warning
-    logger.warn('Restoring backup without integrity verification — backup was created before HMAC signing', {
-      userId,
-    });
+    logger.warn('Rejected restore of a backup with no integrity signature', { userId });
+    throw new AppError(
+      'This backup has no integrity signature and cannot be restored. Backups created by this ' +
+        'application are signed; re-export a fresh backup, or ask an administrator to set ' +
+        'ALLOW_UNSIGNED_BACKUP_RESTORE=true to restore a legacy unsigned file.',
+      400
+    );
   }
 
   // Parse and validate backup data (Zod strips the integrity field automatically)

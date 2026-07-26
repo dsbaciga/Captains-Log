@@ -258,11 +258,6 @@ function PhotoGridItem({
           Cover Photo
         </div>
       )}
-      {photo.location && (
-        <div className="absolute top-3 right-3 bg-primary-500/90 dark:bg-primary-600/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-body font-medium shadow-lg">
-          {photo.location.name}
-        </div>
-      )}
 
       {/* Selection checkbox */}
       {selectionMode && (
@@ -997,9 +992,11 @@ export default function PhotoGallery({
         )}
       </div>
 
-      {/* Grid View */}
+      {/* Grid View — 3-up on phones: at 2 columns a 200-photo trip was ~50
+          rows of scrolling, and it disagreed with the virtualized path below,
+          which has always rendered 4 columns at every width. */}
       {viewMode === "grid" && !shouldVirtualize && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-1 sm:gap-4">
           {sortedPhotos.map((photo, index) => (
             <PhotoGridItem
               key={photo.id}
@@ -1177,25 +1174,6 @@ export default function PhotoGallery({
                                 />
                               </svg>
                               {new Date(photo.takenAt).toLocaleDateString()}
-                            </span>
-                          )}
-                          {photo.location && (
-                            <span className="flex items-center gap-1">
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                              </svg>
-                              {photo.location.name}
                             </span>
                           )}
                         </div>

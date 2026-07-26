@@ -10,6 +10,22 @@ import { useConfetti } from "../hooks/useConfetti";
 import toast from "react-hot-toast";
 import { parseDuration } from "../utils/duration";
 
+/**
+ * A pending file paired with a stable id. The id is used as the React key so
+ * that removing an item from the middle of the list does not make React reuse
+ * a previous file's DOM node (and its preview) for a different file.
+ */
+interface SelectedFile {
+  id: string;
+  file: File;
+}
+
+let nextSelectedFileId = 0;
+const createSelectedFile = (file: File): SelectedFile => ({
+  id: `file-${nextSelectedFileId++}`,
+  file,
+});
+
 interface PhotoUploadProps {
   tripId: number;
   onPhotoUploaded: () => void;
@@ -25,7 +41,7 @@ export default function PhotoUpload({
   tripEndDate,
   existingImmichAssetIds,
 }: PhotoUploadProps) {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -57,7 +73,7 @@ export default function PhotoUpload({
   // Create and cleanup preview URLs when files change
   useEffect(() => {
     // Create URLs for new files
-    const urls = selectedFiles.map(file => URL.createObjectURL(file));
+    const urls = selectedFiles.map(({ file }) => URL.createObjectURL(file));
     setPreviewUrls(urls);
 
     // Cleanup previous URLs on change or unmount
@@ -84,7 +100,7 @@ export default function PhotoUpload({
 
 
   const handleFilesDropped = (files: File[]) => {
-    setSelectedFiles((prev) => [...prev, ...files]);
+    setSelectedFiles((prev) => [...prev, ...files.map(createSelectedFile)]);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -368,7 +384,7 @@ export default function PhotoUpload({
         // Check if aborted before each upload
         if (controller.signal.aborted) return;
 
-        const file = selectedFiles[i];
+        const { file } = selectedFiles[i];
         await photoService.uploadPhoto(file, {
           tripId,
           caption: selectedFiles.length === 1 ? caption : undefined,
@@ -464,8 +480,8 @@ export default function PhotoUpload({
           {/* Preview */}
           {selectedFiles.length > 0 && (
             <div className="grid grid-cols-4 gap-2">
-              {selectedFiles.map((file, index) => (
-                <div key={index} className="relative aspect-square">
+              {selectedFiles.map(({ id, file }, index) => (
+                <div key={id} className="relative aspect-square">
                   {file.type.startsWith('video/') ? (
                     <div className="w-full h-full bg-gray-900 rounded flex items-center justify-center relative">
                       <video
@@ -492,8 +508,8 @@ export default function PhotoUpload({
                   )}
                   <button
                     onClick={() =>
-                      setSelectedFiles(
-                        selectedFiles.filter((_, i) => i !== index)
+                      setSelectedFiles((prev) =>
+                        prev.filter((entry) => entry.id !== id)
                       )
                     }
                     type="button"

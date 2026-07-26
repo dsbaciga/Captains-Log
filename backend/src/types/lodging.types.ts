@@ -73,7 +73,7 @@ export const createLodgingSchema = z.object({
   confirmationNumber: z.string().max(100).optional(),
   cost: z.number().min(0).optional(),
   currency: z.string().length(3).optional(),
-  bookingUrl: z.string().url().max(1000).optional(),
+  bookingUrl: z.string().url().max(500).optional(),
   notes: z.string().max(2000).optional(),
 });
 
@@ -89,7 +89,7 @@ export const updateLodgingSchema = z.object({
   confirmationNumber: optionalStringWithMax(100),
   cost: optionalPositiveNumber(),
   currency: optionalCurrencyCode(),
-  bookingUrl: optionalUrl(1000),
+  bookingUrl: optionalUrl(500),
   notes: optionalNotesWithMax(2000),
 });
 

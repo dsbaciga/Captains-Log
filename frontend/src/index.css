@@ -555,9 +555,12 @@ textarea:focus-visible {
 }
 
 /* Trip title typography - Hero display for trip detail pages */
+/* Floor is 26px rather than 32px: at 393px the hero title is the largest
+   single consumer of the first screen, and the trip's own content has to start
+   above the fold. The vw term still scales it up on wider viewports. */
 .trip-title-hero {
   @apply font-display font-semibold tracking-tight;
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: clamp(1.625rem, 5vw, 3.5rem);
   line-height: 1.1;
   letter-spacing: -0.02em;
 }

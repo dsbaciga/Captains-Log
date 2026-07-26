@@ -1,6 +1,6 @@
 {
   "name": "travel-life-backend",
-  "version": "5.6.1",
+  "version": "6.0.0",
   "description": "Travel Life Travel Documentation API",
   "main": "dist/index.js",
   "scripts": {
@@ -42,10 +42,10 @@
     "mailparser": "^3.9.14",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
-    "nodemailer": "^8.0.0",
+    "nodemailer": "^9.0.3",
     "pdf-parse": "^2.4.5",
     "pg": "^8.16.3",
-    "sharp": "^0.33.1",
+    "sharp": "^0.35.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "tz-lookup": "^6.1.25",

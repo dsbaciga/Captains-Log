@@ -114,14 +114,18 @@ export const getTripQuerySchema = z.object({
   status: z.string().optional(), // Single status or comma-separated statuses
   archived: z.enum(['true', 'false', 'all']).optional(), // Default (omitted/'false') excludes archived trips
   search: z.string().optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
+  // Coerced and bounded so `?limit=1000000` cannot request an unbounded page and
+  // `?page=abc` is a 400 rather than a `skip: NaN` 500 (see photoQuerySchema).
+  page: z.coerce.number().int().min(1).optional(),
+  // Max 1000 matches photoQuerySchema and the largest limit the frontend actually asks for
+  // (ChecklistsPage, TripCalendarWidget and others request 1000).
+  limit: z.coerce.number().int().min(1).max(1000).optional(),
   sort: z.enum(['startDate-desc', 'startDate-asc', 'title-asc', 'title-desc', 'status']).optional(),
   startDateFrom: z.string().optional(),
   startDateTo: z.string().optional(),
   tags: z.string().optional(), // Comma-separated tag IDs
   tripType: z.string().optional(), // Single type or comma-separated types
-  seriesId: z.string().optional(), // Filter by series ID
+  seriesId: z.coerce.number().int().positive().optional(), // Filter by series ID
 });
 
 // Types
@@ -129,39 +133,10 @@ export type CreateTripInput = z.infer<typeof createTripSchema>;
 export type UpdateTripInput = z.infer<typeof updateTripSchema>;
 export type GetTripQuery = z.infer<typeof getTripQuerySchema>;
 
-export interface TripResponse {
-  id: number;
-  userId: number;
-  title: string;
-  description: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  timezone: string | null;
-  status: string;
-  tripType: string | null;
-  tripTypeEmoji: string | null;
-  privacyLevel: string;
-  addToPlacesVisited: boolean;
-  excludeFromAutoShare: boolean;
-  archived: boolean;
-  coverPhotoId: number | null;
-  bannerPhotoId: number | null;
-  seriesId: number | null;
-  seriesOrder: number | null;
-  series: { id: number; name: string } | null;
-  budget: number | null;
-  budgetCurrency: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface TripListResponse {
-  trips: TripResponse[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+// Note: TripResponse/TripListResponse used to be declared here. They were imported nowhere
+// and had drifted from what trip.service actually returns (no coverImagePath, shareToken,
+// coverPhoto, tagAssignments, _count, ...), so they were removed rather than left as a
+// second, wrong description of the API contract.
 
 // Trip duplication schema
 export const duplicateTripSchema = z.object({

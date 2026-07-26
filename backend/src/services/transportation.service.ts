@@ -7,7 +7,14 @@ import {
   BulkUpdateTransportationInput,
 } from '../types/transportation.types';
 import { AppError } from '../errors/errors';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, verifyEntityInTrip, convertDecimals, cleanupEntityLinks, buildConditionalUpdateData } from '../services/_shared/serviceHelpers';
+import {
+  verifyTripAccessWithPermission,
+  verifyEntityAccessWithPermission,
+  verifyEntityInTrip,
+} from '../services/_shared/tripAccess';
+import { buildConditionalUpdateData } from '../services/_shared/prismaUpdateData';
+import { convertDecimals } from '../services/_shared/decimalConversion';
+import { cleanupEntityLinks } from '../services/_shared/entityLinkCleanup';
 import { locationWithAddressSelect } from '../prisma/prismaIncludes';
 import routingService from './routing.service';
 
@@ -145,7 +152,7 @@ class TransportationService {
         company: data.carrier || null,
         referenceNumber: data.vehicleNumber || null,
         bookingReference: data.confirmationNumber || null,
-        cost: data.cost || null,
+        cost: data.cost !== undefined ? data.cost : null,
         currency: data.currency || null,
         notes: data.notes || null,
       },
@@ -197,9 +204,14 @@ class TransportationService {
     const limit = options?.limit ?? 50;
     const skip = (page - 1) * limit;
 
-    // Get all trips user has access to
+    // Get all trips user has access to (owned or shared as a collaborator)
     const trips = await prisma.trip.findMany({
-      where: { userId },
+      where: {
+        OR: [
+          { userId },
+          { collaborators: { some: { userId } } },
+        ],
+      },
       select: { id: true },
     });
 
@@ -264,16 +276,16 @@ class TransportationService {
         // Try to get route geometry for road-based transportation
         // Always attempt for car/bike/walk types, even if distance was calculated with Haversine
         // The routing service will use cache if available and handle fallbacks gracefully
-        if (t.type === 'car' || t.type === 'bicycle' || t.type === 'bike' || t.type === 'walk' || t.type === 'walking') {
+        if (t.type === 'car' || t.type === 'bicycle' || t.type === 'walk') {
           if (process.env.NODE_ENV === 'development') {
             console.log(`[Transportation Service] Fetching route geometry for ${t.type} transportation (id: ${t.id})`);
           }
           try {
             // Determine routing profile based on transportation type
             let profile: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car';
-            if (t.type === 'bicycle' || t.type === 'bike') {
+            if (t.type === 'bicycle') {
               profile = 'cycling-regular';
-            } else if (t.type === 'walk' || t.type === 'walking') {
+            } else if (t.type === 'walk') {
               profile = 'foot-walking';
             }
 

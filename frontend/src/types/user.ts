@@ -44,14 +44,78 @@ export interface UserSearchResult {
   avatarUrl: string | null;
 }
 
+// Permission level a travel partner gets on trips auto-shared by their partner.
+// Matches the backend's `defaultPartnerPermission` enum. Single source of truth for
+// this union — derive from it rather than spelling the three strings out again.
+export const PARTNER_PERMISSIONS = ['view', 'edit', 'admin'] as const;
+
+export type PartnerPermission = (typeof PARTNER_PERMISSIONS)[number];
+
+/**
+ * Runtime narrowing for values that are only `string` until checked — notably
+ * `<select>` change events, where nothing enforces that the rendered options and this
+ * union stay in sync. Prefer this over asserting the cast.
+ */
+export const isPartnerPermission = (value: string): value is PartnerPermission =>
+  (PARTNER_PERMISSIONS as readonly string[]).includes(value);
+
 // Travel partner settings
 export interface TravelPartnerSettings {
   travelPartnerId: number | null;
-  defaultPartnerPermission: 'view' | 'edit' | 'admin';
+  defaultPartnerPermission: PartnerPermission;
   travelPartner: UserSearchResult | null;
 }
 
 export interface UpdateTravelPartnerInput {
   travelPartnerId?: number | null;
-  defaultPartnerPermission?: 'view' | 'edit' | 'admin';
+  defaultPartnerPermission?: PartnerPermission;
+}
+
+// Travel partner requests — the consent step. A partnership is only established
+// once the recipient accepts; sending a request changes nothing on either profile.
+export type TravelPartnerRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+
+export interface TravelPartnerRequest {
+  id: number;
+  status: TravelPartnerRequestStatus;
+  message: string | null;
+  /** The REQUESTER opted in to sharing THEIR existing trips if this is accepted. */
+  shareExistingTrips: boolean;
+  createdAt: string;
+  respondedAt: string | null;
+  requester: UserSearchResult;
+  recipient: UserSearchResult;
+}
+
+export interface TravelPartnerRequests {
+  /** Requests sent TO the current user, awaiting their accept/decline. */
+  incoming: TravelPartnerRequest[];
+  /** Requests the current user sent, awaiting the other user's response. */
+  outgoing: TravelPartnerRequest[];
+}
+
+export interface SendTravelPartnerRequestInput {
+  recipientId: number;
+  message?: string;
+  /**
+   * Share MY existing trips with them if they accept. Never shares their trips with
+   * me — that is their own choice, made when they accept.
+   */
+  shareExistingTrips?: boolean;
+}
+
+export interface AcceptTravelPartnerRequestInput {
+  /**
+   * Share MY existing trips with the requester. Whether THEIR existing trips come to
+   * me was their choice, made when they sent the request.
+   */
+  shareExistingTrips?: boolean;
+}
+
+export interface AcceptTravelPartnerRequestResult extends TravelPartnerSettings {
+  message: string;
+  /** How many of MY trips were shared with them. */
+  sharedTripCount: number;
+  /** How many of THEIR trips were shared with me. */
+  receivedTripCount: number;
 }

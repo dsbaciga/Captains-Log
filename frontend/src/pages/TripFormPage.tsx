@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import tripService from '../services/trip.service';
 import userService from '../services/user.service';
@@ -50,6 +50,12 @@ export default function TripFormPage() {
   const [cover, setCover] = useState<TripCoverSource>({});
   const [shareLoading, setShareLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  /**
+   * Optional fields are collapsed on a new trip and always expanded when
+   * editing — an edit is a deliberate visit to change one of them.
+   */
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
+  const optionalFieldsVisible = isEdit || showOptionalFields;
 
   // Track initial form values for dirty state detection
   const initialValuesRef = useRef({ title: '', description: '', startDate: '', endDate: '', timezone: '', status: TripStatus.PLANNING as string, privacyLevel: PrivacyLevel.PRIVATE as string, tripType: '', excludeFromAutoShare: false });
@@ -432,6 +438,49 @@ export default function TripFormPage() {
               )}
             </div>
 
+            {/* Status as chips rather than a select: it is the one other field
+                worth answering up front, and chips show all the options
+                without opening a picker. */}
+            <div>
+              <span className="label">Status</span>
+              <div className="flex flex-wrap gap-2">
+                {Object.values(TripStatus).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setStatus(s)}
+                    aria-pressed={status === s}
+                    className={`min-h-[44px] px-4 py-2 rounded-full text-sm font-medium border-2 transition-colors ${
+                      status === s
+                        ? 'bg-primary-500 dark:bg-gold border-primary-500 dark:border-gold text-white dark:text-navy-900'
+                        : 'bg-white dark:bg-navy-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-primary-400'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Everything below is optional. On a new trip it stays collapsed:
+                only the name is actually required, and nine expanded fields put
+                the submit button ~860px down the page. */}
+            {!isEdit && (
+              <button
+                type="button"
+                onClick={() => setShowOptionalFields((shown) => !shown)}
+                aria-expanded={showOptionalFields}
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900/40"
+              >
+                <span>
+                  {showOptionalFields ? 'Hide' : 'Add'} dates, description and more
+                </span>
+                <span aria-hidden="true">{showOptionalFields ? '▲' : '▼'}</span>
+              </button>
+            )}
+
+            {optionalFieldsVisible && (
+              <>
             <div>
               <MarkdownEditor
                 value={description}
@@ -518,24 +567,6 @@ export default function TripFormPage() {
               </p>
             </div>
 
-            <div>
-              <label htmlFor="status" className="label">
-                Status
-              </label>
-              <select
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TripStatusType)}
-                className="input"
-              >
-                {Object.values(TripStatus).map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {userTripTypes.length > 0 && (
               <div>
                 <label htmlFor="tripType" className="label">
@@ -582,6 +613,8 @@ export default function TripFormPage() {
                 ))}
               </select>
             </div>
+              </>
+            )}
 
             {/* Public share link (owner only, edit mode only) */}
             {isEdit && isOwner && (
@@ -678,18 +711,21 @@ export default function TripFormPage() {
               </div>
             )}
 
-            <div className="flex gap-4 pt-4">
+            {/* Sticky on mobile so the primary action is reachable no matter
+                how far the optional fields push the page down. `bottom-16`
+                clears the bottom nav. */}
+            <div className="flex gap-4 pt-4 sticky bottom-16 md:static bg-white dark:bg-gray-800 pb-4 md:pb-0 -mx-6 px-6 md:mx-0 md:px-0 border-t border-gray-200 dark:border-gray-700 md:border-0">
               <button
                 type="submit"
-                className="flex-1 btn btn-primary"
+                className="flex-1 btn btn-primary mt-4 md:mt-0"
                 disabled={loading}
               >
-                {loading ? 'Saving...' : isEdit ? 'Update Trip' : 'Create Trip'}
+                {loading ? 'Saving...' : isEdit ? 'Update Trip' : 'Begin Your Journey'}
               </button>
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="flex-1 btn btn-secondary"
+                className="flex-1 btn btn-secondary mt-4 md:mt-0"
               >
                 Cancel
               </button>

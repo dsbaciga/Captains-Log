@@ -3,13 +3,17 @@
     Automated release script for Travel Life
 
 .DESCRIPTION
-    This script automates the entire build and push process:
+    This script prepares and publishes a release:
     1. Updates version numbers in package.json files
-    2. Commits the version bump
-    3. Builds backend and frontend
-    4. Builds Docker images
-    5. Pushes Docker images to registry
-    6. Creates and pushes git tag
+    2. Verifies the backend and frontend builds (ABORTS on failure)
+    3. Commits the version bump
+    4. Builds Docker images locally as a final verification (NOT pushed)
+    5. Creates and pushes the git tag
+
+    IMAGE PUBLISHING IS DONE BY CI, NOT BY THIS SCRIPT.
+    Pushing the tag triggers .github/workflows/release.yml, which is the single
+    authoritative publisher of ghcr.io images and of the GitHub Release.
+    See docs/guides/BUILD_AND_PUSH.md for the rationale.
 
 .PARAMETER Version
     The version number (e.g., v1.12.6 or 1.12.6)
@@ -158,41 +162,118 @@ if (-not $DryRun) {
     $frontendContent = Get-Content "frontend/package.json" -Raw
     $frontendContent = $frontendContent -replace '"version":\s*"[^"]*"', "`"version`": `"$NumericVersion`""
     [System.IO.File]::WriteAllText("$PWD/frontend/package.json", $frontendContent)
+
+    # Promote the [Unreleased] section to this version in CHANGELOG.md.
+    # The release workflow reads this section for the GitHub Release body.
+    if (Test-Path "CHANGELOG.md") {
+        $changelogContent = Get-Content "CHANGELOG.md" -Raw
+        $escapedVersion = [regex]::Escape($NumericVersion)
+        if ($changelogContent -match "(?m)^##\s+\[$escapedVersion\]") {
+            Write-Info "CHANGELOG.md already has a section for $NumericVersion"
+        } elseif ($changelogContent -match "(?m)^##\s+\[Unreleased\]") {
+            $today = Get-Date -Format "yyyy-MM-dd"
+            $changelogContent = $changelogContent -replace "(?m)^##\s+\[Unreleased\].*$", "## [Unreleased]`n`n## [$NumericVersion] - $today"
+            [System.IO.File]::WriteAllText("$PWD/CHANGELOG.md", $changelogContent)
+            Write-Success "CHANGELOG.md: [Unreleased] promoted to [$NumericVersion]"
+        } else {
+            Write-Warn "CHANGELOG.md has no [Unreleased] section - skipping changelog update"
+        }
+    } else {
+        Write-Warn "CHANGELOG.md not found - the GitHub Release body will use a generic note"
+    }
 }
 Write-Success "Version updated in package.json files"
+
+# Helper: run "npm run build" in a package directory and return the real exit code.
+# NOTE: `$ErrorActionPreference = "Stop"` plus `2>&1` on a native command turns any
+# stderr output (vite progress, npm notices) into a terminating NativeCommandError,
+# which is why the old try/catch here reported false failures for the frontend and
+# false successes for the backend. Exit code is the only reliable signal.
+function Invoke-PackageBuild {
+    param(
+        [Parameter(Mandatory = $true)][string]$Directory,
+        [Parameter(Mandatory = $true)][ref]$OutputRef
+    )
+
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        $OutputRef.Value = @("npm was not found on PATH")
+        return 127
+    }
+
+    Push-Location $Directory
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    # Clear the previous command's exit code so a command that never ran cannot be
+    # mistaken for a success carried over from an earlier call.
+    $global:LASTEXITCODE = $null
+    try {
+        $OutputRef.Value = & npm run build 2>&1
+        if ($null -eq $LASTEXITCODE) {
+            # npm never produced an exit code (it failed to launch)
+            return 127
+        }
+        return $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+        Pop-Location
+    }
+}
+
+# Helper: abort (or prompt, when interactive) on a failed verification build.
+function Assert-BuildSucceeded {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][int]$ExitCode,
+        $Output
+    )
+
+    if ($ExitCode -eq 0) {
+        Write-Success "$Name build completed"
+        return
+    }
+
+    Write-Err "$Name build FAILED (exit code $ExitCode)"
+    if ($Output) {
+        Write-Info "--- last 30 lines of build output ---"
+        @($Output) | Select-Object -Last 30 | ForEach-Object { Write-Info $_ }
+    }
+
+    if ($NoConfirm) {
+        Write-Err "Aborting release. Fix the $Name build and re-run."
+        exit 1
+    }
+
+    $response = Read-Host "Continue the release anyway with a FAILING $Name build? (y/N)"
+    if ($response -ne 'y' -and $response -ne 'Y') {
+        Write-Err "Aborting release. Fix the $Name build and re-run."
+        exit 1
+    }
+    Write-Warn "Continuing despite the failed $Name build (explicit operator override)"
+}
 
 # Step 3: Build verification (unless skipped)
 if (-not $SkipBuild) {
     Write-Step "Building backend (verification)"
     if (-not $DryRun) {
-        Push-Location backend
-        try {
-            npm run build 2>&1 | Out-Null
-            Write-Success "Backend build completed"
-        }
-        catch {
-            Write-Warn "Backend build had issues (continuing anyway)"
-        }
-        Pop-Location
+        $backendOutput = $null
+        $backendExit = Invoke-PackageBuild -Directory "backend" -OutputRef ([ref]$backendOutput)
+        Assert-BuildSucceeded -Name "Backend" -ExitCode $backendExit -Output $backendOutput
     } else {
         Write-Info "Would run: npm run build (backend)"
     }
 
     Write-Step "Building frontend (verification)"
     if (-not $DryRun) {
-        Push-Location frontend
-        try {
-            $output = npm run build 2>&1
-            if ($output -match "built in") {
-                Write-Success "Frontend build completed"
-            } else {
-                Write-Warn "Frontend build may have issues"
-            }
+        $frontendOutput = $null
+        $frontendExit = Invoke-PackageBuild -Directory "frontend" -OutputRef ([ref]$frontendOutput)
+        Assert-BuildSucceeded -Name "Frontend" -ExitCode $frontendExit -Output $frontendOutput
+
+        # Secondary sanity check: vite prints "built in <time>" on a successful bundle.
+        # Informational only - the exit code above is the gate.
+        if ($frontendExit -eq 0 -and -not (@($frontendOutput) -match "built in")) {
+            Write-Warn "Frontend build exited 0 but no 'built in' line was found in the output"
         }
-        catch {
-            Write-Warn "Frontend build had issues (continuing anyway)"
-        }
-        Pop-Location
     } else {
         Write-Info "Would run: npm run build (frontend)"
     }
@@ -222,40 +303,22 @@ if (-not $DryRun) {
     Write-Info "Would commit: $finalCommitMessage"
 }
 
-# Step 5: Build Docker images
-Write-Step "Building Docker images"
+# Step 5: Build Docker images LOCALLY as a final verification.
+# These images are deliberately NOT pushed - .github/workflows/release.yml is the
+# single publisher of registry images (triggered by the tag push in Step 7).
+Write-Step "Building Docker images (local verification only - not pushed)"
 if (-not $DryRun) {
     & .\build.truenas.ps1 -Version $Version -Registry $Registry
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Docker build failed"
         exit 1
     }
-    Write-Success "Docker images built"
+    Write-Success "Docker images built locally"
 } else {
     Write-Info "Would run: .\build.truenas.ps1 -Version $Version -Registry $Registry"
 }
 
-# Step 6: Push Docker images
-Write-Step "Pushing Docker images to registry"
-
-$imagesToPush = @(
-    "$Registry/${BackendImage}:$Version",
-    "$Registry/${FrontendImage}:$Version"
-)
-
-foreach ($image in $imagesToPush) {
-    Write-Info "Pushing $image"
-    if (-not $DryRun) {
-        docker push $image
-        if ($LASTEXITCODE -ne 0) {
-            Write-Err "Failed to push $image"
-            exit 1
-        }
-    }
-}
-Write-Success "Docker images pushed"
-
-# Step 7: Create and push git tag
+# Step 6: Create and push git tag
 Write-Step "Creating git tag"
 
 # Build tag message
@@ -274,12 +337,42 @@ if ($Description) {
 Write-Info "Tag message: $tagMessage"
 
 if (-not $DryRun) {
-    # Check if tag already exists
+    # Check if tag already exists (destructive path - always confirm unless -NoConfirm)
     $existingTag = git tag -l $Version
     if ($existingTag) {
-        Write-Warn "Tag $Version already exists. Deleting and recreating..."
-        git tag -d $Version 2>$null
-        git push origin :refs/tags/$Version 2>$null
+        Write-Warn "Tag $Version ALREADY EXISTS."
+        Write-Warn "Recreating it deletes the tag locally AND on origin - if $Version was"
+        Write-Warn "already published, this destroys a shipped release tag."
+        if (-not $NoConfirm) {
+            $tagResponse = Read-Host "Delete and recreate tag $Version (local + origin)? (y/N)"
+            if ($tagResponse -ne 'y' -and $tagResponse -ne 'Y') {
+                Write-Err "Aborted. Choose a different -Version, or delete the tag yourself."
+                exit 1
+            }
+        } else {
+            Write-Warn "NoConfirm mode: deleting and recreating tag $Version"
+        }
+
+        git tag -d $Version
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err "Failed to delete local tag $Version"
+            exit 1
+        }
+
+        # Only try the remote deletion if the tag actually exists on origin,
+        # so a missing remote tag is not treated as a failure.
+        $remoteTag = git ls-remote --tags origin "refs/tags/$Version"
+        if ($remoteTag) {
+            git push origin ":refs/tags/$Version"
+            if ($LASTEXITCODE -ne 0) {
+                Write-Err "Failed to delete remote tag $Version - aborting before recreating it"
+                Write-Info "The local tag has been deleted; the remote tag still exists."
+                exit 1
+            }
+            Write-Success "Deleted remote tag $Version"
+        } else {
+            Write-Info "Tag $Version does not exist on origin - nothing to delete remotely"
+        }
     }
 
     git tag -a $Version -m $tagMessage
@@ -311,16 +404,20 @@ if (-not $DryRun) {
 
 # Summary
 Write-Host "`n==========================================" -ForegroundColor Green
-Write-Host "  Release $Version Complete!" -ForegroundColor Green
+Write-Host "  Release $Version tagged and pushed!" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Green
-Write-Host ""
-Write-Host "Docker images:" -ForegroundColor White
-Write-Host "  - $Registry/${BackendImage}:$Version" -ForegroundColor Cyan
-Write-Host "  - $Registry/${FrontendImage}:$Version" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Git tag: $Version" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "To deploy on TrueNAS:" -ForegroundColor White
+Write-Host "CI is now building and PUBLISHING the images (this script does not push):" -ForegroundColor White
+Write-Host "  - $Registry/${BackendImage}:$Version  (and :$NumericVersion, :latest)" -ForegroundColor Cyan
+Write-Host "  - $Registry/${FrontendImage}:$Version  (and :$NumericVersion, :latest)" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Watch the run: https://github.com/dsbaciga/travel-life/actions" -ForegroundColor Yellow
+Write-Host "Wait for it to go green BEFORE deploying." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "To deploy on TrueNAS (pin the version you just released):" -ForegroundColor White
+Write-Host "  export APP_VERSION=$Version" -ForegroundColor Yellow
 Write-Host "  docker-compose -f docker-compose.truenas.yml pull" -ForegroundColor Yellow
 Write-Host "  docker-compose -f docker-compose.truenas.yml up -d" -ForegroundColor Yellow
 Write-Host ""

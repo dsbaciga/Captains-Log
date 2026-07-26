@@ -2,22 +2,61 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Validate required JWT secrets
-const jwtSecret = process.env.JWT_SECRET;
-if (!jwtSecret) {
-  throw new Error(
-    'JWT_SECRET environment variable is required. ' +
-    'Set it in your .env file or environment variables.'
-  );
-}
+// Validate required JWT secrets.
+// Tokens are HS256, so the signing key is directly offline-crackable from a
+// single issued token — presence alone is not enough, the secret must also be
+// long and non-guessable. The strength check is skipped under NODE_ENV=test so
+// the suite's fixture secrets keep working; production/dev always enforce it.
+const MIN_JWT_SECRET_LENGTH = 32;
+const WEAK_JWT_SECRETS = new Set([
+  'changeme',
+  'change-me',
+  'changethis',
+  'change-this',
+  'secret',
+  'jwtsecret',
+  'jwt-secret',
+  'mysecret',
+  'my-secret',
+  'password',
+  'test',
+  'testsecret',
+  'test-secret',
+  'default',
+  'placeholder',
+  'your-secret-key',
+  'your_secret_key',
+  'supersecret',
+  'super-secret',
+]);
 
-const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
-if (!jwtRefreshSecret) {
-  throw new Error(
-    'JWT_REFRESH_SECRET environment variable is required. ' +
-    'Set it in your .env file or environment variables.'
-  );
-}
+const requireStrongSecret = (name: string, value: string | undefined): string => {
+  if (!value) {
+    throw new Error(
+      `${name} environment variable is required. ` +
+      'Set it in your .env file or environment variables.'
+    );
+  }
+  if (process.env.NODE_ENV === 'test') {
+    return value;
+  }
+  if (value.length < MIN_JWT_SECRET_LENGTH) {
+    throw new Error(
+      `${name} is too weak: it must be at least ${MIN_JWT_SECRET_LENGTH} characters. ` +
+      'Generate one with: openssl rand -base64 48'
+    );
+  }
+  if (WEAK_JWT_SECRETS.has(value.trim().toLowerCase())) {
+    throw new Error(
+      `${name} is set to a well-known placeholder value. ` +
+      'Generate a real secret with: openssl rand -base64 48'
+    );
+  }
+  return value;
+};
+
+const jwtSecret = requireStrongSecret('JWT_SECRET', process.env.JWT_SECRET);
+const jwtRefreshSecret = requireStrongSecret('JWT_REFRESH_SECRET', process.env.JWT_REFRESH_SECRET);
 
 export const config = {
   // Server
@@ -109,6 +148,16 @@ export const config = {
     const issuerUrl = (process.env.OIDC_ISSUER_URL || '').replace(/\/+$/, '');
     const clientId = process.env.OIDC_CLIENT_ID || '';
     const clientSecret = process.env.OIDC_CLIENT_SECRET || '';
+    // Discovery and the token exchange both run against the issuer. Over plain
+    // HTTP anyone on the path (a compromised container on the same Docker
+    // network, a hostile LAN) can substitute a token response and take over any
+    // account, so a non-https issuer must be opted into explicitly.
+    if (issuerUrl && !issuerUrl.startsWith('https:') && process.env.OIDC_ALLOW_INSECURE_ISSUER !== 'true') {
+      throw new Error(
+        `OIDC_ISSUER_URL must use https (got "${issuerUrl}"). ` +
+        'Set OIDC_ALLOW_INSECURE_ISSUER=true to allow a plaintext issuer for local development.'
+      );
+    }
     return {
       enabled: Boolean(issuerUrl && clientId),
       issuerUrl,

@@ -4,8 +4,10 @@ import toast from "react-hot-toast";
 import savedLinkService from "../services/savedLink.service";
 import tripService from "../services/trip.service";
 import {
+  hasPendingMetadata,
   savedLinkDisplayTitle,
   savedLinkHostname,
+  PREVIEW_POLL_INTERVAL_MS,
   type SavedLink,
 } from "../types/savedLink";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -14,6 +16,9 @@ import BulkActionBar from "../components/BulkActionBar";
 import PageHeader from "../components/PageHeader";
 import EmptyState from "../components/EmptyState";
 import { ListItemSkeleton } from "../components/SkeletonLoader";
+
+/** Matches the navbar badge's poll, so the list and the count agree. */
+const INBOX_POLL_INTERVAL_MS = 60_000;
 
 /**
  * The saved-links inbox: links that exist but have not been assigned to a trip.
@@ -37,6 +42,17 @@ export default function SavedLinksInboxPage() {
   const { data: links, isLoading } = useQuery({
     queryKey: ["savedLinks", "inbox"],
     queryFn: () => savedLinkService.getSavedLinks("none"),
+    // Nothing pushes to the client: emailed links land whenever the backend's
+    // IMAP poll runs, and previews are scraped in the background after a save.
+    // Poll quickly while a preview is outstanding, otherwise at the same
+    // cadence as the navbar's inbox badge so the two stay in step.
+    refetchInterval: (query) =>
+      hasPendingMetadata(query.state.data)
+        ? PREVIEW_POLL_INTERVAL_MS
+        : INBOX_POLL_INTERVAL_MS,
+    // Overrides the client-wide 5-minute staleTime (lib/queryClientSetup.ts) so
+    // returning to this page shows what has arrived since, not a cached list.
+    staleTime: 0,
   });
 
   // Include archived trips: a link may well belong to a past trip.

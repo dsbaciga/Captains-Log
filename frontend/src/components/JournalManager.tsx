@@ -15,11 +15,13 @@ import { useManagerCRUD } from "../hooks/useManagerCRUD";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import { useEditFromUrlParam } from "../hooks/useEditFromUrlParam";
+import { useCreateFromUrlParam } from "../hooks/useCreateFromUrlParam";
 import { useAutoSaveDraft } from "../hooks/useAutoSaveDraft";
 import { useUnsavedChangesWarning } from "../hooks/useUnsavedChangesWarning";
 import MarkdownRenderer from "./MarkdownRenderer";
 import MarkdownEditor from "./MarkdownEditor";
 import { stripMarkdown } from "../utils/stripMarkdown";
+import { formatDate } from "../utils/dateFormat";
 
 /**
  * JournalManager handles CRUD operations for trip journal entries.
@@ -218,6 +220,8 @@ export default function JournalManager({
     setKeepFormOpenAfterSave(false);
   }, [baseOpenCreateForm]);
 
+  useCreateFromUrlParam(openCreateForm);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -280,15 +284,6 @@ export default function JournalManager({
     });
     if (!confirmed) return;
     await manager.handleDelete(id);
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
   };
 
   const truncateContent = (text: string, maxLength: number = 200) => {
@@ -475,7 +470,7 @@ export default function JournalManager({
                         {entry.title || "Untitled Entry"}
                       </h3>
                       <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                        {entry.date && <span>📅 {formatDate(entry.date)}</span>}
+                        {entry.date && <span>📅 {formatDate(entry.date, 'full')}</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 self-start">

@@ -2,7 +2,7 @@
 
 Travel Life API documentation. The backend provides a RESTful API for all application functionality.
 
-> Last updated: 2026-05-15 — Travel Life v5.4.0
+> Last updated: 2026-07-25 — Travel Life v5.6.1
 
 ## Base URL
 
@@ -40,7 +40,13 @@ Authorization: Bearer <access_token>
 
 ### CSRF Protection
 
-All `/api` routes (except `/api/auth/*` and the public invitation endpoints) are protected by CSRF validation. Auth routes bootstrap the CSRF token.
+All state-changing (`/api` non-`GET`/`HEAD`/`OPTIONS`) requests are protected by CSRF validation, with a
+short exempt list rather than a blanket auth-routes exemption:
+
+- `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/refresh`, `POST /api/auth/silent-refresh` — these bootstrap the CSRF token, so they cannot require one. **`POST /api/auth/logout` is not on this list — it IS CSRF-validated.**
+- `POST /api/user-invitations/accept` and `POST /api/user-invitations/decline/:token` — accessed by unauthenticated users who have no CSRF token; protected instead by the invitation token itself plus rate limiting.
+
+Everything else — including every other authenticated route — requires the `x-csrf-token` header to match the `csrf-token` cookie on any non-safe method.
 
 ## API Endpoints
 
@@ -83,7 +89,22 @@ All user routes require authentication.
 | PUT | `/password` | Update password | Yes |
 | GET | `/search` | Search users by email or username (rate limited) | Yes |
 | GET | `/travel-partner` | Get travel partner settings | Yes |
-| PUT | `/travel-partner` | Update travel partner settings (rate limited) | Yes |
+| PUT | `/travel-partner` | Update **your own** side of the partnership (rate limited) | Yes |
+| GET | `/travel-partner/requests` | List your pending partner requests (incoming and outgoing) | Yes |
+| POST | `/travel-partner/requests` | Send a travel partner request (rate limited) | Yes |
+| POST | `/travel-partner/requests/{requestId}/accept` | Accept a request — recipient only | Yes |
+| POST | `/travel-partner/requests/{requestId}/decline` | Decline a request — recipient only | Yes |
+| DELETE | `/travel-partner/requests/{requestId}` | Cancel a request you sent — requester only | Yes |
+
+> Note: a travel partnership auto-shares every new trip either user creates, so it needs
+> both sides' consent. `PUT /travel-partner` only ever writes the caller's own row; the
+> reciprocal write happens only when the recipient accepts a request.
+>
+> Both the send and accept calls take an optional `shareExistingTrips` boolean
+> (default `false`) that back-shares the **caller's own** existing trips with the other
+> user. Each side controls only its own history, so opting in can never grant you access
+> to the other user's past trips. Trips flagged `excludeFromAutoShare` are skipped, and
+> re-running is idempotent — existing collaborator rows are never duplicated.
 
 > Note: `GET` and `PUT` settings endpoints accept and return only whether sensitive values (API keys, SMTP password) are set; secret values are never returned.
 
@@ -94,16 +115,33 @@ All trip routes require authentication.
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | POST | `/` | Create new trip | Yes |
-| GET | `/` | List trips (supports `status` and `search` query params) | Yes |
+| GET | `/` | List trips (paginated; see query params below) | Yes |
 | GET | `/:id` | Get trip details | Yes |
 | PUT | `/:id` | Update trip | Yes |
 | DELETE | `/:id` | Delete trip | Yes |
-| PUT | `/:id/cover-photo` | Set the trip's cover photo | Yes |
+| PUT | `/:id/cover-photo` | Set the trip's cover photo from an existing trip photo | Yes |
+| POST | `/:id/cover-image` | Upload a standalone cover image (`multipart/form-data`, field `image`, max 25MB) that never enters the trip's photo library. Setting either cover-photo or cover-image clears the other | Yes |
+| DELETE | `/:id/cover-image` | Remove the uploaded cover image | Yes |
 | GET | `/:id/validate` | Run a trip validation / health check | Yes |
 | GET | `/:id/validation-status` | Get the current validation status | Yes |
 | POST | `/:id/validation/dismiss` | Dismiss a validation issue | Yes |
 | POST | `/:id/validation/restore` | Restore a previously dismissed validation issue | Yes |
 | POST | `/:id/duplicate` | Clone a trip | Yes |
+| POST | `/:id/share` | Enable the trip's public share link (owner only) | Yes |
+| POST | `/:id/share/rotate` | Rotate (invalidate and reissue) the share token | Yes |
+| DELETE | `/:id/share` | Disable the public share link | Yes |
+
+`GET /` query parameters (`backend/src/types/trip.types.ts`):
+
+- `status` - single status or comma-separated statuses
+- `archived` - `'true'` (archived only), `'false'` (default; excludes archived), or `'all'`
+- `search` - search by title or description
+- `page` / `limit` - pagination (see [Pagination](#pagination))
+- `sort` - one of `startDate-desc`, `startDate-asc`, `title-asc`, `title-desc`, `status`
+- `startDateFrom` / `startDateTo` - date range filter
+- `tags` - comma-separated tag IDs
+- `tripType` - single type or comma-separated types
+- `seriesId` - filter by trip series
 
 ### Locations (`/api/locations`)
 
@@ -275,6 +313,68 @@ Links connect any two entities (photos, locations, activities, lodging, transpor
 | POST | `/defaults/add` | Add specific default checklists by type | Yes |
 | POST | `/defaults/remove` | Remove specific default checklists by type | Yes |
 
+### Expenses & Budget (`/api/trips/:tripId/expenses`)
+
+Trip-scoped expense tracking, plus a budget-vs-spent summary endpoint mounted alongside it.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/trips/:tripId/expenses` | Create an expense (`description`, `category`, `amount` required; `category` is one of `food`, `transportation`, `lodging`, `activities`, `shopping`, `other`) | Yes |
+| GET | `/api/trips/:tripId/expenses` | List all expenses for a trip | Yes |
+| GET | `/api/trips/:tripId/expenses/:id` | Get an expense by ID | Yes |
+| PUT | `/api/trips/:tripId/expenses/:id` | Update an expense | Yes |
+| DELETE | `/api/trips/:tripId/expenses/:id` | Delete an expense | Yes |
+| GET | `/api/trips/:tripId/budget-summary` | Get budget vs. spent totals with a category breakdown | Yes |
+
+Budget summary totals are converted into a single base currency using the exchange rate frozen at each
+expense's own date. Amounts that could not be converted are excluded from `spent` and listed under
+`conversion.unconverted` rather than summed at face value.
+
+### Airports (`/api/airports`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Search airports by IATA/ICAO code or name (`?q=`); returns airports with a 3-letter IATA code and scheduled passenger service. Powers the airport picker used to add airports to the airports checklist | Yes |
+
+### Calendar (`/api/calendar`)
+
+Unauthenticated iCal subscription feed — the secret token embedded in the URL is the only credential.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/:token` (`.ics` suffix optional) | Read-only iCalendar feed (`text/calendar`) of the token owner's trips, transportation, and lodging | No |
+
+### Memories (`/api/memories`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/on-this-day` | Get memories (trips, photos, journal entries) from this month/day in prior years. Optional `month`/`day` query params override today's date | Yes |
+| GET | `/year-in-review/:year` | Get aggregated travel statistics and highlights for a calendar year (empty aggregates for years with no data) | Yes |
+
+### Public Sharing (`/api/public`)
+
+The only unauthenticated data-serving surface in the app. Access control is the unguessable 64-hex-char
+share token itself — every handler 404s unless a trip has that exact token and `shareEnabled` is true.
+Requests are rate limited per IP to deter token guessing. Enabling, rotating, and disabling a trip's share
+token is done by the trip owner via `POST/DELETE /api/trips/:id/share*` (see Trips).
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/trips/:token` | Get a sanitized, read-only view of a shared trip | No |
+| GET | `/trips/:token/photos/:photoId/file` | Stream a shared trip's photo binary (the authenticated `/uploads` route is not reachable without a token) | No |
+| GET | `/trips/:token/photos/:photoId/thumbnail` | Stream a shared trip's photo thumbnail | No |
+
+### Push Notifications (`/api/push`)
+
+Web push via VAPID. Endpoints return `503` when push is not configured on the server (no VAPID keys set).
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/public-key` | Get the VAPID public key (or `null` if not configured) | Yes |
+| POST | `/subscribe` | Register a web push subscription for the current user (upserts by `endpoint`) | Yes |
+| DELETE | `/subscribe` | Remove a web push subscription (`{ endpoint }` in body) | Yes |
+| POST | `/test` | Send a test push notification to the caller's active subscriptions | Yes |
+
 ### Search (`/api/search`)
 
 The search endpoint is rate limited to 30 requests per minute.
@@ -283,30 +383,34 @@ The search endpoint is rate limited to 30 requests per minute.
 |--------|----------|-------------|------|
 | GET | `/` | Global search across all entities | Yes |
 
-Query parameters for `GET /api/search`:
+Query parameters for `GET /api/search` (`backend/src/types/search.types.ts`):
 
 - `q` (required) - search query string
-- `types` - comma-separated entity types to search (`trips`, `locations`, `activities`, `lodging`, `photos`, `albums`, `journals`)
-- `tripId` - limit search to a specific trip
-- `limit` - maximum results per entity type (default 10)
+- `type` - a single entity type to search: one of `all` (default), `trip`, `location`, `photo`, `journal`, `trip-series`. Only one value is accepted (not comma-separated). Activities, lodging, and albums are not searchable through this endpoint.
+- `limit` - maximum total results (string-encoded number, default `20`)
 
-### Collaboration (`/api/collaboration`)
+There is no `tripId` parameter — search is always across all of the current user's trips.
+
+### Collaboration
+
+The collaboration router is mounted at `/api` (not `/api/collaboration` — there is no such prefix); routes
+below are grouped under `/api/invitations` and `/api/trips/...`.
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/invitations/token/:token` | Get invitation details by token (for invite links) | No |
-| GET | `/invitations` | Get pending invitations for the current user | Yes |
-| POST | `/invitations/:invitationId/accept` | Accept an invitation | Yes |
-| POST | `/invitations/:invitationId/decline` | Decline an invitation | Yes |
-| GET | `/trips/shared` | Get trips shared with the current user | Yes |
-| GET | `/trips/:tripId/permission` | Get the user's permission level for a trip | Yes |
-| GET | `/trips/:tripId/collaborators` | List collaborators for a trip | Yes |
-| PATCH | `/trips/:tripId/collaborators/:userId` | Update a collaborator's permission level | Yes |
-| DELETE | `/trips/:tripId/collaborators/:userId` | Remove a collaborator (or leave the trip) | Yes |
-| GET | `/trips/:tripId/invitations` | List pending invitations for a trip | Yes |
-| POST | `/trips/:tripId/invitations` | Send an invitation to collaborate on a trip | Yes |
-| DELETE | `/trips/:tripId/invitations/:invitationId` | Cancel a pending trip invitation | Yes |
-| POST | `/trips/:tripId/invitations/:invitationId/resend` | Resend a pending trip invitation | Yes |
+| GET | `/api/invitations/token/:token` | Get invitation details by token (for invite links) | No |
+| GET | `/api/invitations` | Get pending invitations for the current user | Yes |
+| POST | `/api/invitations/:invitationId/accept` | Accept an invitation | Yes |
+| POST | `/api/invitations/:invitationId/decline` | Decline an invitation | Yes |
+| GET | `/api/trips/shared` | Get trips shared with the current user | Yes |
+| GET | `/api/trips/:tripId/permission` | Get the user's permission level for a trip | Yes |
+| GET | `/api/trips/:tripId/collaborators` | List collaborators for a trip | Yes |
+| PATCH | `/api/trips/:tripId/collaborators/:userId` | Update a collaborator's permission level | Yes |
+| DELETE | `/api/trips/:tripId/collaborators/:userId` | Remove a collaborator (or leave the trip) | Yes |
+| GET | `/api/trips/:tripId/invitations` | List pending invitations for a trip | Yes |
+| POST | `/api/trips/:tripId/invitations` | Send an invitation to collaborate on a trip | Yes |
+| DELETE | `/api/trips/:tripId/invitations/:invitationId` | Cancel a pending trip invitation | Yes |
+| POST | `/api/trips/:tripId/invitations/:invitationId/resend` | Resend a pending trip invitation | Yes |
 
 ### Immich Integration (`/api/immich`)
 
@@ -552,7 +656,6 @@ Unique constraint violations include the offending `field`:
 |------|-------------|
 | 200 | Success |
 | 201 | Created |
-| 204 | No Content (successful delete) |
 | 400 | Bad Request (validation error) |
 | 401 | Unauthorized (invalid/missing token) |
 | 403 | Forbidden (insufficient permissions) |
@@ -571,7 +674,18 @@ GET /api/albums?skip=0&take=30
 GET /api/albums/:id?skip=0&take=40
 ```
 
-Trip listing does not use `skip`/`take`; it supports `status` and `search` query parameters instead.
+Trip listing uses page-based pagination instead — `page`/`limit` (default `limit` 20) — and the response
+body includes the paging metadata alongside the results:
+
+```json
+{
+  "trips": [ ],
+  "total": 42,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 3
+}
+```
 
 ## Filtering
 
@@ -580,7 +694,7 @@ Several endpoints support filtering via query parameters:
 ```text
 GET /api/trips?status=completed&search=japan
 GET /api/checklists?tripId=5
-GET /api/search?q=tokyo&types=trips,locations&limit=20
+GET /api/search?q=tokyo&type=trip&limit=20
 ```
 
 ## File Uploads
@@ -613,6 +727,9 @@ Rate limits are applied per IP or per user depending on the endpoint:
 - Backup create/restore, AI endpoints, PDF import upload/reparse, and sensitive user endpoints have their own dedicated limiters.
 
 Rate-limited requests receive a `429 Too Many Requests` response.
+
+> No endpoint in the backend returns `204 No Content`. Deletes return `200` with the standard
+> `{ status: 'success', message }` envelope, same as any other successful response.
 
 ## Swagger Documentation
 

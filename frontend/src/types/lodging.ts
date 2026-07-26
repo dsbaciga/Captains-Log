@@ -11,6 +11,27 @@ export type LodgingType =
   | 'friends_family'
   | 'other';
 
+/** Every member of LodgingType, as values. See TRANSPORTATION_TYPES for why
+ *  `satisfies` guards this against drifting from the union above. */
+export const LODGING_TYPES = [
+  'hotel',
+  'hostel',
+  'airbnb',
+  'vacation_rental',
+  'camping',
+  'resort',
+  'motel',
+  'bed_and_breakfast',
+  'apartment',
+  'friends_family',
+  'other',
+] as const satisfies readonly LodgingType[];
+
+/** Narrows a raw string — a `<select>` value — to a LodgingType. */
+export function isLodgingType(value: string): value is LodgingType {
+  return LODGING_TYPES.some((type) => type === value);
+}
+
 // Note: Location association is handled via EntityLink system, not direct FK
 export type Lodging = {
   id: number;
@@ -28,14 +49,6 @@ export type Lodging = {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
-  photoAlbums?: {
-    id: number;
-    name: string;
-    description: string | null;
-    _count?: {
-      photoAssignments: number;
-    };
-  }[];
 };
 
 // Note: Location association is handled via EntityLink system, not direct FK

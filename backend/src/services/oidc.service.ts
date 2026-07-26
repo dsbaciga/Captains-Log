@@ -16,6 +16,16 @@ interface OidcDiscoveryDocument {
   authorization_endpoint: string;
   token_endpoint: string;
   userinfo_endpoint?: string;
+  jwks_uri?: string;
+}
+
+/** A single key from the provider's JWKS. Shape is validated by crypto.createPublicKey. */
+interface OidcJwk {
+  kid?: string;
+  kty?: string;
+  alg?: string;
+  use?: string;
+  [claim: string]: unknown;
 }
 
 interface OidcTokenResponse {
@@ -36,8 +46,32 @@ const oidcClaimsSchema = z.object({
 export type OidcClaims = z.infer<typeof oidcClaimsSchema>;
 
 const DISCOVERY_CACHE_TTL_MS = 60 * 60 * 1000;
+const JWKS_CACHE_TTL_MS = 60 * 60 * 1000;
 const HTTP_TIMEOUT_MS = 10000;
 const USERNAME_MAX_LENGTH = 100;
+
+// Asymmetric only. An IdP-supplied `alg` of HS256 (or `none`) would let a
+// substituted token be "verified" against a public value, so those are refused.
+const ID_TOKEN_ALGORITHMS = [
+  'RS256', 'RS384', 'RS512',
+  'PS256', 'PS384', 'PS512',
+  'ES256', 'ES384', 'ES512',
+  // EdDSA is deliberately absent: @types/jsonwebtoken does not model it, and no
+  // mainstream OIDC provider signs ID tokens with it by default.
+] as const satisfies readonly jwt.Algorithm[];
+
+/**
+ * Narrows a token header's `alg` to one this service will verify with.
+ *
+ * A guard rather than a cast: the header is attacker-supplied, so the list is
+ * the only thing that may decide the value is acceptable.
+ */
+function isSupportedAlgorithm(alg: string | undefined): alg is jwt.Algorithm {
+  return ID_TOKEN_ALGORITHMS.some((supported) => supported === alg);
+}
+
+// Tolerate modest clock skew between this host and the IdP when checking exp/iat.
+const CLOCK_TOLERANCE_SECONDS = 60;
 
 /**
  * Reduce an IdP-provided display name / preferred_username / email local part
@@ -54,6 +88,9 @@ export const sanitizeUsername = (raw: string): string => {
 export class OidcService {
   private discovery: OidcDiscoveryDocument | null = null;
   private discoveryFetchedAt = 0;
+  private jwks: OidcJwk[] | null = null;
+  private jwksUri: string | null = null;
+  private jwksFetchedAt = 0;
 
   private async getDiscovery(): Promise<OidcDiscoveryDocument> {
     if (this.discovery && Date.now() - this.discoveryFetchedAt < DISCOVERY_CACHE_TTL_MS) {
@@ -67,12 +104,15 @@ export class OidcService {
     } catch (error: unknown) {
       // Without this wrap a network/TLS/DNS failure surfaces to the client as a
       // bare 500 "Internal server error", which is undiagnosable from the UI.
+      // The operator-facing hint (env var name, container reachability) is
+      // logged only — /api/auth/oidc/login is unauthenticated, so the response
+      // must not describe the deployment's configuration.
       const detail = error instanceof Error ? error.message : String(error);
-      logger.error(`OIDC discovery fetch failed for ${url}: ${detail}`);
-      throw new AppError(
-        'Unable to reach the OIDC provider. Check that OIDC_ISSUER_URL is correct and reachable from the backend container.',
-        502
+      logger.error(
+        `OIDC discovery fetch failed for ${url}: ${detail}. ` +
+        'Check that OIDC_ISSUER_URL is correct and reachable from the backend container.'
       );
+      throw new AppError('Single sign-on is temporarily unavailable', 502);
     }
     const doc = response.data;
 
@@ -80,9 +120,124 @@ export class OidcService {
       throw new AppError('OIDC discovery document is missing required endpoints', 502);
     }
 
+    // OpenID Connect Discovery requires the document's `issuer` to equal the
+    // issuer it was fetched for. Without this the ID token's `iss` check is
+    // self-referential (compared against a value from the same document), so a
+    // substituted document would validate itself. Fail closed.
+    if (doc.issuer.replace(/\/+$/, '') !== config.oidc.issuerUrl) {
+      logger.error(
+        `OIDC discovery issuer mismatch: document reports "${doc.issuer}" but OIDC_ISSUER_URL is "${config.oidc.issuerUrl}"`
+      );
+      throw new AppError('OIDC discovery document issuer does not match the configured issuer', 502);
+    }
+
     this.discovery = doc;
     this.discoveryFetchedAt = Date.now();
     return doc;
+  }
+
+  /**
+   * Fetches (and caches) the provider's JWKS. `force` bypasses the cache, which
+   * is how key rotation is picked up when a token arrives with an unknown kid.
+   */
+  private async fetchJwks(jwksUri: string, force: boolean): Promise<OidcJwk[]> {
+    const cacheFresh =
+      !force &&
+      this.jwksUri === jwksUri &&
+      Date.now() - this.jwksFetchedAt < JWKS_CACHE_TTL_MS;
+    // Checked inline rather than via a stored boolean so the null check
+    // actually narrows `this.jwks` for the return below.
+    if (cacheFresh && this.jwks !== null) {
+      return this.jwks;
+    }
+
+    let response;
+    try {
+      response = await axios.get<{ keys?: OidcJwk[] }>(jwksUri, { timeout: HTTP_TIMEOUT_MS });
+    } catch (error: unknown) {
+      const detail = error instanceof Error ? error.message : String(error);
+      logger.error(`OIDC JWKS fetch failed for ${jwksUri}: ${detail}`);
+      throw new AppError('Unable to verify the OIDC ID token', 502);
+    }
+
+    const keys = Array.isArray(response.data?.keys) ? response.data.keys : [];
+    if (keys.length === 0) {
+      throw new AppError('OIDC provider published no signing keys', 502);
+    }
+
+    this.jwks = keys;
+    this.jwksUri = jwksUri;
+    this.jwksFetchedAt = Date.now();
+    return keys;
+  }
+
+  /**
+   * Verifies the ID token's signature against the provider's JWKS, plus its
+   * standard time claims (exp/nbf, with a small clock tolerance).
+   *
+   * Signature verification is what makes the iss/aud checks meaningful: without
+   * it, anyone who can substitute the token response can assert any sub/email.
+   */
+  private async verifyIdToken(
+    discovery: OidcDiscoveryDocument,
+    idToken: string
+  ): Promise<Record<string, unknown>> {
+    if (!discovery.jwks_uri) {
+      throw new AppError('OIDC discovery document is missing jwks_uri', 502);
+    }
+
+    const complete = jwt.decode(idToken, { complete: true });
+    if (!complete || typeof complete !== 'object') {
+      throw new AppError('OIDC provider returned a malformed ID token', 502);
+    }
+    const alg = complete.header.alg;
+    if (!isSupportedAlgorithm(alg)) {
+      logger.error(`OIDC ID token uses unsupported algorithm "${alg}"`);
+      throw new AppError('OIDC ID token uses an unsupported signing algorithm', 502);
+    }
+
+    const { kid } = complete.header;
+    const selectKey = (keys: OidcJwk[]): OidcJwk | undefined =>
+      keys.find((key) => key.use !== 'enc' && (kid ? key.kid === kid : true));
+
+    let jwk = selectKey(await this.fetchJwks(discovery.jwks_uri, false));
+    if (!jwk) {
+      // Unknown kid usually means the provider rotated keys; refetch once.
+      jwk = selectKey(await this.fetchJwks(discovery.jwks_uri, true));
+    }
+    if (!jwk) {
+      throw new AppError('OIDC ID token signing key was not found in the provider JWKS', 502);
+    }
+
+    let publicKeyPem: string;
+    try {
+      publicKeyPem = crypto
+        .createPublicKey({ key: jwk, format: 'jwk' })
+        .export({ type: 'spki', format: 'pem' })
+        .toString();
+    } catch (error: unknown) {
+      const detail = error instanceof Error ? error.message : String(error);
+      logger.error(`OIDC JWKS key could not be parsed: ${detail}`);
+      throw new AppError('OIDC provider published an unusable signing key', 502);
+    }
+
+    try {
+      const verified = jwt.verify(idToken, publicKeyPem, {
+        algorithms: [alg],
+        clockTolerance: CLOCK_TOLERANCE_SECONDS,
+      });
+      if (!verified || typeof verified !== 'object') {
+        throw new AppError('OIDC provider returned a malformed ID token', 502);
+      }
+      return verified;
+    } catch (error: unknown) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      const detail = error instanceof Error ? error.message : String(error);
+      logger.error(`OIDC ID token verification failed: ${detail}`);
+      throw new AppError('OIDC ID token signature or expiry is invalid', 502);
+    }
   }
 
   /**
@@ -154,6 +309,7 @@ export class OidcService {
         username: user.username,
         email: user.email,
         avatarUrl: user.avatarUrl,
+        timezone: user.timezone,
       },
       accessToken: generateAccessToken(payload),
       refreshToken: generateRefreshToken(payload),
@@ -198,16 +354,13 @@ export class OidcService {
 
     const { id_token: idToken, access_token: accessToken } = tokenResponse.data;
 
-    // The ID token comes straight from the token endpoint over TLS, so its
-    // claims can be trusted without JWKS signature verification — but issuer
-    // and audience must still match, or a misconfigured/multi-tenant IdP
-    // could hand us a token minted for a different client or issuer.
+    // The ID token is verified against the provider's JWKS (signature + exp/nbf)
+    // before any claim is read. Issuer and audience are then checked explicitly,
+    // or a misconfigured/multi-tenant IdP could hand us a validly signed token
+    // minted for a different client or issuer.
     let claims: OidcClaims = {};
     if (idToken) {
-      const decoded = jwt.decode(idToken);
-      if (!decoded || typeof decoded !== 'object') {
-        throw new AppError('OIDC provider returned a malformed ID token', 502);
-      }
+      const decoded = await this.verifyIdToken(discovery, idToken);
       const audiences = Array.isArray(decoded.aud) ? decoded.aud : [decoded.aud];
       if (decoded.iss !== discovery.issuer || !audiences.includes(config.oidc.clientId)) {
         throw new AppError('OIDC ID token issuer or audience mismatch', 502);

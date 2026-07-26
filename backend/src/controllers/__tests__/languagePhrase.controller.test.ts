@@ -27,7 +27,7 @@ import { languagePhraseController } from '../languagePhrase.controller';
 import {
   createAuthenticatedControllerArgs,
   createMockControllerArgs,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 describe('languagePhrase.controller', () => {

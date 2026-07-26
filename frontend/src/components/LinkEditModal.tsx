@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
+import { useInvalidateEntityLinks } from '../hooks/useInvalidateEntityLinks';
 import type { EnrichedEntityLink, LinkRelationship } from '../types/entityLink';
 import {
   ENTITY_TYPE_CONFIG,
@@ -28,6 +29,7 @@ export default function LinkEditModal({
 }: LinkEditModalProps) {
   const [relationship, setRelationship] = useState<LinkRelationship>(link.relationship);
   const [notes, setNotes] = useState(link.notes || '');
+  const invalidateEntityLinks = useInvalidateEntityLinks();
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
 
@@ -87,6 +89,8 @@ export default function LinkEditModal({
       }),
     onSuccess: () => {
       toast.success('Link updated');
+      // The relationship label is rendered on both linked entities.
+      invalidateEntityLinks(tripId);
       onSuccess();
     },
     onError: (error: unknown) => {

@@ -5,6 +5,10 @@ import {
   formatDateInTimezone,
   formatTimeInTimezone,
   formatDateTimeInTimezone,
+  resolveTimezone,
+  getBrowserTimezone,
+  formatDateOnly,
+  dayKeyInTimezone,
 } from './timezone';
 
 describe('parseDateOnlyAsLocal', () => {
@@ -264,5 +268,72 @@ describe('journal entry date filtering scenario', () => {
 
     // When viewing lodging on Jan 16, the Jan 15 journal should NOT appear
     expect(journalDate).not.toBe('2025-01-16');
+  });
+});
+
+
+describe('resolveTimezone', () => {
+  it('returns the first specified candidate, most specific first', () => {
+    expect(resolveTimezone('Asia/Tokyo', 'Europe/Paris', 'America/Denver')).toBe(
+      'Asia/Tokyo'
+    );
+  });
+
+  it('skips null, undefined and blank candidates', () => {
+    expect(resolveTimezone(null, undefined, '', '   ', 'Europe/Paris')).toBe(
+      'Europe/Paris'
+    );
+  });
+
+  it('trims a padded zone rather than passing it to Intl', () => {
+    expect(resolveTimezone('  Asia/Tokyo  ')).toBe('Asia/Tokyo');
+  });
+
+  it("falls back to the browser's zone, never silently to UTC", () => {
+    // The whole point of the change: an unspecified zone shows the viewer
+    // their own clock. Compared against the browser zone rather than a
+    // hardcoded name so the test holds wherever it runs.
+    expect(resolveTimezone()).toBe(getBrowserTimezone());
+    expect(resolveTimezone(null, undefined)).toBe(getBrowserTimezone());
+  });
+});
+
+describe('formatDateOnly', () => {
+  it('keeps the calendar date regardless of the runner timezone', () => {
+    // Midnight-UTC parsing would render Jan 14 anywhere west of UTC.
+    expect(
+      formatDateOnly('2025-01-15', { year: 'numeric', month: 'short', day: 'numeric' }, 'en-US')
+    ).toBe('Jan 15, 2025');
+  });
+
+  it('accepts a full ISO timestamp and uses its date portion', () => {
+    expect(
+      formatDateOnly('2025-01-15T00:00:00.000Z', { month: 'short', day: 'numeric' }, 'en-US')
+    ).toBe('Jan 15');
+  });
+
+  it('returns null for missing or unparseable input', () => {
+    expect(formatDateOnly(null)).toBeNull();
+    expect(formatDateOnly(undefined)).toBeNull();
+    expect(formatDateOnly('')).toBeNull();
+    expect(formatDateOnly('not-a-date')).toBeNull();
+  });
+});
+
+describe('dayKeyInTimezone', () => {
+  it('buckets an instant onto the day it falls on in that zone', () => {
+    // 22:00 UTC on the 14th is already the 15th in Tokyo (UTC+9).
+    expect(dayKeyInTimezone('2025-01-14T22:00:00.000Z', 'Asia/Tokyo')).toBe(
+      '2025-01-15'
+    );
+    // ...and still the 14th in Denver (UTC-7).
+    expect(dayKeyInTimezone('2025-01-14T22:00:00.000Z', 'America/Denver')).toBe(
+      '2025-01-14'
+    );
+  });
+
+  it('returns null for missing or unparseable input', () => {
+    expect(dayKeyInTimezone(null, 'Asia/Tokyo')).toBeNull();
+    expect(dayKeyInTimezone('nonsense', 'Asia/Tokyo')).toBeNull();
   });
 });

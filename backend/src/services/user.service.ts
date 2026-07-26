@@ -3,9 +3,10 @@ import config from '../config';
 import { AppError } from '../errors/errors';
 import { UpdateUserSettingsInput } from '../types/userSettings.types';
 import bcrypt from 'bcrypt';
+import { hashPassword } from '../auth/password';
 import { companionService } from './companion.service';
 import { invalidatePasswordVersionCache } from '../middleware/auth';
-import { buildConditionalUpdateData } from '../services/_shared/serviceHelpers';
+import { buildConditionalUpdateData } from '../services/_shared/prismaUpdateData';
 
 class UserService {
   async getUserById(userId: number) {
@@ -627,9 +628,9 @@ class UserService {
       throw new AppError('Current password is incorrect', 401);
     }
 
-    // Hash new password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    // Hash new password. Routed through the shared helper so the cost factor is
+    // configured in exactly one place (auth/password.ts).
+    const passwordHash = await hashPassword(newPassword);
 
     // Evict cached passwordVersion BEFORE the write so concurrent auth requests
     // cache-miss and hit the DB, reducing the window for stale re-caching.
@@ -654,13 +655,12 @@ class UserService {
    * Search users by email or username for travel partner selection.
    * Excludes the current user from results.
    *
-   * SECURITY: The query still matches against `email` (so users can find a
-   * known partner by typing their email), but the response NEVER includes
-   * the email field. Returning email on substring matches would let an
-   * attacker enumerate user emails by guessing common substrings.
-   * Exact-match invitation flows (which legitimately need an email) should
-   * use a separate path that takes the email as input rather than reading
-   * it back from a search response.
+   * SECURITY: `email` is matched on EXACT equality only (so users can find a
+   * known partner by typing their full address), never `contains`. A substring
+   * match let a caller confirm any address — and by extension enumerate
+   * registered users — from a partial guess. Username still matches on
+   * substring, which is the intended discovery affordance.
+   * The response also NEVER includes the email field.
    */
   async searchUsers(userId: number, query: string) {
     // Minimum 3 characters required (matches controller and frontend validation)
@@ -672,7 +672,7 @@ class UserService {
       where: {
         id: { not: userId },
         OR: [
-          { email: { contains: query, mode: 'insensitive' } },
+          { email: { equals: query, mode: 'insensitive' } },
           { username: { contains: query, mode: 'insensitive' } },
         ],
       },
@@ -719,9 +719,16 @@ class UserService {
   }
 
   /**
-   * Update travel partner settings
-   * Implements bidirectional partnership - when User A sets User B as partner,
-   * User B is also set to have User A as their partner
+   * Update travel partner settings.
+   *
+   * SECURITY: this writes ONLY the requesting user's own row. It used to write
+   * the partnership bidirectionally, which was a privilege-escalation primitive:
+   * anyone could name a victim as their partner (IDs are discoverable via
+   * /api/users/search) and trip.service.ts would then auto-grant them EDIT
+   * collaborator rights on every trip that victim later created, with no
+   * invitation, acceptance or notification step. It also silently severed the
+   * victim's existing partnership. The partnership is therefore one-directional
+   * until the other user sets it from their own account.
    *
    * Uses an interactive transaction with row-level locking (SELECT FOR UPDATE)
    * to prevent TOCTOU race conditions when multiple users try to set partnerships
@@ -750,62 +757,22 @@ class UserService {
         return user;
       };
 
-      // If setting a new partner, we need to lock multiple rows
-      // Use deterministic ordering (ascending ID) to prevent deadlocks
+      // If setting a new partner, lock both rows in ascending ID order to
+      // prevent deadlocks. The partner row is locked (never written) purely to
+      // confirm it still exists for the duration of the transaction.
       if (data.travelPartnerId !== undefined && data.travelPartnerId !== null) {
-        // Collect all user IDs we need to lock, in ascending order to prevent deadlocks
         const primaryIds = [userId, data.travelPartnerId].sort((a, b) => a - b);
 
-        // Lock primary users (current user and new partner) in deterministic order
-        const lockedUsers = new Map<number, { id: number; travel_partner_id: number | null }>();
         for (const id of primaryIds) {
           const user = await lockAndFetchUser(id);
           if (!user) {
             throw new AppError(id === userId ? 'User not found' : 'Partner user not found', 404);
           }
-          lockedUsers.set(id, user);
         }
 
-        const currentUser = lockedUsers.get(userId)!;
-        const partner = lockedUsers.get(data.travelPartnerId)!;
-
-        // Collect any additional users we need to lock (old partners)
-        const additionalLockIds: number[] = [];
-        if (currentUser.travel_partner_id !== null &&
-            currentUser.travel_partner_id !== data.travelPartnerId &&
-            !lockedUsers.has(currentUser.travel_partner_id)) {
-          additionalLockIds.push(currentUser.travel_partner_id);
-        }
-        if (partner.travel_partner_id !== null &&
-            partner.travel_partner_id !== userId &&
-            !lockedUsers.has(partner.travel_partner_id)) {
-          additionalLockIds.push(partner.travel_partner_id);
-        }
-
-        // Lock additional users in ascending order
-        for (const id of additionalLockIds.sort((a, b) => a - b)) {
-          await lockAndFetchUser(id);
-        }
-
-        // Now perform all updates - all necessary locks are held
-
-        // Clear current user's old partner if different
-        if (currentUser.travel_partner_id !== null && currentUser.travel_partner_id !== data.travelPartnerId) {
-          await tx.user.update({
-            where: { id: currentUser.travel_partner_id },
-            data: { travelPartnerId: null },
-          });
-        }
-
-        // Clear new partner's old partner if different
-        if (partner.travel_partner_id !== null && partner.travel_partner_id !== userId) {
-          await tx.user.update({
-            where: { id: partner.travel_partner_id },
-            data: { travelPartnerId: null },
-          });
-        }
-
-        // Update current user to point to new partner (with their permission preference)
+        // Update current user to point to new partner (with their permission preference).
+        // Only this row is touched — see the SECURITY note on this method. The
+        // target's own travelPartnerId is theirs alone to set.
         await tx.user.update({
           where: { id: userId },
           data: {
@@ -813,39 +780,16 @@ class UserService {
             ...(data.defaultPartnerPermission && { defaultPartnerPermission: data.defaultPartnerPermission }),
           },
         });
-
-        // Update new partner to point back to current user
-        // Note: Partner keeps their existing permission preference
-        // We do NOT propagate the requesting user's permission to the partner
-        await tx.user.update({
-          where: { id: data.travelPartnerId },
-          data: {
-            travelPartnerId: userId,
-          },
-        });
       } else if (data.travelPartnerId === null) {
-        // Clearing the partnership - lock both users in ascending order
+        // Clearing the partnership - only this user's side
         const currentUser = await lockAndFetchUser(userId);
         if (!currentUser) {
           throw new AppError('User not found', 404);
         }
 
         if (currentUser.travel_partner_id) {
-          // Lock users in deterministic order
-          const idsToLock = [userId, currentUser.travel_partner_id].sort((a, b) => a - b);
-          for (const id of idsToLock) {
-            if (id !== userId) { // Current user already locked
-              await lockAndFetchUser(id);
-            }
-          }
-
-          // Clear both sides
           await tx.user.update({
             where: { id: userId },
-            data: { travelPartnerId: null },
-          });
-          await tx.user.update({
-            where: { id: currentUser.travel_partner_id },
             data: { travelPartnerId: null },
           });
         }

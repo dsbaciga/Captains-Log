@@ -13,7 +13,7 @@ import { searchController } from '../search.controller';
 import {
   createAuthenticatedControllerArgs,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 const flushPromises = () => new Promise(resolve => process.nextTick(resolve));

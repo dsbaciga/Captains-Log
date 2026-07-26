@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import offlineService from '../services/offline.service';
+import syncManager from '../services/syncManager';
 
 /**
  * Offline data status for a trip
@@ -17,114 +19,33 @@ export interface OfflineStatus {
 }
 
 /**
- * Storage keys for offline data
+ * Custom event dispatched when offline/sync state changes within this tab.
+ *
+ * The real offline pipeline lives in IndexedDB (`syncQueue` / `trips` stores via
+ * `offlineService`), which — unlike localStorage — emits no cross-tab `storage`
+ * event. Anything that mutates the queue or the cached trip data should call
+ * {@link notifyOfflineSyncUpdate} so mounted status components refresh.
  */
-const OFFLINE_DATA_KEY = 'travel-life-offline-data';
-const PENDING_CHANGES_KEY = 'travel-life-pending-changes';
-const SYNC_STATUS_KEY = 'travel-life-sync-status';
-
-interface OfflineTripData {
-  tripId: string;
-  lastSynced: string;
-  data: unknown;
-}
-
-interface PendingChange {
-  id: string;
-  tripId: string;
-  entityType: string;
-  entityId: string;
-  action: 'create' | 'update' | 'delete';
-  data: unknown;
-  createdAt: string;
-}
-
-interface SyncStatus {
-  tripId: string;
-  isSyncing: boolean;
-  lastError: string | null;
-  lastErrorAt: string | null;
-}
+export const OFFLINE_SYNC_UPDATE_EVENT = 'offline-sync-update';
 
 /**
- * Get offline trip data from localStorage
+ * Notify mounted offline-status components that the sync state changed.
+ *
+ * @param tripId - Optional trip the change relates to
  */
-function getOfflineTripData(tripId: string): OfflineTripData | null {
-  try {
-    const stored = localStorage.getItem(OFFLINE_DATA_KEY);
-    if (!stored) return null;
-
-    const data: Record<string, OfflineTripData> = JSON.parse(stored);
-    return data[tripId] || null;
-  } catch (error) {
-    console.error('Error reading offline trip data:', error);
-    return null;
-  }
+export function notifyOfflineSyncUpdate(tripId?: string): void {
+  window.dispatchEvent(
+    new CustomEvent(OFFLINE_SYNC_UPDATE_EVENT, { detail: { tripId } })
+  );
 }
 
-/**
- * Get pending changes for a trip from localStorage
- */
-function getPendingChanges(tripId?: string): PendingChange[] {
-  try {
-    const stored = localStorage.getItem(PENDING_CHANGES_KEY);
-    if (!stored) return [];
-
-    const changes: PendingChange[] = JSON.parse(stored);
-    if (tripId) {
-      return changes.filter((change) => change.tripId === tripId);
-    }
-    return changes;
-  } catch (error) {
-    console.error('Error reading pending changes:', error);
-    return [];
-  }
-}
-
-/**
- * Get sync status for a trip from localStorage
- */
-function getSyncStatus(tripId: string): SyncStatus | null {
-  try {
-    const stored = localStorage.getItem(SYNC_STATUS_KEY);
-    if (!stored) return null;
-
-    const statuses: Record<string, SyncStatus> = JSON.parse(stored);
-    return statuses[tripId] || null;
-  } catch (error) {
-    console.error('Error reading sync status:', error);
-    return null;
-  }
-}
-
-/**
- * Save sync status for a trip to localStorage
- */
-function saveSyncStatus(tripId: string, status: Partial<SyncStatus>): void {
-  try {
-    const stored = localStorage.getItem(SYNC_STATUS_KEY);
-    const statuses: Record<string, SyncStatus> = stored ? JSON.parse(stored) : {};
-
-    // Defaults go in their own object so they read as a base layer rather than
-    // as properties that the following spreads silently overwrite.
-    const defaults: SyncStatus = {
-      tripId,
-      isSyncing: false,
-      lastError: null,
-      lastErrorAt: null,
-    };
-
-    statuses[tripId] = {
-      ...defaults,
-      ...statuses[tripId],
-      ...status,
-    };
-
-    localStorage.setItem(SYNC_STATUS_KEY, JSON.stringify(statuses));
-  } catch (error) {
-    console.error('Error saving sync status:', error);
-  }
-}
+const EMPTY_STATUS: OfflineStatus = {
+  isOfflineReady: false,
+  lastSynced: null,
+  pendingChanges: 0,
+  isSyncing: false,
+  syncError: null,
+};
 
 export interface UseOfflineReadyOptions {
   /** Callback when sync starts */
@@ -136,10 +57,11 @@ export interface UseOfflineReadyOptions {
 }
 
 /**
- * Hook for checking if a specific trip is available offline
+ * Hook for checking if a specific trip is available offline.
  *
- * Tracks offline availability, last sync time, and pending changes.
- * Works with the service worker and IndexedDB for actual offline storage.
+ * Reads directly from the real offline pipeline: the IndexedDB `trips` store
+ * (cached data + last sync time) and the `syncQueue` store (pending changes),
+ * both via `offlineService`. Sync progress and errors come from `syncManager`.
  *
  * @param tripId - The ID of the trip to check
  * @param options - Optional callbacks for sync events
@@ -169,86 +91,95 @@ export function useOfflineReady(
 ): OfflineStatus {
   const { onSyncStart, onSyncComplete, onSyncError } = options;
 
-  const buildStatus = useCallback((): OfflineStatus => {
+  const [status, setStatus] = useState<OfflineStatus>(EMPTY_STATUS);
+
+  // Callbacks live in a ref so changing an inline arrow prop does not
+  // re-subscribe the listeners on every render.
+  const callbacksRef = useRef({ onSyncStart, onSyncComplete, onSyncError });
+  callbacksRef.current = { onSyncStart, onSyncComplete, onSyncError };
+
+  // Latest sync error reported by syncManager, kept outside setStatus so a
+  // plain refresh does not clear it.
+  const syncErrorRef = useRef<string | null>(null);
+
+  const refresh = useCallback(async (): Promise<void> => {
     if (!tripId) {
-      return {
-        isOfflineReady: false,
-        lastSynced: null,
-        pendingChanges: 0,
-        isSyncing: false,
-        syncError: null,
-      };
+      setStatus(EMPTY_STATUS);
+      return;
     }
 
-    const offlineData = getOfflineTripData(tripId);
-    const pendingChanges = getPendingChanges(tripId);
-    const syncStatus = getSyncStatus(tripId);
+    try {
+      const [isCached, lastSync, pending] = await Promise.all([
+        offlineService.isTripCached(tripId),
+        offlineService.getLastSyncTime(tripId),
+        offlineService.getPendingChangesForTrip(tripId),
+      ]);
 
-    return {
-      isOfflineReady: !!offlineData,
-      lastSynced: offlineData ? new Date(offlineData.lastSynced) : null,
-      pendingChanges: pendingChanges.length,
-      isSyncing: syncStatus?.isSyncing ?? false,
-      syncError: syncStatus?.lastError ?? null,
-    };
+      const next: OfflineStatus = {
+        isOfflineReady: isCached,
+        lastSynced: lastSync ? new Date(lastSync) : null,
+        pendingChanges: pending.length,
+        isSyncing: syncManager.isSyncInProgress(),
+        syncError: syncErrorRef.current,
+      };
+
+      setStatus((prev) => {
+        const { onSyncStart: start, onSyncComplete: complete, onSyncError: fail } =
+          callbacksRef.current;
+
+        if (next.isSyncing && !prev.isSyncing) {
+          start?.();
+        }
+        if (!next.isSyncing && prev.isSyncing) {
+          if (next.syncError) {
+            fail?.(next.syncError);
+          } else {
+            complete?.();
+          }
+        }
+
+        return next;
+      });
+    } catch (error) {
+      console.error('Error reading offline trip status:', error);
+    }
   }, [tripId]);
 
-  const [status, setStatus] = useState<OfflineStatus>(buildStatus);
-
-  // Refresh status when tripId changes
+  // Refresh on mount and whenever the trip changes
   useEffect(() => {
-    setStatus(buildStatus());
-  }, [buildStatus]);
+    void refresh();
+  }, [refresh]);
 
-  // Listen for storage changes (from other tabs or service worker)
+  // Refresh on sync completion and on explicit in-tab notifications
   useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (
-        event.key === OFFLINE_DATA_KEY ||
-        event.key === PENDING_CHANGES_KEY ||
-        event.key === SYNC_STATUS_KEY
-      ) {
-        const newStatus = buildStatus();
-        setStatus((prev) => {
-          // Trigger callbacks on status changes
-          if (newStatus.isSyncing && !prev.isSyncing) {
-            onSyncStart?.();
-          }
-          if (!newStatus.isSyncing && prev.isSyncing) {
-            if (newStatus.syncError) {
-              onSyncError?.(newStatus.syncError);
-            } else {
-              onSyncComplete?.();
-            }
-          }
-          return newStatus;
-        });
-      }
+    const handleUpdate = () => {
+      void refresh();
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [buildStatus, onSyncStart, onSyncComplete, onSyncError]);
+    const unsubscribe = syncManager.onSyncComplete((result) => {
+      syncErrorRef.current =
+        result.status === 'error' ? result.error ?? 'Sync failed' : null;
+      void refresh();
+    });
 
-  // Listen for custom sync events from service worker
-  useEffect(() => {
-    const handleSyncEvent = (event: CustomEvent) => {
-      if (event.detail?.tripId === tripId) {
-        setStatus(buildStatus());
-      }
-    };
+    window.addEventListener(OFFLINE_SYNC_UPDATE_EVENT, handleUpdate);
+    window.addEventListener('online', handleUpdate);
 
-    window.addEventListener('offline-sync-update' as keyof WindowEventMap, handleSyncEvent as EventListener);
     return () => {
-      window.removeEventListener('offline-sync-update' as keyof WindowEventMap, handleSyncEvent as EventListener);
+      unsubscribe();
+      window.removeEventListener(OFFLINE_SYNC_UPDATE_EVENT, handleUpdate);
+      window.removeEventListener('online', handleUpdate);
     };
-  }, [buildStatus, tripId]);
+  }, [refresh]);
 
   return status;
 }
 
 /**
- * Hook for getting total pending changes count across all trips
+ * Hook for getting total pending changes count across all trips.
+ *
+ * Backed by the real IndexedDB `syncQueue` store via
+ * `offlineService.getPendingChangeCount()`.
  *
  * @example
  * ```tsx
@@ -260,184 +191,41 @@ export function useOfflineReady(
  * ```
  */
 export function useTotalPendingChanges(): { totalPendingChanges: number } {
-  const [totalPendingChanges, setTotalPendingChanges] = useState(() => {
-    return getPendingChanges().length;
-  });
+  const [totalPendingChanges, setTotalPendingChanges] = useState(0);
 
   useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === PENDING_CHANGES_KEY) {
-        setTotalPendingChanges(getPendingChanges().length);
+    let cancelled = false;
+
+    const refresh = async () => {
+      try {
+        const count = await offlineService.getPendingChangeCount();
+        if (!cancelled) {
+          setTotalPendingChanges(count);
+        }
+      } catch (error) {
+        console.error('Error reading pending change count:', error);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    void refresh();
+
+    const handleUpdate = () => {
+      void refresh();
+    };
+
+    const unsubscribe = syncManager.onSyncComplete(handleUpdate);
+    window.addEventListener(OFFLINE_SYNC_UPDATE_EVENT, handleUpdate);
+    window.addEventListener('online', handleUpdate);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      window.removeEventListener(OFFLINE_SYNC_UPDATE_EVENT, handleUpdate);
+      window.removeEventListener('online', handleUpdate);
+    };
   }, []);
 
   return { totalPendingChanges };
 }
-
-/**
- * Utility functions for managing offline data (to be used by sync service)
- */
-export const offlineStorage = {
-  /**
-   * Mark trip data as available offline
-   */
-  saveTripOffline: (tripId: string, data: unknown): void => {
-    try {
-      const stored = localStorage.getItem(OFFLINE_DATA_KEY);
-      const allData: Record<string, OfflineTripData> = stored ? JSON.parse(stored) : {};
-
-      allData[tripId] = {
-        tripId,
-        lastSynced: new Date().toISOString(),
-        data,
-      };
-
-      localStorage.setItem(OFFLINE_DATA_KEY, JSON.stringify(allData));
-
-      // Dispatch custom event for same-tab updates
-      window.dispatchEvent(
-        new CustomEvent('offline-sync-update', { detail: { tripId } })
-      );
-    } catch (error) {
-      console.error('Error saving trip offline:', error);
-    }
-  },
-
-  /**
-   * Remove trip from offline storage
-   */
-  removeTripOffline: (tripId: string): void => {
-    try {
-      const stored = localStorage.getItem(OFFLINE_DATA_KEY);
-      if (!stored) return;
-
-      const allData: Record<string, OfflineTripData> = JSON.parse(stored);
-      delete allData[tripId];
-
-      localStorage.setItem(OFFLINE_DATA_KEY, JSON.stringify(allData));
-
-      // Dispatch custom event for same-tab updates
-      window.dispatchEvent(
-        new CustomEvent('offline-sync-update', { detail: { tripId } })
-      );
-    } catch (error) {
-      console.error('Error removing trip offline:', error);
-    }
-  },
-
-  /**
-   * Add a pending change
-   */
-  addPendingChange: (change: Omit<PendingChange, 'id' | 'createdAt'>): void => {
-    try {
-      const stored = localStorage.getItem(PENDING_CHANGES_KEY);
-      const changes: PendingChange[] = stored ? JSON.parse(stored) : [];
-
-      changes.push({
-        ...change,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-      });
-
-      localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(changes));
-
-      // Dispatch custom event for same-tab updates
-      window.dispatchEvent(
-        new CustomEvent('offline-sync-update', { detail: { tripId: change.tripId } })
-      );
-    } catch (error) {
-      console.error('Error adding pending change:', error);
-    }
-  },
-
-  /**
-   * Remove a pending change by ID
-   */
-  removePendingChange: (changeId: string): void => {
-    try {
-      const stored = localStorage.getItem(PENDING_CHANGES_KEY);
-      if (!stored) return;
-
-      const changes: PendingChange[] = JSON.parse(stored);
-      const filtered = changes.filter((c) => c.id !== changeId);
-
-      localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(filtered));
-
-      // Dispatch custom event for same-tab updates
-      const removedChange = changes.find((c) => c.id === changeId);
-      if (removedChange) {
-        window.dispatchEvent(
-          new CustomEvent('offline-sync-update', { detail: { tripId: removedChange.tripId } })
-        );
-      }
-    } catch (error) {
-      console.error('Error removing pending change:', error);
-    }
-  },
-
-  /**
-   * Clear all pending changes for a trip
-   */
-  clearPendingChanges: (tripId: string): void => {
-    try {
-      const stored = localStorage.getItem(PENDING_CHANGES_KEY);
-      if (!stored) return;
-
-      const changes: PendingChange[] = JSON.parse(stored);
-      const filtered = changes.filter((c) => c.tripId !== tripId);
-
-      localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(filtered));
-
-      // Dispatch custom event for same-tab updates
-      window.dispatchEvent(
-        new CustomEvent('offline-sync-update', { detail: { tripId } })
-      );
-    } catch (error) {
-      console.error('Error clearing pending changes:', error);
-    }
-  },
-
-  /**
-   * Set syncing status for a trip
-   */
-  setSyncing: (tripId: string, isSyncing: boolean): void => {
-    saveSyncStatus(tripId, { isSyncing });
-
-    // Dispatch custom event for same-tab updates
-    window.dispatchEvent(
-      new CustomEvent('offline-sync-update', { detail: { tripId } })
-    );
-  },
-
-  /**
-   * Set sync error for a trip
-   */
-  setSyncError: (tripId: string, error: string | null): void => {
-    saveSyncStatus(tripId, {
-      lastError: error,
-      lastErrorAt: error ? new Date().toISOString() : null,
-      isSyncing: false,
-    });
-
-    // Dispatch custom event for same-tab updates
-    window.dispatchEvent(
-      new CustomEvent('offline-sync-update', { detail: { tripId } })
-    );
-  },
-
-  /**
-   * Get all pending changes
-   */
-  getAllPendingChanges: getPendingChanges,
-
-  /**
-   * Get offline data for a trip
-   */
-  getOfflineTripData,
-};
 
 export default useOfflineReady;

@@ -101,15 +101,22 @@ const mockPrisma = {
     deleteMany: jest.fn(),
   },
   $queryRaw: jest.fn(),
+  $transaction: jest.fn(),
 };
+
+// The delete path runs its writes inside a transaction. Hand the callback the
+// same mock client so the inner calls stay observable on mockPrisma.
+mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => unknown) =>
+  cb(mockPrisma)
+);
 
 jest.mock('../../config/database', () => ({
   __esModule: true,
   default: mockPrisma,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Prisma } = require('@prisma/client');
+// jest.mock() calls are hoisted above imports, so this picks up the mock.
+import { Prisma } from '@prisma/client';
 
 import { LocationService } from '../location.service';
 import { AppError } from '../../middleware/errorHandler';
@@ -516,10 +523,19 @@ describe('LocationService', () => {
         parent: null,
       };
 
+      // createLocation verifies the caller owns the category (or that it is a
+      // system default) before writing.
+      mockPrisma.locationCategory.findFirst.mockResolvedValue(mockCategory);
       mockPrisma.location.create.mockResolvedValue(mockLocation);
 
       const result = await locationService.createLocation(userId, input);
 
+      expect(mockPrisma.locationCategory.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 10,
+          OR: [{ userId }, { isDefault: true }],
+        },
+      });
       expect(mockPrisma.location.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           categoryId: 10,
@@ -615,12 +631,31 @@ describe('LocationService', () => {
         parent: null,
       };
 
+      // Default (system) categories are accessible to every user.
+      mockPrisma.locationCategory.findFirst.mockResolvedValue(mockCategory);
       mockPrisma.location.create.mockResolvedValue(mockLocation);
 
       const result = await locationService.createLocation(userId, input);
 
       expect(result.category?.isDefault).toBe(true);
       expect(result.category?.name).toBe('Attraction');
+    });
+
+    it('should reject a category belonging to another user', async () => {
+      const userId = 1;
+      mockPrisma.locationCategory.findFirst.mockResolvedValue(null);
+
+      await expect(
+        locationService.createLocation(userId, {
+          tripId: 100,
+          name: 'Somewhere',
+          latitude: 40.7,
+          longitude: -74,
+          categoryId: 999,
+        })
+      ).rejects.toThrow('Category not found or access denied');
+
+      expect(mockPrisma.location.create).not.toHaveBeenCalled();
     });
   });
 
@@ -695,7 +730,12 @@ describe('LocationService', () => {
       );
     });
 
-    it('should allow access to public trip locations', async () => {
+    it('should DENY access to a public trip the user is not on', async () => {
+      // `privacyLevel: 'Public'` deliberately grants nothing through
+      // verifyTripAccessWithPermission. It used to hand every authenticated user
+      // 'view', which leaked expenses, lodging confirmation numbers and booking
+      // references -- precisely the fields the share-token path strips. Public
+      // exposure now belongs to the sanitised share flow only.
       const userId = 1;
       const tripId = 200;
 
@@ -703,9 +743,11 @@ describe('LocationService', () => {
       mockPrisma.trip.findFirst.mockResolvedValue(mockTrip);
       mockPrisma.location.findMany.mockResolvedValue([]);
 
-      const result = await locationService.getLocationsByTrip(userId, tripId);
+      await expect(locationService.getLocationsByTrip(userId, tripId)).rejects.toThrow(
+        'Access denied'
+      );
 
-      expect(result).toEqual([]);
+      expect(mockPrisma.location.findMany).not.toHaveBeenCalled();
     });
   });
 

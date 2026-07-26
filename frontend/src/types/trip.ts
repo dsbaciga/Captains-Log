@@ -85,7 +85,8 @@ export type CreateTripInput = {
   privacyLevel?: PrivacyLevelType;
   addToPlacesVisited?: boolean;
   excludeFromAutoShare?: boolean;
-  archived?: boolean;
+  // NOTE: `archived` is intentionally absent — the backend create schema strips
+  // it. It is settable on update via UpdateTripInput below.
   tripType?: string | null;
   tripTypeEmoji?: string | null;
   seriesId?: number | null;
@@ -94,6 +95,7 @@ export type CreateTripInput = {
 export type UpdateTripInput = Partial<CreateTripInput> & {
   budget?: number | null;
   budgetCurrency?: string | null;
+  archived?: boolean;
 };
 
 export type TripListResponse = {

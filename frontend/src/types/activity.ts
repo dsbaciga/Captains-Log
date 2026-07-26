@@ -35,22 +35,6 @@ export type Activity = {
     currency: string | null;
     bookingReference: string | null;
     notes: string | null;
-    photoAlbums?: {
-      id: number;
-      name: string;
-      description: string | null;
-      _count?: {
-        photoAssignments: number;
-      };
-    }[];
-  }[];
-  photoAlbums?: {
-    id: number;
-    name: string;
-    description: string | null;
-    _count?: {
-      photoAssignments: number;
-    };
   }[];
 };
 

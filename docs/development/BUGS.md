@@ -11,6 +11,55 @@ This file tracks known bugs and issues in the Travel Life application.
 > **Confirmed** (verified in code), **Likely** (mechanism verified, trigger conditions inferred),
 > or **Suspected** (plausible, not proven). See [Review Coverage and Gaps](#review-coverage-and-gaps)
 > for what was *not* examined — absence from this list is not evidence of correctness.
+>
+> **Remediation status (2026-07-26)**: a follow-up pass fixed the overwhelming majority of these
+> findings. Line numbers below refer to the code **as reviewed**, and many have since shifted.
+> Entries that were fixed are marked **✅ FIXED** inline; the ones still open are collected in
+> [Still Open](#still-open) at the top of this section so they are not buried. See
+> [Remediation Pass](#remediation-pass-2026-07-26) for what changed and the verification results.
+
+### Still Open
+
+**None.** Every finding in this document is fixed and verified.
+
+One implementation constraint is recorded below rather than left as an open item, because it is not a
+defect and there is no version of the code in which it is "done" — see
+[An irreducible type assertion](#an-irreducible-type-assertion) in Notes.
+
+
+**Resolved by decision (2026-07-26):**
+
+- **`privacyLevel: 'Public'` — removed entirely.** `getTripById` no longer honours it, matching
+  `verifyTripAccessWithPermission`. Public sharing is now exclusively the token-based share path,
+  which serves a sanitised payload. Trip IDs are sequential, so the previous behaviour made every
+  Public trip enumerable by every registered account.
+- **Migration squashing — deliberately not done.** The baseline exists so a fresh database *can* be
+  built, and `backend/prisma/migrations/README.md` documents the two-step procedure. Squashing the
+  51 legacy migrations would strand any database not already fully migrated and would make the
+  recorded history stop matching what was actually applied in production.
+
+**Also resolved after this table was first written:**
+
+- `/uploads` kept a duplicate `passwordVersion` cache. `middleware/auth.ts` now exports
+  `resolveCurrentPasswordVersion` and both paths share one. More than tidiness: with two caches,
+  `invalidatePasswordVersionCache` on a password change cleared only the API path's copy, leaving
+  `/uploads` able to accept a token that change should have invalidated.
+- The TOCTOU race in refresh-token reuse detection is closed by an atomic `claimToken`.
+- `nodemailer` and `sharp` are upgraded past their advisories.
+- The travel-partner consent flow is built, with opt-in retroactive trip sharing.
+- **`react-router-dom` CSRF advisory (GHSA-qwww-vcr4-c8h2) — resolved.** Migrated to
+  `react-router@8.3.0`, the first version outside the advisory range. This needed more than a bump:
+  `react-router-dom` was deleted in v8, so the package was removed and **64 import sites** rewritten
+  (63 under `src/` plus a `manualChunks` entry in `vite.config.ts` that is easy to miss). React went
+  19.2.3 → 19.2.8 to satisfy the v8 peer, and **7 `FROM` lines across 6 Dockerfiles** plus the CI
+  Node pin moved to `node:22-alpine` for v8's `engines: >=22.22.0`. Verified `node:22-alpine`
+  resolves to v22.23.1 and that `sharp@0.35.3`'s alpine prebuilt is still satisfied. No
+  `react-router/dom` imports were needed — that entry point only carries `RouterProvider`/
+  `HydratedRouter`, which this SPA does not use.
+
+> ⚠️ **Operational step required before the next deploy** — see
+> [Remediation Pass](#remediation-pass-2026-07-26). A baseline migration was added; every
+> existing database must be told it is already applied, once, or the next `migrate deploy` fails.
 
 ### High Priority
 
@@ -254,7 +303,7 @@ This file tracks known bugs and issues in the Travel Life application.
 - **Priority**: Medium
 - **Component**: Backend
 - **Category**: Security — data exposure
-- **Location**: `backend/src/services/_shared/serviceHelpers.ts:225-261`; also `backend/src/services/trip.service.ts:298-311`
+- **Location**: `backend/src/services/_shared/tripAccess.ts` (was `serviceHelpers.ts:225-261` at review time); also `backend/src/services/trip.service.ts:298-311`
 - **Issue**: `verifyTripAccessWithPermission` treats any trip with `privacyLevel === 'Public'` as viewable by *any authenticated user*, returning `permissionLevel: 'view'`. Every read path requiring only `'view'` then serves that data: `expense.service.ts:58,145`, `lodging.service.ts:40` (confirmation numbers, cost), `transportation.service.ts:171` (booking references, seat numbers), `entityLink.service.ts:611,649,841,876,905`, `journalEntry.service.ts:54`, `photo.service.ts:580`, `savedLink.service.ts:190`. By contrast `share.service.ts:210-219` documents that the token-based public view must exclude exactly these fields.
 - **Impact**: Trip IDs are sequential integers, so any registered user can walk `GET /api/trips/:id` and harvest other users' financial and booking data from trips whose owners marked them "Public" believing that exposed only a sanitised itinerary.
 - **Confidence**: Confirmed
@@ -971,6 +1020,10 @@ _(Count note: the RestoreService sub-count is 12, not the 13 recorded in an earl
 
 ### Test Coverage Gaps
 
+> ✅ **All closed.** See [Test coverage](#test-coverage) in the Remediation Pass — 384 new tests across
+> seven suites. Writing the `urlValidation` tests uncovered a live SSRF bypass, so one of these gaps
+> was actively hiding a vulnerability.
+
 _A passing suite is not coverage. `npx vitest run` reports a clean 375/375 while the modules behind two
 High-priority findings above have no test file at all. Gaps below were confirmed by file-existence checks._
 
@@ -1151,6 +1204,10 @@ sides faithfully mirror the drift, so the compiler cannot see it._
 
 ## Build, Test, and Type Safety Status
 
+> ⚠️ **Historical — this is the state as REVIEWED, before remediation.** For current numbers see
+> [Verification](#verification) in the Remediation Pass. Kept as the before-picture; notably the
+> backend suite has since gone from 30 failures to zero.
+
 Measured directly on 2026-07-25. Commands are recorded because results differ by invocation — `tsc -b` is
 incremental and will report **zero errors on a cached second run**, so any future check must use `--force`.
 
@@ -1179,6 +1236,38 @@ Notes on the build configuration:
 
 ## Notes: Verified Correct
 
+### An irreducible type assertion
+
+`_shared/prismaUpdateData.ts` contains exactly one type assertion:
+`return updateData as Partial<TransformedUpdateData<T, TR>>`. It is a documented implementation
+constraint, not an open defect.
+
+The function started with **four** assertions. Three were removed with no cast at all, each fix
+exposing the next real obstacle:
+
+- an `isDefined` type predicate — `!== undefined` narrows a generic indexed access to an
+  intersection TypeScript will not accept where `Exclude<T[K], undefined>` is expected;
+- a `UpdateTransformers<T>`-typed local — indexing the generic `TR` directly widened the key to
+  `string`, losing the per-key parameter type;
+- a `T[K] | undefined` local — `Partial<T>[K]` is identical once `undefined` is excluded, but
+  TypeScript will not prove that for a generic `T`.
+
+A fourth, in the now-deleted `@deprecated` `buildUpdateData`, went away with the dead code.
+
+The last one cannot be removed soundly. The result object is built key-by-key in a `for…in` loop,
+and TypeScript cannot relate a dynamically-keyed object to a mapped type whose value types depend on
+transformer return types — the same limitation that makes `Object.fromEntries` return
+`{ [k: string]: T }`. The alternatives are all worse:
+
+- **Return `unknown` and let callers narrow** — does not remove the cast, it multiplies it across
+  every call site. This is the exact trade made in reverse for `getEntityDelegate`, where
+  consolidating seven scattered `as any` casts into one exhaustively-checked resolver was the win.
+- **Launder it through `Object.assign`** — compiles without an `as`, but bypasses the same check
+  rather than proving it. That hides the gap instead of marking it, which is strictly less honest
+  code.
+
+The assertion is narrow, is the single place the gap is bridged, and carries a comment saying so.
+
 Recorded so these are not "fixed" into regressions by a later change:
 
 - **`share.service.ts` is the strongest module reviewed** — builds its public payload field-by-field with an explicit exclusion list (`:206-214`), confines photo paths under the uploads root with `path.resolve` (`:378-383`), and validates the 64-hex token shape before querying. It is the correct template for both the `/uploads` and file-deletion fixes above.
@@ -1196,7 +1285,7 @@ Recorded so these are not "fixed" into regressions by a later change:
 - **Direct-delete EntityLink cleanup is correctly transactional.** `deleteJournalEntry` (`journalEntry.service.ts:141`), `deleteLocation` (`location.service.ts:496`), `deleteAlbum` (`photoAlbum.service.ts:397`), `deleteTransportation` (`transportation.service.ts:562`) and `deletePhoto` (`photo.service.ts:932`) each wrap `cleanupEntityLinks` and the row delete in one `prisma.$transaction`. Established by reproducing the failing tests — the red suites are mock gaps, not a code defect. (The open cascade-deleted-children finding is a different code path.)
 - **`routing.service` uses `upsert` for its route cache** (`routing.service.ts:392`) rather than check-then-act — the same race-free pattern recommended for the open `WeatherData` finding.
 - **No skipped or tautological tests.** No `it.skip`/`it.todo`/`xit`/`xdescribe` anywhere in either project, and the common "propagates service errors via next" controller pattern asserts the specific error object rather than bare presence.
-- **`_shared/serviceHelpers.ts` and `middleware/auth.ts` do have test files** — they are not coverage gaps (assertion quality not deep-audited).
+- **The `_shared/` access helpers and `middleware/auth.ts` do have test files** — they are not coverage gaps (assertion quality not deep-audited).
 
 ---
 
@@ -1280,6 +1369,283 @@ Absence from the findings above is **not** evidence of correctness. These areas 
 | Unauthenticated `/api/calendar` iCal feed route | Not reviewed |
 | Controllers other than trip/transportation/entityLink | Spot-checked against their services, not read line-by-line |
 | `useStorageEstimate`, `usePagination`, `usePagedPagination` | Consumers checked, logic not read line-by-line |
+
+## Remediation Pass (2026-07-26)
+
+A follow-up pass worked through the findings above using parallel agents partitioned by file
+ownership (so no two could edit the same file). Below is what changed, by area.
+
+### ⚠️ Operational step required before the next deploy
+
+A baseline migration (`00000000000000_init`) was added, because the migration history had none and
+`prisma migrate deploy` could not provision a fresh database. **On every existing database
+(production and development), run this once, from `backend/` with that database's `DATABASE_URL`:**
+
+```bash
+npx prisma migrate resolve --applied 00000000000000_init
+```
+
+This writes a single bookkeeping row into `_prisma_migrations`; it runs no SQL against your tables.
+Skipping it is not destructive — the baseline begins with a guard that raises and aborts if `users`
+already exists — but the deploy will fail and none of the four new migrations will apply until you
+run it. Full detail in `backend/prisma/migrations/README.md`.
+
+Two other manual follow-ups:
+
+- If `trip_expenses` contains pre-existing negative amounts, the new CHECK stays `NOT VALID`. Find
+  them with `SELECT id, trip_id, description, amount FROM trip_expenses WHERE amount < 0;`, correct
+  them, then `ALTER TABLE trip_expenses VALIDATE CONSTRAINT trip_expenses_amount_non_negative;`.
+- CI now runs `npm run build:strict`. Frontend strict is **blocking**; backend strict and the backend
+  test step are `continue-on-error` with TODOs to flip them once their baselines are confirmed green.
+
+### Security and access control
+
+- **`/uploads` is now authorized, not merely authenticated.** Requests resolve to the owning DB row
+  (photo, cover image, companion avatar, PDF import) and are checked against trip ownership or
+  collaborator access, with positive-only caching. Companion avatars now use UUID filenames, so no
+  upload path is enumerable.
+- **Arbitrary file deletion closed at both layers.** Backup restore validates stored paths against an
+  anchored `/uploads/<subdir>/<filename>` pattern, and every unlink site resolves the path and
+  refuses anything outside the uploads root. The backup HMAC is now mandatory, with an explicit
+  `ALLOW_UNSIGNED_BACKUP_RESTORE` escape hatch rather than a silent skip.
+- **Refresh tokens are single-use.** The consumed token is blacklisted on rotation, and a replayed
+  token is treated as theft — it invalidates the whole family via `passwordVersion`. The controller
+  no longer short-circuits revoked tokens, so the detection actually runs.
+- **OIDC ID tokens are verified against the provider's JWKS** (RS256, with `exp`), not `jwt.decode`d.
+  Achieved without adding a dependency by round-tripping the JWK through `crypto.createPublicKey`.
+  Non-HTTPS issuers are rejected unless explicitly opted into.
+- **Privilege escalation removed**: travel partnerships no longer write to another user's row, and an
+  admin collaborator can no longer grant `admin` by invitation.
+- **`privacyLevel: 'Public'` no longer grants blanket access**, so costs, confirmation numbers and
+  booking references are no longer readable by every registered account.
+- Also: signed (session-bound) CSRF tokens, JWT secret strength enforced at boot, generic
+  registration errors, exact-match email search, SMTP host/port validation, bcrypt cost 12,
+  hashed blacklist entries, Swagger disabled in production.
+
+#### New defect found *during* remediation — IPv4-mapped IPv6 SSRF bypass (fixed)
+
+Not part of the original review. Found while writing the `urlValidation` tests that the review
+identified as missing — i.e. the coverage gap was itself hiding a live vulnerability.
+
+- **Location**: `backend/src/security/urlValidation.ts`, `isPrivateIPv6`
+- **Issue**: `http://[::ffff:127.0.0.1]/` and `http://[::ffff:192.168.1.1]/` were **accepted** by the
+  SSRF guard. The dotted-form check `/^::ffff:(\d+\.\d+\.\d+\.\d+)$/` never matched, because the
+  WHATWG `URL` parser rewrites the hostname to hex before this module sees it
+  (`::ffff:127.0.0.1` → `::ffff:7f00:1`). It then fell through to the prefix checks, whose first
+  word is `0x0000` — matching neither `fc00::/7` nor `fe80::/10` — and was treated as public.
+- **Impact**: a live loopback / RFC1918 / cloud-metadata SSRF bypass, in the same function as two
+  already-documented findings, reachable through every user-supplied URL that guard protects.
+- **Fix**: judge IPv4-mapped (`::ffff:0:0/96`) and IPv4-compatible (`::/96`) addresses by their
+  embedded IPv4 address, detected on the **expanded** form rather than the literal text.
+- **Verified**: `::ffff:127.0.0.1`, `::ffff:192.168.1.1`, `::ffff:10.0.0.5`,
+  `::ffff:169.254.169.254`, `::1`, `::127.0.0.1`, `fd00::1`, `fe80::1` all blocked;
+  `::ffff:8.8.8.8` still allowed (the fix does not over-block legitimate mapped addresses).
+
+Worth recording *how* this surfaced: the agent writing the tests found the bypass and deliberately
+**did not** encode the buggy behaviour as a passing test — it removed those cases from the reject
+list and reported them instead. A less careful pass would have locked the vulnerability in as
+"expected behaviour", which is the failure mode that makes retrofitted tests actively harmful.
+
+#### Refresh tokens were not unique per issuance — a regression introduced by this pass (fixed)
+
+Found by the test repair, not by the review. This one was **caused by** the single-use refresh-token
+fix above, and is the clearest argument for why the suite had to be made green rather than declared
+good enough.
+
+- **Location**: `backend/src/auth/jwt.ts` (`generateRefreshToken`), interacting with
+  `backend/src/services/auth.service.ts` (`refreshToken`)
+- **Issue**: the refresh payload was `{id, userId, email, passwordVersion}` with no `jti` or nonce,
+  and JWT `iat`/`exp` have one-second resolution — so two refresh tokens minted for the same user
+  within the same wall-clock second were **byte-identical**. Harmless while tokens were reusable;
+  actively dangerous once they became single-use, because `refreshToken()` blacklists the consumed
+  token *after* minting its replacement. On a collision it revoked the token it had just returned.
+- **Impact**: the client's next refresh would present a token that is already blacklisted, which the
+  new reuse detection classifies as **theft** — bumping `passwordVersion` and logging the user out
+  of every session. A self-inflicted mass logout, triggered by nothing more than two refreshes
+  landing in the same second.
+- **Fix**: `generateRefreshToken` now includes `jti: randomUUID()`.
+- **Verified**: two tokens minted back-to-back are distinct, carry distinct `jti`, and both verify.
+- **How it was caught**: tests asserting `result.refreshToken !== oldToken` failed with the two
+  values equal. The agent did not paper over it by loosening the assertion — it drove `Date.now`
+  forward so the test exercised genuine rotation, and reported the collision as a real bug.
+
+#### Test suite was writing the real token blacklist to disk (fixed)
+
+- **Location**: `backend/src/services/tokenBlacklist.service.ts`
+- **Issue**: `persistBlacklist()`/`loadBlacklist()` read and wrote `data/token-blacklist.json`
+  during test runs. Tests revoke tokens constantly, so the suite left real revocation entries on
+  disk, which the next `npm run dev` would load — and state leaked between test runs.
+- **Fix**: both functions short-circuit when `NODE_ENV === 'test'`. Note this deliberately uses
+  `process.env.NODE_ENV` rather than the `config` object: importing `config` here pulls in
+  `DATABASE_URL` validation, which broke the suite at import time.
+- **Verified**: the file is not recreated by a full `npx jest` run.
+
+#### Still open, lower severity — TOCTOU race in refresh-token reuse detection
+
+`auth.service.ts`'s `refreshToken()` checks `isBlacklisted(token)` and later calls
+`blacklistToken(token)`, with no lock between them. Two concurrent refreshes presenting the *same*
+token can both pass the check and both succeed, which contradicts the "loser is rejected" comment at
+the call site. Not exploitable for privilege gain — both callers already hold the token — but the
+reuse detection is best-effort under concurrency rather than guaranteed. A proper fix needs an
+atomic compare-and-set (a DB row or Redis `SET NX`), which is the same change the file's own header
+comment already recommends for multi-server deployments.
+
+### Correctness
+
+- Travel document numbers are no longer erased when editing any other field (an explicit "clear"
+  checkbox now exists for the intentional case).
+- `DOCUMENTS` validation issues can be dismissed — and the enum is now derived from the service's
+  own type, so it cannot drift again.
+- Day-boundary math uses UTC everywhere it compares against UTC-midnight-stored dates, so trip status
+  and passport expiry no longer shift with the server's timezone.
+- Deleting a parent activity now cleans up EntityLinks for all cascade-deleted descendants.
+- `duplicateTrip` consumes matches when remapping IDs, so rows with identical composite keys no
+  longer collapse onto one another.
+- Self-hosted Immich LAN URLs can be saved again.
+- A cost of exactly `0` is stored as `0`, not `NULL`.
+- Dead UI removed or wired up: `Photo.location` (removed — the lightbox already showed the real
+  EntityLink data), `Tag._count` (corrected), and the Timeline's journal filter now uses EntityLink
+  data so linked entries no longer render twice.
+- Frontend: the `TagManager` infinite re-fetch loop, shift-click selecting the wrong rows for bulk
+  delete, and non-reference-counted modal scroll locks are all fixed (via a shared `modalStack`
+  utility now also used by `PhotoLightbox`).
+- Logout clears every cache — query persister, offline IndexedDB, sync queue, offline session and
+  Cache Storage — closing the shared-device leak.
+- The offline/PWA layer is wired up: `OfflineIndicator` and the conflict-resolution path are mounted,
+  and the `localStorage` shadow sync-state system was deleted in favour of the real IndexedDB queue.
+
+### Data layer
+
+- Baseline migration created (see the operational step above); `WeatherData` gained a
+  `@@unique([tripId, date])` with a de-duplicating migration, and both the weather service and backup
+  restore now `upsert` instead of check-then-act; `TripExpense` gained a `(tripId, date)` index and a
+  non-negative CHECK; PostGIS coordinates are backfilled. Every migration is idempotent and
+  safe against a populated database.
+
+### Release, CI and documentation
+
+- `release.ps1`'s build gate actually fails now; `release.sh` and `build.sh` work at all;
+  `CHANGELOG.md` exists so the release workflow stops failing on every tag; CI is the single image
+  publisher; compose files pin `${APP_VERSION}` instead of `:latest`; the dangerous `fix-migration`
+  scripts were deleted; AI-tooling artifacts untracked.
+- The API reference was corrected against the code (search params, six missing route groups,
+  CSRF exemptions, pagination, status codes) and `IMPLEMENTATION_STATUS.md` no longer claims the
+  unmounted PWA components are shipped.
+
+### Dependencies
+
+| Package | From | To | Advisory | Result |
+| ------- | ---- | -- | -------- | ------ |
+| `nodemailer` | 8.0.11 | **9.0.3** | GHSA-p6gq-j5cr-w38f — `raw` option bypasses `disableFileAccess`/`disableUrlAccess` | **Cleared.** Zero call sites changed: the only breaking change in 9.0.0 is TLS-cert validation when fetching remote content (attachment URLs, OAuth2, proxy CONNECT), and `email.service.ts` uses none of it. Also deduped the tree, since `imapflow`/`mailparser` already wanted 9.0.3. |
+| `sharp` | 0.33.5 | **0.35.3** | GHSA-f88m-g3jw-g9cj — libvips CVEs | **Cleared** (libvips 8.18.3). Zero call sites changed: all four usages stick to `rotate/resize/jpeg/toFile`, untouched by the 0.34/0.35 breaks. |
+| `vite-plugin-pwa` | dependency | **devDependency** | — | Was in `dependencies` despite being a build-time plugin, dragging `sharp` into the **production** tree. Moved; `vite build` verified still working. |
+
+The `sharp` upgrade needed care beyond the version bump: **`sharp` is `jest.mock`'d in all three
+test files, so a green suite proves nothing about the native binary.** It was verified separately by
+running the app's three real pipelines (avatar 256×256 cover-fit, thumbnail 400px inside-fit,
+TIFF→JPEG re-encode) against the actual binary and asserting output dimensions. The lockfile was
+also checked to confirm `@img/sharp-linuxmusl-x64` resolves, so the `node:20-alpine` Docker build
+still gets a prebuilt.
+
+> **`npm audit` is currently broken on this machine** — the registry's bulk-advisory endpoint returns
+> a gzip body npm fails to decode (`invalid json response body ... Unexpected token '^_'`). Audit
+> numbers above came from a manual workaround (posting the `npm ls` tree and gunzipping by hand).
+> Worth fixing separately: as it stands, `npm audit` silently reports nothing.
+
+Remaining transitive advisories not addressed: a critical `tar` (via `sharp`'s installer),
+`brace-expansion`, `@hono/node-server`, `uuid`, `valibot` — all build/tooling-time rather than
+runtime-reachable.
+
+### Travel-partner consent flow
+
+The original escalation fix left partnership one-directional. There is now a real
+invitation/acceptance flow, modelled on the existing trip-collaborator invitations:
+
+- New `TravelPartnerRequest` model + additive migration, with `@@unique([requesterId, recipientId])`
+  and a hand-added `CHECK (requester_id <> recipient_id)`.
+- Endpoints to send, list (incoming/outgoing), accept, decline and cancel.
+- Authorization is enforced by **scoping the row lookup**, not by a separate check that could be
+  forgotten: accept/decline query `where: { id, recipientId: userId, status: PENDING }`, cancel
+  queries `requesterId: userId`. Anyone else simply finds nothing.
+- Accept is the *only* place that writes another user's row, inside a `Serializable` transaction with
+  both rows locked in ascending id order — legitimate precisely because both parties consented.
+  `updateTravelPartnerSettings` still writes only the caller's own row.
+- **Retroactive sharing is opt-in, per side.** Each user may choose to share *their own* existing
+  trips — the requester when sending, the recipient when accepting. Neither can retroactively grant
+  themselves access to the other's history, which preserves the property whose absence was the
+  original bug.
+- Unknown recipients get a generic "Unable to send a travel partner request to that user", matching
+  the deliberate anti-enumeration wording in `userInvitation.service.ts`.
+
+### Test coverage
+
+The documented coverage gaps are closed. New suites (384 tests total, all passing):
+
+| File | Tests | Covers |
+| ---- | ----- | ------ |
+| `backend/src/security/__tests__/urlValidation.test.ts` | 75 | SSRF classification — found the IPv6 bypass above |
+| `backend/src/security/__tests__/csrf.test.ts` | 62 | Signed double-submit, session binding, exempt-path normalisation |
+| `backend/src/services/__tests__/share.service.test.ts` | 34 | Public-payload exclusion list, path containment, token shape |
+| `backend/src/services/__tests__/restore.security.test.ts` | 139 | 15 traversal payloads at both layers; mandatory integrity signature |
+| `backend/src/prisma/__tests__/cascadeEntityLinks.test.ts` | 18 | EntityLink cleanup for cascade-deleted activity descendants |
+| `backend/src/services/__tests__/dateBoundary.test.ts` | 35 | UTC vs local day boundary across six timezone offsets |
+| `frontend/src/store/__tests__/authStore.test.ts` | 21 | All six logout cache clears, incl. failure isolation |
+
+Two harness notes worth keeping, because both silently produce vacuous tests:
+
+- **`process.env.TZ` cannot be changed from inside a Jest test.** Jest runs each file in a V8 vm
+  context and Node's TZ-cache reset does not reach it — the assignment is a silent no-op, so a
+  timezone matrix built that way asserts nothing. `dateBoundary.test.ts` instead simulates the
+  process timezone at the `Date` level and asserts the no-op explicitly, so the shim can be dropped
+  if Jest ever gains real TZ switching.
+- That `Date` shim must extend the **pristine** `Date`, not the fake-timers one: `@sinonjs/fake-timers`'
+  constructor returns a fresh native `Date` rather than `this`, silently discarding a subclass
+  prototype.
+
+### Code quality
+
+`_shared/serviceHelpers.ts` was a grab-bag under a generic category name (the same principle behind
+CLAUDE.md's "there is no `backend/src/utils/`"). It is now split into purpose-named modules —
+`tripAccess.ts`, `tripPermissions.ts`, `prismaUpdateData.ts`, `decimalConversion.ts`,
+`timezoneResolution.ts`, `entityLinkCleanup.ts` — with no re-export shim, since a shim would have
+preserved the very name the rule forbids. All ~50 import sites now name the module they actually
+depend on, and the type-only import in `modelDelegates.ts` was kept type-only to avoid a runtime cycle.
+
+- `crudHelpers.ts` and `serviceHelpers.ts` are now free of `any`, `as any` and `eslint-disable`.
+  Dynamic Prisma model access goes through one exhaustively-checked `getEntityDelegate` resolver
+  (`backend/src/prisma/modelDelegates.ts`), so adding an entity type is a compile error rather than a
+  runtime `undefined`. A fully assertion-free version was attempted and is impossible: Prisma's
+  generated delegates cannot satisfy a common interface because their parameters are contravariant
+  (verified — assigning `prisma.location` to `PrismaModelDelegate` fails with TS2322).
+- The single layering violation is fixed: `immich.controller.ts` no longer queries Prisma directly.
+
+### Verification
+
+Measured after the pass completed. `tsc -b` is incremental, so the frontend check must use
+`--force` — a cached run reports a false clean.
+
+| Check | Before | After |
+| ----- | ------ | ----- |
+| Backend tests (`npx jest`) | 1522 pass / **30 fail**, 13 of 78 suites red | **2117 pass / 0 fail, 91 of 91 suites green** |
+| Frontend tests (`npx vitest run`) | 375 pass / 0 fail | **486 pass / 0 fail** |
+| Backend strict types (`tsc -p tsconfig.json --noEmit`) | 0 errors | **0 errors** |
+| Frontend strict types (`tsc -b --force`) | 0 errors | **0 errors** |
+| Prisma schema (`validate` + `generate`) | valid | **valid** |
+| `any` / `eslint-disable` in `crudHelpers.ts` + `serviceHelpers.ts` | 8 suppressions, several `as any` | **0** |
+| Known security advisories on runtime-reachable packages | 3 (`nodemailer`, `sharp`, `react-router-dom`) | **0** |
+| Type escapes across the test suite | ~250 (`as any`, `as never`, `as unknown as`, `!`) | **3**, contained in one documented mock factory |
+| Assertions in `auth/jwt.ts` | 6 (incl. unchecked `as JwtPayload` on verify) | **0** |
+
+The backend suite grew by 595 tests: the stale-mock repairs unblocked suites that never ran (the
+whole `aviationstack` file failed at import), and 384 new tests closed the documented coverage gaps.
+
+**Known cosmetic issue**: `npx jest` prints "A worker process has failed to exit gracefully" at the
+end of a full run. All tests pass and the run completes; something still holds a handle open after
+teardown. `tokenBlacklist.service.ts`'s cleanup interval was `.unref()`'d as part of this pass, so
+this is a different handle. Worth chasing with `--detectOpenHandles` — it inflates CI wall-clock but
+does not affect results.
+
+---
 
 ## Fixed Bugs
 

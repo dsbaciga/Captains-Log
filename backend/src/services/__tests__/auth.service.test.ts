@@ -12,14 +12,14 @@
  * AUTH-008: Generate access token with correct expiry (15min)
  * AUTH-009: Generate refresh token with correct expiry (7 days)
  * AUTH-010: Refresh token rotation on refresh
- * AUTH-011: Blacklist tokens on logout (not implemented in current service - skipped)
- * AUTH-012: Reject blacklisted refresh tokens (not implemented in current service - skipped)
+ * AUTH-011: Blacklist the consumed refresh token on rotation (single-use tokens)
+ * AUTH-012: Reject replayed (blacklisted) refresh tokens and treat reuse as theft
  * AUTH-013: Silent refresh from httpOnly cookie (controller concern - covered by refresh token test)
  * AUTH-014: Prevent race conditions in silent refresh (tested via token generation consistency)
  * AUTH-015: CSRF token validation (not implemented in current service - skipped)
  */
 
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import jwt from 'jsonwebtoken';
 
 // Mock the config module before importing the service
@@ -40,6 +40,8 @@ const mockPrisma = {
     findFirst: jest.fn(),
     findUnique: jest.fn(),
     create: jest.fn(),
+    // Refresh-token reuse bumps passwordVersion to kill every live session.
+    update: jest.fn(),
   },
 };
 
@@ -66,12 +68,60 @@ jest.mock('../../auth/password', () => ({
 // Import after mocks are set up
 import { AuthService } from '../auth.service';
 import { AppError } from '../../middleware/errorHandler';
+import { _clearBlacklist, isBlacklisted } from '../tokenBlacklist.service';
+
+// Registration reports one generic message for BOTH email and username
+// collisions so it cannot be used to enumerate existing accounts.
+const GENERIC_REGISTRATION_CONFLICT = 'Unable to create account with the provided information';
+
+/** A decoded JWT body whose time claims are known to be present. */
+type TimedJwtPayload = jwt.JwtPayload & { exp: number; iat: number };
+
+/**
+ * Decodes a token and validates it really is a payload object carrying `exp`
+ * and `iat`. Failing loudly here beats an assertion that silently types a
+ * malformed token as a payload and produces a confusing NaN downstream.
+ */
+function decodePayload(token: string): TimedJwtPayload {
+  const decoded = jwt.decode(token);
+  if (!decoded || typeof decoded === 'string') {
+    throw new Error(`Expected a JwtPayload object, got: ${String(decoded)}`);
+  }
+  const { exp, iat } = decoded;
+  if (typeof exp !== 'number' || typeof iat !== 'number') {
+    throw new Error('Expected the decoded token to carry numeric exp and iat claims');
+  }
+  // Rebuilding with the narrowed claims means the return needs no assertion.
+  return { ...decoded, exp, iat };
+}
 
 describe('AuthService', () => {
   let authService: AuthService;
+  let nowSpy: jest.SpiedFunction<typeof Date.now> | null = null;
+
+  /**
+   * jwt `iat`/`exp` have one-second resolution and the refresh payload carries
+   * no nonce, so two refresh tokens minted for the same user within the same
+   * wall-clock second are byte-identical. Tests that need to observe rotation
+   * push the clock forward rather than relying on real elapsed time.
+   */
+  const advanceClock = (seconds: number): void => {
+    const target = Date.now() + seconds * 1000;
+    nowSpy?.mockRestore();
+    nowSpy = jest.spyOn(Date, 'now').mockReturnValue(target);
+  };
+
+  afterEach(() => {
+    nowSpy?.mockRestore();
+    nowSpy = null;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Refresh tokens are single-use, and the blacklist is module-level state
+    // that also persists to disk. Clear it so one test's consumed token cannot
+    // make another test's (identically-signed) token look replayed.
+    _clearBlacklist();
     authService = new AuthService();
   });
 
@@ -138,7 +188,12 @@ describe('AuthService', () => {
       });
 
       await expect(authService.register(validRegisterData)).rejects.toThrow(AppError);
-      await expect(authService.register(validRegisterData)).rejects.toThrow('Email already registered');
+      // Deliberately generic: distinguishing "email taken" from "username taken"
+      // turns registration into an unauthenticated account-enumeration oracle.
+      await expect(authService.register(validRegisterData)).rejects.toThrow(
+        GENERIC_REGISTRATION_CONFLICT
+      );
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
     });
 
     // AUTH-003: Reject registration with duplicate username
@@ -150,7 +205,41 @@ describe('AuthService', () => {
       });
 
       await expect(authService.register(validRegisterData)).rejects.toThrow(AppError);
-      await expect(authService.register(validRegisterData)).rejects.toThrow('Username already taken');
+      await expect(authService.register(validRegisterData)).rejects.toThrow(
+        GENERIC_REGISTRATION_CONFLICT
+      );
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+    });
+
+    // The email-collision and username-collision paths must be indistinguishable
+    // to the caller, otherwise the generic message buys nothing.
+    it('AUTH-002/003: email and username collisions are indistinguishable', async () => {
+      const messageFor = async (existing: { email: string; username: string }) => {
+        mockPrisma.user.findFirst.mockResolvedValue({ id: 1, ...existing });
+        try {
+          await authService.register(validRegisterData);
+          throw new Error('expected registration to be rejected');
+        } catch (error) {
+          // Narrow rather than assert: if registration ever rejects with a
+          // non-AppError, this should fail loudly instead of reading `.message`
+          // off an unknown value.
+          expect(error).toBeInstanceOf(AppError);
+          if (!(error instanceof AppError)) throw error;
+          return error.message;
+        }
+      };
+
+      const emailCollision = await messageFor({
+        email: validRegisterData.email,
+        username: 'someoneelse',
+      });
+      const usernameCollision = await messageFor({
+        email: 'someoneelse@example.com',
+        username: validRegisterData.username,
+      });
+
+      expect(emailCollision).toBe(GENERIC_REGISTRATION_CONFLICT);
+      expect(usernameCollision).toBe(emailCollision);
     });
 
     // AUTH-004: Weak password validation (note: this is handled by Zod schema in controller/types)
@@ -249,14 +338,14 @@ describe('AuthService', () => {
       const result = await authService.login(validLoginData);
 
       // Decode the token to check expiry
-      const decoded = jwt.decode(result.accessToken) as jwt.JwtPayload;
+      const decoded = decodePayload(result.accessToken);
       expect(decoded).toBeDefined();
       expect(decoded.exp).toBeDefined();
       expect(decoded.iat).toBeDefined();
 
       // Check that expiry is approximately 15 minutes from issued time
       // 15 minutes = 900 seconds
-      const expiryDuration = decoded.exp! - decoded.iat!;
+      const expiryDuration = decoded.exp - decoded.iat;
       expect(expiryDuration).toBe(900); // 15 minutes in seconds
     });
 
@@ -268,14 +357,14 @@ describe('AuthService', () => {
       const result = await authService.login(validLoginData);
 
       // Decode the token to check expiry
-      const decoded = jwt.decode(result.refreshToken) as jwt.JwtPayload;
+      const decoded = decodePayload(result.refreshToken);
       expect(decoded).toBeDefined();
       expect(decoded.exp).toBeDefined();
       expect(decoded.iat).toBeDefined();
 
       // Check that expiry is approximately 7 days from issued time
       // 7 days = 604800 seconds
-      const expiryDuration = decoded.exp! - decoded.iat!;
+      const expiryDuration = decoded.exp - decoded.iat;
       expect(expiryDuration).toBe(604800); // 7 days in seconds
     });
 
@@ -362,24 +451,72 @@ describe('AuthService', () => {
       await expect(authService.refreshToken(validToken)).rejects.toThrow('Invalid refresh token');
     });
 
-    // AUTH-014: Race condition prevention - tokens should be consistently generated
-    it('AUTH-014: should generate unique tokens on each refresh call', async () => {
+    // AUTH-011: The consumed token is revoked, making refresh tokens single-use.
+    it('AUTH-011: should blacklist the refresh token it consumed', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       const { generateRefreshToken } = await import('../../auth/jwt');
       const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
 
-      // Call refresh multiple times in quick succession
-      const [result1, result2] = await Promise.all([
-        authService.refreshToken(validToken),
-        authService.refreshToken(validToken),
-      ]);
+      expect(isBlacklisted(validToken)).toBe(false);
 
-      // Both should succeed and return valid tokens
-      expect(result1.accessToken).toBeDefined();
-      expect(result2.accessToken).toBeDefined();
-      expect(result1.refreshToken).toBeDefined();
-      expect(result2.refreshToken).toBeDefined();
+      // `iat` has one-second resolution and the refresh payload carries no
+      // nonce, so a token minted in the same wall-clock second as `validToken`
+      // is byte-identical to it. Advance the clock so rotation is observable.
+      advanceClock(2);
+      const result = await authService.refreshToken(validToken);
+
+      // Rotation without revocation would leave a captured refresh token valid
+      // for its full lifetime and give no reuse signal at all.
+      expect(isBlacklisted(validToken)).toBe(true);
+      expect(result.refreshToken).not.toBe(validToken);
+    });
+
+    // AUTH-012: Replaying a consumed token is treated as token theft.
+    it('AUTH-012: should treat replay of a consumed token as theft', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.update.mockResolvedValue({ ...mockUser, passwordVersion: 1 });
+
+      const { generateRefreshToken } = await import('../../auth/jwt');
+      const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
+
+      await authService.refreshToken(validToken);
+
+      // Second use of the same token must fail...
+      await expect(authService.refreshToken(validToken)).rejects.toThrow(AppError);
+
+      // ...and bump passwordVersion, which invalidates every live session for
+      // that user rather than just rejecting this one request.
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { passwordVersion: { increment: 1 } },
+      });
+    });
+
+    // AUTH-014: Each successful refresh mints a fresh, distinct token pair and
+    // retires the one it consumed, so a rotation chain never reissues a token
+    // that is already revoked.
+    it('AUTH-014: should mint a distinct token on each refresh in a rotation chain', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      const { generateRefreshToken } = await import('../../auth/jwt');
+      const first = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
+
+      advanceClock(2);
+      const result1 = await authService.refreshToken(first);
+
+      advanceClock(4);
+      const result2 = await authService.refreshToken(result1.refreshToken);
+
+      expect(result1.refreshToken).not.toBe(first);
+      expect(result2.refreshToken).not.toBe(result1.refreshToken);
+
+      // Every consumed link in the chain is retired.
+      expect(isBlacklisted(first)).toBe(true);
+      expect(isBlacklisted(result1.refreshToken)).toBe(true);
+
+      // ...but the token currently held by the client is still usable.
+      expect(isBlacklisted(result2.refreshToken)).toBe(false);
     });
   });
 
@@ -390,6 +527,7 @@ describe('AuthService', () => {
         username: 'testuser',
         email: 'test@example.com',
         avatarUrl: null,
+        timezone: 'Europe/London',
         createdAt: new Date('2024-01-01'),
       };
 
@@ -405,6 +543,7 @@ describe('AuthService', () => {
           username: true,
           email: true,
           avatarUrl: true,
+          timezone: true,
           createdAt: true,
         },
       });
@@ -436,7 +575,7 @@ describe('AuthService', () => {
         password: 'password',
       });
 
-      const decoded = jwt.decode(result.accessToken) as jwt.JwtPayload;
+      const decoded = decodePayload(result.accessToken);
       expect(decoded.id).toBe(42);
       expect(decoded.userId).toBe(42);
       expect(decoded.email).toBe('test@example.com');
@@ -459,7 +598,7 @@ describe('AuthService', () => {
         password: 'password',
       });
 
-      const decoded = jwt.decode(result.refreshToken) as jwt.JwtPayload;
+      const decoded = decodePayload(result.refreshToken);
       expect(decoded.id).toBe(42);
       expect(decoded.userId).toBe(42);
       expect(decoded.email).toBe('test@example.com');

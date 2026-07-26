@@ -93,9 +93,10 @@ import {
   createMockRequest,
   createMockResponse,
   createMockNext,
+  expectAppError,
   createAuthenticatedControllerArgs,
   expectSuccessResponse,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers, validRegistrationInput, validLoginInput } from '../../__tests__/fixtures/users';
 import { AppError } from '../../errors/errors';
 
@@ -149,12 +150,12 @@ describe('AuthController', () => {
       mockAuthService.register.mockResolvedValue(mockAuthResponse);
 
       const req = createMockRequest({
-        body: validRegistrationInput as unknown as Record<string, unknown>,
+        body: validRegistrationInput,
       });
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.register(req as never, res as never, next);
+      await authController.register(req, res, next);
 
       // Service called with validated data
       expect(mockAuthService.register).toHaveBeenCalledWith(validRegistrationInput);
@@ -187,7 +188,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.register(req as never, res as never, next);
+      await authController.register(req, res, next);
 
       // Service should not be called
       expect(mockAuthService.register).not.toHaveBeenCalled();
@@ -203,12 +204,12 @@ describe('AuthController', () => {
       mockAuthService.register.mockRejectedValue(serviceError);
 
       const req = createMockRequest({
-        body: validRegistrationInput as unknown as Record<string, unknown>,
+        body: validRegistrationInput,
       });
       const res = createMockResponse();
       const next = createMockNext();
 
-      authController.register(req as never, res as never, next);
+      authController.register(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -218,12 +219,12 @@ describe('AuthController', () => {
       mockAuthService.register.mockResolvedValue(mockAuthResponse);
 
       const req = createMockRequest({
-        body: validRegistrationInput as unknown as Record<string, unknown>,
+        body: validRegistrationInput,
       });
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.register(req as never, res as never, next);
+      await authController.register(req, res, next);
 
       const jsonBody = res.json.mock.calls[0][0];
       expect(jsonBody.data).not.toHaveProperty('refreshToken');
@@ -238,12 +239,12 @@ describe('AuthController', () => {
       mockAuthService.login.mockResolvedValue(mockAuthResponse);
 
       const req = createMockRequest({
-        body: validLoginInput as unknown as Record<string, unknown>,
+        body: validLoginInput,
       });
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.login(req as never, res as never, next);
+      await authController.login(req, res, next);
 
       // Service called with validated data
       expect(mockAuthService.login).toHaveBeenCalledWith(validLoginInput);
@@ -275,7 +276,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.login(req as never, res as never, next);
+      await authController.login(req, res, next);
 
       expect(mockAuthService.login).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
@@ -286,12 +287,12 @@ describe('AuthController', () => {
       mockAuthService.login.mockRejectedValue(serviceError);
 
       const req = createMockRequest({
-        body: validLoginInput as unknown as Record<string, unknown>,
+        body: validLoginInput,
       });
       const res = createMockResponse();
       const next = createMockNext();
 
-      authController.login(req as never, res as never, next);
+      authController.login(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -301,12 +302,12 @@ describe('AuthController', () => {
       mockAuthService.login.mockResolvedValue(mockAuthResponse);
 
       const req = createMockRequest({
-        body: validLoginInput as unknown as Record<string, unknown>,
+        body: validLoginInput,
       });
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.login(req as never, res as never, next);
+      await authController.login(req, res, next);
 
       const jsonBody = res.json.mock.calls[0][0];
       expect(jsonBody.data).not.toHaveProperty('refreshToken');
@@ -327,10 +328,12 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.refreshToken(req as never, res as never, next);
+      await authController.refreshToken(req, res, next);
 
       expect(mockGetRefreshTokenFromCookie).toHaveBeenCalled();
-      expect(mockIsBlacklisted).toHaveBeenCalledWith('cookie-refresh-token');
+      // Revocation is no longer checked here; the controller delegates the whole
+      // decision to authService.refreshToken().
+      expect(mockIsBlacklisted).not.toHaveBeenCalled();
       expect(mockAuthService.refreshToken).toHaveBeenCalledWith('cookie-refresh-token');
 
       // New refresh token cookie set (rotation)
@@ -360,16 +363,24 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.refreshToken(req as never, res as never, next);
+      await authController.refreshToken(req, res, next);
 
       expect(mockAuthService.refreshToken).toHaveBeenCalledWith('body-refresh-token');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should reject blacklisted token', async () => {
+    it('should delegate revoked tokens to the service and clear cookies on rejection', async () => {
+      // The controller deliberately does NOT short-circuit revoked tokens.
+      // Refresh tokens are single-use, so a revoked one being replayed means the
+      // token family is compromised, and authService.refreshToken() responds by
+      // invalidating every outstanding token for that user. Short-circuiting
+      // here would reject the replay but leave a thief's rotated session alive.
       mockGetRefreshTokenFromCookie.mockReturnValue('blacklisted-token');
       mockIsBlacklisted.mockReturnValue(true);
+      mockAuthService.refreshToken.mockRejectedValue(
+        new AppError('Refresh token has been revoked', 401)
+      );
 
       const req = createMockRequest({
         cookies: { refreshToken: 'blacklisted-token' },
@@ -377,17 +388,20 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.refreshToken(req as never, res as never, next);
+      authController.refreshToken(req, res, next);
+      await flushPromises();
 
-      expect(mockIsBlacklisted).toHaveBeenCalledWith('blacklisted-token');
+      expect(mockIsBlacklisted).not.toHaveBeenCalled();
+      expect(mockAuthService.refreshToken).toHaveBeenCalledWith('blacklisted-token');
+
+      // Any refresh failure ends the session here.
       expect(mockClearRefreshTokenCookie).toHaveBeenCalledWith(res);
       expect(mockClearCsrfCookie).toHaveBeenCalledWith(res);
-      expect(mockAuthService.refreshToken).not.toHaveBeenCalled();
 
       // Error passed to next via asyncHandler
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
-      expect(error.message).toBe('Token has been revoked');
+      const error = expectAppError(next);
+      expect(error.message).toBe('Refresh token has been revoked');
       expect(error.statusCode).toBe(401);
     });
 
@@ -401,11 +415,11 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      authController.refreshToken(req as never, res as never, next);
+      authController.refreshToken(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error.message).toBe('Invalid refresh token');
     });
   });
@@ -419,7 +433,7 @@ describe('AuthController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
 
-      await authController.getCurrentUser(req as never, res as never, next);
+      await authController.getCurrentUser(req, res, next);
 
       expect(mockAuthService.getCurrentUser).toHaveBeenCalledWith(testUsers.user1.id);
       expectSuccessResponse(res, 200, mockCurrentUser);
@@ -431,11 +445,11 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.getCurrentUser(req as never, res as never, next);
+      await authController.getCurrentUser(req, res, next);
 
       expect(mockAuthService.getCurrentUser).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
-      const error = next.mock.calls[0][0] as AppError;
+      const error = expectAppError(next);
       expect(error.message).toBe('Unauthorized');
       expect(error.statusCode).toBe(401);
     });
@@ -446,7 +460,7 @@ describe('AuthController', () => {
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
 
-      authController.getCurrentUser(req as never, res as never, next);
+      authController.getCurrentUser(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalledWith(serviceError);
@@ -466,7 +480,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.logout(req as never, res as never, next);
+      await authController.logout(req, res, next);
 
       // Token blacklisted
       expect(mockBlacklistToken).toHaveBeenCalledWith('active-refresh-token');
@@ -492,7 +506,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.logout(req as never, res as never, next);
+      await authController.logout(req, res, next);
 
       // Should NOT blacklist anything
       expect(mockBlacklistToken).not.toHaveBeenCalled();
@@ -523,7 +537,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.logout(req as never, res as never, next);
+      await authController.logout(req, res, next);
 
       // Error propagated via asyncHandler -> next
       expect(next).toHaveBeenCalled();
@@ -553,7 +567,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.logout(req as never, res as never, next);
+      await authController.logout(req, res, next);
 
       // Refresh token blacklisted with default TTL (1 arg)
       expect(mockBlacklistToken).toHaveBeenCalledWith('refresh-tok');
@@ -582,7 +596,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.logout(req as never, res as never, next);
+      await authController.logout(req, res, next);
 
       // No blacklist call at all (refresh token absent + access token undecodable)
       expect(mockBlacklistToken).not.toHaveBeenCalled();
@@ -604,7 +618,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.logout(req as never, res as never, next);
+      await authController.logout(req, res, next);
 
       // Only the refresh token gets blacklisted
       expect(mockBlacklistToken).toHaveBeenCalledTimes(1);
@@ -624,7 +638,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.silentRefresh(req as never, res as never, next);
+      await authController.silentRefresh(req, res, next);
 
       expect(mockAuthService.refreshToken).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
@@ -635,9 +649,16 @@ describe('AuthController', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should return null and clear cookies when token is blacklisted', async () => {
+    it('should return null and clear cookies when the service rejects a revoked token', async () => {
+      // As in `refreshToken`, revoked tokens are deliberately NOT short-circuited
+      // here -- the service needs to see the replay so it can invalidate the
+      // whole compromised token family. The client still degrades to
+      // "no active session".
       mockGetRefreshTokenFromCookie.mockReturnValue('blacklisted-token');
       mockIsBlacklisted.mockReturnValue(true);
+      mockAuthService.refreshToken.mockRejectedValue(
+        new AppError('Refresh token has been revoked', 401)
+      );
 
       const req = createMockRequest({
         cookies: { refreshToken: 'blacklisted-token' },
@@ -645,12 +666,12 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.silentRefresh(req as never, res as never, next);
+      await authController.silentRefresh(req, res, next);
 
-      expect(mockIsBlacklisted).toHaveBeenCalledWith('blacklisted-token');
+      expect(mockIsBlacklisted).not.toHaveBeenCalled();
+      expect(mockAuthService.refreshToken).toHaveBeenCalledWith('blacklisted-token');
       expect(mockClearRefreshTokenCookie).toHaveBeenCalledWith(res);
       expect(mockClearCsrfCookie).toHaveBeenCalledWith(res);
-      expect(mockAuthService.refreshToken).not.toHaveBeenCalled();
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
@@ -671,7 +692,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.silentRefresh(req as never, res as never, next);
+      await authController.silentRefresh(req, res, next);
 
       expect(mockAuthService.refreshToken).toHaveBeenCalledWith('valid-refresh-token');
 
@@ -701,7 +722,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.silentRefresh(req as never, res as never, next);
+      await authController.silentRefresh(req, res, next);
 
       expect(mockClearRefreshTokenCookie).toHaveBeenCalledWith(res);
       expect(mockClearCsrfCookie).toHaveBeenCalledWith(res);
@@ -723,7 +744,7 @@ describe('AuthController', () => {
       const res = createMockResponse();
       const next = createMockNext();
 
-      await authController.silentRefresh(req as never, res as never, next);
+      await authController.silentRefresh(req, res, next);
 
       expect(mockSetRefreshTokenCookie).not.toHaveBeenCalled();
       expect(mockSetCsrfCookie).not.toHaveBeenCalled();

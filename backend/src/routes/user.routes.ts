@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { sensitiveEndpointRateLimiter } from '../middleware/rateLimit';
 import { userController } from '../controllers/user.controller';
+import { travelPartnerRequestController } from '../controllers/travelPartnerRequest.controller';
 import { calendarFeedController } from '../controllers/calendarFeed.controller';
 
 const router = Router();
@@ -500,8 +501,11 @@ router.get('/search', sensitiveEndpointRateLimiter, userController.searchUsers);
  *   put:
  *     summary: Update travel partner settings
  *     description: |
- *       Set or clear the travel partner. Partnership is bidirectional - when you set
- *       someone as your partner, you automatically become their partner too.
+ *       Set or clear YOUR OWN side of the travel partnership, and your default
+ *       permission level. This never writes another user's row: setting a partner here
+ *       only causes YOUR new trips to be auto-shared with them. To establish a mutual
+ *       partnership, send a request via POST /api/users/travel-partner/requests and
+ *       have the other user accept it.
  *
  *       Each user controls their own defaultPartnerPermission independently.
  *       Rate limited to 10 requests per minute.
@@ -537,6 +541,185 @@ router.get('/search', sensitiveEndpointRateLimiter, userController.searchUsers);
  */
 router.get('/travel-partner', userController.getTravelPartnerSettings);
 router.put('/travel-partner', sensitiveEndpointRateLimiter, userController.updateTravelPartnerSettings);
+
+/**
+ * @openapi
+ * /api/users/travel-partner/requests:
+ *   get:
+ *     summary: List pending travel partner requests
+ *     description: |
+ *       Returns the caller's pending requests in both directions:
+ *       `incoming` (awaiting the caller's response) and `outgoing` (awaiting the
+ *       other user's response). Both lists are scoped to the caller.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending requests, grouped into incoming and outgoing
+ *       401:
+ *         description: Unauthorized
+ *   post:
+ *     summary: Send a travel partner request
+ *     description: |
+ *       Asks another user to become your travel partner. The partnership is only
+ *       established when they accept — sending a request writes nothing to either
+ *       user's profile.
+ *
+ *       Re-sending while a request to the same user is already pending refreshes that
+ *       request rather than creating a duplicate. Rate limited to 10 requests per minute.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [recipientId]
+ *             properties:
+ *               recipientId:
+ *                 type: integer
+ *                 description: ID of the user to ask (from GET /api/users/search)
+ *               message:
+ *                 type: string
+ *                 maxLength: 1000
+ *                 description: Optional personal note
+ *               shareExistingTrips:
+ *                 type: boolean
+ *                 default: false
+ *                 description: >
+ *                   Opt in to sharing YOUR OWN existing trips with the recipient if they
+ *                   accept. Never shares their trips with you — the recipient makes that
+ *                   choice separately when accepting. Trips flagged excludeFromAutoShare
+ *                   are skipped.
+ *     responses:
+ *       201:
+ *         description: Request created or refreshed
+ *       400:
+ *         description: Validation error, self-request, or the request cannot be sent
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded (10 requests per minute)
+ */
+router.get('/travel-partner/requests', travelPartnerRequestController.getRequests);
+router.post(
+  '/travel-partner/requests',
+  sensitiveEndpointRateLimiter,
+  travelPartnerRequestController.sendRequest
+);
+
+/**
+ * @openapi
+ * /api/users/travel-partner/requests/{requestId}/accept:
+ *   post:
+ *     summary: Accept a travel partner request
+ *     description: |
+ *       Only the recipient of the request may accept it. Accepting establishes the
+ *       partnership on both users — the one place where the other user's
+ *       `travelPartnerId` is written, which is legitimate because both sides have now
+ *       consented (the requester by sending, the recipient by accepting).
+ *
+ *       Existing trips are back-shared only where a side opted in, and each side's
+ *       opt-in shares only that side's own trips.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: requestId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               shareExistingTrips:
+ *                 type: boolean
+ *                 default: false
+ *                 description: >
+ *                   Opt in to sharing YOUR OWN existing trips with the requester. Whether
+ *                   THEIR existing trips are shared with you was their choice, made when
+ *                   they sent the request. Trips flagged excludeFromAutoShare are skipped.
+ *     responses:
+ *       200:
+ *         description: >
+ *           Partnership established; returns the caller's travel partner settings plus
+ *           sharedTripCount (your trips shared with them) and receivedTripCount
+ *           (their trips shared with you)
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Request not found, already responded to, or the caller is not the recipient
+ *       409:
+ *         description: The requester now has a different travel partner
+ */
+router.post(
+  '/travel-partner/requests/:requestId/accept',
+  travelPartnerRequestController.acceptRequest
+);
+
+/**
+ * @openapi
+ * /api/users/travel-partner/requests/{requestId}/decline:
+ *   post:
+ *     summary: Decline a travel partner request
+ *     description: Only the recipient of the request may decline it.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: requestId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Request declined
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Request not found, already responded to, or the caller is not the recipient
+ */
+router.post(
+  '/travel-partner/requests/:requestId/decline',
+  travelPartnerRequestController.declineRequest
+);
+
+/**
+ * @openapi
+ * /api/users/travel-partner/requests/{requestId}:
+ *   delete:
+ *     summary: Cancel a travel partner request you sent
+ *     description: Only the requester may cancel; recipients decline instead.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: requestId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Request cancelled
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Request not found, already responded to, or the caller is not the requester
+ */
+router.delete(
+  '/travel-partner/requests/:requestId',
+  travelPartnerRequestController.cancelRequest
+);
 
 /**
  * @openapi

@@ -30,7 +30,7 @@ jest.mock('../../services/journalEntry.service', () => ({
 }));
 
 import { journalEntryController } from '../journalEntry.controller';
-import { createAuthenticatedControllerArgs } from '../../__tests__/helpers/requests';
+import { createAuthenticatedControllerArgs } from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 import { Request, Response, NextFunction } from 'express';
 

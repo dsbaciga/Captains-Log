@@ -13,7 +13,7 @@ import logger from '../config/logger';
 /** SSO-only mode is only honored while OIDC is enabled (lockout guard). */
 const passwordAuthDisabled = (): boolean =>
   config.auth.passwordLoginDisabled && config.oidc.enabled;
-import { blacklistToken, isBlacklisted } from '../services/tokenBlacklist.service';
+import { blacklistToken } from '../services/tokenBlacklist.service';
 
 /**
  * Extract the bearer access token from the Authorization header.
@@ -104,14 +104,20 @@ export const authController = {
       throw new AppError('No refresh token provided', 401);
     }
 
-    // Check if token has been blacklisted (e.g., user logged out)
-    if (isBlacklisted(refreshToken)) {
+    // Do NOT short-circuit revoked tokens here. Refresh tokens are single-use,
+    // so a revoked one being replayed means the family is compromised;
+    // authService.refreshToken() detects that and invalidates every outstanding
+    // token for the user. Short-circuiting would reject the replay but leave a
+    // thief's freshly-rotated session alive.
+    let result;
+    try {
+      result = await authService.refreshToken(refreshToken);
+    } catch (error) {
+      // Any refresh failure (revoked, expired, tampered) ends the session here.
       clearRefreshTokenCookie(res);
       clearCsrfCookie(res);
-      throw new AppError('Token has been revoked', 401);
+      throw error;
     }
-
-    const result = await authService.refreshToken(refreshToken);
 
     // Set new refresh token in cookie (token rotation)
     setRefreshTokenCookie(res, result.refreshToken);
@@ -193,17 +199,10 @@ export const authController = {
       return;
     }
 
-    // Check if token has been blacklisted (e.g., user logged out)
-    if (isBlacklisted(refreshToken)) {
-      clearRefreshTokenCookie(res);
-      clearCsrfCookie(res);
-      res.status(200).json({
-        status: 'success',
-        data: null, // Token was revoked, treat as no session
-      });
-      return;
-    }
-
+    // As in `refresh` above, revoked tokens are deliberately NOT short-circuited
+    // here: authService.refreshToken() treats a replayed single-use token as a
+    // compromised family and invalidates every outstanding token for the user.
+    // The catch below still degrades to "no active session" for the client.
     try {
       // Get new tokens and user data (single verification in authService.refreshToken)
       const result = await authService.refreshToken(refreshToken);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Trip, TripStatusType } from '../types/trip';
 import { formatTripDates, formatTripDuration } from '../utils/dateFormat';
 import { getTripStatusRibbonColor } from '../utils/statusColors';

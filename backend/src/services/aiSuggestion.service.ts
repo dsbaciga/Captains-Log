@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import prisma from '../config/database';
 import { llmService } from './llm.service';
-import { verifyTripAccessWithPermission } from '../services/_shared/serviceHelpers';
+import { verifyTripAccessWithPermission } from '../services/_shared/tripAccess';
 import logger from '../config/logger';
 import { sanitizeForPrompt as sanitizeControlChars, stripHtml } from '../security/promptSafety';
 import type { EntityType, LinkRelationship } from '../types/entityLink.types';
@@ -181,6 +181,19 @@ function isAlreadyLinked(existing: ExistingLinkSet, sourceType: string, sourceId
 const MAX_CAPTION_CHARS = 1000;
 const MAX_NAME_CHARS = 500;
 const MAX_JOURNAL_BLOB_CHARS = 2000;
+
+/**
+ * Hard cap on the number of sequential LLM calls a single link-suggestion
+ * request may make. `suggestLlmLinks` issues one call per candidate photo plus
+ * one per journal entry; without a cap a trip with hundreds of photos turns one
+ * HTTP request into hundreds of sequential provider calls, which defeats
+ * `aiLimiter` as a cost control and risks a proxy timeout.
+ *
+ * The budget is split so neither category can starve the other: journal entries
+ * (few, high-yield — each call can return several links) get up to half, photos
+ * take whatever is left. Override with AI_LINK_SUGGESTION_MAX_ITEMS.
+ */
+const MAX_LLM_ITEMS_PER_REQUEST = Number(process.env.AI_LINK_SUGGESTION_MAX_ITEMS) || 25;
 
 // Photos and journal content may contain HTML; strip tags after control chars.
 function sanitizeForPrompt(text: string): string {
@@ -477,10 +490,28 @@ async function suggestLlmLinks(
 ): Promise<LinkSuggestion[]> {
   const suggestions: LinkSuggestion[] = [];
 
+  // Split the per-request LLM call budget between the two loops below before
+  // either runs, so the total number of provider calls is bounded regardless of
+  // how large the trip is.
+  const journalBudget = Math.min(
+    entities.journalEntries.length,
+    Math.ceil(MAX_LLM_ITEMS_PER_REQUEST / 2)
+  );
+  const photoBudget = Math.max(MAX_LLM_ITEMS_PER_REQUEST - journalBudget, 0);
+
   // 7a: Photos without GPS — match caption against location names on same day
-  const photosWithoutGps = entities.photos.filter(
+  const allPhotosWithoutGps = entities.photos.filter(
     (p) => (p.lat == null || p.lng == null) && p.caption && p.takenAt
   );
+  const photosWithoutGps = allPhotosWithoutGps.slice(0, photoBudget);
+
+  if (allPhotosWithoutGps.length > photosWithoutGps.length) {
+    logger.info('LLM link suggestions truncated: photo candidates exceeded the per-request cap', {
+      candidates: allPhotosWithoutGps.length,
+      analyzed: photosWithoutGps.length,
+      cap: MAX_LLM_ITEMS_PER_REQUEST,
+    });
+  }
 
   for (const photo of photosWithoutGps) {
     const candidateLocations = entities.locations.filter(
@@ -550,7 +581,17 @@ ${locationList}`;
   }
 
   // 7b: Journal entries — LLM reads content and identifies mentioned entities
-  for (const entry of entities.journalEntries) {
+  const journalEntriesToAnalyze = entities.journalEntries.slice(0, journalBudget);
+
+  if (entities.journalEntries.length > journalEntriesToAnalyze.length) {
+    logger.info('LLM link suggestions truncated: journal candidates exceeded the per-request cap', {
+      candidates: entities.journalEntries.length,
+      analyzed: journalEntriesToAnalyze.length,
+      cap: MAX_LLM_ITEMS_PER_REQUEST,
+    });
+  }
+
+  for (const entry of journalEntriesToAnalyze) {
     // Sanitize HTML/control characters and cap length defensively
     const content = sanitizeForPrompt(entry.content).slice(0, MAX_JOURNAL_BLOB_CHARS);
 

@@ -20,7 +20,7 @@ const photoQuerySchema = z.object({
   skip: z.coerce.number().int().min(0).default(0),
   take: z.coerce.number().int().min(1).max(1000).default(20),
   albumId: z.coerce.number().int().optional(),
-  sortBy: z.enum(['date', 'caption', 'location', 'created']).optional(),
+  sortBy: z.enum(['date', 'caption', 'created']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
 });
 

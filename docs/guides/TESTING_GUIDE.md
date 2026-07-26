@@ -150,7 +150,7 @@ regressions:
 ```typescript
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import ActivityManager from '../ActivityManager';
 import { activityService } from '../../services/activity.service';
 
@@ -242,7 +242,7 @@ pattern below illustrates how photo loading is tested for race conditions:
 ```typescript
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import PhotoGallery from '../PhotoGallery';
 import { photoService } from '../../services/photo.service';
 

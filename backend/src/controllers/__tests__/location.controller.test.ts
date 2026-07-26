@@ -36,7 +36,7 @@ jest.mock('../../config/logger', () => ({
 
 import locationService from '../../services/location.service';
 import { locationController } from '../location.controller';
-import { createAuthenticatedControllerArgs } from '../../__tests__/helpers/requests';
+import { createAuthenticatedControllerArgs } from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 /** Flush all pending promises for asyncHandler testing */

@@ -3,9 +3,71 @@ import type { AxiosError } from 'axios';
 import type { User, LoginInput, RegisterInput } from '../types/auth';
 import authService from '../services/auth.service';
 import { setAccessToken, registerAuthClearCallback } from '../lib/tokenManager';
+import { clearPersistedCache } from '../lib/queryPersister';
+import { getQueryClient } from '../lib/queryClientSetup';
+import { offlineService } from '../services/offline.service';
+import offlineAuthService from '../services/offlineAuth.service';
 
 interface ApiErrorData {
   message?: string;
+}
+
+/**
+ * Service worker Cache Storage buckets that must survive logout.
+ *
+ * Everything else in Cache Storage is either API responses or user media and
+ * is therefore user data. The Workbox precache and the font caches hold only
+ * static build assets, so wiping them would just force a needless re-download
+ * (and break offline app-shell availability) without protecting anything.
+ */
+const PRESERVED_CACHE_NAMES = new Set(['google-fonts-cache', 'google-fonts-webfonts']);
+const PRESERVED_CACHE_PREFIXES = ['workbox-precache'];
+
+/**
+ * Delete every service worker cache that can hold the previous user's data.
+ */
+async function clearServiceWorkerCaches(): Promise<void> {
+  if (typeof caches === 'undefined') return;
+
+  const names = await caches.keys();
+  const userDataCaches = names.filter(
+    (name) =>
+      !PRESERVED_CACHE_NAMES.has(name) &&
+      !PRESERVED_CACHE_PREFIXES.some((prefix) => name.startsWith(prefix))
+  );
+
+  await Promise.all(userDataCaches.map((name) => caches.delete(name)));
+}
+
+/**
+ * Clear all origin-scoped caches that can hold the signed-out user's data.
+ *
+ * None of this storage is user-scoped, so leaving it behind leaks one user's
+ * trips, locations, photo metadata and API responses to the next user on a
+ * shared device (PersistQueryClientProvider will happily rehydrate it).
+ *
+ * Every step is isolated: a failure in one must not block the others, and this
+ * function never rejects, so it can never leave the user logged in.
+ */
+async function clearCachedUserData(): Promise<void> {
+  const steps: Array<[string, () => void | Promise<unknown>]> = [
+    ['in-memory query cache', () => getQueryClient().clear()],
+    ['persisted query cache', () => clearPersistedCache()],
+    ['offline data cache', () => offlineService.clearAllCache()],
+    ['offline sync queue', () => offlineService.clearSyncQueue()],
+    ['offline auth session', () => offlineAuthService.clearOfflineSession()],
+    ['service worker caches', () => clearServiceWorkerCaches()],
+  ];
+
+  await Promise.all(
+    steps.map(async ([label, run]) => {
+      try {
+        await run();
+      } catch (error) {
+        console.error(`Failed to clear ${label} on logout:`, error);
+      }
+    })
+  );
 }
 
 interface AuthState {
@@ -83,6 +145,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         user: null,
         isAuthenticated: false,
       });
+      // Signed-out state is applied first so a failure here can never keep the
+      // user logged in; clearCachedUserData swallows its own errors.
+      await clearCachedUserData();
     }
   },
 
@@ -137,6 +202,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: null,
       isAuthenticated: false,
     });
+    // Fire-and-forget: this is called synchronously from the axios interceptor,
+    // so it must not block. clearCachedUserData never rejects.
+    void clearCachedUserData();
   },
 }));
 

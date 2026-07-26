@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import type { Location } from '../../types/location';
 import DirectionsButton from '../DirectionsButton';
 import { placeFromLocation } from '../../lib/itineraryPlaces';

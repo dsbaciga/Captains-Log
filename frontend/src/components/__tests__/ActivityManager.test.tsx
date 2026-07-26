@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router";
 import ActivityManager from "../ActivityManager";
 import { activityService } from "../../services/activity.service";
 import entityLinkService from "../../services/entityLink.service";

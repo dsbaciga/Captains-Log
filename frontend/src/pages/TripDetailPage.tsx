@@ -4,7 +4,7 @@ import {
   useNavigate,
   Link,
   useSearchParams,
-} from "react-router-dom";
+} from "react-router";
 import tripService from "../services/trip.service";
 import locationService from "../services/location.service";
 import photoService from "../services/photo.service";
@@ -61,6 +61,7 @@ import Pagination from "../components/Pagination";
 import { useScrollToHighlight } from "../hooks/useScrollToHighlight";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { useScrollStore } from "../store/scrollStore";
+import TripHeaderActions from "../components/TripHeaderActions";
 import TabGroup from "../components/TabGroup";
 import type { TabGroupItem } from "../components/TabGroup";
 import TripSidebar from "../components/TripSidebar";
@@ -76,7 +77,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "../components/Skeleton";
 import JetLagCalculator from "../components/JetLagCalculator";
 import MarkdownRenderer from "../components/MarkdownRenderer";
-import PdfImportButton from "../components/PdfImportButton";
 
 // All possible tab IDs for the grouped navigation
 type TabId =
@@ -1023,7 +1023,7 @@ export default function TripDetailPage() {
           {coverPhotoUrl ? (
             // Dynamic background image requires CSS variable - cannot be moved to static CSS
             <div
-              className="relative min-h-64 bg-cover bg-center cover-photo-bg"
+              className="relative min-h-[200px] sm:min-h-64 bg-cover bg-center cover-photo-bg"
               style={
                 {
                   "--cover-photo-url": `url(${coverPhotoUrl})`,
@@ -1060,65 +1060,22 @@ export default function TripDetailPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => setShowTagsModal(true)}
-                      className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
-                    >
-                      <svg
-                        className="w-4 h-4 flex-shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                        />
-                      </svg>
-                      <span className="hidden sm:inline">
-                        Manage Tags ({tagsCount})
-                      </span>
-                      <span className="sm:hidden">Tags ({tagsCount})</span>
-                    </button>
-                    <button
-                      onClick={() => setShowShareModal(true)}
-                      className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
-                      aria-label="Share trip"
-                    >
-                      <svg
-                        className="w-4 h-4 flex-shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                        />
-                      </svg>
-                      <span className="hidden sm:inline">Share</span>
-                    </button>
-                    <Link
-                      to={`/trips/${trip.id}/edit`}
-                      className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
-                    >
-                      Edit Trip
-                    </Link>
-                    <PdfImportButton tripId={trip.id} />
-                  </div>
+                  <TripHeaderActions
+                    tripId={trip.id}
+                    tagsCount={tagsCount}
+                    onManageTags={() => setShowTagsModal(true)}
+                    onShare={() => setShowShareModal(true)}
+                    onDuplicate={handleOpenDuplicateDialog}
+                    variant="overlay"
+                  />
                 </div>
 
-                {/* Duplicate button - positioned in bottom right */}
+                {/* Duplicate button - positioned in bottom right.
+                    Hidden on mobile: it lives in the overflow menu there, and
+                    the corner it pins to is the hardest to reach one-handed. */}
                 <button
                   onClick={handleOpenDuplicateDialog}
-                  className="absolute bottom-4 right-4 p-3 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 rounded-lg transition-colors hover:shadow-lg"
+                  className="hidden sm:flex absolute bottom-4 right-4 p-3 min-w-[44px] min-h-[44px] items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 rounded-lg transition-colors hover:shadow-lg"
                   title="Duplicate Trip"
                   aria-label="Duplicate Trip"
                 >
@@ -1242,43 +1199,21 @@ export default function TripDetailPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => setShowTagsModal(true)}
-                    className="btn btn-secondary flex items-center justify-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
-                  >
-                    <svg
-                      className="w-4 h-4 flex-shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                      />
-                    </svg>
-                    <span className="hidden sm:inline">
-                      Manage Tags ({tagsCount})
-                    </span>
-                    <span className="sm:hidden">Tags ({tagsCount})</span>
-                  </button>
-                  <Link
-                    to={`/trips/${trip.id}/edit`}
-                    className="btn btn-secondary text-sm sm:text-base px-3 sm:px-4 py-2 whitespace-nowrap"
-                  >
-                    Edit Trip
-                  </Link>
-                  <PdfImportButton tripId={trip.id} />
-                </div>
+                <TripHeaderActions
+                  tripId={trip.id}
+                  tagsCount={tagsCount}
+                  onManageTags={() => setShowTagsModal(true)}
+                  onShare={() => setShowShareModal(true)}
+                  onDuplicate={handleOpenDuplicateDialog}
+                />
               </div>
 
-              {/* Duplicate button - positioned in bottom right */}
+              {/* Duplicate button - positioned in bottom right.
+                  Hidden on mobile: it lives in the overflow menu there, and
+                  the corner it pins to is the hardest to reach one-handed. */}
               <button
                 onClick={handleOpenDuplicateDialog}
-                className="absolute bottom-4 right-4 p-3 min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors hover:shadow-lg"
+                className="hidden sm:flex absolute bottom-4 right-4 p-3 min-w-[44px] min-h-[44px] items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors hover:shadow-lg"
                 title="Duplicate Trip"
                 aria-label="Duplicate Trip"
               >

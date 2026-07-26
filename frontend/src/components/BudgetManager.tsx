@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { formatCurrency as sharedFormatCurrency } from "../utils/formatCurrency";
 import expenseService from "../services/expense.service";
 import tripService from "../services/trip.service";
 import {
@@ -14,6 +15,7 @@ import {
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import EmptyState from "./EmptyState";
 import { ListItemSkeleton } from "./SkeletonLoader";
+import { formatDateOnly } from "../utils/timezone";
 
 /**
  * BudgetManager handles the trip budget and expense tracking tab.
@@ -97,21 +99,13 @@ export default function BudgetManager({
   // Only fall back to the trip's own currency while the summary is loading.
   const displayCurrency = summary?.currency || budgetCurrency || "USD";
 
-  const formatCurrency = useMemo(() => {
-    return (amount: number, currency?: string | null) => {
-      try {
-        return new Intl.NumberFormat(undefined, {
-          style: "currency",
-          currency: currency || displayCurrency,
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2,
-        }).format(amount);
-      } catch {
-        // Invalid/unknown currency code — fall back to a plain number
-        return amount.toFixed(2);
-      }
-    };
-  }, [displayCurrency]);
+  // Delegates to the shared guarded formatter so every call site in the app
+  // handles an invalid currency code identically.
+  const formatCurrency = useCallback(
+    (amount: number, currency?: string | null) =>
+      sharedFormatCurrency(amount, currency || displayCurrency),
+    [displayCurrency]
+  );
 
   const spent = summary?.spent ?? 0;
   const conversion = summary?.conversion;
@@ -317,17 +311,9 @@ export default function BudgetManager({
     }
   };
 
-  const formatExpenseDate = (date: string | null) => {
-    if (!date) return null;
-    // Dates are stored as date-only values; parse as UTC to avoid TZ shifts
-    const parsed = new Date(date.substring(0, 10) + "T00:00:00.000Z");
-    return parsed.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    });
-  };
+  const formatExpenseDate = (date: string | null) =>
+    // An expense date is a calendar date, not an instant — see formatDateOnly.
+    formatDateOnly(date, { year: "numeric", month: "short", day: "numeric" });
 
   const breakdownEntries = summary
     ? Object.entries(summary.breakdown).filter(([, amount]) => amount > 0)

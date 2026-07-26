@@ -177,7 +177,7 @@ describe('UserService', () => {
 
       const result = await userService.updateUserSettings(1, {
         activityCategories: newCategories,
-      } as any);
+      });
 
       expect(result.activityCategories).toEqual(newCategories);
     });
@@ -372,7 +372,9 @@ describe('UserService', () => {
       await userService.updatePassword(1, 'oldpass', 'newpass');
 
       expect(bcrypt.compare).toHaveBeenCalledWith('oldpass', '$2b$10$hashvalue');
-      expect(bcrypt.hash).toHaveBeenCalledWith('newpass', 10);
+      // Hashing routes through the shared hashPassword() helper, whose cost
+      // factor is 12 (raised from 10).
+      expect(bcrypt.hash).toHaveBeenCalledWith('newpass', 12);
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: {
@@ -432,7 +434,10 @@ describe('UserService', () => {
         where: {
           id: { not: 1 },
           OR: [
-            { email: { contains: 'doe', mode: 'insensitive' } },
+            // Email matches on `equals`, not `contains`: substring matching let
+            // any user harvest addresses by probing common fragments. You now
+            // have to already know the full address to match on it.
+            { email: { equals: 'doe', mode: 'insensitive' } },
             { username: { contains: 'doe', mode: 'insensitive' } },
           ],
         },

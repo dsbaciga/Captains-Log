@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import type { PhotoAlbum, Photo, AlbumWithPhotos } from '../types/photo';
 import photoService from '../services/photo.service';
 import { getFullAssetUrl } from '../lib/config';

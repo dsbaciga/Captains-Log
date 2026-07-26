@@ -14,7 +14,7 @@ import weatherService from '../../services/weather.service';
 import { weatherController } from '../weather.controller';
 import {
   createAuthenticatedControllerArgs,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 const flushPromises = () => new Promise(resolve => process.nextTick(resolve));

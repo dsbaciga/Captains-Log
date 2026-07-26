@@ -72,7 +72,14 @@ const mockPrisma = {
   entityLink: {
     deleteMany: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
+
+// The delete path runs its writes inside a transaction. Hand the callback the
+// same mock client so the inner calls stay observable on mockPrisma.
+mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => unknown) =>
+  cb(mockPrisma)
+);
 
 jest.mock('../../config/database', () => ({
   __esModule: true,
@@ -89,8 +96,8 @@ jest.mock('../routing.service', () => ({
   default: mockRoutingService,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Prisma } = require('@prisma/client');
+// jest.mock() calls are hoisted above imports, so this picks up the mock.
+import { Prisma } from '@prisma/client';
 
 import transportationService from '../transportation.service';
 

@@ -5,7 +5,7 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import type { Location } from "../types/location";
 import type { Transportation } from "../types/transportation";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import '../utils/mapUtils';
 
 interface PlacesVisitedMapProps {

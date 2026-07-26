@@ -4,9 +4,59 @@ import { AppError } from '../middleware/errorHandler';
 import { CreateTripInput, UpdateTripInput, GetTripQuery, TripStatus, DuplicateTripInput } from '../types/trip.types';
 import { companionService } from './companion.service';
 import { tripCoverImageService } from './tripCoverImage.service';
-import { buildConditionalUpdateData, tripDateTransformer, convertDecimals, toSafePermissionLevel } from '../services/_shared/serviceHelpers';
+import { toSafePermissionLevel } from '../services/_shared/tripPermissions';
+import { buildConditionalUpdateData, tripDateTransformer } from '../services/_shared/prismaUpdateData';
+import { convertDecimals } from '../services/_shared/decimalConversion';
+import { resolveTimezone } from '../services/_shared/timezoneResolution';
+
+/**
+ * Maps each source row to a *distinct* copy, matching on a composite key.
+ *
+ * Used by duplicateTrip for entities inserted with createMany() and read back afterwards.
+ * A plain `find` is not enough: it returns the first match and marks nothing as used, so two
+ * source rows sharing a key (two flights with no reference number, two identical lodgings,
+ * two checklists with the same name and type) would both map to the same copy and the second
+ * copy would get no mapping at all — silently corrupting the EntityLinks rebuilt from these
+ * maps. Each candidate is consumed on match, so every old ID maps to its own new ID.
+ */
+function mapCopiesByCompositeKey<TOld extends { id: number }, TNew extends { id: number }>(
+  target: Map<number, number>,
+  oldRecords: readonly TOld[],
+  newRecords: readonly TNew[],
+  keyOf: (record: TOld | TNew) => string
+): void {
+  const unclaimed = [...newRecords];
+
+  for (const oldRecord of oldRecords) {
+    const key = keyOf(oldRecord);
+    const index = unclaimed.findIndex((candidate) => keyOf(candidate) === key);
+    if (index !== -1) {
+      target.set(oldRecord.id, unclaimed[index].id);
+      unclaimed.splice(index, 1);
+    }
+  }
+}
 
 export class TripService {
+  /**
+   * Verifies a series belongs to the caller before a trip is attached to it.
+   *
+   * Series are user-scoped, but nothing else on the trip write paths checks that: without
+   * this, a user could set their own trip's seriesId to a victim's series, where
+   * tripSeries.getById/getAll would render it (they select trips by seriesId alone) and the
+   * victim's seriesOrder normalisation would be corrupted. The dedicated series endpoints
+   * already perform the equivalent check.
+   */
+  private async verifySeriesOwnership(userId: number, seriesId: number): Promise<void> {
+    const series = await prisma.tripSeries.findFirst({
+      where: { id: seriesId, userId },
+    });
+
+    if (!series) {
+      throw new AppError('Trip series not found or you do not have permission to use it', 404);
+    }
+  }
+
   async createTrip(userId: number, data: CreateTripInput) {
     // Auto-set addToPlacesVisited if status is Completed
     const addToPlacesVisited = data.status === TripStatus.COMPLETED
@@ -23,7 +73,13 @@ export class TripService {
       },
     });
 
-    const timezone = data.timezone || user?.timezone || 'UTC';
+    const timezone = resolveTimezone(data.timezone, user?.timezone);
+
+    // createTripSchema accepts seriesId, so it has to be verified and actually written —
+    // it was previously validated and then silently dropped.
+    if (data.seriesId != null) {
+      await this.verifySeriesOwnership(userId, data.seriesId);
+    }
 
     // Pre-fetch "Myself" companion outside transaction (read-only)
     const myselfCompanion = await companionService.getMyselfCompanion(userId);
@@ -42,6 +98,7 @@ export class TripService {
           privacyLevel: data.privacyLevel,
           addToPlacesVisited,
           excludeFromAutoShare: data.excludeFromAutoShare || false,
+          seriesId: data.seriesId ?? null,
           tripType: data.tripType || null,
           tripTypeEmoji: data.tripTypeEmoji || null,
         },
@@ -75,8 +132,9 @@ export class TripService {
   }
 
   async getTrips(userId: number, query: GetTripQuery) {
-    const page = parseInt(query.page || '1');
-    const limit = parseInt(query.limit || '20');
+    // page/limit are validated and bounded by getTripQuerySchema
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
     const sortOption = query.sort || 'startDate-desc';
 
@@ -131,7 +189,7 @@ export class TripService {
 
     // Filter by series
     if (query.seriesId) {
-      where.seriesId = parseInt(query.seriesId);
+      where.seriesId = query.seriesId;
     }
 
     // Filter by tags
@@ -222,8 +280,11 @@ export class TripService {
     let hasMore = true;
     let cursor: number | undefined;
 
+    // Trip dates are stored as UTC midnight (see tripDateTransformer), so "today" and the
+    // trip bounds must both be normalised in UTC. setHours() would use the server process's
+    // local timezone and shift the day boundary on any non-UTC deployment.
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
 
     while (hasMore) {
       const trips = await prisma.trip.findMany({
@@ -258,9 +319,9 @@ export class TripService {
         if (!trip.startDate || !trip.endDate) continue;
 
         const startDate = new Date(trip.startDate);
-        startDate.setHours(0, 0, 0, 0);
+        startDate.setUTCHours(0, 0, 0, 0);
         const endDate = new Date(trip.endDate);
-        endDate.setHours(0, 0, 0, 0);
+        endDate.setUTCHours(0, 0, 0, 0);
 
         // If today is after end date, mark as Completed
         if (today > endDate && trip.status !== TripStatus.COMPLETED) {
@@ -297,6 +358,16 @@ export class TripService {
 
   async getTripById(userId: number, tripId: number) {
     const trip = await prisma.trip.findFirst({
+      // `privacyLevel: 'Public'` deliberately grants nothing here.
+      //
+      // It used to let any authenticated user read any trip marked Public. Trip
+      // IDs are sequential, so that made every Public trip enumerable by every
+      // registered account. The child data (expenses, lodging confirmation
+      // numbers, transportation booking references) was already closed off in
+      // verifyTripAccessWithPermission; this closes the trip row itself.
+      //
+      // Public sharing belongs exclusively to the token-based share path, which
+      // serves a sanitised payload built field-by-field in share.service.ts.
       where: {
         id: tripId,
         OR: [
@@ -306,7 +377,6 @@ export class TripService {
               some: { userId },
             },
           },
-          { privacyLevel: 'Public' },
         ],
       },
       include: {
@@ -349,6 +419,12 @@ export class TripService {
 
     if (!existingTrip) {
       throw new AppError('Trip not found or you do not have permission to edit it', 404);
+    }
+
+    // A null seriesId detaches the trip from its series and needs no check; any other value
+    // must be a series the caller owns.
+    if (data.seriesId != null) {
+      await this.verifySeriesOwnership(userId, data.seriesId);
     }
 
     // Auto-set addToPlacesVisited if status changed to Completed
@@ -510,7 +586,7 @@ export class TripService {
       where: { id: userId },
       select: { timezone: true },
     });
-    const timezone = sourceTrip.timezone || user?.timezone || 'UTC';
+    const timezone = resolveTimezone(sourceTrip.timezone, user?.timezone);
 
     // Pre-fetch "Myself" companion outside transaction (read-only)
     const myselfCompanion = await companionService.getMyselfCompanion(userId);
@@ -714,15 +790,14 @@ export class TripService {
           where: { tripId: newTrip.id },
           select: { id: true, type: true, referenceNumber: true, company: true, startLocationText: true },
         });
-        for (const oldTransport of transportations) {
-          const newTransport = newTransports.find(
-            (t) => t.type === oldTransport.type &&
-                   t.referenceNumber === oldTransport.referenceNumber &&
-                   t.company === oldTransport.company &&
-                   t.startLocationText === oldTransport.startLocationText
-          );
-          if (newTransport) transportationIdMap.set(oldTransport.id, newTransport.id);
-        }
+        // JSON.stringify keeps null distinct from '' (the previous strict-equality match did)
+        const buildTransportKey = (t: {
+          type: string;
+          referenceNumber: string | null;
+          company: string | null;
+          startLocationText: string | null;
+        }) => JSON.stringify([t.type, t.referenceNumber, t.company, t.startLocationText]);
+        mapCopiesByCompositeKey(transportationIdMap, transportations, newTransports, buildTransportKey);
       }
     }
 
@@ -753,15 +828,9 @@ export class TripService {
           where: { tripId: newTrip.id },
           select: { id: true, name: true, address: true, confirmationNumber: true },
         });
-        const buildLodgingKey = (name: string, address: string | null, confirmationNumber: string | null) =>
-          `${name}|${address ?? ''}|${confirmationNumber ?? ''}`;
-        for (const oldLodging of lodgings) {
-          const key = buildLodgingKey(oldLodging.name, oldLodging.address, oldLodging.confirmationNumber);
-          const newLodging = newLodgings.find(
-            (l) => buildLodgingKey(l.name, l.address, l.confirmationNumber) === key
-          );
-          if (newLodging) lodgingIdMap.set(oldLodging.id, newLodging.id);
-        }
+        const buildLodgingKey = (l: { name: string; address: string | null; confirmationNumber: string | null }) =>
+          `${l.name}|${l.address ?? ''}|${l.confirmationNumber ?? ''}`;
+        mapCopiesByCompositeKey(lodgingIdMap, lodgings, newLodgings, buildLodgingKey);
       }
     }
 
@@ -787,15 +856,9 @@ export class TripService {
           where: { tripId: newTrip.id },
           select: { id: true, title: true, entryType: true, content: true },
         });
-        const buildJournalKey = (title: string | null, entryType: string, content: string | null) =>
-          `${title ?? ''}|${entryType}|${(content ?? '').slice(0, 50)}`;
-        for (const oldJournal of journals) {
-          const key = buildJournalKey(oldJournal.title, oldJournal.entryType, oldJournal.content);
-          const newJournal = newJournals.find(
-            (j) => buildJournalKey(j.title, j.entryType, j.content) === key
-          );
-          if (newJournal) journalIdMap.set(oldJournal.id, newJournal.id);
-        }
+        const buildJournalKey = (j: { title: string | null; entryType: string; content: string | null }) =>
+          `${j.title ?? ''}|${j.entryType}|${(j.content ?? '').slice(0, 50)}`;
+        mapCopiesByCompositeKey(journalIdMap, journals, newJournals, buildJournalKey);
       }
     }
 
@@ -818,13 +881,9 @@ export class TripService {
           where: { tripId: newTrip.id },
           select: { id: true, name: true, description: true },
         });
-        const buildAlbumKey = (name: string, description: string | null) =>
-          `${name}|${(description ?? '').slice(0, 50)}`;
-        for (const oldAlbum of albums) {
-          const key = buildAlbumKey(oldAlbum.name, oldAlbum.description);
-          const newAlbum = newAlbums.find((a) => buildAlbumKey(a.name, a.description) === key);
-          if (newAlbum) albumIdMap.set(oldAlbum.id, newAlbum.id);
-        }
+        const buildAlbumKey = (a: { name: string; description: string | null }) =>
+          `${a.name}|${(a.description ?? '').slice(0, 50)}`;
+        mapCopiesByCompositeKey(albumIdMap, albums, newAlbums, buildAlbumKey);
 
         // Update cover photos now that we have mappings
         const coverPhotoUpdates = albums
@@ -926,14 +985,10 @@ export class TripService {
           where: { tripId: newTrip.id },
           select: { id: true, name: true, type: true, description: true },
         });
-        const buildChecklistKey = (name: string, type: string, description: string | null) =>
-          `${name}|${type}|${(description ?? '').slice(0, 50)}`;
+        const buildChecklistKey = (c: { name: string; type: string; description: string | null }) =>
+          `${c.name}|${c.type}|${(c.description ?? '').slice(0, 50)}`;
         const checklistIdMap = new Map<number, number>();
-        for (const oldChecklist of checklists) {
-          const key = buildChecklistKey(oldChecklist.name, oldChecklist.type, oldChecklist.description);
-          const newChecklist = newChecklists.find((nc) => buildChecklistKey(nc.name, nc.type, nc.description) === key);
-          if (newChecklist) checklistIdMap.set(oldChecklist.id, newChecklist.id);
-        }
+        mapCopiesByCompositeKey(checklistIdMap, checklists, newChecklists, buildChecklistKey);
 
         // Bulk insert all checklist items
         const allItems: Prisma.ChecklistItemCreateManyInput[] = [];

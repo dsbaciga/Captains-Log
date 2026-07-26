@@ -24,6 +24,61 @@ const BackupTagSchema = z.object({
   textColor: z.string().nullable().optional(),
 });
 
+// =============================================================================
+// Stored upload paths
+// =============================================================================
+
+/**
+ * Stored file paths in a backup are server-generated at upload time and always
+ * take the shape `/uploads/<subdir>/<generated-name>`:
+ *
+ *   photo.service.ts       -> /uploads/photos/<uuid><ext>, /uploads/videos/<uuid><ext>,
+ *                             /uploads/thumbnails/thumb-<uuid>.jpg
+ *   tripCoverImage.service -> /uploads/covers/cover-<tripId>-<uuid>.jpg,
+ *                             /uploads/covers/thumb-cover-<tripId>-<uuid>.jpg
+ *   companion.service.ts   -> /uploads/avatars/companion-<id>-<timestamp>.jpg
+ *
+ * A backup file is attacker-supplied input, and these values are later joined
+ * onto the uploads root and passed to fs.unlink(). Anchoring the accepted shape
+ * here stops a poisoned backup from ever persisting a traversal path in the
+ * first place (the delete helpers re-check containment as a second layer).
+ *
+ * The filename segment deliberately excludes `/` and `\`, so `..` cannot form a
+ * path segment; a single flat subdirectory is the only structure ever produced.
+ */
+const UPLOAD_SUBDIRS = ['photos', 'videos', 'thumbnails', 'covers', 'avatars'] as const;
+const STORED_UPLOAD_PATH_PATTERN = new RegExp(
+  `^/uploads/(?:${UPLOAD_SUBDIRS.join('|')})/[A-Za-z0-9][A-Za-z0-9._-]*$`
+);
+
+/**
+ * True when `value` matches the server-generated stored-upload convention.
+ * Exported so restore.service.ts can re-check just before persisting, keeping
+ * the guarantee even if this schema is ever loosened or bypassed.
+ */
+export function isStoredUploadPath(value: unknown): value is string {
+  return typeof value === 'string'
+    && STORED_UPLOAD_PATH_PATTERN.test(value)
+    && !value.includes('..');
+}
+
+/**
+ * A stored upload path, or null. Values that do not match the generated-filename
+ * convention are rejected outright rather than silently dropped, so a tampered
+ * backup fails loudly instead of restoring partially.
+ */
+const StoredUploadPathSchema = z
+  .string()
+  .refine(
+    (value) => isStoredUploadPath(value),
+    {
+      message:
+        'Invalid stored file path. Expected a server-generated path of the form /uploads/<subdir>/<filename>.',
+    }
+  )
+  .nullable()
+  .optional();
+
 // Companion schema (travel companions)
 const BackupCompanionSchema = z.object({
   name: z.string(),
@@ -32,7 +87,7 @@ const BackupCompanionSchema = z.object({
   notes: z.string().nullable().optional(),
   relationship: z.string().nullable().optional(),
   isMyself: z.boolean().optional(),
-  avatarUrl: z.string().nullable().optional(),
+  avatarUrl: StoredUploadPathSchema,
   dietaryPreferences: z.array(z.string()).optional(),
 });
 
@@ -174,8 +229,8 @@ const BackupPhotoSchema = z.object({
   id: z.number().optional(), // For EntityLink and album mapping
   source: z.string().optional(), // 'local' or 'immich'
   immichAssetId: z.string().nullable().optional(),
-  localPath: z.string().nullable().optional(),
-  thumbnailPath: z.string().nullable().optional(),
+  localPath: StoredUploadPathSchema,
+  thumbnailPath: StoredUploadPathSchema,
   caption: z.string().nullable().optional(),
   latitude: FlexibleCoordinateSchema,
   longitude: FlexibleCoordinateSchema,
@@ -354,8 +409,8 @@ const BackupTripSchema = z.object({
   privacyLevel: z.string(),
   coverPhotoId: z.number().nullable().optional(),
   // Uploaded cover image paths (added in v1.3.0) — file paths only, like photos
-  coverImagePath: z.string().nullable().optional(),
-  coverImageThumbnailPath: z.string().nullable().optional(),
+  coverImagePath: StoredUploadPathSchema,
+  coverImageThumbnailPath: StoredUploadPathSchema,
   bannerPhotoId: z.number().nullable().optional(),
   addToPlacesVisited: z.boolean().optional(),
   // Trip type (added in v1.2.0)

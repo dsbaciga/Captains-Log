@@ -51,7 +51,7 @@ jest.mock('../../config/database', () => ({
 }));
 
 // Mock convertDecimals to pass through
-jest.mock('../../services/_shared/serviceHelpers', () => ({
+jest.mock('../../services/_shared/decimalConversion', () => ({
   convertDecimals: jest.fn((obj: unknown) => obj),
 }));
 

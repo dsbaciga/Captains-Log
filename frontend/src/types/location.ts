@@ -38,14 +38,6 @@ export type Location = {
     startDate: string | null;
     endDate: string | null;
   } | null;
-  photoAlbums?: {
-    id: number;
-    name: string;
-    description: string | null;
-    _count?: {
-      photoAssignments: number;
-    };
-  }[];
 };
 
 export type LocationCategory = {

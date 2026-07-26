@@ -56,7 +56,11 @@ services:
   backend:
     # Use pre-built image from GitHub Container Registry
     # Or build locally if you prefer
-    image: ghcr.io/dsbaciga/travel-life-backend:latest
+    # Pinned release image. Override per-deploy (e.g. to roll back):
+    #   APP_VERSION=v5.5.5 docker-compose -f <this file> up -d
+    # or set APP_VERSION in the env file. Do not go back to :latest - deploys must be
+    # reproducible, and rollback must be a matter of naming the previous tag.
+    image: ghcr.io/dsbaciga/travel-life-backend:${APP_VERSION:-v5.6.1}
     container_name: travel-life-backend
     environment:
       NODE_ENV: production
@@ -123,7 +127,11 @@ services:
     # Use pre-built image with TrueNAS-specific nginx proxy configuration
     # This allows the frontend to use relative URLs (/api, /uploads)
     # which are proxied to the backend container
-    image: ghcr.io/dsbaciga/travel-life-frontend:latest
+    # Pinned release image. Override per-deploy (e.g. to roll back):
+    #   APP_VERSION=v5.5.5 docker-compose -f <this file> up -d
+    # or set APP_VERSION in the env file. Do not go back to :latest - deploys must be
+    # reproducible, and rollback must be a matter of naming the previous tag.
+    image: ghcr.io/dsbaciga/travel-life-frontend:${APP_VERSION:-v5.6.1}
     container_name: travel-life-frontend
     environment:
       # Backend URL for nginx proxy (default: backend:5000 for Docker internal networking)

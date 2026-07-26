@@ -38,8 +38,8 @@ import {
   createAuthenticatedControllerArgs,
   createMockControllerArgs,
   createMockPhotoFile,
-} from '../../__tests__/helpers/requests';
-import { createAuthenticatedUser } from '../../__tests__/helpers/auth';
+} from '../../__tests__/mockBuilders/requests';
+import { createAuthenticatedUser } from '../../__tests__/mockBuilders/auth';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 /** Flush all pending promises for asyncHandler testing */

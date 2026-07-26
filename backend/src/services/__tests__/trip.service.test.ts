@@ -387,13 +387,17 @@ describe('Trip Service', () => {
 
       const result = await tripService.getTripById(mockUserId, mockTripId);
 
+      // Owner and collaborators only. `privacyLevel: 'Public'` must NOT appear
+      // here: it previously let any authenticated user read any Public trip, and
+      // trip IDs are sequential, so every Public trip was enumerable by every
+      // registered account. Public sharing goes through the token-based share
+      // path, which serves a sanitised payload.
       expect(mockPrisma.trip.findFirst).toHaveBeenCalledWith({
         where: {
           id: mockTripId,
           OR: [
             { userId: mockUserId },
             { collaborators: { some: { userId: mockUserId } } },
-            { privacyLevel: 'Public' },
           ],
         },
         include: expect.any(Object),
@@ -1527,9 +1531,11 @@ describe('Trip Service', () => {
       mockPrisma.trip.findMany.mockResolvedValue([]);
       mockPrisma.trip.count.mockResolvedValue(50);
 
+      // The controller's Zod schema coerces these query params to numbers, so
+      // the service is only ever handed numbers.
       const result = await tripService.getTrips(mockUserId, {
-        page: '2',
-        limit: '10',
+        page: 2,
+        limit: 10,
       });
 
       expect(mockPrisma.trip.findMany).toHaveBeenCalledWith(

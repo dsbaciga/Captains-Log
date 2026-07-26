@@ -1,6 +1,7 @@
 import type { Activity } from '../../types/activity';
 import type { WeatherDisplay } from '../../types/weather';
 import MarkdownRenderer from '../MarkdownRenderer';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 import type { DayItem } from './DayItem';
 
@@ -41,19 +42,8 @@ const formatTime = (dateTime: Date | string | null | undefined, timezone?: strin
   }
 };
 
-// Format currency
-const formatCost = (cost: number | null | undefined, currency: string | null | undefined): string => {
-  if (cost === null || cost === undefined) return '';
-  const curr = currency || 'USD';
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: curr,
-    }).format(cost);
-  } catch {
-    return `${curr} ${cost.toFixed(2)}`;
-  }
-};
+// Format currency (shared guarded helper — unknown codes must not throw)
+const formatCost = formatCurrency;
 
 // Get transportation type display name
 const getTransportTypeName = (type: string): string => {

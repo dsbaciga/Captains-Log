@@ -9,7 +9,7 @@ import {
   DocumentAlert,
   maskDocumentNumber,
 } from '../types/travelDocument.types';
-import { buildConditionalUpdateData, tripDateTransformer } from '../services/_shared/serviceHelpers';
+import { buildConditionalUpdateData, tripDateTransformer } from '../services/_shared/prismaUpdateData';
 import { Prisma, TravelDocument } from '@prisma/client';
 
 /**
@@ -20,10 +20,13 @@ function calculateExpirationStatus(
 ): 'expired' | 'critical' | 'warning' | 'caution' | 'valid' {
   if (!expiryDate) return 'valid';
 
+  // Expiry dates are stored as UTC midnight (see tripDateTransformer), so both sides of the
+  // comparison are normalised in UTC. setHours() would use the server's local timezone and
+  // shift the day boundary on any non-UTC deployment.
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
   const expiry = new Date(expiryDate);
-  expiry.setHours(0, 0, 0, 0);
+  expiry.setUTCHours(0, 0, 0, 0);
 
   const diffTime = expiry.getTime() - today.getTime();
   const daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -41,10 +44,11 @@ function calculateExpirationStatus(
 function calculateDaysUntilExpiry(expiryDate: Date | null): number | null {
   if (!expiryDate) return null;
 
+  // UTC-normalised for the same reason as calculateExpirationStatus above.
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
   const expiry = new Date(expiryDate);
-  expiry.setHours(0, 0, 0, 0);
+  expiry.setUTCHours(0, 0, 0, 0);
 
   const diffTime = expiry.getTime() - today.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -219,14 +223,16 @@ class TravelDocumentService {
     });
 
     const alerts: DocumentAlert[] = [];
+    // UTC-normalised: expiry dates are stored as UTC midnight, so a local-timezone "today"
+    // would move the alert boundary by a day on non-UTC deployments.
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
 
     for (const doc of documents) {
       if (!doc.expiryDate) continue;
 
       const expiry = new Date(doc.expiryDate);
-      expiry.setHours(0, 0, 0, 0);
+      expiry.setUTCHours(0, 0, 0, 0);
 
       const diffTime = expiry.getTime() - today.getTime();
       const daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -307,9 +313,9 @@ class TravelDocumentService {
         continue;
       }
 
+      // Stored as UTC midnight; compared below against trip.endDate, which is stored the
+      // same way. (A local-timezone "today" was computed here and never used — removed.)
       const expiry = new Date(doc.expiryDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
 
       const daysUntilExpiry = calculateDaysUntilExpiry(doc.expiryDate);
 

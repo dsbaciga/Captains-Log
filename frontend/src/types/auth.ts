@@ -3,6 +3,12 @@ export type User = {
   username: string;
   email: string;
   avatarUrl: string | null;
+  /**
+   * The user's configured IANA timezone. Carried in the session payload
+   * because nearly every screen formats a date, and this is the fallback when
+   * neither the entity nor its trip names a zone (see useTimezoneResolver).
+   */
+  timezone?: string | null;
   useCustomMapStyle?: boolean;
   /** Home currency (ISO 4217) budget totals are reported in; null = unset. */
   baseCurrency?: string | null;

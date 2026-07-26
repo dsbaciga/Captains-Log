@@ -55,23 +55,34 @@ const mockPrisma = {
   entityLink: {
     deleteMany: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
+
+// The delete path runs its writes inside a transaction. Hand the callback the
+// same mock client so the inner calls stay observable on mockPrisma.
+mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => unknown) =>
+  cb(mockPrisma)
+);
 
 jest.mock('../../config/database', () => ({
   __esModule: true,
   default: mockPrisma,
 }));
 
-// Mock service helpers
-jest.mock('../../services/_shared/serviceHelpers', () => {
-  const originalModule = jest.requireActual('../../services/_shared/serviceHelpers');
+// Mock trip access verification
+jest.mock('../../services/_shared/tripAccess', () => {
+  const originalModule = jest.requireActual('../../services/_shared/tripAccess');
   return {
     ...originalModule,
     verifyTripAccessWithPermission: jest.fn(),
     verifyEntityAccessWithPermission: jest.fn(),
-    cleanupEntityLinks: jest.fn(),
   };
 });
+
+// Mock entity link cleanup
+jest.mock('../../services/_shared/entityLinkCleanup', () => ({
+  cleanupEntityLinks: jest.fn(),
+}));
 
 // Mock date-fns-tz
 jest.mock('date-fns-tz', () => ({
@@ -79,7 +90,8 @@ jest.mock('date-fns-tz', () => ({
 }));
 
 import journalEntryService from '../journalEntry.service';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../services/_shared/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission } from '../../services/_shared/tripAccess';
+import { cleanupEntityLinks } from '../../services/_shared/entityLinkCleanup';
 import { AppError } from '../../errors/errors';
 import { fromZonedTime } from 'date-fns-tz';
 
@@ -585,10 +597,14 @@ describe('JournalEntryService', () => {
       const result = await journalEntryService.deleteJournalEntry(mockUserId, mockEntryId);
 
       expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
+      // Link cleanup and the delete share one transaction, so the cleanup
+      // helper is handed the transaction client.
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(cleanupEntityLinks).toHaveBeenCalledWith(
         mockTripId,
         'JOURNAL_ENTRY',
-        mockEntryId
+        mockEntryId,
+        mockPrisma
       );
       expect(mockPrisma.journalEntry.delete).toHaveBeenCalledWith({
         where: { id: mockEntryId },

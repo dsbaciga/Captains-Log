@@ -5,6 +5,7 @@ import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
 import LinkButton from "./LinkButton";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import PhotoDetailsPanel from "./PhotoDetailsPanel";
+import { pushModal, popModal } from "../utils/modalStack";
 
 interface PhotoLightboxProps {
   photo: Photo;
@@ -170,12 +171,15 @@ export default function PhotoLightbox({
     }
   }, [handleWheel]);
 
-  // Prevent body scroll
+  // Prevent body scroll.
+  // Uses the shared modal stack rather than writing document.body directly:
+  // the lightbox can open on top of an existing Modal, and an unconditional
+  // reset on cleanup would re-enable background scrolling while that modal is
+  // still open. The stack restores the original value only when the last
+  // modal/lightbox closes.
   useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    const modalId = pushModal();
+    return () => popModal(modalId);
   }, []);
 
   // Auto-hide controls
@@ -469,31 +473,6 @@ export default function PhotoLightbox({
               {/* Photo details */}
               <div className="flex-1">
                 <div className="flex gap-2 md:gap-4 text-white text-xs md:text-sm flex-wrap justify-center md:justify-start">
-                  {photo.location && (
-                    <span className="flex items-center gap-1">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      {photo.location.name}
-                    </span>
-                  )}
                   {photo.takenAt && (
                     <span className="flex items-center gap-1">
                       <svg

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTimezoneResolver } from '../../hooks/useTimezoneResolver';
 
 interface LocalTimeWidgetProps {
   tripTimezone: string; // IANA timezone like 'Europe/Paris'
@@ -183,11 +184,12 @@ export default function LocalTimeWidget({
   className = '',
 }: LocalTimeWidgetProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const resolveTz = useTimezoneResolver();
 
-  // Default home timezone to browser timezone
+  // Home is the viewer's configured zone, then their browser's.
   const resolvedHomeTimezone = useMemo(
-    () => homeTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-    [homeTimezone]
+    () => resolveTz(homeTimezone),
+    [homeTimezone, resolveTz]
   );
 
   // Check if timezones are the same

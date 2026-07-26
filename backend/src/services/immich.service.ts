@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { AppError } from '../errors/errors';
 import logger from '../config/logger';
+import prisma from '../config/database';
 import {
   ImmichAsset,
   ImmichAlbum,
@@ -582,6 +583,30 @@ class ImmichService {
       );
       throw new AppError('Failed to fetch assets by date range', 500);
     }
+  }
+
+  /**
+   * Load a user's stored Immich credentials.
+   *
+   * Lives here rather than in the controller so that database access stays in
+   * the service layer (Routes -> Controllers -> Services -> Prisma).
+   *
+   * Note: we intentionally do NOT re-validate the stored URL against internal
+   * addresses. Self-hosted Immich instances typically run on the same LAN
+   * (e.g. 192.168.x.x), which SSRF validation would block. The URL is checked
+   * when saved, and users can only set their own.
+   */
+  async getUserSettings(userId: number): Promise<{ apiUrl: string; apiKey: string }> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { immichApiUrl: true, immichApiKey: true },
+    });
+
+    if (!user?.immichApiUrl || !user?.immichApiKey) {
+      throw new AppError('Immich settings not configured', 400);
+    }
+
+    return { apiUrl: user.immichApiUrl, apiKey: user.immichApiKey };
   }
 }
 

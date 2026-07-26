@@ -1,12 +1,29 @@
 import prisma from '../config/database';
 import { AppError } from '../errors/errors';
-import { convertDecimals } from './_shared/serviceHelpers';
+import { convertDecimals } from './_shared/decimalConversion';
 import sharp from 'sharp';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs/promises';
 
-const COVER_DIR = path.join(process.cwd(), 'uploads', 'covers');
+const UPLOADS_ROOT = path.resolve(process.cwd(), 'uploads');
+const COVER_DIR = path.join(UPLOADS_ROOT, 'covers');
+
+/**
+ * Resolve a stored `/uploads/...` web path to an absolute path confined to the
+ * uploads root. Returns null when the value is not a stored upload path or when
+ * it escapes the root once normalised.
+ *
+ * Cover paths are always server-generated, so anything that fails this check is
+ * tampered data (e.g. a poisoned backup restore) and must never reach fs.unlink().
+ * Mirrors the containment pattern in share.service.getPublicPhotoFilePath().
+ */
+function resolveUploadPath(storedPath: string): string | null {
+  if (!storedPath.startsWith('/uploads/')) return null;
+  const absolute = path.resolve(UPLOADS_ROOT, storedPath.slice('/uploads/'.length));
+  if (!absolute.startsWith(UPLOADS_ROOT + path.sep)) return null;
+  return absolute;
+}
 
 // Cover images are decorative, so we only accept formats browsers can render directly
 // after re-encoding. Validated via magic bytes, not the client-supplied mimetype.
@@ -62,8 +79,17 @@ async function cleanupTempFile(tempPath: string): Promise<void> {
 async function deleteCoverFiles(paths: Array<string | null | undefined>): Promise<void> {
   for (const webPath of paths) {
     if (!webPath) continue;
+
+    const absolute = resolveUploadPath(webPath);
+    if (!absolute) {
+      console.error(
+        `[TripCoverImageService] Refusing to delete cover file outside the uploads directory: ${webPath}`
+      );
+      continue;
+    }
+
     try {
-      await fs.unlink(path.join(process.cwd(), webPath));
+      await fs.unlink(absolute);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         console.error(`[TripCoverImageService] Failed to delete cover file ${webPath}:`, error instanceof Error ? error.message : error);

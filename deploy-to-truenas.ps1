@@ -1,4 +1,4 @@
-# Travel Life - TrueNAS Deployment Helper Script
+﻿# Travel Life - TrueNAS Deployment Helper Script
 # This script helps you deploy Travel Life to your TrueNAS system
 
 param(
@@ -39,11 +39,22 @@ Write-Host "Target: $TruenasIP"
 Write-Host "Method: $Method"
 Write-Host ""
 
-# Test SSH connection
+# Test SSH connection.
+# Use a unique sentinel rather than "OK": an MOTD, banner or warning containing the
+# letters OK anywhere in the captured output would otherwise pass as success.
 Write-Host "Testing SSH connection..." -ForegroundColor Yellow
-$sshTest = ssh -o ConnectTimeout=5 root@$TruenasIP "echo OK" 2>&1
-if ($sshTest -notmatch "OK") {
-    Write-Host "� SSH connection failed" -ForegroundColor Red
+$sshSentinel = "TRAVELLIFE_SSH_OK_$([guid]::NewGuid().ToString('N'))"
+# $ErrorActionPreference is Stop, and `2>&1` on a native command turns any stderr line
+# (ssh banners, host-key notices) into a terminating NativeCommandError. Relax it for
+# the duration of the call and rely on the exit code plus the sentinel instead.
+$previousPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$sshTest = & ssh -o ConnectTimeout=5 root@$TruenasIP "echo $sshSentinel" 2>&1
+$sshExit = $LASTEXITCODE
+$ErrorActionPreference = $previousPreference
+$sshOutput = (@($sshTest) | ForEach-Object { "$_" }) -join "`n"
+if ($sshExit -ne 0 -or $sshOutput -notmatch [regex]::Escape($sshSentinel)) {
+    Write-Host "[XX] SSH connection failed" -ForegroundColor Red
     Write-Host ""
     Write-Host "Please ensure:" -ForegroundColor Yellow
     Write-Host "  1. TrueNAS SSH service is enabled"
@@ -53,7 +64,7 @@ if ($sshTest -notmatch "OK") {
     Write-Host "See DEPLOYMENT_TRUENAS.md for SSH setup instructions" -ForegroundColor Yellow
     exit 1
 }
-Write-Host " SSH connection successful" -ForegroundColor Green
+Write-Host "[OK] SSH connection successful" -ForegroundColor Green
 
 switch ($Method) {
     "1" {
@@ -68,9 +79,9 @@ switch ($Method) {
         scp docker-compose.truenas.yml root@${TruenasIP}:/mnt/main_pool/travel-life/
 
         if ($LASTEXITCODE -eq 0) {
-            Write-Host " File copied successfully" -ForegroundColor Green
+            Write-Host "[OK] File copied successfully" -ForegroundColor Green
         } else {
-            Write-Host "� File copy failed" -ForegroundColor Red
+            Write-Host "[XX] File copy failed" -ForegroundColor Red
             exit 1
         }
 
@@ -106,9 +117,9 @@ switch ($Method) {
         scp docker-compose.truenas.yml root@${TruenasIP}:/mnt/main_pool/travel-life/
 
         if ($LASTEXITCODE -eq 0) {
-            Write-Host " Files copied successfully" -ForegroundColor Green
+            Write-Host "[OK] Files copied successfully" -ForegroundColor Green
         } else {
-            Write-Host "� File copy failed" -ForegroundColor Red
+            Write-Host "[XX] File copy failed" -ForegroundColor Red
             exit 1
         }
 
@@ -128,6 +139,11 @@ switch ($Method) {
         Write-Host ""
         Write-Host "Method 3: Build and push to registry" -ForegroundColor Green
         Write-Host ""
+        Write-Host "NOTE: this pushes :latest by hand and is for ad-hoc testing only." -ForegroundColor Yellow
+        Write-Host "      Released versions are published by CI on a v* tag push -" -ForegroundColor Yellow
+        Write-Host "      use release.ps1 for a real release. The TrueNAS compose files" -ForegroundColor Yellow
+        Write-Host "      deploy a pinned \$APP_VERSION, not :latest." -ForegroundColor Yellow
+        Write-Host ""
 
         if (-not $env:DOCKER_REGISTRY) {
             Write-Host "Please set DOCKER_REGISTRY environment variable:" -ForegroundColor Yellow
@@ -143,7 +159,7 @@ switch ($Method) {
         & .\build.truenas.ps1 -Version latest -Registry $env:DOCKER_REGISTRY
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "� Build failed" -ForegroundColor Red
+            Write-Host "[XX] Build failed" -ForegroundColor Red
             exit 1
         }
 
@@ -153,12 +169,12 @@ switch ($Method) {
         docker push "$env:DOCKER_REGISTRY/travel-life-frontend:latest"
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "� Push failed" -ForegroundColor Red
+            Write-Host "[XX] Push failed" -ForegroundColor Red
             Write-Host "Make sure you're logged in: docker login ghcr.io" -ForegroundColor Yellow
             exit 1
         }
 
-        Write-Host " Images pushed successfully" -ForegroundColor Green
+        Write-Host "[OK] Images pushed successfully" -ForegroundColor Green
 
         # Copy docker-compose
         Write-Host ""

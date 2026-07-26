@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { EntityType } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG, LINKABLE_ENTITY_TYPES } from '../lib/entityConfig';
 import { useEntityFetcher, useEntityFilter } from '../hooks/useEntityFetcher';
+import { useInvalidateEntityLinks } from '../hooks/useInvalidateEntityLinks';
 import entityLinkService from '../services/entityLink.service';
 import { getFullAssetUrl } from '../lib/config';
 import { getAccessToken } from '../lib/axios';
@@ -36,6 +37,7 @@ export default function GeneralEntityPickerModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [thumbnailCache, setThumbnailCache] = useState<Record<number, string>>({});
+  const invalidateEntityLinks = useInvalidateEntityLinks();
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
   const blobUrlsRef = useRef<string[]>([]);
@@ -171,6 +173,9 @@ export default function GeneralEntityPickerModal({
       });
 
       toast.success('Link created');
+      // Both ends of the link need refreshing, not just the entity this modal
+      // was opened from.
+      invalidateEntityLinks(tripId);
       onSuccess?.();
       onClose();
     } catch (error: unknown) {
@@ -202,6 +207,7 @@ export default function GeneralEntityPickerModal({
       if (result.skipped > 0) {
         toast(`${result.skipped} already linked`, { icon: 'ℹ️' });
       }
+      invalidateEntityLinks(tripId);
       onSuccess?.();
       onClose();
     } catch (error: unknown) {

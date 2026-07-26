@@ -62,6 +62,18 @@ export interface BulkDeleteSavedLinksResponse {
   deletedCount: number;
 }
 
+/**
+ * How often to re-poll a saved-link list while a preview is still being
+ * scraped. Metadata is fetched in the background after a link is saved and
+ * nothing pushes the result to the client, so the list has to ask.
+ */
+export const PREVIEW_POLL_INTERVAL_MS = 3000;
+
+/** Whether any link in the list is still waiting on its preview. */
+export function hasPendingMetadata(links: SavedLink[] | undefined): boolean {
+  return !!links?.some((link) => link.metadataStatus === 'PENDING');
+}
+
 /** Best available display name for a link. */
 export function savedLinkDisplayTitle(link: SavedLink): string {
   return link.title?.trim() || link.siteName?.trim() || link.url;

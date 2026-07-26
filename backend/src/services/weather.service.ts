@@ -3,7 +3,8 @@ import { AppError } from '../errors/errors';
 import { WeatherDataInput } from '../types/weather.types';
 import config from '../config';
 import axios, { AxiosRequestConfig } from 'axios';
-import { verifyTripAccess, convertDecimals } from '../services/_shared/serviceHelpers';
+import { verifyTripAccess } from '../services/_shared/tripAccess';
+import { convertDecimals } from '../services/_shared/decimalConversion';
 import { isAxiosError } from '../types/prisma-helpers';
 
 interface OpenWeatherResponse {
@@ -233,22 +234,36 @@ class WeatherService {
           locationName: updated.location?.name || coordinates.locationName || null,
         };
       } else {
-        // Create new record
-        const created = await prisma.weatherData.create({
-          data: {
+        // Upsert rather than create: the cache check above is a read, so two
+        // concurrent requests for the same trip/day could both miss it and both
+        // insert. `@@unique([tripId, date])` plus upsert makes that race a
+        // no-op update instead of a duplicate row (or a constraint violation).
+        const weatherRow = {
+          temperatureHigh: weatherData.temperatureHigh,
+          temperatureLow: weatherData.temperatureLow,
+          conditions: weatherData.conditions,
+          precipitation: weatherData.precipitation,
+          humidity: weatherData.humidity,
+          windSpeed: weatherData.windSpeed,
+          sunrise: weatherData.sunrise ? new Date(weatherData.sunrise) : null,
+          sunset: weatherData.sunset ? new Date(weatherData.sunset) : null,
+          locationId: coordinates.locationId || null,
+          fetchedAt: new Date(),
+        };
+
+        const created = await prisma.weatherData.upsert({
+          where: {
+            tripId_date: {
+              tripId,
+              date: new Date(dateString),
+            },
+          },
+          create: {
             tripId,
             date: new Date(dateString),
-            temperatureHigh: weatherData.temperatureHigh,
-            temperatureLow: weatherData.temperatureLow,
-            conditions: weatherData.conditions,
-            precipitation: weatherData.precipitation,
-            humidity: weatherData.humidity,
-            windSpeed: weatherData.windSpeed,
-            sunrise: weatherData.sunrise ? new Date(weatherData.sunrise) : null,
-            sunset: weatherData.sunset ? new Date(weatherData.sunset) : null,
-            locationId: coordinates.locationId || null,
-            fetchedAt: new Date(),
+            ...weatherRow,
           },
+          update: weatherRow,
           include: {
             location: {
               select: { name: true },

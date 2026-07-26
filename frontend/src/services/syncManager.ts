@@ -77,7 +77,7 @@ export interface ConflictInfo {
 /**
  * Stored conflict for user resolution (extends SyncConflict from types)
  */
-interface StoredConflict extends Omit<SyncConflict, 'id'> {
+export interface StoredConflict extends Omit<SyncConflict, 'id'> {
   id?: number;
 }
 
@@ -385,13 +385,18 @@ class SyncManager {
     const endpoint = ENTITY_ENDPOINTS[change.entityType];
     const entityId = parseInt(change.entityId, 10);
 
-    // Handle trips differently as they don't have a tripId prefix in the URL
-    let url: string;
-    if (change.entityType === 'trip') {
-      url = `${endpoint}/${entityId}`;
-    } else {
-      url = `${endpoint}/${entityId}`;
+    // A non-numeric entityId (e.g. a local UUID for an entity created offline)
+    // would build `/{endpoint}/NaN`, which 404s — and the 404 branch below
+    // reads that as "deleted on server", auto-resolving to local and silently
+    // discarding a live update. Fail the check explicitly instead of guessing.
+    if (Number.isNaN(entityId)) {
+      throw new Error(
+        `Cannot check for conflict: non-numeric entityId "${change.entityId}" for ${change.entityType}`
+      );
     }
+
+    // All entity endpoints address a single record by ID; trips are not special.
+    const url = `${endpoint}/${entityId}`;
 
     try {
       const response = await axiosInstance.get(url);
@@ -638,10 +643,17 @@ class SyncManager {
 
   /**
    * Resolve a conflict with user's decision
+   *
+   * @param conflictId   IndexedDB key of the parked conflict.
+   * @param resolution   How the user chose to resolve it.
+   * @param resolvedData Exact payload to push. Supplied by the resolution UI
+   *                     when the user picked values field by field; when
+   *                     omitted the automatic merge is recomputed.
    */
   async resolveConflict(
     conflictId: number,
-    resolution: ConflictResolution
+    resolution: ConflictResolution,
+    resolvedData?: Record<string, unknown>
   ): Promise<{ success: boolean }> {
     const db = await getDb();
     const conflict = await db.get('syncConflicts', conflictId);
@@ -654,15 +666,24 @@ class SyncManager {
       const endpoint = ENTITY_ENDPOINTS[conflict.entityType as SyncEntityType];
       const entityId = parseInt(conflict.entityId, 10);
 
+      if (Number.isNaN(entityId)) {
+        console.error(
+          `Cannot resolve conflict ${conflictId}: non-numeric entityId "${conflict.entityId}"`
+        );
+        return { success: false };
+      }
+
       if (resolution === 'local') {
         // Push local changes
-        await axiosInstance.put(`${endpoint}/${entityId}`, conflict.localData);
+        await axiosInstance.put(`${endpoint}/${entityId}`, resolvedData ?? conflict.localData);
       } else if (resolution === 'merge') {
         // Merge and push
-        const merged = this.mergeChanges(
-          conflict.localData as Record<string, unknown>,
-          conflict.serverData as Record<string, unknown>
-        );
+        const merged =
+          resolvedData ??
+          this.mergeChanges(
+            conflict.localData as Record<string, unknown>,
+            conflict.serverData as Record<string, unknown>
+          );
         await axiosInstance.put(`${endpoint}/${entityId}`, merged);
       }
       // For 'server', we don't need to do anything - server version is already current

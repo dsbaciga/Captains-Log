@@ -7,6 +7,7 @@
  */
 
 // Main components
+export { default as PwaStatusLayer } from './PwaStatusLayer';
 export { default as OfflineIndicator } from './OfflineIndicator';
 export { default as SyncStatus } from './SyncStatus';
 export { default as DataFreshnessIndicator } from './DataFreshnessIndicator';

@@ -4,6 +4,9 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 jest.mock('../../services/immich.service', () => ({
   __esModule: true,
   default: {
+    // The controller no longer queries Prisma for Immich credentials; it asks
+    // the service, which owns the "not configured" error.
+    getUserSettings: jest.fn(),
     testConnection: jest.fn(),
     getAssets: jest.fn(),
     getAssetById: jest.fn(),
@@ -33,17 +36,19 @@ import immichService from '../../services/immich.service';
 import { immichController } from '../immich.controller';
 import {
   createAuthenticatedControllerArgs,
-} from '../../__tests__/helpers/requests';
+} from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 
 const flushPromises = () => new Promise(resolve => process.nextTick(resolve));
 
 // Helper to mock user Immich settings
 function mockUserImmichSettings(apiUrl = 'http://immich:2283', apiKey = 'test-key') {
-  (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+  jest.mocked(immichService.getUserSettings).mockResolvedValue({ apiUrl, apiKey });
+  // Kept in sync for any path that still reaches the database directly.
+  mockPrisma.user.findUnique.mockResolvedValue({
     immichApiUrl: apiUrl,
     immichApiKey: apiKey,
-  } as never);
+  });
 }
 
 describe('immich.controller', () => {
@@ -51,12 +56,12 @@ describe('immich.controller', () => {
 
   describe('testConnection', () => {
     it('should test connection and return success', async () => {
-      (immichService.testConnection as jest.Mock).mockResolvedValue(true as never);
+      jest.mocked(immichService.testConnection).mockResolvedValue(true);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         body: { apiUrl: 'http://immich:2283', apiKey: 'test-key' },
       });
-      immichController.testConnection(req as any, res as any, next);
+      immichController.testConnection(req, res, next);
       await flushPromises();
 
       expect(immichService.testConnection).toHaveBeenCalledWith('http://immich:2283', 'test-key');
@@ -73,7 +78,7 @@ describe('immich.controller', () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         body: { apiUrl: 'http://immich:2283' },
       });
-      immichController.testConnection(req as any, res as any, next);
+      immichController.testConnection(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalled();
@@ -84,12 +89,12 @@ describe('immich.controller', () => {
     it('should return assets with thumbnail and file URLs', async () => {
       mockUserImmichSettings();
       const mockAssets = { assets: [{ id: 'asset-1' }], hasMore: false };
-      (immichService.getAssets as jest.Mock).mockResolvedValue(mockAssets as never);
+      jest.mocked(immichService.getAssets).mockResolvedValue(mockAssets);
       (immichService.getAssetThumbnailUrl as jest.Mock).mockReturnValue('http://thumb/asset-1');
       (immichService.getAssetFileUrl as jest.Mock).mockReturnValue('http://file/asset-1');
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
-      immichController.getAssets(req as any, res as any, next);
+      immichController.getAssets(req, res, next);
       await flushPromises();
 
       expect(immichService.getAssets).toHaveBeenCalledWith(
@@ -115,12 +120,12 @@ describe('immich.controller', () => {
     it('should pass pagination options from query params', async () => {
       mockUserImmichSettings();
       const mockAssets = { assets: [], hasMore: false };
-      (immichService.getAssets as jest.Mock).mockResolvedValue(mockAssets as never);
+      jest.mocked(immichService.getAssets).mockResolvedValue(mockAssets);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         query: { skip: '10', take: '20' },
       });
-      immichController.getAssets(req as any, res as any, next);
+      immichController.getAssets(req, res, next);
       await flushPromises();
 
       expect(immichService.getAssets).toHaveBeenCalledWith(
@@ -135,14 +140,14 @@ describe('immich.controller', () => {
     it('should return a single asset with URLs', async () => {
       mockUserImmichSettings();
       const mockAsset = { id: 'asset-1', originalFileName: 'photo.jpg' };
-      (immichService.getAssetById as jest.Mock).mockResolvedValue(mockAsset as never);
+      jest.mocked(immichService.getAssetById).mockResolvedValue(mockAsset);
       (immichService.getAssetThumbnailUrl as jest.Mock).mockReturnValue('http://thumb/asset-1');
       (immichService.getAssetFileUrl as jest.Mock).mockReturnValue('http://file/asset-1');
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { assetId: 'asset-1' },
       });
-      immichController.getAssetById(req as any, res as any, next);
+      immichController.getAssetById(req, res, next);
       await flushPromises();
 
       expect(immichService.getAssetById).toHaveBeenCalledWith(
@@ -165,14 +170,14 @@ describe('immich.controller', () => {
     it('should search assets and return results with URLs', async () => {
       mockUserImmichSettings();
       const mockAssets = [{ id: 'asset-1' }];
-      (immichService.searchAssets as jest.Mock).mockResolvedValue(mockAssets as never);
+      jest.mocked(immichService.searchAssets).mockResolvedValue(mockAssets);
       (immichService.getAssetThumbnailUrl as jest.Mock).mockReturnValue('http://thumb/asset-1');
       (immichService.getAssetFileUrl as jest.Mock).mockReturnValue('http://file/asset-1');
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         body: { query: 'vacation' },
       });
-      immichController.searchAssets(req as any, res as any, next);
+      immichController.searchAssets(req, res, next);
       await flushPromises();
 
       expect(immichService.searchAssets).toHaveBeenCalledWith(
@@ -193,10 +198,10 @@ describe('immich.controller', () => {
     it('should return albums', async () => {
       mockUserImmichSettings();
       const mockAlbums = [{ id: 'album-1', albumName: 'Vacation' }];
-      (immichService.getAlbums as jest.Mock).mockResolvedValue(mockAlbums as never);
+      jest.mocked(immichService.getAlbums).mockResolvedValue(mockAlbums);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1);
-      immichController.getAlbums(req as any, res as any, next);
+      immichController.getAlbums(req, res, next);
       await flushPromises();
 
       expect(immichService.getAlbums).toHaveBeenCalledWith(
@@ -212,12 +217,12 @@ describe('immich.controller', () => {
 
     it('should pass shared=true query param', async () => {
       mockUserImmichSettings();
-      (immichService.getAlbums as jest.Mock).mockResolvedValue([] as never);
+      jest.mocked(immichService.getAlbums).mockResolvedValue([]);
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         query: { shared: 'true' },
       });
-      immichController.getAlbums(req as any, res as any, next);
+      immichController.getAlbums(req, res, next);
       await flushPromises();
 
       expect(immichService.getAlbums).toHaveBeenCalledWith(
@@ -232,14 +237,14 @@ describe('immich.controller', () => {
     it('should return album with asset URLs', async () => {
       mockUserImmichSettings();
       const mockAlbum = { id: 'album-1', albumName: 'Trip', assets: [{ id: 'asset-1' }] };
-      (immichService.getAlbumById as jest.Mock).mockResolvedValue(mockAlbum as never);
+      jest.mocked(immichService.getAlbumById).mockResolvedValue(mockAlbum);
       (immichService.getAssetThumbnailUrl as jest.Mock).mockReturnValue('http://thumb/asset-1');
       (immichService.getAssetFileUrl as jest.Mock).mockReturnValue('http://file/asset-1');
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { albumId: 'album-1' },
       });
-      immichController.getAlbumById(req as any, res as any, next);
+      immichController.getAlbumById(req, res, next);
       await flushPromises();
 
       expect(immichService.getAlbumById).toHaveBeenCalledWith(
@@ -261,14 +266,14 @@ describe('immich.controller', () => {
     it('should return assets within date range', async () => {
       mockUserImmichSettings();
       const mockResult = { assets: [{ id: 'asset-1' }], hasMore: false };
-      (immichService.getAssetsByDateRange as jest.Mock).mockResolvedValue(mockResult as never);
+      jest.mocked(immichService.getAssetsByDateRange).mockResolvedValue(mockResult);
       (immichService.getAssetThumbnailUrl as jest.Mock).mockReturnValue('http://thumb/asset-1');
       (immichService.getAssetFileUrl as jest.Mock).mockReturnValue('http://file/asset-1');
 
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         query: { startDate: '2024-06-01', endDate: '2024-06-10' },
       });
-      immichController.getAssetsByDateRange(req as any, res as any, next);
+      immichController.getAssetsByDateRange(req, res, next);
       await flushPromises();
 
       expect(immichService.getAssetsByDateRange).toHaveBeenCalledWith(
@@ -286,7 +291,7 @@ describe('immich.controller', () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         query: {},
       });
-      immichController.getAssetsByDateRange(req as any, res as any, next);
+      immichController.getAssetsByDateRange(req, res, next);
       await flushPromises();
 
       expect(next).toHaveBeenCalled();
@@ -302,7 +307,7 @@ describe('immich.controller', () => {
       const { req, res, next } = createAuthenticatedControllerArgs(testUsers.user1, {
         params: { assetId: 'asset-1' },
       });
-      immichController.getAssetUrls(req as any, res as any, next);
+      immichController.getAssetUrls(req, res, next);
       await flushPromises();
 
       expect(res.json).toHaveBeenCalledWith({

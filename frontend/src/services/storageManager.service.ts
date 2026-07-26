@@ -460,6 +460,10 @@ async function clearCategory(category: StorageCategory): Promise<void> {
       // Clear trip-related stores in IndexedDB
       const tripDb = await openDatabase();
       if (tripDb) {
+        // NOTE: these must match the object store names created in
+        // lib/offlineDb.ts (STORE_NAMES) exactly. db.transaction() throws
+        // NotFoundError for an unknown store, so a typo here silently means
+        // "that data is never cleared".
         const tripStores = [
           'trips',
           'locations',
@@ -468,13 +472,13 @@ async function clearCategory(category: StorageCategory): Promise<void> {
           'lodging',
           'journals',
           'photos',
-          'albums',
+          'photoAlbums',
           'checklists',
           'checklistItems',
           'entityLinks',
-          'tags',
+          'tripTags',
           'tagAssignments',
-          'companions',
+          'travelCompanions',
           'tripCompanions',
         ];
 
@@ -483,8 +487,13 @@ async function clearCategory(category: StorageCategory): Promise<void> {
             const transaction = tripDb.transaction(storeName, 'readwrite');
             const store = transaction.objectStore(storeName);
             store.clear();
-          } catch {
-            // Store might not exist
+          } catch (error) {
+            // Do not swallow: an unknown store name means data silently
+            // survives a "clear" the user explicitly asked for.
+            console.error(
+              `[storageManager] Failed to clear IndexedDB store "${storeName}":`,
+              error
+            );
           }
         }
         tripDb.close();
@@ -496,15 +505,26 @@ async function clearCategory(category: StorageCategory): Promise<void> {
       // Clear sync queue, drafts, and other metadata
       const otherDb = await openDatabase();
       if (otherDb) {
-        const otherStores = ['syncQueue', 'conflicts', 'idMappings', 'localDrafts', 'searchIndex', 'metadata'];
+        // Names must match STORE_NAMES in lib/offlineDb.ts — see the note above.
+        const otherStores = [
+          'syncQueue',
+          'syncConflicts',
+          'idMappings',
+          'localDrafts',
+          'searchIndex',
+          'metadata',
+        ];
 
         for (const storeName of otherStores) {
           try {
             const transaction = otherDb.transaction(storeName, 'readwrite');
             const store = transaction.objectStore(storeName);
             store.clear();
-          } catch {
-            // Store might not exist
+          } catch (error) {
+            console.error(
+              `[storageManager] Failed to clear IndexedDB store "${storeName}":`,
+              error
+            );
           }
         }
         otherDb.close();

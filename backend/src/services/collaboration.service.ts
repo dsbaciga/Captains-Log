@@ -108,6 +108,11 @@ export const collaborationService = {
       throw new AppError('Trip not found', 404);
     }
 
+    // Prevent non-owners from inviting at admin permission level
+    if (data.permissionLevel === PermissionLevel.ADMIN && trip.userId !== userId) {
+      throw new AppError('Only the trip owner can invite collaborators with admin permissions', 403);
+    }
+
     // Check if invited email is the trip owner
     if (trip.user.email.toLowerCase() === data.email.toLowerCase()) {
       throw new AppError('Cannot invite the trip owner', 400);

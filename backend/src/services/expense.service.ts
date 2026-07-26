@@ -7,11 +7,9 @@ import {
   BudgetConversionInfo,
   UnconvertedAmount,
 } from '../types/expense.types';
-import {
-  verifyTripAccessWithPermission,
-  convertDecimals,
-  tripDateTransformer,
-} from '../services/_shared/serviceHelpers';
+import { verifyTripAccessWithPermission } from '../services/_shared/tripAccess';
+import { tripDateTransformer } from '../services/_shared/prismaUpdateData';
+import { convertDecimals } from '../services/_shared/decimalConversion';
 import exchangeRateService, { normalizeCurrency } from './exchangeRate.service';
 import { Prisma } from '@prisma/client';
 

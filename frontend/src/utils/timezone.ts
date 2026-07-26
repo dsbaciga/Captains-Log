@@ -5,6 +5,53 @@
  */
 
 /**
+ * Last-resort timezone, used only when neither the user nor the browser can
+ * name one. This is not a display default — see `resolveTimezone`.
+ */
+export const FALLBACK_TIMEZONE = 'UTC';
+
+/**
+ * The browser's IANA timezone, e.g. "America/Denver".
+ *
+ * Used as the default when a signed-in user has never chosen one, so times
+ * render where the person actually is rather than in UTC.
+ */
+export function getBrowserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || FALLBACK_TIMEZONE;
+  } catch {
+    // Intl is present everywhere we support, but a locked-down environment can
+    // still throw; a wrong-but-valid zone beats an exception in a date format.
+    return FALLBACK_TIMEZONE;
+  }
+}
+
+/**
+ * Picks the first timezone that was actually specified.
+ *
+ * Times belong to the most specific zone that claims them: an entity's own
+ * timezone, else its trip's, else the viewer's. Pass the candidates in that
+ * order and this returns the first non-empty one, falling back to the
+ * browser's zone — never silently to UTC, which would show a user times that
+ * are hours off from the clock on their wall.
+ *
+ * In components prefer `useTimezoneResolver`, which appends the signed-in
+ * user's configured timezone for you.
+ *
+ * @example
+ * resolveTimezone(activity.timezone, tripTimezone, user?.timezone)
+ */
+export function resolveTimezone(
+  ...candidates: Array<string | null | undefined>
+): string {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed) return trimmed;
+  }
+  return getBrowserTimezone();
+}
+
+/**
  * Format a date/time string in a specific timezone
  * @param dateTime ISO datetime string
  * @param timezone IANA timezone string (e.g., "America/New_York")
@@ -380,6 +427,63 @@ export function convertISOToDateTimeLocal(
   const minute = parts.find(p => p.type === 'minute')?.value ?? '00';
 
   return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+/**
+ * Format a date-only value (a trip's start date, an expense date) for display.
+ *
+ * These columns hold a calendar date, not an instant — the database stores
+ * "2026-07-25" and it means that day everywhere. `new Date()` parses it as
+ * midnight UTC, so formatting it in any zone west of UTC would render the day
+ * before. This pins the format to UTC to keep the date the user typed.
+ *
+ * This is the one place UTC is still correct: do NOT reach for
+ * `resolveTimezone` here. Real timestamps (an activity's start time) belong in
+ * a real zone — use `formatDateTimeInTimezone` with a resolved zone instead.
+ *
+ * @returns the formatted date, or null when the input is missing or unparseable
+ */
+export function formatDateOnly(
+  dateString: string | null | undefined,
+  options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  },
+  locale?: string
+): string | null {
+  if (!dateString) return null;
+
+  const datePortion = dateString.split('T')[0];
+  const date = new Date(`${datePortion}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleDateString(locale, { ...options, timeZone: 'UTC' });
+}
+
+/**
+ * The calendar day an instant falls on, as YYYY-MM-DD, in a given timezone.
+ *
+ * Grouping by the raw ISO prefix buckets by the UTC day, which puts a 9pm
+ * activity in Tokyo on the wrong date. Pass the zone the day should be
+ * measured in — usually `resolveTimezone(entity.timezone, trip.timezone)`.
+ */
+export function dayKeyInTimezone(
+  isoString: string | null | undefined,
+  timezone?: string | null
+): string | null {
+  if (!isoString) return null;
+
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return null;
+
+  // en-CA renders as YYYY-MM-DD, which sorts lexicographically.
+  return new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: resolveTimezone(timezone),
+  }).format(date);
 }
 
 /**

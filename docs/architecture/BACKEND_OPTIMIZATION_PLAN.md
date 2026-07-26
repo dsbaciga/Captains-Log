@@ -290,7 +290,7 @@ return checklists.map((checklist: any) => {
 **Proposed Solution:**
 
 ```typescript
-// In checklist.service.ts or serviceHelpers.ts
+// In checklist.service.ts or a _shared/ module
 function addChecklistStats<T extends { items: { isChecked: boolean }[] }>(
   checklist: T
 ): T & { stats: { total: number; checked: number; percentage: number } } {
@@ -527,7 +527,7 @@ type ChecklistWithStats = ChecklistWithItems & {
 
 **Status:** ✅ COMPLETE
 
-**Solution Implemented:** Created `cleanupEntityLinks(tripId, entityType, entityId)` helper in serviceHelpers.ts.
+**Solution Implemented:** Created `cleanupEntityLinks(tripId, entityType, entityId)` helper in `_shared/entityLinkCleanup.ts`.
 
 **Migration Status:**
 | Service | Using Helper | Status |
@@ -559,7 +559,7 @@ await prisma.entityLink.deleteMany({
 **Proposed Solution:**
 
 ```typescript
-// Add to serviceHelpers.ts or entityLink.service.ts
+// Add to a _shared/ module or entityLink.service.ts
 export async function cleanupEntityLinks(
   tripId: number,
   entityType: EntityType,
@@ -642,7 +642,7 @@ transformers: {
 | Task | Status |
 |------|--------|
 | Create `utils/responseHelpers.ts` | ✅ Done |
-| Add entity link cleanup helper to `serviceHelpers.ts` | ✅ Done |
+| Add entity link cleanup helper to `_shared/entityLinkCleanup.ts` | ✅ Done |
 | Add additional Prisma include constants | ✅ Done (10+ patterns) |
 | Standardize `req.user` property access | ✅ Done (all use requireUserId) |
 
@@ -789,7 +789,7 @@ All changes are internal refactoring. The API contract remains unchanged:
 | File | Why It's Good |
 |------|---------------|
 | activity.controller.ts | ✅ Clean asyncHandler pattern - USE AS TEMPLATE |
-| serviceHelpers.ts | ✅ Good abstraction with buildConditionalUpdateData |
+| _shared/prismaUpdateData.ts | ✅ Good abstraction with buildConditionalUpdateData |
 | prismaIncludes.ts | ✅ Reusable constants (5 patterns defined) |
 | entityLink.service.ts | ✅ Config-driven pattern |
 | asyncHandler.ts | ✅ Simple, effective utility |

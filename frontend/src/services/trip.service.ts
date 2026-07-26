@@ -14,6 +14,12 @@ class TripService {
     limit?: number;
     tripType?: string;
     archived?: 'true' | 'false' | 'all';
+    /** Inclusive lower bound on startDate, as YYYY-MM-DD. */
+    startDateFrom?: string;
+    /** Inclusive upper bound on startDate, as YYYY-MM-DD. */
+    startDateTo?: string;
+    /** Comma-separated tag IDs. */
+    tags?: string;
     /** Mirrors the backend's sort enum in trip.types.ts. */
     sort?: 'startDate-desc' | 'startDate-asc' | 'title-asc' | 'title-desc' | 'status';
   }): Promise<TripListResponse> {

@@ -36,7 +36,13 @@ jest.mock('@prisma/client', () => {
 
 // Transaction mock that passes the mock prisma as tx
 const mockTx = {
-  user: { update: jest.fn() },
+  user: { update: jest.fn(), findUnique: jest.fn() },
+  // SavedLink.tripId is SetNull rather than Cascade, so clearUserData has to
+  // remove saved links explicitly.
+  savedLink: {
+    create: jest.fn(),
+    deleteMany: jest.fn(),
+  },
   trip: {
     create: jest.fn(),
     update: jest.fn(),
@@ -98,6 +104,7 @@ const mockTx = {
   },
   weatherData: {
     create: jest.fn(),
+    upsert: jest.fn(),
   },
   tripTagAssignment: {
     create: jest.fn(),
@@ -353,10 +360,12 @@ describe('RestoreService', () => {
     });
 
     it('RST-002: rejects unsupported backup version', async () => {
-      const invalidBackup = { ...minimalBackup, version: '99.0.0' };
+      // The version value is deliberately unsupported -- that is the point of the
+      // test. It is still a structurally valid BackupData, so it needs no cast.
+      const invalidBackup: BackupData = { ...minimalBackup, version: '99.0.0' };
 
       await expect(
-        restoreFromBackup(1, invalidBackup as BackupData)
+        restoreFromBackup(1, invalidBackup)
       ).rejects.toThrow('Incompatible backup version');
     });
 
@@ -382,7 +391,7 @@ describe('RestoreService', () => {
     });
 
     it('RST-005: imports tags correctly', async () => {
-      const backup = {
+      const backup: BackupData = {
         ...minimalBackup,
         tags: [
           { name: 'Beach', color: '#0000ff', textColor: '#ffffff' },
@@ -390,21 +399,21 @@ describe('RestoreService', () => {
         ],
       };
 
-      const result = await restoreFromBackup(1, backup as BackupData);
+      const result = await restoreFromBackup(1, backup);
 
       expect(mockTx.tripTag.create).toHaveBeenCalledTimes(2);
       expect(result.stats.tagsImported).toBe(2);
     });
 
     it('RST-006: imports companions correctly', async () => {
-      const backup = {
+      const backup: BackupData = {
         ...minimalBackup,
         companions: [
           { name: 'John', email: 'john@example.com', relationship: 'friend' },
         ],
       };
 
-      const result = await restoreFromBackup(1, backup as BackupData);
+      const result = await restoreFromBackup(1, backup);
 
       expect(mockTx.travelCompanion.create).toHaveBeenCalledTimes(1);
       expect(result.stats.companionsImported).toBe(1);
@@ -492,8 +501,8 @@ describe('RestoreService', () => {
     });
 
     it('RST-014: accepts v1.0.0 and v1.1.0 backup versions', async () => {
-      const v100Backup = { ...minimalBackup, version: '1.0.0' };
-      const result100 = await restoreFromBackup(1, v100Backup as BackupData);
+      const v100Backup: BackupData = { ...minimalBackup, version: '1.0.0' };
+      const result100 = await restoreFromBackup(1, v100Backup);
       expect(result100.success).toBe(true);
 
       jest.clearAllMocks();
@@ -513,8 +522,8 @@ describe('RestoreService', () => {
       mockTx.travelDocument.deleteMany.mockResolvedValue({ count: 0 });
       mockTx.tripSeries.deleteMany.mockResolvedValue({ count: 0 });
 
-      const v110Backup = { ...minimalBackup, version: '1.1.0' };
-      const result110 = await restoreFromBackup(1, v110Backup as BackupData);
+      const v110Backup: BackupData = { ...minimalBackup, version: '1.1.0' };
+      const result110 = await restoreFromBackup(1, v110Backup);
       expect(result110.success).toBe(true);
     });
   });

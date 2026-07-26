@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import entityLinkService from '../services/entityLink.service';
+import { useInvalidateEntityLinks } from '../hooks/useInvalidateEntityLinks';
 import GeneralEntityPickerModal from './GeneralEntityPickerModal';
 import LinkEditModal from './LinkEditModal';
 import { getFullAssetUrl } from '../lib/config';
@@ -76,6 +77,7 @@ export default function LinkPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
   const blobUrlsRef = useRef<string[]>([]);
+  const invalidateEntityLinks = useInvalidateEntityLinks();
 
   // Navigate to the linked entity's location in the trip detail page
   const handleNavigateToEntity = (linkedEntityType: EntityType, linkedEntityId: number) => {
@@ -112,6 +114,8 @@ export default function LinkPanel({
     mutationFn: (linkId: number) => entityLinkService.deleteLinkById(tripId, linkId),
     onSuccess: () => {
       refetch();
+      // The entity at the other end of the removed link is showing it too.
+      invalidateEntityLinks(tripId);
       onUpdate?.();
     },
     onError: (error: Error) => {

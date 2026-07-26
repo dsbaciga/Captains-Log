@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router";
 import LocationManager from "../LocationManager";
 import locationService from "../../services/location.service";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

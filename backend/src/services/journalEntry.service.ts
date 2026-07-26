@@ -3,7 +3,13 @@ import {
   CreateJournalEntryInput,
   UpdateJournalEntryInput,
 } from '../types/journalEntry.types';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
+import {
+  verifyTripAccessWithPermission,
+  verifyEntityAccessWithPermission,
+} from '../services/_shared/tripAccess';
+import { buildConditionalUpdateData } from '../services/_shared/prismaUpdateData';
+import { convertDecimals } from '../services/_shared/decimalConversion';
+import { cleanupEntityLinks } from '../services/_shared/entityLinkCleanup';
 import { fromZonedTime } from 'date-fns-tz';
 import { parseISO } from 'date-fns';
 
@@ -18,21 +24,25 @@ class JournalEntryService {
       select: { timezone: true },
     });
 
+    // `date` is accepted as an alias for `entryDate` so the input shape can
+    // round-trip the `date` field the API returns on read.
+    const entryDateInput = data.entryDate ?? data.date;
+
     // Parse entry date with trip timezone
     let entryDate: Date;
-    if (data.entryDate) {
+    if (entryDateInput) {
       // If trip has timezone, convert from that timezone to UTC for storage
       if (fullTrip?.timezone) {
         try {
           // Parse the ISO string and interpret it as being in the trip's timezone
-          const parsedDate = parseISO(data.entryDate);
+          const parsedDate = parseISO(entryDateInput);
           entryDate = fromZonedTime(parsedDate, fullTrip.timezone);
         } catch (error) {
           console.error('Error parsing date with timezone:', error);
-          entryDate = new Date(data.entryDate);
+          entryDate = new Date(entryDateInput);
         }
       } else {
-        entryDate = new Date(data.entryDate);
+        entryDate = new Date(entryDateInput);
       }
     } else {
       entryDate = new Date();
@@ -45,6 +55,8 @@ class JournalEntryService {
         content: data.content,
         date: entryDate,
         entryType: data.entryType || 'daily',
+        mood: data.mood || null,
+        weatherNotes: data.weatherNotes || null,
       },
     });
 
@@ -108,10 +120,13 @@ class JournalEntryService {
       }
     };
 
-    // Extract only the fields that are valid for JournalEntry model
-    const { title, content, entryDate } = data;
+    // Extract only the fields that are valid for JournalEntry model.
+    // `date` is accepted as an alias for `entryDate`; when both are omitted the
+    // date is left unchanged, and `entryDate` takes precedence if both are sent.
+    const { title, content, entryDate, date, mood, weatherNotes } = data;
+    const dateInput = entryDate !== undefined ? entryDate : date;
     const updateData = buildConditionalUpdateData(
-      { title, content, date: entryDate },
+      { title, content, date: dateInput, mood, weatherNotes },
       {
         transformers: {
           title: (val: string | null) => val || null,

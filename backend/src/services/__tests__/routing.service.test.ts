@@ -39,6 +39,7 @@ const mockPrisma = {
   routeCache: {
     findFirst: jest.fn(),
     create: jest.fn(),
+    upsert: jest.fn(),
     deleteMany: jest.fn(),
   },
 };
@@ -204,7 +205,7 @@ describe('RoutingService', () => {
 
     it('RTE-006: caches the route result from API', async () => {
       mockPrisma.routeCache.findFirst.mockResolvedValue(null);
-      mockPrisma.routeCache.create.mockResolvedValue({});
+      mockPrisma.routeCache.upsert.mockResolvedValue({});
 
       mockAxios.post.mockResolvedValue({
         status: 200,
@@ -226,14 +227,34 @@ describe('RoutingService', () => {
 
       await routingService.calculateRoute(fromCoords, toCoords);
 
-      expect(mockPrisma.routeCache.create).toHaveBeenCalledWith(
+      // Cache writes go through upsert (not create) so concurrent identical
+      // route requests cannot trip the unique constraint.
+      expect(mockPrisma.routeCache.create).not.toHaveBeenCalled();
+      expect(mockPrisma.routeCache.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
+          where: {
+            route_cache_coords_profile_unique: {
+              fromLat: fromCoords.latitude,
+              fromLon: fromCoords.longitude,
+              toLat: toCoords.latitude,
+              toLon: toCoords.longitude,
+              profile: 'driving-car',
+            },
+          },
+          create: expect.objectContaining({
             fromLat: fromCoords.latitude,
             fromLon: fromCoords.longitude,
             toLat: toCoords.latitude,
             toLon: toCoords.longitude,
             profile: 'driving-car',
+            // API reports metres/seconds; the service stores km/minutes.
+            distance: 1.2,
+            duration: 8,
+          }),
+          update: expect.objectContaining({
+            // API reports metres/seconds; the service stores km/minutes.
+            distance: 1.2,
+            duration: 8,
           }),
         })
       );

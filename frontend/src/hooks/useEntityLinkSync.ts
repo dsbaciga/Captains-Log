@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import entityLinkService from '../services/entityLink.service';
+import { useInvalidateEntityLinks } from './useInvalidateEntityLinks';
 import type { EntityType } from '../types/entityLink';
 import toast from 'react-hot-toast';
 
@@ -58,31 +58,12 @@ interface SyncLocationLinkOptions {
  * ```
  */
 export function useEntityLinkSync() {
-  const queryClient = useQueryClient();
-
   /**
-   * Invalidate the per-entity 'entityLinks' query cache so any mounted
-   * LinkedEntitiesDisplay/LinkPanel for the source entity and the
-   * affected location(s) refetch and show the change immediately.
+   * Invalidates every entity-link query for the trip, so any mounted
+   * LinkedEntitiesDisplay/LinkPanel — on the source entity and on the
+   * location at the other end — refetches and shows the change immediately.
    */
-  const invalidateEntityLinks = useCallback(
-    (
-      tripId: number,
-      sourceType: EntityType,
-      sourceId: number,
-      locationIds: Array<number | null>
-    ) => {
-      queryClient.invalidateQueries({ queryKey: ['entityLinks', tripId, sourceType, sourceId] });
-      for (const locationId of locationIds) {
-        if (locationId) {
-          queryClient.invalidateQueries({
-            queryKey: ['entityLinks', tripId, 'LOCATION', locationId],
-          });
-        }
-      }
-    },
-    [queryClient]
-  );
+  const invalidateEntityLinks = useInvalidateEntityLinks();
 
   /**
    * Sync the location link after updating an existing entity.
@@ -124,7 +105,7 @@ export function useEntityLinkSync() {
           });
         }
 
-        invalidateEntityLinks(tripId, sourceType, sourceId, [originalLocationId, newLocationId]);
+        invalidateEntityLinks(tripId);
         invalidateLinkSummary();
         return true;
       } catch (error) {
@@ -160,7 +141,7 @@ export function useEntityLinkSync() {
           targetType: 'LOCATION',
           targetId: newLocationId,
         });
-        invalidateEntityLinks(tripId, sourceType, sourceId, [newLocationId]);
+        invalidateEntityLinks(tripId);
         invalidateLinkSummary();
         return true;
       } catch (error) {

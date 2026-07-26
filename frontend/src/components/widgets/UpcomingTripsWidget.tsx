@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Trip } from '../../types/trip';
 import tripService from '../../services/trip.service';
 import { Skeleton } from '../Skeleton';

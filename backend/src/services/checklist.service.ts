@@ -4,6 +4,8 @@ import { AppError } from '../middleware/errorHandler';
 import { CreateChecklist, UpdateChecklist, UpdateChecklistItem, ChecklistWithItems, ChecklistType } from '../types/checklist.types';
 import { DEFAULT_AIRPORTS, DEFAULT_COUNTRIES, DEFAULT_CITIES, DEFAULT_US_STATES } from '../data/checklist-defaults';
 import { searchAirports } from './airport.service';
+import { verifyTripAccessWithPermission } from './_shared/tripAccess';
+import { buildConditionalUpdateData } from './_shared/prismaUpdateData';
 
 // Type for checklist item metadata shapes
 interface AirportMetadata {
@@ -282,6 +284,11 @@ class ChecklistService {
   async createChecklist(userId: number, data: CreateChecklist): Promise<ChecklistWithItems> {
     const { items, tripId, ...checklistData } = data;
 
+    // Verify the caller has edit access to the trip before attaching the checklist to it
+    if (tripId !== null && tripId !== undefined) {
+      await verifyTripAccessWithPermission(userId, tripId, 'edit');
+    }
+
     const createData = {
       name: checklistData.name,
       description: checklistData.description,
@@ -334,16 +341,26 @@ class ChecklistService {
       throw new AppError('Checklist not found', 404);
     }
 
+    // Verify the caller has edit access to the trip before re-pointing the checklist at it
+    if (data.tripId !== null && data.tripId !== undefined) {
+      await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
+    }
+
+    // name/type are NOT NULL columns, so they keep the "omit means unchanged" (?? undefined)
+    // idiom. tripId is nullable and must distinguish an explicit null (clear it) from an
+    // omitted field (leave unchanged), so it goes through buildConditionalUpdateData.
+    const updateData: Prisma.ChecklistUncheckedUpdateInput = {
+      name: data.name ?? undefined,
+      description: data.description ?? undefined,
+      type: data.type ?? undefined,
+      sortOrder: data.sortOrder ?? undefined,
+      ...buildConditionalUpdateData({ tripId: data.tripId }),
+      updatedAt: new Date(),
+    };
+
     await prisma.checklist.update({
       where: { id: checklistId },
-      data: {
-        name: data.name ?? undefined,
-        description: data.description ?? undefined,
-        type: data.type ?? undefined,
-        tripId: data.tripId ?? undefined,
-        sortOrder: data.sortOrder ?? undefined,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
 
     return this.getChecklistById(checklistId, userId);

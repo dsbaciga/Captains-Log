@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import prisma from '../config/database';
 import { llmService, LlmError } from './llm.service';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission } from '../services/_shared/serviceHelpers';
+import {
+  verifyTripAccessWithPermission,
+  verifyEntityAccessWithPermission,
+} from '../services/_shared/tripAccess';
 import { AppError } from '../errors/errors';
 import { sanitizeForPrompt as sanitizeControlChars, stripHtml } from '../security/promptSafety';
 

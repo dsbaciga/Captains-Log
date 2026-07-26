@@ -54,15 +54,22 @@
  *    ```
  */
 
+import crypto from 'crypto';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
 import logger from '../config/logger';
 
 interface BlacklistEntry {
-  token: string;
+  // SHA-256 of the token, never the token itself. The persisted file must not
+  // be a store of structurally valid JWTs (it survives backups and mounts).
+  tokenHash: string;
   expiresAt: number; // Unix timestamp in milliseconds
 }
+
+/** Digest a token for use as the blacklist key. Lookups hash the same way. */
+const hashToken = (token: string): string =>
+  crypto.createHash('sha256').update(token).digest('hex');
 
 // In-memory storage - replace with Redis for production multi-server deployments
 const blacklist: Map<string, BlacklistEntry> = new Map();
@@ -85,6 +92,12 @@ let persistInFlight: Promise<void> = Promise.resolve();
  * Writes are serialized via a promise chain to prevent concurrent overwrites.
  */
 const persistBlacklist = (): void => {
+  // Never touch the real persistence file from the test suite. Tests revoke
+  // tokens constantly, and writing them to `data/token-blacklist.json` leaks
+  // state between runs and into local development — a revocation created by a
+  // test would be loaded at the next server start.
+  if (process.env.NODE_ENV === 'test') return;
+
   persistInFlight = persistInFlight.then(async () => {
     try {
       await fsPromises.mkdir(PERSIST_DIR, { recursive: true });
@@ -102,6 +115,10 @@ const persistBlacklist = (): void => {
  * Skips entries that have already expired or are malformed.
  */
 const loadBlacklist = (): void => {
+  // Symmetric with persistBlacklist: tests must start from a clean slate rather
+  // than inheriting revocations left on disk by an earlier run.
+  if (process.env.NODE_ENV === 'test') return;
+
   try {
     if (!fs.existsSync(PERSIST_FILE)) {
       logger.debug('No persisted token blacklist file found, starting fresh');
@@ -117,12 +134,20 @@ const loadBlacklist = (): void => {
     let loaded = 0;
     let skipped = 0;
     for (const entry of parsed) {
-      if (typeof entry?.token !== 'string' || typeof entry?.expiresAt !== 'number') {
+      // Legacy files (pre-hashing) stored the raw token under `token`; hash it
+      // on load so previously revoked sessions stay revoked after the upgrade.
+      const tokenHash =
+        typeof entry?.tokenHash === 'string'
+          ? entry.tokenHash
+          : typeof entry?.token === 'string'
+            ? hashToken(entry.token)
+            : undefined;
+      if (!tokenHash || typeof entry?.expiresAt !== 'number') {
         skipped++;
         continue;
       }
       if (entry.expiresAt > now) {
-        blacklist.set(entry.token, { token: entry.token, expiresAt: entry.expiresAt });
+        blacklist.set(tokenHash, { tokenHash, expiresAt: entry.expiresAt });
         loaded++;
       } else {
         skipped++;
@@ -141,9 +166,42 @@ const loadBlacklist = (): void => {
  */
 export const blacklistToken = (token: string, expiresInMs: number = DEFAULT_EXPIRY_MS): void => {
   const expiresAt = Date.now() + expiresInMs;
-  blacklist.set(token, { token, expiresAt });
+  const tokenHash = hashToken(token);
+  blacklist.set(tokenHash, { tokenHash, expiresAt });
   logger.debug(`Token blacklisted, expires at ${new Date(expiresAt).toISOString()}`);
   persistBlacklist();
+};
+
+/**
+ * Atomically claim a single-use token.
+ *
+ * Returns `true` if this call claimed the token, `false` if it was already
+ * revoked. Callers use a `false` result as the reuse/theft signal.
+ *
+ * This exists because `isBlacklisted(token)` followed later by
+ * `blacklistToken(token)` is a check-then-act race: with `await`s in between,
+ * two concurrent refreshes presenting the same token could both pass the check
+ * and both succeed, so reuse detection was best-effort rather than guaranteed.
+ * This function is deliberately **synchronous** — Node runs JS on a single
+ * thread, so no other request can interleave between the read and the write,
+ * making the claim atomic for a single-server deployment.
+ *
+ * Multi-server deployments need this backed by an atomic store instead
+ * (Redis `SET key val NX PX ttl`, or a unique-constrained insert), which is the
+ * same upgrade this file's header already describes.
+ */
+export const claimToken = (token: string, expiresInMs: number = DEFAULT_EXPIRY_MS): boolean => {
+  const tokenHash = hashToken(token);
+  const existing = blacklist.get(tokenHash);
+
+  if (existing && existing.expiresAt >= Date.now()) {
+    return false; // already revoked — the caller is looking at a replay
+  }
+
+  blacklist.set(tokenHash, { tokenHash, expiresAt: Date.now() + expiresInMs });
+  logger.debug('Single-use token claimed and revoked');
+  persistBlacklist();
+  return true;
 };
 
 /**
@@ -152,12 +210,13 @@ export const blacklistToken = (token: string, expiresInMs: number = DEFAULT_EXPI
  * @returns true if the token is blacklisted
  */
 export const isBlacklisted = (token: string): boolean => {
-  const entry = blacklist.get(token);
+  const tokenHash = hashToken(token);
+  const entry = blacklist.get(tokenHash);
   if (!entry) return false;
 
   // Check if expired (should have been cleaned up, but double-check)
   if (entry.expiresAt < Date.now()) {
-    blacklist.delete(token);
+    blacklist.delete(tokenHash);
     return false;
   }
 
@@ -171,9 +230,9 @@ export const isBlacklisted = (token: string): boolean => {
 export const cleanupExpired = (): number => {
   const now = Date.now();
   let removed = 0;
-  for (const [token, entry] of blacklist.entries()) {
+  for (const [tokenHash, entry] of blacklist.entries()) {
     if (entry.expiresAt < now) {
-      blacklist.delete(token);
+      blacklist.delete(tokenHash);
       removed++;
     }
   }
@@ -213,6 +272,9 @@ let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 export const startCleanupInterval = (): void => {
   if (cleanupIntervalId === null) {
     cleanupIntervalId = setInterval(cleanupExpired, CLEANUP_INTERVAL);
+    // Do not keep the event loop alive purely for cleanup — an unref'd timer
+    // lets short-lived processes (and isolated test runs) exit normally.
+    cleanupIntervalId.unref?.();
     logger.info('Token blacklist cleanup interval started');
   }
 };

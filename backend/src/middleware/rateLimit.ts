@@ -116,3 +116,32 @@ export const backupLimiter = rateLimit({
     message: `Too many backup/restore requests. Please wait before trying again. Limit: ${backupMax} requests per hour.`,
   },
 });
+
+/**
+ * Rate limiter for endpoints that force a refresh against a metered third-party
+ * provider (OpenWeatherMap, AviationStack). Each of these fans out to one
+ * outbound call per trip day / per flight, so a handful of requests can burn a
+ * monthly quota — the same reasoning behind `aiLimiter` and `backupLimiter`.
+ *
+ * Per-user (with IP fallback). MUST be applied AFTER `authenticate`, otherwise
+ * it silently degrades to per-IP keying.
+ *
+ * Defaults: 30 requests per hour. Override via env vars:
+ *   - EXTERNAL_API_RATE_LIMIT_MAX        (integer, default 30)
+ *   - EXTERNAL_API_RATE_LIMIT_WINDOW_MS  (integer ms, default 3_600_000)
+ */
+const externalApiMax = Number(process.env.EXTERNAL_API_RATE_LIMIT_MAX) || 30;
+const externalApiWindowMs =
+  Number(process.env.EXTERNAL_API_RATE_LIMIT_WINDOW_MS) || 60 * 60 * 1000;
+
+export const externalApiLimiter = rateLimit({
+  windowMs: externalApiWindowMs,
+  max: externalApiMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: userOrIpKey,
+  message: {
+    status: 'error',
+    message: `Too many refresh requests to external data providers. Please wait before trying again. Limit: ${externalApiMax} requests per hour.`,
+  },
+});

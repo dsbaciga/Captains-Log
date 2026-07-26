@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 interface BreadcrumbItem {
   label: string;

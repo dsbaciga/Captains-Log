@@ -8,6 +8,29 @@ export type TransportationType =
   | 'walk'
   | 'other';
 
+/** Every member of TransportationType, as values. `satisfies` keeps it in step
+ *  with the union above: adding a member here that isn't in the type fails to
+ *  compile, and the type stays the single source of truth. */
+export const TRANSPORTATION_TYPES = [
+  'flight',
+  'train',
+  'bus',
+  'car',
+  'ferry',
+  'bicycle',
+  'walk',
+  'other',
+] as const satisfies readonly TransportationType[];
+
+/**
+ * Narrows a raw string — a `<select>` value, a query param — to a
+ * TransportationType. Lives here rather than in a component so every form
+ * validates against the same list instead of asserting.
+ */
+export function isTransportationType(value: string): value is TransportationType {
+  return TRANSPORTATION_TYPES.some((type) => type === value);
+}
+
 export type TransportationRoute = {
   from: {
     name: string;

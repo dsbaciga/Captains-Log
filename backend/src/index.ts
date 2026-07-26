@@ -10,6 +10,7 @@ import logger from './config/logger';
 import { initCronJobs } from './config/cron';
 import { setupSwagger } from './config/swagger';
 import { errorHandler } from './middleware/errorHandler';
+import { resolveCurrentPasswordVersion } from './middleware/auth';
 import prisma, { checkDatabaseConnection } from './config/database';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -184,43 +185,208 @@ import { validateCsrf } from './security/csrf';
 import { verifyAccessToken, verifyRefreshToken } from './auth/jwt';
 import { isBlacklisted } from './services/tokenBlacklist.service';
 import { getRefreshTokenFromCookie } from './http/cookies';
+import { JwtPayload } from './types/auth.types';
+import { Prisma } from '@prisma/client';
 app.use('/api', validateCsrf);
+
+// Every failure under /uploads answers 404 so the route never reveals whether a
+// file exists, who owns it, or why access was refused.
+const uploadNotFound = (res: Response): void => {
+  res.status(404).json({ status: 'error', message: 'Not found' });
+};
+
+// Reuses the SAME passwordVersion cache as the API path (middleware/auth.ts).
+// Keeping a second cache here meant `invalidatePasswordVersionCache` on password
+// change cleared one and left the other serving a stale version, so a token
+// invalidated by a password change could still unlock /uploads.
+const passwordVersionMatches = async (payload: JwtPayload): Promise<boolean> => {
+  const dbVersion = await resolveCurrentPasswordVersion(payload.userId);
+  if (dbVersion === undefined) return false; // user no longer exists
+  return (payload.passwordVersion ?? 0) === dbVersion;
+};
 
 // Authenticate access to uploaded files
 // Supports Bearer token (programmatic fetch) and refresh token cookie (browser <img> tags)
-const authenticateFileAccess = (req: Request, res: Response, next: NextFunction): void => {
+const authenticateFileAccess = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
+    let payload: JwtPayload | null = null;
+
     // Try Authorization header first (for programmatic fetch calls)
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       if (isBlacklisted(token)) {
-        res.status(404).json({ status: 'error', message: 'Not found' });
+        uploadNotFound(res);
         return;
       }
-      verifyAccessToken(token);
-      next();
+      payload = verifyAccessToken(token);
+    } else {
+      // Fall back to refresh token cookie (for browser <img src> requests)
+      const refreshToken = getRefreshTokenFromCookie(req.cookies);
+      if (refreshToken && !isBlacklisted(refreshToken)) {
+        payload = verifyRefreshToken(refreshToken);
+      }
+    }
+
+    // No valid authentication, or a token invalidated by a password change
+    if (!payload || !(await passwordVersionMatches(payload))) {
+      uploadNotFound(res);
       return;
     }
 
-    // Fall back to refresh token cookie (for browser <img src> requests)
-    const refreshToken = getRefreshTokenFromCookie(req.cookies);
-    if (refreshToken && !isBlacklisted(refreshToken)) {
-      verifyRefreshToken(refreshToken);
-      next();
-      return;
-    }
-
-    // No valid authentication — return 404 to avoid leaking file existence
-    res.status(404).json({ status: 'error', message: 'Not found' });
+    req.user = payload;
+    next();
   } catch {
     // Invalid/expired token — return 404 to avoid leaking file existence
-    res.status(404).json({ status: 'error', message: 'Not found' });
+    uploadNotFound(res);
   }
 };
 
-// Serve uploaded files with authentication
-app.use('/uploads', authenticateFileAccess, express.static(config.upload.dir, {
+// Positive authorization decisions are cached briefly so a gallery of thumbnails
+// does not issue one query per image on every render. Denials are never cached,
+// so newly granted access takes effect immediately.
+const uploadAuthCache = new Map<string, number>();
+const UPLOAD_AUTH_TTL_MS = 60_000;
+const UPLOAD_AUTH_CACHE_MAX = 5000;
+
+// Owner, collaborator, or public trip — the same rule verifyTripAccessWithPermission
+// applies to the JSON representation of these entities.
+const tripReadFilter = (userId: number): Prisma.TripWhereInput => ({
+  OR: [
+    { userId },
+    { collaborators: { some: { userId } } },
+    { privacyLevel: 'Public' },
+  ],
+});
+
+/**
+ * Resolve an uploads-relative path back to the row that owns it and decide
+ * whether this user may read it. Every branch is a single indexed-by-nothing
+ * lookup on an exact stored path, so traversal cannot match anything.
+ */
+const canReadUpload = async (userId: number, relPath: string): Promise<boolean> => {
+  // Photo/companion/trip rows store the public URL form, PDF imports store the
+  // uploads-relative form.
+  const storedUrl = `/uploads/${relPath}`;
+
+  switch (relPath.split('/')[0]) {
+    case 'photos':
+    case 'videos':
+    case 'thumbnails': {
+      const photo = await prisma.photo.findFirst({
+        where: {
+          OR: [{ localPath: storedUrl }, { thumbnailPath: storedUrl }],
+          trip: tripReadFilter(userId),
+        },
+        select: { id: true },
+      });
+      return photo !== null;
+    }
+    case 'covers': {
+      const trip = await prisma.trip.findFirst({
+        where: {
+          AND: [
+            { OR: [{ coverImagePath: storedUrl }, { coverImageThumbnailPath: storedUrl }] },
+            tripReadFilter(userId),
+          ],
+        },
+        select: { id: true },
+      });
+      return trip !== null;
+    }
+    case 'avatars': {
+      // Companions are user-owned but their avatars render for anyone who can
+      // read a trip the companion is assigned to.
+      const companion = await prisma.travelCompanion.findFirst({
+        where: {
+          avatarUrl: storedUrl,
+          OR: [
+            { userId },
+            { tripAssignments: { some: { trip: tripReadFilter(userId) } } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (companion !== null) return true;
+
+      const self = await prisma.user.findFirst({
+        where: { id: userId, avatarUrl: storedUrl },
+        select: { id: true },
+      });
+      return self !== null;
+    }
+    case 'pdfs': {
+      const pdfImport = await prisma.pdfImport.findFirst({
+        where: { storedPath: relPath, userId },
+        select: { id: true },
+      });
+      return pdfImport !== null;
+    }
+    default:
+      // Anything with no owning row (e.g. the multer temp dir) is not servable.
+      return false;
+  }
+};
+
+// Per-file authorization. Authentication alone let any logged-in user read any
+// other user's uploads by path.
+const authorizeFileAccess = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    uploadNotFound(res);
+    return;
+  }
+
+  let relPath: string;
+  try {
+    relPath = decodeURIComponent(req.path).replace(/^\/+/, '');
+  } catch {
+    // Malformed percent-encoding
+    uploadNotFound(res);
+    return;
+  }
+
+  if (!relPath || relPath.includes('\0') || relPath.split('/').includes('..')) {
+    uploadNotFound(res);
+    return;
+  }
+
+  const cacheKey = `${userId}:${relPath}`;
+  const cachedUntil = uploadAuthCache.get(cacheKey);
+  if (cachedUntil !== undefined && cachedUntil > Date.now()) {
+    next();
+    return;
+  }
+
+  let allowed: boolean;
+  try {
+    allowed = await canReadUpload(userId, relPath);
+  } catch (error) {
+    logger.error('Upload authorization check failed:', error);
+    uploadNotFound(res);
+    return;
+  }
+
+  if (!allowed) {
+    uploadNotFound(res);
+    return;
+  }
+
+  if (uploadAuthCache.size >= UPLOAD_AUTH_CACHE_MAX) uploadAuthCache.clear();
+  uploadAuthCache.set(cacheKey, Date.now() + UPLOAD_AUTH_TTL_MS);
+  next();
+};
+
+// Serve uploaded files with authentication and per-file authorization
+app.use('/uploads', authenticateFileAccess, authorizeFileAccess, express.static(config.upload.dir, {
   index: false, // Don't serve directory indexes
 }));
 
@@ -312,8 +478,12 @@ app.use(errorHandler);
 // Initialize cron jobs
 initCronJobs();
 
-// Setup Swagger documentation
-setupSwagger(app);
+// Setup Swagger documentation — development only. The UI is mounted outside the
+// /api rate limiter and CSRF check and has no auth of its own, so publishing the
+// full API surface anonymously in production is not acceptable.
+if (config.nodeEnv !== 'production') {
+  setupSwagger(app);
+}
 
 // Start server
 const startServer = async () => {

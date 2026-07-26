@@ -1,16 +1,36 @@
 import prisma from '../config/database';
 import { AppError } from '../errors/errors';
 import type { CreateCompanionInput, UpdateCompanionInput, LinkCompanionToTripInput } from '../types/companion.types';
-import { verifyTripAccess } from '../services/_shared/serviceHelpers';
+import { verifyTripAccess } from '../services/_shared/tripAccess';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
+import { randomUUID } from 'crypto';
 
-const AVATAR_DIR = path.join(process.cwd(), 'uploads', 'avatars');
+const UPLOADS_ROOT = path.resolve(process.cwd(), 'uploads');
+const AVATAR_DIR = path.join(UPLOADS_ROOT, 'avatars');
 
 // Ensure avatar directory exists
 async function ensureAvatarDir() {
   await fs.mkdir(AVATAR_DIR, { recursive: true });
+}
+
+/**
+ * Resolve a stored avatarUrl to the absolute file it names, or null if it is not
+ * a local avatar. A `startsWith('/uploads/avatars/')` test alone is bypassable —
+ * `/uploads/avatars/../../../../etc/passwd` passes it and path.join normalises
+ * the `..` only afterwards — so the resolved path is checked for containment,
+ * mirroring share.service.ts:378-383.
+ */
+function resolveAvatarFilePath(avatarUrl: string | null): string | null {
+  if (!avatarUrl || !avatarUrl.startsWith('/uploads/avatars/')) {
+    return null;
+  }
+  const absolute = path.resolve(UPLOADS_ROOT, avatarUrl.slice('/uploads/'.length));
+  if (!absolute.startsWith(AVATAR_DIR + path.sep)) {
+    return null;
+  }
+  return absolute;
 }
 
 export const companionService = {
@@ -236,8 +256,8 @@ export const companionService = {
     await ensureAvatarDir();
 
     // Delete old avatar if it exists and is a local file
-    if (companion.avatarUrl && companion.avatarUrl.startsWith('/uploads/avatars/')) {
-      const oldFilePath = path.join(process.cwd(), companion.avatarUrl);
+    const oldFilePath = resolveAvatarFilePath(companion.avatarUrl);
+    if (oldFilePath) {
       try {
         await fs.unlink(oldFilePath);
       } catch {
@@ -245,9 +265,9 @@ export const companionService = {
       }
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const filename = `companion-${companionId}-${timestamp}.jpg`;
+    // Generate unique filename. A random UUID (as photo.service.ts uses) keeps the
+    // served path unguessable; `companion-<id>-<timestamp>` was enumerable.
+    const filename = `${randomUUID()}.jpg`;
     const filepath = path.join(AVATAR_DIR, filename);
 
     // Resize and save as square avatar (256x256)
@@ -276,8 +296,8 @@ export const companionService = {
     }
 
     // Delete old avatar if it was a local file
-    if (companion.avatarUrl && companion.avatarUrl.startsWith('/uploads/avatars/')) {
-      const oldFilePath = path.join(process.cwd(), companion.avatarUrl);
+    const oldFilePath = resolveAvatarFilePath(companion.avatarUrl);
+    if (oldFilePath) {
       try {
         await fs.unlink(oldFilePath);
       } catch {
@@ -305,8 +325,8 @@ export const companionService = {
     }
 
     // Delete file if it's a local avatar
-    if (companion.avatarUrl && companion.avatarUrl.startsWith('/uploads/avatars/')) {
-      const filePath = path.join(process.cwd(), companion.avatarUrl);
+    const filePath = resolveAvatarFilePath(companion.avatarUrl);
+    if (filePath) {
       try {
         await fs.unlink(filePath);
       } catch {

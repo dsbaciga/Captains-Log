@@ -34,8 +34,8 @@ jest.mock('../weather.service', () => ({
   },
 }));
 
-// Mock serviceHelpers
-jest.mock('../../services/_shared/serviceHelpers', () => ({
+// Mock trip access verification
+jest.mock('../../services/_shared/tripAccess', () => ({
   verifyTripAccess: jest.fn().mockImplementation(async (userId: number, tripId: number) => {
     const trip = await mockPrisma.trip.findFirst({ where: { id: tripId, userId } });
     if (!trip) {

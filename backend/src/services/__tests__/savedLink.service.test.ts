@@ -42,9 +42,11 @@ jest.mock('../../config/database', () => ({
 
 const mockVerifyTripAccessWithPermission = jest.fn();
 const mockCleanupEntityLinks = jest.fn();
-jest.mock('../../services/_shared/serviceHelpers', () => ({
+jest.mock('../../services/_shared/tripAccess', () => ({
   verifyTripAccessWithPermission: (...args: unknown[]) =>
     mockVerifyTripAccessWithPermission(...args),
+}));
+jest.mock('../../services/_shared/entityLinkCleanup', () => ({
   cleanupEntityLinks: (...args: unknown[]) => mockCleanupEntityLinks(...args),
 }));
 

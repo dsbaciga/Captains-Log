@@ -1,5 +1,4 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
-import { Request, Response, NextFunction } from 'express';
 import { ZodError, ZodIssue } from 'zod';
 
 // Mock the logger to avoid file system and config dependencies
@@ -22,31 +21,47 @@ jest.mock('../../types/prisma-helpers', () => ({
 // Import after mocks
 import { errorHandler, AppError } from '../errorHandler';
 import { AppError as UtilsAppError } from '../../errors/errors';
+import {
+  createMockRequest,
+  createMockResponse,
+  createMockNext,
+  MockRequest,
+  MockResponse,
+  MockNextFunction,
+} from '../../__tests__/mockBuilders/requests';
+
+/**
+ * The shape every errorHandler response follows. Declaring it (rather than
+ * asserting at each capture site) means a drift in the envelope shows up as a
+ * type error instead of being silenced.
+ */
+interface ErrorEnvelope {
+  status: string;
+  message: string;
+  fields?: string[];
+}
 
 describe('errorHandler', () => {
-  let mockRequest: Partial<Request>;
-  let mockResponse: Partial<Response>;
-  let mockNext: NextFunction;
+  let mockRequest: MockRequest;
+  let mockResponse: MockResponse;
+  let mockNext: MockNextFunction;
   let mockJson: jest.Mock;
   let mockStatus: jest.Mock;
 
   beforeEach(() => {
-    mockJson = jest.fn() as jest.Mock;
-    mockStatus = jest.fn().mockReturnValue({ json: mockJson }) as jest.Mock;
-
-    mockRequest = {
-      url: '/test',
-      method: 'GET',
+    // The shared factories already return real Express types, so nothing here
+    // needs a cast.
+    mockRequest = createMockRequest({
       params: {},
       body: {},
-    };
+      originalUrl: '/test',
+      method: 'GET',
+    });
+    mockResponse = createMockResponse();
+    mockNext = createMockNext();
 
-    mockResponse = {
-      status: mockStatus as unknown as Response['status'],
-      json: mockJson as unknown as Response['json'],
-    };
-
-    mockNext = jest.fn() as unknown as NextFunction;
+    mockJson = mockResponse.json;
+    mockStatus = mockResponse.status;
 
     // Reset mocks
     mockIsPrismaError.mockReturnValue(false);
@@ -56,7 +71,7 @@ describe('errorHandler', () => {
     it('should return correct status and message for AppError', () => {
       const error = new UtilsAppError('Not found', 404);
 
-      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(404);
       expect(mockJson).toHaveBeenCalledWith({
@@ -68,7 +83,7 @@ describe('errorHandler', () => {
     it('should handle 400 Bad Request AppError', () => {
       const error = new UtilsAppError('Bad request', 400);
 
-      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
@@ -80,7 +95,7 @@ describe('errorHandler', () => {
     it('should handle 401 Unauthorized AppError', () => {
       const error = new UtilsAppError('Unauthorized', 401);
 
-      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(401);
       expect(mockJson).toHaveBeenCalledWith({
@@ -92,7 +107,7 @@ describe('errorHandler', () => {
     it('should handle 403 Forbidden AppError', () => {
       const error = new UtilsAppError('Forbidden', 403);
 
-      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(403);
       expect(mockJson).toHaveBeenCalledWith({
@@ -104,7 +119,7 @@ describe('errorHandler', () => {
     it('should handle 500 AppError', () => {
       const error = new UtilsAppError('Internal error', 500);
 
-      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
@@ -118,7 +133,7 @@ describe('errorHandler', () => {
     it('should return 500 for generic Error', () => {
       const error = new Error('Something unexpected');
 
-      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
@@ -130,7 +145,7 @@ describe('errorHandler', () => {
     it('should not expose internal error messages for non-operational errors', () => {
       const error = new Error('Database connection pool exhausted');
 
-      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockJson).toHaveBeenCalledWith({
         status: 'error',
@@ -152,17 +167,24 @@ describe('errorHandler', () => {
       ];
       const error = new ZodError(zodIssues);
 
-      errorHandler(error as unknown as Error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(400);
+      // The response names the offending fields but does NOT echo the raw Zod
+      // issues: those carry `received`, i.e. the caller's own input, back out
+      // in the error body.
       expect(mockJson).toHaveBeenCalledWith({
         status: 'error',
-        message: 'Validation error',
-        errors: error.errors,
+        message: 'Validation failed',
+        fields: ['email'],
       });
+
+      const responseBody: ErrorEnvelope = mockJson.mock.calls[0][0];
+      expect(responseBody).not.toHaveProperty('errors');
+      expect(JSON.stringify(responseBody)).not.toContain('received');
     });
 
-    it('should include all Zod error details', () => {
+    it('should report every invalid field', () => {
       const zodIssues: ZodIssue[] = [
         {
           code: 'too_small',
@@ -182,11 +204,30 @@ describe('errorHandler', () => {
       ];
       const error = new ZodError(zodIssues);
 
-      errorHandler(error as unknown as Error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(400);
-      const responseBody = mockJson.mock.calls[0][0] as { errors: ZodIssue[] };
-      expect(responseBody.errors).toHaveLength(2);
+      const responseBody: ErrorEnvelope = mockJson.mock.calls[0][0];
+      expect(responseBody.fields).toEqual(['username', 'email']);
+    });
+
+    it('should omit `fields` when no issue carries a path', () => {
+      const error = new ZodError([
+        {
+          code: 'custom',
+          path: [],
+          message: 'Invalid payload',
+        },
+      ]);
+
+      errorHandler(error, mockRequest, mockResponse, mockNext);
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Validation failed',
+        fields: undefined,
+      });
     });
   });
 
@@ -220,7 +261,7 @@ describe('errorHandler', () => {
       const error = new Error('Custom operational error');
       Object.assign(error, { isOperational: true, statusCode: 409 });
 
-      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+      errorHandler(error, mockRequest, mockResponse, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(409);
       expect(mockJson).toHaveBeenCalledWith({

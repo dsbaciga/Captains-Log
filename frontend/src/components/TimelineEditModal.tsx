@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Activity } from "../types/activity";
 import type {
   Transportation,
   TransportationType,
 } from "../types/transportation";
+import { isTransportationType } from "../types/transportation";
 import type { Lodging, LodgingType } from "../types/lodging";
+import { isLodgingType } from "../types/lodging";
 import type { JournalEntry } from "../types/journalEntry";
 import type { Location } from "../types/location";
 import { createLocationStub } from "../utils/locationHelpers";
@@ -14,6 +16,8 @@ import transportationService from "../services/transportation.service";
 import lodgingService from "../services/lodging.service";
 import journalEntryService from "../services/journalEntry.service";
 import entityLinkService from "../services/entityLink.service";
+import { useInvalidateEntityLinks } from "../hooks/useInvalidateEntityLinks";
+import { useTimezoneResolver } from "../hooks/useTimezoneResolver";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import {
@@ -26,29 +30,95 @@ import CostCurrencyFields from "./CostCurrencyFields";
 import BookingFields from "./BookingFields";
 import LocationQuickAdd from "./LocationQuickAdd";
 
-type TimelineItemType = "activity" | "transportation" | "lodging" | "journal";
+/**
+ * Form state shapes.
+ *
+ * Declared explicitly so `useState` is given the type rather than inferring it
+ * from the initial values — otherwise fields that start as `undefined` or at a
+ * literal (`"flight"`) would infer as `undefined` / `"flight"` and need an
+ * assertion on the initial value to widen them.
+ *
+ * Every field is a string because the inputs are uncontrolled text/select
+ * values; conversion to numbers and dates happens on submit.
+ */
+interface ActivityFormState {
+  name: string;
+  description: string;
+  category: string;
+  locationId: number | undefined;
+  parentId: number | undefined;
+  allDay: boolean;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  timezone: string;
+  cost: string;
+  currency: string;
+  bookingUrl: string;
+  bookingReference: string;
+  notes: string;
+}
 
-interface TimelineEditModalProps {
+interface TransportationFormState {
+  type: TransportationType;
+  fromLocationId: number | undefined;
+  toLocationId: number | undefined;
+  fromLocationName: string;
+  toLocationName: string;
+  departureTime: string;
+  arrivalTime: string;
+  startTimezone: string;
+  endTimezone: string;
+  carrier: string;
+  vehicleNumber: string;
+  confirmationNumber: string;
+  cost: string;
+  currency: string;
+  notes: string;
+}
+
+interface LodgingFormState {
+  type: LodgingType;
+  name: string;
+  locationId: number | undefined;
+  address: string;
+  checkInDate: string;
+  checkOutDate: string;
+  timezone: string;
+  confirmationNumber: string;
+  bookingUrl: string;
+  cost: string;
+  currency: string;
+  notes: string;
+}
+
+/**
+ * `itemType` and `itemData` are paired as a discriminated union rather than
+ * declared independently, so `itemType: "activity"` can only ever arrive with
+ * an Activity. Switching on `props.itemType` then narrows `props.itemData` to
+ * the matching type, which is why neither is destructured in the component
+ * below — destructuring would sever the discriminant from the value.
+ */
+type TimelineEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
-  itemType: TimelineItemType;
-  itemData: Activity | Transportation | Lodging | JournalEntry;
   tripId: number;
   locations: Location[];
   tripTimezone?: string | null;
-}
+} & (
+  | { itemType: "activity"; itemData: Activity }
+  | { itemType: "transportation"; itemData: Transportation }
+  | { itemType: "lodging"; itemData: Lodging }
+  | { itemType: "journal"; itemData: JournalEntry }
+);
 
-export default function TimelineEditModal({
-  isOpen,
-  onClose,
-  onSave,
-  itemType,
-  itemData,
-  tripId,
-  locations,
-  tripTimezone,
-}: TimelineEditModalProps) {
+export default function TimelineEditModal(props: TimelineEditModalProps) {
+  // itemType/itemData stay on `props` so switching on the former narrows the
+  // latter; the rest are plain values and read better destructured.
+  const { isOpen, onClose, onSave, tripId, locations, tripTimezone } = props;
+  const { itemType } = props;
   const [saving, setSaving] = useState(false);
   const [activityCategories, setActivityCategories] = useState<
     ActivityCategory[]
@@ -56,16 +126,22 @@ export default function TimelineEditModal({
   const [showLocationQuickAdd, setShowLocationQuickAdd] = useState(false);
   const [localLocations, setLocalLocations] = useState<Location[]>(locations);
   // Track original location ID to detect changes (for entity linking)
-  const [originalActivityLocationId, setOriginalActivityLocationId] = useState<number | null>(null);
-  const [originalLodgingLocationId, setOriginalLodgingLocationId] = useState<number | null>(null);
+  const [originalActivityLocationId, setOriginalActivityLocationId] = useState<
+    number | null
+  >(null);
+  const [originalLodgingLocationId, setOriginalLodgingLocationId] = useState<
+    number | null
+  >(null);
+  const invalidateEntityLinks = useInvalidateEntityLinks();
+  const resolveTz = useTimezoneResolver();
 
   // Activity form state
-  const [activityForm, setActivityForm] = useState({
+  const [activityForm, setActivityForm] = useState<ActivityFormState>({
     name: "",
     description: "",
     category: "",
-    locationId: undefined as number | undefined,
-    parentId: undefined as number | undefined,
+    locationId: undefined,
+    parentId: undefined,
     allDay: false,
     startDate: "",
     startTime: "",
@@ -80,29 +156,30 @@ export default function TimelineEditModal({
   });
 
   // Transportation form state
-  const [transportationForm, setTransportationForm] = useState({
-    type: "flight" as TransportationType,
-    fromLocationId: undefined as number | undefined,
-    toLocationId: undefined as number | undefined,
-    fromLocationName: "",
-    toLocationName: "",
-    departureTime: "",
-    arrivalTime: "",
-    startTimezone: "",
-    endTimezone: "",
-    carrier: "",
-    vehicleNumber: "",
-    confirmationNumber: "",
-    cost: "",
-    currency: "USD",
-    notes: "",
-  });
+  const [transportationForm, setTransportationForm] =
+    useState<TransportationFormState>({
+      type: "flight",
+      fromLocationId: undefined,
+      toLocationId: undefined,
+      fromLocationName: "",
+      toLocationName: "",
+      departureTime: "",
+      arrivalTime: "",
+      startTimezone: "",
+      endTimezone: "",
+      carrier: "",
+      vehicleNumber: "",
+      confirmationNumber: "",
+      cost: "",
+      currency: "USD",
+      notes: "",
+    });
 
   // Lodging form state
-  const [lodgingForm, setLodgingForm] = useState({
-    type: "hotel" as LodgingType,
+  const [lodgingForm, setLodgingForm] = useState<LodgingFormState>({
+    type: "hotel",
     name: "",
-    locationId: undefined as number | undefined,
+    locationId: undefined,
     address: "",
     checkInDate: "",
     checkOutDate: "",
@@ -123,195 +200,193 @@ export default function TimelineEditModal({
     entryDate: "",
   });
 
-  // Load user categories for activities
-  useEffect(() => {
-    if (itemType === "activity") {
-      loadUserCategories();
-    }
-  }, [itemType]);
-
   // Sync local locations with prop
   useEffect(() => {
     setLocalLocations(locations);
   }, [locations]);
 
-  // Initialize form based on item type and data
-  useEffect(() => {
-    if (!isOpen || !itemData) return;
-
-    switch (itemType) {
-      case "activity":
-        initActivityForm(itemData as Activity);
-        break;
-      case "transportation":
-        initTransportationForm(itemData as Transportation);
-        break;
-      case "lodging":
-        initLodgingForm(itemData as Lodging);
-        break;
-      case "journal":
-        initJournalForm(itemData as JournalEntry);
-        break;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, itemType, itemData]);
-
-  const loadUserCategories = async () => {
+  // The form initializers below are memoized and the effects that call them
+  // are declared after their definitions, so the dependency arrays can name
+  // them honestly instead of silencing exhaustive-deps.
+  const loadUserCategories = useCallback(async () => {
     try {
       const user = await userService.getMe();
       setActivityCategories(user.activityCategories || []);
     } catch {
       console.error("Failed to load activity categories");
     }
-  };
+  }, []);
 
-  const initActivityForm = async (activity: Activity) => {
-    const effectiveTz = activity.timezone || tripTimezone || "UTC";
+  const initActivityForm = useCallback(
+    async (activity: Activity) => {
+      const effectiveTz = resolveTz(activity.timezone, tripTimezone);
 
-    let startDate = "";
-    let startTime = "";
-    let endDate = "";
-    let endTime = "";
+      let startDate = "";
+      let startTime = "";
+      let endDate = "";
+      let endTime = "";
 
-    if (activity.allDay) {
-      if (activity.startTime) {
-        const startDateTime = convertISOToDateTimeLocal(
-          activity.startTime,
-          effectiveTz
-        );
-        startDate = startDateTime.slice(0, 10);
-      }
-      if (activity.endTime) {
-        const endDateTime = convertISOToDateTimeLocal(
-          activity.endTime,
-          effectiveTz
-        );
-        endDate = endDateTime.slice(0, 10);
-      }
-    } else {
-      if (activity.startTime) {
-        const startDateTime = convertISOToDateTimeLocal(
-          activity.startTime,
-          effectiveTz
-        );
-        startDate = startDateTime.slice(0, 10);
-        startTime = startDateTime.slice(11);
-      }
-      if (activity.endTime) {
-        const endDateTime = convertISOToDateTimeLocal(
-          activity.endTime,
-          effectiveTz
-        );
-        endDate = endDateTime.slice(0, 10);
-        endTime = endDateTime.slice(11);
-      }
-    }
-
-    // Fetch linked location via entity linking system
-    let linkedLocationId: number | undefined = undefined;
-    try {
-      const links = await entityLinkService.getLinksFrom(tripId, 'ACTIVITY', activity.id, 'LOCATION');
-      if (links.length > 0 && links[0].targetId) {
-        linkedLocationId = links[0].targetId;
-        setOriginalActivityLocationId(links[0].targetId);
+      if (activity.allDay) {
+        if (activity.startTime) {
+          const startDateTime = convertISOToDateTimeLocal(
+            activity.startTime,
+            effectiveTz,
+          );
+          startDate = startDateTime.slice(0, 10);
+        }
+        if (activity.endTime) {
+          const endDateTime = convertISOToDateTimeLocal(
+            activity.endTime,
+            effectiveTz,
+          );
+          endDate = endDateTime.slice(0, 10);
+        }
       } else {
+        if (activity.startTime) {
+          const startDateTime = convertISOToDateTimeLocal(
+            activity.startTime,
+            effectiveTz,
+          );
+          startDate = startDateTime.slice(0, 10);
+          startTime = startDateTime.slice(11);
+        }
+        if (activity.endTime) {
+          const endDateTime = convertISOToDateTimeLocal(
+            activity.endTime,
+            effectiveTz,
+          );
+          endDate = endDateTime.slice(0, 10);
+          endTime = endDateTime.slice(11);
+        }
+      }
+
+      // Fetch linked location via entity linking system
+      let linkedLocationId: number | undefined = undefined;
+      try {
+        const links = await entityLinkService.getLinksFrom(
+          tripId,
+          "ACTIVITY",
+          activity.id,
+          "LOCATION",
+        );
+        if (links.length > 0 && links[0].targetId) {
+          linkedLocationId = links[0].targetId;
+          setOriginalActivityLocationId(links[0].targetId);
+        } else {
+          setOriginalActivityLocationId(null);
+        }
+      } catch {
+        // If fetching links fails, proceed without location
         setOriginalActivityLocationId(null);
       }
-    } catch {
-      // If fetching links fails, proceed without location
-      setOriginalActivityLocationId(null);
-    }
 
-    setActivityForm({
-      name: activity.name,
-      description: activity.description || "",
-      category: activity.category || "",
-      locationId: linkedLocationId,
-      parentId: activity.parentId || undefined,
-      allDay: activity.allDay,
-      startDate,
-      startTime,
-      endDate,
-      endTime,
-      timezone: activity.timezone || "",
-      cost: activity.cost?.toString() || "",
-      currency: activity.currency || "USD",
-      bookingUrl: activity.bookingUrl || "",
-      bookingReference: activity.bookingReference || "",
-      notes: activity.notes || "",
-    });
-  };
+      setActivityForm({
+        name: activity.name,
+        description: activity.description || "",
+        category: activity.category || "",
+        locationId: linkedLocationId,
+        parentId: activity.parentId || undefined,
+        allDay: activity.allDay,
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+        timezone: activity.timezone || "",
+        cost: activity.cost?.toString() || "",
+        currency: activity.currency || "USD",
+        bookingUrl: activity.bookingUrl || "",
+        bookingReference: activity.bookingReference || "",
+        notes: activity.notes || "",
+      });
+    },
+    [tripId, tripTimezone, resolveTz],
+  );
 
-  const initTransportationForm = (transportation: Transportation) => {
-    const effectiveStartTz =
-      transportation.startTimezone || tripTimezone || "UTC";
-    const effectiveEndTz = transportation.endTimezone || tripTimezone || "UTC";
+  const initTransportationForm = useCallback(
+    (transportation: Transportation) => {
+      const effectiveStartTz =
+        resolveTz(transportation.startTimezone, tripTimezone);
+      const effectiveEndTz =
+        resolveTz(transportation.endTimezone, tripTimezone);
 
-    setTransportationForm({
-      type: transportation.type,
-      fromLocationId: transportation.fromLocationId || undefined,
-      toLocationId: transportation.toLocationId || undefined,
-      fromLocationName: transportation.fromLocationName || "",
-      toLocationName: transportation.toLocationName || "",
-      departureTime: transportation.departureTime
-        ? convertISOToDateTimeLocal(
-            transportation.departureTime,
-            effectiveStartTz
-          )
-        : "",
-      arrivalTime: transportation.arrivalTime
-        ? convertISOToDateTimeLocal(transportation.arrivalTime, effectiveEndTz)
-        : "",
-      startTimezone: transportation.startTimezone || "",
-      endTimezone: transportation.endTimezone || "",
-      carrier: transportation.carrier || "",
-      vehicleNumber: transportation.vehicleNumber || "",
-      confirmationNumber: transportation.confirmationNumber || "",
-      cost: transportation.cost?.toString() || "",
-      currency: transportation.currency || "USD",
-      notes: transportation.notes || "",
-    });
-  };
+      setTransportationForm({
+        type: transportation.type,
+        fromLocationId: transportation.fromLocationId || undefined,
+        toLocationId: transportation.toLocationId || undefined,
+        fromLocationName: transportation.fromLocationName || "",
+        toLocationName: transportation.toLocationName || "",
+        departureTime: transportation.departureTime
+          ? convertISOToDateTimeLocal(
+              transportation.departureTime,
+              effectiveStartTz,
+            )
+          : "",
+        arrivalTime: transportation.arrivalTime
+          ? convertISOToDateTimeLocal(
+              transportation.arrivalTime,
+              effectiveEndTz,
+            )
+          : "",
+        startTimezone: transportation.startTimezone || "",
+        endTimezone: transportation.endTimezone || "",
+        carrier: transportation.carrier || "",
+        vehicleNumber: transportation.vehicleNumber || "",
+        confirmationNumber: transportation.confirmationNumber || "",
+        cost: transportation.cost?.toString() || "",
+        currency: transportation.currency || "USD",
+        notes: transportation.notes || "",
+      });
+    },
+    [tripTimezone, resolveTz],
+  );
 
-  const initLodgingForm = async (lodging: Lodging) => {
-    const effectiveTz = lodging.timezone || tripTimezone || "UTC";
+  const initLodgingForm = useCallback(
+    async (lodging: Lodging) => {
+      const effectiveTz = resolveTz(lodging.timezone, tripTimezone);
 
-    // Fetch linked location via entity linking system
-    let linkedLocationId: number | undefined = undefined;
-    try {
-      const links = await entityLinkService.getLinksFrom(tripId, 'LODGING', lodging.id, 'LOCATION');
-      if (links.length > 0 && links[0].targetId) {
-        linkedLocationId = links[0].targetId;
-        setOriginalLodgingLocationId(links[0].targetId);
-      } else {
+      // Fetch linked location via entity linking system
+      let linkedLocationId: number | undefined = undefined;
+      try {
+        const links = await entityLinkService.getLinksFrom(
+          tripId,
+          "LODGING",
+          lodging.id,
+          "LOCATION",
+        );
+        if (links.length > 0 && links[0].targetId) {
+          linkedLocationId = links[0].targetId;
+          setOriginalLodgingLocationId(links[0].targetId);
+        } else {
+          setOriginalLodgingLocationId(null);
+        }
+      } catch {
+        // If fetching links fails, proceed without location
         setOriginalLodgingLocationId(null);
       }
-    } catch {
-      // If fetching links fails, proceed without location
-      setOriginalLodgingLocationId(null);
-    }
 
-    setLodgingForm({
-      type: lodging.type,
-      name: lodging.name,
-      locationId: linkedLocationId,
-      address: lodging.address || "",
-      checkInDate: lodging.checkInDate
-        ? convertISOToDateTimeLocal(lodging.checkInDate, effectiveTz)
-        : "",
-      checkOutDate: lodging.checkOutDate
-        ? convertISOToDateTimeLocal(lodging.checkOutDate, effectiveTz)
-        : "",
-      timezone: lodging.timezone || "",
-      confirmationNumber: lodging.confirmationNumber || "",
-      bookingUrl: lodging.bookingUrl || "",
-      cost: lodging.cost?.toString() || "",
-      currency: lodging.currency || "USD",
-      notes: lodging.notes || "",
-    });
-  };
+      setLodgingForm({
+        type: lodging.type,
+        name: lodging.name,
+        locationId: linkedLocationId,
+        address: lodging.address || "",
+        checkInDate: lodging.checkInDate
+          ? convertISOToDateTimeLocal(lodging.checkInDate, effectiveTz)
+          : "",
+        checkOutDate: lodging.checkOutDate
+          ? convertISOToDateTimeLocal(lodging.checkOutDate, effectiveTz)
+          : "",
+        timezone: lodging.timezone || "",
+        confirmationNumber: lodging.confirmationNumber || "",
+        bookingUrl: lodging.bookingUrl || "",
+        cost: lodging.cost?.toString() || "",
+        currency: lodging.currency || "USD",
+        notes: lodging.notes || "",
+      });
+    },
+    [tripId, tripTimezone, resolveTz],
+  );
 
-  const initJournalForm = (entry: JournalEntry) => {
+  const initJournalForm = useCallback((entry: JournalEntry) => {
     setJournalForm({
       title: entry.title || "",
       content: entry.content,
@@ -319,7 +394,42 @@ export default function TimelineEditModal({
         ? new Date(entry.date).toISOString().slice(0, 16)
         : "",
     });
-  };
+  }, []);
+
+  // Load user categories for activities
+  useEffect(() => {
+    if (itemType === "activity") {
+      loadUserCategories();
+    }
+  }, [itemType, loadUserCategories]);
+
+  // Initialize form based on item type and data
+  useEffect(() => {
+    if (!isOpen || !props.itemData) return;
+
+    switch (props.itemType) {
+      case "activity":
+        initActivityForm(props.itemData);
+        break;
+      case "transportation":
+        initTransportationForm(props.itemData);
+        break;
+      case "lodging":
+        initLodgingForm(props.itemData);
+        break;
+      case "journal":
+        initJournalForm(props.itemData);
+        break;
+    }
+  }, [
+    isOpen,
+    props.itemType,
+    props.itemData,
+    initActivityForm,
+    initTransportationForm,
+    initLodgingForm,
+    initJournalForm,
+  ]);
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
     const newLocation = createLocationStub(locationId, locationName, tripId);
@@ -368,7 +478,7 @@ export default function TimelineEditModal({
       throw new Error("Name is required");
     }
 
-    const effectiveTz = activityForm.timezone || tripTimezone || "UTC";
+    const effectiveTz = resolveTz(activityForm.timezone, tripTimezone);
     let startTimeISO: string | null = null;
     let endTimeISO: string | null = null;
 
@@ -409,7 +519,7 @@ export default function TimelineEditModal({
       notes: activityForm.notes || null,
     };
 
-    await activityService.updateActivity(itemData.id, updateData);
+    await activityService.updateActivity(props.itemData.id, updateData);
 
     // Handle location link changes via entity linking
     const newLocationId = activityForm.locationId || null;
@@ -420,44 +530,45 @@ export default function TimelineEditModal({
         // Remove old link if there was one
         if (originalActivityLocationId) {
           await entityLinkService.deleteLink(tripId, {
-            sourceType: 'ACTIVITY',
-            sourceId: itemData.id,
-            targetType: 'LOCATION',
+            sourceType: "ACTIVITY",
+            sourceId: props.itemData.id,
+            targetType: "LOCATION",
             targetId: originalActivityLocationId,
           });
         }
         // Create new link if there's a new location
         if (newLocationId) {
           await entityLinkService.createLink(tripId, {
-            sourceType: 'ACTIVITY',
-            sourceId: itemData.id,
-            targetType: 'LOCATION',
+            sourceType: "ACTIVITY",
+            sourceId: props.itemData.id,
+            targetType: "LOCATION",
             targetId: newLocationId,
           });
         }
+        invalidateEntityLinks(tripId);
       } catch (error) {
-        console.error('Failed to update location link:', error);
-        toast.error('Activity saved but failed to update location link');
+        console.error("Failed to update location link:", error);
+        toast.error("Activity saved but failed to update location link");
       }
     }
   };
 
   const submitTransportation = async () => {
     const effectiveStartTz =
-      transportationForm.startTimezone || tripTimezone || "UTC";
+      resolveTz(transportationForm.startTimezone, tripTimezone);
     const effectiveEndTz =
-      transportationForm.endTimezone || tripTimezone || "UTC";
+      resolveTz(transportationForm.endTimezone, tripTimezone);
 
     const departureTimeISO = transportationForm.departureTime
       ? convertDateTimeLocalToISO(
           transportationForm.departureTime,
-          effectiveStartTz
+          effectiveStartTz,
         )
       : null;
     const arrivalTimeISO = transportationForm.arrivalTime
       ? convertDateTimeLocalToISO(
           transportationForm.arrivalTime,
-          effectiveEndTz
+          effectiveEndTz,
         )
       : null;
 
@@ -481,7 +592,10 @@ export default function TimelineEditModal({
       notes: transportationForm.notes || null,
     };
 
-    await transportationService.updateTransportation(itemData.id, updateData);
+    await transportationService.updateTransportation(
+      props.itemData.id,
+      updateData,
+    );
   };
 
   const submitLodging = async () => {
@@ -495,14 +609,14 @@ export default function TimelineEditModal({
       throw new Error("Check-out date is required");
     }
 
-    const effectiveTz = lodgingForm.timezone || tripTimezone || "UTC";
+    const effectiveTz = resolveTz(lodgingForm.timezone, tripTimezone);
     const checkInDateISO = convertDateTimeLocalToISO(
       lodgingForm.checkInDate,
-      effectiveTz
+      effectiveTz,
     );
     const checkOutDateISO = convertDateTimeLocalToISO(
       lodgingForm.checkOutDate,
-      effectiveTz
+      effectiveTz,
     );
 
     // Update lodging data (without locationId - using entity links)
@@ -520,7 +634,7 @@ export default function TimelineEditModal({
       notes: lodgingForm.notes || null,
     };
 
-    await lodgingService.updateLodging(itemData.id, updateData);
+    await lodgingService.updateLodging(props.itemData.id, updateData);
 
     // Handle location link changes via entity linking
     const newLocationId = lodgingForm.locationId || null;
@@ -531,24 +645,25 @@ export default function TimelineEditModal({
         // Remove old link if there was one
         if (originalLodgingLocationId) {
           await entityLinkService.deleteLink(tripId, {
-            sourceType: 'LODGING',
-            sourceId: itemData.id,
-            targetType: 'LOCATION',
+            sourceType: "LODGING",
+            sourceId: props.itemData.id,
+            targetType: "LOCATION",
             targetId: originalLodgingLocationId,
           });
         }
         // Create new link if there's a new location
         if (newLocationId) {
           await entityLinkService.createLink(tripId, {
-            sourceType: 'LODGING',
-            sourceId: itemData.id,
-            targetType: 'LOCATION',
+            sourceType: "LODGING",
+            sourceId: props.itemData.id,
+            targetType: "LOCATION",
             targetId: newLocationId,
           });
         }
+        invalidateEntityLinks(tripId);
       } catch (error) {
-        console.error('Failed to update location link:', error);
-        toast.error('Lodging saved but failed to update location link');
+        console.error("Failed to update location link:", error);
+        toast.error("Lodging saved but failed to update location link");
       }
     }
   };
@@ -566,7 +681,7 @@ export default function TimelineEditModal({
       entryDate: journalForm.entryDate || null,
     };
 
-    await journalEntryService.updateJournalEntry(itemData.id, updateData);
+    await journalEntryService.updateJournalEntry(props.itemData.id, updateData);
   };
 
   const getItemTypeLabel = () => {
@@ -743,7 +858,10 @@ export default function TimelineEditModal({
                 setActivityForm((prev) => ({
                   ...prev,
                   startDate: e.target.value,
-                  endDate: e.target.value && !prev.endDate ? e.target.value : prev.endDate,
+                  endDate:
+                    e.target.value && !prev.endDate
+                      ? e.target.value
+                      : prev.endDate,
                 }))
               }
               className="input"
@@ -764,7 +882,10 @@ export default function TimelineEditModal({
                 setActivityForm((prev) => ({
                   ...prev,
                   endDate: e.target.value,
-                  startDate: e.target.value && !prev.startDate ? e.target.value : prev.startDate,
+                  startDate:
+                    e.target.value && !prev.startDate
+                      ? e.target.value
+                      : prev.startDate,
                 }))
               }
               className="input"
@@ -786,7 +907,10 @@ export default function TimelineEditModal({
                   setActivityForm((prev) => ({
                     ...prev,
                     startDate: e.target.value,
-                    endDate: e.target.value && !prev.endDate ? e.target.value : prev.endDate,
+                    endDate:
+                      e.target.value && !prev.endDate
+                        ? e.target.value
+                        : prev.endDate,
                   }))
                 }
                 className="input flex-1"
@@ -818,7 +942,10 @@ export default function TimelineEditModal({
                   setActivityForm((prev) => ({
                     ...prev,
                     endDate: e.target.value,
-                    startDate: e.target.value && !prev.startDate ? e.target.value : prev.startDate,
+                    startDate:
+                      e.target.value && !prev.startDate
+                        ? e.target.value
+                        : prev.startDate,
                   }))
                 }
                 className="input flex-1"
@@ -905,12 +1032,13 @@ export default function TimelineEditModal({
         <select
           id="transportation-type"
           value={transportationForm.type}
-          onChange={(e) =>
-            setTransportationForm((prev) => ({
-              ...prev,
-              type: e.target.value as TransportationType,
-            }))
-          }
+          onChange={(e) => {
+            // A <select> hands back a plain string; narrow it rather than
+            // asserting, so an option renamed out from under this stays typed.
+            if (!isTransportationType(e.target.value)) return;
+            const type = e.target.value;
+            setTransportationForm((prev) => ({ ...prev, type }));
+          }}
           className="input"
         >
           <option value="flight">✈️ Flight</option>
@@ -1025,7 +1153,10 @@ export default function TimelineEditModal({
               setTransportationForm((prev) => ({
                 ...prev,
                 departureTime: e.target.value,
-                arrivalTime: e.target.value && !prev.arrivalTime ? e.target.value : prev.arrivalTime,
+                arrivalTime:
+                  e.target.value && !prev.arrivalTime
+                    ? e.target.value
+                    : prev.arrivalTime,
               }))
             }
             className="input"
@@ -1056,7 +1187,10 @@ export default function TimelineEditModal({
               setTransportationForm((prev) => ({
                 ...prev,
                 arrivalTime: e.target.value,
-                departureTime: e.target.value && !prev.departureTime ? e.target.value : prev.departureTime,
+                departureTime:
+                  e.target.value && !prev.departureTime
+                    ? e.target.value
+                    : prev.departureTime,
               }))
             }
             className="input"
@@ -1171,12 +1305,11 @@ export default function TimelineEditModal({
           <select
             id="lodging-type"
             value={lodgingForm.type}
-            onChange={(e) =>
-              setLodgingForm((prev) => ({
-                ...prev,
-                type: e.target.value as LodgingType,
-              }))
-            }
+            onChange={(e) => {
+              if (!isLodgingType(e.target.value)) return;
+              const type = e.target.value;
+              setLodgingForm((prev) => ({ ...prev, type }));
+            }}
             className="input"
           >
             <option value="hotel">🏨 Hotel</option>
@@ -1284,7 +1417,10 @@ export default function TimelineEditModal({
               setLodgingForm((prev) => ({
                 ...prev,
                 checkInDate: e.target.value,
-                checkOutDate: e.target.value && !prev.checkOutDate ? e.target.value : prev.checkOutDate,
+                checkOutDate:
+                  e.target.value && !prev.checkOutDate
+                    ? e.target.value
+                    : prev.checkOutDate,
               }))
             }
             className="input"
@@ -1306,7 +1442,10 @@ export default function TimelineEditModal({
               setLodgingForm((prev) => ({
                 ...prev,
                 checkOutDate: e.target.value,
-                checkInDate: e.target.value && !prev.checkInDate ? e.target.value : prev.checkInDate,
+                checkInDate:
+                  e.target.value && !prev.checkInDate
+                    ? e.target.value
+                    : prev.checkInDate,
               }))
             }
             className="input"
@@ -1429,7 +1568,9 @@ export default function TimelineEditModal({
       <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
           <p className="text-sm text-blue-700 dark:text-blue-300">
-            <strong>Tip:</strong> After saving, use the Link button (🔗) on the timeline to connect this journal entry to locations, activities, lodging, transportation, photos, or albums.
+            <strong>Tip:</strong> After saving, use the Link button (🔗) on the
+            timeline to connect this journal entry to locations, activities,
+            lodging, transportation, photos, or albums.
           </p>
         </div>
       </div>

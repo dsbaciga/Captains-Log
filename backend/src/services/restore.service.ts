@@ -1,9 +1,10 @@
 import prisma from '../config/database';
 import { Prisma } from '@prisma/client';
-import { BackupData, RestoreOptions } from '../types/backup.types';
+import { BackupData, RestoreOptions, isStoredUploadPath } from '../types/backup.types';
 import { AppError } from '../errors/errors';
 import { validateUrlNotInternal } from '../security/urlValidation';
 import logger from '../config/logger';
+import { resolveTimezone } from './_shared/timezoneResolution';
 
 type TransactionClient = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>;
 
@@ -34,6 +35,32 @@ interface RestoreStats {
  * v1.4.0 - Added savedLinks
  */
 const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0'];
+
+/**
+ * Second layer of defence for file paths coming out of an uploaded backup.
+ *
+ * BackupDataSchema already rejects anything that is not a server-generated
+ * `/uploads/<subdir>/<filename>` value, so this should never fire in practice.
+ * It exists because these values are eventually joined onto the uploads root and
+ * passed to fs.unlink() — if the schema is ever loosened, or restoreFromBackup is
+ * called with data that did not go through it, a traversal path must still not be
+ * persisted. Non-conforming values are nulled out and logged rather than throwing,
+ * so one bad row cannot abort an otherwise valid restore at this stage.
+ */
+function sanitizeStoredPath(
+  value: string | null | undefined,
+  userId: number,
+  field: string
+): string | null {
+  if (value == null) return null;
+  if (isStoredUploadPath(value)) return value;
+
+  logger.warn('Restore: dropped file path that is not a server-generated upload path', {
+    userId,
+    field,
+  });
+  return null;
+}
 
 /**
  * Restore user data from a backup
@@ -149,7 +176,7 @@ export async function restoreFromBackup(
         await tx.user.update({
           where: { id: userId },
           data: {
-            timezone: backupData.user.timezone ?? currentUser?.timezone ?? 'UTC',
+            timezone: resolveTimezone(backupData.user.timezone, currentUser?.timezone),
             activityCategories: backupData.user.activityCategories as Prisma.JsonArray,
             ...(backupData.user.tripTypes ? { tripTypes: backupData.user.tripTypes as Prisma.JsonArray } : {}),
             immichApiUrl: sanitizedImmichUrl,
@@ -189,7 +216,7 @@ export async function restoreFromBackup(
               notes: companion.notes,
               relationship: companion.relationship,
               isMyself: companion.isMyself,
-              avatarUrl: companion.avatarUrl,
+              avatarUrl: sanitizeStoredPath(companion.avatarUrl, userId, 'companion.avatarUrl'),
               dietaryPreferences: companion.dietaryPreferences || [],
             },
           });
@@ -308,8 +335,12 @@ export async function restoreFromBackup(
               tripType: tripData.tripType || null,
               tripTypeEmoji: tripData.tripTypeEmoji || null,
               privacyLevel: tripData.privacyLevel,
-              coverImagePath: tripData.coverImagePath ?? null,
-              coverImageThumbnailPath: tripData.coverImageThumbnailPath ?? null,
+              coverImagePath: sanitizeStoredPath(tripData.coverImagePath, userId, 'trip.coverImagePath'),
+              coverImageThumbnailPath: sanitizeStoredPath(
+                tripData.coverImageThumbnailPath,
+                userId,
+                'trip.coverImageThumbnailPath'
+              ),
               addToPlacesVisited: tripData.addToPlacesVisited,
               seriesId: mappedSeriesId,
               seriesOrder: mappedSeriesId ? (tripData.seriesOrder || null) : null,
@@ -370,8 +401,8 @@ export async function restoreFromBackup(
                   tripId: trip.id,
                   source: photoData.source,
                   immichAssetId: photoData.immichAssetId,
-                  localPath: photoData.localPath,
-                  thumbnailPath: photoData.thumbnailPath,
+                  localPath: sanitizeStoredPath(photoData.localPath, userId, 'photo.localPath'),
+                  thumbnailPath: sanitizeStoredPath(photoData.thumbnailPath, userId, 'photo.thumbnailPath'),
                   caption: photoData.caption,
                   latitude: photoData.latitude,
                   longitude: photoData.longitude,
@@ -567,20 +598,35 @@ export async function restoreFromBackup(
             }
           }
 
-          // Import weather data
+          // Import weather data.
+          // Upsert rather than create: weather_data now has a unique
+          // (tripId, date) constraint, and older backups may contain duplicate
+          // trip-day rows produced by the pre-constraint insert race. A plain
+          // create would abort the whole restore transaction on such a backup.
           for (const weatherData of tripData.weatherData || []) {
-            await tx.weatherData.create({
-              data: {
-                tripId: trip.id,
-                locationId: weatherData.locationId ? locationMap.get(weatherData.locationId) : null,
-                date: new Date(weatherData.date),
-                temperatureHigh: weatherData.temperatureHigh,
-                temperatureLow: weatherData.temperatureLow,
-                conditions: weatherData.conditions,
-                precipitation: weatherData.precipitation,
-                humidity: weatherData.humidity,
-                windSpeed: weatherData.windSpeed,
+            const weatherRow = {
+              locationId: weatherData.locationId ? locationMap.get(weatherData.locationId) : null,
+              temperatureHigh: weatherData.temperatureHigh,
+              temperatureLow: weatherData.temperatureLow,
+              conditions: weatherData.conditions,
+              precipitation: weatherData.precipitation,
+              humidity: weatherData.humidity,
+              windSpeed: weatherData.windSpeed,
+            };
+
+            await tx.weatherData.upsert({
+              where: {
+                tripId_date: {
+                  tripId: trip.id,
+                  date: new Date(weatherData.date),
+                },
               },
+              create: {
+                tripId: trip.id,
+                date: new Date(weatherData.date),
+                ...weatherRow,
+              },
+              update: weatherRow,
             });
           }
 

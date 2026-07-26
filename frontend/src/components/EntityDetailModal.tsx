@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { EntityType } from '../types/entityLink';
 import { ENTITY_TYPE_CONFIG } from '../lib/entityConfig';
@@ -22,6 +22,8 @@ import type { Transportation } from '../types/transportation';
 import type { JournalEntry } from '../types/journalEntry';
 import type { Photo, AlbumWithPhotos } from '../types/photo';
 import MarkdownRenderer from './MarkdownRenderer';
+import { formatDate } from '../utils/dateFormat';
+import { formatCurrency } from '../utils/formatCurrency';
 
 interface EntityDetailModalProps {
   isOpen: boolean;
@@ -44,21 +46,6 @@ const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
   PDF_IMPORT: null, // Imports are managed outside the trip page
 };
 
-// Format date for display
-function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateString;
-  }
-}
-
 // Format datetime for display
 function formatDateTime(dateString: string | null | undefined, timezone?: string | null): string {
   if (!dateString) return '';
@@ -80,15 +67,6 @@ function formatDateTime(dateString: string | null | undefined, timezone?: string
   } catch {
     return dateString;
   }
-}
-
-// Format currency
-function formatCurrency(amount: number | null | undefined, currency: string | null | undefined): string {
-  if (amount == null) return '';
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: currency || 'USD',
-  }).format(amount);
 }
 
 // Type icons for transportation
@@ -264,8 +242,8 @@ function LodgingDetails({ entity }: { entity: Lodging }) {
         }
       />
       <DetailRow label="Address" value={entity.address} />
-      <DetailRow label="Check-in" value={formatDate(entity.checkInDate)} />
-      <DetailRow label="Check-out" value={formatDate(entity.checkOutDate)} />
+      <DetailRow label="Check-in" value={formatDate(entity.checkInDate, 'full', '')} />
+      <DetailRow label="Check-out" value={formatDate(entity.checkOutDate, 'full', '')} />
       <DetailRow label="Confirmation #" value={entity.confirmationNumber} />
       {entity.cost != null && (
         <DetailRow label="Cost" value={formatCurrency(entity.cost, entity.currency)} />
@@ -363,7 +341,7 @@ function JournalDetails({ entity }: { entity: JournalEntry }) {
   return (
     <dl className="divide-y divide-gray-200 dark:divide-gray-700">
       <DetailRow label="Title" value={entity.title} />
-      <DetailRow label="Date" value={formatDate(entity.date)} />
+      <DetailRow label="Date" value={formatDate(entity.date, 'full', '')} />
       <DetailRow
         label="Type"
         value={<span className="capitalize">{entity.entryType.replace(/_/g, ' ')}</span>}

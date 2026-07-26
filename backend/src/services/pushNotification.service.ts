@@ -2,6 +2,7 @@ import webpush, { WebPushError } from 'web-push';
 import prisma from '../config/database';
 import config from '../config';
 import logger from '../config/logger';
+import { resolveTimezone } from './_shared/timezoneResolution';
 
 export interface PushNotificationPayload {
   title: string;
@@ -168,14 +169,17 @@ class PushNotificationService {
 
   /**
    * Format "today + dayOffset" as YYYY-MM-DD in the given IANA timezone.
-   * Falls back to UTC when the timezone is missing or invalid.
+   *
+   * Callers pass the trip's zone and then the owner's, so "tomorrow" means
+   * tomorrow where the traveller is. Only falls back to UTC when neither is
+   * set, or when the zone is invalid.
    */
   private dateStringInTimezone(dayOffset: number, timezone?: string | null): string {
     const date = new Date(Date.now() + dayOffset * 24 * 60 * 60 * 1000);
     try {
       // en-CA locale formats as YYYY-MM-DD
       return new Intl.DateTimeFormat('en-CA', {
-        timeZone: timezone || 'UTC',
+        timeZone: resolveTimezone(timezone),
       }).format(date);
     } catch {
       return date.toISOString().slice(0, 10);
@@ -209,6 +213,8 @@ class PushNotificationService {
         title: true,
         startDate: true,
         timezone: true,
+        // The owner's zone stands in when the trip has none of its own.
+        user: { select: { timezone: true } },
       },
     });
 
@@ -218,7 +224,10 @@ class PushNotificationService {
 
       // startDate is a @db.Date stored at UTC midnight
       const startDateStr = trip.startDate.toISOString().slice(0, 10);
-      const tomorrowStr = this.dateStringInTimezone(1, trip.timezone);
+      const tomorrowStr = this.dateStringInTimezone(
+        1,
+        resolveTimezone(trip.timezone, trip.user.timezone)
+      );
       if (startDateStr !== tomorrowStr) continue;
 
       const dedupeKey = `${trip.id}:${startDateStr}`;

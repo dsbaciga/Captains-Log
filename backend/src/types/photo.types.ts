@@ -154,7 +154,10 @@ export const acceptAlbumSuggestionSchema = z.object({
 export const PhotoSortBy = {
   DATE: 'date',
   CAPTION: 'caption',
-  LOCATION: 'location',
+  // NOTE: no LOCATION option. Photo has no location relation to order by
+  // (photo->location moved to the polymorphic EntityLink system), so the old
+  // 'location' value silently returned date-ordered results. It is rejected
+  // at the schema instead of being accepted and ignored.
   CREATED: 'created',
 } as const;
 

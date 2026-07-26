@@ -12,7 +12,7 @@
  */
 
 import { memo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Trip } from '../types/trip';
 import { getTripStatusRibbonColor } from '../utils/statusColors';
 import { formatTripDates, getTripDateStatus, formatTripDuration } from '../utils/dateFormat';
@@ -45,8 +45,59 @@ const TripCard = memo(function TripCard({ trip, coverPhotoUrl, onDelete, onArchi
   const counts = trip._count;
   const hasStats = counts && (counts.locations > 0 || counts.photos > 0 || counts.transportation > 0);
 
+  // One metadata line for the compact row: the counts that exist, in the order
+  // they appear on the full card.
+  const metaLine = [
+    counts?.locations ? `${counts.locations} location${counts.locations !== 1 ? 's' : ''}` : null,
+    counts?.photos ? `${counts.photos} photo${counts.photos !== 1 ? 's' : ''}` : null,
+    counts?.transportation ? `${counts.transportation} transport` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
-    <div className={`group relative rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-primary-500/10 dark:border-gold/20 hover:border-primary-500/30 dark:hover:border-gold/40 bg-white dark:bg-navy-800 flex flex-col transform hover:-translate-y-1 dark:hover:shadow-[0_0_25px_rgba(251,191,36,0.15),0_20px_40px_-15px_rgba(0,0,0,0.3)] ${trip.archived ? 'opacity-60 saturate-50 hover:opacity-90' : ''}`}>
+    <>
+    {/* Compact row — the grid is a single column below md, where the photo-led
+        card costs ~400px for 1.4 trips per screen. The full card returns at md,
+        where a multi-column grid makes the imagery earn its height. */}
+    <Link
+      to={`/trips/${trip.id}`}
+      onClick={() => onNavigateAway?.()}
+      className={`md:hidden group flex items-center gap-3 min-h-[92px] p-2 rounded-xl bg-white dark:bg-navy-800 border-2 border-primary-500/10 dark:border-gold/20 shadow-sm active:bg-parchment dark:active:bg-navy-700 transition-colors ${trip.archived ? 'opacity-60 saturate-50' : ''}`}
+    >
+      <div className="relative h-[72px] w-[72px] flex-none overflow-hidden rounded-lg bg-navy-800">
+        {coverPhotoUrl ? (
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${coverPhotoUrl})` }}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-navy-900 via-navy-800 to-charcoal">
+            <svg className="w-8 h-8 text-primary-400/50" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" />
+            </svg>
+          </div>
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-display font-bold text-charcoal dark:text-warm-gray">
+          {trip.title}
+        </h3>
+        <p className="truncate text-sm text-slate dark:text-warm-gray/80">
+          {formatTripDates(trip.startDate, trip.endDate)}
+        </p>
+        {metaLine && (
+          <p className="truncate text-xs text-slate/70 dark:text-warm-gray/60">{metaLine}</p>
+        )}
+      </div>
+
+      <span className={`flex-none px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${getTripStatusRibbonColor(trip.status)}`}>
+        {trip.status}
+      </span>
+    </Link>
+
+    <div className={`hidden md:flex group relative rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-primary-500/10 dark:border-gold/20 hover:border-primary-500/30 dark:hover:border-gold/40 bg-white dark:bg-navy-800 flex-col transform hover:-translate-y-1 dark:hover:shadow-[0_0_25px_rgba(251,191,36,0.15),0_20px_40px_-15px_rgba(0,0,0,0.3)] ${trip.archived ? 'opacity-60 saturate-50 hover:opacity-90' : ''}`}>
       {/* Clickable area covering the entire card for navigation */}
       <Link
         to={`/trips/${trip.id}`}
@@ -249,6 +300,7 @@ const TripCard = memo(function TripCard({ trip, coverPhotoUrl, onDelete, onArchi
         )}
       </div>
     </div>
+    </>
   );
 });
 

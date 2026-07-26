@@ -7,10 +7,8 @@ import {
   ListSavedLinksQuery,
   UpdateSavedLinkInput,
 } from '../types/savedLink.types';
-import {
-  cleanupEntityLinks,
-  verifyTripAccessWithPermission,
-} from '../services/_shared/serviceHelpers';
+import { verifyTripAccessWithPermission } from '../services/_shared/tripAccess';
+import { cleanupEntityLinks } from '../services/_shared/entityLinkCleanup';
 import linkMetadataService, { stripTrackingParams } from './linkMetadata.service';
 import { Prisma } from '@prisma/client';
 

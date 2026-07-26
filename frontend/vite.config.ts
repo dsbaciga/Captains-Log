@@ -140,7 +140,7 @@ export default defineConfig({
         assetFileNames: `assets/[name].[hash].[ext]`,
         manualChunks: {
           // Split large vendor libraries into separate cacheable chunks
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-react': ['react', 'react-dom', 'react-router'],
           'vendor-leaflet': [
             'leaflet',
             'react-leaflet',

@@ -39,6 +39,10 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'theme-storage',
+      // Persisted-shape version. Bump this when the persisted fields change
+      // and branch on `version` in migrate() to convert older payloads.
+      version: 1,
+      migrate: (persistedState) => persistedState as ThemeState,
     }
   )
 );

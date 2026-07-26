@@ -7,7 +7,8 @@ export interface Tag {
   createdAt: string;
   updatedAt: string;
   _count?: {
-    trips: number;
+    // Backend returns the tag-assignment count (tag.service.ts `_count: { assignments }`)
+    assignments: number;
   };
 }
 

@@ -57,6 +57,7 @@ const mockPrisma = {
   photoAlbumAssignment: {
     createMany: jest.fn(),
     delete: jest.fn(),
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
   },
@@ -68,26 +69,38 @@ const mockPrisma = {
   entityLink: {
     deleteMany: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
+
+// The delete path runs its writes inside a transaction. Hand the callback the
+// same mock client so the inner calls stay observable on mockPrisma.
+mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => unknown) =>
+  cb(mockPrisma)
+);
 
 jest.mock('../../config/database', () => ({
   __esModule: true,
   default: mockPrisma,
 }));
 
-// Mock service helpers
-jest.mock('../../services/_shared/serviceHelpers', () => {
-  const originalModule = jest.requireActual('../../services/_shared/serviceHelpers');
+// Mock trip access verification
+jest.mock('../../services/_shared/tripAccess', () => {
+  const originalModule = jest.requireActual('../../services/_shared/tripAccess');
   return {
     ...originalModule,
     verifyTripAccessWithPermission: jest.fn(),
     verifyEntityAccessWithPermission: jest.fn(),
-    cleanupEntityLinks: jest.fn(),
   };
 });
 
+// Mock entity link cleanup
+jest.mock('../../services/_shared/entityLinkCleanup', () => ({
+  cleanupEntityLinks: jest.fn(),
+}));
+
 import photoAlbumService from '../photoAlbum.service';
-import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, cleanupEntityLinks } from '../../services/_shared/serviceHelpers';
+import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission } from '../../services/_shared/tripAccess';
+import { cleanupEntityLinks } from '../../services/_shared/entityLinkCleanup';
 import { AppError } from '../../errors/errors';
 
 describe('PhotoAlbumService', () => {
@@ -303,6 +316,7 @@ describe('PhotoAlbumService', () => {
   describe('ALB-003: Remove photo from album', () => {
     beforeEach(() => {
       mockPrisma.photoAlbum.findUnique.mockResolvedValue(mockAlbum);
+      mockPrisma.photoAlbumAssignment.findFirst.mockResolvedValue({ id: 1, albumId: mockAlbumId, photoId: 1 });
       mockPrisma.photoAlbumAssignment.delete.mockResolvedValue({ id: 1 });
     });
 
@@ -316,6 +330,9 @@ describe('PhotoAlbumService', () => {
       );
 
       expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
+      expect(mockPrisma.photoAlbumAssignment.findFirst).toHaveBeenCalledWith({
+        where: { albumId: mockAlbumId, photoId },
+      });
       expect(mockPrisma.photoAlbumAssignment.delete).toHaveBeenCalledWith({
         where: {
           albumId_photoId: {
@@ -325,6 +342,16 @@ describe('PhotoAlbumService', () => {
         },
       });
       expect(result).toEqual({ success: true });
+    });
+
+    it('should throw 404 if the photo is not in the album', async () => {
+      mockPrisma.photoAlbumAssignment.findFirst.mockResolvedValue(null);
+
+      await expect(
+        photoAlbumService.removePhotoFromAlbum(mockUserId, mockAlbumId, 1)
+      ).rejects.toThrow('Photo is not in this album');
+
+      expect(mockPrisma.photoAlbumAssignment.delete).not.toHaveBeenCalled();
     });
 
     it('should throw error if album not found', async () => {
@@ -721,10 +748,14 @@ describe('PhotoAlbumService', () => {
       const result = await photoAlbumService.deleteAlbum(mockUserId, mockAlbumId);
 
       expect(verifyEntityAccessWithPermission).toHaveBeenCalled();
+      // Link cleanup and the delete share one transaction, so the cleanup
+      // helper is handed the transaction client.
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(cleanupEntityLinks).toHaveBeenCalledWith(
         mockTripId,
         'PHOTO_ALBUM',
-        mockAlbumId
+        mockAlbumId,
+        mockPrisma
       );
       expect(mockPrisma.photoAlbum.delete).toHaveBeenCalledWith({
         where: { id: mockAlbumId },

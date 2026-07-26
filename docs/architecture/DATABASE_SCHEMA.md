@@ -364,6 +364,35 @@ Invites a person to register for the Travel Life application itself (account-lev
 | respondedAt | DateTime? | When the invitation was answered |
 | acceptedUserId | Int? | User who accepted (set after registration) |
 
+### TravelPartnerRequest
+
+Consent record for a travel partnership. A partnership auto-shares every new trip
+either user creates (see `trip.service.ts`), so it needs both sides to agree:
+`User.travelPartnerId` is only ever written for the user making the change, and the
+reciprocal write happens only when the recipient accepts a request here.
+
+Unlike `TripInvitation`/`UserInvitation` there is no token or expiry — the recipient is
+an existing account responding inside the app, not following an emailed link.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | Int | Primary key |
+| requesterId | Int | User who sent the request |
+| recipientId | Int | User being asked |
+| status | TravelPartnerRequestStatus | PENDING, ACCEPTED, DECLINED |
+| message | String? | Optional personal note |
+| shareExistingTrips | Boolean | Requester opted in to back-sharing **their own** existing trips on acceptance |
+| respondedAt | DateTime? | When the request was answered |
+
+`shareExistingTrips` records the requester's choice at send time because it is only
+acted on at accept time. The recipient's mirror-image choice is passed on the accept
+call and acted on immediately, so it needs no column. Each flag only ever shares its
+own side's trips.
+
+Unique on `(requesterId, recipientId)` — one row per ordered pair, so re-sending
+refreshes the existing request instead of creating a duplicate pending one. A CHECK
+constraint also forbids `requesterId = recipientId`.
+
 ### LocationCategory
 
 Categories used to classify locations. System defaults have a null `userId`.
@@ -864,6 +893,16 @@ Status of a `UserInvitation` (application-level invite).
 | ACCEPTED | Invitee registered |
 | DECLINED | Invitation declined |
 | EXPIRED | Invitation expired |
+
+### TravelPartnerRequestStatus
+
+Status of a `TravelPartnerRequest`.
+
+| Value | Meaning |
+|-------|---------|
+| PENDING | Awaiting the recipient's response |
+| ACCEPTED | Partnership established on both users |
+| DECLINED | Recipient declined |
 
 ## Indexes
 

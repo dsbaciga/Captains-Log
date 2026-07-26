@@ -53,7 +53,7 @@ jest.mock('../../services/entityLink.service', () => ({
 }));
 
 import { entityLinkController } from '../entityLink.controller';
-import { createAuthenticatedControllerArgs } from '../../__tests__/helpers/requests';
+import { createAuthenticatedControllerArgs } from '../../__tests__/mockBuilders/requests';
 import { testUsers } from '../../__tests__/fixtures/users';
 import { Request, Response, NextFunction } from 'express';
 

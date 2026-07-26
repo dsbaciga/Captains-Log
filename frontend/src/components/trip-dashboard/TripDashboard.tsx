@@ -22,6 +22,7 @@ import LocalTimeWidget from './LocalTimeWidget';
 import BudgetSummaryWidget from './BudgetSummaryWidget';
 import WeatherForecastWidget from './WeatherForecastWidget';
 import FlightStatusWidget from './FlightStatusWidget';
+import { useTimezoneResolver } from '../../hooks/useTimezoneResolver';
 
 // Weather forecast data structure
 interface WeatherForecast {
@@ -167,8 +168,11 @@ export default function TripDashboard({
     unscheduledLodging.length;
 
   // Get trip timezone with fallback
-  const tripTimezone = trip.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const homeTimezone = userHomeTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const resolveTz = useTimezoneResolver();
+  // "Home" is the zone the viewer keeps their own clock in: their configured
+  // one, then their browser's. resolveTz supplies the user's for us.
+  const tripTimezone = resolveTz(trip.timezone);
+  const homeTimezone = resolveTz(userHomeTimezone);
 
   // Check if trip is international (different timezone)
   const isInternationalTrip = tripTimezone !== homeTimezone;

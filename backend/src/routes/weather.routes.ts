@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth';
+import { externalApiLimiter } from '../middleware/rateLimit';
 import { weatherController } from '../controllers/weather.controller';
 
 const router = express.Router();
@@ -69,9 +70,11 @@ router.get(
  *       404:
  *         description: Trip not found
  */
+// Forces an outbound OpenWeatherMap call — metered, so limit per user.
 router.post(
   '/trips/:tripId/weather/refresh',
   authenticate,
+  externalApiLimiter,
   weatherController.refreshWeather
 );
 
@@ -99,9 +102,11 @@ router.post(
  *       404:
  *         description: Trip not found
  */
+// Fans out to one OpenWeatherMap call per day of the trip — metered.
 router.post(
   '/trips/:tripId/weather/refresh-all',
   authenticate,
+  externalApiLimiter,
   weatherController.refreshAllWeather
 );
 

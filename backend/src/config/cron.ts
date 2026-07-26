@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import tripService from '../services/trip.service';
 import pushNotificationService from '../services/pushNotification.service';
 import emailIngestService from '../services/emailIngest.service';
+import { pdfImportService } from '../services/pdfImport.service';
 import config from './index';
 import logger from './logger';
 
@@ -30,6 +31,26 @@ export function initCronJobs(): void {
       }
     } catch (error) {
       logger.error('Error during trip-start push reminder cron job:', error);
+    }
+  });
+
+  // Hourly recovery of jobs stuck mid-processing. index.ts also runs both of
+  // these once at boot; scheduling them means a job that hangs while the process
+  // stays up (an LLM/IMAP call that never returns, a killed worker) is recovered
+  // within the hour instead of waiting for the next restart.
+  cron.schedule('30 * * * *', async () => {
+    try {
+      await pdfImportService.resetStaleParsing();
+    } catch (error) {
+      logger.error('Error during stale PDF import reset cron job:', error);
+    }
+
+    if (emailIngestService.isConfigured()) {
+      try {
+        await emailIngestService.resetStaleProcessing();
+      } catch (error) {
+        logger.error('Error during stale email ingest reset cron job:', error);
+      }
     }
   });
 

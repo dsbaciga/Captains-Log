@@ -1,5 +1,16 @@
 import axios from '../lib/axios';
-import type { User, UpdateUserSettingsInput, UserSearchResult, TravelPartnerSettings, UpdateTravelPartnerInput } from '../types/user';
+import type {
+  User,
+  UpdateUserSettingsInput,
+  UserSearchResult,
+  TravelPartnerSettings,
+  UpdateTravelPartnerInput,
+  TravelPartnerRequest,
+  TravelPartnerRequests,
+  SendTravelPartnerRequestInput,
+  AcceptTravelPartnerRequestInput,
+  AcceptTravelPartnerRequestResult,
+} from '../types/user';
 import { isMapsApp, type MapsApp } from '../lib/mapsDeepLinks';
 
 export interface SmtpSettingsResponse {
@@ -194,6 +205,50 @@ const userService = {
 
   async updateTravelPartnerSettings(data: UpdateTravelPartnerInput): Promise<TravelPartnerSettings & { success: boolean; message: string }> {
     const response = await axios.put('/users/travel-partner', data);
+    return response.data;
+  },
+
+  // ---------------------------------------------------------------------------
+  // Travel partner requests
+  //
+  // A partnership auto-shares every new trip either user creates, so it takes both
+  // sides: the requester sends, the recipient accepts. Nothing is written to either
+  // profile until the accept.
+  // ---------------------------------------------------------------------------
+
+  async getTravelPartnerRequests(): Promise<TravelPartnerRequests> {
+    const response = await axios.get('/users/travel-partner/requests');
+    return response.data;
+  },
+
+  async sendTravelPartnerRequest(data: SendTravelPartnerRequestInput): Promise<TravelPartnerRequest> {
+    const response = await axios.post('/users/travel-partner/requests', data);
+    return response.data;
+  },
+
+  /**
+   * Recipient only. Establishes the partnership on both users.
+   *
+   * `shareExistingTrips` shares the CALLER's own existing trips with the requester;
+   * it cannot pull the requester's history the other way.
+   */
+  async acceptTravelPartnerRequest(
+    requestId: number,
+    data: AcceptTravelPartnerRequestInput = {}
+  ): Promise<AcceptTravelPartnerRequestResult> {
+    const response = await axios.post(`/users/travel-partner/requests/${requestId}/accept`, data);
+    return response.data;
+  },
+
+  /** Recipient only. */
+  async declineTravelPartnerRequest(requestId: number): Promise<{ message: string }> {
+    const response = await axios.post(`/users/travel-partner/requests/${requestId}/decline`);
+    return response.data;
+  },
+
+  /** Requester only — recipients decline instead. */
+  async cancelTravelPartnerRequest(requestId: number): Promise<{ message: string }> {
+    const response = await axios.delete(`/users/travel-partner/requests/${requestId}`);
     return response.data;
   },
 };

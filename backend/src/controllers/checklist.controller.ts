@@ -5,11 +5,11 @@ import {
   UpdateChecklistSchema,
   UpdateChecklistItemSchema,
   SelectiveChecklistOperationSchema,
+  ChecklistItemSchema,
 } from '../types/checklist.types';
 import { asyncHandler } from '../http/asyncHandler';
 import { requireUserId } from '../auth/controllerHelpers';
 import { parseId } from '../http/parseId';
-import { AppError } from '../errors/errors';
 
 export const checklistController = {
   /**
@@ -105,16 +105,16 @@ export const checklistController = {
   addChecklistItem: asyncHandler(async (req: Request, res: Response) => {
     const userId = requireUserId(req);
     const checklistId = parseId(req.params.id);
-    const { name, description, metadata } = req.body;
-
-    if (!name) {
-      throw new AppError('Item name is required', 400);
-    }
+    const { name, description, metadata } = ChecklistItemSchema.pick({
+      name: true,
+      description: true,
+      metadata: true,
+    }).parse(req.body);
 
     const item = await checklistService.addChecklistItem(checklistId, userId, {
       name,
       description,
-      metadata,
+      metadata: metadata ?? undefined,
     });
 
     res.status(201).json({
