@@ -390,6 +390,8 @@ rejected with a 400.
 | GET | `/:id` | Get a saved link by ID | Yes |
 | PATCH | `/:id` | Update a link; `tripId: null` returns it to the inbox | Yes |
 | DELETE | `/:id` | Delete a link and any entity links pointing at it | Yes |
+| DELETE | `/bulk` | Delete several links by `{ ids: [] }`; all-or-nothing | Yes |
+| DELETE | `/inbox` | Delete every link not assigned to a trip | Yes |
 | POST | `/:id/refresh-metadata` | Re-scrape Open Graph metadata | Yes |
 | GET | `/api/trips/:tripId/saved-links` | List a trip's links (visible to collaborators) | Yes |
 

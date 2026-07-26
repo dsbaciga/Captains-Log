@@ -16,6 +16,9 @@
  * - SL-012: Ownership errors (404 for another user's link)
  * - SL-013: populateMetadata writes FETCHED on success, FAILED on miss
  * - SL-014: Inbox count
+ * - SL-015: Bulk delete removes entity links for assigned links only
+ * - SL-016: Bulk delete 404s if any id is not owned by the user
+ * - SL-017: Delete-all-unassigned only touches links with no trip
  */
 
 const mockPrisma = {
@@ -26,8 +29,10 @@ const mockPrisma = {
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    deleteMany: jest.fn(),
     count: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
 
 jest.mock('../../config/database', () => ({
@@ -304,6 +309,78 @@ describe('SavedLinkService', () => {
       await savedLinkService.deleteSavedLink(USER_ID, 1);
 
       expect(mockCleanupEntityLinks).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('bulkDeleteSavedLinks', () => {
+    /** Runs the transaction callback against a stubbed tx client. */
+    function stubTransaction(deletedCount: number) {
+      const txDeleteMany = jest.fn().mockResolvedValue({ count: deletedCount });
+      mockPrisma.$transaction.mockImplementation(
+        async (callback: (tx: unknown) => Promise<unknown>) =>
+          callback({ savedLink: { deleteMany: txDeleteMany } })
+      );
+      return txDeleteMany;
+    }
+
+    it('SL-015: cleans up entity links for assigned links only', async () => {
+      mockPrisma.savedLink.findMany.mockResolvedValue([
+        { id: 1, tripId: null },
+        { id: 2, tripId: 42 },
+      ]);
+      const txDeleteMany = stubTransaction(2);
+
+      const result = await savedLinkService.bulkDeleteSavedLinks(USER_ID, {
+        ids: [1, 2],
+      });
+
+      expect(mockCleanupEntityLinks).toHaveBeenCalledTimes(1);
+      expect(mockCleanupEntityLinks).toHaveBeenCalledWith(
+        42,
+        'SAVED_LINK',
+        2,
+        expect.anything()
+      );
+      expect(txDeleteMany).toHaveBeenCalledWith({
+        where: { id: { in: [1, 2] }, userId: USER_ID },
+      });
+      expect(result).toEqual({ success: true, deletedCount: 2 });
+    });
+
+    it('deduplicates repeated ids before counting matches', async () => {
+      mockPrisma.savedLink.findMany.mockResolvedValue([{ id: 1, tripId: null }]);
+      stubTransaction(1);
+
+      await expect(
+        savedLinkService.bulkDeleteSavedLinks(USER_ID, { ids: [1, 1] })
+      ).resolves.toEqual({ success: true, deletedCount: 1 });
+    });
+
+    it("SL-016: 404s when an id isn't the user's, deleting nothing", async () => {
+      // Only one of the two requested ids comes back owner-scoped.
+      mockPrisma.savedLink.findMany.mockResolvedValue([{ id: 1, tripId: null }]);
+
+      await expect(
+        savedLinkService.bulkDeleteSavedLinks(USER_ID, { ids: [1, 999] })
+      ).rejects.toThrow(AppError);
+
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockCleanupEntityLinks).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteUnassignedSavedLinks', () => {
+    it('SL-017: deletes only the caller\'s links with no trip', async () => {
+      mockPrisma.savedLink.deleteMany.mockResolvedValue({ count: 3 });
+
+      const result = await savedLinkService.deleteUnassignedSavedLinks(USER_ID);
+
+      expect(mockPrisma.savedLink.deleteMany).toHaveBeenCalledWith({
+        where: { userId: USER_ID, tripId: null },
+      });
+      // Inbox links can't have entity links, so no cleanup is attempted.
+      expect(mockCleanupEntityLinks).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: true, deletedCount: 3 });
     });
   });
 

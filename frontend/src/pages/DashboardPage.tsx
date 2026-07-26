@@ -7,6 +7,7 @@ import RecentPhotosWidget from '../components/widgets/RecentPhotosWidget';
 import QuickActionsWidget from '../components/widgets/QuickActionsWidget';
 import OnThisDayWidget from '../components/widgets/OnThisDayWidget';
 import TripCalendarWidget from '../components/widgets/TripCalendarWidget';
+import YearInReviewWidget from '../components/widgets/YearInReviewWidget';
 import PendingInvitations from '../components/PendingInvitations';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
@@ -43,9 +44,11 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Pending Invitations */}
-        <div className="mb-8 animate-fade-in">
+        {/* Pending Invitations + Year in Review — both render nothing when they
+            have no content, so the container collapses instead of leaving a gap */}
+        <div className="flex flex-col gap-8 mb-8 animate-fade-in empty:hidden">
           <PendingInvitations />
+          <YearInReviewWidget />
         </div>
 
         {/* Widgets Grid */}

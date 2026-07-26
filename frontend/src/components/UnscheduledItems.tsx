@@ -100,6 +100,45 @@ const initialLodgingFormState: LodgingFormFields = {
   notes: "",
 };
 
+// Runtime copies of the string-literal unions in types/transportation.ts and
+// types/lodging.ts. `satisfies` ties each entry back to its union, so a member
+// that is renamed or removed there fails to compile here instead of silently
+// drifting.
+const TRANSPORTATION_TYPES = [
+  "flight",
+  "train",
+  "bus",
+  "car",
+  "ferry",
+  "bicycle",
+  "walk",
+  "other",
+] as const satisfies readonly TransportationType[];
+
+const LODGING_TYPES = [
+  "hotel",
+  "hostel",
+  "airbnb",
+  "vacation_rental",
+  "camping",
+  "resort",
+  "motel",
+  "bed_and_breakfast",
+  "apartment",
+  "friends_family",
+  "other",
+] as const satisfies readonly LodgingType[];
+
+// The form fields hold the raw `<select>` value as a string, so narrow it
+// before handing it to the API rather than assuming it is a valid member.
+function isTransportationType(value: string): value is TransportationType {
+  return TRANSPORTATION_TYPES.some((type) => type === value);
+}
+
+function isLodgingType(value: string): value is LodgingType {
+  return LODGING_TYPES.some((type) => type === value);
+}
+
 export default function UnscheduledItems({
   tripId,
   locations,
@@ -138,7 +177,7 @@ export default function UnscheduledItems({
   const loadUserCategories = useCallback(async () => {
     try {
       const user = await userService.getMe();
-      setActivityCategories(user.activityCategories || []);
+      setActivityCategories(user.activityCategories ?? []);
     } catch {
       console.error("Failed to load activity categories");
     }
@@ -457,6 +496,12 @@ export default function UnscheduledItems({
 
     if (!isCreating && !editingId) return;
 
+    const transportationType = transportationForm.values.type;
+    if (!isTransportationType(transportationType)) {
+      toast.error("Please select a valid transportation type");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       let departureTimeISO: string | null = null;
@@ -475,10 +520,14 @@ export default function UnscheduledItems({
         arrivalTimeISO = `${transportationForm.values.arrivalDate}T${transportationForm.values.arrivalTime}:00`;
       }
 
+      // The `|| null` on the text fields is deliberate: the form holds "" for an
+      // empty input, and the API stores an absent value as null rather than an
+      // empty string. `??` would not do this, since "" is neither null nor
+      // undefined. The numeric ids use `??` so that a legitimate 0 would survive.
       const updateData = {
-        type: transportationForm.values.type as TransportationType,
-        fromLocationId: transportationForm.values.fromLocationId || null,
-        toLocationId: transportationForm.values.toLocationId || null,
+        type: transportationType,
+        fromLocationId: transportationForm.values.fromLocationId ?? null,
+        toLocationId: transportationForm.values.toLocationId ?? null,
         fromLocationName: transportationForm.values.fromLocationName || null,
         toLocationName: transportationForm.values.toLocationName || null,
         departureTime: departureTimeISO,
@@ -523,11 +572,19 @@ export default function UnscheduledItems({
     }
     if (!isCreating && !editingId) return;
 
+    const lodgingType = lodgingForm.values.type;
+    if (!isLodgingType(lodgingType)) {
+      toast.error("Please select a valid lodging type");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Lodging data without locationId (using entity links instead)
+      // `|| null` on the text fields is deliberate — see the note in
+      // handleSubmitTransportation: "" from an empty input must become null.
       const updateData = {
-        type: lodgingForm.values.type as LodgingType,
+        type: lodgingType,
         name: lodgingForm.values.name,
         address: lodgingForm.values.address || null,
         checkInDate: lodgingForm.values.checkInDate || null,
@@ -542,7 +599,7 @@ export default function UnscheduledItems({
         notes: lodgingForm.values.notes || null,
       };
 
-      const newLocationId = lodgingForm.values.locationId || null;
+      const newLocationId = lodgingForm.values.locationId ?? null;
 
       if (isCreating) {
         // createLodgingSchema declares its optional fields `.optional()` without

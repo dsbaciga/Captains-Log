@@ -189,7 +189,10 @@ export class OpeningHoursService {
    */
   evaluate(spec: string, at: Date, timezone: string): OpeningHoursEvaluation {
     const parsed = this.parse(spec);
-    if (!parsed.supported) {
+    // Compare against `false` rather than negating: the production tsconfig sets
+    // `strict: false`, and with strictNullChecks off a truthiness test does not
+    // narrow this discriminated union.
+    if (parsed.supported === false) {
       return { status: 'UNKNOWN', reason: parsed.reason };
     }
 

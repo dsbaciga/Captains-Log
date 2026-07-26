@@ -7,6 +7,22 @@ import GlobalSearch from "./GlobalSearch";
 import pdfImportService from "../services/pdfImport.service";
 import savedLinkService from "../services/savedLink.service";
 
+/** A destination in the primary navigation, rendered in both the desktop bar and the mobile menu. */
+interface NavLinkEntry {
+  path: string;
+  label: string;
+  /** Runs before navigating, e.g. clearing a page's saved scroll position. */
+  onClick?: () => void;
+  /** Optional count pill, e.g. unassigned saved links. Hidden when 0. */
+  badge?: number;
+}
+
+interface NavLinkProps extends NavLinkEntry {
+  mobile?: boolean;
+  isActive: boolean;
+  onCloseMobileMenu?: () => void;
+}
+
 // Hoisted outside Navbar to maintain stable component identity across renders
 function NavLink({
   path,
@@ -16,16 +32,7 @@ function NavLink({
   isActive,
   onCloseMobileMenu,
   badge,
-}: {
-  path: string;
-  label: string;
-  mobile?: boolean;
-  onClick?: () => void;
-  isActive: boolean;
-  onCloseMobileMenu?: () => void;
-  /** Optional count pill, e.g. unassigned saved links. Hidden when 0. */
-  badge?: number;
-}) {
+}: NavLinkProps) {
   return (
     <Link
       to={path}
@@ -148,13 +155,12 @@ const Navbar = memo(function Navbar() {
     ? "true"
     : "false";
 
-  const navLinks = [
+  const navLinks: NavLinkEntry[] = [
     { path: "/dashboard", label: "Dashboard" },
     { path: "/trips", label: "Trips", onClick: () => clearPosition('trips-page') },
     { path: "/albums", label: "Albums" },
     { path: "/companions", label: "Companions" },
     { path: "/places-visited", label: "Places" },
-    { path: "/year-in-review", label: "Year in Review" },
     { path: "/checklists", label: "Checklists" },
     { path: "/trip-series", label: "Series" },
     { path: "/saved-links", label: "Links", badge: savedLinksInboxCount },

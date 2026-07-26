@@ -1,18 +1,62 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../lib/axios', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  },
+// Hoisted so the mock functions can be referenced directly in assertions.
+// This keeps them typed as mocks throughout, avoiding a cast on every use.
+const mockAxios = vi.hoisted(() => ({
+  get: vi.fn<(url: string) => Promise<{ data: unknown }>>(),
+  post: vi.fn<(url: string, body?: unknown) => Promise<{ data: unknown }>>(),
+  put: vi.fn<(url: string, body?: unknown) => Promise<{ data: unknown }>>(),
+  patch: vi.fn<(url: string, body?: unknown) => Promise<{ data: unknown }>>(),
+  delete: vi.fn<(url: string) => Promise<{ data: unknown }>>(),
 }));
 
-import api from '../../lib/axios';
+vi.mock('../../lib/axios', () => ({ default: mockAxios }));
+
 import backupService from '../backup.service';
+import type { BackupData, BackupInfo, RestoreOptions, RestoreStats } from '../../types/backup';
+
+/**
+ * Builds a complete, valid backup payload. Overrides let each test vary the
+ * fields it cares about without repeating the whole structure.
+ */
+function createBackupData(overrides: Partial<BackupData> = {}): BackupData {
+  return {
+    version: '1.0',
+    exportDate: '2024-06-15T12:00:00Z',
+    user: {
+      username: 'testuser',
+      email: 'testuser@example.com',
+      timezone: 'America/New_York',
+      activityCategories: [],
+      immichApiUrl: null,
+      immichApiKey: null,
+      weatherApiKey: null,
+    },
+    tags: [],
+    companions: [],
+    locationCategories: [],
+    checklists: [],
+    trips: [{ id: 1, name: 'Trip 1' }],
+    ...overrides,
+  };
+}
+
+const restoreOptions: RestoreOptions = {
+  clearExistingData: true,
+  importPhotos: false,
+};
+
+const restoreStats: RestoreStats = {
+  tripsImported: 1,
+  locationsImported: 5,
+  photosImported: 0,
+  activitiesImported: 3,
+  transportationImported: 2,
+  lodgingImported: 1,
+  journalEntriesImported: 4,
+  tagsImported: 6,
+  companionsImported: 2,
+};
 
 describe('backupService', () => {
   beforeEach(() => {
@@ -21,24 +65,19 @@ describe('backupService', () => {
 
   describe('createBackup', () => {
     it('should call POST /backup/create and return backup data', async () => {
-      const mockBackupData = {
-        version: '1.0',
-        exportedAt: '2024-06-15T12:00:00Z',
-        user: { id: 1, username: 'testuser' },
-        trips: [{ id: 1, name: 'Trip 1' }],
-      };
-      (api.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: mockBackupData });
+      const mockBackupData = createBackupData();
+      mockAxios.post.mockResolvedValue({ data: mockBackupData });
 
       const result = await backupService.createBackup();
 
-      expect(api.post).toHaveBeenCalledWith('/backup/create');
-      expect(api.post).toHaveBeenCalledTimes(1);
+      expect(mockAxios.post).toHaveBeenCalledWith('/backup/create');
+      expect(mockAxios.post).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockBackupData);
     });
 
     it('should propagate errors on backup creation failure', async () => {
       const error = new Error('Server error');
-      (api.post as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+      mockAxios.post.mockRejectedValue(error);
 
       await expect(backupService.createBackup()).rejects.toThrow('Server error');
     });
@@ -46,12 +85,7 @@ describe('backupService', () => {
 
   describe('downloadBackupFile', () => {
     it('should create a download link and trigger click', () => {
-      const mockBackupData = {
-        version: '1.0',
-        exportedAt: '2024-06-15T12:00:00Z',
-        user: { id: 1, username: 'testuser' },
-        trips: [],
-      };
+      const mockBackupData = createBackupData({ trips: [] });
 
       // Mock URL and DOM APIs
       const mockUrl = 'blob:http://localhost/mock-url';
@@ -60,18 +94,18 @@ describe('backupService', () => {
       globalThis.URL.createObjectURL = mockCreateObjectURL;
       globalThis.URL.revokeObjectURL = mockRevokeObjectURL;
 
-      const mockClick = vi.fn();
+      // Build the anchor before spying so createElement still returns a real element
+      const mockClick = vi.fn<() => void>();
+      const mockAnchor = document.createElement('a');
+      mockAnchor.click = mockClick;
+
       const mockAppendChild = vi.fn();
       const mockRemoveChild = vi.fn();
-      const mockCreateElement = vi.spyOn(document, 'createElement').mockReturnValue({
-        href: '',
-        download: '',
-        click: mockClick,
-      } as unknown as HTMLAnchorElement);
+      const mockCreateElement = vi.spyOn(document, 'createElement').mockReturnValue(mockAnchor);
       vi.spyOn(document.body, 'appendChild').mockImplementation(mockAppendChild);
       vi.spyOn(document.body, 'removeChild').mockImplementation(mockRemoveChild);
 
-      backupService.downloadBackupFile(mockBackupData as any);
+      backupService.downloadBackupFile(mockBackupData);
 
       expect(mockCreateObjectURL).toHaveBeenCalledTimes(1);
       expect(mockCreateElement).toHaveBeenCalledWith('a');
@@ -86,60 +120,55 @@ describe('backupService', () => {
 
   describe('restoreFromBackup', () => {
     it('should call POST /backup/restore with backup data and options', async () => {
-      const backupData = {
-        version: '1.0',
-        user: { id: 1, username: 'testuser' },
-        trips: [{ id: 1, name: 'Trip 1' }],
-      };
-      const options = { overwrite: true, includePhotos: false };
+      const backupData = createBackupData();
       const mockResult = {
         message: 'Restore completed successfully',
-        stats: { tripsRestored: 1, locationsRestored: 5, photosRestored: 0 },
+        stats: restoreStats,
       };
-      (api.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: mockResult });
+      mockAxios.post.mockResolvedValue({ data: mockResult });
 
-      const result = await backupService.restoreFromBackup(backupData as any, options as any);
+      const result = await backupService.restoreFromBackup(backupData, restoreOptions);
 
-      expect(api.post).toHaveBeenCalledWith('/backup/restore', {
+      expect(mockAxios.post).toHaveBeenCalledWith('/backup/restore', {
         backupData,
-        options,
+        options: restoreOptions,
       });
-      expect(api.post).toHaveBeenCalledTimes(1);
+      expect(mockAxios.post).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         success: true,
         message: 'Restore completed successfully',
-        stats: { tripsRestored: 1, locationsRestored: 5, photosRestored: 0 },
+        stats: restoreStats,
       });
     });
 
     it('should propagate errors on restore failure', async () => {
       const error = new Error('Invalid backup format');
-      (api.post as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+      mockAxios.post.mockRejectedValue(error);
 
-      await expect(backupService.restoreFromBackup({} as any, {} as any)).rejects.toThrow('Invalid backup format');
+      await expect(
+        backupService.restoreFromBackup(createBackupData(), restoreOptions)
+      ).rejects.toThrow('Invalid backup format');
     });
   });
 
   describe('getBackupInfo', () => {
     it('should call GET /backup/info and return backup metadata', async () => {
-      const mockInfo = {
-        lastBackup: '2024-06-15T12:00:00Z',
-        totalTrips: 5,
-        totalLocations: 50,
-        totalPhotos: 200,
+      const mockInfo: BackupInfo = {
+        version: '1.0',
+        supportedFormats: ['1.0'],
       };
-      (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: mockInfo });
+      mockAxios.get.mockResolvedValue({ data: mockInfo });
 
       const result = await backupService.getBackupInfo();
 
-      expect(api.get).toHaveBeenCalledWith('/backup/info');
-      expect(api.get).toHaveBeenCalledTimes(1);
+      expect(mockAxios.get).toHaveBeenCalledWith('/backup/info');
+      expect(mockAxios.get).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockInfo);
     });
 
     it('should propagate errors on info fetch failure', async () => {
       const error = new Error('Unauthorized');
-      (api.get as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+      mockAxios.get.mockRejectedValue(error);
 
       await expect(backupService.getBackupInfo()).rejects.toThrow('Unauthorized');
     });
@@ -147,11 +176,7 @@ describe('backupService', () => {
 
   describe('readBackupFile', () => {
     it('should read and parse a valid backup JSON file', async () => {
-      const backupContent = {
-        version: '1.0',
-        user: { id: 1, username: 'testuser' },
-        trips: [{ id: 1, name: 'Trip 1' }],
-      };
+      const backupContent = createBackupData();
       const file = new File([JSON.stringify(backupContent)], 'backup.json', { type: 'application/json' });
 
       const result = await backupService.readBackupFile(file);

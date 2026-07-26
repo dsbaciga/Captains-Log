@@ -36,6 +36,51 @@ import type {
 } from '../types/offline.types';
 import type { Trip } from '../types/trip';
 import type { Location } from '../types/location';
+import { mockTrip, mockLocation } from '../test/fixtures';
+
+// ============================================
+// RECORD FACTORIES
+// ============================================
+
+/**
+ * Builds a complete trips store record. Tests that only care about record
+ * counts or transaction behaviour can call this without arguments.
+ */
+function makeTripRecord(overrides: Partial<TripStoreValue> = {}): TripStoreValue {
+  return {
+    id: '1',
+    data: mockTrip,
+    lastSync: Date.now(),
+    version: 1,
+    downloadedForOffline: false,
+    ...overrides,
+  };
+}
+
+/** Builds a complete locations store record. */
+function makeLocationRecord(overrides: Partial<LocationStoreValue> = {}): LocationStoreValue {
+  return {
+    id: '1',
+    tripId: '1',
+    data: mockLocation,
+    lastSync: Date.now(),
+    ...overrides,
+  };
+}
+
+/** Builds a queued sync operation. The `id` is left unset so IndexedDB auto-increments it. */
+function makeSyncOperation(overrides: Partial<SyncOperation> = {}): SyncOperation {
+  return {
+    operation: 'create',
+    entityType: 'trip',
+    entityId: '1',
+    tripId: '1',
+    data: {},
+    timestamp: Date.now(),
+    retryCount: 0,
+    ...overrides,
+  };
+}
 
 describe('Offline Database (IndexedDB)', () => {
   // Clean up database before each test
@@ -132,15 +177,7 @@ describe('Offline Database (IndexedDB)', () => {
       const db = await getDb();
 
       // Add without specifying id - should auto-increment
-      const id = await db.add('syncQueue', {
-        operation: 'create',
-        entityType: 'trip',
-        entityId: '1',
-        tripId: '1',
-        data: {},
-        timestamp: Date.now(),
-        retryCount: 0,
-      } as SyncOperation);
+      const id = await db.add('syncQueue', makeSyncOperation());
 
       expect(typeof id).toBe('number');
       expect(id).toBeGreaterThan(0);
@@ -153,42 +190,12 @@ describe('Offline Database (IndexedDB)', () => {
 
   describe('Basic CRUD Operations', () => {
     describe('Trips Store', () => {
-      const mockTrip: Trip = {
-        id: 1,
-        userId: 1,
-        title: 'Test Trip',
-        description: 'A test trip',
-        startDate: '2024-06-01',
-        endDate: '2024-06-07',
-        timezone: 'America/New_York',
-        status: 'Planned',
-        tripType: null,
-        tripTypeEmoji: null,
-        privacyLevel: 'Private',
-        addToPlacesVisited: true,
-        excludeFromAutoShare: false,
-        archived: false,
-        coverPhotoId: null,
-        coverImagePath: null,
-        coverImageThumbnailPath: null,
-        bannerPhotoId: null,
-        seriesId: null,
-        seriesOrder: null,
-        series: null,
-        createdAt: '2024-01-15T10:00:00Z',
-        updatedAt: '2024-01-15T10:00:00Z',
-      };
+      const testTrip: Trip = { ...mockTrip, title: 'Test Trip', status: 'Planned' };
 
       it('should add and retrieve a trip', async () => {
         const db = await getDb();
 
-        const tripRecord: TripStoreValue = {
-          id: '1',
-          data: mockTrip,
-          lastSync: Date.now(),
-          version: 1,
-          downloadedForOffline: false,
-        };
+        const tripRecord: TripStoreValue = makeTripRecord({ data: testTrip });
 
         await db.put('trips', tripRecord);
         const retrieved = await db.get('trips', '1');
@@ -201,20 +208,14 @@ describe('Offline Database (IndexedDB)', () => {
       it('should update a trip', async () => {
         const db = await getDb();
 
-        const tripRecord: TripStoreValue = {
-          id: '1',
-          data: mockTrip,
-          lastSync: Date.now(),
-          version: 1,
-          downloadedForOffline: false,
-        };
+        const tripRecord: TripStoreValue = makeTripRecord({ data: testTrip });
 
         await db.put('trips', tripRecord);
 
         // Update the trip
         const updatedRecord: TripStoreValue = {
           ...tripRecord,
-          data: { ...mockTrip, title: 'Updated Trip' },
+          data: { ...testTrip, title: 'Updated Trip' },
           version: 2,
         };
         await db.put('trips', updatedRecord);
@@ -227,13 +228,7 @@ describe('Offline Database (IndexedDB)', () => {
       it('should delete a trip', async () => {
         const db = await getDb();
 
-        const tripRecord: TripStoreValue = {
-          id: '1',
-          data: mockTrip,
-          lastSync: Date.now(),
-          version: 1,
-          downloadedForOffline: false,
-        };
+        const tripRecord: TripStoreValue = makeTripRecord({ data: testTrip });
 
         await db.put('trips', tripRecord);
         await db.delete('trips', '1');
@@ -246,27 +241,18 @@ describe('Offline Database (IndexedDB)', () => {
         const db = await getDb();
 
         // Add multiple trips with different statuses
-        await db.put('trips', {
+        await db.put('trips', makeTripRecord({
           id: '1',
-          data: { ...mockTrip, id: 1, status: 'Planned' },
-          lastSync: Date.now(),
-          version: 1,
-          downloadedForOffline: false,
-        });
-        await db.put('trips', {
+          data: { ...testTrip, id: 1, status: 'Planned' },
+        }));
+        await db.put('trips', makeTripRecord({
           id: '2',
-          data: { ...mockTrip, id: 2, status: 'In Progress' },
-          lastSync: Date.now(),
-          version: 1,
-          downloadedForOffline: false,
-        });
-        await db.put('trips', {
+          data: { ...testTrip, id: 2, status: 'In Progress' },
+        }));
+        await db.put('trips', makeTripRecord({
           id: '3',
-          data: { ...mockTrip, id: 3, status: 'Planned' },
-          lastSync: Date.now(),
-          version: 1,
-          downloadedForOffline: false,
-        });
+          data: { ...testTrip, id: 3, status: 'Planned' },
+        }));
 
         const plannedTrips = await db.getAllFromIndex('trips', 'by-status', 'Planned');
         expect(plannedTrips).toHaveLength(2);
@@ -274,35 +260,12 @@ describe('Offline Database (IndexedDB)', () => {
     });
 
     describe('Locations Store', () => {
-      const mockLocation: Location = {
-        id: 1,
-        tripId: 1,
-        parentId: null,
-        name: 'Test Location',
-        address: '123 Test St',
-        latitude: 40.7128,
-        longitude: -74.006,
-        categoryId: 1,
-        visitDatetime: '2024-06-02T10:00:00Z',
-        visitDurationMinutes: 120,
-        notes: 'Test notes',
-        isFavorite: false,
-        openingHours: null,
-        openingHoursSource: null,
-        timezone: null,
-        createdAt: '2024-01-15T10:00:00Z',
-        updatedAt: '2024-01-15T10:00:00Z',
-      };
+      const testLocation: Location = { ...mockLocation, name: 'Test Location' };
 
       it('should add and retrieve a location', async () => {
         const db = await getDb();
 
-        const locationRecord: LocationStoreValue = {
-          id: '1',
-          tripId: '1',
-          data: mockLocation,
-          lastSync: Date.now(),
-        };
+        const locationRecord: LocationStoreValue = makeLocationRecord({ data: testLocation });
 
         await db.put('locations', locationRecord);
         const retrieved = await db.get('locations', '1');
@@ -315,24 +278,21 @@ describe('Offline Database (IndexedDB)', () => {
         const db = await getDb();
 
         // Add locations for different trips
-        await db.put('locations', {
+        await db.put('locations', makeLocationRecord({
           id: '1',
           tripId: '1',
-          data: { ...mockLocation, id: 1 },
-          lastSync: Date.now(),
-        });
-        await db.put('locations', {
+          data: { ...testLocation, id: 1 },
+        }));
+        await db.put('locations', makeLocationRecord({
           id: '2',
           tripId: '1',
-          data: { ...mockLocation, id: 2 },
-          lastSync: Date.now(),
-        });
-        await db.put('locations', {
+          data: { ...testLocation, id: 2 },
+        }));
+        await db.put('locations', makeLocationRecord({
           id: '3',
           tripId: '2',
-          data: { ...mockLocation, id: 3 },
-          lastSync: Date.now(),
-        });
+          data: { ...testLocation, id: 3 },
+        }));
 
         const trip1Locations = await db.getAllFromIndex('locations', 'by-trip', '1');
         expect(trip1Locations).toHaveLength(2);
@@ -346,29 +306,22 @@ describe('Offline Database (IndexedDB)', () => {
       it('should add sync operations with auto-increment', async () => {
         const db = await getDb();
 
-        const op1: Omit<SyncOperation, 'id'> = {
+        const op1: SyncOperation = makeSyncOperation({
           operation: 'create',
           entityType: 'location',
           entityId: 'local-123',
           localId: 'local-123',
-          tripId: '1',
           data: { name: 'New Location' },
-          timestamp: Date.now(),
-          retryCount: 0,
-        };
+        });
 
-        const op2: Omit<SyncOperation, 'id'> = {
+        const op2: SyncOperation = makeSyncOperation({
           operation: 'update',
           entityType: 'trip',
-          entityId: '1',
-          tripId: '1',
           data: { title: 'Updated Title' },
-          timestamp: Date.now(),
-          retryCount: 0,
-        };
+        });
 
-        const id1 = await db.add('syncQueue', op1 as SyncOperation);
-        const id2 = await db.add('syncQueue', op2 as SyncOperation);
+        const id1 = await db.add('syncQueue', op1);
+        const id2 = await db.add('syncQueue', op2);
 
         expect(id2).toBeGreaterThan(id1);
 
@@ -379,25 +332,15 @@ describe('Offline Database (IndexedDB)', () => {
       it('should query sync operations by entity type', async () => {
         const db = await getDb();
 
-        await db.add('syncQueue', {
+        await db.add('syncQueue', makeSyncOperation({
           operation: 'create',
           entityType: 'location',
-          entityId: '1',
-          tripId: '1',
-          data: {},
-          timestamp: Date.now(),
-          retryCount: 0,
-        } as SyncOperation);
+        }));
 
-        await db.add('syncQueue', {
+        await db.add('syncQueue', makeSyncOperation({
           operation: 'update',
           entityType: 'trip',
-          entityId: '1',
-          tripId: '1',
-          data: {},
-          timestamp: Date.now(),
-          retryCount: 0,
-        } as SyncOperation);
+        }));
 
         const locationOps = await db.getAllFromIndex('syncQueue', 'by-entity-type', 'location');
         expect(locationOps).toHaveLength(1);
@@ -485,20 +428,8 @@ describe('Offline Database (IndexedDB)', () => {
       const db = await getDb();
 
       // Add some trips
-      await db.put('trips', {
-        id: '1',
-        data: {} as Trip,
-        lastSync: Date.now(),
-        version: 1,
-        downloadedForOffline: false,
-      });
-      await db.put('trips', {
-        id: '2',
-        data: {} as Trip,
-        lastSync: Date.now(),
-        version: 1,
-        downloadedForOffline: false,
-      });
+      await db.put('trips', makeTripRecord({ id: '1' }));
+      await db.put('trips', makeTripRecord({ id: '2' }));
 
       const count = await getStoreCount('trips');
       expect(count).toBe(2);
@@ -508,19 +439,8 @@ describe('Offline Database (IndexedDB)', () => {
       const db = await getDb();
 
       // Add some data
-      await db.put('trips', {
-        id: '1',
-        data: {} as Trip,
-        lastSync: Date.now(),
-        version: 1,
-        downloadedForOffline: false,
-      });
-      await db.put('locations', {
-        id: '1',
-        tripId: '1',
-        data: {} as Location,
-        lastSync: Date.now(),
-      });
+      await db.put('trips', makeTripRecord());
+      await db.put('locations', makeLocationRecord());
 
       const counts = await getAllStoreCounts();
       expect(counts.trips).toBe(1);
@@ -531,19 +451,8 @@ describe('Offline Database (IndexedDB)', () => {
     it('should clear a specific store', async () => {
       const db = await getDb();
 
-      await db.put('trips', {
-        id: '1',
-        data: {} as Trip,
-        lastSync: Date.now(),
-        version: 1,
-        downloadedForOffline: false,
-      });
-      await db.put('locations', {
-        id: '1',
-        tripId: '1',
-        data: {} as Location,
-        lastSync: Date.now(),
-      });
+      await db.put('trips', makeTripRecord());
+      await db.put('locations', makeLocationRecord());
 
       await clearStore('trips');
 
@@ -557,19 +466,8 @@ describe('Offline Database (IndexedDB)', () => {
     it('should clear all stores', async () => {
       const db = await getDb();
 
-      await db.put('trips', {
-        id: '1',
-        data: {} as Trip,
-        lastSync: Date.now(),
-        version: 1,
-        downloadedForOffline: false,
-      });
-      await db.put('locations', {
-        id: '1',
-        tripId: '1',
-        data: {} as Location,
-        lastSync: Date.now(),
-      });
+      await db.put('trips', makeTripRecord());
+      await db.put('locations', makeLocationRecord());
 
       await clearAllStores();
 
@@ -592,20 +490,9 @@ describe('Offline Database (IndexedDB)', () => {
       // Start a transaction across multiple stores
       const tx = db.transaction(['trips', 'locations', 'activities'], 'readwrite');
 
-      await tx.objectStore('trips').put({
-        id: '1',
-        data: {} as Trip,
-        lastSync: Date.now(),
-        version: 1,
-        downloadedForOffline: false,
-      });
+      await tx.objectStore('trips').put(makeTripRecord());
 
-      await tx.objectStore('locations').put({
-        id: '1',
-        tripId: '1',
-        data: {} as Location,
-        lastSync: Date.now(),
-      });
+      await tx.objectStore('locations').put(makeLocationRecord());
 
       await tx.done;
 
@@ -627,12 +514,10 @@ describe('Offline Database (IndexedDB)', () => {
       const promises = [];
       for (let i = 1; i <= 10; i++) {
         promises.push(
-          store.put({
+          store.put(makeLocationRecord({
             id: String(i),
-            tripId: '1',
-            data: { name: `Location ${i}` } as Location,
-            lastSync: Date.now(),
-          })
+            data: { ...mockLocation, id: i, name: `Location ${i}` },
+          }))
         );
       }
 
@@ -652,13 +537,7 @@ describe('Offline Database (IndexedDB)', () => {
     it('should delete the database', async () => {
       // First create and populate database
       const db = await getDb();
-      await db.put('trips', {
-        id: '1',
-        data: {} as Trip,
-        lastSync: Date.now(),
-        version: 1,
-        downloadedForOffline: false,
-      });
+      await db.put('trips', makeTripRecord());
 
       // Delete the database
       await deleteDb();

@@ -38,6 +38,16 @@ export const updateSavedLinkSchema = z.object({
 });
 
 /**
+ * Bulk delete. Ids are owner-scoped rather than trip-scoped, so a single call
+ * may mix inbox links and links belonging to different trips.
+ */
+export const bulkDeleteSavedLinksSchema = z.object({
+  ids: z
+    .array(z.number().int().positive())
+    .min(1, 'At least one ID is required'),
+});
+
+/**
  * List filter. `tripId` accepts a numeric id, or the literal 'none' to select
  * the inbox (links not yet assigned to a trip). Omitted returns everything.
  */
@@ -50,6 +60,9 @@ export const listSavedLinksQuerySchema = z.object({
 export type CreateSavedLinkInput = z.infer<typeof createSavedLinkSchema>;
 export type UpdateSavedLinkInput = z.infer<typeof updateSavedLinkSchema>;
 export type ListSavedLinksQuery = z.infer<typeof listSavedLinksQuerySchema>;
+export type BulkDeleteSavedLinksInput = z.infer<
+  typeof bulkDeleteSavedLinksSchema
+>;
 
 export interface SavedLinkResponse {
   id: number;

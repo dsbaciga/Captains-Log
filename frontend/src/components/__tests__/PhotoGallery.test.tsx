@@ -2,15 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PhotoGallery from '../PhotoGallery';
+import { createMockPhoto } from '../../test/fixtures';
 import type { Photo } from '../../types/photo';
 
-// Mock IntersectionObserver
-class MockIntersectionObserver {
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
+// Mock IntersectionObserver - implements the full DOM interface so it can be
+// assigned to window without a cast. Nothing is ever observed as visible.
+class MockIntersectionObserver implements IntersectionObserver {
+  readonly root: Element | Document | null = null;
+  readonly rootMargin: string = '0px';
+  readonly thresholds: ReadonlyArray<number> = [0];
+  observe = vi.fn<(target: Element) => void>();
+  unobserve = vi.fn<(target: Element) => void>();
+  disconnect = vi.fn<() => void>();
+  takeRecords = vi.fn<() => IntersectionObserverEntry[]>(() => []);
 }
-window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+window.IntersectionObserver = MockIntersectionObserver;
 
 // Mock ProgressiveImage to render a simple img tag for testing
 vi.mock('../ProgressiveImage', () => ({
@@ -58,18 +64,16 @@ describe('PhotoGallery', () => {
 
   it('should not load all thumbnails at once', async () => {
     // Mock 100 photos
-    const mockPhotos: Partial<Photo>[] = Array.from({ length: 100 }, (_, i) => ({
-      id: i + 1,
-      tripId: 1,
-      source: 'local' as const,
-      thumbnailPath: `/thumbnails/photo${i + 1}.jpg`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
+    const mockPhotos: Photo[] = Array.from({ length: 100 }, (_, i) =>
+      createMockPhoto({
+        id: i + 1,
+        thumbnailPath: `/thumbnails/photo${i + 1}.jpg`,
+      })
+    );
 
     render(
       <BrowserRouter>
-        <PhotoGallery photos={mockPhotos as Photo[]} />
+        <PhotoGallery photos={mockPhotos} />
       </BrowserRouter>
     );
 
@@ -84,17 +88,14 @@ describe('PhotoGallery', () => {
   });
 
   it('should handle album pagination correctly', async () => {
-    const mockPhotos: Partial<Photo>[] = Array.from({ length: 100 }, (_, i) => ({
-      id: i + 1,
-      tripId: 1,
-      source: 'local' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
+    // Photos without thumbnails, so nothing can be eagerly fetched
+    const mockPhotos: Photo[] = Array.from({ length: 100 }, (_, i) =>
+      createMockPhoto({ id: i + 1, thumbnailPath: null })
+    );
 
     render(
       <BrowserRouter>
-        <PhotoGallery photos={mockPhotos as Photo[]} />
+        <PhotoGallery photos={mockPhotos} />
       </BrowserRouter>
     );
 
@@ -107,18 +108,16 @@ describe('PhotoGallery', () => {
   });
 
   it('should not cause race conditions when loading thumbnails', async () => {
-    const mockPhotos: Partial<Photo>[] = Array.from({ length: 50 }, (_, i) => ({
-      id: i + 1,
-      tripId: 1,
-      source: 'local' as const,
-      thumbnailPath: `/thumbnails/photo${i + 1}.jpg`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
+    const mockPhotos: Photo[] = Array.from({ length: 50 }, (_, i) =>
+      createMockPhoto({
+        id: i + 1,
+        thumbnailPath: `/thumbnails/photo${i + 1}.jpg`,
+      })
+    );
 
     const { container } = render(
       <BrowserRouter>
-        <PhotoGallery photos={mockPhotos as Photo[]} />
+        <PhotoGallery photos={mockPhotos} />
       </BrowserRouter>
     );
 

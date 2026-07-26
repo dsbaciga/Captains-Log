@@ -9,6 +9,8 @@ import {
 } from "../types/savedLink";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { useTripLinkSummary } from "../hooks/useTripLinkSummary";
+import { useBulkSelection } from "../hooks/useBulkSelection";
+import BulkActionBar from "./BulkActionBar";
 import EmptyState from "./EmptyState";
 import LinkButton from "./LinkButton";
 import { ListItemSkeleton } from "./SkeletonLoader";
@@ -66,6 +68,8 @@ export default function SavedLinksManager({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const bulkSelection = useBulkSelection<SavedLink>();
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const { data: links, isLoading } = useQuery({
     queryKey: ["savedLinks", tripId],
@@ -150,6 +154,33 @@ export default function SavedLinksManager({
     }
   };
 
+  const handleBulkDelete = async () => {
+    const ids = bulkSelection.getSelectedIds();
+    if (ids.length === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Links",
+      message: `Delete ${ids.length} selected link${ids.length === 1 ? "" : "s"}? They will be removed along with any items they are attached to.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const { deletedCount } = await savedLinkService.bulkDeleteSavedLinks(ids);
+      toast.success(`Deleted ${deletedCount} links`);
+      bulkSelection.exitSelectionMode();
+      refreshData();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete links",
+      );
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const handleUnassign = async (link: SavedLink) => {
     const confirmed = await confirm({
       title: "Move to inbox?",
@@ -191,13 +222,24 @@ export default function SavedLinksManager({
           </p>
         </div>
         {!isAdding && (
-          <button
-            type="button"
-            className="btn-primary whitespace-nowrap"
-            onClick={() => setIsAdding(true)}
-          >
-            Add Link
-          </button>
+          <div className="flex items-center gap-2">
+            {!!links?.length && !bulkSelection.selectionMode && (
+              <button
+                type="button"
+                className="btn btn-secondary text-sm whitespace-nowrap"
+                onClick={bulkSelection.enterSelectionMode}
+              >
+                Select
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-primary whitespace-nowrap"
+              onClick={() => setIsAdding(true)}
+            >
+              Add Link
+            </button>
+          </div>
         )}
       </div>
 
@@ -264,7 +306,11 @@ export default function SavedLinksManager({
               onClick={handleSave}
               disabled={saving}
             >
-              {saving ? "Saving…" : editingId !== null ? "Save Changes" : "Save Link"}
+              {saving
+                ? "Saving…"
+                : editingId !== null
+                  ? "Save Changes"
+                  : "Save Link"}
             </button>
           </div>
         </div>
@@ -282,8 +328,26 @@ export default function SavedLinksManager({
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {links.map((link) => (
+          {links.map((link, index) => (
             <div key={link.id} className="card flex gap-4">
+              {bulkSelection.selectionMode && (
+                <input
+                  type="checkbox"
+                  checked={bulkSelection.isSelected(link.id)}
+                  onChange={() => {}} // Selection handled by onClick to support shiftKey
+                  onClick={(e) =>
+                    bulkSelection.toggleItemSelection(
+                      link.id,
+                      index,
+                      e.shiftKey,
+                      links,
+                    )
+                  }
+                  aria-label="Select link"
+                  className="w-5 h-5 mt-1 flex-shrink-0 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
+                />
+              )}
+
               {link.imageUrl && (
                 <img
                   src={link.imageUrl}
@@ -373,6 +437,20 @@ export default function SavedLinksManager({
             </div>
           ))}
         </div>
+      )}
+
+      {/* Bulk Action Bar */}
+      {bulkSelection.selectionMode && (
+        <BulkActionBar
+          entityType="link"
+          selectedCount={bulkSelection.selectedCount}
+          totalCount={links?.length ?? 0}
+          onSelectAll={() => bulkSelection.selectAll(links ?? [])}
+          onDeselectAll={bulkSelection.deselectAll}
+          onExitSelectionMode={bulkSelection.exitSelectionMode}
+          onBulkDelete={handleBulkDelete}
+          isDeleting={isBulkDeleting}
+        />
       )}
 
       <ConfirmDialogComponent />

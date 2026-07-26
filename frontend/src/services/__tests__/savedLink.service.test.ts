@@ -99,6 +99,26 @@ describe('savedLinkService', () => {
     expect(mockAxios.delete).toHaveBeenCalledWith('/saved-links/1');
   });
 
+  it('bulk deletes by sending ids in the DELETE body', async () => {
+    mockAxios.delete.mockResolvedValue({ data: { success: true, deletedCount: 2 } });
+
+    const result = await savedLinkService.bulkDeleteSavedLinks([1, 2]);
+
+    expect(mockAxios.delete).toHaveBeenCalledWith('/saved-links/bulk', {
+      data: { ids: [1, 2] },
+    });
+    expect(result).toEqual({ success: true, deletedCount: 2 });
+  });
+
+  it('empties the inbox via DELETE /saved-links/inbox', async () => {
+    mockAxios.delete.mockResolvedValue({ data: { success: true, deletedCount: 5 } });
+
+    const result = await savedLinkService.deleteUnassignedSavedLinks();
+
+    expect(mockAxios.delete).toHaveBeenCalledWith('/saved-links/inbox');
+    expect(result).toEqual({ success: true, deletedCount: 5 });
+  });
+
   it('refreshes metadata via POST', async () => {
     mockAxios.post.mockResolvedValue({ data: mockLink });
 

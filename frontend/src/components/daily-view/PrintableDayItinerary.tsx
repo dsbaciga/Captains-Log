@@ -1,23 +1,8 @@
 import type { Activity } from '../../types/activity';
-import type { Transportation } from '../../types/transportation';
-import type { Lodging } from '../../types/lodging';
-import type { JournalEntry } from '../../types/journalEntry';
-import type { Location } from '../../types/location';
 import type { WeatherDisplay } from '../../types/weather';
 import MarkdownRenderer from '../MarkdownRenderer';
 
-// Day item structure matching DailyView
-interface DayItem {
-  type: 'activity' | 'transportation' | 'lodging' | 'journal' | 'location';
-  dateTime: Date;
-  data: Activity | Transportation | Lodging | JournalEntry | Location;
-  lodgingContext?: {
-    isCheckInDay: boolean;
-    isCheckOutDay: boolean;
-    nightNumber?: number;
-    totalNights?: number;
-  };
-}
+import type { DayItem } from './DayItem';
 
 // Unscheduled activity with linked location info
 interface UnscheduledActivityWithLocation extends Activity {
@@ -104,8 +89,8 @@ const getLodgingTypeName = (type: string): string => {
 };
 
 // Render activity item
-const ActivityItemPrint = ({ item, timezone }: { item: DayItem; timezone?: string }) => {
-  const activity = item.data as Activity;
+const ActivityItemPrint = ({ item, timezone }: { item: Extract<DayItem, { type: 'activity' }>; timezone?: string }) => {
+  const activity = item.data;
   const startTime = formatTime(item.dateTime, timezone);
   const endTime = activity.endTime ? formatTime(activity.endTime, timezone) : '';
   const timeRange = activity.allDay ? 'All Day' : endTime ? `${startTime} - ${endTime}` : startTime;
@@ -131,8 +116,8 @@ const ActivityItemPrint = ({ item, timezone }: { item: DayItem; timezone?: strin
 };
 
 // Render transportation item
-const TransportationItemPrint = ({ item, timezone }: { item: DayItem; timezone?: string }) => {
-  const transport = item.data as Transportation;
+const TransportationItemPrint = ({ item, timezone }: { item: Extract<DayItem, { type: 'transportation' }>; timezone?: string }) => {
+  const transport = item.data;
   const departTime = formatTime(item.dateTime, transport.startTimezone || timezone);
   const arriveTime = transport.arrivalTime
     ? formatTime(transport.arrivalTime, transport.endTimezone || timezone)
@@ -177,8 +162,8 @@ const TransportationItemPrint = ({ item, timezone }: { item: DayItem; timezone?:
 };
 
 // Render lodging item
-const LodgingItemPrint = ({ item, timezone }: { item: DayItem; timezone?: string }) => {
-  const lodging = item.data as Lodging;
+const LodgingItemPrint = ({ item, timezone }: { item: Extract<DayItem, { type: 'lodging' }>; timezone?: string }) => {
+  const lodging = item.data;
   const context = item.lodgingContext;
   const time = formatTime(item.dateTime, timezone);
 
@@ -213,8 +198,8 @@ const LodgingItemPrint = ({ item, timezone }: { item: DayItem; timezone?: string
 };
 
 // Render journal item
-const JournalItemPrint = ({ item }: { item: DayItem }) => {
-  const journal = item.data as JournalEntry;
+const JournalItemPrint = ({ item }: { item: Extract<DayItem, { type: 'journal' }> }) => {
+  const journal = item.data;
 
   return (
     <div className="print-item print-item-journal">
@@ -228,8 +213,8 @@ const JournalItemPrint = ({ item }: { item: DayItem }) => {
 };
 
 // Render location item
-const LocationItemPrint = ({ item, timezone }: { item: DayItem; timezone?: string }) => {
-  const location = item.data as Location;
+const LocationItemPrint = ({ item, timezone }: { item: Extract<DayItem, { type: 'location' }>; timezone?: string }) => {
+  const location = item.data;
   const visitTime = formatTime(item.dateTime, timezone);
 
   return (
@@ -336,8 +321,7 @@ export default function PrintableDayItinerary({
           {hasItems ? (
             <div className="print-day-items">
               {sortedItems.map((item, index) => {
-                const itemData = item.data as { id?: number };
-                const key = `${item.type}-${itemData.id || index}`;
+                const key = `${item.type}-${item.data.id ?? index}`;
                 return <DayItemRow key={key} item={item} timezone={tripTimezone} />;
               })}
             </div>

@@ -93,6 +93,58 @@ router.get('/inbox-count', savedLinkController.getInboxCount);
 
 /**
  * @openapi
+ * /api/saved-links/bulk:
+ *   delete:
+ *     summary: Delete several saved links at once
+ *     description: >
+ *       Ids are owner-scoped, so one call may mix inbox links with links from
+ *       different trips. All-or-nothing: an unknown id fails the whole request.
+ *     tags: [Saved Links]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ids]
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 minItems: 1
+ *     responses:
+ *       200:
+ *         description: Links deleted, with the deleted count
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: One or more links not found
+ */
+router.delete('/bulk', savedLinkController.bulkDeleteSavedLinks);
+
+/**
+ * @openapi
+ * /api/saved-links/inbox:
+ *   delete:
+ *     summary: Delete every link not assigned to a trip
+ *     tags: [Saved Links]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Inbox emptied, with the deleted count
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete('/inbox', savedLinkController.deleteUnassignedSavedLinks);
+
+/**
+ * @openapi
  * /api/saved-links/{id}:
  *   get:
  *     summary: Get a single saved link

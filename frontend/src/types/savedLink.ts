@@ -57,6 +57,11 @@ export interface InboxCountResponse {
   count: number;
 }
 
+export interface BulkDeleteSavedLinksResponse {
+  success: boolean;
+  deletedCount: number;
+}
+
 /** Best available display name for a link. */
 export function savedLinkDisplayTitle(link: SavedLink): string {
   return link.title?.trim() || link.siteName?.trim() || link.url;

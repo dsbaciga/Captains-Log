@@ -9,6 +9,8 @@ import {
   type SavedLink,
 } from "../types/savedLink";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
+import { useBulkSelection } from "../hooks/useBulkSelection";
+import BulkActionBar from "../components/BulkActionBar";
 import PageHeader from "../components/PageHeader";
 import EmptyState from "../components/EmptyState";
 import { ListItemSkeleton } from "../components/SkeletonLoader";
@@ -29,6 +31,8 @@ export default function SavedLinksInboxPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [assigning, setAssigning] = useState<number | null>(null);
+  const bulkSelection = useBulkSelection<SavedLink>();
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const { data: links, isLoading } = useQuery({
     queryKey: ["savedLinks", "inbox"],
@@ -102,6 +106,65 @@ export default function SavedLinksInboxPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    const ids = bulkSelection.getSelectedIds();
+    if (ids.length === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete Links",
+      message: `Delete ${ids.length} selected link${ids.length === 1 ? "" : "s"}? This action cannot be undone.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const { deletedCount } = await savedLinkService.bulkDeleteSavedLinks(ids);
+      toast.success(`Deleted ${deletedCount} links`);
+      bulkSelection.exitSelectionMode();
+      refreshData();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete links",
+      );
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  /**
+   * Empties the inbox in one call rather than sending every id, so it also
+   * clears links that arrived after this page loaded.
+   */
+  const handleDeleteAllUnassigned = async () => {
+    const total = links?.length ?? 0;
+    if (total === 0) return;
+
+    const confirmed = await confirm({
+      title: "Delete All Unassigned Links",
+      message: `All ${total} link${total === 1 ? "" : "s"} not assigned to a trip will be permanently removed. Links already on a trip are not affected.`,
+      confirmLabel: "Delete All",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const { deletedCount } =
+        await savedLinkService.deleteUnassignedSavedLinks();
+      toast.success(`Deleted ${deletedCount} links`);
+      bulkSelection.exitSelectionMode();
+      refreshData();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete links",
+      );
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <PageHeader
@@ -168,8 +231,48 @@ export default function SavedLinksInboxPage() {
         />
       ) : (
         <div className="space-y-4">
-          {links.map((link) => (
+          {/* Inbox-wide actions. "Delete All Unassigned" stands apart from the
+              selection flow: it clears the whole inbox, not just what's shown. */}
+          <div className="flex items-center justify-end gap-2">
+            {!bulkSelection.selectionMode && (
+              <button
+                type="button"
+                className="btn btn-secondary text-sm whitespace-nowrap"
+                onClick={bulkSelection.enterSelectionMode}
+              >
+                Select
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-danger text-sm whitespace-nowrap"
+              onClick={handleDeleteAllUnassigned}
+              disabled={isBulkDeleting}
+            >
+              Delete All Unassigned
+            </button>
+          </div>
+
+          {links.map((link, index) => (
             <div key={link.id} className="card flex gap-4">
+              {bulkSelection.selectionMode && (
+                <input
+                  type="checkbox"
+                  checked={bulkSelection.isSelected(link.id)}
+                  onChange={() => {}} // Selection handled by onClick to support shiftKey
+                  onClick={(e) =>
+                    bulkSelection.toggleItemSelection(
+                      link.id,
+                      index,
+                      e.shiftKey,
+                      links,
+                    )
+                  }
+                  aria-label="Select link"
+                  className="w-5 h-5 mt-1 flex-shrink-0 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
+                />
+              )}
+
               {link.imageUrl && (
                 <img
                   src={link.imageUrl}
@@ -243,6 +346,20 @@ export default function SavedLinksInboxPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Bulk Action Bar */}
+      {bulkSelection.selectionMode && (
+        <BulkActionBar
+          entityType="link"
+          selectedCount={bulkSelection.selectedCount}
+          totalCount={links?.length ?? 0}
+          onSelectAll={() => bulkSelection.selectAll(links ?? [])}
+          onDeselectAll={bulkSelection.deselectAll}
+          onExitSelectionMode={bulkSelection.exitSelectionMode}
+          onBulkDelete={handleBulkDelete}
+          isDeleting={isBulkDeleting}
+        />
       )}
 
       <ConfirmDialogComponent />

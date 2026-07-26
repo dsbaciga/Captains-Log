@@ -3,7 +3,12 @@ import { useEffect, useState } from 'react';
 /**
  * Entity types that support bulk operations
  */
-export type BulkEntityType = 'activity' | 'location' | 'transportation' | 'lodging';
+export type BulkEntityType =
+  | 'activity'
+  | 'location'
+  | 'transportation'
+  | 'lodging'
+  | 'link';
 
 interface BulkActionBarProps {
   /** Type of entity being selected */

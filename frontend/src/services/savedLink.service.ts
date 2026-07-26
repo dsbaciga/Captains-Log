@@ -1,5 +1,6 @@
 import axios from '../lib/axios';
 import type {
+  BulkDeleteSavedLinksResponse,
   CreateSavedLinkInput,
   InboxCountResponse,
   SavedLink,
@@ -48,6 +49,28 @@ export const savedLinkService = {
 
   async deleteSavedLink(linkId: number): Promise<void> {
     await axios.delete(`/saved-links/${linkId}`);
+  },
+
+  /**
+   * Deletes several links at once. Ids may span the inbox and any trip, since
+   * the endpoint is owner-scoped rather than trip-scoped.
+   */
+  async bulkDeleteSavedLinks(
+    ids: number[]
+  ): Promise<BulkDeleteSavedLinksResponse> {
+    const response = await axios.delete<BulkDeleteSavedLinksResponse>(
+      '/saved-links/bulk',
+      { data: { ids } }
+    );
+    return response.data;
+  },
+
+  /** Deletes every link not assigned to a trip. */
+  async deleteUnassignedSavedLinks(): Promise<BulkDeleteSavedLinksResponse> {
+    const response = await axios.delete<BulkDeleteSavedLinksResponse>(
+      '/saved-links/inbox'
+    );
+    return response.data;
   },
 
   async refreshMetadata(linkId: number): Promise<SavedLink> {

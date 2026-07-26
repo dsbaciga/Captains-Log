@@ -1,5 +1,6 @@
 import savedLinkService from '../services/savedLink.service';
 import {
+  bulkDeleteSavedLinksSchema,
   createSavedLinkSchema,
   listSavedLinksQuerySchema,
   updateSavedLinkSchema,
@@ -39,6 +40,15 @@ export const savedLinkController = createCrudController({
     deleteSavedLink: {
       method: 'deleteSavedLink',
       buildArgs: (userId, req) => [userId, parseId(req.params.id)],
+    },
+    bulkDeleteSavedLinks: {
+      method: 'bulkDeleteSavedLinks',
+      bodySchema: bulkDeleteSavedLinksSchema,
+      buildArgs: (userId, _req, body) => [userId, body],
+    },
+    deleteUnassignedSavedLinks: {
+      method: 'deleteUnassignedSavedLinks',
+      buildArgs: (userId) => [userId],
     },
     refreshMetadata: {
       method: 'refreshMetadata',
