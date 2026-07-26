@@ -20,10 +20,50 @@ executes **no SQL against your tables**.
 If you skip it, `prisma migrate deploy` will try to run the baseline against a database
 where those tables already exist. The migration is guarded — its first statement aborts
 with `REFUSING TO RUN BASELINE 00000000000000_init: table "users" already exists` and
-Prisma rolls the whole file back — so nothing is damaged, but **the deploy fails and no
-subsequent migration is applied** until you run the `resolve` command above.
+Prisma rolls the whole file back — so **your schema and data are not damaged**. But the
+deploy fails and no subsequent migration is applied.
 
 Only a genuinely empty database should ever let the baseline execute.
+
+## Recovering after the baseline has already failed (`P3009`)
+
+Once the guard has tripped, the baseline is recorded in `_prisma_migrations` as a *failed*
+migration, and every later `migrate deploy` refuses immediately:
+
+```text
+Error: P3009
+migrate found failed migrations in the target database, new migrations will not be applied.
+The `00000000000000_init` migration started at ... failed
+```
+
+**The single `--applied` command above is not enough at this point** — Prisma rejects
+`--applied` for a migration already recorded as failed. Clear the failed state first, then
+record it as applied:
+
+```bash
+npx prisma migrate resolve --rolled-back 00000000000000_init
+npx prisma migrate resolve --applied     00000000000000_init
+npx prisma migrate deploy
+```
+
+`--rolled-back` is truthful here: the guard aborted the very first statement and Prisma
+rolled the file back, so nothing from the baseline was ever committed.
+
+If the backend container is crash-looping (its entrypoint runs `migrate deploy` and exits
+on failure), you cannot `docker exec` into it. Run the recovery from a one-off container on
+the same network instead:
+
+```bash
+docker run --rm \
+  --network <app network, see: docker network ls> \
+  -e DATABASE_URL='postgresql://USER:PASSWORD@db:5432/travel_life?schema=public' \
+  -w /app ghcr.io/dsbaciga/travel-life-backend:vX.Y.Z \
+  sh -c 'npx prisma migrate resolve --rolled-back 00000000000000_init \
+      && npx prisma migrate resolve --applied 00000000000000_init \
+      && npx prisma migrate deploy'
+```
+
+Then start the app normally.
 
 ---
 

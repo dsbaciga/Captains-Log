@@ -153,20 +153,25 @@ Write-Info "Backend: $CurrentVersion -> $NumericVersion"
 Write-Info "Frontend: $CurrentVersion -> $NumericVersion"
 
 if (-not $DryRun) {
+    # These files are UTF-8. `Get-Content -Raw` without -Encoding uses the system ANSI
+    # codepage on Windows PowerShell 5.1, so multibyte characters are misread and then
+    # re-encoded as UTF-8 by WriteAllText - double-encoding every em-dash and accent in
+    # the changelog (which CI publishes verbatim as the Release body). Always read UTF-8.
+
     # Update backend package.json (preserve formatting)
-    $backendContent = Get-Content "backend/package.json" -Raw
+    $backendContent = Get-Content "backend/package.json" -Raw -Encoding UTF8
     $backendContent = $backendContent -replace '"version":\s*"[^"]*"', "`"version`": `"$NumericVersion`""
     [System.IO.File]::WriteAllText("$PWD/backend/package.json", $backendContent)
 
     # Update frontend package.json (preserve formatting)
-    $frontendContent = Get-Content "frontend/package.json" -Raw
+    $frontendContent = Get-Content "frontend/package.json" -Raw -Encoding UTF8
     $frontendContent = $frontendContent -replace '"version":\s*"[^"]*"', "`"version`": `"$NumericVersion`""
     [System.IO.File]::WriteAllText("$PWD/frontend/package.json", $frontendContent)
 
     # Promote the [Unreleased] section to this version in CHANGELOG.md.
     # The release workflow reads this section for the GitHub Release body.
     if (Test-Path "CHANGELOG.md") {
-        $changelogContent = Get-Content "CHANGELOG.md" -Raw
+        $changelogContent = Get-Content "CHANGELOG.md" -Raw -Encoding UTF8
         $escapedVersion = [regex]::Escape($NumericVersion)
         if ($changelogContent -match "(?m)^##\s+\[$escapedVersion\]") {
             Write-Info "CHANGELOG.md already has a section for $NumericVersion"

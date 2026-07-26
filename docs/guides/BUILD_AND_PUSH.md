@@ -186,6 +186,14 @@ If you need to run steps manually, follow the sections below.
 
 ## Post-Release
 
+- [ ] **Bump the `APP_VERSION` default in the TrueNAS compose files**
+
+  `docker-compose.truenas.yml` and `docker-compose.truenas.optimized.yml` pin
+  `${APP_VERSION:-vX.Y.Z}`. That default is what a deploy uses when `APP_VERSION` is not
+  set in the environment, so leaving it behind silently redeploys the *previous* release
+  instead of the one you just shipped. Update both files (two lines each: backend and
+  frontend) to the new tag.
+
 - [ ] **Update IMPLEMENTATION_STATUS.md** (if applicable)
 
   - Document completed features

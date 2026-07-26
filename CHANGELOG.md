@@ -17,6 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `release.ps1` no longer corrupts non-ASCII characters when promoting the changelog.
+  `Get-Content -Raw` without `-Encoding UTF8` reads UTF-8 as the system ANSI codepage and
+  `WriteAllText` re-encodes it, double-encoding every em-dash and accent — which CI then
+  publishes verbatim as the GitHub Release body (visible in the 6.0.0 release notes).
+- The TrueNAS compose files defaulted to `${APP_VERSION:-v5.6.1}` after 6.0.0 shipped, so
+  a deploy without `APP_VERSION` set would silently bring up the previous release. Both
+  files now default to the current version, and bumping them is a documented release step.
+
+### Documentation
+
+- `backend/prisma/migrations/README.md` documents recovery from a failed baseline
+  (`P3009`). The previous text implied `migrate resolve --applied` alone was enough;
+  Prisma rejects that once the migration is recorded as failed, and `--rolled-back` must
+  come first. Includes the one-off container form for a crash-looping backend.
+- `BUILD_AND_PUSH.md`: dropped the "re-push to registry" and manual `docker login`
+  remedies that contradicted CI-only publishing, and added migration steps to deploy.
+
 ## [6.0.0] - 2026-07-26
 
 ### Added
@@ -28,11 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Setting a travel partner no longer writes the *other* user's record. Previously
   `updateTravelPartnerSettings` wrote the link bidirectionally, which let a user grant
-  themselves collaborator access to every trip the other person subsequently created â€”
+  themselves collaborator access to every trip the other person subsequently created —
   including lodging confirmations, expenses, journal entries and photos. Consent is now
   required via a travel partner request.
 
-### Migrations â€” action required before deploying
+### Migrations — action required before deploying
 
 - Adds a baseline migration, `00000000000000_init`, that creates the entire schema from
   empty. **Every database that already contains data must have it marked as applied once,

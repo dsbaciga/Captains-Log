@@ -65,10 +65,36 @@ interface BlacklistEntry {
   // be a store of structurally valid JWTs (it survives backups and mounts).
   tokenHash: string;
   expiresAt: number; // Unix timestamp in milliseconds
+  /**
+   * When this token was consumed by a rotation, if it was. Absent for tokens
+   * revoked some other way (logout), which get no replay grace.
+   */
+  claimedAt?: number;
 }
 
+/**
+ * How long after a rotation a second presentation of the same token is treated
+ * as a benign concurrent request rather than reuse.
+ *
+ * Two tabs restoring at launch both send the same refresh cookie; without a
+ * grace window the loser is indistinguishable from a replayed stolen token and
+ * triggers a family-wide invalidation. Kept short — a genuine attacker replay
+ * essentially never lands inside the same few seconds as the legitimate
+ * rotation, and anything later is still caught.
+ */
+const REPLAY_GRACE_MS = 30 * 1000;
+
+/** Outcome of an attempt to consume a single-use token. */
+export type TokenClaimOutcome =
+  /** This call consumed the token; the caller may proceed. */
+  | 'claimed'
+  /** Already consumed, but so recently that this is a concurrent duplicate. */
+  | 'replayed-within-grace'
+  /** Already revoked, outside any grace window — treat as reuse/theft. */
+  | 'revoked';
+
 /** Digest a token for use as the blacklist key. Lookups hash the same way. */
-const hashToken = (token: string): string =>
+export const hashToken = (token: string): string =>
   crypto.createHash('sha256').update(token).digest('hex');
 
 // In-memory storage - replace with Redis for production multi-server deployments
