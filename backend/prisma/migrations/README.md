@@ -53,14 +53,23 @@ If the backend container is crash-looping (its entrypoint runs `migrate deploy` 
 on failure), you cannot `docker exec` into it. Run the recovery from a one-off container on
 the same network instead:
 
+`--entrypoint sh` is required: the image's entrypoint is `migrate-and-start.sh`, so without
+it the one-off container just re-runs the same failing `migrate deploy`. Network name and
+`DATABASE_URL` are read off the existing container so you do not have to look up credentials
+(substitute the real container name from `docker ps -a`):
+
 ```bash
-docker run --rm \
-  --network <app network, see: docker network ls> \
-  -e DATABASE_URL='postgresql://USER:PASSWORD@db:5432/travel_life?schema=public' \
-  -w /app ghcr.io/dsbaciga/travel-life-backend:vX.Y.Z \
-  sh -c 'npx prisma migrate resolve --rolled-back 00000000000000_init \
-      && npx prisma migrate resolve --applied 00000000000000_init \
-      && npx prisma migrate deploy'
+NET=$(docker inspect travel-life-backend \
+      --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+DBURL=$(docker inspect travel-life-backend \
+      --format '{{range .Config.Env}}{{println .}}{{end}}' \
+      | grep '^DATABASE_URL=' | cut -d= -f2-)
+
+docker run --rm --network "$NET" -e DATABASE_URL="$DBURL" \
+  -w /app --entrypoint sh ghcr.io/dsbaciga/travel-life-backend:vX.Y.Z \
+  -c 'npx prisma migrate resolve --rolled-back 00000000000000_init \
+   && npx prisma migrate resolve --applied 00000000000000_init \
+   && npx prisma migrate deploy'
 ```
 
 Then start the app normally.
