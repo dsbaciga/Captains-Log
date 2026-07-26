@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { Activity } from '../../types/activity';
-import type { Transportation } from '../../types/transportation';
-import type { Lodging } from '../../types/lodging';
-import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
 import type { PhotoAlbum } from '../../types/photo';
 import type { WeatherData, WeatherDisplay } from '../../types/weather';
 import type { EntityType, TripLinkSummary } from '../../types/entityLink';
+import type { DayItem } from './DayItem';
 import activityService from '../../services/activity.service';
 import transportationService from '../../services/transportation.service';
 import lodgingService from '../../services/lodging.service';
@@ -25,6 +23,14 @@ import LodgingCard from './LodgingCard';
 import JournalCard from './JournalCard';
 import EmptyDayPlaceholder from './EmptyDayPlaceholder';
 import PrintableDayItinerary from './PrintableDayItinerary';
+import { isActivity, isLodging, isTransportation, isLocation } from './utils';
+import {
+  placeFromActivity,
+  placeFromLodging,
+  placeFromLocation,
+  placeFromTransportation,
+} from '../../lib/itineraryPlaces';
+import { pickPreviousPlace, type MapsPlace } from '../../lib/mapsDeepLinks';
 
 // Type for linked locations map: "ENTITY_TYPE:entityId" -> Location[]
 type LinkedLocationsMap = Record<string, Location[]>;
@@ -49,19 +55,6 @@ interface DailyViewProps {
   tripStartDate?: string;
   tripEndDate?: string;
   onRefresh?: () => void;
-}
-
-interface DayItem {
-  type: 'activity' | 'transportation' | 'lodging' | 'journal' | 'location';
-  dateTime: Date;
-  data: Activity | Transportation | Lodging | JournalEntry | Location;
-  // For lodging multi-day tracking
-  lodgingContext?: {
-    isCheckInDay: boolean;
-    isCheckOutDay: boolean;
-    nightNumber?: number;
-    totalNights?: number;
-  };
 }
 
 interface DayData {
@@ -511,19 +504,19 @@ export default function DailyView({
           const locationIds = new Set<number>();
           items.forEach((item) => {
             if (item.type === 'activity') {
-              const activity = item.data as Activity;
+              const activity = item.data;
               const linkedLocs = entityLocIdsMap[`ACTIVITY:${activity.id}`];
               if (linkedLocs) {
                 linkedLocs.forEach(locId => locationIds.add(locId));
               }
             } else if (item.type === 'lodging') {
-              const lodgingItem = item.data as Lodging;
+              const lodgingItem = item.data;
               const linkedLocs = entityLocIdsMap[`LODGING:${lodgingItem.id}`];
               if (linkedLocs) {
                 linkedLocs.forEach(locId => locationIds.add(locId));
               }
             } else if (item.type === 'transportation') {
-              const trans = item.data as Transportation;
+              const trans = item.data;
               // Transportation has direct FK references
               if (trans.fromLocationId) {
                 locationIds.add(trans.fromLocationId);
@@ -537,13 +530,13 @@ export default function DailyView({
                 linkedLocs.forEach(locId => locationIds.add(locId));
               }
             } else if (item.type === 'journal') {
-              const journal = item.data as JournalEntry;
+              const journal = item.data;
               const linkedLocs = entityLocIdsMap[`JOURNAL_ENTRY:${journal.id}`];
               if (linkedLocs) {
                 linkedLocs.forEach(locId => locationIds.add(locId));
               }
             } else if (item.type === 'location') {
-              const loc = item.data as Location;
+              const loc = item.data;
               locationIds.add(loc.id);
             }
           });
@@ -665,6 +658,31 @@ export default function DailyView({
     return linkedAlbumsMap[key] || [];
   }, [linkedAlbumsMap, getEntityKey]);
 
+  // Where each item of the day leaves the traveller. The next item's Directions
+  // link starts from the nearest preceding one that has a usable place, so a
+  // restaurant routes from the hotel rather than from nowhere.
+  const dayEndPlaces = useMemo<Array<MapsPlace | null>>(() => {
+    const items = currentDay?.items ?? [];
+    return items.map((item) => {
+      const data = item.data;
+      if (isTransportation(data)) {
+        // A leg drops you at its arrival point.
+        return placeFromTransportation(data, 'to') ?? placeFromTransportation(data, 'from');
+      }
+      if (isLodging(data)) {
+        return placeFromLodging(data, getLinkedLocations('LODGING', data.id));
+      }
+      if (isActivity(data)) {
+        return placeFromActivity(data, getLinkedLocations('ACTIVITY', data.id));
+      }
+      if (isLocation(data)) {
+        return placeFromLocation(data);
+      }
+      // Journal entries are not places.
+      return null;
+    });
+  }, [currentDay, getLinkedLocations]);
+
   // Print handler for current day
   const handlePrint = useCallback(() => {
     if (!currentDay) return;
@@ -737,10 +755,12 @@ export default function DailyView({
             />
           </div>
         ) : (
-          currentDay?.items.map((item) => {
+          currentDay?.items.map((item, index) => {
+            // Origin = the nearest earlier item of the day with a real place.
+            const originPlace = pickPreviousPlace(dayEndPlaces, index);
             switch (item.type) {
               case 'activity': {
-                const activity = item.data as Activity;
+                const activity = item.data;
                 return (
                   <ActivityCard
                     key={`activity-${activity.id}`}
@@ -750,11 +770,12 @@ export default function DailyView({
                     linkedLocations={getLinkedLocations('ACTIVITY', activity.id)}
                     linkedAlbums={getLinkedAlbums('ACTIVITY', activity.id)}
                     currentDate={item.dateTime}
+                    originPlace={originPlace}
                   />
                 );
               }
               case 'transportation': {
-                const transportation = item.data as Transportation;
+                const transportation = item.data;
                 return (
                   <TransportationCard
                     key={`transportation-${transportation.id}`}
@@ -764,11 +785,12 @@ export default function DailyView({
                     linkedLocations={getLinkedLocations('TRANSPORTATION', transportation.id)}
                     linkedAlbums={getLinkedAlbums('TRANSPORTATION', transportation.id)}
                     currentDate={item.dateTime}
+                    originPlace={originPlace}
                   />
                 );
               }
               case 'lodging': {
-                const lodging = item.data as Lodging;
+                const lodging = item.data;
                 return (
                   <LodgingCard
                     key={`lodging-${lodging.id}-${item.lodgingContext?.nightNumber || 0}`}
@@ -779,11 +801,12 @@ export default function DailyView({
                     linkedLocations={getLinkedLocations('LODGING', lodging.id)}
                     linkedAlbums={getLinkedAlbums('LODGING', lodging.id)}
                     currentDate={item.dateTime}
+                    originPlace={originPlace}
                   />
                 );
               }
               case 'journal': {
-                const journal = item.data as JournalEntry;
+                const journal = item.data;
                 return (
                   <JournalCard
                     key={`journal-${journal.id}`}

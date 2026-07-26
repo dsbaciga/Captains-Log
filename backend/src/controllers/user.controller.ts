@@ -32,6 +32,15 @@ const llmSettingsSchema = z.object({
   llmModel: z.string().min(1).max(200).optional().nullable(),
 });
 
+// Keep in sync with MAPS_APPS in frontend/src/lib/mapsDeepLinks.ts.
+// Null clears the preference (the UI then lists every app that fits the route).
+const mapsSettingsSchema = z.object({
+  preferredMapsApp: z
+    .enum(['apple', 'google', 'citymapper', 'uber', 'lyft'])
+    .optional()
+    .nullable(),
+});
+
 const smtpSettingsSchema = z.object({
   smtpProvider: z.string().min(1).optional().nullable(),
   smtpHost: z.string().min(1).optional().nullable(),
@@ -229,6 +238,25 @@ export const userController = {
     const userId = requireUserId(req);
     const settings = await userService.getLlmSettings(userId);
     res.json({ status: 'success', data: settings });
+  }),
+
+  getMapsSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const settings = await userService.getMapsSettings(userId);
+    res.json({ status: 'success', data: settings });
+  }),
+
+  updateMapsSettings: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    const data = mapsSettingsSchema.parse(req.body);
+    const settings = await userService.updateMapsSettings(userId, data);
+    res.json({
+      status: 'success',
+      data: {
+        message: 'Maps app preference updated successfully',
+        ...settings,
+      },
+    });
   }),
 
   getLinkIngestSettings: asyncHandler(async (req: Request, res: Response) => {

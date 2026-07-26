@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalCurrencyCode } from '../validation/zodHelpers';
 
 // Activity category with emoji support
 export const activityCategorySchema = z.object({
@@ -18,6 +19,9 @@ export const updateUserSettingsSchema = z.object({
   timezone: z.string().min(1).max(100).optional(),
   dietaryPreferences: z.array(z.string()).optional(),
   useCustomMapStyle: z.boolean().optional(),
+  // Home currency that mixed-currency budget totals are reported in.
+  // Nullable so it can be cleared, which reverts to the per-trip fallback.
+  baseCurrency: optionalCurrencyCode(),
 });
 
 export type ActivityCategory = z.infer<typeof activityCategorySchema>;

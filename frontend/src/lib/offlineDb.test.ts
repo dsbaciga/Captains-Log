@@ -287,6 +287,9 @@ describe('Offline Database (IndexedDB)', () => {
         visitDurationMinutes: 120,
         notes: 'Test notes',
         isFavorite: false,
+        openingHours: null,
+        openingHoursSource: null,
+        timezone: null,
         createdAt: '2024-01-15T10:00:00Z',
         updatedAt: '2024-01-15T10:00:00Z',
       };

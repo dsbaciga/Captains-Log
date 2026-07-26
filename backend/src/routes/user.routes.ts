@@ -275,6 +275,50 @@ router.put('/openrouteservice-settings', userController.updateOpenrouteserviceSe
 
 /**
  * @openapi
+ * /api/users/maps-settings:
+ *   get:
+ *     summary: Get the preferred external maps app
+ *     description: >
+ *       Which maps/rideshare app the "Directions" deep links default to.
+ *       Null means no preference has been set.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Maps app preference
+ *       401:
+ *         description: Unauthorized
+ *   put:
+ *     summary: Set the preferred external maps app
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               preferredMapsApp:
+ *                 type: string
+ *                 nullable: true
+ *                 enum: [apple, google, citymapper, uber, lyft]
+ *                 description: Pass null to clear the preference
+ *     responses:
+ *       200:
+ *         description: Preference updated
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/maps-settings', userController.getMapsSettings);
+router.put('/maps-settings', userController.updateMapsSettings);
+
+/**
+ * @openapi
  * /api/users/smtp-settings:
  *   get:
  *     summary: Get SMTP email settings

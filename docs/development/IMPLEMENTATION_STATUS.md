@@ -283,6 +283,33 @@ Version: v5.4.1
 - [x] PDF import button, upload modal, and review modal UI (`PdfImportButton.tsx`, `PdfUploadModal.tsx`, `PdfReviewModal.tsx`)
 - [x] Replaces the previous email-import feature (removed in v5.4.0)
 
+### Budget & Multi-Currency
+
+- [x] Trip budget, expenses, and per-category breakdown
+- [x] **Currency conversion** — `exchangeRate`/`baseAmount`/`baseCurrency` frozen per costed row
+- [x] Rates from Frankfurter (keyless), cached per (date, pair) in `exchange_rates`
+- [x] Budget itself converted, so a USD budget no longer compares against EUR spend
+- [x] Unconverted amounts excluded from totals and reported separately, never silently mixed in
+- [x] Backfill script for legacy rows (`scripts/backfill-currency-conversion.ts`)
+- [ ] Write-time snapshots on Activity/Transportation/Lodging (currently filled lazily on first budget read)
+
+### Location Opening Hours
+
+- [x] `Location.openingHours` (raw OSM string), `openingHoursSource`, and `timezone`
+- [x] Parser supporting a documented OSM subset, failing closed to `UNKNOWN` outside it
+- [x] Timezone-correct evaluation in the location's own zone, DST-safe, no UTC fallback
+- [x] Closure warning in Trip Health Check, fires only on a definite `CLOSED`
+- [x] Best-effort population from Nominatim `extratags`; manual entry and override in the UI
+- [ ] Month/date selectors, `sunrise`/`sunset`, nth-weekday, `||` fallbacks (currently `UNKNOWN`)
+
+### Transit & Rideshare Deep Links
+
+- [x] Pure URL builders for Apple Maps, Google Maps, Citymapper, Uber, Lyft
+- [x] Platform-aware (`maps://` on iOS, `geo:` on Android where it fits, https on desktop)
+- [x] Origin inferred from the previous itinerary item in Timeline and Daily View
+- [x] Reusable `DirectionsButton`; per-user preferred app in Settings
+- [x] No button rather than a garbage search when an item has no usable place
+
 ### Saved Links
 
 - [x] `SavedLink` model with a nullable `tripId` (an unassigned "inbox")

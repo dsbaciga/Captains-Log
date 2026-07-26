@@ -2,7 +2,7 @@
 
 Travel Life uses PostgreSQL with PostGIS extension for geospatial data. The schema is managed via Prisma ORM.
 
-The schema defines **36 models** (mapped to **36 tables**) and **11 enums**.
+The schema defines **37 models** (mapped to **37 tables**) and **11 enums**.
 
 ## Schema Location
 
@@ -574,6 +574,63 @@ A candidate entity extracted from a `PdfImport` by the AI parser, awaiting user 
 | createdEntityId | Int? | ID of the real entity created on acceptance |
 | createdEntityType | PendingEntityType? | Type of the created entity |
 | reviewedAt | DateTime? | When the user reviewed the candidate |
+
+## Currency Conversion
+
+Mixed-currency trips used to be summed without conversion — a €500 hotel and a
+¥500 dinner added to "1000". Every costed row now carries a frozen conversion
+snapshot.
+
+### Snapshot columns
+
+`TripExpense`, `Activity`, `Transportation`, and `Lodging` each gained:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| exchangeRate | Decimal? | Rate at the record's own date; frozen once written |
+| baseAmount | Decimal? | The amount restated in `baseCurrency` |
+| baseCurrency | String? | **Stored per row**, so changing your home currency invalidates the snapshot rather than silently reinterpreting it |
+
+`User.baseCurrency` is the home currency totals are reported in.
+
+### ExchangeRate
+
+Cache keyed on `(date, fromCurrency, toCurrency)` — a pair/date is fetched at
+most once, ever. Rates come from Frankfurter (keyless, historical dates
+supported); override with `EXCHANGE_RATE_API_URL`.
+
+Three behaviours worth knowing:
+
+- **All FX math is `Prisma.Decimal`**, never floats — `0.3 × 1.1` must be `0.33`.
+- **The budget is converted too.** Comparing a USD budget against EUR spend is
+  the same bug as the original. When the budget can't be converted, it comes
+  back null and the UI says so rather than drawing a bogus progress bar.
+- **Unconverted amounts are excluded from `spent`** and reported separately
+  under `conversion.unconverted`, grouped by currency. Silently mixing them back
+  in would recreate the original defect.
+
+Reporting currency is the **trip owner's** base currency, not the requester's —
+otherwise each collaborator's read would invalidate and rewrite the snapshots.
+
+## Opening Hours
+
+`Location` gained `openingHours` (the raw OSM `opening_hours` string, kept
+verbatim as the single source of truth), `openingHoursSource` (`osm` | `manual`,
+so a manual entry is never clobbered by the automatic lookup), and `timezone`
+(IANA, auto-derived from coordinates via `tz-lookup`, user-overridable).
+
+Parsing lives in `openingHours.service.ts` and is deliberately **whitelist-based
+— anything outside the supported grammar fails closed to `UNKNOWN`** rather than
+being partially misread. The Trip Health Check warns only on a definite `CLOSED`,
+so it never cries wolf on an unparseable spec.
+
+Two correctness notes:
+
+- Hours are wall-clock times in the **location's** zone, not the user's or the
+  trip's. Evaluation formats to a string in that zone and re-reads the fields;
+  the common `toZonedTime` + system-local-getters approach misreports across DST.
+- There is **no UTC fallback**. A location with no timezone yields `UNKNOWN`,
+  never a comparison against the wrong clock.
 
 ## Saved Links
 

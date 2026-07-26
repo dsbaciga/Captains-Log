@@ -112,6 +112,9 @@ const BackupLocationBaseSchema = z.object({
   visitDatetime: z.string().nullable().optional(), // ISO datetime
   visitDurationMinutes: z.number().nullable().optional(),
   notes: z.string().nullable().optional(),
+  openingHours: z.string().nullable().optional(),
+  openingHoursSource: z.string().nullable().optional(),
+  timezone: z.string().nullable().optional(),
   category: z.object({
     name: z.string(),
     icon: z.string().nullable().optional(),

@@ -1,8 +1,15 @@
+import { formatOpeningHours, summarizeOpeningHours } from "../utils/openingHours";
+
 /**
  * LocationDisplay - Displays location name with hierarchical city/country info
  *
  * Parses address to extract city/country and displays it as secondary text.
  * Pattern: "Location Name" (large) + "City, Country" (smaller, muted)
+ *
+ * Optionally shows the location's opening hours. Hours are wall-clock times in the
+ * location's own timezone, so the timezone is named alongside them whenever it differs
+ * from the browser's — showing "09:00-17:00" without saying whose clock invites exactly
+ * the mistake the closure warning exists to prevent.
  */
 
 interface LocationDisplayProps {
@@ -11,6 +18,10 @@ interface LocationDisplayProps {
   className?: string;
   showFullAddress?: boolean;
   compact?: boolean;
+  /** Raw OSM `opening_hours` string. Omit or pass null to hide the hours entirely. */
+  openingHours?: string | null;
+  /** IANA timezone the hours are expressed in. */
+  timezone?: string | null;
 }
 
 /**
@@ -32,12 +43,30 @@ function extractSecondaryLocation(address: string): string | null {
   return lastTwo.join(', ');
 }
 
+/**
+ * Name the timezone the hours belong to, but only when it is not the viewer's own —
+ * "09:00-17:00 (Europe/Paris)" is useful to someone in New York and noise to someone in Paris.
+ */
+function timezoneNote(timezone: string | null | undefined): string | null {
+  if (!timezone) return null;
+
+  try {
+    if (Intl.DateTimeFormat().resolvedOptions().timeZone === timezone) return null;
+  } catch {
+    // If the browser will not tell us its zone, showing the location's zone is the safer default.
+  }
+
+  return timezone.replace(/_/g, ' ');
+}
+
 export default function LocationDisplay({
   name,
   address,
   className = '',
   showFullAddress = false,
   compact = false,
+  openingHours,
+  timezone,
 }: LocationDisplayProps) {
   const secondaryLocation = address ? extractSecondaryLocation(address) : null;
 
@@ -46,16 +75,31 @@ export default function LocationDisplay({
   const shouldShowSecondary = secondaryLocation &&
     !name.toLowerCase().includes(secondaryLocation.toLowerCase().split(',')[0]);
 
+  const hoursLines = formatOpeningHours(openingHours);
+  const localZone = timezoneNote(timezone);
+
   if (compact) {
     return (
-      <div className={`flex items-baseline gap-1.5 ${className}`}>
-        <span className="font-semibold text-charcoal dark:text-warm-gray">
-          {name}
-        </span>
-        {shouldShowSecondary && (
-          <span className="text-sm text-slate dark:text-warm-gray/60">
-            · {secondaryLocation}
+      <div className={className}>
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-semibold text-charcoal dark:text-warm-gray">
+            {name}
           </span>
+          {shouldShowSecondary && (
+            <span className="text-sm text-slate dark:text-warm-gray/60">
+              · {secondaryLocation}
+            </span>
+          )}
+        </div>
+        {hoursLines.length > 0 && (
+          <p
+            className="text-xs text-slate dark:text-warm-gray/60 mt-0.5"
+            title={summarizeOpeningHours(openingHours)}
+          >
+            <span aria-hidden="true">🕒 </span>
+            {summarizeOpeningHours(openingHours)}
+            {localZone && ` (${localZone})`}
+          </p>
         )}
       </div>
     );
@@ -75,6 +119,30 @@ export default function LocationDisplay({
         <p className="text-sm text-slate/80 dark:text-warm-gray/50 mt-1 line-clamp-2">
           {address}
         </p>
+      )}
+      {hoursLines.length > 0 && (
+        <div className="mt-2">
+          <p className="text-xs font-medium text-slate dark:text-warm-gray/70 flex items-center gap-1">
+            <span aria-hidden="true">🕒</span>
+            Opening hours
+            {localZone && (
+              <span className="font-normal text-slate/70 dark:text-warm-gray/50">
+                ({localZone})
+              </span>
+            )}
+          </p>
+          <ul className="mt-0.5 space-y-0.5">
+            {hoursLines.map((line, index) => (
+              <li
+                key={`${line.days}-${line.times}-${index}`}
+                className="text-xs text-slate/90 dark:text-warm-gray/60"
+              >
+                {line.days && <span className="font-medium">{line.days}: </span>}
+                {line.times}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

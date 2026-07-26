@@ -8,9 +8,11 @@ import {
   getTypeBorderColor,
   getTimezoneAbbr,
   mapTimelineTypeToEntityType,
+  getTimelineItemPlace,
 } from './utils';
 import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
 import LinkButton from '../LinkButton';
+import DirectionsButton from '../DirectionsButton';
 import entityLinkService from '../../services/entityLink.service';
 import { getFullAssetUrl } from '../../lib/config';
 import { getAccessToken } from '../../lib/axios';
@@ -29,12 +31,17 @@ export default function TimelineEventCard({
   viewMode,
   connectionInfo,
   showConnectionLine,
+  originPlace = null,
   onEdit,
   onDelete,
   onLinkUpdate,
 }: TimelineEventCardProps) {
   const isCompact = viewMode === 'compact';
   const entityType = mapTimelineTypeToEntityType(item.type);
+
+  // Where this item is, for the Directions deep link. Null for items that are
+  // not places (a journal entry, an activity with no address).
+  const directionsDestination = getTimelineItemPlace(item);
 
   // Get the actual entity ID from the data object
   const actualEntityId = item.data.id;
@@ -473,7 +480,7 @@ export default function TimelineEventCard({
           timezone={tripTimezone}
         />
 
-        {/* Link button */}
+        {/* Link + directions buttons */}
         <div className={`flex items-center gap-2 border-t border-gray-100 dark:border-gray-700 ${isCompact ? 'mt-2 pt-2' : 'mt-3 pt-3'}`}>
           <LinkButton
             tripId={tripId}
@@ -483,6 +490,12 @@ export default function TimelineEventCard({
             onUpdate={onLinkUpdate}
             size="sm"
           />
+          {directionsDestination && (
+            <DirectionsButton
+              destination={directionsDestination}
+              origin={originPlace}
+            />
+          )}
         </div>
       </div>
     </div>

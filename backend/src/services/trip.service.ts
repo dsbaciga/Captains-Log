@@ -562,6 +562,11 @@ export class TripService {
             visitDatetime: null,
             visitDurationMinutes: location.visitDurationMinutes,
             notes: location.notes,
+            // Opening hours and timezone describe the place itself, not the trip, so they
+            // carry over to the copy unchanged.
+            openingHours: location.openingHours,
+            openingHoursSource: location.openingHoursSource,
+            timezone: location.timezone,
           },
         });
         locationIdMap.set(location.id, newLocation.id);
@@ -583,6 +588,11 @@ export class TripService {
             visitDatetime: null,
             visitDurationMinutes: location.visitDurationMinutes,
             notes: location.notes,
+            // Opening hours and timezone describe the place itself, not the trip, so they
+            // carry over to the copy unchanged.
+            openingHours: location.openingHours,
+            openingHoursSource: location.openingHoursSource,
+            timezone: location.timezone,
           },
         });
         locationIdMap.set(location.id, newLocation.id);

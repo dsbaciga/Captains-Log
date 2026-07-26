@@ -45,6 +45,14 @@ model User {
   // a global list cannot say which user an address belongs to.
   linkIngestSenders  Json     @default("[]") @map("link_ingest_senders")
   useCustomMapStyle  Boolean  @default(true) @map("use_custom_map_style")
+  // Home currency (ISO 4217) that mixed-currency budget totals are reported in.
+  // Null means "no home currency chosen" — totals fall back to the trip's
+  // budgetCurrency, then to the most common currency among the costed items.
+  baseCurrency       String?  @map("base_currency") @db.VarChar(3)
+  // Which external maps/rideshare app the "Directions" deep links open by
+  // default (apple | google | citymapper | uber | lyft). Null = no preference,
+  // the UI then just lists every app that can handle the route.
+  preferredMapsApp   String?  @map("preferred_maps_app") @db.VarChar(50)
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
@@ -263,6 +271,15 @@ model Location {
   visitDurationMinutes Int?      @map("visit_duration_minutes")
   notes                String?   @db.Text
   isFavorite           Boolean   @default(false) @map("is_favorite")
+  // Raw OpenStreetMap `opening_hours` specification (e.g. "Mo-Fr 09:00-17:00; Sa 10:00-14:00").
+  // Kept verbatim as the single source of truth; parsed on demand by openingHours.service.
+  openingHours         String?   @map("opening_hours") @db.Text
+  // Where openingHours came from: 'osm' (auto-populated from Nominatim) or 'manual' (user entered).
+  // A 'manual' value is never overwritten by the automatic OSM lookup.
+  openingHoursSource   String?   @map("opening_hours_source") @db.VarChar(20)
+  // IANA timezone of the place itself (NOT the user's or the trip's). Opening hours are
+  // wall-clock times in this zone. Auto-derived from coordinates via tz-lookup, user-overridable.
+  timezone             String?   @db.VarChar(100)
   coordinates          Unsupported("geography(Point, 4326)")?
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
@@ -377,6 +394,10 @@ model Activity {
   timezone    String?   @db.VarChar(100)
   cost        Decimal?  @db.Decimal(10, 2)
   currency    String?   @db.VarChar(3)
+  // FX snapshot — see the "Currency conversion" note above ExchangeRate.
+  exchangeRate Decimal? @map("exchange_rate") @db.Decimal(20, 10)
+  baseAmount   Decimal? @map("base_amount") @db.Decimal(12, 2)
+  baseCurrency String?  @map("base_currency") @db.VarChar(3)
   bookingUrl  String?   @map("booking_url") @db.VarChar(500)
   bookingReference String? @map("booking_reference") @db.VarChar(255)
   notes       String?   @db.Text
@@ -418,6 +439,10 @@ model Transportation {
   bookingUrl         String?   @map("booking_url") @db.VarChar(500)
   cost               Decimal?  @db.Decimal(10, 2)
   currency           String?   @db.VarChar(3)
+  // FX snapshot — see the "Currency conversion" note above ExchangeRate.
+  exchangeRate       Decimal?  @map("exchange_rate") @db.Decimal(20, 10)
+  baseAmount         Decimal?  @map("base_amount") @db.Decimal(12, 2)
+  baseCurrency       String?   @map("base_currency") @db.VarChar(3)
   status             String    @default("on_time") @db.VarChar(50) // on_time, delayed, cancelled
   delayMinutes       Int?      @map("delay_minutes")
   notes              String?   @db.Text
@@ -453,6 +478,10 @@ model Lodging {
   bookingUrl          String?   @map("booking_url") @db.VarChar(500)
   cost                Decimal?  @db.Decimal(10, 2)
   currency            String?   @db.VarChar(3)
+  // FX snapshot — see the "Currency conversion" note above ExchangeRate.
+  exchangeRate        Decimal?  @map("exchange_rate") @db.Decimal(20, 10)
+  baseAmount          Decimal?  @map("base_amount") @db.Decimal(12, 2)
+  baseCurrency        String?   @map("base_currency") @db.VarChar(3)
   notes               String?   @db.Text
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
@@ -473,6 +502,10 @@ model TripExpense {
   category    String    @db.VarChar(50) // food, transportation, lodging, activities, shopping, other
   amount      Decimal   @db.Decimal(10, 2)
   currency    String?   @db.VarChar(3)
+  // FX snapshot — see the "Currency conversion" note above ExchangeRate.
+  exchangeRate Decimal? @map("exchange_rate") @db.Decimal(20, 10)
+  baseAmount   Decimal? @map("base_amount") @db.Decimal(12, 2)
+  baseCurrency String?  @map("base_currency") @db.VarChar(3)
   date        DateTime? @db.Date
   notes       String?   @db.Text
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -482,6 +515,35 @@ model TripExpense {
 
   @@index([tripId])
   @@map("trip_expenses")
+}
+
+// =============================================================================
+// Currency conversion
+// =============================================================================
+// Costed records (TripExpense.amount, Activity/Transportation/Lodging.cost)
+// carry an FX snapshot: `exchangeRate` is the rate that was in effect on the
+// record's own date, `baseAmount` is amount * exchangeRate, and `baseCurrency`
+// names the currency `baseAmount` is expressed in. The snapshot is taken once
+// and then FROZEN — it is never recomputed from today's rates, so a past trip's
+// reported total does not drift. `baseCurrency` is stored per row precisely so
+// that changing the user's home currency invalidates the snapshot (mismatch)
+// instead of silently reinterpreting it. All three are null when no rate could
+// be obtained; such rows are reported as unconverted rather than being summed
+// at face value.
+
+model ExchangeRate {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @db.Date // Rate date requested (the cache key, not necessarily the quote date)
+  fromCurrency String   @map("from_currency") @db.VarChar(3)
+  toCurrency   String   @map("to_currency") @db.VarChar(3)
+  rate         Decimal  @db.Decimal(20, 10) // toCurrency units per 1 fromCurrency
+  source       String   @default("frankfurter") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([date, fromCurrency, toCurrency], name: "exchange_rate_date_pair_unique")
+  @@index([fromCurrency, toCurrency])
+  @@map("exchange_rates")
 }
 
 model JournalEntry {

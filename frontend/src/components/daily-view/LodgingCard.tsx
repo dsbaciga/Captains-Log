@@ -5,6 +5,9 @@ import type { PhotoAlbum } from '../../types/photo';
 import EmbeddedLocationCard from './EmbeddedLocationCard';
 import EmbeddedAlbumCard from './EmbeddedAlbumCard';
 import LinkedEntitiesDisplay from '../LinkedEntitiesDisplay';
+import DirectionsButton from '../DirectionsButton';
+import { placeFromLodging } from '../../lib/itineraryPlaces';
+import type { MapsPlace } from '../../lib/mapsDeepLinks';
 import {
   formatTime,
   formatCurrency,
@@ -27,6 +30,8 @@ interface LodgingCardProps {
   linkedAlbums?: PhotoAlbum[];
   /** Current date being displayed (for filtering linked journal entries) */
   currentDate?: Date;
+  /** Previous stop of the day — pre-fills the Directions origin. */
+  originPlace?: MapsPlace | null;
 }
 
 export default function LodgingCard({
@@ -37,9 +42,13 @@ export default function LodgingCard({
   linkedLocations = [],
   linkedAlbums = [],
   currentDate,
+  originPlace = null,
 }: LodgingCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('lodging');
+
+  // Address is usually present; a linked location contributes coordinates.
+  const directionsDestination = placeFromLodging(lodging, linkedLocations);
 
   const handleEdit = () => {
     navigate(`/trips/${tripId}?tab=lodging&edit=${lodging.id}`);
@@ -126,21 +135,29 @@ export default function LodgingCard({
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={handleEdit}
-              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors"
-              title="Edit lodging"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            <div className="flex items-center gap-1">
+              {directionsDestination && (
+                <DirectionsButton
+                  destination={directionsDestination}
+                  origin={originPlace}
                 />
-              </svg>
-            </button>
+              )}
+              <button
+                type="button"
+                onClick={handleEdit}
+                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors"
+                title="Edit lodging"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 

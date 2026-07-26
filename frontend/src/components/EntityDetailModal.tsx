@@ -15,6 +15,7 @@ import savedLinkService from '../services/savedLink.service';
 import type { SavedLink } from '../types/savedLink';
 import { savedLinkDisplayTitle } from '../types/savedLink';
 import type { Location } from '../types/location';
+import { formatOpeningHours } from '../utils/openingHours';
 import type { Activity } from '../types/activity';
 import type { Lodging } from '../types/lodging';
 import type { Transportation } from '../types/transportation';
@@ -176,6 +177,28 @@ function LocationDetails({ entity }: { entity: Location }) {
       <DetailRow label="Visit Date" value={formatDateTime(entity.visitDatetime)} />
       {entity.visitDurationMinutes && (
         <DetailRow label="Duration" value={`${entity.visitDurationMinutes} minutes`} />
+      )}
+      {entity.openingHours && (
+        <DetailRow
+          label="Opening Hours"
+          value={
+            <div>
+              {formatOpeningHours(entity.openingHours).map((line, index) => (
+                <div key={`${line.days}-${line.times}-${index}`}>
+                  {line.days && <span className="font-medium">{line.days}: </span>}
+                  {line.times}
+                </div>
+              ))}
+              {/* Hours are wall-clock times where the place is, which is often not where the
+                  reader is — say so rather than leaving them to assume their own clock. */}
+              {entity.timezone && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Local time in {entity.timezone.replace(/_/g, ' ')}
+                </div>
+              )}
+            </div>
+          }
+        />
       )}
       {entity.latitude && entity.longitude && (
         <DetailRow

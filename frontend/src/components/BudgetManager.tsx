@@ -25,8 +25,11 @@ import { ListItemSkeleton } from "./SkeletonLoader";
  * - Per-category spending totals (includes activity/transportation/lodging
  *   costs via the backend budget summary)
  *
- * Note: totals are simple sums with no currency conversion — mixed-currency
- * trips are summed as-is under a single display currency.
+ * Currency: the backend converts every costed record into one base currency
+ * (the trip owner's home currency, else the trip's budget currency) using the
+ * rate frozen at each record's own date. Amounts it could not convert are
+ * excluded from the totals and surfaced here explicitly, so a mixed-currency
+ * trip never shows a silently wrong number.
  */
 interface BudgetManagerProps {
   tripId: number;
@@ -90,7 +93,9 @@ export default function BudgetManager({
     enabled: !!tripId,
   });
 
-  const displayCurrency = budgetCurrency || summary?.currency || "USD";
+  // The backend is authoritative about which currency the totals are in.
+  // Only fall back to the trip's own currency while the summary is loading.
+  const displayCurrency = summary?.currency || budgetCurrency || "USD";
 
   const formatCurrency = useMemo(() => {
     return (amount: number, currency?: string | null) => {
@@ -109,10 +114,35 @@ export default function BudgetManager({
   }, [displayCurrency]);
 
   const spent = summary?.spent ?? 0;
-  const remaining = budget !== null ? budget - spent : null;
-  const percentage = budget && budget > 0 ? Math.round((spent / budget) * 100) : 0;
-  const isOverBudget = budget !== null && spent > budget;
-  const isNearBudget = budget !== null && !isOverBudget && percentage >= 80;
+  const conversion = summary?.conversion;
+
+  // Compare like with like: `summary.budget` is the budget restated in the
+  // same base currency as `spent`. Falls back to the raw prop only while the
+  // summary is still loading.
+  const comparableBudget = summary ? summary.budget : budget;
+
+  // A budget exists but could not be expressed in the base currency, so no
+  // progress figure is meaningful.
+  const budgetNotComparable =
+    summary !== undefined && summary.budgetOriginal !== null && summary.budget === null;
+
+  // The budget was entered in a different currency than the totals are shown in.
+  const budgetWasConverted =
+    summary !== undefined &&
+    summary.budget !== null &&
+    summary.budgetCurrency !== null &&
+    summary.budgetCurrency !== summary.currency;
+
+  const remaining = comparableBudget !== null ? comparableBudget - spent : null;
+  const percentage =
+    comparableBudget && comparableBudget > 0
+      ? Math.round((spent / comparableBudget) * 100)
+      : 0;
+  const isOverBudget = comparableBudget !== null && spent > comparableBudget;
+  const isNearBudget = comparableBudget !== null && !isOverBudget && percentage >= 80;
+
+  const unconverted = conversion?.unconverted ?? [];
+  const hasEstimates = (conversion?.estimatedCount ?? 0) > 0;
 
   const progressColor = isOverBudget
     ? "bg-red-500 dark:bg-red-400"
@@ -329,12 +359,26 @@ export default function BudgetManager({
                   Trip Budget
                 </p>
                 {budget !== null ? (
-                  <p className="text-3xl font-bold font-display text-charcoal dark:text-warm-gray">
-                    {formatCurrency(budget)}
-                    <span className="text-sm font-body font-normal text-slate dark:text-warm-gray/70 ml-2">
-                      {displayCurrency}
-                    </span>
-                  </p>
+                  <>
+                    <p className="text-3xl font-bold font-display text-charcoal dark:text-warm-gray">
+                      {formatCurrency(budget, budgetCurrency)}
+                      <span className="text-sm font-body font-normal text-slate dark:text-warm-gray/70 ml-2">
+                        {budgetCurrency || displayCurrency}
+                      </span>
+                    </p>
+                    {budgetWasConverted && summary?.budget !== null && (
+                      <p className="text-sm text-slate dark:text-warm-gray/70 mt-1">
+                        ≈ {formatCurrency(summary?.budget ?? 0)} {displayCurrency}
+                        <span className="ml-1 text-xs">(at today&apos;s rate)</span>
+                      </p>
+                    )}
+                    {budgetNotComparable && (
+                      <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                        Could not be converted to {displayCurrency} — progress
+                        below is unavailable.
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <p className="text-slate dark:text-warm-gray/70">
                     No budget set for this trip
@@ -375,8 +419,12 @@ export default function BudgetManager({
                   }`}
                 >
                   {formatCurrency(spent)} spent
+                  <span className="ml-2 text-sm font-normal text-slate dark:text-warm-gray/70">
+                    {displayCurrency}
+                    {hasEstimates && " (estimated)"}
+                  </span>
                 </span>
-                {budget !== null && (
+                {comparableBudget !== null && (
                   <span
                     className={`text-sm font-medium ${
                       isOverBudget
@@ -390,7 +438,7 @@ export default function BudgetManager({
                   </span>
                 )}
               </div>
-              {budget !== null && budget > 0 && (
+              {comparableBudget !== null && comparableBudget > 0 && (
                 <div
                   className="h-3 bg-slate/10 dark:bg-navy-900 rounded-full overflow-hidden"
                   role="progressbar"
@@ -406,9 +454,55 @@ export default function BudgetManager({
                 </div>
               )}
               <p className="mt-2 text-xs text-slate dark:text-warm-gray/60">
-                Includes activity, transportation, and lodging costs plus recorded
-                expenses. Amounts are summed without currency conversion.
+                Includes activity, transportation, and lodging costs plus
+                recorded expenses, converted to {displayCurrency} at the rate
+                in effect on each item&apos;s date.
               </p>
+
+              {/* Conversion caveats — never let a total look more precise than it is */}
+              {unconverted.length > 0 && (
+                <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-900/20">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    Not included in the total
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700 dark:text-amber-400/90">
+                    No exchange rate was available for these amounts, so they
+                    are listed separately rather than added in:
+                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {unconverted.map((item) => (
+                      <li
+                        key={item.currency}
+                        className="text-sm text-amber-800 dark:text-amber-300"
+                      >
+                        {formatCurrency(item.amount, item.currency)}{" "}
+                        {item.currency}
+                        <span className="ml-1 text-xs text-amber-700 dark:text-amber-400/90">
+                          ({item.count} {item.count === 1 ? "item" : "items"})
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {hasEstimates && unconverted.length === 0 && (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                  {conversion?.estimatedCount}{" "}
+                  {conversion?.estimatedCount === 1 ? "amount has" : "amounts have"}{" "}
+                  no date recorded, so today&apos;s rate was used instead of the
+                  rate on the day — the total is approximate.
+                </p>
+              )}
+
+              {(conversion?.assumedBaseCount ?? 0) > 0 && (
+                <p className="mt-2 text-xs text-slate dark:text-warm-gray/60">
+                  {conversion?.assumedBaseCount}{" "}
+                  {conversion?.assumedBaseCount === 1 ? "item has" : "items have"}{" "}
+                  no currency recorded and {conversion?.assumedBaseCount === 1 ? "is" : "are"}{" "}
+                  counted as {displayCurrency}.
+                </p>
+              )}
             </div>
           </div>
         ) : (
@@ -681,9 +775,23 @@ export default function BudgetManager({
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="font-semibold text-charcoal dark:text-warm-gray whitespace-nowrap">
-                    {formatCurrency(expense.amount, expense.currency)}
-                  </span>
+                  <div className="text-right">
+                    <span className="block font-semibold text-charcoal dark:text-warm-gray whitespace-nowrap">
+                      {formatCurrency(expense.amount, expense.currency)}
+                    </span>
+                    {expense.currency &&
+                      expense.currency !== displayCurrency &&
+                      (expense.baseAmount !== null &&
+                      expense.baseCurrency === displayCurrency ? (
+                        <span className="block text-xs text-slate dark:text-warm-gray/60 whitespace-nowrap">
+                          ≈ {formatCurrency(expense.baseAmount, expense.baseCurrency)}
+                        </span>
+                      ) : (
+                        <span className="block text-xs text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                          not converted
+                        </span>
+                      ))}
+                  </div>
                   <div className="flex gap-1">
                     <button
                       type="button"

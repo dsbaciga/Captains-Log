@@ -97,6 +97,9 @@ export function useIOSDetection(): IOSDetectionResult {
   // This uses matchMedia which can change, so we track it in state
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // jsdom (and some embedded webviews) ship without matchMedia. Standalone
+    // mode is simply unknowable there — don't crash the whole component tree.
+    if (typeof window.matchMedia !== 'function') return;
 
     // Check multiple methods for standalone detection
     const checkStandalone = () => {

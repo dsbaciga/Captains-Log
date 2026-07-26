@@ -26,6 +26,16 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
+// location.service now reads config.nominatim.url for the best-effort opening-hours lookup,
+// so config/index.ts is imported directly and would throw without DATABASE_URL. Mock the
+// slice the service actually touches.
+jest.mock('../../config', () => ({
+  __esModule: true,
+  default: {
+    nominatim: { url: 'http://localhost:8080' },
+  },
+}));
+
 // Mock @prisma/client BEFORE any imports that depend on it
 jest.mock('@prisma/client', () => {
   class MockDecimal {

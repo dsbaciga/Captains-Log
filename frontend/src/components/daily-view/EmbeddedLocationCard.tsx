@@ -1,5 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import type { Location } from '../../types/location';
+import DirectionsButton from '../DirectionsButton';
+import { placeFromLocation } from '../../lib/itineraryPlaces';
+import { hasUsableLocation, type MapsPlace } from '../../lib/mapsDeepLinks';
 import { getTypeColors } from './utils';
 
 interface EmbeddedLocationCardProps {
@@ -18,21 +21,29 @@ interface EmbeddedLocationCardProps {
   };
   tripId: number;
   label?: string;
+  /** Previous stop of the day — pre-fills the Directions origin. */
+  originPlace?: MapsPlace | null;
 }
 
 export default function EmbeddedLocationCard({
   location,
   tripId,
   label,
+  originPlace = null,
 }: EmbeddedLocationCardProps) {
   const navigate = useNavigate();
   const colors = getTypeColors('location');
+
+  const destination = placeFromLocation(location);
+  const canNavigate = hasUsableLocation(destination);
 
   const handleClick = () => {
     navigate(`/trips/${tripId}?tab=locations#location-${location.id}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Ignore keys aimed at the nested Directions control.
+    if (e.target !== e.currentTarget) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       handleClick();
@@ -126,20 +137,25 @@ export default function EmbeddedLocationCard({
           )}
         </div>
 
-        {/* Chevron */}
-        <svg
-          className="w-5 h-5 text-gray-400 flex-shrink-0"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
+        {/* Directions + chevron */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {canNavigate && (
+            <DirectionsButton destination={destination} origin={originPlace} />
+          )}
+          <svg
+            className="w-5 h-5 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </div>
       </div>
     </div>
   );

@@ -611,6 +611,14 @@ Good enhancements that improve the experience.
 
 **Implementation**: Add rating field to Location model, UI for star ratings.
 
+**Scope note (2026-07-25)**: worth widening beyond Location. There is currently no
+rating field anywhere in the schema, so lodging, activities, and restaurants can't be
+scored either — and those are what you actually want to look back on. A 1-5 rating plus
+a short "would I return?" verdict across Location, Lodging, and Activity turns the
+archive into something queryable ("best meals of 2025", "hotels I'd rebook") and gives
+Year in Review (#55) real material. Doing all four at once is barely more work than
+Location alone.
+
 ### 42. Offline Maps
 
 **Category**: Mobile
@@ -639,6 +647,14 @@ Good enhancements that improve the experience.
 - Automatic location creation
 - Date/time matching
 - Privacy controls
+- GPX track import (watches, hiking apps, dashcams) alongside Google Takeout
+
+**Scope note (2026-07-25)**: this is the strongest argument for the PostGIS extension,
+which is enabled but barely used today (`Location.coordinates` and `Photo.coordinates`
+are the only geography columns). A day's imported track gives `DayMiniMap` a real route
+line instead of scattered pins, and the timestamps make two other features cheap:
+auto-detecting which places were actually visited, and inferring locations for photos
+that have no EXIF GPS (see #101).
 
 ### 44. Route Optimization
 
@@ -1029,7 +1045,16 @@ Good enhancements that improve the experience.
 
 **Current State**: Delivered via the PDF + AI import system. Users upload a booking-confirmation PDF, which is parsed by an LLM (`pdfImport` controller/service + `pdfParser.service.ts`) to extract flights, lodging, and activities. Extracted items land in a review queue (`PendingEntity`) before being added to the trip.
 
-**Note**: An earlier email-parsing implementation was built and then removed (commit `8ffab4e`, migration `20260406000000_remove_email_import`) in favor of the PDF + AI import approach. There is no email parsing today.
+**Note**: An earlier email-parsing implementation was built and then removed (commit `8ffab4e`, migration `20260406000000_remove_email_import`) in favor of the PDF + AI import approach. What failed there was specifically **LLM parsing of booking emails into structured entities** — see the commit messages in between ("still working on email parsing... even now", "updating email parsing logic again again" ×2).
+
+**Update 2026-07-25**: the inbound-mail half now exists. Saved-link email ingest added
+`emailIngest.service.ts` (IMAP poll, sender verification, dedupe on Message-ID, archive
+after processing) plus the `EmailIngest` model and `IMAP_*` config. Revisiting
+booking-email import is therefore much cheaper than last time — the transport,
+credentials, scheduling, and crash recovery are all built and tested. Only the
+booking-parsing step would be new, and that is precisely the part that failed before,
+so it should be attempted only with a review queue in front of it (`PendingEntity`
+already provides one).
 
 **Features**:
 - ✅ PDF upload + LLM-based parsing of booking confirmations
@@ -1438,6 +1463,373 @@ so pair it with a full backup → wipe → restore test.
 
 ---
 
+## 💡 Ideas Review — 2026-07-25
+
+Generated from a fresh pass over the schema, services, and components. Items that
+duplicated existing entries were folded into those instead of listed again — ratings
+into #41, GPX import into #43, booking email into #69. Already covered elsewhere and
+deliberately not repeated here: photo dedupe (#39, #92), video (#34), day-route
+optimisation (#44), trip templates (#1, #48), comments (#50), version history (#62),
+live trip updates (#53), achievements (#81), Google Timeline import (#43).
+
+### 96. Multi-Currency with Exchange Rates
+
+**Category**: Budget & Expenses
+**Effort**: Medium
+**Impact**: High
+
+**Description**: Store an exchange rate and base-currency amount alongside every costed
+record, snapshotted at the transaction date.
+
+**Why this is more than a nice-to-have**: `expense.service.ts` documents the current
+behaviour in a comment — amounts are summed **with no FX conversion** and reported under
+a single display currency. A €500 hotel and a ¥500 dinner currently add up to "1000".
+Every mixed-currency trip shows a wrong total today.
+
+**Features**:
+- `exchangeRate` + `baseAmount` on TripExpense, Activity, Transportation, Lodging
+- Rate fetched at transaction date from a free FX API, then frozen
+- User's home currency as the reporting currency
+- Backfill path for existing rows (assume trip currency, flag as estimated)
+
+**Dependencies**: unblocks #106; makes #17 (Expense Predictions) meaningful.
+
+**Status**: ✅ Completed 2026-07-25 — `exchangeRate`/`baseAmount`/`baseCurrency` snapshotted per
+costed row, `exchangeRate.service.ts` backed by Frankfurter (keyless), rates cached per
+(date, pair) in `exchange_rates` and never re-fetched. All FX math in `Prisma.Decimal`, never
+floats. The **budget is converted too**, so a USD budget no longer compares against EUR spend.
+Amounts that could not be converted are **excluded from `spent`** and reported separately rather
+than silently mixed in. Activity/Transportation/Lodging fill in lazily on first budget read;
+`scripts/backfill-currency-conversion.ts` handles legacy rows.
+
+### 97. Expense Splitting & Settle-Up
+
+**Category**: Budget & Expenses
+**Effort**: Medium
+**Impact**: High
+
+**Description**: Record who paid and who owes, then settle up at the end of a trip.
+
+**Current State**: `TripExpense` has no `paidBy` and no split. `TravelCompanion` and
+`TripCollaborator` already model the people.
+
+**Features**:
+- `paidBy` (companion) on expenses
+- Equal / custom-amount / percentage splits
+- Settle-up view that minimises the number of transactions
+- Per-person totals in the budget summary
+
+**Value**: removes the need for a separate Splitwise on every group trip.
+
+### 98. Trip Wishlist / Bucket List
+
+**Category**: Travel Planning
+**Effort**: Medium
+**Impact**: Medium
+
+**Description**: Places you want to go, not attached to any trip.
+
+**Current State**: everything location-shaped is `tripId`-scoped, so a place you haven't
+planned yet has nowhere to live. Distinct from Favorite Places (#12), which stars
+Locations that already belong to a trip.
+
+**Features**:
+- Standalone wishlist entries with notes, links, and a rough season/time-of-year
+- Pinned on the Places Visited map in a distinct colour
+- "Convert to trip location" when a trip finally gets planned
+- Pairs naturally with the `Dream` trip status that already exists
+
+### 99. People in Photos
+
+**Category**: Photo Management
+**Effort**: Medium
+**Impact**: Medium
+
+**Description**: Tag which companions appear in which photos.
+
+**Current State**: no face or person data anywhere in the schema.
+
+**Features**:
+- Manual tagging of `TravelCompanion` on photos
+- Optional import of Immich's existing face/person data via its API
+- "Every photo of X" view across all trips
+- Companion avatars on photo cards
+
+### 100. Photo Favorites & Highlight Reel
+
+**Category**: Photo Management
+**Effort**: Low
+**Impact**: Medium
+
+**Description**: Star individual photos and auto-assemble a per-trip highlight set.
+
+**Current State**: `Location` has `isFavorite`; `Photo` does not.
+
+**Features**:
+- Star toggle on photos, mirroring the location pattern
+- "Favorites" filter in the gallery and lightbox
+- Auto-generated highlight reel per trip, shareable via the existing public share
+
+### 101. Infer Photo Location from Itinerary
+
+**Category**: Photo Management
+**Effort**: Medium
+**Impact**: Medium
+
+**Description**: For photos with no EXIF GPS, infer where they were taken by matching
+`takenAt` against the trip timeline.
+
+**Distinct from #39**, which suggests locations *from* EXIF GPS. This is the inverse and
+covers the harder case: scanned film, screenshots, phones with location off, and photos
+imported from someone else's camera.
+
+**Features**:
+- Match `takenAt` against activities, lodging stays, and transportation legs
+- Confidence indicator, and never overwrite real EXIF data
+- Bulk "apply suggestions" with review
+- Much stronger once GPX tracks exist (#43)
+
+### 102. Opening Hours & Closure Warnings
+
+**Category**: Location Intelligence
+**Effort**: Medium
+**Impact**: High
+
+**Description**: Store opening hours per location and warn when a plan hits a closure.
+
+**Current State**: `Location` has no hours field. OSM/Nominatim frequently carries an
+`opening_hours` tag already, so much of this is a parse rather than a new data source.
+
+**Features**:
+- `openingHours` on Location, populated from OSM where available
+- Timezone-aware "is it open then?" check against `visitDatetime`
+- Warning surfaced through the existing Trip Health Check (#2)
+
+**Why it matters**: a 9am Monday museum visit is the single most common real-world
+itinerary failure, and the app currently has no way to catch it.
+
+**Status**: ✅ Completed 2026-07-25 — `Location.openingHours` (raw OSM string as the single
+source of truth), `openingHoursSource` so a manual entry is never clobbered by the automatic
+lookup, and `Location.timezone` auto-derived via `tz-lookup`. `openingHours.service.ts` parses a
+documented subset (weekday ranges incl. wrapping, multiple ranges per rule, `24/7`, `off`,
+midnight-crossing, `;` override semantics) and **fails closed to `UNKNOWN`** for anything outside
+it — month/date selectors, `sunrise`/`sunset`, `Mo[1]`, `||` fallbacks. `PH`/`SH` are evaluated
+both ways and only answer when both agree. Evaluation uses `formatInTimeZone` rather than
+`toZonedTime` + local getters, which misreports across DST. **No UTC fallback**: no timezone means
+`UNKNOWN`, never a comparison against the wrong clock. Health check fires only on a definite
+`CLOSED`, so it never cries wolf. Nominatim population is best-effort and post-commit. 91 tests.
+
+### 103. Reverse Itinerary from a Flight
+
+**Category**: Travel Planning
+**Effort**: Medium
+**Impact**: Medium
+
+**Description**: Enter a flight number and have the surrounding day built for you.
+
+**Current State**: `aviationstack.service.ts` and `airport.service.ts` already resolve
+flight numbers to routes and times.
+
+**Features**:
+- Auto-create the transportation leg from a flight number + date
+- Block travel-day time so it can't be double-booked
+- Suggest lodging near the arrival airport
+- Prompt for ground transport on both ends
+
+### 104. Activity Proposals & Voting
+
+**Category**: Collaboration
+**Effort**: Medium
+**Impact**: Medium
+
+**Description**: Collaborators suggest activities that need approval before entering the
+itinerary.
+
+**Current State**: `TripCollaborator` exists with view/edit/admin, but any editor writes
+straight into the trip. Group planning has no conflict-free path.
+
+**Features**:
+- Proposed state for activities, separate from the committed itinerary
+- Thumbs-up / thumbs-down per collaborator with a threshold to promote
+- Push notification on new proposals (infrastructure already shipped)
+- Distinct from Comments (#50), which discusses rather than decides
+
+### 105. Public Trip Guestbook
+
+**Category**: Social & Sharing
+**Effort**: Low
+**Impact**: Low
+
+**Description**: Let visitors to a shared trip leave a short note.
+
+**Current State**: `share.routes.ts` is strictly read-only by design.
+
+**Features**:
+- Moderated notes on the public trip page
+- Owner approves before anything is visible
+- Rate limited, no accounts required
+- Cheap and high-delight; scope carefully to avoid becoming Comments (#50)
+
+### 106. Spending Pace & Cost-per-Day Benchmarks
+
+**Category**: Analytics
+**Effort**: Low
+**Impact**: Medium
+
+**Description**: Track burn rate against budget during a trip, and compare cost-per-day
+across trips afterwards.
+
+**Distinct from #57** (Travel Pace Analysis), which measures days per destination rather
+than money.
+
+**Features**:
+- "60% through the trip, 80% through budget" indicator on the dashboard
+- Cross-trip cost-per-day comparison ("Japan $180/day vs Portugal $95/day")
+- Breakdown by category over time
+
+**Dependencies**: needs #96 to be trustworthy on mixed-currency trips.
+
+### 107. Semantic Archive Search
+
+**Category**: Search
+**Effort**: High
+**Impact**: Medium
+
+**Description**: Search the archive by meaning rather than keyword.
+
+**Current State**: `search.service.ts` is keyword-based across five entity types.
+
+**Features**:
+- Embed journal entries, photo captions, notes, and saved-link descriptions
+- pgvector alongside the existing PostGIS extension
+- Answers "that seafood place with the blue door" across a decade of travel
+- Hybrid with the existing keyword search rather than replacing it
+
+### 108. Post-Trip Retrospective
+
+**Category**: Travel Planning
+**Effort**: Low
+**Impact**: Medium
+
+**Description**: Prompt for what worked and what didn't after a trip completes, then
+resurface those lessons while planning the next one.
+
+**Features**:
+- Prompts on transition to `Completed` (what to repeat, what to skip, what to pack differently)
+- Answers stored as a structured trip retrospective
+- Relevant lessons surfaced during planning ("last time you underpacked layers")
+- Feeds packing suggestions, which already exist
+
+### 109. Loyalty Programs & Membership Numbers
+
+**Category**: Travel Documents
+**Effort**: Low
+**Impact**: Medium
+
+**Description**: Store frequent-flyer and hotel-loyalty numbers, and auto-fill them into
+bookings.
+
+**Current State**: no model for this; numbers currently live in notes fields if anywhere.
+
+**Features**:
+- Per-programme membership numbers and status tiers
+- Auto-fill into transportation and lodging records by carrier match
+- Optional manual points balance
+- Sits naturally beside `TravelDocument`
+
+### 110. Travel Day Document Vault
+
+**Category**: Mobile & PWA
+**Effort**: Medium
+**Impact**: High
+
+**Description**: One offline-cached screen with everything needed at a check-in desk.
+
+**Current State**: `TravelDocument` stores the documents; there is no consolidated
+day-of view, and offline caching is per-query.
+
+**Features**:
+- Passport, boarding passes, confirmations, and insurance on one screen
+- Explicitly cached for offline, since airports are where connectivity fails
+- Ordered by what's needed next
+- Builds on the PWA work (#64) already shipped
+
+### 111. Emergency Card
+
+**Category**: Travel Documents
+**Effort**: Low
+**Impact**: Medium
+
+**Description**: A printable, offline card of the things you need when something goes
+wrong.
+
+**Features**:
+- Local emergency numbers and nearest embassy for the destination
+- Insurance policy number and assistance line
+- Companion medical notes and allergies (dietary tags already model adjacent data)
+- Printable and offline-cached; useful precisely when the phone is dead or stolen
+
+### 112. Transit & Rideshare Deep Links
+
+**Category**: Location & Maps
+**Effort**: Very Low
+**Impact**: Medium
+
+**Description**: One tap from any timeline event to directions in the user's preferred
+maps app.
+
+**Features**:
+- Deep links to Apple/Google Maps, Citymapper, Uber/Lyft
+- Origin and destination pre-filled from the surrounding itinerary items
+- Per-user preferred app in Settings
+
+**Why it's worth doing**: trivial to build, and used constantly on the ground.
+
+**Status**: ✅ Completed 2026-07-25 — `lib/mapsDeepLinks.ts` (pure builders for Apple, Google,
+Citymapper, Uber, Lyft; platform is an explicit argument, never read from `window`) plus
+`lib/itineraryPlaces.ts` entity adapters and a reusable `DirectionsButton`. Wired into Timeline
+and Daily View, both of which have a chronological ordering, so **origin is inferred from the
+nearest preceding item with a real place** — a restaurant routes from the hotel rather than from
+nowhere. Transportation's destination is its *departure* point (you need to reach the airport)
+while its *end* place feeds the next item's origin. Activities with no coords and no address
+produce no button rather than a garbage maps search. Preferred app per user in Settings. 79 tests.
+
+### 113. Local Norms Card
+
+**Category**: Advanced Features
+**Effort**: Low
+**Impact**: Medium
+
+**Description**: Per-country practical conventions, shown on the trip.
+
+**Features**:
+- Tipping norms, plug type and voltage, tap-water safety, driving side
+- Rough emergency numbers (overlaps #111 — share the dataset)
+- Static bundled dataset; no API dependency, works offline
+- Pairs with the existing `VisaRequirement` and `TripLanguage` features
+
+### 114. Conversational Trip Planner
+
+**Category**: AI/ML
+**Effort**: High
+**Impact**: Medium
+
+**Description**: A chat interface with the trip as context.
+
+**Current State**: AI is limited to link suggestions and journal summaries
+(`ai.routes.ts`). #91 covers auto-tagging and summarisation, not conversation.
+
+**Features**:
+- Trip-scoped chat ("find a rainy-day alternative for Tuesday afternoon near the hotel")
+- Returns **proposed** entities through the existing `PendingEntity` review queue, so
+  nothing is written without approval
+- Reuses `llm.service.ts` and the per-user key handling already in place
+
+**Risk**: the removed email import (#69) is the cautionary tale — LLM output that writes
+directly to the itinerary was what failed. Keep the review queue in front of it.
+
+---
+
 ## Quick Reference
 
 ### By Implementation Effort
@@ -1448,6 +1840,7 @@ so pair it with a full backup → wipe → restore test.
 - Recently Viewed Trips (#22)
 - Trip Archive (#25)
 - Night Mode Schedule (#30)
+- Transit & Rideshare Deep Links (#112)
 
 **Low (4-8 hours)**:
 - Trip Cloning (#1) ✅
@@ -1467,6 +1860,13 @@ so pair it with a full backup → wipe → restore test.
 - Print Styles (#88)
 - Travel Milestones (#81)
 - Trip Dependencies (#80)
+- Photo Favorites & Highlight Reel (#100)
+- Public Trip Guestbook (#105)
+- Spending Pace & Cost-per-Day (#106)
+- Post-Trip Retrospective (#108)
+- Loyalty Programs (#109)
+- Emergency Card (#111)
+- Local Norms Card (#113)
 
 **Medium (1-2 weeks)**:
 - Trip Health Check (#2)
@@ -1504,6 +1904,15 @@ so pair it with a full backup → wipe → restore test.
 - Shareable Trip Page (#87)
 - Auto-Detect Duplicates (#92)
 - Travel Companions Network (#93)
+- Multi-Currency with Exchange Rates (#96)
+- Expense Splitting & Settle-Up (#97)
+- Trip Wishlist / Bucket List (#98)
+- People in Photos (#99)
+- Infer Photo Location from Itinerary (#101)
+- Opening Hours & Closure Warnings (#102)
+- Reverse Itinerary from a Flight (#103)
+- Activity Proposals & Voting (#104)
+- Travel Day Document Vault (#110)
 
 **High (2+ weeks)**:
 - Timeline Export PDF (#8)
@@ -1538,6 +1947,8 @@ so pair it with a full backup → wipe → restore test.
 - Destination Recommendations (#90)
 - AI Features (#91)
 - Trip Questions (#94)
+- Semantic Archive Search (#107)
+- Conversational Trip Planner (#114)
 
 ### By Category
 
@@ -1574,6 +1985,8 @@ so pair it with a full backup → wipe → restore test.
 
 ## Update Log
 
+- **2026-07-25 (evening)**: Shipped #96 (multi-currency with FX rates), #102 (opening hours & closure warnings), and #112 (transit & rideshare deep links). Built in parallel in isolated worktrees. Backend +144 tests, frontend +81, zero new failures against the v5.6.0 baseline of 30 pre-existing ones. Note for future verification: `npx tsc --noEmit` in `frontend/` is a **no-op** — the root `tsconfig.json` has `"files": []` with only project references, so it silently checks nothing. Use `npx tsc -b` (which is what `npm run build:strict` already does); the shortcut hid a real type error in this batch
+- **2026-07-25**: Added #96–#114 from a fresh pass over the schema and services. Ideas that duplicated existing entries were folded into those rather than listed twice — ratings widened in #41, GPX import added to #43, booking-email import updated in #69 (the IMAP transport now exists after the saved-link email ingest work, so it is far cheaper than the 2026-04 attempt). Also added #95 (Technical Debt: `transformTripToBackupFormat` type assertions). Highest-value new items: #96 multi-currency, which fixes a real correctness bug where mixed-currency budget totals are simply summed without conversion; #102 opening hours, which catches the most common itinerary failure; and #97 expense splitting
 - **2026-07-19 (evening)**: Feature batch shipped — Budget & expense tracking (`TripExpense` + Budget tab + dashboard widget), Public trip sharing (#87), On This Day memories (#37, app-internal) + Year in Review (#55), iCal feed (one-way subscription form of Calendar Sync #68), Push notifications (#67, completing PWA #64), Trip Archive (#25), Favorite Places (#12, location starring), Default Timezone (#21), plus Immich regression tests
 - **2026-07-19**: Code audit — marked as completed: Trip Cover Images (#31, via `bannerPhotoId`), Offline Maps (#42), Trip Collaboration UI (#46), PWA (#64, all but push notifications), Flight Tracking (#71), Weather Integration (#72). Also now in the app but never tracked here: trip dashboard ("today" view with widgets), Day By Day view, Kanban trips view, souvenir tracking, jet lag calculator, OIDC/SSO, AI link suggestions and journal summaries, airport search. See IMPLEMENTATION_STATUS.md
 - **2026-05-15**: Marked Custom Trip Types (#15) and Markdown Support (#24) as completed; rewrote Booking Integrations (#69) to reflect PDF + AI import (email parsing was removed)

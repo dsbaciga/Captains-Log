@@ -3,6 +3,8 @@ import type { Location, CreateLocationInput, UpdateLocationInput, LocationCatego
 import locationService from "../services/location.service";
 import toast from "react-hot-toast";
 import LinkButton from "./LinkButton";
+import DirectionsButton from "./DirectionsButton";
+import { placeFromLocation } from "../lib/itineraryPlaces";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
 import FormModal from "./FormModal";
 import FormSection from "./FormSection";
@@ -75,6 +77,8 @@ interface LocationFormFields {
   longitude: number | undefined;
   parentId: number | null | undefined;
   categoryId: number | undefined;
+  /** Raw OSM `opening_hours` string. Left blank, the backend tries to fill it from OpenStreetMap. */
+  openingHours: string;
 }
 
 const initialFormState: LocationFormFields = {
@@ -85,6 +89,7 @@ const initialFormState: LocationFormFields = {
   longitude: undefined,
   parentId: undefined,
   categoryId: undefined,
+  openingHours: "",
 };
 
 export default function LocationManager({
@@ -175,6 +180,7 @@ export default function LocationManager({
     handleChange("longitude", location.longitude || undefined);
     handleChange("parentId", location.parentId ?? null);
     handleChange("categoryId", location.categoryId || undefined);
+    handleChange("openingHours", location.openingHours || "");
     openEditForm(location.id);
   }, [handleChange, openEditForm]);
 
@@ -225,6 +231,7 @@ export default function LocationManager({
     handleChange("longitude", location.longitude || undefined);
     handleChange("parentId", location.parentId ?? null);
     handleChange("categoryId", location.categoryId || undefined);
+    handleChange("openingHours", location.openingHours || "");
     manager.openEditForm(location.id);
   };
 
@@ -246,6 +253,8 @@ export default function LocationManager({
         longitude: values.longitude,
         parentId: values.parentId,
         categoryId: values.categoryId,
+        // null (not undefined) clears the hours, which also re-enables the OpenStreetMap lookup.
+        openingHours: values.openingHours.trim() || null,
       };
       const success = await manager.handleUpdate(manager.editingId, updateData);
       if (success) {
@@ -263,6 +272,8 @@ export default function LocationManager({
         longitude: values.longitude,
         parentId: values.parentId,
         categoryId: values.categoryId,
+        // Omitted when blank so the backend can populate it from OpenStreetMap.
+        openingHours: values.openingHours.trim() || undefined,
       };
       const success = await manager.handleCreate(createData);
       if (success) {
@@ -386,6 +397,11 @@ export default function LocationManager({
     manager.closeForm();
   };
 
+  // The location currently open in the form, used to explain where its opening hours came from
+  const editingLocation = manager.editingId
+    ? manager.items.find((loc) => loc.id === manager.editingId) ?? null
+    : null;
+
   // Get top-level locations (no parent)
   const topLevelLocations = manager.items.filter((loc) => !loc.parentId);
 
@@ -447,6 +463,8 @@ export default function LocationManager({
                     address={location.address}
                     compact={isChild}
                     showFullAddress={!isChild}
+                    openingHours={location.openingHours}
+                    timezone={location.timezone}
                     className={isChild ? "text-base" : ""}
                   />
                 </div>
@@ -554,6 +572,9 @@ export default function LocationManager({
                 onUpdate={invalidateLinkSummary}
                 size="sm"
               />
+              {/* Directions from the device's current location — this list has
+                  no itinerary order to infer an origin from. */}
+              <DirectionsButton destination={placeFromLocation(location)} />
               <button
                 onClick={() => handleEdit(location)}
                 className="px-2.5 py-1 text-sm bg-primary-50 dark:bg-navy-700 text-primary-700 dark:text-gold/80 rounded hover:bg-primary-100 dark:hover:bg-navy-600 whitespace-nowrap"
@@ -829,6 +850,38 @@ export default function LocationManager({
                 </select>
               </div>
             )}
+
+            <div>
+              <label htmlFor="location-opening-hours" className="label">
+                Opening Hours
+              </label>
+              <input
+                type="text"
+                id="location-opening-hours"
+                name="openingHours"
+                autoComplete="off"
+                value={values.openingHours}
+                onChange={(e) => handleChange("openingHours", e.target.value)}
+                className="input"
+                placeholder="Mo-Fr 09:00-17:00; Sa 10:00-14:00; Su off"
+                aria-describedby="location-opening-hours-help"
+              />
+              <p
+                id="location-opening-hours-help"
+                className="text-xs text-gray-500 dark:text-gray-400 mt-1"
+              >
+                Leave blank to pull the hours from OpenStreetMap automatically. Uses the OSM
+                format, e.g. <code className="font-mono">Mo-Fr 09:00-17:00; Su off</code> or{" "}
+                <code className="font-mono">24/7</code>. Times are read in the location&apos;s own
+                timezone, and the Trip Health Check warns if a planned visit falls outside them.
+              </p>
+              {editingLocation?.openingHoursSource === "osm" && (
+                <p className="text-xs text-primary-600 dark:text-gold/80 mt-1">
+                  These hours came from OpenStreetMap. Editing them marks them as yours, and they
+                  will not be overwritten.
+                </p>
+              )}
+            </div>
 
             <MarkdownEditor
               value={values.notes}

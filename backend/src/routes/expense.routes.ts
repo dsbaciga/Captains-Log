@@ -197,6 +197,11 @@ const budgetSummaryRouter = Router({ mergeParams: true });
  * /api/trips/{tripId}/budget-summary:
  *   get:
  *     summary: Get the budget summary (budget vs spent with category breakdown) for a trip
+ *     description: >
+ *       Totals are converted into a single base currency using the exchange
+ *       rate frozen at each record's own date. Amounts that could not be
+ *       converted are excluded from `spent` and listed under
+ *       `conversion.unconverted` rather than summed at face value.
  *     tags: [Expenses]
  *     security:
  *       - bearerAuth: []

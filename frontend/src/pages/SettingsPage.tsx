@@ -17,12 +17,14 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { getRandomTagColor } from "../utils/tagColors";
+import { CONVERTIBLE_CURRENCIES } from "../constants/currencies";
 
 // Lazy-loaded heavy tab components (only loaded when their tab is active)
 const ImmichSettings = lazy(() => import("../components/ImmichSettings"));
 const WeatherSettings = lazy(() => import("../components/WeatherSettings"));
 const AviationstackSettings = lazy(() => import("../components/AviationstackSettings"));
 const OpenRouteServiceSettings = lazy(() => import("../components/OpenRouteServiceSettings"));
+const MapsAppSettings = lazy(() => import("../components/MapsAppSettings"));
 const LlmSettings = lazy(() => import("../components/LlmSettings"));
 const LinkIngestSettings = lazy(() => import("../components/LinkIngestSettings"));
 const SmtpSettings = lazy(() => import("../components/SmtpSettings"));
@@ -94,6 +96,10 @@ export default function SettingsPage() {
   const persistedCategoryNames = useRef<Set<string>>(new Set());
   const persistedTripTypeNames = useRef<Set<string>>(new Set());
   const [timezone, setTimezone] = useState("UTC");
+  // "" means no home currency chosen — budget totals then fall back to each
+  // trip's own budget currency.
+  const [baseCurrency, setBaseCurrency] = useState("");
+  const [savingBaseCurrency, setSavingBaseCurrency] = useState(false);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [newUsername, setNewUsername] = useState("");
@@ -120,6 +126,7 @@ export default function SettingsPage() {
     importPhotos: true,
   });
   const timezoneSelectId = useId();
+  const baseCurrencySelectId = useId();
   const currentUsernameId = useId();
   const newUsernameId = useId();
   const currentPasswordId = useId();
@@ -152,6 +159,7 @@ export default function SettingsPage() {
         (user.tripTypes || []).map((t) => t.name),
       );
       setTimezone(user.timezone || "UTC");
+      setBaseCurrency(user.baseCurrency || "");
       setDietaryPreferences(user.dietaryPreferences || []);
       setUseCustomMapStyle(user.useCustomMapStyle ?? true);
       setUsername(user.username);
@@ -552,6 +560,24 @@ export default function SettingsPage() {
       toast.success("Dietary preferences saved");
     } catch {
       toast.error("Failed to save dietary preferences");
+    }
+  };
+
+  const handleSaveBaseCurrency = async () => {
+    setSavingBaseCurrency(true);
+    try {
+      // Null (not "") clears the setting on the backend.
+      await userService.updateSettings({ baseCurrency: baseCurrency || null });
+      updateUser({ baseCurrency: baseCurrency || null });
+      toast.success(
+        baseCurrency
+          ? `Home currency set to ${baseCurrency}`
+          : "Home currency cleared",
+      );
+    } catch {
+      toast.error("Failed to save home currency");
+    } finally {
+      setSavingBaseCurrency(false);
     }
   };
 
@@ -992,6 +1018,45 @@ export default function SettingsPage() {
                   className="btn btn-primary"
                 >
                   Save Timezone
+                </button>
+              </div>
+            </div>
+
+            {/* Home Currency Setting */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Home Currency
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Trip budgets and expenses recorded in other currencies are
+                converted to this currency, using the exchange rate from the day
+                each amount was spent. Leave it unset to report each trip in its
+                own budget currency.
+              </p>
+              <label htmlFor={baseCurrencySelectId} className="sr-only">
+                Home currency
+              </label>
+              <select
+                id={baseCurrencySelectId}
+                value={baseCurrency}
+                onChange={(e) => setBaseCurrency(e.target.value)}
+                className="input w-full max-w-md"
+              >
+                <option value="">No home currency (use each trip&apos;s)</option>
+                {CONVERTIBLE_CURRENCIES.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.code} — {currency.label}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-4">
+                <button
+                  onClick={handleSaveBaseCurrency}
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={savingBaseCurrency}
+                >
+                  {savingBaseCurrency ? "Saving..." : "Save Home Currency"}
                 </button>
               </div>
             </div>
@@ -1746,6 +1811,9 @@ export default function SettingsPage() {
 
             {/* OpenRouteService Settings */}
             <OpenRouteServiceSettings />
+
+            {/* Directions & Maps (preferred external maps app) */}
+            <MapsAppSettings />
 
             {/* LLM (AI) Settings */}
             <LlmSettings />

@@ -1,10 +1,19 @@
 import prisma from '../config/database';
 import { Prisma } from '@prisma/client';
+import axios from 'axios';
 import tzlookup from 'tz-lookup';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../config/logger';
+import config from '../config';
 import { CreateLocationInput, UpdateLocationInput, CreateLocationCategoryInput, UpdateLocationCategoryInput, BulkDeleteLocationsInput, BulkUpdateLocationsInput } from '../types/location.types';
 import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission, buildConditionalUpdateData, convertDecimals, cleanupEntityLinks } from '../services/_shared/serviceHelpers';
+
+/** Provenance of a location's opening hours. Manual entry always wins over the OSM lookup. */
+const OPENING_HOURS_SOURCE_OSM = 'osm';
+const OPENING_HOURS_SOURCE_MANUAL = 'manual';
+
+/** Nominatim is a best-effort enrichment; never let it hold up a save for long. */
+const NOMINATIM_TIMEOUT_MS = 3000;
 
 /**
  * Validate latitude and longitude ranges.
@@ -18,6 +27,18 @@ function validateLatLng(latitude?: number | null, longitude?: number | null): vo
   if (longitude != null && (longitude < -180 || longitude > 180)) {
     throw new AppError('Longitude must be between -180 and 180', 400);
   }
+}
+
+/**
+ * Type guard for the slice of a Nominatim reverse-geocode response we care about.
+ * Nominatim only includes `extratags` when `extratags=1` is requested, and only includes
+ * `opening_hours` when the underlying OSM object carries that tag — so every level is optional.
+ */
+function hasOsmOpeningHours(value: unknown): value is { extratags: { opening_hours: string } } {
+  if (typeof value !== 'object' || value === null || !('extratags' in value)) return false;
+  const { extratags } = value;
+  if (typeof extratags !== 'object' || extratags === null || !('opening_hours' in extratags)) return false;
+  return typeof extratags.opening_hours === 'string' && extratags.opening_hours.trim().length > 0;
 }
 
 export class LocationService {
@@ -45,6 +66,100 @@ export class LocationService {
       logger.info(`Auto-set timezone "${timezone}" for trip ${tripId} from location coordinates`);
     } catch (error) {
       logger.warn(`Failed to auto-set timezone for trip ${tripId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Resolve the timezone of the place itself from its coordinates.
+   *
+   * Opening hours are wall-clock times in the *location's* zone, so this must not fall back
+   * to the trip's or the server's zone — an unknown zone stays null and the closure check
+   * simply reports UNKNOWN rather than comparing against the wrong clock.
+   */
+  private resolveLocationTimezone(latitude?: number | null, longitude?: number | null): string | null {
+    if (latitude == null || longitude == null) return null;
+
+    try {
+      return tzlookup(latitude, longitude);
+    } catch (error) {
+      logger.warn(`Timezone lookup failed for ${latitude},${longitude}: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * Best-effort lookup of the OSM `opening_hours` tag for a set of coordinates.
+   *
+   * OpenStreetMap already carries this tag for a large share of museums, restaurants and
+   * attractions, so a reverse geocode with `extratags=1` usually gets it for free. Every
+   * failure mode — no Nominatim configured, network error, timeout, untagged place,
+   * unexpected payload — resolves to null. This must never block or fail a location save.
+   */
+  private async fetchOpeningHoursFromOsm(latitude: number, longitude: number): Promise<string | null> {
+    const baseUrl = config.nominatim.url;
+    if (!baseUrl) return null;
+
+    try {
+      const response = await axios.get(`${baseUrl.replace(/\/+$/, '')}/reverse`, {
+        params: {
+          lat: latitude,
+          lon: longitude,
+          format: 'jsonv2',
+          extratags: 1,
+          // Building/POI level — coarser zooms resolve to a street or suburb, whose
+          // opening_hours tag (if any) would not describe the place the user pinned.
+          zoom: 18,
+        },
+        timeout: NOMINATIM_TIMEOUT_MS,
+      });
+
+      if (!hasOsmOpeningHours(response.data)) return null;
+
+      return response.data.extratags.opening_hours.trim();
+    } catch (error) {
+      logger.warn(`Nominatim opening_hours lookup failed for ${latitude},${longitude}: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * Fill in a location's opening hours from OpenStreetMap when the user did not supply them.
+   *
+   * Runs after the location row exists so a failure can never lose the user's own data.
+   * Skipped entirely when hours are already present (manual or previously fetched), so a
+   * user's override is never clobbered by a later edit.
+   *
+   * @returns The stored values when hours were added, or null when nothing changed. Callers
+   *   merge the result into their response so the caller sees the enriched row immediately.
+   */
+  private async enrichOpeningHoursFromOsm(
+    locationId: number,
+    latitude?: number | null,
+    longitude?: number | null
+  ): Promise<{ openingHours: string; openingHoursSource: string } | null> {
+    if (latitude == null || longitude == null) return null;
+
+    try {
+      const existing = await prisma.location.findUnique({
+        where: { id: locationId },
+        select: { openingHours: true },
+      });
+
+      if (!existing || existing.openingHours) return null;
+
+      const openingHours = await this.fetchOpeningHoursFromOsm(latitude, longitude);
+      if (!openingHours) return null;
+
+      await prisma.location.update({
+        where: { id: locationId },
+        data: { openingHours, openingHoursSource: OPENING_HOURS_SOURCE_OSM },
+      });
+      logger.info(`Auto-populated opening hours for location ${locationId} from OpenStreetMap`);
+
+      return { openingHours, openingHoursSource: OPENING_HOURS_SOURCE_OSM };
+    } catch (error) {
+      logger.warn(`Failed to enrich opening hours for location ${locationId}: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
     }
   }
 
@@ -86,6 +201,11 @@ export class LocationService {
         visitDatetime: data.visitDatetime ? new Date(data.visitDatetime) : null,
         visitDurationMinutes: data.visitDurationMinutes,
         notes: data.notes,
+        openingHours: data.openingHours,
+        // Hours arriving with the create request came from the user, so mark them manual
+        // and keep the OSM lookup from ever replacing them.
+        openingHoursSource: data.openingHours ? OPENING_HOURS_SOURCE_MANUAL : null,
+        timezone: data.timezone ?? this.resolveLocationTimezone(data.latitude, data.longitude),
       },
       include: {
         category: true,
@@ -102,7 +222,10 @@ export class LocationService {
     // has none yet. Failures are logged and never break location creation.
     await this.autoSetTripTimezone(data.tripId, data.latitude, data.longitude);
 
-    return convertDecimals(location);
+    // Best-effort OSM enrichment. Already committed above, so this can only add data.
+    const enriched = await this.enrichOpeningHoursFromOsm(location.id, data.latitude, data.longitude);
+
+    return convertDecimals(enriched ? { ...location, ...enriched } : location);
   }
 
   async getLocationsByTrip(userId: number, tripId: number) {
@@ -304,6 +427,23 @@ export class LocationService {
         visitDatetime: (val: string | null) => (val ? new Date(val) : null),
       },
     });
+
+    // Any opening-hours edit coming through the API is the user's own doing, so record it as
+    // manual: that both preserves their override and stops the OSM lookup from undoing it.
+    // Clearing the hours also clears the provenance, which re-opens the location to a lookup.
+    if (data.openingHours !== undefined) {
+      updateData.openingHoursSource = data.openingHours ? OPENING_HOURS_SOURCE_MANUAL : null;
+    }
+
+    // The pin moved without an explicit timezone, so the stored zone may now be wrong.
+    // Only re-derived when a complete coordinate pair is supplied — a half-updated pair
+    // would resolve to nothing useful, and leaving the old zone alone is the safer default.
+    if (data.timezone === undefined && data.latitude != null && data.longitude != null) {
+      const resolved = this.resolveLocationTimezone(data.latitude, data.longitude);
+      if (resolved) {
+        updateData.timezone = resolved;
+      }
+    }
 
     const updatedLocation = await prisma.location.update({
       where: { id: locationId },

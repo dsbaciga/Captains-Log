@@ -1,4 +1,6 @@
 import type { TimelineItem, TimelineItemType, ConnectionInfo } from './types';
+import type { MapsPlace } from '../../lib/mapsDeepLinks';
+import { placeFromTransportation } from '../../lib/itineraryPlaces';
 
 /**
  * Get date string in a specific timezone
@@ -261,6 +263,76 @@ export function getConnectionInfo(
     isLast: index === sortedGroup.length - 1,
     groupId: item.connectionGroupId,
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Directions: turning timeline items into navigable places            */
+/* ------------------------------------------------------------------ */
+
+/** Structural guard — only Transportation carries from/to endpoints. */
+function hasTransportEndpoints(
+  data: TimelineItem['data']
+): data is Extract<TimelineItem['data'], { fromLocationName: string | null }> {
+  return 'fromLocationName' in data && 'toLocationName' in data;
+}
+
+/** Structural guard — Lodging is the only entity with a postal `address`. */
+function hasAddress(
+  data: TimelineItem['data']
+): data is Extract<TimelineItem['data'], { address: string | null }> {
+  return 'address' in data;
+}
+
+function transportEndpointPlace(
+  item: TimelineItem,
+  end: 'from' | 'to'
+): MapsPlace | null {
+  const data = item.data;
+  return hasTransportEndpoints(data) ? placeFromTransportation(data, end) : null;
+}
+
+/**
+ * The place a traveller needs directions TO for this item.
+ *
+ * For transportation that is the *departure* point — you need to get to the
+ * airport, not to your arrival city.
+ */
+export function getTimelineItemPlace(item: TimelineItem): MapsPlace | null {
+  if (item.type === 'transportation') {
+    return transportEndpointPlace(item, 'from');
+  }
+
+  const data = item.data;
+  const address = (hasAddress(data) ? data.address : null) ?? item.location ?? null;
+  const coords = item.locationCoords ?? null;
+
+  if (item.type === 'lodging') {
+    // Hotel names geocode well, so a name-only lodging still gets a link.
+    return { name: item.title, address, latitude: coords?.latitude ?? null, longitude: coords?.longitude ?? null };
+  }
+
+  // Activities and journal entries are titled things ("Dinner", "Day 3"), not
+  // places — without an address or coordinates there is nothing to navigate to.
+  if (address === null && coords === null) return null;
+
+  return {
+    name: item.title,
+    address,
+    latitude: coords?.latitude ?? null,
+    longitude: coords?.longitude ?? null,
+  };
+}
+
+/**
+ * Where the traveller ends up after this item — used to infer the origin of
+ * the *next* item. Identical to `getTimelineItemPlace` except for
+ * transportation, which drops you at its arrival point.
+ */
+export function getTimelineItemEndPlace(item: TimelineItem): MapsPlace | null {
+  if (item.type === 'transportation') {
+    return transportEndpointPlace(item, 'to') ?? transportEndpointPlace(item, 'from');
+  }
+  return getTimelineItemPlace(item);
 }
 
 /**

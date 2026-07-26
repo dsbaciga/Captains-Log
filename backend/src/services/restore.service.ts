@@ -338,6 +338,9 @@ export async function restoreFromBackup(
                 visitDatetime: locationData.visitDatetime ? new Date(locationData.visitDatetime) : null,
                 visitDurationMinutes: locationData.visitDurationMinutes,
                 notes: locationData.notes,
+                openingHours: locationData.openingHours,
+                openingHoursSource: locationData.openingHoursSource,
+                timezone: locationData.timezone,
               },
             });
             if (locationData.id != null) locationMap.set(locationData.id, location.id);

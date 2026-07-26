@@ -4,6 +4,8 @@ export type User = {
   email: string;
   avatarUrl: string | null;
   useCustomMapStyle?: boolean;
+  /** Home currency (ISO 4217) budget totals are reported in; null = unset. */
+  baseCurrency?: string | null;
 }
 
 export type AuthResponse = {

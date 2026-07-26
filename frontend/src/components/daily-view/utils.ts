@@ -2,6 +2,7 @@ import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
+import type { Location } from '../../types/location';
 
 /**
  * Format time for display
@@ -269,20 +270,29 @@ export function getMoodEmoji(mood?: string | null): string {
 }
 
 /**
+ * Every entity that can appear as a day item's `data`.
+ */
+export type DayItemData = Activity | Transportation | Lodging | JournalEntry | Location;
+
+/**
  * Type guards
  */
-export function isActivity(item: Activity | Transportation | Lodging | JournalEntry): item is Activity {
+export function isActivity(item: DayItemData): item is Activity {
   return 'name' in item && 'allDay' in item;
 }
 
-export function isTransportation(item: Activity | Transportation | Lodging | JournalEntry): item is Transportation {
+export function isTransportation(item: DayItemData): item is Transportation {
   return 'type' in item && 'fromLocationId' in item;
 }
 
-export function isLodging(item: Activity | Transportation | Lodging | JournalEntry): item is Lodging {
+export function isLodging(item: DayItemData): item is Lodging {
   return 'type' in item && 'checkInDate' in item;
 }
 
-export function isJournalEntry(item: Activity | Transportation | Lodging | JournalEntry): item is JournalEntry {
+export function isJournalEntry(item: DayItemData): item is JournalEntry {
   return 'content' in item && 'entryType' in item;
+}
+
+export function isLocation(item: DayItemData): item is Location {
+  return 'isFavorite' in item && 'name' in item;
 }

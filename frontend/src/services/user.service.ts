@@ -1,5 +1,6 @@
 import axios from '../lib/axios';
 import type { User, UpdateUserSettingsInput, UserSearchResult, TravelPartnerSettings, UpdateTravelPartnerInput } from '../types/user';
+import { isMapsApp, type MapsApp } from '../lib/mapsDeepLinks';
 
 export interface SmtpSettingsResponse {
   smtpProvider: string | null;
@@ -23,6 +24,11 @@ export interface UpdateLlmSettingsInput {
   llmApiKey?: string | null;
   llmBaseUrl?: string | null;
   llmModel?: string | null;
+}
+
+export interface MapsSettingsResponse {
+  /** Null when the user has expressed no preference. */
+  preferredMapsApp: MapsApp | null;
 }
 
 export interface LinkIngestSettingsResponse {
@@ -105,6 +111,28 @@ const userService = {
   async updateLlmSettings(data: UpdateLlmSettingsInput): Promise<LlmSettingsResponse & { message: string }> {
     const response = await axios.put('/users/llm-settings', data);
     return response.data;
+  },
+
+  async getMapsSettings(): Promise<MapsSettingsResponse> {
+    const response = await axios.get<{ preferredMapsApp: unknown }>('/users/maps-settings');
+    // The column is a plain string server-side; narrow it here so callers get
+    // a real MapsApp union and an unknown value degrades to "no preference".
+    return {
+      preferredMapsApp: isMapsApp(response.data.preferredMapsApp)
+        ? response.data.preferredMapsApp
+        : null,
+    };
+  },
+
+  async updateMapsSettings(preferredMapsApp: MapsApp | null): Promise<MapsSettingsResponse> {
+    const response = await axios.put<{ preferredMapsApp: unknown }>('/users/maps-settings', {
+      preferredMapsApp,
+    });
+    return {
+      preferredMapsApp: isMapsApp(response.data.preferredMapsApp)
+        ? response.data.preferredMapsApp
+        : null,
+    };
   },
 
   async getLinkIngestSettings(): Promise<LinkIngestSettingsResponse> {

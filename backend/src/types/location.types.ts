@@ -9,7 +9,17 @@ import {
   optionalNotes,
   optionalPositiveNumber,
   optionalBoolean,
+  optionalTimezone,
+  optionalNotesWithMax,
 } from '../validation/zodHelpers';
+
+/**
+ * Raw OpenStreetMap `opening_hours` specification, e.g. "Mo-Fr 09:00-17:00; Sa 10:00-14:00".
+ * Deliberately not validated against the grammar here: users must be free to record hours in
+ * whatever form they have, and openingHours.service reports UNKNOWN for anything it cannot
+ * parse rather than the API rejecting the save.
+ */
+const OPENING_HOURS_MAX_LENGTH = 500;
 
 // Validation schemas
 export const createLocationSchema = z.object({
@@ -23,6 +33,9 @@ export const createLocationSchema = z.object({
   visitDatetime: z.string().optional(), // ISO datetime string
   visitDurationMinutes: z.number().min(0).optional(),
   notes: z.string().optional(),
+  openingHours: z.string().max(OPENING_HOURS_MAX_LENGTH).optional(),
+  // IANA timezone of the place. Omit to have it derived from the coordinates.
+  timezone: z.string().max(100).optional(),
 });
 
 export const updateLocationSchema = z.object({
@@ -37,6 +50,10 @@ export const updateLocationSchema = z.object({
   visitDurationMinutes: optionalPositiveNumber(),
   notes: optionalNotes(),
   isFavorite: optionalBoolean(),
+  // Nullable so a user can clear hours they entered by mistake, which also re-opens the
+  // location to automatic population from OpenStreetMap.
+  openingHours: optionalNotesWithMax(OPENING_HOURS_MAX_LENGTH),
+  timezone: optionalTimezone(),
 });
 
 export const createLocationCategorySchema = z.object({
@@ -86,6 +103,12 @@ export interface LocationResponse {
   visitDurationMinutes: number | null;
   notes: string | null;
   isFavorite: boolean;
+  /** Raw OSM `opening_hours` specification, or null when unknown. */
+  openingHours: string | null;
+  /** 'osm' when auto-populated from Nominatim, 'manual' when entered by the user. */
+  openingHoursSource: string | null;
+  /** IANA timezone of the place, used to read openingHours as wall-clock times. */
+  timezone: string | null;
   createdAt: string;
   updatedAt: string;
   category?: {

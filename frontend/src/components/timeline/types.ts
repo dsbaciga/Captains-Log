@@ -4,6 +4,7 @@ import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { WeatherDisplay } from '../../types/weather';
 import type { EntityLinkSummary } from '../../types/entityLink';
+import type { MapsPlace } from '../../lib/mapsDeepLinks';
 
 // Re-export Activity type for use in other timeline components
 export type { Activity };
@@ -97,6 +98,11 @@ export interface TimelineEventCardProps {
   viewMode: 'standard' | 'compact';
   connectionInfo?: ConnectionInfo;
   showConnectionLine?: boolean;
+  /**
+   * Where the traveller is coming from — the nearest preceding item on the day
+   * that has a usable location. Pre-fills the origin of the Directions link.
+   */
+  originPlace?: MapsPlace | null;
   onEdit: (item: TimelineItem) => void;
   onDelete: (item: TimelineItem) => void;
   onLinkUpdate: () => void;

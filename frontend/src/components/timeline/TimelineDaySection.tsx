@@ -3,7 +3,8 @@ import DayHeader from './DayHeader';
 import TimelineEventCard from './TimelineEventCard';
 import UnscheduledActivityCard from './UnscheduledActivityCard';
 import DayMiniMap from '../DayMiniMap';
-import { getConnectionInfo, getTimezoneAbbr } from './utils';
+import { getConnectionInfo, getTimezoneAbbr, getTimelineItemEndPlace } from './utils';
+import { pickPreviousPlace } from '../../lib/mapsDeepLinks';
 import type { DayGroup, TimelineItem } from './types';
 import type { EntityLinkSummary, EntityType } from '../../types/entityLink';
 import { getEntityKey } from '../../types/entityLink';
@@ -66,6 +67,13 @@ export default function TimelineDaySection({
     }
     return [...items].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
   }, [items, dateKey]);
+
+  // Where each item leaves the traveller, so the next item's Directions link
+  // can start from it (hotel -> restaurant rather than a bare destination pin).
+  const endPlaces = useMemo(
+    () => sortedItems.map((item) => getTimelineItemEndPlace(item)),
+    [sortedItems]
+  );
 
   // Get coordinates for mini map
   const mapLocations = useMemo(() => {
@@ -198,6 +206,7 @@ export default function TimelineDaySection({
                       viewMode={viewMode}
                       connectionInfo={connectionInfo || undefined}
                       showConnectionLine={showConnectionLine ?? undefined}
+                      originPlace={pickPreviousPlace(endPlaces, index)}
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onLinkUpdate={onLinkUpdate}

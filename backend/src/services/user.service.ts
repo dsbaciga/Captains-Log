@@ -21,6 +21,7 @@ class UserService {
         tripTypes: true,
         dietaryPreferences: true,
         useCustomMapStyle: true,
+        baseCurrency: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -49,6 +50,7 @@ class UserService {
         tripTypes: true,
         dietaryPreferences: true,
         useCustomMapStyle: true,
+        baseCurrency: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -260,6 +262,39 @@ class UserService {
   }
 
   /**
+   * The external maps/rideshare app the "Directions" deep links default to.
+   * Null means "no preference" — the UI lists every app that can handle the
+   * route instead of highlighting one.
+   */
+  async getMapsSettings(userId: number) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredMapsApp: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    return { preferredMapsApp: user.preferredMapsApp };
+  }
+
+  async updateMapsSettings(
+    userId: number,
+    data: { preferredMapsApp?: string | null }
+  ) {
+    const updateData = buildConditionalUpdateData(data);
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: { preferredMapsApp: true },
+    });
+
+    return { preferredMapsApp: user.preferredMapsApp };
+  }
+
+  /**
    * Extra From addresses trusted to forward links to the ingest mailbox.
    * The user's own `email` is always accepted and is returned here for display,
    * but is not part of the editable list.
@@ -428,6 +463,7 @@ class UserService {
         tripTypes: true,
         dietaryPreferences: true,
         useCustomMapStyle: true,
+        baseCurrency: true,
         createdAt: true,
         updatedAt: true,
       },

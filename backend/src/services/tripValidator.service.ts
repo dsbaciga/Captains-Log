@@ -2,6 +2,8 @@ import prisma from '../config/database';
 import travelTimeService from './travelTime.service';
 import travelDocumentService from './travelDocument.service';
 import visaRequirementService from './visaRequirement.service';
+import openingHoursService from './openingHours.service';
+import { formatInTimeZone } from 'date-fns-tz';
 import { TripWithRelations } from '../types/prisma-helpers';
 import { AppError } from '../errors/errors';
 
@@ -161,6 +163,7 @@ class TripValidatorService {
     if (context.checkSchedule) {
       issues.push(...this.checkTimelineConflicts(trip, dismissedSet));
       issues.push(...this.checkInvalidDates(trip, dismissedSet));
+      issues.push(...this.checkLocationClosures(trip, dismissedSet));
       issues.push(...await this.checkTravelTimeAlerts(trip, dismissedSet));
     }
 
@@ -366,6 +369,70 @@ class TripValidatorService {
     });
 
     return issues;
+  }
+
+  /**
+   * Warn when a planned visit falls outside a location's opening hours.
+   *
+   * This catches the single most common itinerary failure: a 9am Monday museum visit when
+   * the museum is shut on Mondays. It only fires on a *definite* CLOSED verdict from
+   * openingHours.service — a specification the parser cannot fully understand, or a location
+   * with no timezone to read the hours against, produces no issue at all. A warning nobody
+   * can trust is worse than no warning, so uncertainty stays silent.
+   */
+  private checkLocationClosures(trip: TripWithRelations, dismissedSet: Set<string>): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+
+    type LocationRecord = {
+      id: number;
+      name: string;
+      visitDatetime: Date | null;
+      openingHours: string | null;
+      timezone: string | null;
+    };
+
+    for (const location of trip.locations as LocationRecord[]) {
+      if (!location.visitDatetime || !location.openingHours || !location.timezone) {
+        continue;
+      }
+
+      const visitAt = new Date(location.visitDatetime);
+      const evaluation = openingHoursService.evaluate(location.openingHours, visitAt, location.timezone);
+
+      if (evaluation.status !== 'CLOSED') {
+        continue;
+      }
+
+      const issueKey = `location:${location.id}`;
+      const issueId = this.generateIssueId('location_closed', issueKey);
+
+      issues.push({
+        id: issueId,
+        category: 'SCHEDULE',
+        type: 'location_closed',
+        message: `"${location.name}" appears to be closed at your planned visit time${this.formatLocalVisitTime(visitAt, location.timezone)}`,
+        affectedItems: [location.id],
+        suggestion: `Opening hours: ${location.openingHours}. Reschedule the visit or double-check the hours before you go.`,
+        isDismissed: dismissedSet.has(issueId),
+      });
+    }
+
+    return issues;
+  }
+
+  /**
+   * Render a visit time in the location's own timezone for the warning message.
+   *
+   * Showing the trip's or the server's clock here would contradict the hours the message
+   * quotes. Returns an empty string if the zone cannot be formatted, so the message
+   * degrades to a still-correct sentence rather than a wrong time.
+   */
+  private formatLocalVisitTime(visitAt: Date, timezone: string): string {
+    try {
+      return ` (${formatInTimeZone(visitAt, timezone, 'EEEE d MMM, HH:mm')} local time)`;
+    } catch {
+      return '';
+    }
   }
 
   // ===========================================================================

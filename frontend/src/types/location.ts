@@ -11,6 +11,12 @@ export type Location = {
   visitDurationMinutes: number | null;
   notes: string | null;
   isFavorite: boolean;
+  /** Raw OpenStreetMap `opening_hours` string, e.g. "Mo-Fr 09:00-17:00; Su off". */
+  openingHours: string | null;
+  /** 'osm' when auto-populated from OpenStreetMap, 'manual' when the user typed it in. */
+  openingHoursSource: string | null;
+  /** IANA timezone of the place. Opening hours are wall-clock times in this zone. */
+  timezone: string | null;
   createdAt: string;
   updatedAt: string;
   category?: LocationCategory | null;
@@ -63,10 +69,15 @@ export type CreateLocationInput = {
   visitDatetime?: string;
   visitDurationMinutes?: number;
   notes?: string;
+  openingHours?: string;
+  timezone?: string;
 };
 
-export type UpdateLocationInput = Omit<Partial<CreateLocationInput>, 'tripId' | 'parentId' | 'categoryId'> & {
+export type UpdateLocationInput = Omit<Partial<CreateLocationInput>, 'tripId' | 'parentId' | 'categoryId' | 'openingHours' | 'timezone'> & {
   parentId?: number | null;
   categoryId?: number | null;
   isFavorite?: boolean;
+  /** Send null to clear, which also re-enables automatic population from OpenStreetMap. */
+  openingHours?: string | null;
+  timezone?: string | null;
 };
