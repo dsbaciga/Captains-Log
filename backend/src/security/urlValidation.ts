@@ -21,6 +21,30 @@ const BLOCKED_HOSTNAMES = [
 ];
 
 /**
+ * Whether a hostname names a machine on the operator's own network.
+ *
+ * This is the *opposite* judgement to `validateUrlNotInternal`, and exists for
+ * the self-hosted integrations — Immich, a local LLM, a LAN SMTP relay — where
+ * a private address is the primary deployment pattern rather than an attack.
+ * Callers use it to skip SSRF validation deliberately, so it must stay
+ * conservative: only literal loopback and the RFC1918 ranges, plus `.local`.
+ *
+ * Do not use this to decide that a URL is *safe*. It only says the operator
+ * plausibly meant to reach their own network.
+ */
+export function isLocalNetworkHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[/, '').replace(/\]$/, '');
+
+  return (
+    ['localhost', '127.0.0.1', '::1'].includes(host) ||
+    host.startsWith('192.168.') ||
+    host.startsWith('10.') ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    host.endsWith('.local')
+  );
+}
+
+/**
  * Check if an IPv4 address is in a private/internal range.
  *
  * Blocked ranges:

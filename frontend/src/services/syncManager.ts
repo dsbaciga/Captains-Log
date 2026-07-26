@@ -82,6 +82,19 @@ export interface StoredConflict extends Omit<SyncConflict, 'id'> {
 }
 
 /**
+ * Narrow an entity payload to a plain field bag.
+ *
+ * `SyncOperation.data` and `ConflictInfo.localData`/`serverData` are `unknown`
+ * by design: they hold whichever entity was queued (trip, location, activity,
+ * …) and are read back out of IndexedDB, so they can be stale, from an older
+ * app version, or malformed. Checking beats asserting — a cast would let a
+ * `null` or an array through and fail later at the spread or key walk.
+ */
+function isFieldBag(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
  * Retry configuration
  */
 const MAX_RETRIES = 5;
@@ -136,6 +149,16 @@ class SyncManager {
   private syncListeners: Set<(result: SyncResult) => void> = new Set();
 
   /**
+   * Listeners for the in-progress flag itself.
+   *
+   * `onSyncComplete` only ever fires at the *end* of a run, so nothing could
+   * observe the transition into syncing — consumers polling
+   * `isSyncInProgress()` from a completion handler always read `false`, and
+   * "syncing" UI states were unreachable.
+   */
+  private syncStateListeners: Set<(isSyncing: boolean) => void> = new Set();
+
+  /**
    * Refresh CSRF token before sync
    * CRITICAL: Must be called before any sync operation
    */
@@ -163,7 +186,7 @@ class SyncManager {
       return { status: 'offline', synced: 0, failed: 0, conflicts: [] };
     }
 
-    this.isSyncing = true;
+    this.setSyncing(true);
     const result: SyncResult = {
       status: 'complete',
       synced: 0,
@@ -257,7 +280,7 @@ class SyncManager {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     } finally {
-      this.isSyncing = false;
+      this.setSyncing(false);
     }
   }
 
@@ -473,7 +496,7 @@ class SyncManager {
           } else {
             // For other entities, include tripId in the data
             await axiosInstance.post(endpoint, {
-              ...change.data as Record<string, unknown>,
+              ...(isFieldBag(change.data) ? change.data : {}),
               tripId: parseInt(change.tripId, 10),
             });
           }
@@ -519,14 +542,18 @@ class SyncManager {
     change: SyncOperation,
     conflict: ConflictInfo
   ): Promise<{ success: boolean }> {
-    const mergedData = this.mergeChanges(
-      change.data as Record<string, unknown>,
-      conflict.serverData as Record<string, unknown>
-    );
+    const local = change.data;
+    const server = conflict.serverData;
+
+    // Nothing sensible to merge if either side is not a field bag. Push the
+    // local change unmerged rather than sending `{}` and blanking the record.
+    if (!isFieldBag(local) || !isFieldBag(server)) {
+      return this.pushChange(change, true);
+    }
 
     const mergedChange: SyncOperation = {
       ...change,
-      data: mergedData,
+      data: this.mergeChanges(local, server),
     };
 
     return this.pushChange(mergedChange, true);
@@ -560,10 +587,10 @@ class SyncManager {
    */
   private isMetadataOnlyChange(conflict: ConflictInfo): boolean {
     const metadataFields = ['updatedAt', 'version', 'lastSync', 'createdAt'];
-    const local = conflict.localData as Record<string, unknown>;
-    const server = conflict.serverData as Record<string, unknown>;
+    const local = conflict.localData;
+    const server = conflict.serverData;
 
-    if (!local || !server) return false;
+    if (!isFieldBag(local) || !isFieldBag(server)) return false;
 
     for (const key of Object.keys(local)) {
       if (metadataFields.includes(key)) continue;
@@ -663,7 +690,18 @@ class SyncManager {
     }
 
     try {
-      const endpoint = ENTITY_ENDPOINTS[conflict.entityType as SyncEntityType];
+      // `conflict.entityType` is already a SyncEntityType. The lookup can still
+      // miss if the record predates an entity type being added or renamed —
+      // guard it the same way pushChange does rather than building a
+      // `/undefined/123` URL.
+      const endpoint = ENTITY_ENDPOINTS[conflict.entityType];
+      if (!endpoint) {
+        console.error(
+          `Cannot resolve conflict ${conflictId}: unknown entity type "${conflict.entityType}"`
+        );
+        return { success: false };
+      }
+
       const entityId = parseInt(conflict.entityId, 10);
 
       if (Number.isNaN(entityId)) {
@@ -677,13 +715,18 @@ class SyncManager {
         // Push local changes
         await axiosInstance.put(`${endpoint}/${entityId}`, resolvedData ?? conflict.localData);
       } else if (resolution === 'merge') {
-        // Merge and push
-        const merged =
-          resolvedData ??
-          this.mergeChanges(
-            conflict.localData as Record<string, unknown>,
-            conflict.serverData as Record<string, unknown>
-          );
+        // Merge and push. An automatic merge needs both sides to be field bags;
+        // when either is not, fall back to the local version rather than
+        // PUTting `{}` over the record.
+        let merged: unknown = resolvedData;
+        if (merged === undefined) {
+          const local = conflict.localData;
+          const server = conflict.serverData;
+          merged =
+            isFieldBag(local) && isFieldBag(server)
+              ? this.mergeChanges(local, server)
+              : local;
+        }
         await axiosInstance.put(`${endpoint}/${entityId}`, merged);
       }
       // For 'server', we don't need to do anything - server version is already current
@@ -726,6 +769,35 @@ class SyncManager {
    */
   private notifyListeners(result: SyncResult): void {
     this.syncListeners.forEach(listener => listener(result));
+  }
+
+  /**
+   * Register a listener for changes to the in-progress flag.
+   *
+   * Fires on the leading edge of a sync as well as the trailing one, which is
+   * what makes "syncing" UI observable — `onSyncComplete` alone cannot express
+   * that a run has started.
+   *
+   * @returns An unsubscribe function.
+   */
+  onSyncStateChange(listener: (isSyncing: boolean) => void): () => void {
+    this.syncStateListeners.add(listener);
+    return () => this.syncStateListeners.delete(listener);
+  }
+
+  /**
+   * Set the in-progress flag, notifying listeners only on an actual transition.
+   */
+  private setSyncing(isSyncing: boolean): void {
+    if (this.isSyncing === isSyncing) return;
+    this.isSyncing = isSyncing;
+    this.syncStateListeners.forEach(listener => {
+      try {
+        listener(isSyncing);
+      } catch (error) {
+        console.error('Sync state listener failed:', error);
+      }
+    });
   }
 
   /**

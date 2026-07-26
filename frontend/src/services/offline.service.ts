@@ -26,6 +26,9 @@ import type {
 // Re-export types for convenience
 export type { SyncOperation, SyncOperationType, SyncEntityType };
 
+/** Metadata key holding the user id the pending sync queue belongs to. */
+const SYNC_QUEUE_OWNER_KEY = 'syncQueueOwnerUserId';
+
 /**
  * Represents all entities associated with a trip
  */
@@ -539,6 +542,51 @@ class OfflineService {
   async clearSyncQueue(): Promise<void> {
     const db = await getDb();
     await db.clear('syncQueue');
+    await db.delete('metadata', SYNC_QUEUE_OWNER_KEY);
+  }
+
+  /**
+   * Record which user the pending sync queue belongs to.
+   *
+   * `syncQueue` rows carry no user id, so this is the only thing that can stop
+   * one account's unsynced edits being flushed to another account when a
+   * session ends involuntarily and someone else signs in on the same device.
+   */
+  async setSyncQueueOwner(userId: number): Promise<void> {
+    const db = await getDb();
+    await db.put('metadata', { key: SYNC_QUEUE_OWNER_KEY, value: userId });
+  }
+
+  /**
+   * The user the pending sync queue belongs to, or null when unknown (nothing
+   * queued, or the queue predates this bookkeeping).
+   */
+  async getSyncQueueOwner(): Promise<number | null> {
+    const db = await getDb();
+    const entry = await db.get('metadata', SYNC_QUEUE_OWNER_KEY);
+    return typeof entry?.value === 'number' ? entry.value : null;
+  }
+
+  /**
+   * Drop a preserved sync queue that belongs to somebody else.
+   *
+   * Called after a successful sign-in: a queue whose owner is unknown or is a
+   * different user must not be replayed against the account now signed in.
+   * Returns true when the queue was discarded.
+   */
+  async discardForeignSyncQueue(currentUserId: number): Promise<boolean> {
+    const db = await getDb();
+    const pending = await db.count('syncQueue');
+    if (pending === 0) {
+      await db.delete('metadata', SYNC_QUEUE_OWNER_KEY);
+      return false;
+    }
+
+    const owner = await this.getSyncQueueOwner();
+    if (owner === currentUserId) return false;
+
+    await this.clearSyncQueue();
+    return true;
   }
 
   /**

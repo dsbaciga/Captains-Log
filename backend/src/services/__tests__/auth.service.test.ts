@@ -472,8 +472,10 @@ describe('AuthService', () => {
       expect(result.refreshToken).not.toBe(validToken);
     });
 
-    // AUTH-012: Replaying a consumed token is treated as token theft.
-    it('AUTH-012: should treat replay of a consumed token as theft', async () => {
+    // AUTH-012: Replaying a consumed token is treated as token theft — but
+    // only once it falls outside the concurrency grace window, which is the
+    // only thing distinguishing a replay from two honest tabs racing.
+    it('AUTH-012: should treat a late replay of a consumed token as theft', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockPrisma.user.update.mockResolvedValue({ ...mockUser, passwordVersion: 1 });
 
@@ -481,6 +483,9 @@ describe('AuthService', () => {
       const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
 
       await authService.refreshToken(validToken);
+
+      // Push past the grace window so this is unambiguously a replay.
+      advanceClock(60);
 
       // Second use of the same token must fail...
       await expect(authService.refreshToken(validToken)).rejects.toThrow(AppError);
@@ -491,6 +496,30 @@ describe('AuthService', () => {
         where: { id: 1 },
         data: { passwordVersion: { increment: 1 } },
       });
+    });
+
+    // AUTH-012b: Two tabs restored at launch send the same refresh cookie
+    // within milliseconds. That must not read as theft — bumping
+    // passwordVersion there logs the user out everywhere (and 404s /uploads via
+    // passwordVersionMatches) over a race they did not cause.
+    it('AUTH-012b: should answer a concurrent refresh with the same tokens, not a session wipe', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.update.mockResolvedValue({ ...mockUser, passwordVersion: 1 });
+
+      const { generateRefreshToken } = await import('../../auth/jwt');
+      const validToken = generateRefreshToken({ id: 1, userId: 1, email: 'test@example.com', passwordVersion: 0 });
+
+      const winner = await authService.refreshToken(validToken);
+      const loser = await authService.refreshToken(validToken);
+
+      // Both callers converge on one session rather than one invalidating the
+      // other. Replaying the same pair also means the window cannot be used to
+      // multiply live tokens.
+      expect(loser.accessToken).toBe(winner.accessToken);
+      expect(loser.refreshToken).toBe(winner.refreshToken);
+
+      // Crucially, no family-wide invalidation.
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
 
     // AUTH-014: Each successful refresh mints a fresh, distinct token pair and

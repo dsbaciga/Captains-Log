@@ -25,6 +25,41 @@ const VIRTUAL_ROW_HEIGHT = 260;
 const VIRTUAL_OVERSCAN = 3;
 
 /**
+ * Sort fields the photos API accepts, mirroring the backend `PhotoSortBy`
+ * enum. The value is forwarded verbatim as `sortBy`, and the query schema
+ * rejects anything outside this set with a 400.
+ */
+type PhotoSortField = "date" | "caption" | "created";
+
+/** Sort directions the photos API accepts. */
+type PhotoSortOrder = "asc" | "desc";
+
+function isPhotoSortField(value: string): value is PhotoSortField {
+  return value === "date" || value === "caption" || value === "created";
+}
+
+/**
+ * Coerce a sort field to one the API accepts.
+ *
+ * Callers persist the previous selection (page state, saved filters), so the
+ * retired `name` and `location` values can still arrive from an older session.
+ * Mapping them here keeps a stale preference from wedging the gallery on a 400.
+ */
+function normalizePhotoSortField(value: string | undefined): PhotoSortField {
+  if (value && isPhotoSortField(value)) {
+    return value;
+  }
+  // `name` was the old label for caption ordering; `location` no longer exists
+  // server-side and used to fall through to date ordering anyway.
+  return value === "name" ? "caption" : "date";
+}
+
+/** Anything that is not an explicit "asc" sorts descending, the API default. */
+function normalizePhotoSortOrder(value: string | undefined): PhotoSortOrder {
+  return value === "asc" ? "asc" : "desc";
+}
+
+/**
  * PhotoGallery displays a collection of photos in grid or list view with
  * support for both local uploads and Immich-sourced photos. Provides batch
  * selection, album management, entity linking, and photo editing capabilities.
@@ -330,11 +365,15 @@ export default function PhotoGallery({
   );
   const [showEntityPickerModal, setShowEntityPickerModal] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState<"date" | "name" | "location">(
-    initialSortBy as "date" | "name" | "location"
+  // Must match the backend's PhotoSortBy enum exactly — the value is sent
+  // straight through as `sortBy` and the query schema rejects anything else
+  // with a 400. There is deliberately no "location": Photo has no location
+  // relation to order by since photo→location moved to EntityLink.
+  const [sortBy, setSortBy] = useState<PhotoSortField>(
+    normalizePhotoSortField(initialSortBy)
   );
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(
-    initialSortOrder as "asc" | "desc"
+  const [sortOrder, setSortOrder] = useState<PhotoSortOrder>(
+    normalizePhotoSortOrder(initialSortOrder)
   );
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
@@ -344,11 +383,22 @@ export default function PhotoGallery({
   const previousPhotoIds = useRef<Set<number>>(new Set());
   // Keep a ref to the cache for cleanup purposes (avoids stale closure issues)
   const thumbnailCacheRef = useRef<ThumbnailCache>({});
+  // Same, for the retry counters. The loader below reads both through refs:
+  // it *writes* to these two pieces of state, so depending on them directly
+  // would re-run the effect on every fetch (the infinite loop this used to
+  // suppress with an exhaustive-deps disable). Reading the ref also gives the
+  // loop the latest values, so a long run does not re-fetch a thumbnail an
+  // earlier iteration already cached.
+  const failedThumbnailsRef = useRef<FailedThumbnails>({});
 
   // Keep cache ref in sync with state
   useEffect(() => {
     thumbnailCacheRef.current = thumbnailCache;
   }, [thumbnailCache]);
+
+  useEffect(() => {
+    failedThumbnailsRef.current = failedThumbnails;
+  }, [failedThumbnails]);
 
   // Load thumbnails for Immich photos with authentication
   useEffect(() => {
@@ -400,7 +450,7 @@ export default function PhotoGallery({
       for (const photo of photos) {
         // Skip if already cached, currently fetching, or not an Immich photo
         if (
-          thumbnailCache[photo.id] ||
+          thumbnailCacheRef.current[photo.id] ||
           fetchingPhotos.current.has(photo.id) ||
           photo.source !== "immich" ||
           !photo.thumbnailPath
@@ -409,7 +459,7 @@ export default function PhotoGallery({
         }
 
         // Check if this photo has exceeded max retry attempts
-        const currentRetryCount = failedThumbnails[photo.id] || 0;
+        const currentRetryCount = failedThumbnailsRef.current[photo.id] || 0;
         if (currentRetryCount >= MAX_THUMBNAIL_RETRIES) {
           continue; // Skip - already tried maximum times
         }
@@ -490,8 +540,10 @@ export default function PhotoGallery({
     if (photos.length > 0) {
       loadThumbnails();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photos, retryTrigger]); // thumbnailCache removed - was causing infinite loop; retryTrigger added to allow manual retry
+    // thumbnailCache/failedThumbnails are read through refs above rather than
+    // listed here — see the ref declarations. retryTrigger re-runs the loader
+    // for a manual retry of failed thumbnails.
+  }, [photos, retryTrigger]);
 
   // Cleanup all blob URLs only when component unmounts
   useEffect(() => {
@@ -760,12 +812,16 @@ export default function PhotoGallery({
 
   // Handle sort change - trigger reload from parent
   const handleSortChange = (newSortBy: string, newSortOrder: string) => {
-    setSortBy(newSortBy as "date" | "name" | "location");
-    setSortOrder(newSortOrder as "asc" | "desc");
+    const field = normalizePhotoSortField(newSortBy);
+    const order = normalizePhotoSortOrder(newSortOrder);
+    setSortBy(field);
+    setSortOrder(order);
 
-    // Notify parent to reload photos with new sort
+    // Notify parent to reload photos with new sort. The parent forwards this
+    // verbatim as the `sortBy` query param, so it must be the normalized value
+    // — not the raw option string.
     if (onSortChange) {
-      onSortChange(newSortBy, newSortOrder);
+      onSortChange(field, order);
     }
   };
 
@@ -801,13 +857,6 @@ export default function PhotoGallery({
   const sortedPhotos = photos;
 
   const shouldVirtualize = sortedPhotos.length > VIRTUALIZATION_THRESHOLD;
-
-  // Pre-compute index lookup map to avoid O(n) indexOf calls in virtual rows
-  const photoIndexMap = useMemo(() => {
-    const map = new Map<number, number>();
-    sortedPhotos.forEach((p, i) => map.set(p.id, i));
-    return map;
-  }, [sortedPhotos]);
 
   // Split photos into rows of VIRTUAL_GRID_COLUMNS for the virtualizer
   const photoRows = useMemo(() => {
@@ -916,10 +965,10 @@ export default function PhotoGallery({
           >
             <option value="date-desc">Latest First</option>
             <option value="date-asc">Oldest First</option>
-            <option value="name-asc">Caption A-Z</option>
-            <option value="name-desc">Caption Z-A</option>
-            <option value="location-asc">Location A-Z</option>
-            <option value="location-desc">Location Z-A</option>
+            <option value="caption-asc">Caption A-Z</option>
+            <option value="caption-desc">Caption Z-A</option>
+            <option value="created-desc">Recently Added</option>
+            <option value="created-asc">First Added</option>
           </select>
         </div>
 
@@ -1035,8 +1084,15 @@ export default function PhotoGallery({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  {rowPhotos.map((photo) => {
-                    const globalIndex = photoIndexMap.get(photo.id) ?? 0;
+                  {rowPhotos.map((photo, columnIndex) => {
+                    // Rows are fixed-size chunks of sortedPhotos, so the
+                    // position in the full list is arithmetic. Deriving it
+                    // beats looking it up in a map: a lookup can miss, and the
+                    // only thing to do on a miss is guess an index, which
+                    // silently mislabels the photo for screen readers and
+                    // skews the lazy-loading threshold.
+                    const globalIndex =
+                      virtualRow.index * VIRTUAL_GRID_COLUMNS + columnIndex;
                     return (
                       <PhotoGridItem
                         key={photo.id}

@@ -33,6 +33,8 @@ vi.mock('../../services/offline.service', () => ({
   offlineService: {
     clearAllCache: vi.fn(),
     clearSyncQueue: vi.fn(),
+    discardForeignSyncQueue: vi.fn(),
+    setSyncQueueOwner: vi.fn(),
   },
 }));
 
@@ -42,6 +44,7 @@ vi.mock('../../services/offlineAuth.service', () => ({
   },
 }));
 
+import { AxiosError, AxiosHeaders } from 'axios';
 import type { User } from '../../types/auth';
 import authService from '../../services/auth.service';
 import { setAccessToken } from '../../lib/tokenManager';
@@ -98,6 +101,8 @@ beforeEach(() => {
   vi.mocked(clearPersistedCache).mockResolvedValue(undefined);
   vi.mocked(offlineService.clearAllCache).mockResolvedValue(undefined);
   vi.mocked(offlineService.clearSyncQueue).mockResolvedValue(undefined);
+  vi.mocked(offlineService.discardForeignSyncQueue).mockResolvedValue(false);
+  vi.mocked(offlineService.setSyncQueueOwner).mockResolvedValue(undefined);
   vi.mocked(offlineAuthService.clearOfflineSession).mockResolvedValue(undefined);
   vi.mocked(authService.logout).mockResolvedValue(undefined);
 
@@ -123,6 +128,38 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+// ===========================================================================
+// sync queue ownership
+// ===========================================================================
+
+describe('authStore sync queue ownership', () => {
+  it('attributes the sync queue to the user who signs in', async () => {
+    vi.mocked(authService.login).mockResolvedValue({
+      user: createMockUser({ id: 7 }),
+      accessToken: 'token',
+    });
+
+    await useAuthStore.getState().login({ email: 'alice@example.com', password: 'pw' });
+
+    expect(offlineService.discardForeignSyncQueue).toHaveBeenCalledWith(7);
+    expect(offlineService.setSyncQueueOwner).toHaveBeenCalledWith(7);
+  });
+
+  it('signs in even when reconciling the queue fails', async () => {
+    vi.mocked(offlineService.discardForeignSyncQueue).mockRejectedValue(new Error('idb boom'));
+    vi.mocked(authService.login).mockResolvedValue({
+      user: createMockUser({ id: 7 }),
+      accessToken: 'token',
+    });
+
+    await expect(
+      useAuthStore.getState().login({ email: 'alice@example.com', password: 'pw' })
+    ).resolves.toBeUndefined();
+
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
 });
 
 // ===========================================================================
@@ -306,17 +343,31 @@ describe('authStore.clearAuth', () => {
     expect(authService.logout).not.toHaveBeenCalled();
   });
 
-  it('clears the same six caches as logout', async () => {
+  it('clears every cache logout does, except the offline sync queue', async () => {
     signIn();
 
     useAuthStore.getState().clearAuth();
     await flush();
 
     for (const [label, fn] of Object.entries(clearingSteps())) {
+      if (label === 'offline sync queue') continue;
       expect(fn, `${label} was not cleared`).toHaveBeenCalledTimes(1);
     }
     expect(cachesKeys).toHaveBeenCalledTimes(1);
     expect(cachesDelete.mock.calls.map(([n]) => n).sort()).toEqual(['api-cache', 'trip-photos']);
+  });
+
+  // clearAuth fires from the axios interceptor on ANY failed token refresh, so
+  // it must not destroy work the user has no other copy of. The queue is
+  // reconciled against the next signed-in user instead — see
+  // discardForeignSyncQueue.
+  it('preserves the offline sync queue, which is unsynced work rather than cache', async () => {
+    signIn();
+
+    useAuthStore.getState().clearAuth();
+    await flush();
+
+    expect(offlineService.clearSyncQueue).not.toHaveBeenCalled();
   });
 
   it('never throws, even when every clear rejects', async () => {
@@ -356,10 +407,19 @@ describe('authStore — sign-in transitions', () => {
     expect(cachesKeys).not.toHaveBeenCalled();
   });
 
-  it('a failed login leaves the user signed out with an error message', async () => {
-    vi.mocked(authService.login).mockRejectedValue({
-      response: { data: { message: 'Invalid credentials' } },
-    });
+  it('a failed login surfaces the server message and leaves the user signed out', async () => {
+    // A real AxiosError, not a duck-typed stand-in: the store narrows with
+    // axios's own `isAxiosError` guard, and the interceptor in lib/axios
+    // rejects with the original error, so this is the shape production sees.
+    const serverError = new AxiosError('Request failed');
+    serverError.response = {
+      data: { message: 'Invalid credentials' },
+      status: 401,
+      statusText: 'Unauthorized',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+    };
+    vi.mocked(authService.login).mockRejectedValue(serverError);
 
     await expect(
       useAuthStore.getState().login({ email: 'alice@example.com', password: 'bad' })
@@ -368,5 +428,16 @@ describe('authStore — sign-in transitions', () => {
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
     expect(useAuthStore.getState().error).toBe('Invalid credentials');
     expect(useAuthStore.getState().isLoading).toBe(false);
+  });
+
+  it('a non-axios failure falls back to a generic message rather than throwing', async () => {
+    vi.mocked(authService.login).mockRejectedValue(new TypeError('network down'));
+
+    await expect(
+      useAuthStore.getState().login({ email: 'alice@example.com', password: 'bad' })
+    ).rejects.toBeTruthy();
+
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useAuthStore.getState().error).toBe('Login failed');
   });
 });

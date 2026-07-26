@@ -173,7 +173,11 @@ const loadBlacklist = (): void => {
         continue;
       }
       if (entry.expiresAt > now) {
-        blacklist.set(tokenHash, { tokenHash, expiresAt: entry.expiresAt });
+        blacklist.set(tokenHash, {
+          tokenHash,
+          expiresAt: entry.expiresAt,
+          ...(typeof entry?.claimedAt === 'number' ? { claimedAt: entry.claimedAt } : {}),
+        });
         loaded++;
       } else {
         skipped++;
@@ -201,9 +205,6 @@ export const blacklistToken = (token: string, expiresInMs: number = DEFAULT_EXPI
 /**
  * Atomically claim a single-use token.
  *
- * Returns `true` if this call claimed the token, `false` if it was already
- * revoked. Callers use a `false` result as the reuse/theft signal.
- *
  * This exists because `isBlacklisted(token)` followed later by
  * `blacklistToken(token)` is a check-then-act race: with `await`s in between,
  * two concurrent refreshes presenting the same token could both pass the check
@@ -212,22 +213,36 @@ export const blacklistToken = (token: string, expiresInMs: number = DEFAULT_EXPI
  * thread, so no other request can interleave between the read and the write,
  * making the claim atomic for a single-server deployment.
  *
+ * A second presentation is only reported as `'revoked'` (the reuse/theft
+ * signal) once it falls outside `REPLAY_GRACE_MS`. Inside that window it is
+ * reported as `'replayed-within-grace'`, because concurrent honest clients
+ * sharing one cookie are otherwise indistinguishable from an attacker and the
+ * caller's response to reuse is drastic.
+ *
  * Multi-server deployments need this backed by an atomic store instead
  * (Redis `SET key val NX PX ttl`, or a unique-constrained insert), which is the
  * same upgrade this file's header already describes.
  */
-export const claimToken = (token: string, expiresInMs: number = DEFAULT_EXPIRY_MS): boolean => {
+export const claimToken = (
+  token: string,
+  expiresInMs: number = DEFAULT_EXPIRY_MS
+): TokenClaimOutcome => {
   const tokenHash = hashToken(token);
   const existing = blacklist.get(tokenHash);
+  const now = Date.now();
 
-  if (existing && existing.expiresAt >= Date.now()) {
-    return false; // already revoked — the caller is looking at a replay
+  if (existing && existing.expiresAt >= now) {
+    if (existing.claimedAt !== undefined && now - existing.claimedAt <= REPLAY_GRACE_MS) {
+      logger.debug('Single-use token replayed within grace window; treating as concurrent refresh');
+      return 'replayed-within-grace';
+    }
+    return 'revoked';
   }
 
-  blacklist.set(tokenHash, { tokenHash, expiresAt: Date.now() + expiresInMs });
+  blacklist.set(tokenHash, { tokenHash, expiresAt: now + expiresInMs, claimedAt: now });
   logger.debug('Single-use token claimed and revoked');
   persistBlacklist();
-  return true;
+  return 'claimed';
 };
 
 /**

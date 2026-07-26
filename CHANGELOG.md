@@ -17,7 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.1] - 2026-07-26
+
 ### Fixed
+
+- **Login loop after signing in (regression in 6.0.0).** 6.0.0 made refresh tokens
+  single-use and treats a second presentation as token theft, bumping `passwordVersion` to
+  invalidate every session for that user. But the app has two independent refresh paths —
+  the axios 401 interceptor (`/auth/refresh`) and silent refresh (`/auth/silent-refresh`)
+  — which race on page load and legitimately present the same cookie. The second was
+  flagged as theft, so a successful sign-in immediately invalidated itself and bounced the
+  user back to `/login`, permanently. `claimToken` now distinguishes a concurrent replay
+  inside a short grace window from genuine reuse: the in-flight rotation result is
+  replayed for honest clients, while a genuine replay outside the window still invalidates
+  every session.
 
 - The frontend container was reported `unhealthy` while serving traffic normally. Its
   healthcheck probed `http://localhost:80`, and `wget` resolves `localhost` to `::1` first

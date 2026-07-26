@@ -102,7 +102,14 @@ export function useOfflineReady(
   // plain refresh does not clear it.
   const syncErrorRef = useRef<string | null>(null);
 
-  const refresh = useCallback(async (): Promise<void> => {
+  /**
+   * @param syncingOverride - The in-progress value observed at the moment this
+   *   refresh was triggered. Passed by the sync-state subscription because the
+   *   IndexedDB reads below take long enough that a short sync can finish
+   *   first, which would sample the flag back at `false` and swallow the
+   *   syncing state entirely.
+   */
+  const refresh = useCallback(async (syncingOverride?: boolean): Promise<void> => {
     if (!tripId) {
       setStatus(EMPTY_STATUS);
       return;
@@ -119,7 +126,7 @@ export function useOfflineReady(
         isOfflineReady: isCached,
         lastSynced: lastSync ? new Date(lastSync) : null,
         pendingChanges: pending.length,
-        isSyncing: syncManager.isSyncInProgress(),
+        isSyncing: syncingOverride ?? syncManager.isSyncInProgress(),
         syncError: syncErrorRef.current,
       };
 
@@ -162,11 +169,19 @@ export function useOfflineReady(
       void refresh();
     });
 
+    // Sync completion alone never reports `isSyncing: true` — by the time it
+    // fires the run is over. Subscribing to the flag itself is what makes the
+    // syncing states (and the onSyncStart callback) reachable at all.
+    const unsubscribeSyncState = syncManager.onSyncStateChange((isSyncing) => {
+      void refresh(isSyncing);
+    });
+
     window.addEventListener(OFFLINE_SYNC_UPDATE_EVENT, handleUpdate);
     window.addEventListener('online', handleUpdate);
 
     return () => {
       unsubscribe();
+      unsubscribeSyncState();
       window.removeEventListener(OFFLINE_SYNC_UPDATE_EVENT, handleUpdate);
       window.removeEventListener('online', handleUpdate);
     };

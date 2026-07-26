@@ -312,6 +312,20 @@ export const travelPartnerRequestService = {
           );
         }
 
+        // Same rule for the accepting side. Overwriting the recipient's existing
+        // partnership would leave the ex-partner's `travelPartnerId` still
+        // pointing here — a one-way link whose new trips keep auto-sharing to
+        // someone who is no longer their partner. Partnerships are severed
+        // deliberately via travel partner settings, not as a side effect of
+        // accepting an unrelated request.
+        const recipientPartnerId = locked.get(request.recipientId)?.travelPartnerId ?? null;
+        if (recipientPartnerId !== null && recipientPartnerId !== request.requesterId) {
+          throw new AppError(
+            'You already have a travel partner. Remove your current partner before accepting this request.',
+            409
+          );
+        }
+
         // The consented bidirectional write. Each user keeps their own
         // `defaultPartnerPermission` — it governs their own trips and is theirs alone.
         await tx.user.update({

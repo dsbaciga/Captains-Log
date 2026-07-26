@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { AxiosError } from 'axios';
+import { isAxiosError } from 'axios';
 import type { User, LoginInput, RegisterInput } from '../types/auth';
 import authService from '../services/auth.service';
 import { setAccessToken, registerAuthClearCallback } from '../lib/tokenManager';
@@ -10,6 +10,20 @@ import offlineAuthService from '../services/offlineAuth.service';
 
 interface ApiErrorData {
   message?: string;
+}
+
+/**
+ * Message to surface for a failed auth call.
+ *
+ * Uses axios's own type guard rather than asserting the error shape: a thrown
+ * value here can be anything (a network TypeError, a bug in an interceptor),
+ * and asserting would read `.response` off a value that has no such property.
+ */
+function authErrorMessage(err: unknown, fallback: string): string {
+  if (isAxiosError<ApiErrorData>(err)) {
+    return err.response?.data?.message || fallback;
+  }
+  return fallback;
 }
 
 /**
@@ -49,15 +63,27 @@ async function clearServiceWorkerCaches(): Promise<void> {
  * Every step is isolated: a failure in one must not block the others, and this
  * function never rejects, so it can never leave the user logged in.
  */
-async function clearCachedUserData(): Promise<void> {
+async function clearCachedUserData(
+  options: { preserveSyncQueue?: boolean } = {}
+): Promise<void> {
+  const { preserveSyncQueue = false } = options;
+
   const steps: Array<[string, () => void | Promise<unknown>]> = [
     ['in-memory query cache', () => getQueryClient().clear()],
     ['persisted query cache', () => clearPersistedCache()],
     ['offline data cache', () => offlineService.clearAllCache()],
-    ['offline sync queue', () => offlineService.clearSyncQueue()],
     ['offline auth session', () => offlineAuthService.clearOfflineSession()],
     ['service worker caches', () => clearServiceWorkerCaches()],
   ];
+
+  // The sync queue is unsynced *user work*, not a cache — the only copy of
+  // edits made offline. It is dropped on a deliberate logout, but preserved
+  // when the session ends involuntarily so a transient expiry does not destroy
+  // it. `discardForeignSyncQueue` on the next sign-in stops a preserved queue
+  // being replayed against a different account.
+  if (!preserveSyncQueue) {
+    steps.push(['offline sync queue', () => offlineService.clearSyncQueue()]);
+  }
 
   await Promise.all(
     steps.map(async ([label, run]) => {
@@ -68,6 +94,23 @@ async function clearCachedUserData(): Promise<void> {
       }
     })
   );
+}
+
+/**
+ * Attribute the sync queue to the user who just signed in, discarding any
+ * queue preserved from a different account. Never rejects — a failure here
+ * must not block sign-in.
+ */
+async function claimSyncQueueForUser(userId: number): Promise<void> {
+  try {
+    const discarded = await offlineService.discardForeignSyncQueue(userId);
+    if (discarded) {
+      console.warn('Discarded a pending offline sync queue belonging to a different user.');
+    }
+    await offlineService.setSyncQueueOwner(userId);
+  } catch (error) {
+    console.error('Failed to reconcile the offline sync queue on sign-in:', error);
+  }
 }
 
 interface AuthState {
@@ -101,15 +144,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       // Store access token in memory only (via setAccessToken)
       setAccessToken(response.accessToken);
 
+      await claimSyncQueueForUser(response.user.id);
+
       set({
         user: response.user,
         isAuthenticated: true,
         isLoading: false,
       });
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<ApiErrorData>;
-      const errorMessage = axiosErr.response?.data?.message || 'Login failed';
-      set({ error: errorMessage, isLoading: false });
+      set({ error: authErrorMessage(err, 'Login failed'), isLoading: false });
       throw err;
     }
   },
@@ -121,15 +164,15 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       setAccessToken(response.accessToken);
 
+      await claimSyncQueueForUser(response.user.id);
+
       set({
         user: response.user,
         isAuthenticated: true,
         isLoading: false,
       });
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<ApiErrorData>;
-      const errorMessage = axiosErr.response?.data?.message || 'Registration failed';
-      set({ error: errorMessage, isLoading: false });
+      set({ error: authErrorMessage(err, 'Registration failed'), isLoading: false });
       throw err;
     }
   },
@@ -160,6 +203,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (result) {
         setAccessToken(result.accessToken);
+        // Also reconcile here: a session restored by silent refresh is the
+        // other way back in after an involuntary clearAuth preserved a queue.
+        await claimSyncQueueForUser(result.user.id);
         set({
           user: result.user,
           isAuthenticated: true,
@@ -204,7 +250,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     // Fire-and-forget: this is called synchronously from the axios interceptor,
     // so it must not block. clearCachedUserData never rejects.
-    void clearCachedUserData();
+    //
+    // This path is involuntary — an expired or rejected refresh, not a user
+    // choice — so the offline sync queue is kept. Wiping it here would silently
+    // destroy edits the user made offline and has no other copy of.
+    void clearCachedUserData({ preserveSyncQueue: true });
   },
 }));
 

@@ -5,7 +5,7 @@ import { asyncHandler } from '../http/asyncHandler';
 import { requireUserId } from '../auth/controllerHelpers';
 import { z } from 'zod';
 import { emailService } from '../services/email.service';
-import { validateUrlNotInternal } from '../security/urlValidation';
+import { validateUrlNotInternal, isLocalNetworkHostname } from '../security/urlValidation';
 import { AppError } from '../errors/errors';
 import logger from '../config/logger';
 
@@ -41,16 +41,24 @@ const mapsSettingsSchema = z.object({
     .nullable(),
 });
 
-// Standard SMTP submission/relay ports. Allowing arbitrary ports turned the save
+// Known SMTP submission/relay ports. Allowing arbitrary ports turned the save
 // and test-connection endpoints into an outbound TCP connect primitive against
 // any internal host:port, with success/failure reflected back to the caller.
-const ALLOWED_SMTP_PORTS: number[] = [25, 465, 587, 2525];
-const SMTP_PORT_MESSAGE = 'SMTP port must be one of 25, 465, 587, 2525';
+//
+// The allowlist matters MORE now that LAN hosts are permitted below, because it
+// is then the only thing bounding what can be probed — so it stays an
+// allowlist, widened only to ports self-hosted relays actually listen on:
+// 1025 (Mailpit/MailHog) and the 2465/2587 alternates used when 465/587 are
+// taken or unavailable to an unprivileged process.
+const ALLOWED_SMTP_PORTS: number[] = [25, 465, 587, 1025, 2465, 2525, 2587];
+const SMTP_PORT_MESSAGE =
+  'SMTP port must be one of 25, 465, 587, 1025, 2465, 2525, 2587';
 
 /**
  * Apply the same internal-address checks the Immich and LLM handlers use to an
- * SMTP host. Unlike those, there is no local-network exemption: nothing about
- * the feature requires reaching a private address.
+ * SMTP host, with the same local-network exemption: a relay on the operator's
+ * own LAN is a normal self-hosted setup, and validating unconditionally
+ * rejected exactly those hosts so they could be neither saved nor tested.
  */
 async function validateSmtpHost(host: string): Promise<void> {
   // Hostname or IPv4 literal only — keeps credentials, ports and paths from
@@ -58,6 +66,7 @@ async function validateSmtpHost(host: string): Promise<void> {
   if (!/^[A-Za-z0-9._-]+$/.test(host)) {
     throw new AppError('Invalid SMTP host', 400);
   }
+  if (isLocalNetworkHostname(host)) return;
   await validateUrlNotInternal(`https://${host}`);
 }
 
@@ -122,11 +131,7 @@ export const userController = {
     // HTTP is only allowed for local/private network addresses (development use).
     if (data.immichApiUrl) {
       const url = new URL(data.immichApiUrl);
-      const isLocal = ['localhost', '127.0.0.1', '::1'].includes(url.hostname) ||
-                      url.hostname.startsWith('192.168.') ||
-                      url.hostname.startsWith('10.') ||
-                      /^172\.(1[6-9]|2\d|3[01])\./.test(url.hostname) ||
-                      url.hostname.endsWith('.local');
+      const isLocal = isLocalNetworkHostname(url.hostname);
       if (url.protocol !== 'https:' && !isLocal) {
         throw new AppError('Immich URL must use HTTPS for non-local connections', 400);
       }
@@ -229,11 +234,7 @@ export const userController = {
     if (data.llmBaseUrl) {
       const url = new URL(data.llmBaseUrl);
       const hostname = url.hostname.toLowerCase();
-      const isLocal = ['localhost', '127.0.0.1', '::1'].includes(hostname) ||
-                      hostname.startsWith('192.168.') ||
-                      hostname.startsWith('10.') ||
-                      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
-                      hostname.endsWith('.local');
+      const isLocal = isLocalNetworkHostname(hostname);
       if (!isLocal) {
         if (url.protocol !== 'https:') {
           throw new AppError('LLM URL must use HTTPS for non-local connections', 400);
