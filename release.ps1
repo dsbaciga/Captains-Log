@@ -7,8 +7,11 @@
     1. Updates version numbers in package.json files
     2. Verifies the backend and frontend builds (ABORTS on failure)
     3. Commits the version bump
-    4. Builds Docker images locally as a final verification (NOT pushed)
-    5. Creates and pushes the git tag
+    4. Creates and pushes the git tag
+
+    This script does NOT build Docker images. It used to, as "verification", but
+    it built different images than CI publishes (see the note above Step 5) and
+    a passing local build masked a broken published one.
 
     IMAGE PUBLISHING IS DONE BY CI, NOT BY THIS SCRIPT.
     Pushing the tag triggers .github/workflows/release.yml, which is the single
@@ -20,7 +23,8 @@
     Can also be "patch", "minor", or "major" to auto-increment
 
 .PARAMETER SkipBuild
-    Skip the local build verification step (still builds Docker images)
+    Skip the npm build verification step. Not recommended: it is the only local
+    gate left before the tag is pushed, and CI will fail later instead.
 
 .PARAMETER DryRun
     Show what would be done without actually doing it
@@ -308,22 +312,20 @@ if (-not $DryRun) {
     Write-Info "Would commit: $finalCommitMessage"
 }
 
-# Step 5: Build Docker images LOCALLY as a final verification.
-# These images are deliberately NOT pushed - .github/workflows/release.yml is the
-# single publisher of registry images (triggered by the tag push in Step 7).
-Write-Step "Building Docker images (local verification only - not pushed)"
-if (-not $DryRun) {
-    & .\build.truenas.ps1 -Version $Version -Registry $Registry
-    if ($LASTEXITCODE -ne 0) {
-        Write-Err "Docker build failed"
-        exit 1
-    }
-    Write-Success "Docker images built locally"
-} else {
-    Write-Info "Would run: .\build.truenas.ps1 -Version $Version -Registry $Registry"
-}
+# NOTE: there is deliberately no local Docker build here.
+#
+# This step used to run build.truenas.ps1 as "final verification". It was worse
+# than useless: it built DIFFERENT images from the ones CI publishes. The local
+# script builds the frontend from Dockerfile.prod.truenas (which hardcodes
+# VITE_API_URL=/api), while release.yml builds Dockerfile.prod and passes
+# VITE_API_URL as a build-arg. In 6.0.0 that arg defaulted to
+# http://localhost:5000/api, so the local build passed while the published image
+# was broken for every user - the verification's success actively hid the bug.
+#
+# CI builds the real images from a clean checkout of the tagged commit, so a
+# failing workflow run is the actual gate. Watch it after the tag push.
 
-# Step 6: Create and push git tag
+# Step 5: Create and push git tag
 Write-Step "Creating git tag"
 
 # Build tag message

@@ -64,10 +64,21 @@ verification happens *before* the commit):
 3. Builds and verifies backend and frontend — **a failing build aborts the release**
    (with `-NoConfirm` it exits immediately; interactively it requires an explicit override)
 4. Commits the version bump
-5. Builds Docker images via `build.truenas.ps1` — local verification only, **not pushed**
-6. Creates the annotated git tag (prompts before deleting/recreating an existing tag;
+5. Creates the annotated git tag (prompts before deleting/recreating an existing tag;
    `-NoConfirm` skips that prompt, so double-check the version in automated runs)
-7. Pushes the commit and the tag to GitHub
+6. Pushes the commit and the tag to GitHub
+
+**The release scripts no longer build Docker images.** They used to, as a final
+verification, but the local build used *different* Dockerfiles than CI publishes —
+`Dockerfile.prod.truenas` for the frontend (which hardcodes `VITE_API_URL=/api`) instead of
+CI's `Dockerfile.prod` (which takes it as a build-arg). In 6.0.0 that build-arg defaulted to
+`http://localhost:5000/api`, so the local build passed while the published image was broken
+for every user. A verification that can pass while the shipped artifact is broken is worse
+than none, because its success is taken as evidence. **CI building the tagged commit from a
+clean checkout is the only real gate — watch the run.**
+
+`build.truenas.ps1` still exists for building images locally by hand, but a successful run
+of it says nothing about what CI will publish.
 
 On Linux/Mac use `release.sh`, which follows the same order:
 
@@ -126,21 +137,14 @@ If you need to run steps manually, follow the sections below.
 
   - Verify build completes with no blocking errors
 
-### Docker Build (local verification only)
+### Docker Build — skip this
 
-- [ ] **Build Docker images**
+There is deliberately no local Docker build in the release flow. `build.truenas.ps1` and
+`build.sh` still exist for building images by hand, but they build the frontend from
+`Dockerfile.prod.truenas`, **not** the `Dockerfile.prod` that CI publishes, so a successful
+run proves nothing about the release. Do not push what they produce.
 
-  ```powershell
-  # Windows
-  .\build.truenas.ps1 -Version vX.X.X -Registry ghcr.io/dsbaciga
-
-  # Linux/Mac (DOCKER_REGISTRY is optional; when set, a "/" separator is added for you)
-  DOCKER_REGISTRY=ghcr.io/dsbaciga ./build.sh vX.X.X
-  ```
-
-  - Verify both backend and frontend images build successfully
-  - Look for confirmation messages
-  - **Do not push these images** — they exist only to prove the Dockerfiles still build
+Let CI build the images from the tagged commit, and read the workflow run as the result.
 
 ### Commit and Tag
 
@@ -297,7 +301,6 @@ Follow semantic versioning (MAJOR.MINOR.PATCH):
 cd backend && npm run build
 cd ../frontend && npm run build
 cd ..
-.\build.truenas.ps1 -Version vX.X.X -Registry ghcr.io/dsbaciga   # verification only
 git add -A
 git commit -m "Bump version to vX.X.X"
 git tag -a vX.X.X -m "vX.X.X - Description"

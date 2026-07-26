@@ -61,9 +61,16 @@ Write-Host "  - ${RegistryPrefix}travel-life-frontend:${Version}-truenas"
 Write-Host ""
 Write-Host "Frontend includes nginx proxy for /api and /uploads" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "To deploy on TrueNAS:" -ForegroundColor Yellow
-Write-Host "  1. Push images to registry: docker push ${RegistryPrefix}travel-life-backend:${Version}"
-Write-Host "  2. Push images to registry: docker push ${RegistryPrefix}travel-life-frontend:${Version}"
-Write-Host "  3. On TrueNAS: docker-compose -f docker-compose.truenas.yml pull"
-Write-Host "  4. On TrueNAS: docker-compose -f docker-compose.truenas.yml up -d"
+Write-Host "These images are LOCAL ONLY - do not push them." -ForegroundColor Yellow
+Write-Host "CI (.github/workflows/release.yml) is the single publisher of registry" -ForegroundColor Yellow
+Write-Host "images, triggered by pushing a v* tag. Pushing by hand creates a second," -ForegroundColor Yellow
+Write-Host "uncoordinated pipeline whose images can silently differ from CI's."  -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Note: this script builds the frontend from Dockerfile.prod.truenas," -ForegroundColor Yellow
+Write-Host "which is NOT what CI publishes (Dockerfile.prod). Do not treat a" -ForegroundColor Yellow
+Write-Host "successful build here as verification of a release." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "To release: .\release.ps1 -Version patch   (then watch the CI run)" -ForegroundColor Yellow
+Write-Host "To deploy on TrueNAS: set APP_VERSION to the released tag and restart" -ForegroundColor Yellow
+Write-Host "the app from the TrueNAS Apps UI." -ForegroundColor Yellow
 Write-Host ""

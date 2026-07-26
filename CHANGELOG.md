@@ -17,6 +17,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `release.ps1` no longer builds Docker images. The step was labelled "final
+  verification" but built *different* images than CI publishes — the frontend from
+  `Dockerfile.prod.truenas` (hardcoding `VITE_API_URL=/api`) rather than CI's
+  `Dockerfile.prod` (which takes it as a build-arg). That is precisely how the 6.0.2
+  localhost bug shipped: the local build passed, and its success was read as evidence the
+  release was sound. CI building the tagged commit from a clean checkout is the only real
+  gate. `build.truenas.ps1` remains for building images by hand, and now states plainly
+  that its output must not be pushed and does not verify a release.
+
+### Fixed
+
+- **Uploaded images rendered as broken images behind nginx.** Both nginx configs cache
+  static assets with a regex location (`~* \.(js|css|png|jpg|...)$`), and nginx picks a
+  matching regex location over a plain prefix location. `/uploads/` and `/api/` were plain
+  prefixes, so every proxied path ending in one of those extensions — including trip cover
+  images, which are always re-encoded to `.jpg` — skipped the proxy and was looked up in
+  the SPA's document root, where it does not exist. Both locations are now `^~`, which
+  stops regex evaluation. Only affects deployments served through the frontend image's
+  nginx; local dev talks to the backend directly.
+
 ## [6.0.2] - 2026-07-26
 
 ### Fixed
