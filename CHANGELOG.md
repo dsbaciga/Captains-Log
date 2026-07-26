@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The frontend container was reported `unhealthy` while serving traffic normally. Its
+  healthcheck probed `http://localhost:80`, and `wget` resolves `localhost` to `::1` first
+  while nginx's `listen 80` binds IPv4 only, so every probe got `Connection refused`. All
+  frontend healthchecks (both Dockerfiles and all three compose files) now probe
+  `http://127.0.0.1:80/health`.
 - The PWA could get permanently stuck on an old build. Both nginx configs matched `sw.js`
   with the `\.(js|css|…)$` rule and served the service worker as
   `Cache-Control: public, immutable` with a one-year expiry. `sw.js`, `registerSW.js`,
