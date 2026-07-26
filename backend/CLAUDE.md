@@ -9,6 +9,12 @@ JWT_REFRESH_SECRET=<strong-secret>
 NOMINATIM_URL=http://localhost:8080
 ```
 
+Since 6.0.0 both JWT secrets are validated at startup: **at least 32 characters** and not a
+well-known placeholder (`changeme`, `secret`, …). The backend exits with `JWT_SECRET is too
+weak` rather than starting. Generate them with `openssl rand -base64 48`. Enforced in
+development and production; skipped only under `NODE_ENV=test` so fixture secrets keep
+working. Changing either secret invalidates all sessions and refresh tokens.
+
 ### Recommended
 
 - `OPENROUTESERVICE_API_KEY` - **For accurate road distance calculations (car/bike/walking)**. Without this, distances fall back to straight-line (Haversine) calculations. See [ROUTING_SETUP.md](../docs/guides/ROUTING_SETUP.md)

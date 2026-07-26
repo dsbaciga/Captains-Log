@@ -51,6 +51,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   including lodging confirmations, expenses, journal entries and photos. Consent is now
   required via a travel partner request.
 
+### Environment — action required before deploying
+
+- `JWT_SECRET` and `JWT_REFRESH_SECRET` are now validated at startup and must be at least
+  32 characters and not a well-known placeholder. Tokens are HS256, so the signing key is
+  offline-crackable from a single issued token — presence alone was not enough. **A backend
+  with a shorter secret will refuse to start** (`JWT_SECRET is too weak`). Generate
+  replacements with `openssl rand -base64 48`. The check is skipped only under
+  `NODE_ENV=test`. Note that changing either secret invalidates all existing sessions and
+  refresh tokens, so every user must sign in again.
+
 ### Migrations — action required before deploying
 
 - Adds a baseline migration, `00000000000000_init`, that creates the entire schema from
