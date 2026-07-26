@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The PWA could get permanently stuck on an old build. Both nginx configs matched `sw.js`
+  with the `\.(js|css|…)$` rule and served the service worker as
+  `Cache-Control: public, immutable` with a one-year expiry. `sw.js`, `registerSW.js`,
+  `manifest.webmanifest` and `index.html` have stable (non-content-hashed) filenames, so a
+  long cache pins clients to whatever build they first loaded. They are now served
+  `no-cache` via exact-match locations; the content-hashed assets keep the immutable cache.
 - `release.ps1` no longer corrupts non-ASCII characters when promoting the changelog.
   `Get-Content -Raw` without `-Encoding UTF8` reads UTF-8 as the system ANSI codepage and
   `WriteAllText` re-encodes it, double-encoding every em-dash and accent — which CI then
