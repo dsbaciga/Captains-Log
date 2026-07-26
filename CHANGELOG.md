@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.2] - 2026-07-26
+
+### Fixed
+
+- **The published frontend image called `http://localhost:5000/api` (regression in 6.0.0).**
+  Every request from the browser failed with `ERR_CONNECTION_REFUSED`, so login, silent
+  refresh and the SSO button (which hides itself when `/auth/oidc/config` fails) were all
+  broken. `release.yml` passed `VITE_API_URL=${{ vars.VITE_API_URL || 'http://localhost:5000/api' }}`,
+  and with the repository variable unset that localhost default was baked into the bundle.
+  6.0.0 is the release where CI became the image publisher; before that `build.truenas.ps1`
+  used `Dockerfile.prod.truenas`, which hardcodes `/api`, which is why 5.6.1 was unaffected.
+  The default is now `/api` and `/uploads` — the frontend image's nginx proxies both, so
+  relative URLs are correct for every deployment, and these values cannot be changed after
+  build time.
+
 ## [6.0.1] - 2026-07-26
 
 ### Fixed

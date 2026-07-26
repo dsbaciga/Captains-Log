@@ -85,9 +85,15 @@ jobs:
           labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # These are baked into the bundle at build time and cannot be changed at
+          # runtime, so the default must be correct for a real deployment. It must
+          # NOT be localhost: the frontend image serves nginx, which proxies /api
+          # and /uploads to the backend, so relative URLs are right for every
+          # deployment. A localhost default produces a bundle whose every request
+          # dies with ERR_CONNECTION_REFUSED in the user's browser.
           build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL || 'http://localhost:5000/api' }}
-            VITE_UPLOAD_URL=${{ vars.VITE_UPLOAD_URL || 'http://localhost:5000/uploads' }}
+            VITE_API_URL=${{ vars.VITE_API_URL || '/api' }}
+            VITE_UPLOAD_URL=${{ vars.VITE_UPLOAD_URL || '/uploads' }}
 
   create-release:
     needs: build-and-push
