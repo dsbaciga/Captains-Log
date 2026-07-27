@@ -17,6 +17,7 @@ import type { Tag } from './tag';
 import type { Companion } from './companion';
 import type { Checklist, ChecklistItem } from './checklist';
 import type { WeatherData } from './weather';
+import type { EmergencyCardData } from './emergencyInfo';
 
 /**
  * Entity types that can be indexed for offline search.
@@ -495,6 +496,22 @@ export interface FlightTrackingStoreValue {
   id: string;
   transportationId: string;
   data: FlightTracking;
+  lastSync: number;
+}
+
+/**
+ * Emergency card store value.
+ *
+ * Keyed by trip ID, one record per trip. This store is the whole point of the
+ * Emergency Card feature: the card matters exactly when the phone has no signal,
+ * so every successful fetch is written here and every failed fetch falls back to
+ * it. `lastSync` is surfaced on the card so a stale policy number is visibly stale.
+ */
+export interface EmergencyCardStoreValue {
+  /** Trip ID as a string, matching the other trip-scoped stores. */
+  id: string;
+  tripId: string;
+  data: EmergencyCardData;
   lastSync: number;
 }
 

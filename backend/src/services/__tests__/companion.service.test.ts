@@ -238,6 +238,10 @@ describe('CompanionService', () => {
           notes: 'Travel buddy',
           relationship: 'Friend',
           dietaryPreferences: [],
+          // Emergency-card medical fields: absent input leaves the text column
+          // NULL, but `allergies` is a non-nullable Json array so it defaults to [].
+          medicalNotes: undefined,
+          allergies: [],
           user: {
             connect: { id: 1 },
           },

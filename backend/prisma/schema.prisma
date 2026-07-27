@@ -116,6 +116,13 @@ model Trip {
   seriesOrder             Int?      @map("series_order")
   budget                  Decimal?  @db.Decimal(12, 2)
   budgetCurrency          String?   @map("budget_currency") @db.VarChar(3)
+  // ISO 3166-1 alpha-2 for the trip's destination country. Null means "derive it
+  // from the trip's locations": there is no other structured country anywhere in
+  // the schema, so the client infers one from the free text in Location.address.
+  // This column is the single override for when that inference is wrong, absent,
+  // or ambiguous — every feature that needs a country (emergency card, local
+  // norms) reads it, so a correction made in one place holds everywhere.
+  countryCode             String?   @map("country_code") @db.VarChar(2)
   createdAt               DateTime  @default(now()) @map("created_at")
   updatedAt               DateTime  @updatedAt @map("updated_at")
 
@@ -142,6 +149,7 @@ model Trip {
   pendingEntities           PendingEntity[]
   expenses                  TripExpense[]
   savedLinks                SavedLink[]
+  emergencyInfo             TripEmergencyInfo?
 
   @@index([userId, status])
   @@index([startDate, endDate])
@@ -204,6 +212,14 @@ model TravelCompanion {
   isMyself           Boolean  @default(false) @map("is_myself")
   avatarUrl          String?  @map("avatar_url") @db.VarChar(500)
   dietaryPreferences Json     @default("[]") @map("dietary_preferences")
+  // Emergency-card medical fields. `allergies` mirrors `dietaryPreferences`
+  // deliberately — both are short free-text tags a paramedic or a waiter reads at
+  // a glance, and keeping the same Json-array shape means one form control, one
+  // Zod helper and one renderer serve both. They stay separate columns because an
+  // allergy is a medical fact and a dietary preference is a choice; merging them
+  // would make it impossible to print only the medical half on the card.
+  medicalNotes       String?  @map("medical_notes") @db.Text
+  allergies          Json     @default("[]")
   createdAt          DateTime @default(now()) @map("created_at")
 
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -861,6 +877,41 @@ model VisaRequirement {
   @@index([passportCountry])
   @@index([destinationCountry])
   @@map("visa_requirements")
+}
+
+// =============================================================================
+// EMERGENCY CARD
+// =============================================================================
+// The user-entered half of the printable emergency card. The other half — local
+// emergency numbers, plug types, tipping — is a static bundled dataset on the
+// client (frontend/src/constants/countryFacts.ts) so the card renders with no
+// network at all.
+//
+// Embassy details are entered by the traveller on purpose. A global embassy
+// directory is ~200 sending countries x ~200 host countries of addresses that go
+// stale constantly; bundling one offline is not feasible, and a wrong embassy
+// address on an emergency card is worse than a blank field.
+
+model TripEmergencyInfo {
+  id     Int @id @default(autoincrement())
+  tripId Int @unique @map("trip_id")
+
+  insuranceProvider        String? @map("insurance_provider") @db.VarChar(255)
+  insurancePolicyNumber    String? @map("insurance_policy_number") @db.VarChar(100)
+  insuranceAssistancePhone String? @map("insurance_assistance_phone") @db.VarChar(50)
+
+  embassyName    String? @map("embassy_name") @db.VarChar(255)
+  embassyPhone   String? @map("embassy_phone") @db.VarChar(50)
+  embassyAddress String? @map("embassy_address") @db.Text
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("trip_emergency_info")
 }
 
 // =============================================================================

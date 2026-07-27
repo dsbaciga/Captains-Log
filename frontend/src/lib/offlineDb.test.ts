@@ -142,15 +142,15 @@ describe('Offline Database (IndexedDB)', () => {
       }
     });
 
-    it('should create exactly 28 stores', async () => {
+    it('should create exactly 29 stores', async () => {
       const db = await getDb();
-      expect(db.objectStoreNames.length).toBe(28);
+      expect(db.objectStoreNames.length).toBe(29);
     });
 
     it('should pass store verification', async () => {
       const result = await verifyStores();
       expect(result.valid).toBe(true);
-      expect(result.storeCount).toBe(28);
+      expect(result.storeCount).toBe(29);
       expect(result.missingStores).toHaveLength(0);
     });
 

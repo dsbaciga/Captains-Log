@@ -738,6 +738,18 @@ textarea:focus-visible {
   display: none;
 }
 
+/* Hide the emergency card's paper version on screen (feature #111) */
+.print-emg-wrapper {
+  display: none;
+  visibility: hidden;
+  position: absolute;
+  left: -9999px;
+}
+
+.print-emg {
+  display: none;
+}
+
 /* Print-specific styles */
 @media print {
   /* Force white background on everything - override dark mode */
@@ -752,8 +764,10 @@ textarea:focus-visible {
     print-color-adjust: exact !important;
   }
 
-  /* Hide everything except the print itinerary */
-  body > *:not(.print-itinerary-wrapper) {
+  /* Hide everything except a print wrapper. Every printable surface portals its
+     paper version to document.body under one of these classes; anything else at
+     body level (the app root, toast containers, modal roots) is hidden. */
+  body > *:not(.print-itinerary-wrapper):not(.print-emg-wrapper) {
     display: none !important;
     visibility: hidden !important;
   }
@@ -1074,6 +1088,170 @@ textarea:focus-visible {
   }
 
   .print-footer p {
+    margin: 0;
+  }
+
+  /* ========================================
+     EMERGENCY CARD (feature #111)
+     ========================================
+     Deliberately black-on-white with no fills or icons: this page exists to be
+     printed on whatever printer is to hand, folded into a wallet, and read by a
+     stranger. Everything is sized in points and kept off page breaks so the card
+     lands on one sheet. */
+
+  .print-emg-wrapper {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #fff !important;
+  }
+
+  .print-emg {
+    display: block !important;
+    visibility: visible !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 11pt;
+    line-height: 1.35;
+    color: #000 !important;
+    background: #fff !important;
+    padding: 0.4in;
+    max-width: none;
+  }
+
+  .print-emg-header {
+    border-bottom: 2pt solid #000;
+    padding-bottom: 8pt;
+    margin-bottom: 12pt;
+  }
+
+  .print-emg-title {
+    font-size: 22pt;
+    font-weight: bold;
+    margin: 0;
+    letter-spacing: 0.5pt;
+  }
+
+  .print-emg-trip {
+    font-size: 13pt;
+    margin: 2pt 0 0;
+  }
+
+  .print-emg-country {
+    font-size: 11pt;
+    margin: 1pt 0 0;
+  }
+
+  .print-emg-section {
+    margin-bottom: 12pt;
+    page-break-inside: avoid;
+  }
+
+  .print-emg-section-title {
+    font-size: 10pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.6pt;
+    margin: 0 0 5pt;
+    padding-bottom: 2pt;
+    border-bottom: 1pt solid #000;
+  }
+
+  /* The numbers are the reason the card exists, so they get the most ink. */
+  .print-emg-numbers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6pt 24pt;
+  }
+
+  .print-emg-number {
+    display: flex;
+    align-items: baseline;
+    gap: 6pt;
+    min-width: 45%;
+  }
+
+  .print-emg-number-label {
+    font-size: 10pt;
+  }
+
+  .print-emg-number-value {
+    font-size: 20pt;
+    font-weight: bold;
+  }
+
+  .print-emg-warning {
+    margin: 0;
+    padding: 4pt 6pt;
+    border: 1pt solid #000;
+    font-size: 10pt;
+  }
+
+  .print-emg-fields {
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-emg-field {
+    display: flex;
+    gap: 6pt;
+    margin-bottom: 2pt;
+  }
+
+  .print-emg-field dt {
+    font-weight: bold;
+    min-width: 90pt;
+    margin: 0;
+  }
+
+  .print-emg-field dd {
+    margin: 0;
+  }
+
+  .print-emg-traveller {
+    margin-bottom: 7pt;
+    page-break-inside: avoid;
+  }
+
+  .print-emg-traveller-name {
+    font-weight: bold;
+    margin: 0;
+  }
+
+  .print-emg-traveller-relationship {
+    font-weight: normal;
+  }
+
+  .print-emg-traveller-line {
+    margin: 0;
+    font-size: 10pt;
+  }
+
+  /* Underlined rather than coloured: this has to read on a mono printer. */
+  .print-emg-allergies {
+    font-weight: bold;
+    text-decoration: underline;
+  }
+
+  .print-emg-notes {
+    margin: 0;
+    white-space: pre-wrap;
+    font-size: 10pt;
+  }
+
+  .print-emg-footer {
+    margin-top: 14pt;
+    padding-top: 6pt;
+    border-top: 1pt solid #000;
+    font-size: 8pt;
+  }
+
+  .print-emg-footer p {
     margin: 0;
   }
 

@@ -121,6 +121,21 @@ Step 2 marks the four 2026-07-28 migrations as applied too; that is correct, bec
 their effects are already present in the baseline (they are written to be no-ops
 against a database that already has them anyway).
 
+## Migrations added 2026-07-27 (safe on a populated database)
+
+| Migration | What it does |
+| --- | --- |
+| `20260729000000_add_emergency_card` | Creates `trip_emergency_info` (one row per trip, `UNIQUE (trip_id)`, `ON DELETE CASCADE`), adds `medical_notes` (nullable `TEXT`) and `allergies` (`JSONB NOT NULL DEFAULT '[]'`) to `travel_companions`, and adds `country_code` (nullable `VARCHAR(2)`) to `trips`. |
+
+Purely additive — one new table and three new columns. No existing column, constraint or
+row is modified, and both added `travel_companions` columns are nullable or defaulted, so
+the `ALTER TABLE`s take only a brief metadata lock.
+
+Local emergency numbers are **not** in the database: they ship as a static client-side
+dataset so the card works in airplane mode. `trips.country_code` is nullable and means
+"infer the country from the trip's locations" when unset; it is read by both the emergency
+card and the local-norms card.
+
 ## Migrations added 2026-07-25 (safe on a populated database)
 
 | Migration | What it does |

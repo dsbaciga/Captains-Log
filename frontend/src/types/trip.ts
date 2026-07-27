@@ -47,6 +47,12 @@ export type Trip = {
   series: { id: number; name: string } | null;
   budget?: number | null;
   budgetCurrency?: string | null;
+  /**
+   * ISO 3166-1 alpha-2 for the destination, or null to infer it from the trip's
+   * location addresses. The single country override shared by the emergency card
+   * and the local-norms card.
+   */
+  countryCode?: string | null;
   createdAt: string;
   updatedAt: string;
   coverPhoto?: {
@@ -95,6 +101,7 @@ export type CreateTripInput = {
 export type UpdateTripInput = Partial<CreateTripInput> & {
   budget?: number | null;
   budgetCurrency?: string | null;
+  countryCode?: string | null;
   archived?: boolean;
 };
 

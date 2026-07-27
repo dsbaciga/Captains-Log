@@ -450,6 +450,31 @@ your-domain.com {
 }
 ```
 
+### CDN Configuration (Cloudflare and similar)
+
+A CDN in front of the app must not cache the four files with stable, non-content-hashed
+names: `/sw.js`, `/registerSW.js`, `/manifest.webmanifest` and `/index.html`. The frontend
+serves all four as `no-cache` (see the exact-match locations in `frontend/nginx.conf`), and
+a CDN that respects origin cache headers will honour that. Everything under `/assets/` is
+content-hashed and safe to cache immutably.
+
+Caching `sw.js` breaks the PWA in a way that is not self-correcting. The service worker's
+precache manifest names the exact asset filenames of the build it shipped with; the next
+deploy replaces those files with new hashes, so a stale `sw.js` precaches URLs that now
+404. Installation fails (`bad-precaching-response` in the console, followed by "Service
+worker became redundant"), and it fails again on every visit for as long as the edge keeps
+serving the old copy. The app itself still loads — only offline support is dead.
+
+**Upgrading from 6.0.0 or earlier?** Those versions served `sw.js` as
+`Cache-Control: public, max-age=31536000, immutable`, so any CDN that cached it holds it
+for a year and the fix in 6.0.1 cannot dislodge it. Purge that one URL once, then confirm
+the origin header is correct — a query string bypasses the edge copy:
+
+```bash
+curl -sI "https://your-domain.com/sw.js?cachebust=$(date +%s)" | grep -i cache-control
+# expected: Cache-Control: no-cache, no-store, must-revalidate
+```
+
 ## SSL/TLS Configuration
 
 ### Using Let's Encrypt (Certbot)

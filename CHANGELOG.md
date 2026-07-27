@@ -17,6 +17,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Emergency card.** A per-trip record of the details you need when something goes wrong
+  and the phone may be dead or stolen: insurance provider, policy number, assistance line
+  and embassy contact (`TripEmergencyInfo`), alongside new `medicalNotes` and `allergies`
+  on `TravelCompanion`. Local emergency numbers come from a bundled 123-country snapshot
+  (`constants/countryFacts.ts`) and the destination resolves **client-side**, so the card's
+  core content never sits behind the network; it is cached in IndexedDB via a new
+  `emergencyCards` store and prints through the existing `print-*-wrapper` portal, with
+  allergies set in underlined bold rather than red so they survive a monochrome printer.
+  The country is `Trip.countryCode` — the same column the local norms card reads — so a
+  correction on either card holds for both. Embassy details are user-entered rather than
+  bundled, because "nearest embassy" is a per-(passport, destination) pair and far too
+  large to ship offline. Companion medical fields are owner-only, nulled for collaborators
+  behind an explicit flag so the card never implies nothing was recorded, and a missing
+  emergency number is dropped rather than rendered as "none".
+- **Local norms card.** Plug type and voltage, tipping convention, and emergency numbers
+  for the trip's destination, read from the same bundled country snapshot — frontend-only
+  by design, so it needs no migration and works with the radio off. No country column
+  exists on `Location`, so `useTripCountries` tallies candidates from every location
+  address; a trip spanning several countries renders a chip row with per-country location
+  counts instead of silently picking one, and a trip that resolves none offers the full
+  123-country picker rather than an empty card. Viewing another country of a multi-country
+  trip stays local and instant, while *correcting* the country writes the shared
+  `Trip.countryCode`. Japan's 50/60Hz and Brazil's 127/220V mixed grids carry explicit
+  per-country notes.
+
+### Fixed
+
+- **Offline features threw `NotFoundError: One of the specified object stores was not
+  found` for anyone whose browser held an older copy of the database.** IndexedDB runs
+  `upgrade` only when the version number changes, so a browser that created
+  `travel-life-offline` at v1 from an earlier store list keeps that list forever — every
+  transaction naming a store added later (`syncQueue`, `syncConflicts`, …) throws, which
+  broke sign-in sync reconciliation, the pending-change count and the conflict list.
+  `getDb()` now compares the open database against `STORE_NAMES` and, when anything is
+  missing, reopens one version higher to re-run the (idempotent) upgrade, creating just the
+  missing stores and preserving existing data. Bumping `DB_VERSION` was never sufficient
+  here and is no longer how new stores reach existing clients.
+
+### Documentation
+
+- `DEPLOYMENT.md` documents CDN configuration: `sw.js`, `registerSW.js`,
+  `manifest.webmanifest` and `index.html` must not be edge-cached, why a cached `sw.js`
+  breaks the PWA permanently (its precache manifest names asset filenames that the next
+  deploy deletes), and the one-time purge required when upgrading from 6.0.0 or earlier,
+  which served `sw.js` with a one-year immutable cache.
+- New [Code Conventions](docs/architecture/CODE_CONVENTIONS.md) guide, listed in the
+  documentation index and flagged in `CLAUDE.md` as required reading before writing code.
+
+### Database
+
+- Migration `20260729000000_add_emergency_card` adds `TripEmergencyInfo` and the
+  `medicalNotes` / `allergies` columns on `TravelCompanion`. Run
+  `npx prisma migrate deploy` against the target database as part of the deploy.
+
 ## [6.0.3] - 2026-07-27
 
 ### Changed

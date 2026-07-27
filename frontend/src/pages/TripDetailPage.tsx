@@ -45,6 +45,8 @@ const LocationManager = lazy(() => import("../components/LocationManager"));
 const CollaboratorsManager = lazy(() => import("../components/CollaboratorsManager"));
 const BudgetManager = lazy(() => import("../components/BudgetManager"));
 const SavedLinksManager = lazy(() => import("../components/SavedLinksManager"));
+const EmergencyCard = lazy(() => import("../components/EmergencyCard"));
+const LocalNormsCard = lazy(() => import("../components/LocalNormsCard"));
 import Modal from "../components/Modal";
 import collaborationService from "../services/collaboration.service";
 import type { UserPermission } from "../types/collaboration";
@@ -62,6 +64,7 @@ import { useScrollToHighlight } from "../hooks/useScrollToHighlight";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { useScrollStore } from "../store/scrollStore";
 import TripHeaderActions from "../components/TripHeaderActions";
+import { emergencyCardQueryKey } from "../hooks/useEmergencyCard";
 import TabGroup from "../components/TabGroup";
 import type { TabGroupItem } from "../components/TabGroup";
 import TripSidebar from "../components/TripSidebar";
@@ -95,9 +98,11 @@ type TabId =
   | "budget"
   | "links"
   | "unscheduled"
-  | "companions";
+  | "companions"
+  | "emergency"
+  | "local-norms";
 
-const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "budget", "links", "unscheduled", "companions"]);
+const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "budget", "links", "unscheduled", "companions", "emergency", "local-norms"]);
 
 function isTabId(value: string | null | undefined): value is TabId {
   return value != null && VALID_TAB_IDS.has(value);
@@ -466,6 +471,34 @@ export default function TripDetailPage() {
                   strokeLinejoin="round"
                   strokeWidth={2}
                   d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "emergency",
+            label: "Emergency",
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+                />
+              </svg>
+            ),
+          },
+          {
+            id: "local-norms",
+            label: "Local Norms",
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
                 />
               </svg>
             ),
@@ -2006,6 +2039,28 @@ export default function TripDetailPage() {
             </Suspense>
             </ErrorBoundary>
             )}
+          </div>
+        )}
+
+        {/* Emergency Card Tab */}
+        {activeTab === "emergency" && (
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
+            <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner.FullPage message="Loading emergency card..." />}>
+            <EmergencyCard tripId={trip.id} onUpdate={() => queryClient.invalidateQueries({ queryKey: emergencyCardQueryKey(trip.id) })} />
+            </Suspense>
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {/* Local Norms Tab */}
+        {activeTab === "local-norms" && (
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
+            <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner.FullPage message="Loading local norms..." />}>
+            <LocalNormsCard tripId={trip.id} locations={locations} countryCode={trip.countryCode} />
+            </Suspense>
+            </ErrorBoundary>
           </div>
         )}
         </div>

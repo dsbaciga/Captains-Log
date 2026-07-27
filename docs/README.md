@@ -9,6 +9,7 @@ Welcome to the Travel Life documentation. This guide will help you navigate the 
 | **Get started quickly** | [Quick Start Production](../QUICK_START_PRODUCTION.md) |
 | **Deploy to production** | [Deployment Guide](../DEPLOYMENT.md) |
 | **Understand the codebase** | [Backend Architecture](architecture/BACKEND_ARCHITECTURE.md) |
+| **Write code that fits** | [Code Conventions](architecture/CODE_CONVENTIONS.md) |
 | **Use the API** | [API Reference](api/README.md) |
 | **Work on the UI** | [Style Guide](architecture/STYLE_GUIDE.md) |
 | **Release a new version** | [Release Checklist](../RELEASE_CHECKLIST.md) |
@@ -24,6 +25,7 @@ docs/
 ├── architecture/             # Technical architecture documentation
 │   ├── BACKEND_ARCHITECTURE.md
 │   ├── FRONTEND_ARCHITECTURE.md
+│   ├── CODE_CONVENTIONS.md   # Patterns to follow when writing code
 │   ├── STYLE_GUIDE.md
 │   ├── BACKEND_OPTIMIZATION_PLAN.md
 │   └── DATABASE_SCHEMA.md    # Database design and relationships
@@ -61,8 +63,9 @@ Start with architecture documentation to understand the codebase:
 
 1. **[Backend Architecture](architecture/BACKEND_ARCHITECTURE.md)** - Server-side patterns, services, database access
 2. **[Frontend Architecture](architecture/FRONTEND_ARCHITECTURE.md)** - React components, state management, hooks
-3. **[Style Guide](architecture/STYLE_GUIDE.md)** - UI component patterns, colors, typography
-4. **[API Reference](api/README.md)** - REST API endpoints, request/response formats
+3. **[Code Conventions](architecture/CODE_CONVENTIONS.md)** - How to write code that matches the codebase
+4. **[Style Guide](architecture/STYLE_GUIDE.md)** - UI component patterns, colors, typography
+5. **[API Reference](api/README.md)** - REST API endpoints, request/response formats
 
 Then review development processes:
 

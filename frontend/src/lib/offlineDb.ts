@@ -6,11 +6,11 @@
  *
  * Database: travel-life-offline
  * Version: 1
- * Stores: 28 object stores covering all entity types
+ * Stores: 29 object stores covering all entity types
  */
 
 import { openDB } from 'idb';
-import type { DBSchema, IDBPDatabase } from 'idb';
+import type { DBSchema, IDBPDatabase, OpenDBCallbacks } from 'idb';
 import type {
   TripStoreValue,
   LocationStoreValue,
@@ -31,6 +31,7 @@ import type {
   WeatherDataStoreValue,
   FlightTrackingStoreValue,
   DismissedValidationIssueStoreValue,
+  EmergencyCardStoreValue,
   OfflineSession,
   SyncOperation,
   SyncConflict,
@@ -261,6 +262,18 @@ export interface TravelLifeDB extends DBSchema {
   };
 
   // ============================================
+  // EMERGENCY CARD (1 store)
+  // ============================================
+
+  emergencyCards: {
+    key: string;
+    value: EmergencyCardStoreValue;
+    indexes: {
+      'by-trip': string;
+    };
+  };
+
+  // ============================================
   // OFFLINE SESSION & SYNC (4 stores)
   // ============================================
 
@@ -341,7 +354,15 @@ export interface TravelLifeDB extends DBSchema {
 /** Database name */
 export const DB_NAME = 'travel-life-offline';
 
-/** Current database version */
+/**
+ * Minimum database version.
+ *
+ * This is a floor, not the version a given browser is on. `upgrade` only runs when
+ * the version number changes, so bumping this is *not* how a newly added store
+ * reaches a browser that already holds a database at this version — `getDb()`
+ * compares the open database against `STORE_NAMES` and reopens one version higher
+ * when anything is missing. See the repair block there.
+ */
 export const DB_VERSION = 1;
 
 /** All valid store names in the database */
@@ -367,6 +388,7 @@ export type StoreNames =
   | 'weatherData'
   | 'flightTracking'
   | 'dismissedValidationIssues'
+  | 'emergencyCards'
   | 'offlineSession'
   | 'syncQueue'
   | 'syncConflicts'
@@ -406,6 +428,8 @@ export const STORE_NAMES: StoreNames[] = [
   'flightTracking',
   // Validation
   'dismissedValidationIssues',
+  // Emergency card
+  'emergencyCards',
   // Offline session & sync
   'offlineSession',
   'syncQueue',
@@ -459,7 +483,11 @@ export async function getDb(): Promise<IDBPDatabase<TravelLifeDB>> {
   isOpening = true;
 
   try {
-    dbInstance = await openDB<TravelLifeDB>(DB_NAME, DB_VERSION, {
+    // Shared by the initial open and the repair reopen below. `upgrade` is
+    // idempotent — every store is guarded by an `objectStoreNames` check — so
+    // re-running it at a higher version creates only the missing stores and
+    // leaves existing stores and their data untouched.
+    const callbacks: OpenDBCallbacks<TravelLifeDB> = {
       upgrade(db, oldVersion, newVersion) {
         console.log(`[OfflineDB] Upgrading from v${oldVersion} to v${newVersion}`);
 
@@ -631,6 +659,18 @@ export async function getDb(): Promise<IDBPDatabase<TravelLifeDB>> {
         }
 
         // ========================================
+        // EMERGENCY CARD (1 store)
+        // ========================================
+
+        // Emergency Cards store — one record per trip, keyed by trip ID.
+        // Added after the initial store list, so existing browsers reach it via
+        // the missing-store repair reopen in getDb() rather than a version bump.
+        if (!db.objectStoreNames.contains('emergencyCards')) {
+          const emergencyStore = db.createObjectStore('emergencyCards', { keyPath: 'id' });
+          emergencyStore.createIndex('by-trip', 'tripId');
+        }
+
+        // ========================================
         // OFFLINE SESSION & SYNC (4 stores)
         // ========================================
 
@@ -732,16 +772,37 @@ export async function getDb(): Promise<IDBPDatabase<TravelLifeDB>> {
         // Emit custom event for UI to show error
         window.dispatchEvent(new CustomEvent('offlinedb-terminated'));
       },
-    });
+    };
+
+    let db = await openDB<TravelLifeDB>(DB_NAME, DB_VERSION, callbacks);
+
+    // A browser that created this database from an older store list keeps that
+    // list forever: `upgrade` runs only when the version number changes, so a
+    // store added later is absent and every transaction naming it throws
+    // NotFoundError ("One of the specified object stores was not found") for the
+    // life of that profile. Reopening one version higher re-runs `upgrade`, which
+    // creates exactly the missing stores and preserves the existing data.
+    const missingStores = STORE_NAMES.filter((name) => !db.objectStoreNames.contains(name));
+    if (missingStores.length > 0) {
+      const repairVersion = db.version + 1;
+      console.warn(
+        `[OfflineDB] Database is missing ${missingStores.length} store(s): ${missingStores.join(', ')}. ` +
+          `Reopening at v${repairVersion} to create them.`
+      );
+      db.close();
+      db = await openDB<TravelLifeDB>(DB_NAME, repairVersion, callbacks);
+    }
+
+    dbInstance = db;
 
     // Resolve any waiting callbacks
     for (const callback of openCallbacks) {
-      callback.resolve(dbInstance);
+      callback.resolve(db);
     }
     openCallbacks.length = 0;
 
-    console.log(`[OfflineDB] Database opened successfully. Version: ${DB_VERSION}`);
-    return dbInstance;
+    console.log(`[OfflineDB] Database opened successfully. Version: ${db.version}`);
+    return db;
   } catch (error) {
     // Reject any waiting callbacks
     for (const callback of openCallbacks) {

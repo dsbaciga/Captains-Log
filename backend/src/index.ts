@@ -47,6 +47,7 @@ import { generalRateLimiter } from './middleware/rateLimit';
 import expenseRoutes, { budgetSummaryRouter } from './routes/expense.routes';
 import savedLinkRoutes, { tripSavedLinksRouter } from './routes/savedLink.routes';
 import pushRoutes from './routes/push.routes';
+import emergencyInfoRoutes from './routes/emergencyInfo.routes';
 import { pdfImportService } from './services/pdfImport.service';
 import emailIngestService from './services/emailIngest.service';
 
@@ -453,6 +454,7 @@ app.use('/api/backup', backupRoutes);
 app.use('/api/trips/:tripId/links', entityLinkRoutes);
 app.use('/api/trips/:tripId/expenses', expenseRoutes);
 app.use('/api/trips/:tripId', budgetSummaryRouter);
+app.use('/api/trips/:tripId/emergency-info', emergencyInfoRoutes);
 app.use('/api/saved-links', savedLinkRoutes);
 app.use('/api/trips/:tripId/saved-links', tripSavedLinksRouter);
 app.use('/api', collaborationRoutes);

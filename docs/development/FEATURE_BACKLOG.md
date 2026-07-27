@@ -1769,6 +1769,21 @@ wrong.
 - Companion medical notes and allergies (dietary tags already model adjacent data)
 - Printable and offline-cached; useful precisely when the phone is dead or stolen
 
+**Status**: ✅ Completed 2026-07-26 — `TripEmergencyInfo` (per-trip insurance provider, policy
+number, assistance line, embassy contact) plus `TravelCompanion.medicalNotes`/`.allergies`
+alongside the existing `dietaryPreferences`. The destination country is **`Trip.countryCode`**,
+not a field on the emergency record: the country is a fact about the trip, and #113 reads the
+same column, so a correction made on either card holds for both. **Embassy details are user-entered, not bundled**:
+"nearest embassy" is a per-(passport, destination) pair and far too large to ship offline.
+Emergency numbers come from the shared `constants/countryFacts.ts` snapshot, and country
+resolution runs **client-side** (`utils/emergencyCountry.ts`) precisely so the offline card's
+core logic never sits behind the network. Cached in IndexedDB via a new `emergencyCards` store,
+and printing uses the existing `print-*-wrapper` portal convention from `Timeline.tsx` —
+allergies are underlined bold rather than red so they survive a monochrome printer. Companion
+medical fields are **owner-only**, nulled for collaborators with an explicit "owner only" flag
+so the card never implies nothing was recorded. Missing numbers are dropped, never rendered as
+"none". Migration `20260729000000_add_emergency_card` is **created but not applied**. 35 tests.
+
 ### 112. Transit & Rideshare Deep Links
 
 **Category**: Location & Maps
@@ -1807,6 +1822,20 @@ produce no button rather than a garbage maps search. Preferred app per user in S
 - Rough emergency numbers (overlaps #111 — share the dataset)
 - Static bundled dataset; no API dependency, works offline
 - Pairs with the existing `VisaRequirement` and `TripLanguage` features
+
+**Status**: ✅ Completed 2026-07-26 — frontend-only by design, reading the shared
+`constants/countryFacts.ts` snapshot (123 countries), so it works with the radio off and
+costs no migration. **No country column exists anywhere in the schema** — `Trip` has none and
+`Location` carries only free-text `address` — so `useTripCountries` resolves candidates from
+every location address and tallies them. A trip spanning several countries is first-class: it
+renders a chip row with per-country location counts rather than silently picking one. Zero
+resolved countries offers a 123-country picker instead of an empty card. **Correcting** the
+country writes the shared `Trip.countryCode` (so the emergency card agrees), while **viewing**
+another of a multi-country trip's countries is deliberately local and instant — persisting a
+view would move the emergency card's numbers to the wrong country and would need a network
+round-trip for what must stay an offline interaction. Both dataset caveats are honoured in the UI:
+a missing emergency number renders as *absent*, never as "no such service", and Japan's 50/60Hz
+and Brazil's 127/220V mixed grids get explicit per-country notes. 11 tests.
 
 ### 114. Conversational Trip Planner
 

@@ -4,6 +4,25 @@ import {
   optionalTimezone,
 } from '../validation/zodHelpers';
 
+/**
+ * ISO 3166-1 alpha-2, upper-cased on the way in so lookups never have to care
+ * about the casing a client sent.
+ *
+ * The trip's country is stored rather than derived because the only other
+ * country signal in the schema is the free text in `Location.address`. The
+ * client infers a country from that, but the inference can be wrong, ambiguous
+ * (a trip crossing three borders) or impossible (no locations added yet), and
+ * every feature that needs a country reads this one column so a correction made
+ * anywhere holds everywhere.
+ */
+const isoCountryCode = () =>
+  z
+    .string()
+    .trim()
+    .length(2)
+    .regex(/^[A-Za-z]{2}$/, 'Must be a two-letter ISO country code')
+    .transform((value) => value.toUpperCase());
+
 // Trip status enum
 export const TripStatus = {
   DREAM: 'Dream',
@@ -79,6 +98,7 @@ export const createTripSchema = z.object({
   seriesId: z.number().nullable().optional(),
   tripType: z.string().nullable().optional(),
   tripTypeEmoji: z.string().nullable().optional(),
+  countryCode: isoCountryCode().nullable().optional(),
 });
 
 export const updateTripSchema = z.object({
@@ -108,6 +128,7 @@ export const updateTripSchema = z.object({
   tripTypeEmoji: z.string().nullable().optional(),
   budget: z.number().min(0).nullable().optional(),
   budgetCurrency: z.string().length(3).nullable().optional(),
+  countryCode: isoCountryCode().nullable().optional(),
 });
 
 export const getTripQuerySchema = z.object({

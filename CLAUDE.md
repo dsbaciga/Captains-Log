@@ -11,6 +11,7 @@ All documentation is organized in the `docs/` folder. Start with the [Documentat
 | Need | Document |
 | ---- | -------- |
 | **Understand the codebase** | [Backend Architecture](docs/architecture/BACKEND_ARCHITECTURE.md), [Frontend Architecture](docs/architecture/FRONTEND_ARCHITECTURE.md) |
+| **Write code that fits the codebase** | [Code Conventions](docs/architecture/CODE_CONVENTIONS.md) (**required reading before writing code**) |
 | **Work on the UI** | [Style Guide](docs/architecture/STYLE_GUIDE.md) (**required reading**) |
 | **Understand the database** | [Database Schema](docs/architecture/DATABASE_SCHEMA.md) |
 | **Use the API** | [API Reference](docs/api/README.md) |
@@ -203,7 +204,7 @@ Do not read `Intl.DateTimeFormat().resolvedOptions().timeZone` directly — that
 user's configured setting.
 
 **Backend** — `resolveTimezone(...)` and `getUserTimezone(userId)` live in
-`services/_shared/serviceHelpers.ts`. Any read path that groups or formats dates for a user
+`services/_shared/timezoneResolution.ts`. Any read path that groups or formats dates for a user
 should end its chain with that user's zone:
 
 ```typescript
