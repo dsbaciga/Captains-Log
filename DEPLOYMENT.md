@@ -164,13 +164,13 @@ curl -I http://localhost:80
 
 **Backend Container:**
 
-- Image: `ghcr.io/dsbaciga/travel-life-backend:v5.6.1` (use an explicit version tag, not `latest`)
+- Image: `ghcr.io/dsbaciga/travel-life-backend:v6.0.3` (use an explicit version tag, not `latest`)
 - Port: 5000
 - Environment variables: (see above)
 
 **Frontend Container:**
 
-- Image: `ghcr.io/dsbaciga/travel-life-frontend:v5.6.1` (use an explicit version tag, not `latest`)
+- Image: `ghcr.io/dsbaciga/travel-life-frontend:v6.0.3` (use an explicit version tag, not `latest`)
 - Port: 80
 
 **Database:**
@@ -192,15 +192,15 @@ image version rather than `:latest`, so a deploy is reproducible and a rollback 
 matter of naming the previous tag:
 
 ```yaml
-image: ghcr.io/dsbaciga/travel-life-backend:${APP_VERSION:-v5.6.1}
+image: ghcr.io/dsbaciga/travel-life-backend:${APP_VERSION:-v6.0.3}
 ```
 
 Set `APP_VERSION` per deploy, or put it in your env file:
 
 ```bash
 # Deploy a specific release
-APP_VERSION=v5.6.1 docker-compose -f docker-compose.truenas.yml pull
-APP_VERSION=v5.6.1 docker-compose -f docker-compose.truenas.yml up -d
+APP_VERSION=v6.0.3 docker-compose -f docker-compose.truenas.yml pull
+APP_VERSION=v6.0.3 docker-compose -f docker-compose.truenas.yml up -d
 
 # Roll back to the previous release
 APP_VERSION=v5.6.0 docker-compose -f docker-compose.truenas.yml up -d

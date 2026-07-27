@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The TrueNAS compose files defaulted to `${APP_VERSION:-v6.0.0}`, so a deploy that does
+  not set `APP_VERSION` silently brought up 6.0.0 — missing the 6.0.1 and 6.0.2 fixes,
+  including the nginx `/uploads/` fix that makes uploaded images render at all. Both files
+  now default to `v6.0.3`. This is the same drift recorded against 6.0.0 (the files were
+  left on `v5.6.1` then), and it has now recurred across two releases despite being a
+  documented post-release step, so the checklist alone is not preventing it.
+- `DEPLOYMENT.md` illustrated pinning with `v5.6.1` throughout, five releases behind, so
+  the copy-paste path handed you a stale tag. Updated to `v6.0.3`.
+
 ## [6.0.3] - 2026-07-27
 
 ### Changed
