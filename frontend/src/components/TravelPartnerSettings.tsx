@@ -326,7 +326,7 @@ export default function TravelPartnerSettings() {
               <div className="flex items-center gap-4">
                 <UserAvatar user={request.requester} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-gray-900 dark:text-white truncate">
                     {request.requester.username}
                   </p>
                   <p className="text-sm text-amber-800 dark:text-amber-200">
@@ -394,15 +394,15 @@ export default function TravelPartnerSettings() {
           <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
             <div className="flex items-center gap-4">
               <UserAvatar user={settings.travelPartner} />
-              <div className="flex-1">
-                <p className="font-medium text-gray-900 dark:text-white">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 dark:text-white truncate">
                   {settings.travelPartner.username}
                 </p>
               </div>
               <button
                 onClick={handleRemovePartner}
                 disabled={isSaving}
-                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
+                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm shrink-0"
               >
                 Remove
               </button>
@@ -470,8 +470,8 @@ export default function TravelPartnerSettings() {
                       className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-left"
                     >
                       <UserAvatar user={user} size="sm" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 dark:text-white truncate">
                           {user.username}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -545,7 +545,7 @@ export default function TravelPartnerSettings() {
             >
               <UserAvatar user={request.recipient} size="sm" />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 dark:text-white">
+                <p className="font-medium text-gray-900 dark:text-white truncate">
                   {request.recipient.username}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">

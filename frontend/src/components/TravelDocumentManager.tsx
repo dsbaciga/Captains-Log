@@ -453,7 +453,7 @@ export default function TravelDocumentManager() {
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <h4 className="font-semibold text-gray-900 dark:text-white">{doc.name}</h4>
+                          <h4 className="font-semibold text-gray-900 dark:text-white break-words min-w-0">{doc.name}</h4>
                           {doc.isPrimary && (
                             <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
                               Primary

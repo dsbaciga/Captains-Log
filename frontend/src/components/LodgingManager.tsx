@@ -959,7 +959,7 @@ export default function LodgingManager({
                 {lodging.confirmationNumber && (
                   <div className="flex flex-wrap gap-x-2">
                     <span className="font-medium">Confirmation:</span>
-                    <span>{lodging.confirmationNumber}</span>
+                    <span className="break-all min-w-0">{lodging.confirmationNumber}</span>
                   </div>
                 )}
 

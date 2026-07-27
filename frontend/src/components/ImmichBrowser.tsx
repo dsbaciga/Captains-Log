@@ -533,7 +533,7 @@ export default function ImmichBrowser({
                   key={album.id}
                   className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg transition-colors flex flex-col"
                 >
-                  <div className="font-semibold text-gray-900 dark:text-white mb-1">
+                  <div className="font-semibold text-gray-900 dark:text-white mb-1 break-words">
                     {album.albumName}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-3 flex-grow">

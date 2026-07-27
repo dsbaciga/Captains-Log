@@ -115,7 +115,7 @@ export default function DashboardHero({
           {/* Main content - bottom */}
           <div className="space-y-4">
             {/* Title */}
-            <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">
+            <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg break-words">
               {trip.title}
             </h1>
 
@@ -209,7 +209,7 @@ export default function DashboardHero({
         {/* Main content - bottom */}
         <div className="space-y-4 pt-12">
           {/* Title */}
-          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white">
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white break-words">
             {trip.title}
           </h1>
 

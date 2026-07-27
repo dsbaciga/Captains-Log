@@ -1580,9 +1580,9 @@ export default function SettingsPage() {
                       {editingTagId === tag.id ? (
                         // Edit colors mode
                         <div className="space-y-3">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
                             <span
-                              className="px-3 py-1 rounded-full text-sm font-medium"
+                              className="px-3 py-1 rounded-full text-sm font-medium truncate max-w-full"
                               style={{
                                 backgroundColor: editingTagColor,
                                 color: editingTagTextColor,
@@ -1590,7 +1590,7 @@ export default function SettingsPage() {
                             >
                               {tag.name}
                             </span>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                            <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">
                               (Preview)
                             </span>
                           </div>

@@ -555,7 +555,7 @@ export default function ActivityManager({
           {activity.bookingReference && (
             <div className="flex flex-wrap gap-x-2">
               <span className="font-medium">Reference:</span>
-              <span>{activity.bookingReference}</span>
+              <span className="break-all min-w-0">{activity.bookingReference}</span>
             </div>
           )}
 

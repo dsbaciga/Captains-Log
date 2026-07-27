@@ -221,7 +221,7 @@ function TransportationItem({
               </span>
             )}
             {transportation.vehicleNumber && (
-              <span className="text-xs text-gray-500 dark:text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-500 break-all min-w-0">
                 #{transportation.vehicleNumber}
               </span>
             )}
@@ -324,7 +324,7 @@ function TransportationItem({
         {transportation.confirmationNumber && (
           <div className="flex flex-wrap gap-x-2">
             <span className="font-medium">Confirmation:</span>
-            <span>{transportation.confirmationNumber}</span>
+            <span className="break-all min-w-0">{transportation.confirmationNumber}</span>
           </div>
         )}
 

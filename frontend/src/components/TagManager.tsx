@@ -283,10 +283,10 @@ export default function TagManager({ tripId }: TagManagerProps) {
             {manager.items.map((tag) => (
               <div
                 key={tag.id}
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-medium"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-medium max-w-full"
                 style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR }}
               >
-                <span>{tag.name}</span>
+                <span className="truncate">{tag.name}</span>
                 <button
                   onClick={() => startEdit(tag)}
                   className="hover:opacity-75"
@@ -318,12 +318,12 @@ export default function TagManager({ tripId }: TagManagerProps) {
               <button
                 key={tag.id}
                 onClick={() => handleLinkTag(tag.id)}
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-medium hover:opacity-80"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-medium hover:opacity-80 max-w-full"
                 style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR }}
                 aria-label={`Add tag ${tag.name} to trip`}
               >
-                <span>{tag.name}</span>
-                <span aria-hidden="true">+</span>
+                <span className="truncate">{tag.name}</span>
+                <span aria-hidden="true" className="shrink-0">+</span>
               </button>
             ))}
           </div>
@@ -338,23 +338,23 @@ export default function TagManager({ tripId }: TagManagerProps) {
             {tags.map((tag) => (
               <div
                 key={tag.id}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                className="flex items-center justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <span
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium max-w-full truncate"
                     style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR, color: DEFAULT_TEXT_COLOR }}
                   >
                     {tag.name}
                   </span>
                   {tag._count && (
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 shrink-0 whitespace-nowrap">
                       ({tag._count.assignments}{" "}
                       {tag._count.assignments === 1 ? "trip" : "trips"})
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => startEdit(tag)}
                     className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"

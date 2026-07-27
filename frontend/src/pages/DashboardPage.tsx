@@ -49,7 +49,7 @@ export default function DashboardPage() {
             fold; the full-size hero returns at md. The subtitle states where
             the user is in their active trip rather than a generic greeting. */}
         <div className="mb-6 md:mb-12 animate-fade-in">
-          <h1 className="text-2xl md:text-5xl lg:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight leading-none mb-1 md:mb-4">
+          <h1 className="text-2xl md:text-5xl lg:text-7xl font-display font-bold text-primary-600 dark:text-sky tracking-tight leading-none mb-1 md:mb-4 break-words">
             <span className="md:hidden">Hi, </span>
             <span className="hidden md:inline">Welcome back,<br /></span>
             <span className="text-accent-500 dark:text-warm-gray">{user?.username}</span>

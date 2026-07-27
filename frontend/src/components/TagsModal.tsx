@@ -154,13 +154,13 @@ export default function TagsModal({
                     {tripTags.map((tag) => (
                       <div
                         key={tag.id}
-                        className="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium"
+                        className="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium max-w-full"
                         style={{
                           backgroundColor: tag.color || DEFAULT_TAG_COLOR,
                           color: tag.textColor || DEFAULT_TEXT_COLOR,
                         }}
                       >
-                        <span>{tag.name}</span>
+                        <span className="truncate">{tag.name}</span>
                         <button
                           onClick={() => handleRemoveTag(tag.id)}
                           type="button"
@@ -265,10 +265,10 @@ export default function TagsModal({
                     {filteredAvailableTags.map((tag) => (
                       <div
                         key={tag.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                        className="flex items-center justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                       >
                         <span
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium min-w-0 max-w-full truncate"
                           style={{
                             backgroundColor: tag.color || DEFAULT_TAG_COLOR,
                             color: tag.textColor || DEFAULT_TEXT_COLOR,
@@ -280,7 +280,7 @@ export default function TagsModal({
                           onClick={() => handleAddTag(tag.id)}
                           type="button"
                           aria-label={`Add tag ${tag.name}`}
-                          className="btn btn-primary text-sm"
+                          className="btn btn-primary text-sm shrink-0"
                         >
                           Add to Trip
                         </button>

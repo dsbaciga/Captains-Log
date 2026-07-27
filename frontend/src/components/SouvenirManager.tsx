@@ -342,7 +342,7 @@ export default function SouvenirManager({ tripId, onUpdate }: SouvenirManagerPro
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h4 className={`font-semibold text-gray-900 dark:text-white ${metadata.purchased ? 'line-through opacity-70' : ''}`}>
+              <h4 className={`font-semibold text-gray-900 dark:text-white break-words min-w-0 ${metadata.purchased ? 'line-through opacity-70' : ''}`}>
                 {item.name}
               </h4>
               {metadata.purchased && (

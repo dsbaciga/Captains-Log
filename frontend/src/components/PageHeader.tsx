@@ -116,15 +116,15 @@ export default function PageHeader({
         </Link>
       )}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-charcoal dark:text-warm-gray">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold text-charcoal dark:text-warm-gray break-words">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-slate dark:text-warm-gray/70 mt-1">{subtitle}</p>
+            <p className="text-slate dark:text-warm-gray/70 mt-1 break-words">{subtitle}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0">
           {secondaryActions?.map((action, index) => renderAction(action, index))}
           {action && renderAction(action)}
           {rightContent}
