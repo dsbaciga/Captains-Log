@@ -221,7 +221,7 @@ function TransportationItem({
               </span>
             )}
             {transportation.vehicleNumber && (
-              <span className="text-xs text-gray-500 dark:text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-500 break-all min-w-0">
                 #{transportation.vehicleNumber}
               </span>
             )}
@@ -324,7 +324,7 @@ function TransportationItem({
         {transportation.confirmationNumber && (
           <div className="flex flex-wrap gap-x-2">
             <span className="font-medium">Confirmation:</span>
-            <span>{transportation.confirmationNumber}</span>
+            <span className="break-all min-w-0">{transportation.confirmationNumber}</span>
           </div>
         )}
 
@@ -361,7 +361,7 @@ function TransportationItem({
       />
 
       {/* Actions - bottom row */}
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+      <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
         <LinkButton
           tripId={tripId}
           entityType="TRANSPORTATION"
@@ -373,14 +373,14 @@ function TransportationItem({
         <div className="flex-1" />
         <button
           onClick={() => onEdit(transportation)}
-          className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+          className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap shrink-0"
           aria-label={`Edit ${transportation.type} transportation`}
         >
           Edit
         </button>
         <button
           onClick={() => onDelete(transportation.id)}
-          className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+          className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap shrink-0"
           aria-label={`Delete ${transportation.type} transportation`}
         >
           Delete

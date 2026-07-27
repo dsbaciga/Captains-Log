@@ -959,7 +959,7 @@ export default function LodgingManager({
                 {lodging.confirmationNumber && (
                   <div className="flex flex-wrap gap-x-2">
                     <span className="font-medium">Confirmation:</span>
-                    <span>{lodging.confirmationNumber}</span>
+                    <span className="break-all min-w-0">{lodging.confirmationNumber}</span>
                   </div>
                 )}
 
@@ -1011,7 +1011,7 @@ export default function LodgingManager({
               />
 
               {/* Actions - always at bottom on mobile */}
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                 <LinkButton
                   tripId={tripId}
                   entityType="LODGING"
@@ -1023,14 +1023,14 @@ export default function LodgingManager({
                 <div className="flex-1" />
                 <button
                   onClick={() => handleEdit(lodging)}
-                  className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+                  className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap shrink-0"
                   aria-label={`Edit lodging ${lodging.name}`}
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(lodging.id)}
-                  className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                  className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap shrink-0"
                   aria-label={`Delete lodging ${lodging.name}`}
                 >
                   Delete

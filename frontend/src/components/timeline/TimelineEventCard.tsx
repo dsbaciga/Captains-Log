@@ -353,18 +353,18 @@ export default function TimelineEventCard({
         {/* Title and subtitle */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h4 className={`font-semibold text-gray-900 dark:text-white ${isCompact ? 'text-sm' : ''}`}>
+            <h4 className={`font-semibold text-gray-900 dark:text-white break-words ${isCompact ? 'text-sm' : ''}`}>
               {item.title}
             </h4>
             {item.subtitle && (
-              <p className={`text-gray-600 dark:text-gray-400 ${isCompact ? 'text-xs' : 'text-sm'}`}>
+              <p className={`text-gray-600 dark:text-gray-400 break-words ${isCompact ? 'text-xs' : 'text-sm'}`}>
                 {item.subtitle}
               </p>
             )}
           </div>
           {/* Cost */}
           {item.cost !== undefined && item.cost > 0 && item.currency && (
-            <div className={`font-medium text-gray-700 dark:text-gray-300 ${isCompact ? 'text-xs' : 'text-sm'}`}>
+            <div className={`font-medium text-gray-700 dark:text-gray-300 shrink-0 whitespace-nowrap ${isCompact ? 'text-xs' : 'text-sm'}`}>
               {item.currency} {item.cost.toFixed(2)}
             </div>
           )}

@@ -513,7 +513,7 @@ export default function LocationManager({
             </div>
 
             {/* Action buttons - own row on mobile, inline on larger screens */}
-            <div className="flex gap-2 items-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-primary-100/50 dark:border-gold/10">
+            <div className="flex flex-wrap gap-2 items-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-primary-100/50 dark:border-gold/10">
               {/* Favorite star toggle */}
               <button
                 onClick={(e) => {
@@ -585,14 +585,14 @@ export default function LocationManager({
               <DirectionsButton destination={placeFromLocation(location)} />
               <button
                 onClick={() => handleEdit(location)}
-                className="px-2.5 py-1 text-sm bg-primary-50 dark:bg-navy-700 text-primary-700 dark:text-gold/80 rounded hover:bg-primary-100 dark:hover:bg-navy-600 whitespace-nowrap"
+                className="px-2.5 py-1 text-sm bg-primary-50 dark:bg-navy-700 text-primary-700 dark:text-gold/80 rounded hover:bg-primary-100 dark:hover:bg-navy-600 whitespace-nowrap shrink-0"
                 aria-label={`Edit location ${location.name}`}
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(location.id)}
-                className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+                className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap shrink-0"
                 aria-label={`Delete location ${location.name}`}
               >
                 Delete

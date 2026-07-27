@@ -379,7 +379,7 @@ export default function SavedLinksManager({
                   {savedLinkDisplayTitle(link)}
                 </a>
 
-                <p className="text-xs text-slate dark:text-gray-400 mt-0.5">
+                <p className="text-xs text-slate dark:text-gray-400 mt-0.5 truncate">
                   {savedLinkHostname(link)}
                 </p>
 

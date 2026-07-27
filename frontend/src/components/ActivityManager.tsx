@@ -555,7 +555,7 @@ export default function ActivityManager({
           {activity.bookingReference && (
             <div className="flex flex-wrap gap-x-2">
               <span className="font-medium">Reference:</span>
-              <span>{activity.bookingReference}</span>
+              <span className="break-all min-w-0">{activity.bookingReference}</span>
             </div>
           )}
 
@@ -618,7 +618,7 @@ export default function ActivityManager({
         />
 
         {/* Actions - bottom row */}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
           <LinkButton
             tripId={tripId}
             entityType="ACTIVITY"
@@ -630,14 +630,14 @@ export default function ActivityManager({
           <div className="flex-1" />
           <button
             onClick={() => handleEdit(activity)}
-            className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+            className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap shrink-0"
             aria-label={`Edit activity ${activity.name}`}
           >
             Edit
           </button>
           <button
             onClick={() => handleDelete(activity.id)}
-            className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+            className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap shrink-0"
             aria-label={`Delete activity ${activity.name}`}
           >
             Delete

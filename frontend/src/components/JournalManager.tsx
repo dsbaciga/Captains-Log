@@ -465,8 +465,8 @@ export default function JournalManager({
               >
                 <div className="p-6">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1 break-words">
                         {entry.title || "Untitled Entry"}
                       </h3>
                       <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">

@@ -104,7 +104,7 @@ export default function KanbanCard({ trip, coverPhotoUrl, onNavigateAway }: Kanb
             {trip.tagAssignments.slice(0, 2).map((assignment) => (
               <span
                 key={assignment.tag.id}
-                className="px-1.5 py-0.5 text-[10px] rounded tag-colored"
+                className="px-1.5 py-0.5 text-[10px] rounded tag-colored max-w-[120px] truncate"
                 style={{
                   '--tag-bg-color': assignment.tag.color || '#3B82F6',
                   '--tag-text-color': assignment.tag.textColor || '#FFFFFF',

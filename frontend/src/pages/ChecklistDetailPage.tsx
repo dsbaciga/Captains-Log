@@ -215,8 +215,8 @@ export default function ChecklistDetailPage() {
             ]}
           />
 
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
+          <div className="flex justify-between items-start gap-2">
+            <div className="flex-1 min-w-0">
               {editingName ? (
                 <div className="flex gap-2 items-center">
                   <input
@@ -242,14 +242,14 @@ export default function ChecklistDetailPage() {
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2 items-center">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                <div className="flex gap-2 items-center min-w-0">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white break-words min-w-0">
                     {checklist.name}
                   </h1>
                   {!checklist.isDefault && (
                     <button
                       onClick={() => setEditingName(true)}
-                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                      className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 shrink-0"
                     >
                       ✏️
                     </button>

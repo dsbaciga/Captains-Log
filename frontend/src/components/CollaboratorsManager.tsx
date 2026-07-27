@@ -185,16 +185,16 @@ export default function CollaboratorsManager({
             <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center text-gold font-medium">
               {owner.username.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                {owner.username}
+                <span className="truncate">{owner.username}</span>
                 {user?.id === owner.id && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400">(You)</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">(You)</span>
                 )}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">{owner.email}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{owner.email}</div>
             </div>
-            <span className="px-2 py-1 text-xs font-medium bg-gold/20 text-gold rounded">Owner</span>
+            <span className="px-2 py-1 text-xs font-medium bg-gold/20 text-gold rounded shrink-0">Owner</span>
           </div>
         </div>
       )}

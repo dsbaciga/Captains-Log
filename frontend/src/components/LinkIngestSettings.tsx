@@ -144,7 +144,7 @@ export default function LinkIngestSettings() {
         <p className="label">Trusted senders</p>
         <p className="text-xs text-slate dark:text-gray-400 mb-2">
           Mail is only accepted from these addresses. Your account address (
-          <span className="font-mono">{settings.accountEmail}</span>) is always
+          <span className="font-mono break-all">{settings.accountEmail}</span>) is always
           trusted.
         </p>
 

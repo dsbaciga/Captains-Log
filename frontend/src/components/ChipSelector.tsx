@@ -118,7 +118,7 @@ export default function ChipSelector<T>({
                   onClick={() => toggleSelection(id)}
                   className={`
                     inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium
-                    transition-all duration-150 ease-in-out
+                    transition-all duration-150 ease-in-out max-w-full
                     ${
                       isSelected
                         ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
@@ -126,8 +126,8 @@ export default function ChipSelector<T>({
                     }
                   `}
                 >
-                  {isSelected && <span className="mr-1">✓</span>}
-                  {getLabel(item)}
+                  {isSelected && <span className="mr-1 shrink-0">✓</span>}
+                  <span className="truncate">{getLabel(item)}</span>
                 </button>
               );
             })}

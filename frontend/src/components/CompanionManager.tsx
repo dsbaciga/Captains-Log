@@ -347,7 +347,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
                           {companion.email && (
                             <div>
                               <span className="font-medium text-gray-600 dark:text-gray-400">Email: </span>
-                              <a href={`mailto:${companion.email}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+                              <a href={`mailto:${companion.email}`} className="text-blue-600 dark:text-blue-400 hover:underline break-all">
                                 {companion.email}
                               </a>
                             </div>
@@ -355,7 +355,7 @@ export default function CompanionManager({ tripId, onUpdate }: CompanionManagerP
                           {companion.phone && (
                             <div>
                               <span className="font-medium text-gray-600 dark:text-gray-400">Phone: </span>
-                              <a href={`tel:${companion.phone}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+                              <a href={`tel:${companion.phone}`} className="text-blue-600 dark:text-blue-400 hover:underline break-all">
                                 {companion.phone}
                               </a>
                             </div>

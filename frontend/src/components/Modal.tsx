@@ -255,9 +255,9 @@ export default function Modal({
         <div className="flex items-center justify-between p-6 border-b border-primary-100 dark:border-gold/20 flex-shrink-0">
           <h2
             id={titleId}
-            className="text-xl font-bold text-charcoal dark:text-warm-gray flex items-center gap-2"
+            className="text-xl font-bold text-charcoal dark:text-warm-gray flex items-center gap-2 min-w-0 break-words"
           >
-            {icon && <span>{icon}</span>}
+            {icon && <span className="shrink-0">{icon}</span>}
             {title}
           </h2>
           {showCloseButton && (
@@ -265,7 +265,7 @@ export default function Modal({
               onClick={onClose}
               type="button"
               aria-label="Close modal"
-              className="text-slate/50 hover:text-slate dark:hover:text-gold transition-colors p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-navy-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="text-slate/50 hover:text-slate dark:hover:text-gold transition-colors p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-navy-700 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
             >
               <CloseIcon className="w-6 h-6" />
             </button>
