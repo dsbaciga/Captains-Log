@@ -618,7 +618,7 @@ export default function ActivityManager({
         />
 
         {/* Actions - bottom row */}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
           <LinkButton
             tripId={tripId}
             entityType="ACTIVITY"
