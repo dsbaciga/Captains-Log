@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-07-27
+
 ### Added
 
 - **Emergency card.** A per-trip record of the details you need when something goes wrong
