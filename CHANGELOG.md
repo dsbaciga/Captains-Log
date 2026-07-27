@@ -39,6 +39,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stops regex evaluation. Only affects deployments served through the frontend image's
   nginx; local dev talks to the backend directly.
 
+- **Long text broke out of buttons, cards and badges on mobile.** Audited at ~412px
+  (Galaxy S25 Ultra). Two distinct causes. Long unbroken strings — emails, phone numbers,
+  confirmation and booking reference numbers, link hostnames, tag names, trip/album/
+  checklist titles, usernames — have no wrap opportunity, so they set a min-content width
+  wider than their container and ran past its edge; these now carry `break-words` /
+  `break-all` / `truncate`, with `min-w-0` on the flex wrapper and `shrink-0` on sibling
+  actions so a long name can no longer shove buttons off-screen. Separately, the
+  Edit/Delete action rows on locations, activities, lodging and transportation packed up
+  to six controls onto one non-wrapping line; since the buttons carry `whitespace-nowrap`
+  the row's min-content width is fixed, so when it did not fit it ran past the card edge
+  instead of reflowing. Sub-locations hit this first, rendering the same six controls in a
+  card that is already visually inset. Those rows now wrap. Presentation only — no logic
+  or data changes.
+
 ## [6.0.2] - 2026-07-26
 
 ### Fixed
