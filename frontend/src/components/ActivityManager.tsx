@@ -630,14 +630,14 @@ export default function ActivityManager({
           <div className="flex-1" />
           <button
             onClick={() => handleEdit(activity)}
-            className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap"
+            className="px-2.5 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap shrink-0"
             aria-label={`Edit activity ${activity.name}`}
           >
             Edit
           </button>
           <button
             onClick={() => handleDelete(activity.id)}
-            className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap"
+            className="px-2.5 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 whitespace-nowrap shrink-0"
             aria-label={`Delete activity ${activity.name}`}
           >
             Delete
