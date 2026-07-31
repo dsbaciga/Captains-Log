@@ -17,6 +17,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Album suggestions say what they are and show you.** Each suggestion now carries a
+  plain-language description — how many photos and videos, when they were taken, where,
+  and the actual rule that grouped them ("within 2 hours of the one before it", "inside
+  the same 500 m radius") — plus a thumbnail that opens a 3×3 preview grid on hover or
+  tap, so a suggestion can be judged before the album exists. A location cluster is named
+  after the nearest recorded trip location within 1 km rather than a coordinate pair, and
+  falls back to `Location (48.86, 2.29)` only when nothing is close enough. Captions are
+  quoted verbatim (two at most, duplicates collapsed) because they are the only real
+  signal of what is *in* the pictures — nothing is inferred from image content. Times
+  render in the trip's zone through the standard resolver, not UTC. The preview samples
+  evenly across the group instead of taking the first nine, so the grid shows the whole
+  span, and only the first thumbnail loads up front — a screen of suggestions no longer
+  fetches 45 Immich thumbnails before anyone hovers.
+
+### Changed
+
+- **Schedule forms now suggest the missing half of a time range an hour away, in both
+  directions.** Entering a start offered an end only in `ActivityForm`, and elsewhere the
+  "auto-fill" copied the date across verbatim, producing a zero-length range; entering an
+  end offered nothing anywhere. Both directions now derive across activities,
+  transportation, unscheduled items and the timeline edit modal, sharing one
+  `useTimeRangeDefaults` hook. The hook tracks *which* side it filled, so a suggestion is
+  replaceable but anything you typed, restored from a draft, or loaded from a saved record
+  is never overwritten — including the chained departure a connecting leg inherits, which
+  encodes a real layover buffer and previously would have been dragged back to
+  arrival-minus-an-hour. The old `ActivityForm` effect is gone: it watched the start and
+  so refilled an end the moment you cleared it. Date arithmetic runs through `Date.UTC`,
+  so "one hour later" stays one hour across a DST boundary in the browser's zone.
+
 ## [6.1.0] - 2026-07-27
 
 ### Added

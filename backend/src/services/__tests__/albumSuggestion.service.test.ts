@@ -10,6 +10,8 @@
  * - AS-006: Accept suggestion - photo ownership validation
  * - AS-007: Suggestions sorted by confidence
  * - AS-008: Maximum 5 suggestions returned
+ * - AS-009: Suggestions describe what the photos are and why they group
+ * - AS-010: Suggestions carry preview photos for the client's grid
  */
 
 // Mock @prisma/client for Decimal
@@ -37,6 +39,12 @@ const mockPrisma = {
   photoAlbum: {
     create: jest.fn(),
   },
+  location: {
+    findMany: jest.fn(),
+  },
+  user: {
+    findUnique: jest.fn(),
+  },
 };
 
 jest.mock('../../config/database', () => ({
@@ -49,6 +57,9 @@ import albumSuggestionService from '../albumSuggestion.service';
 describe('AlbumSuggestionService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Most tests have no named trip locations and no user-configured timezone
+    mockPrisma.location.findMany.mockResolvedValue([]);
+    mockPrisma.user.findUnique.mockResolvedValue({ timezone: 'UTC' });
   });
 
   const createMockPhoto = (overrides: Record<string, unknown> = {}) => ({
@@ -56,6 +67,12 @@ describe('AlbumSuggestionService', () => {
     tripId: 1,
     filename: 'photo.jpg',
     filepath: '/uploads/photo.jpg',
+    source: 'local',
+    mediaType: 'image',
+    thumbnailPath: '/uploads/thumbs/photo.jpg',
+    localPath: '/uploads/photo.jpg',
+    immichAssetId: null,
+    caption: null,
     takenAt: new Date('2025-06-15T10:00:00Z'),
     latitude: null,
     longitude: null,
@@ -67,6 +84,7 @@ describe('AlbumSuggestionService', () => {
     id: 1,
     userId: 1,
     title: 'Test Trip',
+    timezone: 'UTC',
     ...overrides,
   });
 
@@ -314,6 +332,168 @@ describe('AlbumSuggestionService', () => {
       const result = await albumSuggestionService.getAlbumSuggestions(1, 1);
 
       expect(result.length).toBeLessThanOrEqual(5);
+    });
+  });
+
+  // ============================================================
+  // AS-009: Descriptions
+  // ============================================================
+  describe('AS-009: Suggestion descriptions', () => {
+    it('should describe the contents, time range and grouping reason of a date cluster', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip());
+      mockPrisma.photo.findMany.mockResolvedValue([
+        createMockPhoto({ id: 1, takenAt: new Date('2025-06-15T10:00:00Z') }),
+        createMockPhoto({ id: 2, takenAt: new Date('2025-06-15T10:30:00Z') }),
+        createMockPhoto({
+          id: 3,
+          takenAt: new Date('2025-06-15T11:00:00Z'),
+          mediaType: 'video',
+        }),
+      ]);
+
+      const [suggestion] = await albumSuggestionService.getAlbumSuggestions(1, 1);
+
+      expect(suggestion.description).toContain('2 photos and 1 video');
+      expect(suggestion.description).toContain('Sunday, June 15');
+      expect(suggestion.description).toContain('10:00 AM');
+      expect(suggestion.description).toContain('11:00 AM');
+      expect(suggestion.description).toContain('within 2 hours');
+    });
+
+    it('should format times in the trip timezone, not UTC', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(
+        createMockTrip({ timezone: 'America/New_York' })
+      );
+      mockPrisma.photo.findMany.mockResolvedValue([
+        createMockPhoto({ id: 1, takenAt: new Date('2025-06-15T10:00:00Z') }),
+        createMockPhoto({ id: 2, takenAt: new Date('2025-06-15T10:30:00Z') }),
+        createMockPhoto({ id: 3, takenAt: new Date('2025-06-15T11:00:00Z') }),
+      ]);
+
+      const [suggestion] = await albumSuggestionService.getAlbumSuggestions(1, 1);
+
+      // 10:00 UTC is 6:00 AM in New York
+      expect(suggestion.description).toContain('6:00 AM');
+      expect(suggestion.description).not.toContain('10:00 AM');
+    });
+
+    it('should name a location cluster after the nearest trip location', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip());
+      mockPrisma.location.findMany.mockResolvedValue([
+        { id: 7, name: 'Eiffel Tower', latitude: 48.8584, longitude: 2.2945 },
+      ]);
+      mockPrisma.photo.findMany.mockResolvedValue([
+        createMockPhoto({ id: 1, latitude: 48.8584, longitude: 2.2945, takenAt: null }),
+        createMockPhoto({ id: 2, latitude: 48.8586, longitude: 2.2946, takenAt: null }),
+        createMockPhoto({ id: 3, latitude: 48.8583, longitude: 2.2944, takenAt: null }),
+      ]);
+
+      const result = await albumSuggestionService.getAlbumSuggestions(1, 1);
+      const locationSuggestion = result.find((s) => s.type === 'location');
+
+      expect(locationSuggestion?.name).toBe('Eiffel Tower');
+      expect(locationSuggestion?.description).toContain('within 500 m of Eiffel Tower');
+      expect(locationSuggestion?.metadata.locationId).toBe(7);
+    });
+
+    it('should fall back to coordinates when no trip location is nearby', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip());
+      mockPrisma.location.findMany.mockResolvedValue([
+        { id: 7, name: 'Tokyo Tower', latitude: 35.6586, longitude: 139.7454 },
+      ]);
+      mockPrisma.photo.findMany.mockResolvedValue([
+        createMockPhoto({ id: 1, latitude: 48.8584, longitude: 2.2945, takenAt: null }),
+        createMockPhoto({ id: 2, latitude: 48.8586, longitude: 2.2946, takenAt: null }),
+        createMockPhoto({ id: 3, latitude: 48.8583, longitude: 2.2944, takenAt: null }),
+      ]);
+
+      const result = await albumSuggestionService.getAlbumSuggestions(1, 1);
+      const locationSuggestion = result.find((s) => s.type === 'location');
+
+      expect(locationSuggestion?.name).toBe('Location (48.86, 2.29)');
+      expect(locationSuggestion?.metadata.locationId).toBeUndefined();
+    });
+
+    it('should quote captions so the description hints at the subject', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip());
+      mockPrisma.photo.findMany.mockResolvedValue([
+        createMockPhoto({ id: 1, caption: 'Sunset over the Seine' }),
+        createMockPhoto({
+          id: 2,
+          takenAt: new Date('2025-06-15T10:30:00Z'),
+          caption: 'Sunset over the Seine',
+        }),
+        createMockPhoto({
+          id: 3,
+          takenAt: new Date('2025-06-15T11:00:00Z'),
+          caption: 'Boat tour',
+        }),
+      ]);
+
+      const [suggestion] = await albumSuggestionService.getAlbumSuggestions(1, 1);
+
+      // Duplicate captions are collapsed rather than repeated
+      expect(suggestion.description).toContain(
+        'Captions mention "Sunset over the Seine" and "Boat tour".'
+      );
+    });
+  });
+
+  // ============================================================
+  // AS-010: Preview photos
+  // ============================================================
+  describe('AS-010: Preview photos', () => {
+    it('should return up to 9 preview photos spread across the group', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip());
+
+      const photos = Array.from({ length: 20 }, (_, i) =>
+        createMockPhoto({
+          id: i + 1,
+          takenAt: new Date(new Date('2025-06-15T10:00:00Z').getTime() + i * 60_000),
+        })
+      );
+      mockPrisma.photo.findMany.mockResolvedValue(photos);
+
+      const [suggestion] = await albumSuggestionService.getAlbumSuggestions(1, 1);
+
+      expect(suggestion.previewPhotos).toHaveLength(9);
+      // First and last photo of the cluster are represented
+      expect(suggestion.previewPhotos[0].id).toBe(1);
+      expect(suggestion.previewPhotos[8].id).toBe(20);
+      expect(suggestion.previewPhotos[0].thumbnailPath).toBe('/uploads/thumbs/photo.jpg');
+    });
+
+    it('should return every photo when the group is smaller than the grid', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip());
+      mockPrisma.photo.findMany.mockResolvedValue([
+        createMockPhoto({ id: 1, takenAt: new Date('2025-06-15T10:00:00Z') }),
+        createMockPhoto({ id: 2, takenAt: new Date('2025-06-15T10:30:00Z') }),
+        createMockPhoto({ id: 3, takenAt: new Date('2025-06-15T11:00:00Z') }),
+      ]);
+
+      const [suggestion] = await albumSuggestionService.getAlbumSuggestions(1, 1);
+
+      expect(suggestion.previewPhotos.map((p) => p.id)).toEqual([1, 2, 3]);
+    });
+
+    it('should proxy Immich thumbnails through the API', async () => {
+      mockPrisma.trip.findFirst.mockResolvedValue(createMockTrip());
+      mockPrisma.photo.findMany.mockResolvedValue([
+        createMockPhoto({
+          id: 1,
+          source: 'immich',
+          immichAssetId: 'asset-1',
+          thumbnailPath: null,
+        }),
+        createMockPhoto({ id: 2, takenAt: new Date('2025-06-15T10:30:00Z') }),
+        createMockPhoto({ id: 3, takenAt: new Date('2025-06-15T11:00:00Z') }),
+      ]);
+
+      const [suggestion] = await albumSuggestionService.getAlbumSuggestions(1, 1);
+
+      expect(suggestion.previewPhotos[0].thumbnailPath).toBe(
+        '/api/immich/assets/asset-1/thumbnail'
+      );
     });
   });
 });

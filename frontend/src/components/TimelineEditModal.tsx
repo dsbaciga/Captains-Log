@@ -18,6 +18,12 @@ import journalEntryService from "../services/journalEntry.service";
 import entityLinkService from "../services/entityLink.service";
 import { useInvalidateEntityLinks } from "../hooks/useInvalidateEntityLinks";
 import { useTimezoneResolver } from "../hooks/useTimezoneResolver";
+import { useTimeRangeDefaults } from "../hooks/useTimeRangeDefaults";
+import {
+  splitDateTimeLocal,
+  joinDateTimeLocal,
+  type DateTimeParts,
+} from "../utils/dateTimeDefaults";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import {
@@ -134,6 +140,20 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
   >(null);
   const invalidateEntityLinks = useInvalidateEntityLinks();
   const resolveTz = useTimezoneResolver();
+
+  // Each schedule pair suggests the missing half an hour away from the half just set,
+  // without overwriting anything the user typed. Activities and transportation get
+  // their own tracker since either can be the item under edit.
+  const {
+    deriveEnd: deriveActivityEnd,
+    deriveStart: deriveActivityStart,
+    setAutoFilled: setActivityAutoFilled,
+  } = useTimeRangeDefaults();
+  const {
+    deriveEnd: deriveArrival,
+    deriveStart: deriveDeparture,
+    setAutoFilled: setTransportationAutoFilled,
+  } = useTimeRangeDefaults();
 
   // Activity form state
   const [activityForm, setActivityForm] = useState<ActivityFormState>({
@@ -280,6 +300,9 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
         setOriginalActivityLocationId(null);
       }
 
+      // A saved activity's times are the user's; only a still-empty side gets filled in.
+      setActivityAutoFilled({ start: false, end: false });
+
       setActivityForm({
         name: activity.name,
         description: activity.description || "",
@@ -299,7 +322,7 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
         notes: activity.notes || "",
       });
     },
-    [tripId, tripTimezone, resolveTz],
+    [tripId, tripTimezone, resolveTz, setActivityAutoFilled],
   );
 
   const initTransportationForm = useCallback(
@@ -308,6 +331,9 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
         resolveTz(transportation.startTimezone, tripTimezone);
       const effectiveEndTz =
         resolveTz(transportation.endTimezone, tripTimezone);
+
+      // A saved leg's times are the user's; only a still-empty side gets filled in.
+      setTransportationAutoFilled({ start: false, end: false });
 
       setTransportationForm({
         type: transportation.type,
@@ -337,7 +363,7 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
         notes: transportation.notes || "",
       });
     },
-    [tripTimezone, resolveTz],
+    [tripTimezone, resolveTz, setTransportationAutoFilled],
   );
 
   const initLodgingForm = useCallback(
@@ -384,6 +410,80 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
       });
     },
     [tripId, tripTimezone, resolveTz],
+  );
+
+  // Start and end each offer the other a default an hour away, but only while that
+  // other side is still empty or holds a value this modal suggested.
+  const applyActivityStartChange = useCallback(
+    (next: DateTimeParts) => {
+      setActivityForm((prev) => {
+        const derived = deriveActivityEnd(next, {
+          date: prev.endDate,
+          time: prev.endTime,
+        });
+        return {
+          ...prev,
+          startDate: next.date,
+          startTime: next.time,
+          ...(derived ? { endDate: derived.date, endTime: derived.time } : {}),
+        };
+      });
+    },
+    [deriveActivityEnd],
+  );
+
+  const applyActivityEndChange = useCallback(
+    (next: DateTimeParts) => {
+      setActivityForm((prev) => {
+        const derived = deriveActivityStart(next, {
+          date: prev.startDate,
+          time: prev.startTime,
+        });
+        return {
+          ...prev,
+          endDate: next.date,
+          endTime: next.time,
+          ...(derived ? { startDate: derived.date, startTime: derived.time } : {}),
+        };
+      });
+    },
+    [deriveActivityStart],
+  );
+
+  const applyDepartureChange = useCallback(
+    (value: string) => {
+      setTransportationForm((prev) => {
+        const derived = deriveArrival(
+          splitDateTimeLocal(value),
+          splitDateTimeLocal(prev.arrivalTime),
+        );
+        const arrivalTime = derived ? joinDateTimeLocal(derived) : "";
+        return {
+          ...prev,
+          departureTime: value,
+          ...(arrivalTime ? { arrivalTime } : {}),
+        };
+      });
+    },
+    [deriveArrival],
+  );
+
+  const applyArrivalChange = useCallback(
+    (value: string) => {
+      setTransportationForm((prev) => {
+        const derived = deriveDeparture(
+          splitDateTimeLocal(value),
+          splitDateTimeLocal(prev.departureTime),
+        );
+        const departureTime = derived ? joinDateTimeLocal(derived) : "";
+        return {
+          ...prev,
+          arrivalTime: value,
+          ...(departureTime ? { departureTime } : {}),
+        };
+      });
+    },
+    [deriveDeparture],
   );
 
   const initJournalForm = useCallback((entry: JournalEntry) => {
@@ -904,14 +1004,10 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
                 aria-label="Start date"
                 value={activityForm.startDate}
                 onChange={(e) =>
-                  setActivityForm((prev) => ({
-                    ...prev,
-                    startDate: e.target.value,
-                    endDate:
-                      e.target.value && !prev.endDate
-                        ? e.target.value
-                        : prev.endDate,
-                  }))
+                  applyActivityStartChange({
+                    date: e.target.value,
+                    time: activityForm.startTime,
+                  })
                 }
                 className="input flex-1"
               />
@@ -920,10 +1016,10 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
                 aria-label="Start time"
                 value={activityForm.startTime}
                 onChange={(e) =>
-                  setActivityForm((prev) => ({
-                    ...prev,
-                    startTime: e.target.value,
-                  }))
+                  applyActivityStartChange({
+                    date: activityForm.startDate,
+                    time: e.target.value,
+                  })
                 }
                 className="input flex-1"
               />
@@ -939,14 +1035,10 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
                 aria-label="End date"
                 value={activityForm.endDate}
                 onChange={(e) =>
-                  setActivityForm((prev) => ({
-                    ...prev,
-                    endDate: e.target.value,
-                    startDate:
-                      e.target.value && !prev.startDate
-                        ? e.target.value
-                        : prev.startDate,
-                  }))
+                  applyActivityEndChange({
+                    date: e.target.value,
+                    time: activityForm.endTime,
+                  })
                 }
                 className="input flex-1"
               />
@@ -955,10 +1047,10 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
                 aria-label="End time"
                 value={activityForm.endTime}
                 onChange={(e) =>
-                  setActivityForm((prev) => ({
-                    ...prev,
-                    endTime: e.target.value,
-                  }))
+                  applyActivityEndChange({
+                    date: activityForm.endDate,
+                    time: e.target.value,
+                  })
                 }
                 className="input flex-1"
               />
@@ -1149,16 +1241,7 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
             id="transportation-departure-time"
             type="datetime-local"
             value={transportationForm.departureTime}
-            onChange={(e) =>
-              setTransportationForm((prev) => ({
-                ...prev,
-                departureTime: e.target.value,
-                arrivalTime:
-                  e.target.value && !prev.arrivalTime
-                    ? e.target.value
-                    : prev.arrivalTime,
-              }))
-            }
+            onChange={(e) => applyDepartureChange(e.target.value)}
             className="input"
           />
           <TimezoneSelect
@@ -1183,16 +1266,7 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
             id="transportation-arrival-time"
             type="datetime-local"
             value={transportationForm.arrivalTime}
-            onChange={(e) =>
-              setTransportationForm((prev) => ({
-                ...prev,
-                arrivalTime: e.target.value,
-                departureTime:
-                  e.target.value && !prev.departureTime
-                    ? e.target.value
-                    : prev.departureTime,
-              }))
-            }
+            onChange={(e) => applyArrivalChange(e.target.value)}
             className="input"
           />
           <TimezoneSelect

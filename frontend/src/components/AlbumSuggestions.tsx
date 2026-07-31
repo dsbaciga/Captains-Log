@@ -1,5 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import photoService, { type AlbumSuggestion } from '../services/photo.service';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import photoService, {
+  type AlbumSuggestion,
+  type AlbumSuggestionPreviewPhoto,
+} from '../services/photo.service';
+import { useImmichThumbnailCache } from '../hooks/useImmichThumbnail';
 import toast from 'react-hot-toast';
 
 interface AlbumSuggestionsProps {
@@ -45,6 +49,132 @@ function dismissAllSuggestions(tripId: number, suggestions: AlbumSuggestion[]): 
   } catch (error) {
     console.error('Failed to dismiss all suggestions:', error);
   }
+}
+
+interface SuggestionPreviewProps {
+  albumName: string;
+  photos: AlbumSuggestionPreviewPhoto[];
+  totalCount: number;
+}
+
+/**
+ * Thumbnail of the first photo that opens a 3x3 grid of the rest on hover or
+ * tap — so a suggestion can be judged without creating the album first.
+ */
+function SuggestionPreview({ albumName, photos, totalCount }: SuggestionPreviewProps) {
+  const [open, setOpen] = useState(false);
+  const { loadThumbnails, getThumbnailUrl } = useImmichThumbnailCache();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const firstPhoto = photos[0];
+
+  // The trigger only needs the first thumbnail; the rest wait until the grid opens
+  // so a screen full of suggestions does not fetch 45 Immich thumbnails up front.
+  useEffect(() => {
+    if (firstPhoto) {
+      void loadThumbnails([firstPhoto]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstPhoto?.id]);
+
+  useEffect(() => {
+    if (open) {
+      void loadThumbnails(photos);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Tapping elsewhere closes the grid on touch devices, which have no mouse-leave.
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [open]);
+
+  if (!firstPhoto) {
+    return null;
+  }
+
+  const firstUrl = getThumbnailUrl(firstPhoto.id);
+  const remaining = totalCount - photos.length;
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative flex-shrink-0"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        // Click (which Enter/Space also fire) toggles, so touch and keyboard both
+        // work without an onFocus handler fighting the toggle on tap.
+        onClick={() => setOpen((prev) => !prev)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setOpen(false);
+        }}
+        aria-expanded={open}
+        aria-label={`Preview photos in "${albumName}"`}
+        className="block w-12 h-12 rounded overflow-hidden border border-primary-200 dark:border-gold/25 bg-primary-100 dark:bg-navy-700"
+      >
+        {firstUrl ? (
+          <img src={firstUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="flex items-center justify-center w-full h-full text-[10px] text-slate dark:text-warm-gray/60">
+            {totalCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          role="tooltip"
+          // Anchored left: the trigger sits at the card's left edge, so opening
+          // rightward keeps the grid on screen on narrow phones.
+          className="absolute left-0 top-full mt-2 z-30 w-44 p-2 bg-white dark:bg-navy-800 border border-primary-200 dark:border-gold/25 rounded-lg shadow-lg"
+        >
+          <div className="grid grid-cols-3 gap-1">
+            {photos.map((photo) => {
+              const url = getThumbnailUrl(photo.id);
+              return (
+                <div
+                  key={photo.id}
+                  title={photo.caption ?? undefined}
+                  className="relative aspect-square rounded-sm overflow-hidden bg-primary-100 dark:bg-navy-700"
+                >
+                  {url && (
+                    <img
+                      src={url}
+                      alt={photo.caption ?? ''}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  {photo.mediaType === 'video' && (
+                    <span className="absolute bottom-0.5 right-0.5 text-white drop-shadow">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6.3 4.7a1 1 0 011.5-.86l7 5.3a1 1 0 010 1.72l-7 5.3a1 1 0 01-1.5-.86V4.7z" />
+                      </svg>
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[11px] text-slate dark:text-warm-gray/60">
+            {remaining > 0
+              ? `Showing ${photos.length} of ${totalCount} photos`
+              : `All ${totalCount} photos`}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AlbumSuggestions({
@@ -156,8 +286,14 @@ export default function AlbumSuggestions({
           return (
             <div
               key={key}
-              className="flex items-center justify-between gap-3 bg-white dark:bg-navy-800 rounded-lg p-3 shadow-sm border border-primary-100 dark:border-gold/15"
+              className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white dark:bg-navy-800 rounded-lg p-3 shadow-sm border border-primary-100 dark:border-gold/15"
             >
+              <SuggestionPreview
+                albumName={suggestion.name}
+                photos={suggestion.previewPhotos ?? []}
+                totalCount={suggestion.photoIds.length}
+              />
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   {suggestion.type === 'date' ? (
@@ -174,6 +310,11 @@ export default function AlbumSuggestions({
                     {suggestion.name}
                   </span>
                 </div>
+                {suggestion.description && (
+                  <p className="text-xs text-slate dark:text-warm-gray/70 mt-1 break-words">
+                    {suggestion.description}
+                  </p>
+                )}
                 <p className="text-xs text-slate dark:text-warm-gray/60 mt-0.5">
                   {suggestion.photoIds.length} photos
                   <span className="mx-1">·</span>
@@ -181,7 +322,7 @@ export default function AlbumSuggestions({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
                 <button
                   type="button"
                   onClick={() => handleDismiss(suggestion)}

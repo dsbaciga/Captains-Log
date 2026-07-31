@@ -14,6 +14,8 @@ import { useInvalidateEntityLinks } from "../hooks/useInvalidateEntityLinks";
 import userService from "../services/user.service";
 import toast from "react-hot-toast";
 import { useFormFields } from "../hooks/useFormFields";
+import { useTimeRangeDefaults } from "../hooks/useTimeRangeDefaults";
+import type { DateTimeParts } from "../utils/dateTimeDefaults";
 import EmptyState from "./EmptyState";
 import TimezoneSelect from "./TimezoneSelect";
 import LinkedEntitiesDisplay from "./LinkedEntitiesDisplay";
@@ -139,6 +141,14 @@ export default function UnscheduledItems({
     initialLodgingFormState
   );
 
+  // Suggests the missing half of the departure/arrival pair (one hour apart) without
+  // overwriting anything the user typed. Activities get this from ActivityForm.
+  const {
+    deriveEnd: deriveArrival,
+    deriveStart: deriveDeparture,
+    setAutoFilled: setTransportationAutoFilled,
+  } = useTimeRangeDefaults();
+
   const loadUserCategories = useCallback(async () => {
     try {
       const user = await userService.getMe();
@@ -188,6 +198,8 @@ export default function UnscheduledItems({
   const resetForm = () => {
     transportationForm.reset();
     lodgingForm.reset();
+    // A blank form has nothing suggested yet, so neither side is ours to overwrite.
+    setTransportationAutoFilled({ start: false, end: false });
     setEditingId(null);
     setEditingType(null);
     setIsCreating(false);
@@ -197,6 +209,36 @@ export default function UnscheduledItems({
     setEditingActivityLocationId(null);
     setOriginalActivityLocationId(null);
     setActivityFormKey((k) => k + 1);
+  };
+
+  // Departure and arrival each offer the other a default an hour away, but only while
+  // that other side is still empty or holds a value this form suggested.
+  const applyDepartureChange = (next: DateTimeParts) => {
+    transportationForm.handleChange("departureDate", next.date);
+    transportationForm.handleChange("departureTime", next.time);
+
+    const derived = deriveArrival(next, {
+      date: transportationForm.values.arrivalDate,
+      time: transportationForm.values.arrivalTime,
+    });
+    if (derived) {
+      transportationForm.handleChange("arrivalDate", derived.date);
+      transportationForm.handleChange("arrivalTime", derived.time);
+    }
+  };
+
+  const applyArrivalChange = (next: DateTimeParts) => {
+    transportationForm.handleChange("arrivalDate", next.date);
+    transportationForm.handleChange("arrivalTime", next.time);
+
+    const derived = deriveDeparture(next, {
+      date: transportationForm.values.departureDate,
+      time: transportationForm.values.departureTime,
+    });
+    if (derived) {
+      transportationForm.handleChange("departureDate", derived.date);
+      transportationForm.handleChange("departureTime", derived.time);
+    }
   };
 
   // Start creating a new entity of the specified type
@@ -343,6 +385,8 @@ export default function UnscheduledItems({
     setEditingId(transport.id);
     setEditingType("transportation");
     setActiveSection("transportation");
+    // A saved leg's times are the user's; only a still-empty side gets filled in.
+    setTransportationAutoFilled({ start: false, end: false });
     transportationForm.handleChange("type", transport.type);
     transportationForm.handleChange(
       "fromLocationId",
@@ -998,13 +1042,12 @@ export default function UnscheduledItems({
                     type="date"
                     aria-label="Departure date"
                     value={transportationForm.values.departureDate}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      transportationForm.handleChange("departureDate", value);
-                      if (value && !transportationForm.values.arrivalDate) {
-                        transportationForm.handleChange("arrivalDate", value);
-                      }
-                    }}
+                    onChange={(e) =>
+                      applyDepartureChange({
+                        date: e.target.value,
+                        time: transportationForm.values.departureTime,
+                      })
+                    }
                     className="input flex-1"
                   />
                   <input
@@ -1012,10 +1055,10 @@ export default function UnscheduledItems({
                     aria-label="Departure time"
                     value={transportationForm.values.departureTime}
                     onChange={(e) =>
-                      transportationForm.handleChange(
-                        "departureTime",
-                        e.target.value
-                      )
+                      applyDepartureChange({
+                        date: transportationForm.values.departureDate,
+                        time: e.target.value,
+                      })
                     }
                     className="input flex-1"
                   />
@@ -1030,13 +1073,12 @@ export default function UnscheduledItems({
                     type="date"
                     aria-label="Arrival date"
                     value={transportationForm.values.arrivalDate}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      transportationForm.handleChange("arrivalDate", value);
-                      if (value && !transportationForm.values.departureDate) {
-                        transportationForm.handleChange("departureDate", value);
-                      }
-                    }}
+                    onChange={(e) =>
+                      applyArrivalChange({
+                        date: e.target.value,
+                        time: transportationForm.values.arrivalTime,
+                      })
+                    }
                     className="input flex-1"
                   />
                   <input
@@ -1044,10 +1086,10 @@ export default function UnscheduledItems({
                     aria-label="Arrival time"
                     value={transportationForm.values.arrivalTime}
                     onChange={(e) =>
-                      transportationForm.handleChange(
-                        "arrivalTime",
-                        e.target.value
-                      )
+                      applyArrivalChange({
+                        date: transportationForm.values.arrivalDate,
+                        time: e.target.value,
+                      })
                     }
                     className="input flex-1"
                   />

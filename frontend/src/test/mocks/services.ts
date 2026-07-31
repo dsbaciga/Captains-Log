@@ -11,6 +11,7 @@ import type { Photo, PhotoAlbum, AlbumWithPhotos, UploadPhotoInput, LinkImmichPh
 import type { User, UpdateUserSettingsInput } from '../../types/user';
 import type { EntityType, EntityLink, EnrichedEntityLink, CreateEntityLinkInput, BulkCreateEntityLinksInput, BulkLinkPhotosInput, DeleteEntityLinkInput, UpdateEntityLinkInput, BulkLinkResult, EntityLinksResponse, TripLinkSummary } from '../../types/entityLink';
 import type { GeocodingResult } from '../../services/geocoding.service';
+import type { AlbumSuggestion } from '../../services/photo.service';
 
 // ============================================================================
 // Activity Service Mock
@@ -78,7 +79,7 @@ export const mockPhotoService = {
   removePhotoFromAlbum: vi.fn<(arg1: number, arg2: number) => Promise<void>>(),
   getPhotoDateGroupings: vi.fn<(arg1: number, arg2?: string) => Promise<{ groupings: Array<{ date: string; count: number }>; totalWithDates: number; totalWithoutDates: number }>>(),
   getPhotosByDate: vi.fn<(arg1: number, arg2: string, arg3?: string) => Promise<{ photos: Photo[]; date: string; count: number }>>(),
-  getAlbumSuggestions: vi.fn<(arg1: number) => Promise<Array<{ name: string; photoIds: number[]; type: 'date' | 'location'; confidence: number; metadata: { date?: string; locationName?: string; locationId?: number } }>>>(),
+  getAlbumSuggestions: vi.fn<(arg1: number) => Promise<AlbumSuggestion[]>>(),
   acceptAlbumSuggestion: vi.fn<(arg1: number, arg2: { name: string; photoIds: number[] }) => Promise<{ albumId: number }>>(),
 };
 

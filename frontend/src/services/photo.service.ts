@@ -209,15 +209,30 @@ export interface PhotosByDateResponse {
   count: number;
 }
 
+export interface AlbumSuggestionPreviewPhoto {
+  id: number;
+  thumbnailPath: string | null;
+  source: string;
+  mediaType: string;
+  caption: string | null;
+}
+
 export interface AlbumSuggestion {
   name: string;
+  /** Why these photos were grouped, and what they are, in plain language. */
+  description: string;
   photoIds: number[];
+  /** Representative sample (up to 9) for the preview grid. */
+  previewPhotos: AlbumSuggestionPreviewPhoto[];
   type: 'date' | 'location';
   confidence: number;
   metadata: {
     date?: string;
     locationName?: string;
     locationId?: number;
+    startTime?: string;
+    endTime?: string;
+    photoCount?: number;
   };
 }
 

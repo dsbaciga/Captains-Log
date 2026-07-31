@@ -18,6 +18,8 @@ import {
   convertDateTimeLocalToISO,
 } from "../../utils/timezone";
 import { useTimezoneResolver } from "../../hooks/useTimezoneResolver";
+import { useTimeRangeDefaults } from "../../hooks/useTimeRangeDefaults";
+import type { DateTimeParts } from "../../utils/dateTimeDefaults";
 import { getLastUsedCurrency, saveLastUsedCurrency } from "../../utils/currencyStorage";
 import DietaryTagSelector from "../DietaryTagSelector";
 import MarkdownEditor from "../MarkdownEditor";
@@ -138,6 +140,10 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
   });
   const { resetErrors } = fieldErrors;
 
+  // Suggests the missing half of the start/end pair (one hour apart) without
+  // overwriting anything the user typed.
+  const { deriveEnd, deriveStart, setAutoFilled } = useTimeRangeDefaults();
+
   // Track unsaved changes for browser close/refresh warning
   const { captureInitialValues, isDirty: isFormDirty, markSaved } = useUnsavedChangesWarning(values, true);
 
@@ -171,6 +177,8 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
     const restoredData = draft.restoreDraft();
     if (restoredData) {
       setAllFields(restoredData);
+      // Restored times are the user's own work, not suggestions to overwrite.
+      setAutoFilled({ start: false, end: false });
       // Show more options if draft has data in optional fields
       if (restoredData.description || restoredData.locationId || restoredData.cost ||
           restoredData.bookingUrl || restoredData.bookingReference || restoredData.notes ||
@@ -179,7 +187,7 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
       }
     }
     setShowDraftPrompt(false);
-  }, [draft, setAllFields]);
+  }, [draft, setAllFields, setAutoFilled]);
 
   // Handle draft discard
   const handleDiscardDraft = useCallback(() => {
@@ -196,6 +204,8 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
   useEffect(() => {
     if (editingActivity) {
       setShowMoreOptions(true);
+      // A saved activity's times are the user's; only a still-empty side gets filled in.
+      setAutoFilled({ start: false, end: false });
       handleChange("name", editingActivity.name);
       handleChange("description", editingActivity.description || "");
       handleChange("category", editingActivity.category || "");
@@ -267,14 +277,16 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
         }
       }
     } else {
-      // Reset form for new activity
+      // Reset form for new activity. Both dates start seeded from the trip start date,
+      // which the user did not choose - treat them as replaceable suggestions.
       reset();
       resetErrors();
+      setAutoFilled({ start: true, end: true });
       if (defaultUnscheduled) {
         handleChange("unscheduled", true);
       }
     }
-  }, [editingActivity, editingLocationId, tripTimezone, resolveTz, defaultUnscheduled, handleChange, reset, resetErrors]);
+  }, [editingActivity, editingLocationId, tripTimezone, resolveTz, defaultUnscheduled, handleChange, reset, resetErrors, setAutoFilled]);
 
   // Capture initial values for dirty tracking after form populates.
   // Uses a microtask to ensure all handleChange calls from the populate effect have settled.
@@ -287,30 +299,36 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingActivity, captureInitialValues]);
 
-  // Auto-fill: End Time = Start Time + 1 Hour (only when creating)
-  useEffect(() => {
-    if (!editingActivity && !values.allDay && !values.unscheduled && values.startDate && values.startTime) {
-      if (!values.endTime || !values.endDate) {
-        const [hours, minutes] = values.startTime.split(":").map(Number);
-        const newHours = (hours + 1) % 24;
-        const endTime = `${String(newHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  // Auto-fill: End Time = Start Time + 1 Hour, and Start Time = End Time - 1 Hour.
+  // Driven from the change handlers rather than an effect so a clear stays cleared:
+  // an effect watching the start would immediately refill an end the user just emptied.
+  const applyStartChange = useCallback(
+    (next: DateTimeParts) => {
+      handleChange("startDate", next.date);
+      handleChange("startTime", next.time);
 
-        let endDate = values.startDate;
-        if (newHours < hours) {
-          const date = new Date(values.startDate);
-          date.setDate(date.getDate() + 1);
-          endDate = date.toISOString().slice(0, 10);
-        }
-
-        if (!values.endTime) handleChange("endTime", endTime);
-        if (!values.endDate) handleChange("endDate", endDate);
+      const derived = deriveEnd(next, { date: values.endDate, time: values.endTime });
+      if (derived) {
+        handleChange("endDate", derived.date);
+        handleChange("endTime", derived.time);
       }
-    }
-    // Intentionally excludes values.endDate/values.endTime: including them would
-    // re-run this effect when the user manually clears the end time, immediately
-    // overwriting their clear with the auto-computed value.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.startDate, values.startTime, values.allDay, values.unscheduled, editingActivity, handleChange]);
+    },
+    [handleChange, deriveEnd, values.endDate, values.endTime]
+  );
+
+  const applyEndChange = useCallback(
+    (next: DateTimeParts) => {
+      handleChange("endDate", next.date);
+      handleChange("endTime", next.time);
+
+      const derived = deriveStart(next, { date: values.startDate, time: values.startTime });
+      if (derived) {
+        handleChange("startDate", derived.date);
+        handleChange("startTime", derived.time);
+      }
+    },
+    [handleChange, deriveStart, values.startDate, values.startTime]
+  );
 
   const handleLocationCreated = (locationId: number, locationName: string) => {
     const newLocation = createLocationStub(locationId, locationName, tripId);
@@ -603,13 +621,9 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
                         name="start-date"
                         autoComplete="off"
                         value={values.startDate}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          handleChange("startDate", value);
-                          if (value && !values.endDate) {
-                            handleChange("endDate", value);
-                          }
-                        }}
+                        onChange={(e) =>
+                          applyStartChange({ date: e.target.value, time: values.startTime })
+                        }
                         className="input flex-1"
                         disabled={isSubmitting}
                       />
@@ -620,7 +634,9 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
                         autoComplete="off"
                         aria-label="Start time"
                         value={values.startTime}
-                        onChange={(e) => handleChange("startTime", e.target.value)}
+                        onChange={(e) =>
+                          applyStartChange({ date: values.startDate, time: e.target.value })
+                        }
                         className="input flex-1"
                         placeholder="12:00"
                         disabled={isSubmitting}
@@ -641,13 +657,9 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
                         name="end-date"
                         autoComplete="off"
                         value={values.endDate}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          handleChange("endDate", value);
-                          if (value && !values.startDate) {
-                            handleChange("startDate", value);
-                          }
-                        }}
+                        onChange={(e) =>
+                          applyEndChange({ date: e.target.value, time: values.endTime })
+                        }
                         className="input flex-1"
                         disabled={isSubmitting}
                       />
@@ -658,7 +670,9 @@ const ActivityForm = forwardRef<HTMLFormElement, ActivityFormProps>(function Act
                         autoComplete="off"
                         aria-label="End time"
                         value={values.endTime}
-                        onChange={(e) => handleChange("endTime", e.target.value)}
+                        onChange={(e) =>
+                          applyEndChange({ date: values.endDate, time: e.target.value })
+                        }
                         className="input flex-1"
                         placeholder="12:00"
                         disabled={isSubmitting}

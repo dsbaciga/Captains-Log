@@ -18,6 +18,8 @@ import DraftIndicator from "./DraftIndicator";
 import DraftRestorePrompt from "./DraftRestorePrompt";
 import { formatDateTimeInTimezone, convertISOToDateTimeLocal, convertDateTimeLocalToISO } from "../utils/timezone";
 import { useTimezoneResolver } from "../hooks/useTimezoneResolver";
+import { useTimeRangeDefaults } from "../hooks/useTimeRangeDefaults";
+import { splitDateTimeLocal, joinDateTimeLocal } from "../utils/dateTimeDefaults";
 import { useFormFields } from "../hooks/useFormFields";
 import { useFormReset } from "../hooks/useFormReset";
 import { useManagerCRUD } from "../hooks/useManagerCRUD";
@@ -448,6 +450,10 @@ export default function TransportationManager({
     }
   }, [manager]);
 
+  // Suggests the missing half of the departure/arrival pair (one hour apart) without
+  // overwriting anything the user typed.
+  const { deriveEnd, deriveStart, setAutoFilled } = useTimeRangeDefaults();
+
   // Use useFormReset for consistent form state management
   const { resetForm: baseResetForm, openCreateForm: baseOpenCreateForm } = useFormReset({
     initialState: getInitialFormState,
@@ -493,6 +499,8 @@ export default function TransportationManager({
     const restoredData = draft.restoreDraft();
     if (restoredData) {
       setAllFields(restoredData);
+      // Restored times are the user's own work, not suggestions to overwrite.
+      setAutoFilled({ start: false, end: false });
       // Show more options if draft has data in optional fields
       if (restoredData.carrier || restoredData.vehicleNumber || restoredData.confirmationNumber ||
           restoredData.cost || restoredData.notes || restoredData.fromLocationName || restoredData.toLocationName) {
@@ -500,7 +508,7 @@ export default function TransportationManager({
       }
     }
     setShowDraftPrompt(false);
-  }, [draft, setAllFields]);
+  }, [draft, setAllFields, setAutoFilled]);
 
   // Handle draft discard
   const handleDiscardDraft = useCallback(() => {
@@ -530,6 +538,8 @@ export default function TransportationManager({
   // handleEdit must be defined before handleEditFromUrl since it's used as a dependency
   const handleEdit = useCallback((transportation: Transportation) => {
     setShowMoreOptions(true); // Always show all options when editing
+    // A saved leg's times are the user's; only a still-empty side gets filled in.
+    setAutoFilled({ start: false, end: false });
     handleChange("type", transportation.type);
     handleChange("fromLocationId", transportation.fromLocationId || undefined);
     handleChange("toLocationId", transportation.toLocationId || undefined);
@@ -561,7 +571,7 @@ export default function TransportationManager({
     handleChange("currency", transportation.currency || "USD");
     handleChange("notes", transportation.notes || "");
     manager.openEditForm(transportation.id);
-  }, [handleChange, tripTimezone, resolveTz, manager]);
+  }, [handleChange, tripTimezone, resolveTz, manager, setAutoFilled]);
 
   // Stable callback for URL-based edit navigation
   const handleEditFromUrl = useCallback((transportation: Transportation) => {
@@ -622,6 +632,11 @@ export default function TransportationManager({
           // Format as datetime-local
           const departureDateTime = arrivalDate.toISOString().slice(0, 16).replace('T', 'T');
           handleChange('departureTime', departureDateTime);
+
+          // A chained departure encodes a real layover buffer, unlike the blank 09:00
+          // stub it replaces. Protect it: entering an arrival should not drag the
+          // departure back to arrival-minus-an-hour and undo the connection.
+          setAutoFilled({ start: false, end: true });
 
           // Inherit start timezone
           if (lastTransport.endTimezone && !values.startTimezone) {
@@ -713,9 +728,34 @@ export default function TransportationManager({
     baseOpenCreateForm();
     setKeepFormOpenAfterSave(false);
     setShowMoreOptions(false);
-  }, [baseOpenCreateForm]);
+    // Both times start seeded from the trip start date at 09:00, which the user did not
+    // choose - treat them as replaceable suggestions.
+    setAutoFilled({ start: true, end: true });
+  }, [baseOpenCreateForm, setAutoFilled]);
 
   useCreateFromUrlParam(openCreateForm);
+
+  // Departure and arrival each offer the other a default an hour away, but only while
+  // that other side is still a suggestion rather than something the user set.
+  const handleDepartureChange = useCallback((value: string) => {
+    handleChange("departureTime", value);
+    const derived = deriveEnd(
+      splitDateTimeLocal(value),
+      splitDateTimeLocal(values.arrivalTime)
+    );
+    const derivedValue = derived ? joinDateTimeLocal(derived) : "";
+    if (derivedValue) handleChange("arrivalTime", derivedValue);
+  }, [handleChange, deriveEnd, values.arrivalTime]);
+
+  const handleArrivalChange = useCallback((value: string) => {
+    handleChange("arrivalTime", value);
+    const derived = deriveStart(
+      splitDateTimeLocal(value),
+      splitDateTimeLocal(values.departureTime)
+    );
+    const derivedValue = derived ? joinDateTimeLocal(derived) : "";
+    if (derivedValue) handleChange("departureTime", derivedValue);
+  }, [handleChange, deriveStart, values.departureTime]);
 
   const handleFromLocationCreated = (locationId: number, locationName: string) => {
     // Add the new location to local state
@@ -1309,13 +1349,7 @@ export default function TransportationManager({
                     name="departure-time"
                     autoComplete="off"
                     value={values.departureTime}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      handleChange("departureTime", value);
-                      if (value && !values.arrivalTime) {
-                        handleChange("arrivalTime", value);
-                      }
-                    }}
+                    onChange={(e) => handleDepartureChange(e.target.value)}
                     className="input flex-1"
                   />
                   {values.departureTime && (
@@ -1354,13 +1388,7 @@ export default function TransportationManager({
                     name="arrival-time"
                     autoComplete="off"
                     value={values.arrivalTime}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      handleChange("arrivalTime", value);
-                      if (value && !values.departureTime) {
-                        handleChange("departureTime", value);
-                      }
-                    }}
+                    onChange={(e) => handleArrivalChange(e.target.value)}
                     className="input flex-1"
                   />
                   {values.arrivalTime && (
