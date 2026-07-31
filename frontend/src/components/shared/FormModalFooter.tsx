@@ -87,12 +87,12 @@ export default function FormModalFooter({
   const showSaveAndAddAnother = !isEditMode && onSaveAndAddAnother;
 
   const buttons = (
-    <div className="flex gap-2">
+    <div className="flex gap-2 w-full sm:w-auto">
       <button
         type="button"
         onClick={onCancel}
         disabled={isSubmitting}
-        className="btn btn-secondary"
+        className="btn btn-secondary flex-1 sm:flex-none"
       >
         Cancel
       </button>
@@ -110,7 +110,7 @@ export default function FormModalFooter({
         type="submit"
         form={formId}
         disabled={isSubmitting}
-        className="btn btn-primary disabled:opacity-50"
+        className="btn btn-primary disabled:opacity-50 flex-1 sm:flex-none"
       >
         {isSubmitting ? submittingLabel : submitLabel}
       </button>
@@ -121,7 +121,7 @@ export default function FormModalFooter({
   // two-column layout that matches the existing pattern.
   if (leftContent) {
     return (
-      <div className="flex items-center justify-between w-full gap-4">
+      <div className="flex flex-col gap-3 w-full sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         {leftContent}
         {buttons}
       </div>
