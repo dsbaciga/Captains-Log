@@ -627,6 +627,61 @@ textarea:focus-visible {
   }
 }
 
+/* ========================================
+   MODAL — MOBILE BOTTOM SHEET
+   ======================================== */
+
+/* Panel height. Uses dvh so the browser's dynamic chrome (URL bar, toolbars)
+   is accounted for on phones, with a vh fallback for older browsers. */
+.modal-panel {
+  max-height: 90vh;
+  max-height: 90dvh;
+}
+
+/* On phones the modal behaves as a bottom sheet, so it can occupy more of the
+   screen height for easier scrolling through long forms. */
+@media (max-width: 639px) {
+  .modal-panel {
+    max-height: 92vh;
+    max-height: 92dvh;
+  }
+}
+
+/* Entrance animation: scale-in on desktop, slide-up from the bottom on phones
+   (matches the bottom-sheet layout). Disabled under prefers-reduced-motion by
+   the global rule at the bottom of this file. */
+@keyframes modal-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-panel-animate {
+  animation: modal-zoom-in 0.2s ease-out;
+}
+
+@media (max-width: 639px) {
+  .modal-panel-animate {
+    animation: modal-slide-up 0.25s ease-out;
+  }
+}
+
 /* Safe area padding for notched devices */
 .safe-area-inset-bottom {
   padding-bottom: env(safe-area-inset-bottom);

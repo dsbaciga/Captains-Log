@@ -232,7 +232,7 @@ export default function Modal({
 
   return createPortal(
     <div
-      className={`fixed inset-0 flex items-center justify-center p-4`}
+      className={`fixed inset-0 flex items-end justify-center p-0 sm:items-center sm:p-4`}
       style={{ zIndex }}
       role="dialog"
       aria-modal="true"
@@ -245,17 +245,22 @@ export default function Modal({
         aria-hidden="true"
       />
 
-      {/* Modal */}
+      {/* Modal — full-width bottom sheet on phones, centered dialog on larger screens */}
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-hidden flex flex-col ${animate ? 'animate-in fade-in zoom-in-95 duration-200' : ''} ${className}`}
+        className={`modal-panel relative bg-white dark:bg-navy-800 rounded-t-2xl sm:rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full overflow-hidden flex flex-col ${animate ? 'modal-panel-animate' : ''} ${className}`}
       >
+        {/* Drag-handle affordance (phones only) — signals the bottom-sheet gesture */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0" aria-hidden="true">
+          <div className="h-1.5 w-10 rounded-full bg-slate/25 dark:bg-warm-gray/25" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-primary-100 dark:border-gold/20 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 sm:p-6 border-b border-primary-100 dark:border-gold/20 flex-shrink-0">
           <h2
             id={titleId}
-            className="text-xl font-bold text-charcoal dark:text-warm-gray flex items-center gap-2 min-w-0 break-words"
+            className="text-lg sm:text-xl font-bold text-charcoal dark:text-warm-gray flex items-center gap-2 min-w-0 break-words"
           >
             {icon && <span className="shrink-0">{icon}</span>}
             {title}
@@ -273,11 +278,17 @@ export default function Modal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+        <div
+          className={`flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:p-6 ${
+            footer ? '' : 'pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6'
+          }`}
+        >
+          {children}
+        </div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-primary-100 dark:border-gold/20 flex-shrink-0 bg-parchment dark:bg-navy-800/50">
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 border-t border-primary-100 dark:border-gold/20 flex-shrink-0 bg-parchment dark:bg-navy-800/50">
             {footer}
           </div>
         )}
@@ -405,7 +416,7 @@ Modal.Simple = function SimpleModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-center justify-center p-2 sm:p-4"
       style={{ zIndex }}
       role="dialog"
       aria-modal="true"
@@ -419,7 +430,7 @@ Modal.Simple = function SimpleModal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] overflow-auto ${className}`}
+        className={`modal-panel relative bg-white dark:bg-navy-800 rounded-xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full overflow-auto overscroll-contain ${className}`}
       >
         {children}
       </div>
