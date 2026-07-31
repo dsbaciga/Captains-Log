@@ -17,6 +17,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Modals open as bottom sheets on phones.** Below the `sm` breakpoint a modal now
+  anchors to the bottom of the screen at full width with a rounded top edge, a drag-handle
+  affordance and a slide-up entrance, instead of floating as a centered card inset by
+  16 px on every side — space a long form could not afford. Padding tightens (`px-4 py-3`
+  against the desktop `p-6`), the title drops to `text-lg`, and the panel is allowed 92%
+  of the viewport rather than 90%. Height is measured in `dvh` with a `vh` fallback, so
+  the sheet accounts for the browser's collapsing URL bar instead of being cut off by it,
+  and the footer and unfootered content pad to `env(safe-area-inset-bottom)` so the
+  buttons clear the home indicator on notched devices. Content scrolls with
+  `overscroll-contain`, keeping a scroll gesture inside the sheet rather than dragging the
+  page behind it. `FormModalFooter`'s Cancel and Save split the full width on phones and
+  stack under any left-hand content, rather than crowding onto one row. The entrance
+  animation moved from Tailwind's `animate-in` utilities to named keyframes so the global
+  `prefers-reduced-motion` rule suppresses it. Desktop layout is unchanged.
+
+### Documentation
+
+- Added a `claude.yml` GitHub Actions workflow so Claude responds to `@claude` mentions in
+  issues and pull request reviews.
+
 ## [6.1.1] - 2026-07-31
 
 ### Added
