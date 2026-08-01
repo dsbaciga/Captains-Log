@@ -10,43 +10,33 @@ import {
 import { buildConditionalUpdateData } from '../services/_shared/prismaUpdateData';
 import { convertDecimals } from '../services/_shared/decimalConversion';
 import { cleanupEntityLinks } from '../services/_shared/entityLinkCleanup';
-import { fromZonedTime } from 'date-fns-tz';
-import { parseISO } from 'date-fns';
+
+/**
+ * A journal entry's `date` is a `@db.Date` column — a calendar day, not an
+ * instant. It must be stored at UTC midnight so it reads back as the same day
+ * in every timezone; converting it through the trip's zone (as this once did)
+ * pushed the date back a day for any trip east of UTC and drifted it further on
+ * each edit. Take the YYYY-MM-DD portion of whatever the client sends (a plain
+ * date, or a legacy datetime-local string) and pin it to UTC midnight.
+ */
+function parseEntryDate(input: string): Date {
+  const datePortion = input.split('T')[0];
+  const pinned = new Date(`${datePortion}T00:00:00.000Z`);
+  // Fall back to permissive parsing if the input wasn't a date we recognise.
+  return Number.isNaN(pinned.getTime()) ? new Date(input) : pinned;
+}
 
 class JournalEntryService {
   async createJournalEntry(userId: number, data: CreateJournalEntryInput) {
-    // Verify user has edit permission on the trip and get trip timezone
-    const { trip } = await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
-
-    // Fetch full trip details including timezone
-    const fullTrip = await prisma.trip.findUnique({
-      where: { id: trip.id },
-      select: { timezone: true },
-    });
+    // Verify user has edit permission on the trip
+    await verifyTripAccessWithPermission(userId, data.tripId, 'edit');
 
     // `date` is accepted as an alias for `entryDate` so the input shape can
     // round-trip the `date` field the API returns on read.
     const entryDateInput = data.entryDate ?? data.date;
 
-    // Parse entry date with trip timezone
-    let entryDate: Date;
-    if (entryDateInput) {
-      // If trip has timezone, convert from that timezone to UTC for storage
-      if (fullTrip?.timezone) {
-        try {
-          // Parse the ISO string and interpret it as being in the trip's timezone
-          const parsedDate = parseISO(entryDateInput);
-          entryDate = fromZonedTime(parsedDate, fullTrip.timezone);
-        } catch (error) {
-          console.error('Error parsing date with timezone:', error);
-          entryDate = new Date(entryDateInput);
-        }
-      } else {
-        entryDate = new Date(entryDateInput);
-      }
-    } else {
-      entryDate = new Date();
-    }
+    // The entry date is a calendar day, stored at UTC midnight (see parseEntryDate).
+    const entryDate = entryDateInput ? parseEntryDate(entryDateInput) : new Date();
 
     const journalEntry = await prisma.journalEntry.create({
       data: {
@@ -97,28 +87,9 @@ class JournalEntryService {
     // Verify user has edit permission on the journal entry's trip
     await verifyEntityAccessWithPermission('journalEntry', entryId, userId, 'edit');
 
-    const entry = await prisma.journalEntry.findUnique({
-      where: { id: entryId },
-      include: { trip: true },
-    });
-
-    // Create date transformer that handles timezone conversion
-    const entryDateTransformer = (dateStr: string | null) => {
-      if (!dateStr) return null;
-
-      // Parse date with trip timezone if available
-      if (entry?.trip?.timezone) {
-        try {
-          const parsedDate = parseISO(dateStr);
-          return fromZonedTime(parsedDate, entry.trip.timezone);
-        } catch (error) {
-          console.error('Error parsing date with timezone:', error);
-          return new Date(dateStr);
-        }
-      } else {
-        return new Date(dateStr);
-      }
-    };
+    // The entry date is a calendar day, pinned to UTC midnight (see parseEntryDate).
+    const entryDateTransformer = (dateStr: string | null) =>
+      dateStr ? parseEntryDate(dateStr) : null;
 
     // Extract only the fields that are valid for JournalEntry model.
     // `date` is accepted as an alias for `entryDate`; when both are omitted the

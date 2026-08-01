@@ -22,6 +22,7 @@ import MarkdownRenderer from "./MarkdownRenderer";
 import MarkdownEditor from "./MarkdownEditor";
 import { stripMarkdown } from "../utils/stripMarkdown";
 import { formatDate } from "../utils/dateFormat";
+import { extractDatePortion } from "../utils/timezone";
 
 /**
  * JournalManager handles CRUD operations for trip journal entries.
@@ -61,12 +62,11 @@ export default function JournalManager({
   tripStartDate,
   onUpdate,
 }: JournalManagerProps) {
-  // Compute default entry date from trip start date (set to noon)
+  // A journal entry's date is a calendar day (`@db.Date`), not an instant, so
+  // the form works in plain YYYY-MM-DD. Default to the trip's start day.
   const defaultEntryDate = useMemo(() => {
     if (!tripStartDate) return "";
-    // Extract just the date portion (YYYY-MM-DD) and append time of noon (12:00)
-    const dateOnly = tripStartDate.slice(0, 10);
-    return `${dateOnly}T12:00`;
+    return tripStartDate.slice(0, 10);
   }, [tripStartDate]);
 
   // Service adapter for useManagerCRUD hook (memoized to prevent infinite loops)
@@ -188,9 +188,9 @@ export default function JournalManager({
     setAllFields({
       title: entry.title || "",
       content: entry.content,
-      entryDate: entry.date
-        ? new Date(entry.date).toISOString().slice(0, 16)
-        : "",
+      // Date-only field: take the calendar day as-is rather than routing it
+      // through a UTC datetime, which would shift the day for western viewers.
+      entryDate: entry.date ? extractDatePortion(entry.date) : "",
     });
     manager.openEditForm(entry.id);
     setExpandedId(null);
@@ -408,7 +408,7 @@ export default function JournalManager({
                   Entry Date
                 </label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   id={entryDateFieldId}
                   name="entry-date"
                   autoComplete="off"
