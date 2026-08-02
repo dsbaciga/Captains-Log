@@ -212,6 +212,7 @@ export class LocationService {
         visitDatetime: data.visitDatetime ? new Date(data.visitDatetime) : null,
         visitDurationMinutes: data.visitDurationMinutes,
         notes: data.notes,
+        excludeFromMap: data.excludeFromMap ?? false,
         openingHours: data.openingHours,
         // Hours arriving with the create request came from the user, so mark them manual
         // and keep the OSM lookup from ever replacing them.

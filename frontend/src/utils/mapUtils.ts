@@ -75,6 +75,24 @@ export function filterValidCoordinates<T extends Coordinates>(
 }
 
 /**
+ * Filter locations down to those that should actually appear on a trip map:
+ * valid coordinates AND not explicitly excluded via `excludeFromMap`.
+ *
+ * Excluded locations (e.g. a far-off home/origin) are dropped entirely so they
+ * neither draw a marker nor stretch the auto-fit bounds/zoom to span the world.
+ * The flag is optional so callers passing plain coordinate objects (photos,
+ * transportation endpoints) are unaffected.
+ *
+ * @param locations - Array of objects with latitude/longitude and optional excludeFromMap
+ * @returns Filtered array containing only map-visible locations
+ */
+export function filterMapVisibleLocations<
+  T extends Coordinates & { excludeFromMap?: boolean }
+>(locations: T[]): T[] {
+  return filterValidCoordinates(locations).filter((loc) => !loc.excludeFromMap);
+}
+
+/**
  * Calculate appropriate zoom level based on the spread of locations
  * @param locations - Array of objects with latitude and longitude properties
  * @returns Suggested zoom level (1-18)

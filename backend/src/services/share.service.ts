@@ -40,6 +40,7 @@ export interface PublicLocation {
   latitude: number | null;
   longitude: number | null;
   notes: string | null;
+  excludeFromMap: boolean;
 }
 
 export interface PublicActivity {
@@ -291,6 +292,7 @@ class ShareService {
         latitude: toNumberOrNull(location.latitude),
         longitude: toNumberOrNull(location.longitude),
         notes: location.notes,
+        excludeFromMap: location.excludeFromMap,
       })),
       activities: trip.activities.map((activity) => ({
         id: activity.id,

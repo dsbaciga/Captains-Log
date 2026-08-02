@@ -11,6 +11,8 @@ export type Location = {
   visitDurationMinutes: number | null;
   notes: string | null;
   isFavorite: boolean;
+  /** When true, the location is hidden from trip maps and excluded from auto-fit bounds/zoom. */
+  excludeFromMap: boolean;
   /** Raw OpenStreetMap `opening_hours` string, e.g. "Mo-Fr 09:00-17:00; Su off". */
   openingHours: string | null;
   /** 'osm' when auto-populated from OpenStreetMap, 'manual' when the user typed it in. */
@@ -61,6 +63,7 @@ export type CreateLocationInput = {
   visitDatetime?: string;
   visitDurationMinutes?: number;
   notes?: string;
+  excludeFromMap?: boolean;
   openingHours?: string;
   timezone?: string;
 };

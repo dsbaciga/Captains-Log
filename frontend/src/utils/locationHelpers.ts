@@ -46,6 +46,7 @@ export function createLocationStub(
     visitDurationMinutes: null,
     notes: null,
     isFavorite: false,
+    excludeFromMap: false,
     // A stub for an entity the caller just created; the server fills these in.
     openingHours: null,
     openingHoursSource: null,

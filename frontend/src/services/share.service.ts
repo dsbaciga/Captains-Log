@@ -18,6 +18,7 @@ export interface PublicLocation {
   latitude: number | null;
   longitude: number | null;
   notes: string | null;
+  excludeFromMap: boolean;
 }
 
 export interface PublicActivity {

@@ -290,6 +290,10 @@ model Location {
   visitDurationMinutes Int?                                   @map("visit_duration_minutes")
   notes                String?                                @db.Text
   isFavorite           Boolean                                @default(false) @map("is_favorite")
+  // When true, the location is hidden from trip maps entirely — no marker, and it does not
+  // affect auto-fit bounds/zoom. Lets a far-off origin (e.g. home) stay recorded without
+  // zooming the map out to span the whole journey.
+  excludeFromMap       Boolean                                @default(false) @map("exclude_from_map")
   // Raw OpenStreetMap `opening_hours` specification (e.g. "Mo-Fr 09:00-17:00; Sa 10:00-14:00").
   // Kept verbatim as the single source of truth; parsed on demand by openingHours.service.
   openingHours         String?                                @map("opening_hours") @db.Text

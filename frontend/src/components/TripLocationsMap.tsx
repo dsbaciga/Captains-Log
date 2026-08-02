@@ -9,7 +9,7 @@ import type { Location } from '../types/location';
 import type { Transportation } from '../types/transportation';
 
 // Import shared map utilities (this also sets up leaflet icons)
-import { calculateMapCenter, filterValidCoordinates } from '../utils/mapUtils';
+import { calculateMapCenter, filterMapVisibleLocations } from '../utils/mapUtils';
 import '../utils/mapUtils'; // Ensure leaflet icons are set up
 
 // Import reusable components
@@ -31,7 +31,7 @@ function MapBounds({ locations }: { locations: Location[] }) {
   useEffect(() => {
     if (locations.length === 0) return;
 
-    const validLocations = filterValidCoordinates(locations);
+    const validLocations = filterMapVisibleLocations(locations);
 
     if (validLocations.length === 0) return;
 
@@ -100,7 +100,7 @@ function createArcPath(start: LatLng, end: LatLng): LatLng[] {
 
 export default function TripLocationsMap({ locations, transportations = [], showRoutes = true }: TripLocationsMapProps) {
   const tileConfig = useMapTiles();
-  const validLocations = filterValidCoordinates(locations);
+  const validLocations = filterMapVisibleLocations(locations);
 
   if (validLocations.length === 0) {
     return (
