@@ -815,6 +815,12 @@ textarea:focus-visible {
     background-image: none !important;
     background-color: #fff !important;
     color: #000 !important;
+    /* The app runs with color-scheme: dark (set inline on <html> and in
+       main.tsx). In print, Chrome paints the page-margin backdrop with the
+       dark canvas colour (~#121212), which frames every sheet in black even
+       though the body background is forced white. Force a light scheme so the
+       margins print white. */
+    color-scheme: light !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
