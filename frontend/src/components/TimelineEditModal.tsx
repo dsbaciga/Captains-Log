@@ -29,6 +29,7 @@ import toast from "react-hot-toast";
 import {
   convertISOToDateTimeLocal,
   convertDateTimeLocalToISO,
+  extractDatePortion,
 } from "../utils/timezone";
 import FormModal from "./FormModal";
 import TimezoneSelect from "./TimezoneSelect";
@@ -490,9 +491,9 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
     setJournalForm({
       title: entry.title || "",
       content: entry.content,
-      entryDate: entry.date
-        ? new Date(entry.date).toISOString().slice(0, 16)
-        : "",
+      // A journal entry's date is a calendar day (`@db.Date`), so keep it as
+      // YYYY-MM-DD rather than routing it through a UTC datetime.
+      entryDate: entry.date ? extractDatePortion(entry.date) : "",
     });
   }, []);
 
@@ -1609,7 +1610,7 @@ export default function TimelineEditModal(props: TimelineEditModalProps) {
         </label>
         <input
           id="journal-entry-date"
-          type="datetime-local"
+          type="date"
           value={journalForm.entryDate}
           onChange={(e) =>
             setJournalForm((prev) => ({ ...prev, entryDate: e.target.value }))

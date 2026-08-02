@@ -84,16 +84,10 @@ jest.mock('../../services/_shared/entityLinkCleanup', () => ({
   cleanupEntityLinks: jest.fn(),
 }));
 
-// Mock date-fns-tz
-jest.mock('date-fns-tz', () => ({
-  fromZonedTime: jest.fn((date: Date) => date),
-}));
-
 import journalEntryService from '../journalEntry.service';
 import { verifyTripAccessWithPermission, verifyEntityAccessWithPermission } from '../../services/_shared/tripAccess';
 import { cleanupEntityLinks } from '../../services/_shared/entityLinkCleanup';
 import { AppError } from '../../errors/errors';
-import { fromZonedTime } from 'date-fns-tz';
 
 describe('JournalEntryService', () => {
   const mockUserId = 1;
@@ -147,9 +141,6 @@ describe('JournalEntryService', () => {
       tripAccess: mockTripAccessResult,
     });
     (cleanupEntityLinks as jest.Mock).mockResolvedValue(undefined);
-    (fromZonedTime as jest.Mock).mockImplementation((date: Date) => date);
-    // Mock trip.findUnique for timezone lookup in createJournalEntry
-    mockPrisma.trip.findUnique.mockResolvedValue({ timezone: 'Europe/Paris' });
   });
 
   describe('JOUR-001: Create trip-level entry', () => {
@@ -238,7 +229,10 @@ describe('JournalEntryService', () => {
       expect(result).toEqual(mockJournalEntry);
     });
 
-    it('should convert date with trip timezone', async () => {
+    it('should store the entry date as a calendar day pinned to UTC midnight', async () => {
+      // A journal date is a @db.Date value: the same calendar day everywhere.
+      // A legacy datetime-local string keeps only its date portion, and the
+      // result must not depend on the trip's timezone.
       const createInput = {
         tripId: mockTripId,
         title: 'Day 2 - Museums',
@@ -249,17 +243,17 @@ describe('JournalEntryService', () => {
 
       mockPrisma.journalEntry.create.mockResolvedValue({
         ...mockJournalEntry,
-        date: new Date('2025-06-16'),
+        date: new Date('2025-06-16T00:00:00.000Z'),
       });
 
       await journalEntryService.createJournalEntry(mockUserId, createInput);
 
-      expect(fromZonedTime).toHaveBeenCalled();
+      const storedDate = mockPrisma.journalEntry.create.mock.calls[0][0].data.date as Date;
+      expect(storedDate.toISOString()).toBe('2025-06-16T00:00:00.000Z');
     });
 
-    it('should use date without timezone conversion if trip has no timezone', async () => {
+    it('should store a plain YYYY-MM-DD entry date at UTC midnight', async () => {
       (verifyTripAccessWithPermission as jest.Mock).mockResolvedValue(mockTripAccessResultNoTimezone);
-      mockPrisma.trip.findUnique.mockResolvedValue({ timezone: null });
 
       const createInput = {
         tripId: mockTripId,
@@ -271,17 +265,13 @@ describe('JournalEntryService', () => {
 
       mockPrisma.journalEntry.create.mockResolvedValue({
         ...mockJournalEntry,
-        date: new Date('2025-06-17'),
+        date: new Date('2025-06-17T00:00:00.000Z'),
       });
 
       await journalEntryService.createJournalEntry(mockUserId, createInput);
 
-      // When no timezone, should create Date directly without fromZonedTime conversion
-      expect(mockPrisma.journalEntry.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          date: expect.any(Date),
-        }),
-      });
+      const storedDate = mockPrisma.journalEntry.create.mock.calls[0][0].data.date as Date;
+      expect(storedDate.toISOString()).toBe('2025-06-17T00:00:00.000Z');
     });
 
     it('should use current date if no entryDate provided', async () => {
@@ -493,14 +483,14 @@ describe('JournalEntryService', () => {
       expect(result.content).toBe('Updated content with more details about our adventures.');
     });
 
-    it('should update entry date with timezone conversion', async () => {
+    it('should store an updated entry date at UTC midnight, not shifted by timezone', async () => {
       const updateInput = {
         entryDate: '2025-06-20',
       };
 
       mockPrisma.journalEntry.update.mockResolvedValue({
         ...mockJournalEntry,
-        date: new Date('2025-06-20'),
+        date: new Date('2025-06-20T00:00:00.000Z'),
       });
 
       await journalEntryService.updateJournalEntry(
@@ -509,13 +499,8 @@ describe('JournalEntryService', () => {
         updateInput
       );
 
-      expect(fromZonedTime).toHaveBeenCalled();
-      expect(mockPrisma.journalEntry.update).toHaveBeenCalledWith({
-        where: { id: mockEntryId },
-        data: expect.objectContaining({
-          date: expect.any(Date),
-        }),
-      });
+      const storedDate = mockPrisma.journalEntry.update.mock.calls[0][0].data.date as Date;
+      expect(storedDate.toISOString()).toBe('2025-06-20T00:00:00.000Z');
     });
 
     it('should update multiple fields at once', async () => {

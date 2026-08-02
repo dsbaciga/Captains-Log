@@ -6,6 +6,7 @@ import type { Lodging } from '../../types/lodging';
 import PrintMiniMap, { PrintRouteMap } from './PrintMiniMap';
 import MarkdownRenderer from '../MarkdownRenderer';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { formatDate } from '../../utils/dateFormat';
 
 interface UnscheduledData {
   activities: Activity[];
@@ -47,20 +48,15 @@ const formatTime = (dateTime: Date | string | null | undefined, timezone?: strin
   }
 };
 
-// Format date for headers
-const formatDateHeader = (dateKey: string): string => {
-  try {
-    const date = new Date(dateKey);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch {
-    return dateKey;
-  }
-};
+// Format date for headers.
+//
+// `dateKey` is a calendar day (YYYY-MM-DD), not an instant. Parsing it with
+// `new Date()` reads it as UTC midnight, so formatting in any zone west of UTC
+// renders the previous day. `formatDate` parses the Y/M/D parts directly, which
+// keeps the day the itinerary was grouped under. See the date-only rule in
+// utils/timezone.ts (`formatDateOnly`).
+const formatDateHeader = (dateKey: string): string =>
+  formatDate(dateKey, 'full', dateKey);
 
 // Format currency (shared guarded helper — unknown codes must not throw)
 const formatCost = formatCurrency;
@@ -341,20 +337,13 @@ const UnscheduledLodgingItem = ({ lodging }: { lodging: Lodging }) => (
 const PrintableItinerary = forwardRef<HTMLDivElement, PrintableItineraryProps>(
   ({ tripTitle, tripStartDate, tripEndDate, tripTimezone, tripType, tripTypeEmoji, dayGroups, unscheduled, showMaps }, ref) => {
     const formatTripDateRange = () => {
+      // Trip start/end are date-only values (stored at UTC midnight); format them
+      // with the date-only-safe helper so a western viewer's clock can't pull the
+      // range back a day.
       if (!tripStartDate) return '';
-      const start = new Date(tripStartDate);
-      const startStr = start.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
+      const startStr = formatDate(tripStartDate, 'long', '');
       if (!tripEndDate) return startStr;
-      const end = new Date(tripEndDate);
-      const endStr = end.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
+      const endStr = formatDate(tripEndDate, 'long', '');
       return `${startStr} - ${endStr}`;
     };
 
