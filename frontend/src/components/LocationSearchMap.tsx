@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import { LatLng } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../utils/mapUtils';
 import geocodingService from '../services/geocoding.service';
 import type { GeocodingResult } from '../services/geocoding.service';
+import { useMapTiles } from '../hooks/useMapTiles';
 import toast from 'react-hot-toast';
 
 interface LocationSearchMapProps {
@@ -27,6 +28,35 @@ function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
   return null;
 }
 
+// True when the primary pointer is touch (phones/tablets). On these devices the
+// map starts locked so a one-finger drag scrolls the surrounding form instead of
+// being swallowed by map panning.
+const isCoarsePointer = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(pointer: coarse)').matches;
+
+// Enables or disables Leaflet's gesture handlers on the fly. MapContainer only
+// reads its interaction props at init, so toggling them later has to go through
+// the map instance directly.
+function MapInteractivity({ engaged }: { engaged: boolean }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const handlers = [
+      map.dragging,
+      map.touchZoom,
+      map.doubleClickZoom,
+      map.scrollWheelZoom,
+      map.boxZoom,
+      map.keyboard,
+    ];
+    handlers.forEach((handler) => (engaged ? handler?.enable() : handler?.disable()));
+  }, [engaged, map]);
+
+  return null;
+}
+
 const LocationSearchMap = ({ onLocationSelect, initialPosition }: LocationSearchMapProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
@@ -37,6 +67,12 @@ const LocationSearchMap = ({ onLocationSelect, initialPosition }: LocationSearch
   const [selectedName, setSelectedName] = useState('');
   const [selectedAddress, setSelectedAddress] = useState('');
   const searchTimeoutRef = useRef<number | null>(null);
+  const tileConfig = useMapTiles();
+
+  // On touch devices the map is locked until tapped, so scrolling the form past
+  // it doesn't get hijacked by map panning. Desktop (fine pointer) stays fully
+  // interactive from the start.
+  const [mapEngaged, setMapEngaged] = useState(() => !isCoarsePointer());
 
   // Default center (world view)
   const defaultCenter = { lat: 20, lng: 0 };
@@ -155,42 +191,60 @@ const LocationSearchMap = ({ onLocationSelect, initialPosition }: LocationSearch
 
       {/* Selected Location Info */}
       {selectedPosition && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="text-sm text-blue-900">
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+          <div className="text-sm text-blue-900 dark:text-blue-100 break-words">
             <strong>Selected:</strong> {selectedName || 'Custom location'}
           </div>
           {selectedAddress && (
-            <div className="text-sm text-blue-700 mt-1">{selectedAddress}</div>
+            <div className="text-sm text-blue-700 dark:text-blue-300 mt-1 break-words">{selectedAddress}</div>
           )}
-          <div className="text-xs text-blue-600 mt-1">
+          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 break-words">
             Coordinates: {selectedPosition.lat.toFixed(6)}, {selectedPosition.lng.toFixed(6)}
           </div>
         </div>
       )}
 
       {/* Map */}
-      <div className="h-56 sm:h-72 md:h-80 lg:h-[400px] rounded-lg overflow-hidden border border-gray-200 relative z-0">
+      <div className="h-56 sm:h-72 md:h-80 lg:h-[400px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 relative z-0">
         <MapContainer
           center={[mapCenter.lat, mapCenter.lng]}
           zoom={selectedPosition ? 13 : 2}
-          scrollWheelZoom={true}
+          scrollWheelZoom={false}
           style={{ height: '100%', width: '100%' }}
           className="z-0"
           key={`${mapCenter.lat}-${mapCenter.lng}`}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            key={tileConfig.url}
+            url={tileConfig.url}
+            attribution={tileConfig.attribution}
+            maxZoom={tileConfig.maxZoom}
           />
           <MapClickHandler onClick={handleMapClick} />
+          <MapInteractivity engaged={mapEngaged} />
           {selectedPosition && (
             <Marker position={[selectedPosition.lat, selectedPosition.lng]} />
           )}
         </MapContainer>
+
+        {/* Tap-to-activate gate (touch only). While locked the map ignores
+            gestures, so a drag over it scrolls the form; a tap unlocks it. */}
+        {!mapEngaged && (
+          <button
+            type="button"
+            onClick={() => setMapEngaged(true)}
+            className="absolute inset-0 z-[500] flex items-end justify-center pb-4 bg-black/5 dark:bg-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 dark:focus-visible:ring-gold/50"
+            aria-label="Tap to interact with the map"
+          >
+            <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-white/90 dark:bg-navy-800/90 text-charcoal dark:text-warm-gray shadow-md">
+              Tap to interact with the map
+            </span>
+          </button>
+        )}
       </div>
 
-      <p className="text-sm text-gray-600">
-        💡 Search for a place above or click directly on the map to select a location
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        💡 Search for a place above or tap on the map to select a location
       </p>
     </div>
   );
