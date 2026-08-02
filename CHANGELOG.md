@@ -17,6 +17,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.4] - 2026-08-02
+
+### Added
+
+- **Locations can be excluded from maps.** A location can now be flagged to keep it off
+  trip maps, so a far-off origin like home stays recorded without stretching the map's
+  auto-fit bounds to span the whole journey. Excluded locations get no marker and no
+  contribution to bounds or zoom on the trip map, dashboard preview, and public trip map,
+  while still appearing in lists and counts. The flag is a checkbox in the location form,
+  backed by a new `exclude_from_map` column and carried through the create/update schemas
+  and the public trip (share) serializer.
+
+### Fixed
+
+- **Printing the timeline no longer produces a blank page.** Any print invoked outside the
+  app's own Print button — Ctrl+P, the browser menu, or mobile "Save as PDF" — printed a
+  blank page, because the `@media print` rules hid the whole app while the printable
+  itinerary was mounted lazily and only when the in-app button ran. The printable itinerary
+  is now mounted permanently (hidden on screen, revealed only under `@media print`) and
+  populated from data already fetched, so every route to print produces the paper version
+  with no extra API calls.
+- **Long location names wrap instead of overflowing on phones.** The compact location card
+  heading truncated "Name · postalcode, country" on a single line through a broken flex
+  chain, letting long names run outside the card; it now wraps with `break-words` inside a
+  constrained, filling width. The trip page also reclaims horizontal space on mobile with
+  responsive outer padding and a tighter Places panel on small screens.
+
 ## [6.1.3] - 2026-08-02
 
 ### Fixed
