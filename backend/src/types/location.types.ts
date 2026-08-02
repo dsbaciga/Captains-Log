@@ -33,6 +33,8 @@ export const createLocationSchema = z.object({
   visitDatetime: z.string().optional(), // ISO datetime string
   visitDurationMinutes: z.number().min(0).optional(),
   notes: z.string().optional(),
+  // Hide this location from trip maps (no marker, excluded from auto-fit bounds/zoom).
+  excludeFromMap: optionalBoolean(),
   openingHours: z.string().max(OPENING_HOURS_MAX_LENGTH).optional(),
   // IANA timezone of the place. Omit to have it derived from the coordinates.
   timezone: z.string().max(100).optional(),
@@ -50,6 +52,7 @@ export const updateLocationSchema = z.object({
   visitDurationMinutes: optionalPositiveNumber(),
   notes: optionalNotes(),
   isFavorite: optionalBoolean(),
+  excludeFromMap: optionalBoolean(),
   // Nullable so a user can clear hours they entered by mistake, which also re-opens the
   // location to automatic population from OpenStreetMap.
   openingHours: optionalNotesWithMax(OPENING_HOURS_MAX_LENGTH),
@@ -103,6 +106,8 @@ export interface LocationResponse {
   visitDurationMinutes: number | null;
   notes: string | null;
   isFavorite: boolean;
+  /** When true, the location is hidden from trip maps and excluded from auto-fit bounds/zoom. */
+  excludeFromMap: boolean;
   /** Raw OSM `opening_hours` specification, or null when unknown. */
   openingHours: string | null;
   /** 'osm' when auto-populated from Nominatim, 'manual' when entered by the user. */

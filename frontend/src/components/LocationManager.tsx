@@ -78,6 +78,8 @@ interface LocationFormFields {
   longitude: number | undefined;
   parentId: number | null | undefined;
   categoryId: number | undefined;
+  /** Hide this location from trip maps so a far-off origin doesn't zoom the map out. */
+  excludeFromMap: boolean;
   /** Raw OSM `opening_hours` string. Left blank, the backend tries to fill it from OpenStreetMap. */
   openingHours: string;
 }
@@ -90,6 +92,7 @@ const initialFormState: LocationFormFields = {
   longitude: undefined,
   parentId: undefined,
   categoryId: undefined,
+  excludeFromMap: false,
   openingHours: "",
 };
 
@@ -181,6 +184,7 @@ export default function LocationManager({
     handleChange("longitude", location.longitude || undefined);
     handleChange("parentId", location.parentId ?? null);
     handleChange("categoryId", location.categoryId || undefined);
+    handleChange("excludeFromMap", location.excludeFromMap ?? false);
     handleChange("openingHours", location.openingHours || "");
     openEditForm(location.id);
   }, [handleChange, openEditForm]);
@@ -239,6 +243,7 @@ export default function LocationManager({
     handleChange("longitude", location.longitude || undefined);
     handleChange("parentId", location.parentId ?? null);
     handleChange("categoryId", location.categoryId || undefined);
+    handleChange("excludeFromMap", location.excludeFromMap ?? false);
     handleChange("openingHours", location.openingHours || "");
     manager.openEditForm(location.id);
   };
@@ -261,6 +266,7 @@ export default function LocationManager({
         longitude: values.longitude,
         parentId: values.parentId,
         categoryId: values.categoryId,
+        excludeFromMap: values.excludeFromMap,
         // null (not undefined) clears the hours, which also re-enables the OpenStreetMap lookup.
         openingHours: values.openingHours.trim() || null,
       };
@@ -280,6 +286,7 @@ export default function LocationManager({
         longitude: values.longitude,
         parentId: values.parentId,
         categoryId: values.categoryId,
+        excludeFromMap: values.excludeFromMap,
         // Omitted when blank so the backend can populate it from OpenStreetMap.
         openingHours: values.openingHours.trim() || undefined,
       };
@@ -896,6 +903,30 @@ export default function LocationManager({
               label="Notes"
               compact
             />
+
+            {/* Exclude from map toggle */}
+            <div className="flex items-start gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <input
+                type="checkbox"
+                id="location-exclude-from-map"
+                name="excludeFromMap"
+                checked={values.excludeFromMap}
+                onChange={(e) => handleChange("excludeFromMap", e.target.checked)}
+                className="mt-0.5 rounded border-primary-200 dark:border-gold/30 text-primary-600 dark:text-gold focus:ring-primary-500 dark:focus:ring-gold/50"
+              />
+              <div>
+                <label
+                  htmlFor="location-exclude-from-map"
+                  className="text-sm font-medium text-charcoal dark:text-warm-gray"
+                >
+                  Exclude from map
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Hide this location from trip maps so a far-off spot like home or your origin
+                  doesn&apos;t zoom the map out to span the whole journey.
+                </p>
+              </div>
+            </div>
           </FormSection>
         </form>
       </FormModal>

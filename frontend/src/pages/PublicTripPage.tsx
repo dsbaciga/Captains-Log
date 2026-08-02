@@ -211,7 +211,10 @@ function EventCard({ event }: { event: ItineraryEvent }) {
 
 function TripMap({ trip }: { trip: PublicTrip }) {
   const points = trip.locations.filter(
-    (location) => location.latitude !== null && location.longitude !== null
+    (location) =>
+      location.latitude !== null &&
+      location.longitude !== null &&
+      !location.excludeFromMap
   );
 
   const bounds = useMemo(() => {

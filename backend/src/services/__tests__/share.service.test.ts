@@ -95,6 +95,7 @@ function buildSensitiveTripRow() {
         latitude: 41.8902,
         longitude: 12.4922,
         notes: 'Book ahead',
+        excludeFromMap: false,
         address: '  Piazza del Colosseo 1',
         cost: 18,
         currency: 'EUR',
@@ -397,7 +398,7 @@ describe('ShareService.getPublicTrip — sensitive field exclusion', () => {
     );
 
     expect(Object.keys(payload.locations[0]).sort()).toEqual(
-      ['category', 'id', 'latitude', 'longitude', 'name', 'notes'].sort()
+      ['category', 'excludeFromMap', 'id', 'latitude', 'longitude', 'name', 'notes'].sort()
     );
     expect(Object.keys(payload.activities[0]).sort()).toEqual(
       [
@@ -439,6 +440,7 @@ describe('ShareService.getPublicTrip — sensitive field exclusion', () => {
       latitude: 41.8902,
       longitude: 12.4922,
       notes: 'Book ahead',
+      excludeFromMap: false,
     });
     // Activity->location association comes from EntityLink, not a FK.
     expect(payload.activities[0].locationName).toBe('Colosseum');

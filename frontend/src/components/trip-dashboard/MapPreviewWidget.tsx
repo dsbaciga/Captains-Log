@@ -12,6 +12,8 @@ interface MapPreviewWidgetProps {
     latitude: number | null;
     longitude: number | null;
     category?: string;
+    /** When true, the location is kept in the list but hidden from the map preview. */
+    excludeFromMap?: boolean;
   }[];
   onNavigateToMap: () => void;
   onLocationClick?: (locationId: number) => void;
@@ -138,12 +140,13 @@ export default function MapPreviewWidget({
   onNavigateToMap,
   onLocationClick,
 }: MapPreviewWidgetProps) {
-  // Filter locations with valid coordinates
+  // Filter to locations that should render on the map: valid coordinates and not
+  // explicitly excluded (e.g. a far-off home/origin the user hid to keep the map tight).
   const locationsWithCoords = useMemo(
     () =>
       locations.filter(
         (loc): loc is typeof loc & { latitude: number; longitude: number } =>
-          loc.latitude !== null && loc.longitude !== null
+          loc.latitude !== null && loc.longitude !== null && !loc.excludeFromMap
       ),
     [locations]
   );

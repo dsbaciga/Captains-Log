@@ -191,6 +191,7 @@ export default function TripDashboard({
         latitude: loc.latitude ? Number(loc.latitude) : null,
         longitude: loc.longitude ? Number(loc.longitude) : null,
         category: loc.category?.name,
+        excludeFromMap: loc.excludeFromMap,
       })),
     [locations]
   );
