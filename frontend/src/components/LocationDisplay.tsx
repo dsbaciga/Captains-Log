@@ -80,12 +80,12 @@ export default function LocationDisplay({
   if (compact) {
     return (
       <div className={className}>
-        <div className="flex items-baseline gap-1.5 min-w-0">
-          <span className="font-semibold text-charcoal dark:text-warm-gray truncate">
+        <div className="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+          <span className="font-semibold text-charcoal dark:text-warm-gray break-words min-w-0">
             {name}
           </span>
           {shouldShowSecondary && (
-            <span className="text-sm text-slate dark:text-warm-gray/60 truncate shrink-0 max-w-[40%]">
+            <span className="text-sm text-slate dark:text-warm-gray/60 break-words min-w-0">
               · {secondaryLocation}
             </span>
           )}
