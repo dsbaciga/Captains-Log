@@ -127,7 +127,6 @@ const Timeline = ({
   const [locationLookup, setLocationLookup] = useState<Record<number, { id: number; name: string }>>({});
 
   // Print state
-  const [isPrinting, setIsPrinting] = useState(false);
   const [printWithMaps, setPrintWithMaps] = useState(false);
   const [unscheduledData, setUnscheduledData] = useState<{
     activities: Activity[];
@@ -342,6 +341,21 @@ const Timeline = ({
       }
       setUnscheduledActivities(unscheduled);
       setActivityLocationMap(locationMap);
+
+      // Populate the printable itinerary's unscheduled section from the data we
+      // just fetched (no extra API calls). Doing this eagerly means the paper
+      // version is fully populated in the DOM at all times, so a native browser
+      // print (Ctrl+P / mobile "Save as PDF") produces a complete document — not
+      // just the app's Print button. See the always-mounted portal below.
+      setUnscheduledData({
+        activities: unscheduled,
+        transportation: Array.isArray(transportation)
+          ? transportation.filter((t) => t && !t.departureTime)
+          : [],
+        lodging: Array.isArray(lodging)
+          ? lodging.filter((l) => l && !l.checkInDate)
+          : [],
+      });
       logger.log(`Found ${unscheduled.length} unscheduled activities`, {
         operation: 'loadTimelineData.unscheduled',
         data: {
@@ -1276,62 +1290,23 @@ const Timeline = ({
     }
   };
 
-  // Fetch unscheduled items for printing
-  const fetchUnscheduledItems = useCallback(async () => {
-    try {
-      const [activities, transportation, lodging] = await Promise.all([
-        activityService.getActivitiesByTrip(tripId),
-        transportationService.getTransportationByTrip(tripId),
-        lodgingService.getLodgingByTrip(tripId),
-      ]);
+  // Print handler.
+  //
+  // The printable itinerary is always mounted (see the portal at the bottom of
+  // render) and its data is loaded up front in loadTimelineData, so all this
+  // needs to do is opt maps in/out and open the print dialog. Maps are static
+  // images that load asynchronously, so give them a moment to paint before
+  // printing; the plain document needs no such wait.
+  const handlePrint = useCallback((option: PrintOption) => {
+    const withMaps = option === 'with-maps';
+    setPrintWithMaps(withMaps);
 
-      // Filter for unscheduled items
-      const unscheduledActivities = activities.filter(
-        (a) => !a.startTime && !a.allDay
-      );
-      const unscheduledTransportation = transportation.filter(
-        (t) => !t.departureTime
-      );
-      const unscheduledLodging = lodging.filter((l) => !l.checkInDate);
-
-      return {
-        activities: unscheduledActivities,
-        transportation: unscheduledTransportation,
-        lodging: unscheduledLodging,
-      };
-    } catch (error) {
-      console.error('Error fetching unscheduled items:', error);
-      return { activities: [], transportation: [], lodging: [] };
-    }
-  }, [tripId]);
-
-  // Print handler
-  const handlePrint = useCallback(async (option: PrintOption) => {
-    try {
-      // Set whether to include maps
-      setPrintWithMaps(option === 'with-maps');
-
-      // Fetch unscheduled items before printing
-      const unscheduled = await fetchUnscheduledItems();
-      setUnscheduledData(unscheduled);
-      setIsPrinting(true);
-
-      // Wait for state to update and DOM to render
-      setTimeout(() => {
-        window.print();
-        // Reset printing state after print dialog closes
-        setTimeout(() => {
-          setIsPrinting(false);
-          setPrintWithMaps(false);
-        }, 500);
-      }, 100);
-    } catch (error) {
-      console.error('Error preparing print:', error);
-      toast.error('Failed to prepare print view');
-      setIsPrinting(false);
-      setPrintWithMaps(false);
-    }
-  }, [fetchUnscheduledItems]);
+    setTimeout(() => {
+      window.print();
+      // Reset the maps flag after the dialog closes.
+      setTimeout(() => setPrintWithMaps(false), 500);
+    }, withMaps ? 400 : 50);
+  }, []);
 
   // Check for print action in URL params (triggered from dashboard's Print Itinerary button)
   useEffect(() => {
@@ -1428,25 +1403,29 @@ const Timeline = ({
         ))}
       </div>
 
-      {/* Printable Itinerary - rendered via portal for clean printing */}
-      {isPrinting &&
-        createPortal(
-          <div className="print-itinerary-wrapper">
-            <PrintableItinerary
-              ref={printRef}
-              tripTitle={tripTitle || 'Trip Itinerary'}
-              tripStartDate={tripStartDate}
-              tripEndDate={tripEndDate}
-              tripTimezone={tripTimezone}
-              tripType={tripType}
-              tripTypeEmoji={tripTypeEmoji}
-              dayGroups={dayGroups}
-              unscheduled={unscheduledData}
-              showMaps={printWithMaps}
-            />
-          </div>,
-          document.body
-        )}
+      {/* Printable Itinerary — always mounted (hidden on screen via
+          `.print-itinerary-wrapper`, revealed only under `@media print`).
+          Mounting it permanently means a native browser print (Ctrl+P, mobile
+          "Save as PDF") produces the full itinerary, not a blank page; the
+          `@media print` rules hide #root regardless of how print was invoked,
+          so the paper version has to already be in the DOM. */}
+      {createPortal(
+        <div className="print-itinerary-wrapper">
+          <PrintableItinerary
+            ref={printRef}
+            tripTitle={tripTitle || 'Trip Itinerary'}
+            tripStartDate={tripStartDate}
+            tripEndDate={tripEndDate}
+            tripTimezone={tripTimezone}
+            tripType={tripType}
+            tripTypeEmoji={tripTypeEmoji}
+            dayGroups={dayGroups}
+            unscheduled={unscheduledData}
+            showMaps={printWithMaps}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
