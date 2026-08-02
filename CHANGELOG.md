@@ -17,6 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.3] - 2026-08-02
+
+### Fixed
+
+- **Printed itinerary and journal dates no longer shift by a day.** Two calendar-date
+  values were being parsed as UTC midnight and then formatted or converted through a
+  timezone, rendering the previous day for viewers west of UTC and drifting journal
+  entries a day further east on every edit. The print itinerary's day headers and trip
+  date range now go through the date-only formatter that keeps the intended day, and
+  journal entry dates are stored pinned to UTC midnight and edited with a plain `date`
+  input, so the day you see is the day that is saved.
+- **The location search map behaves on phones.** In the bottom-sheet Add/Edit Location
+  modal, the embedded search map no longer hijacks one-finger drags — it stays locked
+  until tapped so a drag over it scrolls the form, matching the standard embed-map
+  gesture, while desktop stays fully interactive. The map now uses the app's theme-aware
+  tiles and the "Selected" info box and helper text gain dark-mode variants and wrap long
+  addresses instead of overflowing narrow screens.
+
 ## [6.1.2] - 2026-07-31
 
 ### Changed
