@@ -472,7 +472,7 @@ export default function LocationManager({
                     {String.fromCharCode(8627)}
                   </span>
                 )}
-                <div className={isChild ? "ml-0" : ""}>
+                <div className={`min-w-0 flex-1 ${isChild ? "ml-0" : ""}`}>
                   <LocationDisplay
                     name={location.name}
                     address={location.address}

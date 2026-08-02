@@ -1046,7 +1046,7 @@ export default function TripDetailPage() {
       <FloatingTripHeader trip={trip} observeRef={tripHeaderRef} />
 
       {/* Main Content */}
-      <main className="max-w-[1600px] mx-auto px-6 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8">
         <Breadcrumbs
           items={[{ label: "Trips", href: "/trips", onClick: () => clearTripsPageState('trips-page') }, { label: trip.title }]}
         />
@@ -1505,7 +1505,7 @@ export default function TripDetailPage() {
 
         {/* Locations Tab */}
         {activeTab === "locations" && (
-          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-4 sm:p-6 animate-fadeIn">
             <ErrorBoundary>
               {isLocationsLoading ? <Skeleton /> : (
               <Suspense fallback={<LoadingSpinner.FullPage message="Loading locations..." />}>
