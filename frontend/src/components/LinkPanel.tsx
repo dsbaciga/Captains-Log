@@ -141,6 +141,7 @@ export default function LinkPanel({
       PHOTO_ALBUM: [],
       SAVED_LINK: [],
       PDF_IMPORT: [],
+      CUSTOM_ITEM: [],
     });
 
     if (!linksData) return emptyGroups();

@@ -22,6 +22,7 @@ export type TripWithRelations = Prisma.TripGetPayload<{
     transportation: true;
     locations: true;
     journalEntries: true;
+    customItems: true;
   };
 }>;
 
@@ -35,6 +36,7 @@ export type TripWithValidationRelations = Prisma.TripGetPayload<{
     transportation: true;
     locations: true;
     journalEntries: true;
+    customItems: true;
     dismissedValidationIssues: true;
   };
 }>;

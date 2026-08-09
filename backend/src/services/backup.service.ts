@@ -128,6 +128,13 @@ function transformTripToBackupFormat(trip: Record<string, unknown>): BackupTrip 
     })),
     // Saved reference links attached to this trip
     savedLinks: trip.savedLinks as BackupTrip['savedLinks'],
+    // Custom items — flatten the joined type down to its name
+    customItems: (
+      trip.customItems as Array<{ type: { name: string } | null } & Record<string, unknown>>
+    )?.map(({ type, ...item }) => ({
+      ...item,
+      typeName: type?.name ?? null,
+    })) as BackupTrip['customItems'],
   };
 }
 
@@ -347,6 +354,24 @@ async function fetchTripWithRelatedData(tripId: number): Promise<Record<string, 
           metadataStatus: true,
         },
       },
+      customItems: {
+        select: {
+          id: true, // For EntityLink mapping on restore
+          name: true,
+          notes: true,
+          allDay: true,
+          startTime: true,
+          endTime: true,
+          timezone: true,
+          locationId: true,
+          cost: true,
+          currency: true,
+          url: true,
+          confirmationNumber: true,
+          // The type travels by name, not id — see BackupCustomItemSchema.
+          type: { select: { name: true } },
+        },
+      },
     },
   });
 
@@ -433,6 +458,18 @@ export async function createBackup(userId: number): Promise<BackupData> {
         icon: true,
         color: true,
         isDefault: true,
+      },
+    });
+
+    // Fetch the custom item type registry (typically small). isDefault is
+    // deliberately not exported: it is provenance only, and round-tripping it
+    // is what freezes restored location categories.
+    const customItemTypes = await prisma.customItemType.findMany({
+      where: { userId },
+      select: {
+        name: true,
+        icon: true,
+        color: true,
       },
     });
 
@@ -559,6 +596,7 @@ export async function createBackup(userId: number): Promise<BackupData> {
         dietaryPreferences: c.dietaryPreferences as string[],
       })),
       locationCategories,
+      customItemTypes,
       checklists: checklists.map((checklist) => ({
         name: checklist.name,
         description: checklist.description,

@@ -8,7 +8,23 @@ export type BulkEntityType =
   | 'location'
   | 'transportation'
   | 'lodging'
-  | 'link';
+  | 'link'
+  | 'customItem';
+
+/**
+ * Singular/plural labels per entity type.
+ *
+ * Explicit rather than derived: capitalising the union member and appending "s"
+ * produced "Activitys", and would produce "CustomItems" for the camelCase member.
+ */
+const ENTITY_LABELS: Record<BulkEntityType, { singular: string; plural: string }> = {
+  activity: { singular: 'Activity', plural: 'Activities' },
+  location: { singular: 'Location', plural: 'Locations' },
+  transportation: { singular: 'Transportation', plural: 'Transportation' },
+  lodging: { singular: 'Lodging', plural: 'Lodging' },
+  link: { singular: 'Link', plural: 'Links' },
+  customItem: { singular: 'Custom item', plural: 'Custom items' },
+};
 
 interface BulkActionBarProps {
   /** Type of entity being selected */
@@ -100,8 +116,9 @@ export default function BulkActionBar({
 
   if (!shouldRender) return null;
 
-  const entityLabel = entityType.charAt(0).toUpperCase() + entityType.slice(1);
-  const pluralLabel = selectedCount === 1 ? entityLabel : `${entityLabel}s`;
+  const entityLabel = ENTITY_LABELS[entityType].singular;
+  const pluralLabel =
+    selectedCount === 1 ? entityLabel : ENTITY_LABELS[entityType].plural;
 
   return (
     <div

@@ -212,6 +212,7 @@ const entityTypeToLinkType: Partial<Record<VerifiableEntityType, EntityType>> = 
   journalEntry: 'JOURNAL_ENTRY',
   photo: 'PHOTO',
   photoAlbum: 'PHOTO_ALBUM',
+  customItem: 'CUSTOM_ITEM',
 };
 
 /**
@@ -226,6 +227,7 @@ const entityTypeDisplayNames: Record<VerifiableEntityType, string> = {
   photo: 'photos',
   album: 'albums',
   photoAlbum: 'albums',
+  customItem: 'custom items',
 };
 
 /** Prisma transaction client (the argument the `$transaction` callback receives). */

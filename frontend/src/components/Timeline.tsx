@@ -8,6 +8,8 @@ import type { Lodging } from '../types/lodging';
 import activityService from '../services/activity.service';
 import transportationService from '../services/transportation.service';
 import lodgingService from '../services/lodging.service';
+import customItemService from '../services/customItem.service';
+import type { CustomItem } from '../types/customItem';
 import journalService from '../services/journalEntry.service';
 import weatherService from '../services/weather.service';
 import entityLinkService from '../services/entityLink.service';
@@ -62,6 +64,20 @@ import EmptyState from './EmptyState';
  * />
  * ```
  */
+/**
+ * Human-readable labels for toast messages.
+ *
+ * Explicit rather than capitalising the union member, which would render the
+ * camelCase 'customItem' as "CustomItem".
+ */
+const TIMELINE_TYPE_LABELS: Record<TimelineItemType, string> = {
+  activity: 'Activity',
+  transportation: 'Transportation',
+  lodging: 'Lodging',
+  journal: 'Journal',
+  customItem: 'Custom item',
+};
+
 interface TimelineProps {
   tripId: number;
   tripTitle?: string;
@@ -105,7 +121,7 @@ const Timeline = ({
   const [loading, setLoading] = useState(true);
   const [mobileActiveTimezone, setMobileActiveTimezone] = useState<'trip' | 'user'>('trip');
   const [visibleTypes, setVisibleTypes] = useState<Set<TimelineItemType>>(
-    new Set(['activity', 'transportation', 'lodging', 'journal'])
+    new Set(['activity', 'transportation', 'lodging', 'journal', 'customItem'])
   );
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
 
@@ -132,7 +148,8 @@ const Timeline = ({
     activities: Activity[];
     transportation: Transportation[];
     lodging: Lodging[];
-  }>({ activities: [], transportation: [], lodging: [] });
+    customItems: CustomItem[];
+  }>({ activities: [], transportation: [], lodging: [], customItems: [] });
   const printRef = useRef<HTMLDivElement>(null);
 
   // Entity link summary hook
@@ -193,6 +210,7 @@ const Timeline = ({
       transportation: 'transportation',
       lodging: 'lodging',
       journal: 'journal',
+      customItem: 'custom',
     };
     const tab = tabMap[item.type];
     navigate(`/trips/${tripId}?tab=${tab}&edit=${itemId}`);
@@ -220,14 +238,17 @@ const Timeline = ({
         case 'journal':
           await journalService.deleteJournalEntry(itemId);
           break;
+        case 'customItem':
+          await customItemService.deleteCustomItem(itemId);
+          break;
       }
 
-      toast.success(`${item.type.charAt(0).toUpperCase() + item.type.slice(1)} deleted`);
+      toast.success(`${TIMELINE_TYPE_LABELS[item.type]} deleted`);
       loadTimelineData();
       onRefresh?.();
     } catch (error) {
       console.error('Error deleting item:', error);
-      toast.error(`Failed to delete ${item.type}`);
+      toast.error(`Failed to delete ${TIMELINE_TYPE_LABELS[item.type].toLowerCase()}`);
     }
   };
 
@@ -252,11 +273,12 @@ const Timeline = ({
     try {
       logger.log('📡 Fetching timeline data from API...', { operation: 'loadTimelineData.fetch' });
 
-      const [activities, transportation, lodging, journal, weather, locationLinks, locations, linkSummary] = await Promise.all([
+      const [activities, transportation, lodging, journal, customItems, weather, locationLinks, locations, linkSummary] = await Promise.all([
         activityService.getActivitiesByTrip(tripId),
         transportationService.getTransportationByTrip(tripId),
         lodgingService.getLodgingByTrip(tripId),
         journalService.getJournalEntriesByTrip(tripId),
+        customItemService.getCustomItemsByTrip(tripId).catch(() => []),
         weatherService.getWeatherForTrip(tripId).catch(() => []),
         entityLinkService.getLinksByTargetType(tripId, 'LOCATION').catch(() => []),
         locationService.getLocationsByTrip(tripId).catch(() => []),
@@ -354,6 +376,9 @@ const Timeline = ({
           : [],
         lodging: Array.isArray(lodging)
           ? lodging.filter((l) => l && !l.checkInDate)
+          : [],
+        customItems: Array.isArray(customItems)
+          ? customItems.filter((c) => c && !c.startTime)
           : [],
       });
       logger.log(`Found ${unscheduled.length} unscheduled activities`, {
@@ -679,6 +704,38 @@ const Timeline = ({
         logger.log('⚠️ Journal is not an array', {
           operation: 'loadTimelineData.journal.invalid',
           data: { type: typeof journal, value: journal }
+        });
+      }
+
+      // Custom items. Only scheduled ones appear on the timeline — an undated
+      // item has no day to sit on, and it stays visible in the Custom tab.
+      if (Array.isArray(customItems)) {
+        for (const item of customItems) {
+          if (!item.startTime) continue;
+          items.push({
+            id: item.id,
+            type: 'customItem',
+            dateTime: new Date(item.startTime),
+            endDateTime: item.endTime ? new Date(item.endTime) : undefined,
+            title: item.name,
+            subtitle: item.type?.name || undefined,
+            description: item.notes || undefined,
+            location: item.location?.name,
+            locationCoords:
+              item.location?.latitude != null && item.location?.longitude != null
+                ? { latitude: item.location.latitude, longitude: item.location.longitude }
+                : undefined,
+            cost: item.cost ?? undefined,
+            currency: item.currency ?? undefined,
+            isAllDay: item.allDay,
+            startTimezone: item.timezone ?? undefined,
+            endTimezone: item.timezone ?? undefined,
+            confirmationNumber: item.confirmationNumber ?? undefined,
+            data: item,
+          });
+        }
+        logger.log(`✅ Processed custom items, total items now: ${items.length}`, {
+          operation: 'loadTimelineData.customItems.complete',
         });
       }
 
@@ -1036,6 +1093,7 @@ const Timeline = ({
       transportation: 0,
       lodging: 0,
       journal: 0,
+      customItems: 0,
       totalPhotosLinked: 0,
     };
 
@@ -1061,6 +1119,9 @@ const Timeline = ({
           break;
         case 'journal':
           stats.journal++;
+          break;
+        case 'customItem':
+          stats.customItems++;
           break;
       }
 

@@ -3,6 +3,7 @@ import type { DayGroup, TimelineItem } from './types';
 import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
+import type { CustomItem } from '../../types/customItem';
 import PrintMiniMap, { PrintRouteMap } from './PrintMiniMap';
 import MarkdownRenderer from '../MarkdownRenderer';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -12,6 +13,9 @@ interface UnscheduledData {
   activities: Activity[];
   transportation: Transportation[];
   lodging: Lodging[];
+  // Custom items with no startTime. They never reach the timeline (no day to sit
+  // on), so without this group they would be missing from print entirely.
+  customItems: CustomItem[];
 }
 
 interface PrintableItineraryProps {
@@ -251,6 +255,40 @@ const JournalItem = ({ item }: { item: TimelineItem }) => {
   );
 };
 
+// Custom item print row. The type's own name is used as the header label when
+// the item has one, falling back to "Custom".
+const CustomItemRow = ({ item, timezone }: { item: TimelineItem; timezone?: string }) => {
+  const customItem = item.data as CustomItem;
+  const startTime = formatTime(item.dateTime, timezone);
+  const endTime = item.endDateTime ? formatTime(item.endDateTime, timezone) : '';
+  const timeRange = item.isAllDay ? 'All Day' : endTime ? `${startTime} - ${endTime}` : startTime;
+
+  return (
+    <div className="print-item">
+      <div className="print-item-header">
+        <span className="print-item-type">{customItem.type?.name || 'Custom'}</span>
+        {timeRange && <span className="print-item-time">{timeRange}</span>}
+      </div>
+      <div className="print-item-title">{item.title}</div>
+      {item.location && <div className="print-item-detail">Location: {item.location}</div>}
+      {customItem.confirmationNumber && (
+        <div className="print-item-detail">Confirmation: {customItem.confirmationNumber}</div>
+      )}
+      {customItem.cost != null && (
+        <div className="print-item-detail">
+          Cost: {formatCost(customItem.cost, customItem.currency)}
+        </div>
+      )}
+      {customItem.url && <div className="print-item-detail">URL: {customItem.url}</div>}
+      {customItem.notes && (
+        <div className="print-item-notes">
+          Notes: <MarkdownRenderer content={customItem.notes} compact />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Render timeline item based on type
 const TimelineItemRow = ({ item, timezone, showMaps }: { item: TimelineItem; timezone?: string; showMaps?: boolean }) => {
   switch (item.type) {
@@ -262,6 +300,8 @@ const TimelineItemRow = ({ item, timezone, showMaps }: { item: TimelineItem; tim
       return <LodgingItem item={item} timezone={timezone} showMaps={showMaps} />;
     case 'journal':
       return <JournalItem item={item} />;
+    case 'customItem':
+      return <CustomItemRow item={item} timezone={timezone} />;
     default:
       return null;
   }
@@ -334,6 +374,27 @@ const UnscheduledLodgingItem = ({ lodging }: { lodging: Lodging }) => (
   </div>
 );
 
+// Unscheduled custom item
+const UnscheduledCustomItem = ({ item }: { item: CustomItem }) => (
+  <div className="print-item">
+    <div className="print-item-header">
+      <span className="print-item-type">{item.type?.name || 'Custom'}</span>
+    </div>
+    <div className="print-item-title">{item.name}</div>
+    {item.location?.name && (
+      <div className="print-item-detail">Location: {item.location.name}</div>
+    )}
+    {item.confirmationNumber && (
+      <div className="print-item-detail">Confirmation: {item.confirmationNumber}</div>
+    )}
+    {item.cost != null && (
+      <div className="print-item-detail">Cost: {formatCost(item.cost, item.currency)}</div>
+    )}
+    {item.url && <div className="print-item-detail">URL: {item.url}</div>}
+    {item.notes && <div className="print-item-notes">Notes: {item.notes}</div>}
+  </div>
+);
+
 const PrintableItinerary = forwardRef<HTMLDivElement, PrintableItineraryProps>(
   ({ tripTitle, tripStartDate, tripEndDate, tripTimezone, tripType, tripTypeEmoji, dayGroups, unscheduled, showMaps }, ref) => {
     const formatTripDateRange = () => {
@@ -350,7 +411,8 @@ const PrintableItinerary = forwardRef<HTMLDivElement, PrintableItineraryProps>(
     const hasUnscheduledItems =
       unscheduled.activities.length > 0 ||
       unscheduled.transportation.length > 0 ||
-      unscheduled.lodging.length > 0;
+      unscheduled.lodging.length > 0 ||
+      unscheduled.customItems.length > 0;
 
     // Sort items within each day by time
     const sortItemsByTime = (items: TimelineItem[]): TimelineItem[] => {
@@ -427,6 +489,15 @@ const PrintableItinerary = forwardRef<HTMLDivElement, PrintableItineraryProps>(
                 <div className="print-unscheduled-group-title">Lodging</div>
                 {unscheduled.lodging.map((lodging) => (
                   <UnscheduledLodgingItem key={lodging.id} lodging={lodging} />
+                ))}
+              </div>
+            )}
+
+            {unscheduled.customItems.length > 0 && (
+              <div className="print-unscheduled-group">
+                <div className="print-unscheduled-group-title">Custom</div>
+                {unscheduled.customItems.map((item) => (
+                  <UnscheduledCustomItem key={item.id} item={item} />
                 ))}
               </div>
             )}

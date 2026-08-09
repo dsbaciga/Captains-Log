@@ -183,6 +183,20 @@ export function getTransportationIcon(type: TransportationType, className = 'w-5
   }
 }
 
+// Bookmark/pin, matching the 📌 used for CUSTOM_ITEM in entityConfig
+export function CustomItemIcon({ className = 'w-5 h-5' }: IconProps) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+      />
+    </svg>
+  );
+}
+
 // Get icon for any timeline item
 // eslint-disable-next-line react-refresh/only-export-components
 export function getTimelineItemIcon(item: TimelineItem, className = 'w-5 h-5') {
@@ -195,6 +209,8 @@ export function getTimelineItemIcon(item: TimelineItem, className = 'w-5 h-5') {
       return <LodgingIcon className={className} />;
     case 'journal':
       return <JournalIcon className={className} />;
+    case 'customItem':
+      return <CustomItemIcon className={className} />;
     default:
       return <ActivityIcon className={className} />;
   }

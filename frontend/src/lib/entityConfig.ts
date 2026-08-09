@@ -30,6 +30,7 @@ export const ENTITY_TYPE_CONFIG: Record<EntityType, EntityTypeConfig> = {
   PHOTO_ALBUM: { label: 'Album', pluralLabel: 'Albums', emoji: '📸', color: 'pink' },
   PDF_IMPORT: { label: 'PDF Import', pluralLabel: 'PDF Imports', emoji: '📄', color: 'gray' },
   SAVED_LINK: { label: 'Link', pluralLabel: 'Links', emoji: '🔗', color: 'teal' },
+  CUSTOM_ITEM: { label: 'Custom', pluralLabel: 'Custom', emoji: '📌', color: 'indigo' },
 };
 
 // =============================================================================
@@ -49,6 +50,7 @@ export const ENTITY_TYPE_DISPLAY_ORDER: EntityType[] = [
   'PHOTO_ALBUM',
   'JOURNAL_ENTRY',
   'SAVED_LINK',
+  'CUSTOM_ITEM',
   // PDF_IMPORT is a provenance marker written by the import pipeline, not a
   // user-facing link. Listed last so it renders after real content.
   'PDF_IMPORT',
@@ -68,6 +70,7 @@ export const LINKABLE_ENTITY_TYPES: EntityType[] = [
   'PHOTO_ALBUM',
   'JOURNAL_ENTRY',
   'SAVED_LINK',
+  'CUSTOM_ITEM',
 ];
 
 // =============================================================================
@@ -166,6 +169,16 @@ const COLOR_MAP: Record<string, ColorClasses> = {
     ring: 'ring-teal-400',
     focus: 'focus:ring-2 focus:ring-teal-400 focus:ring-offset-1 focus:outline-none',
   },
+  indigo: {
+    bg: 'bg-indigo-100',
+    bgHover: 'hover:bg-indigo-200 dark:hover:bg-indigo-800/50',
+    bgDark: 'dark:bg-indigo-900/50',
+    text: 'text-indigo-800',
+    textDark: 'dark:text-indigo-200',
+    border: 'border-indigo-300 dark:border-indigo-700',
+    ring: 'ring-indigo-400',
+    focus: 'focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 focus:outline-none',
+  },
 };
 
 /**
@@ -230,6 +243,7 @@ export const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
   JOURNAL_ENTRY: 'journal',
   PHOTO_ALBUM: 'photos', // Albums are in the photos tab
   SAVED_LINK: 'links',
+  CUSTOM_ITEM: 'custom',
   PDF_IMPORT: null, // No trip tab: imports are managed outside the trip page
 };
 

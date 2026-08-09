@@ -79,6 +79,7 @@ model User {
   pushSubscriptions       PushSubscription[]
   savedLinks              SavedLink[]
   emailIngests            EmailIngest[]
+  customItemTypes         CustomItemType[]
 
   // Self-relation for travel partner
   travelPartner User?  @relation("TravelPartner", fields: [travelPartnerId], references: [id], onDelete: SetNull)
@@ -150,6 +151,7 @@ model Trip {
   expenses                  TripExpense[]
   savedLinks                SavedLink[]
   emergencyInfo             TripEmergencyInfo?
+  customItems               CustomItem[]
 
   @@index([userId, status])
   @@index([startDate, endDate])
@@ -315,6 +317,7 @@ model Location {
   transportationStarts Transportation[]  @relation("StartLocation")
   transportationEnds   Transportation[]  @relation("EndLocation")
   weatherData          WeatherData[]
+  customItems          CustomItem[]
 
   @@index([tripId])
   @@index([parentId])
@@ -336,6 +339,79 @@ model LocationCategory {
 
   @@index([userId])
   @@map("location_categories")
+}
+
+// =============================================================================
+// CUSTOM ITEMS
+// =============================================================================
+// The escape hatch for trip content that fits none of the first-class entities —
+// a parking reservation, a rental-agency contact, a "call the vet" reminder.
+// Types are presentation-only (label + icon + color); every item shares one
+// fixed field set. See docs/development/CUSTOM_ITEM_SPEC.md.
+
+model CustomItemType {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String   @db.VarChar(255)
+  icon      String?  @db.VarChar(100)
+  color     String?  @db.VarChar(7) // Hex color code
+  // Marks a seeded starter type. Unlike LocationCategory, userId is never null:
+  // these are always user-owned and always editable, so the restore path must
+  // force isDefault false rather than preserving it (which is the bug that
+  // freezes restored location categories).
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CustomItem[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("custom_item_types")
+}
+
+model CustomItem {
+  id                 Int       @id @default(autoincrement())
+  tripId             Int       @map("trip_id")
+  // SetNull, so deleting a type does not destroy items — they fall back to an
+  // untyped "Custom" presentation. Matches Location.categoryId.
+  typeId             Int?      @map("type_id")
+  name               String    @db.VarChar(500)
+  notes              String?   @db.Text // rich text
+  allDay             Boolean   @default(false) @map("all_day")
+  startTime          DateTime? @map("start_time")
+  endTime            DateTime? @map("end_time")
+  timezone           String?   @db.VarChar(100)
+  // Direct FK, following Transportation rather than Activity: this means "the
+  // item is AT this place" and drives the map marker, so it must be a single
+  // unambiguous location. An EntityLink to a LOCATION remains possible and
+  // means the weaker "related to".
+  locationId         Int?      @map("location_id")
+  // DB-level CHECK ("cost" >= 0) named `custom_item_cost_non_negative`. Prisma
+  // cannot represent CHECK constraints, so `prisma db push` would NOT recreate it.
+  cost               Decimal?  @db.Decimal(10, 2)
+  currency           String?   @db.VarChar(3)
+  // FX snapshot — see the "Currency conversion" note above ExchangeRate.
+  exchangeRate       Decimal?  @map("exchange_rate") @db.Decimal(20, 10)
+  baseAmount         Decimal?  @map("base_amount") @db.Decimal(12, 2)
+  baseCurrency       String?   @map("base_currency") @db.VarChar(3)
+  // Text, not VarChar(500): real booking URLs with query strings exceed 500
+  // chars. The SavedLink.url precedent.
+  url                String?   @db.Text
+  confirmationNumber String?   @map("confirmation_number") @db.VarChar(255)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  trip     Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  type     CustomItemType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  location Location?       @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([tripId])
+  @@index([tripId, startTime])
+  @@index([typeId])
+  @@index([locationId])
+  @@map("custom_items")
 }
 
 model Photo {
@@ -726,6 +802,7 @@ enum EntityType {
   PHOTO_ALBUM
   PDF_IMPORT
   SAVED_LINK
+  CUSTOM_ITEM
 }
 
 // =============================================================================

@@ -5,7 +5,8 @@ import { z } from 'zod';
 // v1.2.0 - Added tripTypes and tripSeries
 // v1.3.0 - Removed plaintext secrets (API keys, SMTP password) from exports
 // v1.4.0 - Added savedLinks; ENTITY_TYPES gained PDF_IMPORT and SAVED_LINK
-export const BACKUP_VERSION = '1.4.0';
+// v1.5.0 - Added customItems and customItemTypes; ENTITY_TYPES gained CUSTOM_ITEM
+export const BACKUP_VERSION = '1.5.0';
 
 // =============================================================================
 // Shared/Reusable Schemas
@@ -351,10 +352,12 @@ const BackupWeatherDataSchema = z.object({
   windSpeed: z.number().nullable().optional(),
 });
 
-// Entity link types. Must stay in sync with the Prisma EntityType enum —
-// a value missing here causes links of that type to be silently dropped on
-// backup restore.
-const ENTITY_TYPES = ['PHOTO', 'LOCATION', 'ACTIVITY', 'LODGING', 'TRANSPORTATION', 'JOURNAL_ENTRY', 'PHOTO_ALBUM', 'PDF_IMPORT', 'SAVED_LINK'] as const;
+// Entity link types. Must stay in sync with the Prisma EntityType enum — a
+// value missing here does NOT silently drop links of that type: because
+// BackupEntityLinkSchema validates via z.enum(ENTITY_TYPES) and
+// backup.controller.ts parses with the throwing `.parse()`, an unrecognised
+// entity type fails the whole restore with a 400.
+const ENTITY_TYPES = ['PHOTO', 'LOCATION', 'ACTIVITY', 'LODGING', 'TRANSPORTATION', 'JOURNAL_ENTRY', 'PHOTO_ALBUM', 'PDF_IMPORT', 'SAVED_LINK', 'CUSTOM_ITEM'] as const;
 const LINK_RELATIONSHIPS = ['RELATED', 'TAKEN_AT', 'OCCURRED_AT', 'PART_OF', 'DOCUMENTS', 'FEATURED_IN'] as const;
 
 // Entity link schema within a trip
@@ -385,6 +388,35 @@ const BackupSavedLinkSchema = z.object({
   notes: z.string().nullable().optional(),
   source: z.string().optional(),
   metadataStatus: z.string().optional(),
+});
+
+// Custom item type schema (user-level registry, added in v1.5.0).
+// Referenced by name from BackupCustomItemSchema, following the
+// locationCategories/tags convention of storing names for portability.
+// `isDefault` is deliberately absent: it is provenance-only metadata that must
+// never round-trip, because preserving it is what freezes restored location
+// categories (see restore.service.ts).
+const BackupCustomItemTypeSchema = z.object({
+  name: z.string(),
+  icon: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+});
+
+// Custom item schema (added in v1.5.0)
+const BackupCustomItemSchema = z.object({
+  id: z.number().optional(), // For EntityLink mapping
+  typeName: z.string().nullable().optional(),
+  name: z.string(),
+  notes: z.string().nullable().optional(),
+  allDay: z.boolean().optional(),
+  startTime: FlexibleDateSchema,
+  endTime: FlexibleDateSchema,
+  timezone: z.string().nullable().optional(),
+  locationId: z.number().nullable().optional(),
+  cost: z.union([z.number(), z.string()]).nullable().optional(),
+  currency: z.string().nullable().optional(),
+  url: z.string().nullable().optional(),
+  confirmationNumber: z.string().nullable().optional(),
 });
 
 // Trip checklist schema (trip-specific checklists with items)
@@ -445,6 +477,9 @@ const BackupTripSchema = z.object({
 
   // Saved links (added in v1.4.0)
   savedLinks: z.array(BackupSavedLinkSchema).optional(),
+
+  // Custom items (added in v1.5.0)
+  customItems: z.array(BackupCustomItemSchema).optional(),
 });
 
 // =============================================================================
@@ -481,6 +516,8 @@ export const BackupDataSchema = z.object({
   tags: z.array(BackupTagSchema),
   companions: z.array(BackupCompanionSchema),
   locationCategories: z.array(BackupLocationCategorySchema),
+  // Custom item type registry (added in v1.5.0)
+  customItemTypes: z.array(BackupCustomItemTypeSchema).optional(),
   checklists: z.array(BackupChecklistSchema),
   // Travel documents (added in v1.1.0)
   travelDocuments: z.array(BackupTravelDocumentSchema).optional(),
@@ -513,6 +550,8 @@ export type BackupWeatherData = z.infer<typeof BackupWeatherDataSchema>;
 export type BackupEntityLink = z.infer<typeof BackupEntityLinkSchema>;
 export type BackupTripLanguage = z.infer<typeof BackupTripLanguageSchema>;
 export type BackupSavedLink = z.infer<typeof BackupSavedLinkSchema>;
+export type BackupCustomItem = z.infer<typeof BackupCustomItemSchema>;
+export type BackupCustomItemType = z.infer<typeof BackupCustomItemTypeSchema>;
 
 // Response types
 export const BackupInfoResponseSchema = z.object({

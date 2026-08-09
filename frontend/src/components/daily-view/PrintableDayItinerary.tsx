@@ -221,6 +221,50 @@ const LocationItemPrint = ({ item, timezone }: { item: Extract<DayItem, { type: 
   );
 };
 
+const CustomItemPrint = ({
+  item,
+  timezone,
+}: {
+  item: Extract<DayItem, { type: 'customItem' }>;
+  timezone?: string;
+}) => {
+  const customItem = item.data;
+  const startTime = formatTime(item.dateTime, timezone);
+  const endTime = customItem.endTime ? formatTime(new Date(customItem.endTime), timezone) : '';
+  const timeRange = customItem.allDay
+    ? 'All Day'
+    : endTime
+      ? `${startTime} - ${endTime}`
+      : startTime;
+
+  return (
+    <div className="print-item">
+      <div className="print-item-header">
+        <span className="print-item-type">{customItem.type?.name || 'Custom'}</span>
+        {timeRange && <span className="print-item-time">{timeRange}</span>}
+      </div>
+      <div className="print-item-title">{customItem.name}</div>
+      {customItem.location?.name && (
+        <div className="print-item-detail">Location: {customItem.location.name}</div>
+      )}
+      {customItem.confirmationNumber && (
+        <div className="print-item-detail">Confirmation: {customItem.confirmationNumber}</div>
+      )}
+      {customItem.cost != null && (
+        <div className="print-item-detail">
+          Cost: {formatCost(customItem.cost, customItem.currency)}
+        </div>
+      )}
+      {customItem.url && <div className="print-item-detail">URL: {customItem.url}</div>}
+      {customItem.notes && (
+        <div className="print-item-description">
+          <MarkdownRenderer content={customItem.notes} compact />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Render day item based on type
 const DayItemRow = ({ item, timezone }: { item: DayItem; timezone?: string }) => {
   switch (item.type) {
@@ -234,6 +278,8 @@ const DayItemRow = ({ item, timezone }: { item: DayItem; timezone?: string }) =>
       return <JournalItemPrint item={item} />;
     case 'location':
       return <LocationItemPrint item={item} timezone={timezone} />;
+    case 'customItem':
+      return <CustomItemPrint item={item} timezone={timezone} />;
     default:
       return null;
   }

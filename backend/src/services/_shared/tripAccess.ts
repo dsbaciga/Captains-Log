@@ -26,7 +26,8 @@ export type VerifiableEntityType =
   | 'transportation'
   | 'journalEntry'
   | 'album'
-  | 'photoAlbum';
+  | 'photoAlbum'
+  | 'customItem';
 
 /**
  * Configuration for each entity type's Prisma model and display name
@@ -45,6 +46,7 @@ const entityConfigs: Record<VerifiableEntityType, EntityConfig> = {
   journalEntry: { model: 'journalEntry', displayName: 'Journal entry' },
   album: { model: 'photoAlbum', displayName: 'Album' },
   photoAlbum: { model: 'photoAlbum', displayName: 'Album' },
+  customItem: { model: 'customItem', displayName: 'Custom item' },
 };
 
 /**

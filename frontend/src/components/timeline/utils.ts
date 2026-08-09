@@ -194,6 +194,8 @@ export function getTypeColor(type: TimelineItemType): string {
       return 'bg-purple-500';
     case 'journal':
       return 'bg-amber-500';
+    case 'customItem':
+      return 'bg-indigo-500';
     default:
       return 'bg-gray-500';
   }
@@ -212,6 +214,8 @@ export function getTypeBorderColor(type: TimelineItemType): string {
       return 'border-l-purple-500';
     case 'journal':
       return 'border-l-amber-500';
+    case 'customItem':
+      return 'border-l-indigo-500';
     default:
       return 'border-l-gray-500';
   }
@@ -230,6 +234,8 @@ export function getTypeTextColor(type: TimelineItemType): string {
       return 'text-purple-600 dark:text-purple-400';
     case 'journal':
       return 'text-amber-600 dark:text-amber-400';
+    case 'customItem':
+      return 'text-indigo-600 dark:text-indigo-400';
     default:
       return 'text-gray-600 dark:text-gray-400';
   }
@@ -340,7 +346,10 @@ export function getTimelineItemEndPlace(item: TimelineItem): MapsPlace | null {
  */
 export function mapTimelineTypeToEntityType(
   type: TimelineItemType
-): 'ACTIVITY' | 'TRANSPORTATION' | 'LODGING' | 'JOURNAL_ENTRY' {
+): 'ACTIVITY' | 'TRANSPORTATION' | 'LODGING' | 'JOURNAL_ENTRY' | 'CUSTOM_ITEM' {
+  // No `default` on purpose: with a return type that excludes undefined, an
+  // unhandled TimelineItemType is a compile error here rather than a silent
+  // undefined at the call site.
   switch (type) {
     case 'activity':
       return 'ACTIVITY';
@@ -350,5 +359,7 @@ export function mapTimelineTypeToEntityType(
       return 'LODGING';
     case 'journal':
       return 'JOURNAL_ENTRY';
+    case 'customItem':
+      return 'CUSTOM_ITEM';
   }
 }

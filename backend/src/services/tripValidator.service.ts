@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import travelTimeService from './travelTime.service';
 import travelDocumentService from './travelDocument.service';
 import visaRequirementService from './visaRequirement.service';
@@ -142,6 +143,7 @@ class TripValidatorService {
         transportation: true,
         locations: true,
         journalEntries: true,
+        customItems: true,
         dismissedValidationIssues: true,
       },
     });
@@ -588,6 +590,28 @@ class TripValidatorService {
         message: `${activitiesWithoutTime.length} activit${activitiesWithoutTime.length === 1 ? 'y' : 'ies'} without scheduled time`,
         affectedItems: activitiesWithoutTime.map((a: ActivityRecord) => a.id),
         suggestion: 'Add start time or mark as all-day for better timeline visibility',
+        isDismissed: dismissedSet.has(issueId),
+      });
+    }
+
+    // Custom items with a cost but no currency. Without a currency the amount
+    // cannot be converted, so it is silently excluded from the budget total —
+    // worth flagging rather than letting the trip quietly under-report spend.
+    type CustomItemRecord = { id: number; cost: Prisma.Decimal | null; currency: string | null };
+    const customItemsMissingCurrency = ((trip.customItems ?? []) as CustomItemRecord[]).filter(
+      (item) => item.cost !== null && !item.currency
+    );
+    if (customItemsMissingCurrency.length > 0) {
+      const issueKey = 'custom_items_without_currency';
+      const issueId = this.generateIssueId('missing_currency', issueKey);
+
+      issues.push({
+        id: issueId,
+        category: 'COMPLETENESS',
+        type: 'missing_currency',
+        message: `${customItemsMissingCurrency.length} custom item${customItemsMissingCurrency.length === 1 ? '' : 's'} with a cost but no currency`,
+        affectedItems: customItemsMissingCurrency.map((item) => item.id),
+        suggestion: 'Set a currency so the cost is included in the trip budget',
         isDismissed: dismissedSet.has(issueId),
       });
     }

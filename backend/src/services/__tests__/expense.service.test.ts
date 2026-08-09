@@ -46,6 +46,10 @@ const mockPrisma = {
     findMany: jest.fn(),
     update: jest.fn(),
   },
+  customItem: {
+    findMany: jest.fn(),
+    update: jest.fn(),
+  },
 };
 
 jest.mock('../../config/database', () => ({
@@ -109,6 +113,7 @@ function stubEmptyBudgetData() {
   mockPrisma.transportation.findMany.mockResolvedValue([]);
   mockPrisma.lodging.findMany.mockResolvedValue([]);
   mockPrisma.tripExpense.findMany.mockResolvedValue([]);
+  mockPrisma.customItem.findMany.mockResolvedValue([]);
 }
 
 describe('ExpenseService', () => {

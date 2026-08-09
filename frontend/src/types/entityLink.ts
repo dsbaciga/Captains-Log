@@ -11,7 +11,8 @@ export type EntityType =
   | 'JOURNAL_ENTRY'
   | 'PHOTO_ALBUM'
   | 'PDF_IMPORT'
-  | 'SAVED_LINK';
+  | 'SAVED_LINK'
+  | 'CUSTOM_ITEM';
 
 // Relationship types
 export type LinkRelationship =
@@ -141,6 +142,10 @@ const VALID_ENTITY_TYPES = [
   'PHOTO_ALBUM',
   'PDF_IMPORT',
   'SAVED_LINK',
+  'CUSTOM_ITEM',
+  // NOTE: `satisfies` rejects an invalid entry here but CANNOT catch a missing
+  // one. A type absent from this list makes parseEntityKey return null, so the
+  // link silently fails to resolve. Keep it exhaustive by hand.
 ] as const satisfies readonly EntityType[];
 
 // Widened to string on read so membership can be tested without an assertion.

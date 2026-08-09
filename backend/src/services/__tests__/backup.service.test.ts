@@ -52,6 +52,9 @@ const mockPrisma = {
   locationCategory: {
     findMany: jest.fn(),
   },
+  customItemType: {
+    findMany: jest.fn(),
+  },
   checklist: {
     findMany: jest.fn(),
   },
@@ -81,6 +84,7 @@ jest.mock('../../types/travelDocument.types', () => ({
 
 // Import the service after all mocks
 import { createBackup } from '../backup.service';
+import { BACKUP_VERSION } from '../../types/backup.types';
 
 describe('BackupService', () => {
   const mockUser = {
@@ -172,7 +176,9 @@ describe('BackupService', () => {
     it('BKP-001: generates correct JSON structure with version and exportDate', async () => {
       const result = await createBackup(1);
 
-      expect(result.version).toBe('1.4.0');
+      // Asserted against the constant so a version bump does not fail this test;
+      // the shape assertions below are what actually guard the format.
+      expect(result.version).toBe(BACKUP_VERSION);
       expect(result.exportDate).toBeDefined();
       expect(new Date(result.exportDate).getTime()).not.toBeNaN();
     });

@@ -21,9 +21,18 @@ import ActivityCard from './ActivityCard';
 import TransportationCard from './TransportationCard';
 import LodgingCard from './LodgingCard';
 import JournalCard from './JournalCard';
+import CustomItemCard from './CustomItemCard';
 import EmptyDayPlaceholder from './EmptyDayPlaceholder';
 import PrintableDayItinerary from './PrintableDayItinerary';
-import { isActivity, isLodging, isTransportation, isLocation } from './utils';
+import customItemService from '../../services/customItem.service';
+import {
+  isActivity,
+  isLodging,
+  isTransportation,
+  isLocation,
+  isCustomItem,
+  placeFromCustomItem,
+} from './utils';
 import {
   placeFromActivity,
   placeFromLodging,
@@ -167,12 +176,13 @@ export default function DailyView({
       setError(null);
       try {
         // Fetch all data including entity links and weather in parallel
-        const [activities, transportation, lodging, journal, locations, albumsResult, linkSummary, weather, locationLinks] = await Promise.all([
+        const [activities, transportation, lodging, journal, locations, customItems, albumsResult, linkSummary, weather, locationLinks] = await Promise.all([
           activityService.getActivitiesByTrip(tripId),
           transportationService.getTransportationByTrip(tripId),
           lodgingService.getLodgingByTrip(tripId),
           journalService.getJournalEntriesByTrip(tripId),
           locationService.getLocationsByTrip(tripId),
+          customItemService.getCustomItemsByTrip(tripId).catch(() => []),
           photoService.getAlbumsByTrip(tripId).catch(() => ({ albums: [] as PhotoAlbum[] })),
           entityLinkService.getTripLinkSummary(tripId).catch((): TripLinkSummary => ({})),
           weatherService.getWeatherForTrip(tripId).catch(() => [] as WeatherData[]),
@@ -499,6 +509,21 @@ export default function DailyView({
           }
         });
 
+        // Add custom items that have a start time. Undated ones have no day to
+        // sit on and stay visible in the Custom tab instead.
+        customItems.forEach((item) => {
+          if (item.startTime) {
+            const dateKey = getDateString(item.startTime);
+            if (dayDataMap[dateKey]) {
+              dayDataMap[dateKey].push({
+                type: 'customItem',
+                dateTime: new Date(item.startTime),
+                data: item,
+              });
+            }
+          }
+        });
+
         // Helper to get location IDs from scheduled items on a day
         const getLocationIdsFromItems = (items: DayItem[]): Set<number> => {
           const locationIds = new Set<number>();
@@ -678,6 +703,9 @@ export default function DailyView({
       if (isLocation(data)) {
         return placeFromLocation(data);
       }
+      if (isCustomItem(data)) {
+        return placeFromCustomItem(data);
+      }
       // Journal entries are not places.
       return null;
     });
@@ -816,6 +844,19 @@ export default function DailyView({
                     linkedLocations={getLinkedLocations('JOURNAL_ENTRY', journal.id)}
                     linkedAlbums={getLinkedAlbums('JOURNAL_ENTRY', journal.id)}
                     currentDate={item.dateTime}
+                  />
+                );
+              }
+              case 'customItem': {
+                const customItem = item.data;
+                return (
+                  <CustomItemCard
+                    key={`customItem-${customItem.id}`}
+                    item={customItem}
+                    tripId={tripId}
+                    tripTimezone={tripTimezone}
+                    currentDate={item.dateTime}
+                    originPlace={originPlace}
                   />
                 );
               }

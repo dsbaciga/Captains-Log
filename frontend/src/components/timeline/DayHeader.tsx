@@ -120,6 +120,9 @@ export default function DayHeader({
   if (stats.journal > 0) {
     statParts.push(`${stats.journal} ${stats.journal === 1 ? 'journal' : 'journals'}`);
   }
+  if (stats.customItems > 0) {
+    statParts.push(`${stats.customItems} custom`);
+  }
   if (stats.totalPhotosLinked > 0) {
     statParts.push(`${stats.totalPhotosLinked} ${stats.totalPhotosLinked === 1 ? 'photo' : 'photos'}`);
   }

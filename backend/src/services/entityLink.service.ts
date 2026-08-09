@@ -145,6 +145,16 @@ const ENTITY_CONFIG: Record<EntityType, {
       return link ? { id: link.id, name: link.title ?? link.url } : null;
     },
   },
+  CUSTOM_ITEM: {
+    findInTrip: (tripId, entityId) => prisma.customItem.findFirst({ where: { id: entityId, tripId } }),
+    getDetails: async (entityId) => {
+      const item = await prisma.customItem.findUnique({
+        where: { id: entityId },
+        select: { id: true, name: true, startTime: true },
+      });
+      return item ? { id: item.id, name: item.name, date: item.startTime?.toISOString() ?? null } : null;
+    },
+  },
 };
 
 /**
@@ -240,6 +250,9 @@ async function batchVerifyEntitiesInTrip(
           throw new AppError('SAVED_LINK entity reference requires authenticated user context', 400);
         }
         foundCount = await prisma.savedLink.count({ where: { id: { in: uniqueIds }, userId, tripId } });
+        break;
+      case 'CUSTOM_ITEM':
+        foundCount = await prisma.customItem.count({ where: { id: { in: uniqueIds }, tripId } });
         break;
       default:
         throw new AppError(`Unknown entity type: ${entityType}`, 400);
@@ -378,6 +391,20 @@ async function batchGetEntityDetails(
         });
         for (const link of links) {
           result.set(`SAVED_LINK:${link.id}`, { id: link.id, name: link.title ?? link.url });
+        }
+        break;
+      }
+      case 'CUSTOM_ITEM': {
+        const items = await prisma.customItem.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true, startTime: true },
+        });
+        for (const item of items) {
+          result.set(`CUSTOM_ITEM:${item.id}`, {
+            id: item.id,
+            name: item.name,
+            date: item.startTime?.toISOString(),
+          });
         }
         break;
       }
@@ -1052,6 +1079,12 @@ export async function cleanupOrphanedEntityLinks(tripId: number): Promise<number
         // a link back to the inbox orphans its entity links by design.
         foundIds = (await prisma.savedLink.findMany({
           where: { id: { in: idArray }, tripId },
+          select: { id: true },
+        })).map(e => e.id);
+        break;
+      case 'CUSTOM_ITEM':
+        foundIds = (await prisma.customItem.findMany({
+          where: { id: { in: idArray } },
           select: { id: true },
         })).map(e => e.id);
         break;

@@ -152,6 +152,10 @@ const mockPrisma = {
     findMany: jest.fn(),
     create: jest.fn(),
   },
+  customItem: {
+    findMany: jest.fn(),
+    create: jest.fn(),
+  },
   tripCollaborator: {
     create: jest.fn(),
   },
@@ -229,6 +233,8 @@ describe('Trip Service', () => {
     mockPrisma.tripCompanion.create.mockResolvedValue({ id: 1, tripId: mockTripId, companionId: 10 });
     // Trips have no saved links by default; duplicateTrip queries these.
     mockPrisma.savedLink.findMany.mockResolvedValue([]);
+    // Likewise custom items — duplicateTrip copies them before entity links.
+    mockPrisma.customItem.findMany.mockResolvedValue([]);
 
     // Mock $transaction to execute the callback with a tx client that mirrors mockPrisma
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {

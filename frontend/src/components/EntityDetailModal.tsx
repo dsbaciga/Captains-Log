@@ -12,6 +12,8 @@ import transportationService from '../services/transportation.service';
 import journalEntryService from '../services/journalEntry.service';
 import photoService from '../services/photo.service';
 import savedLinkService from '../services/savedLink.service';
+import customItemService from '../services/customItem.service';
+import type { CustomItem } from '../types/customItem';
 import type { SavedLink } from '../types/savedLink';
 import { savedLinkDisplayTitle } from '../types/savedLink';
 import type { Location } from '../types/location';
@@ -43,6 +45,7 @@ const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
   JOURNAL_ENTRY: 'journal',
   PHOTO_ALBUM: null, // Albums have their own route
   SAVED_LINK: 'links',
+  CUSTOM_ITEM: 'custom',
   PDF_IMPORT: null, // Imports are managed outside the trip page
 };
 
@@ -185,6 +188,47 @@ function LocationDetails({ entity }: { entity: Location }) {
         />
       )}
       <DetailRow label="Notes" value={entity.notes ? <MarkdownRenderer content={entity.notes} compact /> : null} />
+    </dl>
+  );
+}
+
+function CustomItemDetails({ entity }: { entity: CustomItem }) {
+  return (
+    <dl className="divide-y divide-gray-200 dark:divide-gray-700">
+      <DetailRow label="Name" value={entity.name} />
+      <DetailRow label="Type" value={entity.type?.name} />
+      {entity.allDay ? (
+        <DetailRow label="Time" value="All Day" />
+      ) : (
+        <>
+          <DetailRow label="Start Time" value={formatDateTime(entity.startTime, entity.timezone)} />
+          <DetailRow label="End Time" value={formatDateTime(entity.endTime, entity.timezone)} />
+        </>
+      )}
+      <DetailRow label="Location" value={entity.location?.name} />
+      {entity.cost != null && (
+        <DetailRow label="Cost" value={formatCurrency(entity.cost, entity.currency)} />
+      )}
+      <DetailRow label="Confirmation Number" value={entity.confirmationNumber} />
+      {entity.url && (
+        <DetailRow
+          label="URL"
+          value={
+            <a
+              href={entity.url}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="text-blue-600 hover:underline dark:text-blue-400 break-all"
+            >
+              {entity.url}
+            </a>
+          }
+        />
+      )}
+      <DetailRow
+        label="Notes"
+        value={entity.notes ? <MarkdownRenderer content={entity.notes} compact /> : null}
+      />
     </dl>
   );
 }
@@ -462,7 +506,7 @@ function AlbumDetails({ entity }: { entity: AlbumWithPhotos }) {
 async function fetchEntityData(
   entityType: EntityType,
   entityId: number
-): Promise<Location | Activity | Lodging | Transportation | JournalEntry | Photo | AlbumWithPhotos | SavedLink> {
+): Promise<Location | Activity | Lodging | Transportation | JournalEntry | Photo | AlbumWithPhotos | SavedLink | CustomItem> {
   switch (entityType) {
     case 'LOCATION':
       return locationService.getLocationById(entityId);
@@ -480,6 +524,8 @@ async function fetchEntityData(
       return photoService.getAlbumById(entityId);
     case 'SAVED_LINK':
       return savedLinkService.getSavedLinkById(entityId);
+    case 'CUSTOM_ITEM':
+      return customItemService.getCustomItemById(entityId);
     default:
       throw new Error(`Unknown entity type: ${entityType}`);
   }
@@ -602,6 +648,8 @@ export default function EntityDetailModal({
         return <AlbumDetails entity={entity as AlbumWithPhotos} />;
       case 'SAVED_LINK':
         return <SavedLinkDetails entity={entity as SavedLink} />;
+      case 'CUSTOM_ITEM':
+        return <CustomItemDetails entity={entity as CustomItem} />;
       default:
         return <p>Unknown entity type</p>;
     }
