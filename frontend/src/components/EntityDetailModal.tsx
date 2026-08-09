@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { EntityType } from '../types/entityLink';
-import { ENTITY_TYPE_CONFIG } from '../lib/entityConfig';
+import { ENTITY_TYPE_CONFIG, ENTITY_TYPE_TO_TAB } from '../lib/entityConfig';
 import { useImmichThumbnail } from '../hooks/useImmichThumbnail';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
@@ -34,20 +34,6 @@ interface EntityDetailModalProps {
   entityType: EntityType;
   entityId: number;
 }
-
-// Map entity types to tab names for navigation
-const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
-  PHOTO: 'photos',
-  LOCATION: 'locations',
-  ACTIVITY: 'activities',
-  LODGING: 'lodging',
-  TRANSPORTATION: 'transportation',
-  JOURNAL_ENTRY: 'journal',
-  PHOTO_ALBUM: null, // Albums have their own route
-  SAVED_LINK: 'links',
-  CUSTOM_ITEM: 'custom',
-  PDF_IMPORT: null, // Imports are managed outside the trip page
-};
 
 // Format datetime for display
 function formatDateTime(dateString: string | null | undefined, timezone?: string | null): string {
@@ -617,6 +603,7 @@ export default function EntityDetailModal({
   const handleEdit = () => {
     setIsNavigating(true);
     onClose();
+    // Albums have their own detail page, so they bypass the tab map
     if (entityType === 'PHOTO_ALBUM') {
       navigate(`/trips/${tripId}/albums/${entityId}?edit=true`);
     } else {
