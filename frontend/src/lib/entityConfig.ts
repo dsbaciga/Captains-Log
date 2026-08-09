@@ -233,6 +233,12 @@ export const ALL_RELATIONSHIP_TYPES: LinkRelationship[] = [
 /**
  * Map entity types to their corresponding tab names on the trip detail page
  * Used for navigation to linked entities
+ *
+ * PHOTO_ALBUM is the one type with two destinations: albums are listed under the
+ * photos tab, but each also has its own page at /trips/:tripId/albums/:albumId.
+ * Callers that want the album page must branch on PHOTO_ALBUM before the lookup —
+ * see LinkPanel and EntityDetailModal. The 'photos' value here is the honest answer
+ * to "which tab", so callers that only want a tab still get a working destination.
  */
 export const ENTITY_TYPE_TO_TAB: Record<EntityType, string | null> = {
   PHOTO: 'photos',
