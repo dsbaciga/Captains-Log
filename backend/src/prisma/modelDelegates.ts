@@ -31,7 +31,14 @@ import type { VerifiableEntityType } from '../services/_shared/tripAccess';
 /** Prisma clients accepted here: the root client or a transaction client. */
 export type PrismaDelegateHost = Pick<
   typeof prisma,
-  'location' | 'photo' | 'activity' | 'lodging' | 'transportation' | 'journalEntry' | 'photoAlbum'
+  | 'location'
+  | 'photo'
+  | 'activity'
+  | 'lodging'
+  | 'transportation'
+  | 'journalEntry'
+  | 'photoAlbum'
+  | 'customItem'
 >;
 
 /** A delegate that also exposes `deleteMany`, used by the bulk helpers. */
@@ -66,6 +73,8 @@ export function getEntityDelegate(
     case 'album':
     case 'photoAlbum':
       return client.photoAlbum as unknown as PrismaModelDelegateWithDeleteMany;
+    case 'customItem':
+      return client.customItem as unknown as PrismaModelDelegateWithDeleteMany;
     default: {
       // Exhaustiveness guard: if a new VerifiableEntityType is added without a
       // case above, this fails to compile rather than returning undefined.

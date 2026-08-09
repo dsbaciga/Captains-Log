@@ -3,6 +3,7 @@ import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
+import type { CustomItem } from '../../types/customItem';
 
 /** Where a given day falls within a multi-day lodging stay. */
 export interface LodgingDayContext {
@@ -25,4 +26,5 @@ export type DayItem =
   | { type: 'transportation'; dateTime: Date; data: Transportation }
   | { type: 'lodging'; dateTime: Date; data: Lodging; lodgingContext?: LodgingDayContext }
   | { type: 'journal'; dateTime: Date; data: JournalEntry }
-  | { type: 'location'; dateTime: Date; data: Location };
+  | { type: 'location'; dateTime: Date; data: Location }
+  | { type: 'customItem'; dateTime: Date; data: CustomItem };

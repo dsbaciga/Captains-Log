@@ -12,6 +12,7 @@ import activityService from "../services/activity.service";
 import transportationService from "../services/transportation.service";
 import lodgingService from "../services/lodging.service";
 import savedLinkService from "../services/savedLink.service";
+import customItemService from "../services/customItem.service";
 import journalService from "../services/journalEntry.service";
 import tagService from "../services/tag.service";
 import companionService from "../services/companion.service";
@@ -45,6 +46,7 @@ const LocationManager = lazy(() => import("../components/LocationManager"));
 const CollaboratorsManager = lazy(() => import("../components/CollaboratorsManager"));
 const BudgetManager = lazy(() => import("../components/BudgetManager"));
 const SavedLinksManager = lazy(() => import("../components/SavedLinksManager"));
+const CustomItemsManager = lazy(() => import("../components/CustomItemsManager"));
 const EmergencyCard = lazy(() => import("../components/EmergencyCard"));
 const LocalNormsCard = lazy(() => import("../components/LocalNormsCard"));
 import Modal from "../components/Modal";
@@ -97,12 +99,13 @@ type TabId =
   | "lodging"
   | "budget"
   | "links"
+  | "custom"
   | "unscheduled"
   | "companions"
   | "emergency"
   | "local-norms";
 
-const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "budget", "links", "unscheduled", "companions", "emergency", "local-norms"]);
+const VALID_TAB_IDS = new Set<string>(["dashboard", "timeline", "daily", "trip-map", "locations", "photos", "photo-map", "photo-timeline", "journal", "activities", "transportation", "lodging", "budget", "links", "custom", "unscheduled", "companions", "emergency", "local-norms"]);
 
 function isTabId(value: string | null | undefined): value is TabId {
   return value != null && VALID_TAB_IDS.has(value);
@@ -136,6 +139,9 @@ export default function TripDetailPage() {
   // Initialize activeTab from URL parameter or default to 'dashboard'
   const tabParam = searchParams.get("tab");
   const initialTab: TabId = isTabId(tabParam) ? tabParam : "dashboard";
+  // `?edit=<id>` deep link, written by the timeline/daily-view Edit buttons.
+  const editParam = searchParams.get("edit");
+  const editItemId = editParam != null && /^\d+$/.test(editParam) ? Number(editParam) : null;
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
   // Sync activeTab with URL when tab parameter changes externally (e.g., from EntityDetailModal navigation)
@@ -214,6 +220,12 @@ export default function TripDetailPage() {
     enabled: !!tripId,
   });
 
+  const { data: customItemsData } = useQuery({
+    queryKey: ['customItems', tripId],
+    queryFn: () => customItemService.getCustomItemsByTrip(tripId),
+    enabled: !!tripId,
+  });
+
   const { data: journalData, isLoading: isJournalLoading } = useQuery({
     queryKey: ['journal', tripId],
     queryFn: () => journalService.getJournalEntriesByTrip(tripId),
@@ -269,6 +281,7 @@ export default function TripDetailPage() {
   const unscheduledTransportationCount = useMemo(() => transportationData?.filter(t => !t.departureTime).length ?? 0, [transportationData]);
   const lodgingCount = useMemo(() => lodgingData?.length ?? 0, [lodgingData]);
   const savedLinksCount = useMemo(() => savedLinksData?.length ?? 0, [savedLinksData]);
+  const customItemsCount = useMemo(() => customItemsData?.length ?? 0, [customItemsData]);
   const unscheduledLodgingCount = useMemo(() => lodgingData?.filter(l => !l.checkInDate).length ?? 0, [lodgingData]);
   const unscheduledCount = useMemo(() => unscheduledActivitiesCount + unscheduledTransportationCount + unscheduledLodgingCount, [unscheduledActivitiesCount, unscheduledTransportationCount, unscheduledLodgingCount]);
   const journalCount = useMemo(() => journalData?.length ?? 0, [journalData]);
@@ -594,6 +607,21 @@ export default function TripDetailPage() {
             ),
           },
           {
+            id: "custom",
+            label: "Custom",
+            count: customItemsCount,
+            icon: (
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                />
+              </svg>
+            ),
+          },
+          {
             id: "unscheduled",
             label: "Unscheduled",
             count: unscheduledCount,
@@ -729,6 +757,7 @@ export default function TripDetailPage() {
       transportationCount,
       lodgingCount,
       savedLinksCount,
+      customItemsCount,
       unscheduledCount,
       totalPhotosCount,
       journalCount,
@@ -2005,6 +2034,24 @@ export default function TripDetailPage() {
               tripId={trip.id}
               onUpdate={() => {
                 queryClient.invalidateQueries({ queryKey: ['savedLinks', tripId] });
+              }}
+            />
+            </Suspense>
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {/* Custom Items Tab */}
+        {activeTab === "custom" && (
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-lg border border-primary-100 dark:border-gold/20 p-6 animate-fadeIn">
+            <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner.FullPage message="Loading custom items..." />}>
+            <CustomItemsManager
+              tripId={trip.id}
+              tripTimezone={trip.timezone}
+              editId={editItemId}
+              onUpdate={() => {
+                queryClient.invalidateQueries({ queryKey: ['customItems', tripId] });
               }}
             />
             </Suspense>

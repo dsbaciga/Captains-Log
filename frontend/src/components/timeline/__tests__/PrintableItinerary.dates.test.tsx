@@ -15,7 +15,14 @@ describe('PrintableItinerary date-only rendering', () => {
     {
       dateKey: '2025-06-01',
       dayNumber: 1,
-      stats: { activities: 0, transportation: 0, lodging: 0, journal: 0, totalPhotosLinked: 0 },
+      stats: {
+        activities: 0,
+        transportation: 0,
+        lodging: 0,
+        journal: 0,
+        customItems: 0,
+        totalPhotosLinked: 0,
+      },
       items: [],
     },
   ];
@@ -28,7 +35,7 @@ describe('PrintableItinerary date-only rendering', () => {
         tripEndDate="2025-06-07"
         tripTimezone="America/Los_Angeles"
         dayGroups={dayGroups}
-        unscheduled={{ activities: [], transportation: [], lodging: [] }}
+        unscheduled={{ activities: [], transportation: [], lodging: [], customItems: [] }}
       />
     );
 

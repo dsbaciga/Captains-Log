@@ -13,6 +13,8 @@ import {
   savedLinkHostname,
 } from '../types/savedLink';
 import savedLinkService from '../services/savedLink.service';
+import customItemService from '../services/customItem.service';
+import type { CustomItem } from '../types/customItem';
 import locationService from '../services/location.service';
 import activityService from '../services/activity.service';
 import lodgingService from '../services/lodging.service';
@@ -152,6 +154,16 @@ export function useEntityFetcher(tripId: number, entityType: EntityType | null) 
               id: link.id,
               name: savedLinkDisplayTitle(link),
               subtitle: savedLinkHostname(link),
+            }));
+            break;
+          }
+
+          case 'CUSTOM_ITEM': {
+            const customItems = await customItemService.getCustomItemsByTrip(tripId);
+            items = customItems.map((item: CustomItem) => ({
+              id: item.id,
+              name: item.name,
+              subtitle: item.type?.name || undefined,
             }));
             break;
           }

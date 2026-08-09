@@ -60,6 +60,14 @@ const mockTx = {
     create: jest.fn(),
     deleteMany: jest.fn(),
   },
+  // Items themselves go via the trip cascade; the user-level type registry does not.
+  customItemType: {
+    create: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  customItem: {
+    create: jest.fn(),
+  },
   checklist: {
     create: jest.fn(),
     deleteMany: jest.fn(),

@@ -2,6 +2,7 @@ import type { Activity } from '../../types/activity';
 import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
+import type { CustomItem } from '../../types/customItem';
 import type { WeatherDisplay } from '../../types/weather';
 import type { EntityLinkSummary } from '../../types/entityLink';
 import type { MapsPlace } from '../../lib/mapsDeepLinks';
@@ -14,7 +15,12 @@ export interface UnscheduledActivityWithLocation extends Activity {
   linkedLocations?: { id: number; name: string }[];
 }
 
-export type TimelineItemType = 'activity' | 'transportation' | 'lodging' | 'journal';
+export type TimelineItemType =
+  | 'activity'
+  | 'transportation'
+  | 'lodging'
+  | 'journal'
+  | 'customItem';
 
 export type TransportationType =
   | 'flight'
@@ -66,7 +72,7 @@ export interface TimelineItem {
   toCoords?: { latitude: number; longitude: number };
   connectionGroupId?: string;
   multiDayInfo?: MultiDayInfo;
-  data: Activity | Transportation | Lodging | JournalEntry;
+  data: Activity | Transportation | Lodging | JournalEntry | CustomItem;
 }
 
 export interface DayStats {
@@ -74,6 +80,7 @@ export interface DayStats {
   transportation: number;
   lodging: number;
   journal: number;
+  customItems: number;
   totalPhotosLinked: number;
 }
 
@@ -122,7 +129,7 @@ export interface DayHeaderProps {
 
 export interface PhotoPreviewPopoverProps {
   tripId: number;
-  entityType: 'ACTIVITY' | 'TRANSPORTATION' | 'LODGING' | 'JOURNAL_ENTRY';
+  entityType: 'ACTIVITY' | 'TRANSPORTATION' | 'LODGING' | 'JOURNAL_ENTRY' | 'CUSTOM_ITEM';
   entityId: number;
   photoCount: number;
   onViewAll: () => void;

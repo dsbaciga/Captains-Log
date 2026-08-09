@@ -1040,6 +1040,37 @@ export class TripService {
       savedLinkIdMap.set(savedLink.id, copy.id);
     }
 
+    // Copy custom items (must run before entity links so CUSTOM_ITEM refs remap).
+    // typeId points at a user-owned CustomItemType which is NOT trip-scoped, so it
+    // carries over unchanged; locationId is remapped into the copied trip.
+    const customItemIdMap = new Map<number, number>();
+    const sourceCustomItems = await tx.customItem.findMany({
+      where: { tripId: sourceTripId },
+    });
+    for (const item of sourceCustomItems) {
+      const copy = await tx.customItem.create({
+        data: {
+          tripId: newTrip.id,
+          typeId: item.typeId,
+          name: item.name,
+          notes: item.notes,
+          allDay: item.allDay,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          timezone: item.timezone,
+          locationId: item.locationId ? locationIdMap.get(item.locationId) || null : null,
+          cost: item.cost,
+          currency: item.currency,
+          exchangeRate: item.exchangeRate,
+          baseAmount: item.baseAmount,
+          baseCurrency: item.baseCurrency,
+          url: item.url,
+          confirmationNumber: item.confirmationNumber,
+        },
+      });
+      customItemIdMap.set(item.id, copy.id);
+    }
+
     // Copy entity links using bulk insert (must be done after all entities are copied)
     const entityLinks = await tx.entityLink.findMany({
       where: { tripId: sourceTripId },
@@ -1064,6 +1095,8 @@ export class TripService {
           return albumIdMap.get(oldId) || null;
         case 'SAVED_LINK':
           return savedLinkIdMap.get(oldId) || null;
+        case 'CUSTOM_ITEM':
+          return customItemIdMap.get(oldId) || null;
         default:
           return null;
       }

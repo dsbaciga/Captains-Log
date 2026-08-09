@@ -40,6 +40,12 @@ const TYPE_CONFIG: Record<TimelineItemType, { label: string; shortLabel: string;
     color: 'text-amber-600 dark:text-amber-400',
     bgColor: 'bg-amber-100 dark:bg-amber-900/30',
   },
+  customItem: {
+    label: 'Custom',
+    shortLabel: 'Cust',
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bgColor: 'bg-indigo-100 dark:bg-indigo-900/30',
+  },
 };
 
 export default function TimelineFilters({

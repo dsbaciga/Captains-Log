@@ -3,6 +3,8 @@ import type { Transportation } from '../../types/transportation';
 import type { Lodging } from '../../types/lodging';
 import type { JournalEntry } from '../../types/journalEntry';
 import type { Location } from '../../types/location';
+import type { CustomItem } from '../../types/customItem';
+import type { MapsPlace } from '../../lib/mapsDeepLinks';
 
 /**
  * Format time for display
@@ -74,7 +76,7 @@ export function getTimezoneAbbr(timezone?: string): string {
 /**
  * Get type-specific colors
  */
-export function getTypeColors(type: 'activity' | 'transportation' | 'lodging' | 'journal' | 'location' | 'photo' | 'album') {
+export function getTypeColors(type: 'activity' | 'transportation' | 'lodging' | 'journal' | 'location' | 'photo' | 'album' | 'customItem') {
   switch (type) {
     case 'activity':
       return {
@@ -115,6 +117,14 @@ export function getTypeColors(type: 'activity' | 'transportation' | 'lodging' | 
         accent: 'border-l-red-500',
         icon: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
         text: 'text-red-700 dark:text-red-300',
+      };
+    case 'customItem':
+      return {
+        bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+        border: 'border-indigo-200 dark:border-indigo-800',
+        accent: 'border-l-indigo-500',
+        icon: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400',
+        text: 'text-indigo-700 dark:text-indigo-300',
       };
     case 'photo':
     case 'album':
@@ -267,13 +277,28 @@ export function getMoodEmoji(mood?: string | null): string {
 /**
  * Every entity that can appear as a day item's `data`.
  */
-export type DayItemData = Activity | Transportation | Lodging | JournalEntry | Location;
+export type DayItemData =
+  | Activity
+  | Transportation
+  | Lodging
+  | JournalEntry
+  | Location
+  | CustomItem;
 
 /**
  * Type guards
+ *
+ * These are structural, so ordering matters where shapes overlap. CustomItem
+ * carries both `name` and `allDay`, which is exactly what isActivity tests —
+ * so isCustomItem must be checked FIRST, and isActivity explicitly excludes it.
+ * `typeId` is the distinguishing field: Activity has no such property.
  */
+export function isCustomItem(item: DayItemData): item is CustomItem {
+  return 'typeId' in item && 'confirmationNumber' in item && 'allDay' in item;
+}
+
 export function isActivity(item: DayItemData): item is Activity {
-  return 'name' in item && 'allDay' in item;
+  return !isCustomItem(item) && 'name' in item && 'allDay' in item;
 }
 
 export function isTransportation(item: DayItemData): item is Transportation {
@@ -290,4 +315,18 @@ export function isJournalEntry(item: DayItemData): item is JournalEntry {
 
 export function isLocation(item: DayItemData): item is Location {
   return 'isFavorite' in item && 'name' in item;
+}
+
+/**
+ * A custom item's place comes from its `locationId` FK — the direct
+ * "this item is AT this place" relation, unlike Activity which resolves a place
+ * through EntityLink.
+ */
+export function placeFromCustomItem(item: CustomItem): MapsPlace | null {
+  if (!item.location) return null;
+  return {
+    name: item.location.name,
+    latitude: item.location.latitude,
+    longitude: item.location.longitude,
+  };
 }

@@ -2,7 +2,7 @@
 
 Travel Life uses PostgreSQL with PostGIS extension for geospatial data. The schema is managed via Prisma ORM.
 
-The schema defines **37 models** (mapped to **37 tables**) and **11 enums**.
+The schema defines **39 models** (mapped to **39 tables**) and **11 enums**.
 
 ## Schema Location
 
@@ -612,7 +612,7 @@ snapshot.
 
 ### Snapshot columns
 
-`TripExpense`, `Activity`, `Transportation`, and `Lodging` each gained:
+`TripExpense`, `Activity`, `Transportation`, `Lodging`, and `CustomItem` each carry:
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -749,6 +749,75 @@ Three behaviours worth knowing:
 | REJECTED_SENDER | From address not recognised |
 | FAILED | Parse or transport error |
 
+## Custom Items
+
+The escape hatch for trip content that fits none of the first-class entities — a
+parking reservation, a rental-agency contact, a "call the vet on day 3" reminder.
+Types are presentation-only; every item shares one fixed field set. Full design
+notes in [CUSTOM_ITEM_SPEC.md](../development/CUSTOM_ITEM_SPEC.md).
+
+### CustomItemType
+
+The user-level type registry. Always user-owned — unlike `LocationCategory` there is
+no NULL-`userId` system row.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | Int | Primary key |
+| userId | Int | Owner foreign key (Cascade) |
+| name | String | Type name |
+| icon | String? | Icon identifier |
+| color | String? | Hex color code |
+| isDefault | Boolean | Marks a seeded starter type |
+
+Unique on `(userId, name)`.
+
+**`isDefault` is provenance only and never gates editing.** `updateType` and
+`deleteType` deliberately do *not* filter on it, and the restore path forces it to
+`false`. This is the opposite of `LocationCategory`, where preserving `isDefault`
+across a backup round-trip leaves the user unable to edit their own categories.
+
+The four starter types (**Reservation, Contact, Reminder, Misc**) are seeded lazily on
+the user's first read of the registry, guarded on the *total* type count. Guarding on
+total rather than on `isDefault` is what stops a user who deleted every type from
+having them resurrected, and stops a restored backup from colliding with a re-seed.
+
+### CustomItem
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | Int | Primary key |
+| tripId | Int | Trip foreign key (Cascade) |
+| typeId | Int? | CustomItemType foreign key (**SetNull**) |
+| name | String | Item name |
+| notes | String? | Rich text |
+| allDay | Boolean | All-day flag |
+| startTime | DateTime? | Start (null = not on the timeline) |
+| endTime | DateTime? | End |
+| timezone | String? | IANA timezone |
+| locationId | Int? | Location foreign key (**SetNull**) |
+| cost | Decimal(10,2)? | Cost — DB CHECK `>= 0` |
+| currency | String? | Currency code |
+| exchangeRate / baseAmount / baseCurrency | — | Frozen FX snapshot |
+| url | String (Text)? | Text, not VarChar(500) |
+| confirmationNumber | String? | Confirmation number |
+
+Four behaviours worth knowing:
+
+- **`typeId` uses `SetNull`.** Deleting a type keeps its items, presented as untyped.
+- **`locationId` is a direct FK**, following `Transportation` rather than `Activity`.
+  It means "the item is *at* this place" and drives the map marker, so it must be a
+  single unambiguous location. An `EntityLink` to a `LOCATION` remains possible and
+  carries the weaker "related to" meaning.
+- **Changing `cost` or `currency` clears the FX snapshot**, so the budget summary
+  recomputes it. Leaving it would report the old converted amount against the new figure.
+- **Only items with a `startTime` reach the timeline and daily view.** Undated ones stay
+  in the Custom tab, and appear under "Unscheduled Items" in the printable itinerary.
+
+Custom items feed the trip budget through the `other` bucket, and the Trip Health Check
+raises a `COMPLETENESS` issue for an item that has a cost but no currency (which would
+otherwise be silently excluded from the total).
+
 ## Entity Linking System
 
 The `EntityLink` model provides a polymorphic linking system for connecting any entity to any other entity within a trip.
@@ -769,18 +838,34 @@ The `EntityLink` model provides a polymorphic linking system for connecting any 
 
 ### EntityType Enum
 
-9 values:
+10 values:
 
 ```text
-PHOTO, LOCATION, ACTIVITY, LODGING, TRANSPORTATION, JOURNAL_ENTRY, PHOTO_ALBUM, PDF_IMPORT, SAVED_LINK
+PHOTO, LOCATION, ACTIVITY, LODGING, TRANSPORTATION, JOURNAL_ENTRY, PHOTO_ALBUM, PDF_IMPORT, SAVED_LINK, CUSTOM_ITEM
 ```
 
-Adding a value here fans out to roughly ten call sites. Four are compiler-enforced
-(`ENTITY_CONFIG` in `entityLink.service.ts`, plus `ENTITY_TYPE_CONFIG` and
-`ENTITY_TYPE_TO_TAB` in the frontend `entityConfig.ts`); the rest fail silently or at
-runtime. In particular, `ENTITY_TYPE_DISPLAY_ORDER` controls whether the type renders
-at all, and `backup.types.ts` `ENTITY_TYPES` controls whether its links survive a
-backup restore.
+**Adding a value here fans out to about 22 call sites, not "roughly ten"** — measured
+while adding `CUSTOM_ITEM`. Only six are compiler-enforced:
+
+- `ENTITY_CONFIG` in `entityLink.service.ts`
+- `ENTITY_TYPE_CONFIG` and `ENTITY_TYPE_TO_TAB` in the frontend `entityConfig.ts`
+- a **second, divergent** `ENTITY_TYPE_TO_TAB` in `EntityDetailModal.tsx`
+- `emptyGroups()` in `LinkPanel.tsx` and `LinkedEntitiesDisplay.tsx`
+
+The rest fail silently or at runtime, and the silent ones are data-lossy because
+`entityTypeEnum = z.nativeEnum(EntityType)` in `entityLink.types.ts` is auto-derived —
+the API accepts the new value the moment the enum lands. The ones that matter most:
+
+- `backup.types.ts` `ENTITY_TYPES` — a missing value **fails the entire restore with a
+  400** (see the note in that file); it does not silently drop links.
+- `restore.service.ts` `getNewEntityId` and `trip.service.ts` `getNewId` — both typed
+  `string`, so a missing case silently **drops links** on restore and trip-duplication.
+- `ENTITY_TYPE_DISPLAY_ORDER` in `entityConfig.ts` — controls whether the type renders
+  at all.
+- `entityTypeToLinkType` in `crudHelpers.ts` — a `Partial` record, so a missing entry
+  compiles and then **orphans entity links on delete**.
+
+A full inventory lives in [CUSTOM_ITEM_SPEC.md](../development/CUSTOM_ITEM_SPEC.md).
 
 ### LinkRelationship Enum
 

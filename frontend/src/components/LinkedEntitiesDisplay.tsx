@@ -149,6 +149,7 @@ export default function LinkedEntitiesDisplay({
       PHOTO_ALBUM: [],
       SAVED_LINK: [],
       PDF_IMPORT: [],
+      CUSTOM_ITEM: [],
     });
 
     if (!linksData) return emptyGroups();

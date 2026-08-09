@@ -3,10 +3,15 @@ import DayHeader from './DayHeader';
 import TimelineEventCard from './TimelineEventCard';
 import UnscheduledActivityCard from './UnscheduledActivityCard';
 import DayMiniMap from '../DayMiniMap';
-import { getConnectionInfo, getTimezoneAbbr, getTimelineItemEndPlace } from './utils';
+import {
+  getConnectionInfo,
+  getTimezoneAbbr,
+  getTimelineItemEndPlace,
+  mapTimelineTypeToEntityType,
+} from './utils';
 import { pickPreviousPlace } from '../../lib/mapsDeepLinks';
 import type { DayGroup, TimelineItem } from './types';
-import type { EntityLinkSummary, EntityType } from '../../types/entityLink';
+import type { EntityLinkSummary } from '../../types/entityLink';
 import { getEntityKey } from '../../types/entityLink';
 
 interface TimelineDaySectionProps {
@@ -23,22 +28,6 @@ interface TimelineDaySectionProps {
   onEdit: (item: TimelineItem) => void;
   onDelete: (item: TimelineItem) => void;
   onLinkUpdate: () => void;
-}
-
-// Map timeline type to entity type
-function mapTimelineTypeToEntityType(
-  type: 'activity' | 'transportation' | 'lodging' | 'journal'
-): EntityType {
-  switch (type) {
-    case 'activity':
-      return 'ACTIVITY';
-    case 'transportation':
-      return 'TRANSPORTATION';
-    case 'lodging':
-      return 'LODGING';
-    case 'journal':
-      return 'JOURNAL_ENTRY';
-  }
 }
 
 export default function TimelineDaySection({

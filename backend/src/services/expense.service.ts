@@ -17,7 +17,7 @@ import { Prisma } from '@prisma/client';
 type BudgetBucket = 'lodging' | 'transportation' | 'activities' | 'food' | 'other';
 
 /** Tables that hold a costed record, used to write an FX snapshot back. */
-type CostedSource = 'expense' | 'activity' | 'transportation' | 'lodging';
+type CostedSource = 'expense' | 'activity' | 'transportation' | 'lodging' | 'customItem';
 
 /** The FX snapshot frozen onto a costed record. */
 interface FxSnapshot {
@@ -287,7 +287,7 @@ class ExpenseService {
     // Verify user has view permission on the trip
     await verifyTripAccessWithPermission(userId, tripId, 'view');
 
-    const [trip, activities, transportation, lodging, expenses] = await Promise.all([
+    const [trip, activities, transportation, lodging, expenses, customItems] = await Promise.all([
       prisma.trip.findUnique({
         where: { id: tripId },
         select: { userId: true, budget: true, budgetCurrency: true },
@@ -341,6 +341,18 @@ class ExpenseService {
           date: true,
         },
       }),
+      prisma.customItem.findMany({
+        where: { tripId, cost: { not: null } },
+        select: {
+          id: true,
+          cost: true,
+          currency: true,
+          exchangeRate: true,
+          baseAmount: true,
+          baseCurrency: true,
+          startTime: true,
+        },
+      }),
     ]);
 
     if (!trip) {
@@ -374,6 +386,19 @@ class ExpenseService {
         source: 'activity',
         id: item.id,
         bucket: 'activities',
+        amount: item.cost ?? ZERO,
+        currency: item.currency,
+        exchangeRate: item.exchangeRate,
+        baseAmount: item.baseAmount,
+        baseCurrency: item.baseCurrency,
+        date: item.startTime,
+      })),
+      // Custom items are miscellaneous by definition, so they land in `other`
+      // rather than getting a bucket of their own.
+      ...customItems.map((item): CostedRecord => ({
+        source: 'customItem',
+        id: item.id,
+        bucket: 'other',
         amount: item.cost ?? ZERO,
         currency: item.currency,
         exchangeRate: item.exchangeRate,
@@ -654,6 +679,9 @@ class ExpenseService {
           break;
         case 'lodging':
           await prisma.lodging.update({ where: { id }, data: snapshot });
+          break;
+        case 'customItem':
+          await prisma.customItem.update({ where: { id }, data: snapshot });
           break;
       }
     } catch (error) {

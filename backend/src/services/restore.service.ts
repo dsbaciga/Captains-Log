@@ -24,6 +24,7 @@ interface RestoreStats {
   travelDocumentsImported: number;
   tripLanguagesImported: number;
   savedLinksImported: number;
+  customItemsImported: number;
 }
 
 /**
@@ -33,8 +34,9 @@ interface RestoreStats {
  * v1.2.0 - Added tripTypes and tripSeries
  * v1.3.0 - Removed plaintext secrets (API keys, SMTP password) from exports
  * v1.4.0 - Added savedLinks
+ * v1.5.0 - Added customItems and customItemTypes
  */
-const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0'];
+const SUPPORTED_BACKUP_VERSIONS = ['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0'];
 
 /**
  * Second layer of defence for file paths coming out of an uploaded backup.
@@ -91,6 +93,7 @@ export async function restoreFromBackup(
     travelDocumentsImported: 0,
     tripLanguagesImported: 0,
     savedLinksImported: 0,
+    customItemsImported: 0,
   };
 
   try {
@@ -237,6 +240,27 @@ export async function restoreFromBackup(
             },
           });
           locationCategoryMap.set(category.name, created.id);
+        }
+
+        // Step 5b: Import the custom item type registry.
+        //
+        // isDefault is forced false rather than restored. These rows are
+        // user-owned, and `isDefault` is provenance only — it must never gate
+        // editing. (Location categories above DO restore isDefault, and because
+        // updateCategory/deleteCategory filter on isDefault: false, that leaves
+        // restored categories permanently uneditable. Do not copy that here.)
+        const customItemTypeMap = new Map<string, number>(); // name -> new ID
+        for (const itemType of backupData.customItemTypes || []) {
+          const created = await tx.customItemType.create({
+            data: {
+              userId,
+              name: itemType.name,
+              icon: itemType.icon,
+              color: itemType.color,
+              isDefault: false,
+            },
+          });
+          customItemTypeMap.set(itemType.name, created.id);
         }
 
         // Step 6: Import global checklists
@@ -709,6 +733,39 @@ export async function restoreFromBackup(
             stats.savedLinksImported++;
           }
 
+          // Import custom items (added in v1.5.0).
+          // Must run before EntityLinks so CUSTOM_ITEM references can be remapped.
+          const customItemMap = new Map<number, number>(); // old ID -> new ID
+          for (const itemData of tripData.customItems || []) {
+            const customItem = await tx.customItem.create({
+              data: {
+                tripId: trip.id,
+                // The type travelled by name; an unknown name leaves the item
+                // untyped rather than failing the restore.
+                typeId: itemData.typeName
+                  ? customItemTypeMap.get(itemData.typeName) ?? null
+                  : null,
+                name: itemData.name,
+                notes: itemData.notes,
+                allDay: itemData.allDay ?? false,
+                startTime: itemData.startTime ? new Date(itemData.startTime) : null,
+                endTime: itemData.endTime ? new Date(itemData.endTime) : null,
+                timezone: itemData.timezone,
+                locationId: itemData.locationId
+                  ? locationMap.get(itemData.locationId) ?? null
+                  : null,
+                // FX snapshot columns are not backed up — they are recomputed
+                // from cost/currency, matching how activities and lodging behave.
+                cost: itemData.cost != null ? new Prisma.Decimal(itemData.cost) : null,
+                currency: itemData.currency,
+                url: itemData.url,
+                confirmationNumber: itemData.confirmationNumber,
+              },
+            });
+            if (itemData.id != null) customItemMap.set(itemData.id, customItem.id);
+            stats.customItemsImported++;
+          }
+
           // Import EntityLinks (relationships between entities)
           // Helper function to map old IDs to new IDs based on entity type
           //
@@ -730,6 +787,8 @@ export async function restoreFromBackup(
                 return albumMap.get(oldId) || null;
               case 'SAVED_LINK':
                 return savedLinkMap.get(oldId) || null;
+              case 'CUSTOM_ITEM':
+                return customItemMap.get(oldId) || null;
               default:
                 return null;
             }
@@ -819,6 +878,12 @@ async function clearUserData(userId: number, tx: TransactionClient) {
 
   // Delete custom location categories
   await tx.locationCategory.deleteMany({
+    where: { userId },
+  });
+
+  // Delete the custom item type registry. The items themselves live on trips and
+  // are already gone via the trip cascade above; this clears the user-level types.
+  await tx.customItemType.deleteMany({
     where: { userId },
   });
 
