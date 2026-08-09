@@ -1386,7 +1386,7 @@ export default function TripDetailPage() {
           tabs={tabGroups}
           activeTab={activeTab}
           onTabChange={(tabId) => { if (isTabId(tabId)) changeTab(tabId); }}
-          className={`mb-6 sticky top-28 sm:top-32 bg-cream dark:bg-navy-900 z-10 ${
+          className={`mb-6 sticky top-28 sm:top-32 bg-cream dark:bg-navy-900 z-20 ${
             navigationLayout === 'sidebar' ? 'md:hidden' : ''
           }`}
         />
