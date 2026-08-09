@@ -331,6 +331,12 @@ model LocationCategory {
   name      String   @db.VarChar(255)
   icon      String?  @db.VarChar(100)
   color     String?  @db.VarChar(7) // Hex color code
+  // DB-level CHECK ("user_id" IS NULL OR "is_default" = false) named
+  // `location_categories_default_is_system_owned` — added in migration
+  // 20260809010000_fix_user_owned_default_location_categories. A user-owned category is
+  // never a system default; if it were, updateCategory/deleteCategory (which filter on
+  // `isDefault: false`) would leave its owner unable to edit or delete it. Prisma cannot
+  // represent CHECK constraints, so `prisma db push` would NOT recreate it.
   isDefault Boolean  @default(false) @map("is_default")
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -357,8 +363,8 @@ model CustomItemType {
   color     String?  @db.VarChar(7) // Hex color code
   // Marks a seeded starter type. Unlike LocationCategory, userId is never null:
   // these are always user-owned and always editable, so the restore path must
-  // force isDefault false rather than preserving it (which is the bug that
-  // freezes restored location categories).
+  // force isDefault false rather than preserving it (the bug that used to freeze
+  // restored location categories — fixed there too, see LocationCategory).
   isDefault Boolean  @default(false) @map("is_default")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

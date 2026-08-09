@@ -427,6 +427,34 @@ describe('RestoreService', () => {
       expect(result.stats.companionsImported).toBe(1);
     });
 
+    it('RST-015: restores a backed-up default category as an editable user category', async () => {
+      // Regression: restore used to copy `isDefault` straight out of the backup while
+      // also stamping the row with `userId`. location.service updateCategory and
+      // deleteCategory both look the row up with `{ id, userId, isDefault: false }`, so a
+      // restored `isDefault: true` row could never be edited or deleted by its owner --
+      // one backup round-trip froze the user's categories for good.
+      const backup: BackupData = {
+        ...minimalBackup,
+        locationCategories: [
+          { name: 'Restaurant', icon: 'utensils', color: '#ff9900', isDefault: true },
+        ],
+      };
+
+      await restoreFromBackup(1, backup);
+
+      expect(mockTx.locationCategory.create).toHaveBeenCalledTimes(1);
+      const created = (mockTx.locationCategory.create.mock.calls[0] as [
+        { data: { userId: number; name: string; isDefault: boolean } },
+      ])[0].data;
+
+      // The row is user-owned, so it must not claim to be a system default.
+      expect(created).toMatchObject({ userId: 1, name: 'Restaurant', isDefault: false });
+
+      // And it must satisfy the exact predicate updateCategory/deleteCategory filter on,
+      // which is what "the user can still edit this" actually means.
+      expect(created.userId === 1 && created.isDefault === false).toBe(true);
+    });
+
     it('RST-007: imports trips with all related entities', async () => {
       const result = await restoreFromBackup(1, fullBackup);
 
