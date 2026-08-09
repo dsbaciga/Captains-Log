@@ -228,6 +228,11 @@ export async function restoreFromBackup(
         }
 
         // Step 5: Import custom location categories
+        // isDefault is deliberately forced to false rather than carried over from the
+        // backup. A system default category has userId NULL (see schema.prisma), so a
+        // row that is both user-owned and isDefault is an invalid state: updateCategory
+        // and deleteCategory both filter on `isDefault: false`, which would leave the
+        // restored category permanently uneditable and undeletable.
         const locationCategoryMap = new Map<string, number>(); // old name -> new ID
         for (const category of backupData.locationCategories) {
           const created = await tx.locationCategory.create({
@@ -236,7 +241,7 @@ export async function restoreFromBackup(
               name: category.name,
               icon: category.icon,
               color: category.color,
-              isDefault: category.isDefault,
+              isDefault: false,
             },
           });
           locationCategoryMap.set(category.name, created.id);
@@ -246,9 +251,9 @@ export async function restoreFromBackup(
         //
         // isDefault is forced false rather than restored. These rows are
         // user-owned, and `isDefault` is provenance only — it must never gate
-        // editing. (Location categories above DO restore isDefault, and because
-        // updateCategory/deleteCategory filter on isDefault: false, that leaves
-        // restored categories permanently uneditable. Do not copy that here.)
+        // editing. (Location categories above used to restore isDefault, which
+        // left them permanently uneditable; they now force false for the same
+        // reason. Do not reintroduce it in either place.)
         const customItemTypeMap = new Map<string, number>(); // name -> new ID
         for (const itemType of backupData.customItemTypes || []) {
           const created = await tx.customItemType.create({
